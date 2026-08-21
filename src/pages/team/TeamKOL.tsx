@@ -43,6 +43,7 @@ import {
   FIELD_ANCHORS,
   normalizeIgHandle,
   igProfileUrl,
+  isContentPostUrl,
   normalizeCode,
   normalizeKolName,
   kolNameKey,
@@ -690,6 +691,7 @@ function InvitationsTab({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [dupWarning, setDupWarning] = useState<string | null>(null);
+  const [igContentUrlAck, setIgContentUrlAck] = useState(false);
   const [newTagInput, setNewTagInput] = useState("");
   const [followerError, setFollowerError] = useState<string | null>(null);
   // 防呆：阻擋訊息 / 合拍同住確認 / IG 重複確認
@@ -1250,10 +1252,15 @@ function InvitationsTab({
     }
   }, [form.order_number]); // eslint-disable-line
 
+  // 換一筆／關閉表單時，重置「確定就是帳號連結」的確認狀態
+  useEffect(() => {
+    setIgContentUrlAck(false);
+  }, [sheetOpen, editingId]);
+
   // ig_handle 即時重複檢查
   useEffect(() => {
     const ig = form.ig_handle.trim();
-    if (!ig) {
+    if (!ig || isContentPostUrl(ig)) {
       setDupWarning(null);
       return;
     }
@@ -1480,7 +1487,10 @@ function InvitationsTab({
     }
 
     // ===== 防呆檢查（阻擋 / 警告）=====
-    const normIg = normalizeIgHandle(form.ig_handle);
+    const igIsContentUrl = isContentPostUrl(form.ig_handle);
+    const normIg = igIsContentUrl
+      ? (igProfileUrl(form.ig_handle) || form.ig_handle.trim())
+      : normalizeIgHandle(form.ig_handle);
     const normCid = normalizeCode(form.cid_code);
     const normCompanion = normalizeCode(form.companion_cid);
     const orderNo = form.order_number.trim();
@@ -1523,7 +1533,7 @@ function InvitationsTab({
               _exclude_profile_id: editingId,
             })
           : Promise.resolve({ data: [] } as any),
-        normIg
+        normIg && !igIsContentUrl
           ? supabase
               .from("kol_profiles")
               .select("id, name, ig_handle")
@@ -3234,6 +3244,41 @@ function InvitationsTab({
                     }))
                   }
                 />
+                {isContentPostUrl(form.ig_handle) && !igContentUrlAck && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
+                    <div>
+                      ⚠️ 這看起來是貼文／Reels 影片連結，不包含 IG 帳號本身，無法用於查重與自動歸戶。
+                      確認這網址是想填寫在「發布連結」欄位嗎？（不影響儲存）
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          const url = form.ig_handle.trim();
+                          if (form.publish_url.trim() && form.publish_url.trim() !== url) {
+                            if (!window.confirm("「發布連結」已有內容，要覆蓋嗎？")) return;
+                          }
+                          setForm((prev) => ({ ...prev, publish_url: url, ig_handle: "" }));
+                          setIgContentUrlAck(false);
+                        }}
+                      >
+                        移到發布連結
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 text-xs"
+                        onClick={() => setIgContentUrlAck(true)}
+                      >
+                        我確定就是帳號連結
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Field>
             </div>
 
