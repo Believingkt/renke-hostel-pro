@@ -2017,11 +2017,12 @@ export default function TeamHome() {
       />
 
       {loading && (
-        <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        <div className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 flex items-center gap-2.5 text-base font-medium text-primary">
+          <Loader2 className="h-5 w-5 animate-spin" />
           正在讀取並計算 {activePeriod.label} 的獎金資料…
-        </p>
+        </div>
       )}
+
 
       {!loading && cards.length === 0 ? (
         <Card>
