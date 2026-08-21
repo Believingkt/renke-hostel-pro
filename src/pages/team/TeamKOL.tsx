@@ -1163,6 +1163,29 @@ function InvitationsTab({
     return groups;
   }, [sortedRows]);
 
+  // 稽核提醒：PMS 有折扣碼、但該館沒有對應邀約（孤兒折扣碼）
+  const [orphanCodes, setOrphanCodes] = useState<
+    { discount_code_id: string; code: string; code_name: string | null; accommodation_id: string; accommodation_name: string | null; created_at: string }[]
+  >([]);
+  const [orphanDismissed, setOrphanDismissed] = useState(false);
+  useEffect(() => {
+    const accIds = accommodations.map((a) => a.id);
+    if (accIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.rpc("list_orphan_kol_discount_codes" as any, {
+        _accommodation_ids: accIds,
+      });
+      if (cancelled || error) return;
+      setOrphanCodes((data as any[]) ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodations]);
+
+
+
 
 
 
