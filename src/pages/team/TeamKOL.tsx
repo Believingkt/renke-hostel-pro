@@ -863,12 +863,34 @@ function InvitationsTab({
       q = q.gte("check_in_date", start).lt("check_in_date", end);
     }
     const s = search.trim();
+    let matchedParentIds: string[] = [];
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
-      q = q.or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`);
+      // 搜尋也要命中「附屬記錄（子檔）」→ 先撈出命中的子檔，把它們的主檔一併帶進本頁
+      const { data: childHits } = await supabase
+        .from("kol_profiles")
+        .select("primary_profile_id")
+        .not("primary_profile_id", "is", null)
+        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%`)
+        .limit(200);
+      matchedParentIds = Array.from(
+        new Set(
+          (childHits ?? [])
+            .map((c: any) => c.primary_profile_id as string | null)
+            .filter((v): v is string => !!v),
+        ),
+      );
+      const orParts = [
+        `name.ilike.%${esc}%`,
+        `ig_handle.ilike.%${esc}%`,
+        `cid_code.ilike.%${esc}%`,
+      ];
+      if (matchedParentIds.length > 0) orParts.push(`id.in.(${matchedParentIds.join(",")})`);
+      q = q.or(orParts.join(","));
     }
 
     const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
+
 
     if (error) {
       toast.error(error.message);
