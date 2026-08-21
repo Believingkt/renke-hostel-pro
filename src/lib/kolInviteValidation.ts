@@ -180,6 +180,9 @@ export type InviteFormSnapshot = {
   /** 既有紀錄中「僅全半形／大小寫／空白不同」的同名寫法（若有） */
   name_variant_existing?: string | null;
   name_variant_confirmed?: boolean;
+  /** 合約歸戶識別碼；與夥伴相同時視為同一份合約 */
+  contract_group_id?: string | null;
+
 };
 
 
