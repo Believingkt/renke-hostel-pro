@@ -267,6 +267,9 @@ export type InviteFormSnapshot = {
   name_variant_confirmed?: boolean;
   /** 合約歸戶識別碼；與夥伴相同時視為同一份合約 */
   contract_group_id?: string | null;
+  /** 本筆所選館別／場域的類別（民宿／餐廳／農場／其他） */
+  accommodation_venue_type?: string | null;
+
 
 };
 
