@@ -47,6 +47,8 @@ import {
   normalizeCode,
   normalizeKolName,
   kolNameKey,
+  isSameContractScope,
+
   type CodeConflict,
   type ValidationIssue,
   type CompanionProfile,
