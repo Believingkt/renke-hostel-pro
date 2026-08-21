@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.kol_profiles_assign_contract_group() FROM PUBLIC, anon, authenticated;
