@@ -1344,7 +1344,7 @@ function InvitationsTab({
       ? (venues.find((v) => v.id === form.venue_id)?.accommodation_id ?? null)
       : null;
 
-    const { blocks, warnings } = validateInvite(
+    const { blocks, warnings, issues } = validateInvite(
       {
         name: form.name,
         ig_handle: normIg,
