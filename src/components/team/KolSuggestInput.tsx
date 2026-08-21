@@ -72,19 +72,20 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
         if (v.includes(nq)) return 2;
         return 3;
       };
-      // 同一寫法只留最新一筆
+      // 只有「同寫法＋同 CID＋同入住日」才視為重複，其餘歷史紀錄都列出
       const seen = new Set<string>();
       const ranked = rows
         .map((r) => ({ r, s: score(r) }))
         .sort((a, b) => a.s - b.s || (b.r.check_in_date ?? "").localeCompare(a.r.check_in_date ?? ""))
         .filter(({ r }) => {
-          const k = `${norm(((r as any)[field] ?? "").toString())}|${r.check_in_date ?? ""}`;
+          const k = `${norm(((r as any)[field] ?? "").toString())}|${r.cid_code ?? ""}|${r.check_in_date ?? ""}`;
           if (seen.has(k)) return false;
           seen.add(k);
           return true;
         })
-        .slice(0, 8)
+        .slice(0, 12)
         .map(({ r }) => r);
+
 
       setItems(ranked);
       setOpen(true);
