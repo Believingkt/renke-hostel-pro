@@ -2533,75 +2533,9 @@ function InvitationsTab({
                     );
                   };
 
-                  const renderSubRow = (sub: KolRow) => {
-                    const vRow = sub.venue_id ? venueByIdAll.get(sub.venue_id) : null;
-                    let subVenueName = vRow?.name ?? sub.venue_name ?? "-";
-                    if (vRow && vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
-                      subVenueName = accommodations.find((a) => a.id === vRow.accommodation_id)?.name ?? subVenueName;
-                    }
-                    const contractStatus = computeContractProgress(sub.publish_url, sub.publish_date, sub.contract_file_url);
-                    return (
-                      <TableRow
-                        key={sub.id}
-                        className="cursor-pointer hover:bg-muted/50 bg-muted/20"
-                        onClick={() => setViewingRow(sub)}
-                      >
-                        <TableCell colSpan={16} className="whitespace-normal">
-                          <div className="flex flex-wrap items-center gap-3 pl-6 text-sm">
-                            <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
-                              附屬
-                            </Badge>
-                            <span className="font-medium">{subVenueName}</span>
-                            <span className="text-muted-foreground">
-                              入住：{sub.check_in_date ?? "-"}
-                            </span>
-                            {sub.rarity && (
-                              <Badge variant="outline" className={RARITY_CLASS[sub.rarity as Rarity] ?? ""}>
-                                {sub.rarity}
-                              </Badge>
-                            )}
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              符合資格：
-                              {sub.kpi_qualified ? (
-                                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-200">
-                                  <Check className="h-3 w-3" />
-                                </Badge>
-                              ) : (
-                                <span>-</span>
-                              )}
-                            </span>
-                            <span className="text-muted-foreground">
-                              邀約人：{sub._scout_name ?? "-"}
-                            </span>
-                            <span className="text-muted-foreground">
-                              訂單：{sub.order_number ?? "-"}
-                            </span>
-                            <span className="inline-flex items-center gap-1 text-muted-foreground">
-                              狀態：{renderBookingStatusBadge(sub._effective_booking_status ?? sub.booking_status)}
-                            </span>
-                            {sub.publish_date && (
-                              <span className="text-muted-foreground">
-                                發布：{sub.publish_date}
-                              </span>
-                            )}
-                            {contractStatus && !contractStatus.empty && (
-                              <Badge
-                                variant="outline"
-                                className={
-                                  contractStatus.done
-                                    ? "bg-green-100 text-green-700 border-green-200"
-                                    : "bg-orange-100 text-orange-700 border-orange-200"
-                                }
-                              >
-                                {contractStatus.label}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
+                  // 附屬記錄：與主檔使用完全相同的欄位版型，僅加上「附屬」標記與底色
+                  const renderSubRow = (sub: KolRow) => renderMainRow(sub, { isSub: true });
 
-                      </TableRow>
-                    );
-                  };
 
                   const nodes: React.ReactNode[] = [];
                   for (const p of groupedRows.primaries) {
