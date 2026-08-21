@@ -4128,12 +4128,14 @@ export type Database = {
           campaign_id: string
           created_at: string
           description: string | null
+          disabled_date_types: Database["public"]["Enums"]["group_buy_day_type"][]
           display_name: string
           excluded_dates: string[]
           group_buy_price: number
           holiday_price: number | null
           id: string
           image_url: string | null
+          image_urls: string[]
           is_active: boolean
           max_quantity: number | null
           original_price: number | null
@@ -4150,12 +4152,14 @@ export type Database = {
           campaign_id: string
           created_at?: string
           description?: string | null
+          disabled_date_types?: Database["public"]["Enums"]["group_buy_day_type"][]
           display_name: string
           excluded_dates?: string[]
           group_buy_price: number
           holiday_price?: number | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           is_active?: boolean
           max_quantity?: number | null
           original_price?: number | null
@@ -4172,12 +4176,14 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           description?: string | null
+          disabled_date_types?: Database["public"]["Enums"]["group_buy_day_type"][]
           display_name?: string
           excluded_dates?: string[]
           group_buy_price?: number
           holiday_price?: number | null
           id?: string
           image_url?: string | null
+          image_urls?: string[]
           is_active?: boolean
           max_quantity?: number | null
           original_price?: number | null
@@ -13188,6 +13194,7 @@ export type Database = {
         | "closer_manager"
       coupon_scope: "platform" | "accommodation"
       coupon_type: "percentage" | "fixed"
+      group_buy_day_type: "weekday" | "peak" | "holiday"
       hotelnabe_ari_push_reason: "order_change" | "manual" | "backfill"
       hotelnabe_ari_push_status:
         | "pending"
@@ -13365,6 +13372,7 @@ export const Constants = {
       ],
       coupon_scope: ["platform", "accommodation"],
       coupon_type: ["percentage", "fixed"],
+      group_buy_day_type: ["weekday", "peak", "holiday"],
       hotelnabe_ari_push_reason: ["order_change", "manual", "backfill"],
       hotelnabe_ari_push_status: [
         "pending",
