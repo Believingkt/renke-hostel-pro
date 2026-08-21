@@ -1419,8 +1419,9 @@ function InvitationsTab({
         primary_profile_id: form.primary_profile_id ?? null,
         name_variant_existing: nameVariantExisting,
         name_variant_confirmed: nameVariantConfirmed,
-
+      },
       { companion, conflicts, isManager },
+
     );
 
     const auditSnapshot = {
