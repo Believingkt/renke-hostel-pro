@@ -1672,7 +1672,7 @@ function InvitationsTab({
       name: normalizeKolName(form.name),
       name_original: form.name.trim(),
       ig_handle: normIg,
-      ig_url: normIg ? igProfileUrl(normIg) : null,
+      ig_url: igProfileUrl(form.ig_handle) || null,
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
