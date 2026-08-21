@@ -370,13 +370,33 @@ export default function KolBonusPublic() {
             請由主檔統一填寫勞務報酬單，本頁不另提供請款入口，以免重複請款。
           </div>
         )}
+        {venueCheck.multi && (
+          <div className="rounded-md border border-sky-300 bg-sky-50 p-3 text-sm text-sky-900">
+            本頁為<strong>多館合計</strong>：此折扣碼的訂單橫跨 {venueCheck.names.length} 間館別（
+            {venueCheck.names.join("、")}），已依各館費率分別計算後彙總。填寫勞報單時請以本頁總額為準。
+          </div>
+        )}
+        {venueCheck.mismatch && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            提醒：本清單的訂單屬於「{venueCheck.names[0]}」，與合作場域「{kol.venue_name || "—"}」不同。
+            若不符預期請聯繫星探確認，分潤仍依訂單實際館別費率計算。
+          </div>
+        )}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{kol.name || "—"}</CardTitle>
+            <CardTitle className="text-lg">
+              {kol.name || "—"}
+              {venueCheck.multi ? "（多館合計）" : ""}
+            </CardTitle>
             <p className="text-sm text-muted-foreground">
               折扣碼 / CID：<span className="font-mono">{kol.cid_code || "—"}</span>
-              {kol.venue_name ? `　|　館別：${kol.venue_name}` : ""}
+              {venueCheck.multi
+                ? `　|　館別：${venueCheck.names.join("、")}`
+                : kol.venue_name
+                  ? `　|　館別：${kol.venue_name}`
+                  : ""}
             </p>
+
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap items-center gap-2">
