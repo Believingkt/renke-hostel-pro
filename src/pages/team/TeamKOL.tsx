@@ -1501,6 +1501,7 @@ function InvitationsTab({
               .from("kol_profiles")
               .select("id, name, primary_profile_id")
               .eq("order_number", orderNo)
+              .eq("is_error", false)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
               .limit(5)
           : Promise.resolve({ data: [] } as any),
@@ -1509,6 +1510,7 @@ function InvitationsTab({
               .from("kol_profiles")
               .select("id, name, cid_code, companion_cid, accommodation_id, venue_id, check_in_date")
               .eq("cid_code", normCompanion)
+              .eq("is_error", false)
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
         normCid
@@ -1523,6 +1525,7 @@ function InvitationsTab({
               .from("kol_profiles")
               .select("id, name, ig_handle")
               .ilike("ig_handle", normIg)
+              .eq("is_error", false)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
               .limit(5)
           : Promise.resolve({ data: [] } as any),
@@ -1531,6 +1534,7 @@ function InvitationsTab({
               .from("kol_profiles")
               .select("id, name")
               .eq("name_normalized", nameKey)
+              .eq("is_error", false)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
               .limit(1)
           : Promise.resolve({ data: [] } as any),
