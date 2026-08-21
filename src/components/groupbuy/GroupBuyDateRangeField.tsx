@@ -26,6 +26,11 @@ interface Props {
   unavailableDates?: Set<string>;
   /** 方案不適用日期（不可作為住宿夜，但可作為退房日） */
   excludedDates?: Set<string>;
+  /**
+   * 額外的「不可作為住宿夜」判斷（yyyy-MM-dd → true 代表不可住）。
+   * 團購方案的「不適用日期類型」由呼叫端傳入，元件本身不做任何價格或分類計算。
+   */
+  isBlockedNight?: (dateKey: string) => boolean;
   /** 台灣今日（yyyy-MM-dd）：早於此日的日期一律停用；未傳入時不限制 */
   today?: string | null;
   disabled?: boolean;
@@ -46,6 +51,7 @@ export function GroupBuyDateRangeField({
   max,
   unavailableDates,
   excludedDates,
+  isBlockedNight,
   today,
   disabled,
   invalidCheckIn,
@@ -96,21 +102,24 @@ export function GroupBuyDateRangeField({
     isPast(d) || (minDate ? iso(d) < iso(minDate) : false) || (maxDate ? iso(d) > iso(maxDate) : false);
 
   const soldOut = (d: Date) => !!unavailableDates?.has(iso(d));
-  const excluded = (d: Date) => !!excludedDates?.has(iso(d));
+  /** 不可作為住宿夜：方案不適用日期 OR 方案不適用的日期類型 */
+  const blockedNight = (key: string) => !!excludedDates?.has(key) || !!isBlockedNight?.(key);
+  const excluded = (d: Date) => blockedNight(iso(d));
 
   /** 選退房日階段：退房日不佔當晚庫存，僅擋活動期間外的日期 */
   const isCheckoutPhase = phase === 2 && !!from;
 
   /** 住宿區間不可跨過不適用日期：退房日只能到「第一個不適用日期」當天為止 */
   const crossesExcluded = (d: Date) => {
-    if (!from || !excludedDates?.size) return false;
+    if (!from) return false;
+    if (!excludedDates?.size && !isBlockedNight) return false;
     const cur = new Date(from);
     cur.setDate(cur.getDate() + 1);
     while (cur < d) {
-      if (excludedDates.has(iso(cur))) return true;
+      if (blockedNight(iso(cur))) return true;
       cur.setDate(cur.getDate() + 1);
     }
-    return excludedDates.has(iso(from));
+    return blockedNight(iso(from));
   };
 
   const disabledDay = (d: Date) => {
@@ -234,14 +243,14 @@ export function GroupBuyDateRangeField({
           ) : (
             <span className="flex min-w-0 items-start gap-1.5">
               <span className="mt-0.5 h-3 w-3 shrink-0 rounded-sm bg-muted line-through" />
-              <span className="break-words line-through">已滿房／不可入住</span>
+              <span className="break-words line-through">不可入住／已滿房／方案不適用</span>
             </span>
           )}
         </div>
 
         {isCheckoutPhase && (
           <div className="border-t border-border/70 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
-            不可選日期可能因活動期間限制或住宿區間跨越方案不適用日期。
+            不可選日期可能因活動期間限制、住宿區間跨越方案不適用日期，或跨越方案不適用的日期類型。
           </div>
         )}
 
