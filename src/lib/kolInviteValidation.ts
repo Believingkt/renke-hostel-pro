@@ -166,10 +166,15 @@ export type InviteFormSnapshot = {
   ig_duplicate_confirmed: boolean;
   ig_duplicate_name: string | null;
   collab_confirmed: boolean;
+  /** 本筆的 id（新增時為 null） */
+  self_id?: string | null;
+  /** 本筆掛在哪一筆主檔底下（同住合拍時必填） */
+  primary_profile_id?: string | null;
   /** 既有紀錄中「僅全半形／大小寫／空白不同」的同名寫法（若有） */
   name_variant_existing?: string | null;
   name_variant_confirmed?: boolean;
 };
+
 
 export function validateInvite(
   f: InviteFormSnapshot,
