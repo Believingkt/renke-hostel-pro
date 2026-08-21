@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
       .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id")
       .eq("check_in_date", targetCheckIn)
       .eq("booking_status", "成功訂房")
-      .is("primary_profile_id", null)
+      // 同住合拍的附屬記錄也要收到發文提醒（各自都要發影片），故不再排除子檔
       .eq("is_error", false);
 
     if (kolErr) throw kolErr;
