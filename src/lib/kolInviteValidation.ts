@@ -455,6 +455,30 @@ export function validateInvite(
     });
   }
 
+  // 9.5 名稱僅全半形／大小寫不同（疑似同一人不同寫法）
+  const nameNorm = normalizeKolName(f.name);
+  if (f.name_variant_existing && !f.name_variant_confirmed) {
+    add({
+      level: "block",
+      rule: "name.variant_existing",
+      field: "name",
+      message: `已有名稱僅在全半形／大小寫／空白上不同的紀錄「${f.name_variant_existing}」。`,
+      expected: `沿用既有寫法：${f.name_variant_existing}`,
+      actual: f.name.trim(),
+      suggestion: `建議直接改填「${f.name_variant_existing}」；若確定是不同人，請勾選「確認為不同人（不套用既有寫法）」。`,
+    });
+  } else if (nameNorm && nameNorm !== f.name.trim()) {
+    add({
+      level: "warning",
+      rule: "name.normalized",
+      field: "name",
+      message: `名稱將自動正規化為「${nameNorm}」後儲存。`,
+      expected: nameNorm,
+      actual: f.name.trim(),
+      suggestion: "全形英數會轉半形、英文首字大寫、中英文之間多餘空白會移除；原始輸入仍會保留。",
+    });
+  }
+
   // 10. IG 重複
   if (f.ig_duplicate_name && !f.ig_duplicate_confirmed) {
     add({
