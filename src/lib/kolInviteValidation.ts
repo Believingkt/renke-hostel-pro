@@ -85,6 +85,27 @@ export function normalizeIgHandle(raw: string): string {
 /** 折扣碼正規化：大寫去空白 */
 export const normalizeCode = (raw: string) => (raw ?? "").trim().toUpperCase();
 
+const CJK = "\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af";
+
+/**
+ * KOL 名稱正規化（與 DB 的 public.normalize_kol_name 規則一致）：
+ * 全形英數→半形、去除中英文之間多餘空白、英文單字首字大寫其餘小寫。
+ */
+export function normalizeKolName(raw: string): string {
+  let v = (raw ?? "").trim();
+  if (!v) return "";
+  // 全形英數與全形空白 → 半形
+  v = v.replace(/[\uff01-\uff5e]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0)).replace(/\u3000/g, " ");
+  v = v.replace(/\s+/g, " ").trim();
+  v = v.replace(new RegExp(`([${CJK}])\\s+`, "g"), "$1");
+  v = v.replace(new RegExp(`\\s+([${CJK}])`, "g"), "$1");
+  v = v.replace(/[A-Za-z]+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  return v.trim();
+}
+
+/** 名稱比對鍵：正規化後轉小寫並移除空白 */
+export const kolNameKey = (raw: string) => normalizeKolName(raw).toLowerCase().replace(/\s+/g, "");
+
 const PUBLISH_DOMAINS = ["instagram.com", "threads.net", "threads.com", "youtube.com", "youtu.be", "tiktok.com"];
 
 export function isKnownPublishDomain(url: string): boolean {
@@ -145,6 +166,9 @@ export type InviteFormSnapshot = {
   ig_duplicate_confirmed: boolean;
   ig_duplicate_name: string | null;
   collab_confirmed: boolean;
+  /** 既有紀錄中「僅全半形／大小寫／空白不同」的同名寫法（若有） */
+  name_variant_existing?: string | null;
+  name_variant_confirmed?: boolean;
 };
 
 export function validateInvite(
@@ -428,6 +452,30 @@ export function validateInvite(
       field: "scout",
       message: "尚未指定邀約人，此筆獎金將無歸屬。",
       suggestion: "主管可先存，但建議事後補上歸屬。",
+    });
+  }
+
+  // 9.5 名稱僅全半形／大小寫不同（疑似同一人不同寫法）
+  const nameNorm = normalizeKolName(f.name);
+  if (f.name_variant_existing && !f.name_variant_confirmed) {
+    add({
+      level: "block",
+      rule: "name.variant_existing",
+      field: "name",
+      message: `已有名稱僅在全半形／大小寫／空白上不同的紀錄「${f.name_variant_existing}」。`,
+      expected: `沿用既有寫法：${f.name_variant_existing}`,
+      actual: f.name.trim(),
+      suggestion: `建議直接改填「${f.name_variant_existing}」；若確定是不同人，請勾選「確認為不同人（不套用既有寫法）」。`,
+    });
+  } else if (nameNorm && nameNorm !== f.name.trim()) {
+    add({
+      level: "warning",
+      rule: "name.normalized",
+      field: "name",
+      message: `名稱將自動正規化為「${nameNorm}」後儲存。`,
+      expected: nameNorm,
+      actual: f.name.trim(),
+      suggestion: "全形英數會轉半形、英文首字大寫、中英文之間多餘空白會移除；原始輸入仍會保留。",
     });
   }
 

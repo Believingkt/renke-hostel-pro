@@ -42,6 +42,8 @@ import {
   FIELD_ANCHORS,
   normalizeIgHandle,
   normalizeCode,
+  normalizeKolName,
+  kolNameKey,
   type CodeConflict,
   type ValidationIssue,
   type CompanionProfile,
@@ -689,6 +691,10 @@ function InvitationsTab({
   const [blockIssues, setBlockIssues] = useState<ValidationIssue[]>([]);
   const [collabConfirmed, setCollabConfirmed] = useState(false);
   const [igDupConfirmed, setIgDupConfirmed] = useState(false);
+  /** 名稱僅全半形／大小寫不同時，確認為不同人（不套用既有寫法） */
+  const [nameVariantConfirmed, setNameVariantConfirmed] = useState(false);
+  /** 既有的同名不同寫法（供表單即時提示） */
+  const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
 
   // 填錯 Dialog
@@ -1237,6 +1243,8 @@ function InvitationsTab({
       setCidConflicts([]);
       setCollabConfirmed(false);
       setIgDupConfirmed(false);
+      setNameVariantConfirmed(false);
+      setNameVariant(null);
       return;
     }
     const code = normalizeCode(form.cid_code);
@@ -1254,6 +1262,28 @@ function InvitationsTab({
     }, 350);
     return () => clearTimeout(t);
   }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
+
+  // 名稱「僅全半形／大小寫／空白不同」即時偵測
+  useEffect(() => {
+    if (!sheetOpen) return;
+    const key = kolNameKey(form.name);
+    const raw = form.name.trim();
+    if (!key) {
+      setNameVariant(null);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await supabase
+        .from("kol_profiles")
+        .select("id, name")
+        .eq("name_normalized", key)
+        .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+        .limit(1);
+      const existing = ((data as any[]) ?? [])[0]?.name ?? null;
+      setNameVariant(existing && existing !== raw ? existing : null);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form.name, editingId, sheetOpen]);
 
   const handleSave = async () => {
     if (!form.accommodation_id && !form.venue_id) {
@@ -1292,9 +1322,11 @@ function InvitationsTab({
     let companion: CompanionProfile = null;
     let conflicts: CodeConflict[] = [];
     let igDupName: string | null = null;
+    let nameVariantExisting: string | null = null;
+    const nameKey = kolNameKey(form.name);
 
     try {
-      const [orderRes, boundRes, companionRes, conflictRes, igRes] = await Promise.all([
+      const [orderRes, boundRes, companionRes, conflictRes, igRes, nameRes] = await Promise.all([
         orderNo
           ? supabase.from("orders").select("id, discount_code").eq("order_number", orderNo).maybeSingle()
           : Promise.resolve({ data: null } as any),
@@ -1328,6 +1360,14 @@ function InvitationsTab({
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
               .limit(5)
           : Promise.resolve({ data: [] } as any),
+        nameKey
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name")
+              .eq("name_normalized", nameKey)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(1)
+          : Promise.resolve({ data: [] } as any),
       ]);
 
       if (orderNo) {
@@ -1339,6 +1379,8 @@ function InvitationsTab({
       conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
       const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
       igDupName = igDup?.name ?? null;
+      const existingName = ((nameRes?.data as any[]) ?? [])[0]?.name ?? null;
+      nameVariantExisting = existingName && existingName !== form.name.trim() ? existingName : null;
     } catch {
       // 查詢失敗不阻擋儲存，僅略過進階檢查
     }
@@ -1373,6 +1415,8 @@ function InvitationsTab({
         ig_duplicate_confirmed: igDupConfirmed,
         ig_duplicate_name: igDupName,
         collab_confirmed: collabConfirmed,
+        name_variant_existing: nameVariantExisting,
+        name_variant_confirmed: nameVariantConfirmed,
       },
       { companion, conflicts, isManager },
     );
@@ -1439,7 +1483,8 @@ function InvitationsTab({
       accommodation_id: form.accommodation_id || null,
       venue_id: resolvedVenueId,
       venue_name: resolvedVenueName,
-      name: form.name.trim(),
+      name: normalizeKolName(form.name),
+      name_original: form.name.trim(),
       ig_handle: normIg,
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
@@ -2772,6 +2817,41 @@ function InvitationsTab({
                     }))
                   }
                 />
+                {nameVariant && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                    <div>
+                      ⚠️ 已有寫法不同的同名紀錄「{nameVariant}」（僅全半形／大小寫／空白不同）。
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, name: nameVariant }));
+                          setNameVariantConfirmed(false);
+                        }}
+                      >
+                        套用既有寫法
+                      </Button>
+                      <label className="flex items-center gap-2">
+                        <Checkbox
+                          checked={nameVariantConfirmed}
+                          onCheckedChange={(c) => setNameVariantConfirmed(!!c)}
+                        />
+                        <span>確認為不同人（不套用既有寫法）</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {!nameVariant &&
+                  form.name.trim() &&
+                  normalizeKolName(form.name) !== form.name.trim() && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      儲存時將正規化為「{normalizeKolName(form.name)}」
+                    </div>
+                  )}
               </Field>
               <Field label="網紅帳號連結 *" anchorId="kolf-ig">
                 <KolSuggestInput
