@@ -1019,7 +1019,11 @@ export default function GroupBuyCampaign() {
           <div className="mt-5 space-y-3.5">
             {packages.map((p) => {
               const active = !bookingLocked && p.id === selectedPkgId;
-              const save = p.original_price ? Math.round(p.original_price - lowestEffectivePrice(p)) : 0;
+              const pkgTypes = enabledDateTypes(p);
+              const pkgSoldOut = pkgTypes.length === 0;
+              const pkgLowest = lowestEnabledPrice(p) ?? lowestEffectivePrice(p);
+              const save = p.original_price ? Math.round(p.original_price - pkgLowest) : 0;
+              const photos = packagePhotos(p);
               return (
                 <div
                   key={p.id}
@@ -1029,12 +1033,11 @@ export default function GroupBuyCampaign() {
                       : "border-border/70 bg-card"
                   } ${bookingLocked ? "opacity-70" : ""}`}
                 >
-                  {p.image_url && (
-                    <img
-                      src={p.image_url}
+                  {photos.length > 0 && (
+                    <GroupBuyPackageGallery
+                      urls={photos}
                       alt={p.display_name}
-                      loading="lazy"
-                      className="h-40 w-full shrink-0 rounded-xl object-cover sm:h-28 sm:w-36"
+                      className="w-full shrink-0 sm:w-48"
                     />
                   )}
                   <div className="min-w-0 flex-1">
@@ -1071,19 +1074,21 @@ export default function GroupBuyCampaign() {
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
                         <span className="text-sm text-muted-foreground">團購價</span>
                         <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
-                          {twd(lowestEffectivePrice(p))}
+                          {twd(pkgLowest)}
                         </span>
                         <span className="text-sm text-muted-foreground">起／晚</span>
                       </div>
                       {(() => {
                         const pr = effectivePrices(p);
-                        const varies = pr.weekday !== pr.peak || pr.peak !== pr.holiday;
-                        if (!varies) return null;
-                        return (
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            平日 {twd(pr.weekday)}・旺日 {twd(pr.peak)}・假日 {twd(pr.holiday)}
-                          </p>
+                        const parts = (["weekday", "peak", "holiday"] as GroupBuyDayType[]).map((t) =>
+                          isDateTypeEnabled(p, t)
+                            ? `${GROUP_BUY_DAY_TYPE_LABEL[t]} ${twd(pr[t])}`
+                            : `${GROUP_BUY_DAY_TYPE_LABEL[t]} 不適用`,
                         );
+                        const varies =
+                          pr.weekday !== pr.peak || pr.peak !== pr.holiday || pkgTypes.length < 3;
+                        if (!varies) return null;
+                        return <p className="mt-1 text-xs text-muted-foreground">{parts.join("・")}</p>;
                       })()}
                       {(p.excluded_dates?.length ?? 0) > 0 && (
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -1108,7 +1113,11 @@ export default function GroupBuyCampaign() {
                     </div>
                     {/* 第五層：選擇方案 */}
                     <div className="mt-4">
-                      {bookingLocked ? (
+                      {pkgSoldOut ? (
+                        <span className="text-sm font-medium text-muted-foreground">
+                          此方案暫不開放預訂
+                        </span>
+                      ) : bookingLocked ? (
                         <span className="text-sm text-muted-foreground">
                           {sale === "ended" ? "活動已結束" : "尚未開賣"}
                         </span>
@@ -1119,7 +1128,7 @@ export default function GroupBuyCampaign() {
                           </p>
                           <p className="mt-0.5 text-sm text-muted-foreground">
                             <span className="font-semibold text-accent tabular-nums">
-                              {twd(lowestEffectivePrice(p))} 起
+                              {twd(pkgLowest)} 起
                             </span>
                             ／晚 · 下一步：選擇入住日期
                           </p>
