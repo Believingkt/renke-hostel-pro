@@ -177,6 +177,28 @@ Deno.serve(async (req) => {
     }
     const capacityHeadcount = adultCount + childEval.capacityHeadcount;
 
+    // 4.4) 日期類型可用性（必須早於房型／庫存判定，否則會被 409 無空房遮蔽）
+    const { data: holidayRows } = await admin
+      .from("public_holidays")
+      .select("holiday_date")
+      .eq("accommodation_id", campaign.accommodation_id)
+      .in("holiday_date", dates);
+    const holidays = new Set<string>(
+      ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
+    );
+    if (enabledDateTypes(pkg as any).length === 0) {
+      return json({ error: "此方案目前暫不開放預訂，請改選其他方案" }, 400);
+    }
+    const hitDisabledType = findDisabledTypeNight(checkInDate, checkOutDate, pkg as any, holidays);
+    if (hitDisabledType) {
+      return json(
+        {
+          error: `此方案於${GROUP_BUY_DAY_TYPE_LABEL[hitDisabledType.type]}不適用（${hitDisabledType.date}），請調整住宿日期`,
+        },
+        400,
+      );
+    }
+
     // 4.5) 候選房型：capacity 與庫存必須「同時」成立才可指派
     const { data: rtRows } = await admin
       .from("room_types")
@@ -203,27 +225,7 @@ Deno.serve(async (req) => {
     }
 
     // 5) 價格（server 端重算：逐晚日期分類取價 ＋ 兒童加價；完全不信任前端傳入金額）
-    const { data: holidayRows } = await admin
-      .from("public_holidays")
-      .select("holiday_date")
-      .eq("accommodation_id", campaign.accommodation_id)
-      .in("holiday_date", dates);
-    const holidays = new Set<string>(
-      ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
-    );
-    // 5.1) 方案不適用的日期類型（平日／旺日／假日）：server 端一律重驗，退房日不算住宿夜
-    if (enabledDateTypes(pkg as any).length === 0) {
-      return json({ error: "此方案目前暫不開放預訂，請改選其他方案" }, 400);
-    }
-    const hitDisabledType = findDisabledTypeNight(checkInDate, checkOutDate, pkg as any, holidays);
-    if (hitDisabledType) {
-      return json(
-        {
-          error: `此方案於${GROUP_BUY_DAY_TYPE_LABEL[hitDisabledType.type]}不適用（${hitDisabledType.date}），請調整住宿日期`,
-        },
-        400,
-      );
-    }
+
 
     const stay = calculateGroupBuyStayPrice({
       checkIn: checkInDate,

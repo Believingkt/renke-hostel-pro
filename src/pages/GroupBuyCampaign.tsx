@@ -1071,13 +1071,16 @@ export default function GroupBuyCampaign() {
 
                     {/* 第三／四層：團購價 → 原價與省下金額 */}
                     <div className="mt-3.5">
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                        <span className="text-sm text-muted-foreground">團購價</span>
-                        <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
-                          {twd(pkgLowest)}
-                        </span>
-                        <span className="text-sm text-muted-foreground">起／晚</span>
-                      </div>
+                      {/* 全部日期類型皆不適用時不顯示團購價，避免宣傳無法預訂的價格 */}
+                      {!pkgSoldOut && (
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                          <span className="text-sm text-muted-foreground">團購價</span>
+                          <span className="text-[1.75rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2rem]">
+                            {twd(pkgLowest)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">起／晚</span>
+                        </div>
+                      )}
                       {(() => {
                         const pr = effectivePrices(p);
                         const parts = (["weekday", "peak", "holiday"] as GroupBuyDayType[]).map((t) =>
@@ -1096,7 +1099,7 @@ export default function GroupBuyCampaign() {
                           {p.excluded_dates!.length > 6 ? " 等" : ""}
                         </p>
                       )}
-                      {(p.original_price || save > 0) && (
+                      {!pkgSoldOut && (p.original_price || save > 0) && (
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
                           {p.original_price ? (
                             <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
