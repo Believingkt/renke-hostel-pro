@@ -2817,6 +2817,41 @@ function InvitationsTab({
                     }))
                   }
                 />
+                {nameVariant && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+                    <div>
+                      ⚠️ 已有寫法不同的同名紀錄「{nameVariant}」（僅全半形／大小寫／空白不同）。
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7"
+                        onClick={() => {
+                          setForm((prev) => ({ ...prev, name: nameVariant }));
+                          setNameVariantConfirmed(false);
+                        }}
+                      >
+                        套用既有寫法
+                      </Button>
+                      <label className="flex items-center gap-2">
+                        <Checkbox
+                          checked={nameVariantConfirmed}
+                          onCheckedChange={(c) => setNameVariantConfirmed(!!c)}
+                        />
+                        <span>確認為不同人（不套用既有寫法）</span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {!nameVariant &&
+                  form.name.trim() &&
+                  normalizeKolName(form.name) !== form.name.trim() && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      儲存時將正規化為「{normalizeKolName(form.name)}」
+                    </div>
+                  )}
               </Field>
               <Field label="網紅帳號連結 *" anchorId="kolf-ig">
                 <KolSuggestInput
