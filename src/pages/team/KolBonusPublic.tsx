@@ -96,6 +96,9 @@ interface OrderRow {
   final_price: number | null;
   order_status: string;
   accommodation_id: string | null;
+  /** 由 Edge Function 以 service_role 解析，含停用館別 */
+  accommodation_name?: string | null;
+
   gross_revenue?: number | null;
   commission_base?: number | null;
   addon_total?: number | null;
