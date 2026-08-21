@@ -49,6 +49,8 @@ import {
   type ValidationIssue,
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
+import { describeKolSaveError } from "@/lib/kolSaveErrors";
+
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
