@@ -8,7 +8,7 @@
 ## 現況查核（已查資料庫）
 - 同碼異名共 11 組（含 `azj5273` 悌悌／鈞鈞、`chiao1115` 劉亮佐／趙小僑 這類合拍，也含 `ONI97` / `歐妮Oni`、`歐妮Ｏni` 這類純打字誤差）。打字誤差這類要從輸入端擋：KOL 名稱、IG 帳號、折扣碼三個欄位改為**可輸入的自動完成（combobox）**——邊打邊以 `ilike` 查 `kol_profiles` 歷史資料（去除大小寫／全半形差異後比對），下拉列出「姓名 ｜ IG ｜ CID ｜ 館別 ｜ 最近入住日」；選取即沿用既有寫法並可一併回填 IG／CID，堅持要打新值時顯示「查無此人，將建立新名稱」提醒，仍可繼續。
 - `discount_codes` 以「碼＋館別」為單位重複是**正常設計**（`KAI555` 有 4 館各一筆），所以唯一約束必須是 `(upper(code), accommodation_id)`，不能做全域唯一。
-- `discount_codes` 與 `scout_discount_codes` 撞碼 4 筆，兩張表之間目前完全沒有互相檢查。
+- `discount_codes` 與 `scout_discount_codes` 撞碼 4 筆（`NORRISISAY`、`SELFE`、`SELFABBY`、`SELFNICOLE`），兩張表之間目前完全沒有互相檢查。查核撞碼對獎金發放的影響：4 筆都是**同一館別**的同碼，且都是同一個人的兩種身分寫法（3 筆 `scout_self` 自用碼＋1 筆 `partner`），所以獎金範圍**確實重疊**——`discount_codes.commission_rate` 走 KOL／夥伴分潤（`commission_records`／`order_commissions`），`scout_discount_codes` 走星探／成交獎金（`scout_discount_code_payouts`），兩條管線各自以「訂單的 discount_code 字串」為鍵、彼此不知道對方存在，同一張訂單理論上會被兩邊各抽一次。實際資料目前尚未爆掉（撞碼訂單僅 2 筆：`UE7W57F6`、`102923`，只有 1 筆 `commission_records`、`scout_discount_code_payouts` 為 0 筆），屬於未引爆的地雷而非既有錯帳。因此規則定為**擇一**：同一組（碼＋館別）只能有一種獎金來源生效，優先序為 `scout_discount_codes` > `discount_codes.commission_rate`；命中撞碼時後台該碼的獎金設定只顯示生效的那一邊，另一邊以唯讀灰階顯示「已由星探專屬碼接管，不重複計算」，並在計算端（分潤 trigger／`scout_discount_code_payouts` 產生邏輯）同步加上互斥判斷，避免只有 UI 擇一、後端仍雙算。
 - `kol_profiles` 有 1 筆 `companion_cid` 指向自己；`cid_code` 有 4 組只差大小寫的變體；89 筆有 CID 但沒訂單編號。
 
 ## 一、companion_cid 規則化
