@@ -1415,10 +1415,13 @@ function InvitationsTab({
         ig_duplicate_confirmed: igDupConfirmed,
         ig_duplicate_name: igDupName,
         collab_confirmed: collabConfirmed,
+        self_id: editingId,
+        primary_profile_id: form.primary_profile_id ?? null,
         name_variant_existing: nameVariantExisting,
         name_variant_confirmed: nameVariantConfirmed,
       },
       { companion, conflicts, isManager },
+
     );
 
     const auditSnapshot = {
@@ -1521,6 +1524,11 @@ function InvitationsTab({
     if (isManager) {
       payload.kpi_qualified = form.kpi_qualified;
     }
+    // 掛在主檔底下的同住夥伴一律不列入 KPI（分潤只算主檔）
+    if (form.primary_profile_id) {
+      payload.kpi_qualified = false;
+    }
+
 
     let err;
     let newId: string | null = null;
@@ -3105,33 +3113,83 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID" anchorId="kolf-cid">
+                {cidConflicts.length > 0 && (() => {
+                  const kolHits = cidConflicts.filter((c) => c.source === "kol_profiles");
+                  const linked = kolHits.some(
+                    (c) =>
+                      form.primary_profile_id === (c.detail?.profile_id ?? null) ||
+                      (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId),
+                  );
+                  const unresolved = kolHits.length > 0 && !linked;
+                  return (
+                    <div
+                      className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${
+                        unresolved
+                          ? "border-destructive bg-destructive/10 text-destructive"
+                          : "border-amber-300 bg-amber-50 text-amber-900"
+                      }`}
+                    >
+                      {cidConflicts.map((c, i) => (
+                        <div key={i}>
+                          {unresolved ? "⛔" : "⚠️"}{" "}
+                          {c.source === "scout_discount_codes"
+                            ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
+                            : c.source === "kol_profiles"
+                              ? `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
+                              : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
+                        </div>
+                      ))}
+                      {kolHits.length > 0 && (
+                        <div className="pt-1">
+                          {linked ? (
+                            <span>已建立同住合拍關係：分潤與 KPI 只算主檔，本筆不重複計分。</span>
+                          ) : (
+                            <>
+                              <div className="font-medium">
+                                同 CID 必須先建立「同住主檔」關係才能儲存；若不是同住夥伴，請改用本人的專屬碼。
+                              </div>
+                              <div className="mt-1 flex flex-wrap gap-2">
+                                {kolHits
+                                  .filter((c) => c.detail?.profile_id && !c.detail?.primary_profile_id)
+                                  .map((c) => (
+                                    <Button
+                                      key={c.detail.profile_id}
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        setForm({ ...form, primary_profile_id: c.detail.profile_id })
+                                      }
+                                    >
+                                      設為主檔：{c.owner_name ?? "-"}
+                                    </Button>
+                                  ))}
+                              </div>
+                            </>
+                          )}
+                          {form.primary_profile_id && (
+                            <button
+                              type="button"
+                              className="mt-1 underline underline-offset-2"
+                              onClick={() => setForm({ ...form, primary_profile_id: null })}
+                            >
+                              取消主檔關係
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
                 <KolSuggestInput
                   field="cid_code"
                   value={form.cid_code}
                   excludeId={editingId}
                   onChange={(v) => setForm({ ...form, cid_code: v })}
                 />
-                {cidConflicts.length > 0 && (
-                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 space-y-1">
-                    {cidConflicts.map((c, i) => (
-                      <div key={i}>
-                        ⚠️ {c.source === "scout_discount_codes"
-                          ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
-                          : c.source === "kol_profiles"
-                            ? `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
-                            : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
-                      </div>
-                    ))}
-                    {cidConflicts.some((c) => c.source === "kol_profiles") && (
-                      <label className="mt-1 flex items-center gap-2">
-                        <Checkbox checked={collabConfirmed} onCheckedChange={(c) => setCollabConfirmed(!!c)} />
-                        <span>確認為合拍同住（分潤歸主檔）</span>
-                      </label>
-                    )}
-                  </div>
-                )}
               </Field>
             )}
+
 
             <Field label="同住夥伴" anchorId="kolf-companion">
               <CompanionSearch

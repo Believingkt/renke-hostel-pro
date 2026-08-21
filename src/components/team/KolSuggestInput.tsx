@@ -53,7 +53,7 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
         .from("kol_profiles")
         .select("id, name, ig_handle, cid_code, venue_name, check_in_date, name_normalized")
         .order("check_in_date", { ascending: false, nullsFirst: false })
-        .limit(30);
+        .limit(60);
       if (filter) query = query.or(filter);
       else query = query.ilike(field, `%${esc(q)}%`);
       if (excludeId) query = query.neq("id", excludeId);
@@ -72,19 +72,20 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
         if (v.includes(nq)) return 2;
         return 3;
       };
-      // 同一寫法只留最新一筆
+      // 只有「同寫法＋同 CID＋同入住日」才視為重複，其餘歷史紀錄都列出
       const seen = new Set<string>();
       const ranked = rows
         .map((r) => ({ r, s: score(r) }))
         .sort((a, b) => a.s - b.s || (b.r.check_in_date ?? "").localeCompare(a.r.check_in_date ?? ""))
         .filter(({ r }) => {
-          const k = `${norm(((r as any)[field] ?? "").toString())}|${r.check_in_date ?? ""}`;
+          const k = `${norm(((r as any)[field] ?? "").toString())}|${r.cid_code ?? ""}|${r.check_in_date ?? ""}`;
           if (seen.has(k)) return false;
           seen.add(k);
           return true;
         })
-        .slice(0, 8)
+        .slice(0, 12)
         .map(({ r }) => r);
+
 
       setItems(ranked);
       setOpen(true);
@@ -121,7 +122,11 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
       />
       {open && items.length > 0 && (
         <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-md border bg-popover shadow-md">
+          <div className="border-b bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
+            相符的歷史紀錄 {items.length} 筆{items.length >= 12 ? "（僅顯示前 12 筆，請再多打幾個字縮小範圍）" : ""}
+          </div>
           <div className="max-h-56 overflow-y-auto">
+
             {items.map((s) => (
               <button
                 key={s.id}
