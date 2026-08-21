@@ -583,15 +583,19 @@ export default function AdminGroupBuy() {
                       <TableHead className="whitespace-nowrap">訂單編號</TableHead>
                       <TableHead className="whitespace-nowrap">旅客</TableHead>
                       <TableHead className="whitespace-nowrap">入住</TableHead>
-                      <TableHead className="whitespace-nowrap">人數</TableHead>
-                      <TableHead className="whitespace-nowrap text-right tabular-nums">總額</TableHead>
-                      <TableHead className="whitespace-nowrap text-right tabular-nums">訂金</TableHead>
-                      <TableHead className="whitespace-nowrap">狀態</TableHead>
+                      <TableHead className="whitespace-nowrap text-right tabular-nums">訂單總額</TableHead>
+                      <TableHead className="whitespace-nowrap">應付訂金</TableHead>
+                      <TableHead className="whitespace-nowrap">訂單狀態</TableHead>
+                      <TableHead className="whitespace-nowrap">退款狀態</TableHead>
                       <TableHead className="whitespace-nowrap">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {orders.map((o) => (
+                    {orders.map((o) => {
+                      const dState = depositState(o);
+                      const rState = refundState(o);
+                      const showRefundBtn = canProcessRefund(o);
+                      return (
                       <TableRow key={o.id}>
                         <TableCell className="whitespace-nowrap font-medium">
                           <Link
@@ -601,6 +605,7 @@ export default function AdminGroupBuy() {
                             {o.order_number}
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
+                          <div className="text-xs text-muted-foreground">{paymentProviderLabel(o)}</div>
                         </TableCell>
 
                         <TableCell className="whitespace-nowrap">
@@ -610,47 +615,41 @@ export default function AdminGroupBuy() {
                         <TableCell className="whitespace-nowrap">
                           {o.check_in_date} → {o.check_out_date}
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm">
-                          {[
-                            `成人 ${o.adult_count ?? 0}`,
-                            (o.child_count ?? 0) > 0 ? `兒童 ${o.child_count}` : null,
-                            (o.toddler_count ?? 0) > 0 ? `幼兒 ${o.toddler_count}` : null,
-                            (o.infant_count ?? 0) > 0 ? `嬰兒 ${o.infant_count}` : null,
-                          ]
-                            .filter(Boolean)
-                            .join("・")}
-                          <div className="text-xs text-muted-foreground">計價人數 {o.guest_count ?? 0}</div>
-                        </TableCell>
                         <TableCell className="text-right tabular-nums">{twd(o.final_price)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{twd(o.deposit_amount)}</TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {o.order_status === "cancelled" ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              <Badge variant="destructive">已取消</Badge>
-                              {Number(o.refunded_amount || 0) > 0 ? (
-                                <Badge variant="secondary">
-                                  {o.refund_status === "partial_refunded" ? "部分退款" : "已退款"} {twd(o.refunded_amount || 0)}
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">未退款</Badge>
-                              )}
+                          <div className="flex items-center gap-2">
+                            <span className="tabular-nums">{twd(o.deposit_amount)}</span>
+                            <Badge variant={DEPOSIT_STATE_VARIANT[dState]}>{DEPOSIT_STATE_LABEL[dState]}</Badge>
+                          </div>
+                          {Number(o.paid_amount || 0) > 0 && (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              已收 {twd(o.paid_amount || 0)}
                             </div>
-                          ) : o.cancelRequested ? (
-                            <div className="flex flex-wrap items-center gap-1">
-                              <Badge variant="destructive">旅客申請取消</Badge>
-                              {o.confirmed ? <Badge variant="secondary">已收訂金</Badge> : null}
-                            </div>
-                          ) : o.confirmed ? (
-                            <Badge className="bg-primary">已收訂金</Badge>
-                          ) : o.reported ? (
-                            <Badge variant="secondary">旅客已回報</Badge>
-                          ) : (
-                            <Badge variant="outline">待匯款</Badge>
-
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {o.order_status !== "cancelled" && !o.confirmed && (
+                          {o.order_status === "cancelled" ? (
+                            <Badge variant="destructive">已取消</Badge>
+                          ) : o.cancelRequested ? (
+                            <Badge variant="destructive">旅客申請取消</Badge>
+                          ) : o.reported && dState === "unpaid" ? (
+                            <Badge variant="secondary">旅客已回報</Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              {o.order_status === "confirmed" ? "已確認" : "待處理"}
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={REFUND_STATE_VARIANT[rState]}>{REFUND_STATE_LABEL[rState]}</Badge>
+                          {Number(o.refunded_amount || 0) > 0 && (
+                            <div className="text-xs text-muted-foreground tabular-nums">
+                              已退 {twd(o.refunded_amount || 0)}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {o.order_status !== "cancelled" && dState !== "paid" && (
                             <Button
                               size="sm"
                               onClick={() => {
@@ -667,6 +666,12 @@ export default function AdminGroupBuy() {
                               取消／退款
                             </Button>
                           )}
+                          {showRefundBtn && (
+                            <Button size="sm" variant="outline" className="ml-1" onClick={() => openRefund(o)}>
+                              <Banknote className="mr-1 h-4 w-4" />
+                              處理退款
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -678,7 +683,8 @@ export default function AdminGroupBuy() {
                           </Button>
                         </TableCell>
                       </TableRow>
-                    ))}
+                      );
+                    })}
                     {orders.length === 0 && (
                       <TableRow>
                         <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
@@ -691,6 +697,7 @@ export default function AdminGroupBuy() {
               </CardContent>
             </Card>
           </TabsContent>
+
 
           <TabsContent value="packages" className="space-y-3">
             <Button size="sm" onClick={addPackage}>
