@@ -2673,6 +2673,16 @@ function InvitationsTab({
                           )}
                         </TableCell>
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          {dupPair && isManager && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 mr-1 border-red-300 text-red-600 hover:bg-red-50"
+                              onClick={() => setMergeConfirm(dupPair)}
+                            >
+                              合併重複
+                            </Button>
+                          )}
                           <Button
                             size="icon"
                             variant="ghost"
@@ -2683,6 +2693,7 @@ function InvitationsTab({
                             <Pencil className="h-4 w-4" />
                           </Button>
                         </TableCell>
+
                       </TableRow>
                     );
                   };
