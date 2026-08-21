@@ -310,15 +310,21 @@ export function validateInvite(
           suggestion: "請改為編輯既有那筆邀約，而不是新增一筆。",
         });
       } else if (!sameName) {
+        // 同住合拍必須有「實際的主檔關聯」才算數：
+        // 本筆掛在對方底下，或對方掛在本筆底下（或以 companion_cid 互指）。
+        const otherId = c.detail?.profile_id ?? null;
+        const linkedAsPrimary = !!otherId && f.primary_profile_id === otherId;
+        const linkedAsChild = !!f.self_id && (c.detail?.primary_profile_id ?? null) === f.self_id;
         const isCompanionPair =
-          normalizeCode(f.companion_cid) === normalizeCode(c.code ?? "") ||
-          normalizeCode(c.detail?.companion_cid ?? "") === normalizeCode(f.cid_code);
-        if (isCompanionPair || f.collab_confirmed) {
+          (!!normalizeCode(f.companion_cid) && normalizeCode(f.companion_cid) === normalizeCode(c.code ?? "")) ||
+          (!!normalizeCode(c.detail?.companion_cid ?? "") &&
+            normalizeCode(c.detail?.companion_cid ?? "") === normalizeCode(f.cid_code));
+        if (linkedAsPrimary || linkedAsChild || isCompanionPair) {
           add({
             level: "warning",
             rule: "cid.collab_confirmed",
             field: "cid_code",
-            message: `此 CID 也由「${c.owner_name}」${where}使用，已標記為合拍同住。`,
+            message: `此 CID 也由「${c.owner_name}」${where}使用，已建立同住合拍關係。`,
             suggestion: "分潤與 KPI 只算主檔，同行者不重複計分。",
           });
         } else {
@@ -327,12 +333,13 @@ export function validateInvite(
             rule: "cid.used_by_other",
             field: "cid_code",
             message: `此 CID 已被「${c.owner_name}」${where}使用（入住日 ${c.detail?.check_in_date ?? "-"}）。`,
-            expected: "每位 KOL 使用自己的專屬 CID",
+            expected: "同一組 CID 只能有一位主檔；同住夥伴需掛在主檔底下",
             actual: normalizeCode(f.cid_code),
-            suggestion: "若確為合拍同住，請勾選「確認為合拍同住」；否則請改用本人的專屬碼。",
+            suggestion: `若確為同住合拍，請在「折扣碼 / CID」下方點「設為主檔：${c.owner_name}」建立同住關係；若不是同住夥伴，請改用本人的專屬碼。`,
           });
         }
       }
+
     } else if (c.source === "discount_codes") {
       if (c.accommodation_id && f.accommodation_id && c.accommodation_id !== f.accommodation_id) {
         add({
