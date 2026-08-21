@@ -1253,6 +1253,113 @@ function InvitationsTab({
       return;
     }
 
+    // ===== 防呆檢查（阻擋 / 警告）=====
+    const normIg = normalizeIgHandle(form.ig_handle);
+    const normCid = normalizeCode(form.cid_code);
+    const normCompanion = normalizeCode(form.companion_cid);
+    const orderNo = form.order_number.trim();
+
+    let orderExists: boolean | null = null;
+    let orderDiscountCode: string | null = null;
+    let orderBoundTo: string | null = null;
+    let companion: CompanionProfile = null;
+    let conflicts: CodeConflict[] = [];
+    let igDupName: string | null = null;
+
+    try {
+      const [orderRes, boundRes, companionRes, conflictRes, igRes] = await Promise.all([
+        orderNo
+          ? supabase.from("orders").select("id, discount_code").eq("order_number", orderNo).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        orderNo
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name")
+              .eq("order_number", orderNo)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(1)
+          : Promise.resolve({ data: [] } as any),
+        normCompanion
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name, cid_code, companion_cid, accommodation_id, venue_id, check_in_date")
+              .eq("cid_code", normCompanion)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        normCid
+          ? supabase.rpc("check_discount_code_conflict", {
+              _code: normCid,
+              _accommodation_id: form.accommodation_id || null,
+              _exclude_profile_id: editingId,
+            })
+          : Promise.resolve({ data: [] } as any),
+        normIg
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name, ig_handle")
+              .ilike("ig_handle", normIg)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(5)
+          : Promise.resolve({ data: [] } as any),
+      ]);
+
+      if (orderNo) {
+        orderExists = !!orderRes?.data;
+        orderDiscountCode = (orderRes?.data as any)?.discount_code ?? null;
+        orderBoundTo = (boundRes?.data as any[])?.[0]?.name ?? null;
+      }
+      companion = (companionRes?.data as CompanionProfile) ?? null;
+      conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
+      const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
+      igDupName = igDup?.name ?? null;
+    } catch {
+      // 查詢失敗不阻擋儲存，僅略過進階檢查
+    }
+
+    const venueParentAcc = form.venue_id
+      ? (venues.find((v) => v.id === form.venue_id)?.accommodation_id ?? null)
+      : null;
+
+    const { blocks, warnings } = validateInvite(
+      {
+        name: form.name,
+        ig_handle: normIg,
+        scout_id: form.scout_id,
+        accommodation_id: form.accommodation_id,
+        venue_id: form.venue_id,
+        venue_parent_accommodation_id: venueParentAcc,
+        venue_label: form.venue_name || "",
+        accommodation_label: accommodations.find((a) => a.id === form.accommodation_id)?.name ?? "",
+        invited_at: form.invited_at,
+        check_in_date: form.check_in_date,
+        check_out_date: form.check_out_date,
+        order_number: orderNo,
+        order_exists: orderExists,
+        order_discount_code: orderDiscountCode,
+        order_bound_to_other_profile: orderBoundTo,
+        cid_code: form.cid_code,
+        companion_cid: form.companion_cid,
+        publish_url: form.publish_url,
+        publish_date: form.publish_date,
+        follower_count_original: form.follower_count_original,
+        follower_count_next: followerParsed.value,
+        ig_duplicate_confirmed: igDupConfirmed,
+        ig_duplicate_name: igDupName,
+        collab_confirmed: collabConfirmed,
+      },
+      { companion, conflicts, isManager },
+    );
+
+    if (blocks.length > 0) {
+      setBlockMessages(blocks);
+      return;
+    }
+    setBlockMessages([]);
+    if (warnings.length > 0) {
+      const ok = window.confirm(`請確認以下事項：\n\n${warnings.map((w) => `• ${w}`).join("\n")}\n\n仍要繼續儲存嗎？`);
+      if (!ok) return;
+    }
+
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
     const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
