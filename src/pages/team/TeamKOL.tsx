@@ -676,6 +676,7 @@ function InvitationsTab({
 
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
+  const [detailFromCreate, setDetailFromCreate] = useState(false);
 
   // 稀有度版本 & 標籤字典
   const [rarities, setRarities] = useState<RaritySetting[]>([]);
@@ -698,6 +699,12 @@ function InvitationsTab({
   /** 既有的同名不同寫法（供表單即時提示） */
   const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
+  /** 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約 */
+  const [similarMatches, setSimilarMatches] = useState<KolRow[]>([]);
+  /** 列表一鍵合併：child 掛到 parent 之下 */
+  const [mergeConfirm, setMergeConfirm] = useState<{ parent: KolRow; child: KolRow } | null>(null);
+  const [mergeSubmitting, setMergeSubmitting] = useState(false);
+
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
@@ -1113,6 +1120,50 @@ function InvitationsTab({
     return { primaries, subMap, orphans };
   }, [sortedRows]);
 
+  // 列表疑似重複：同館且同折扣碼、但尚未歸戶（無主附關係、合約不同）的邀約，
+  // 供管理員標紅並一鍵合併。同名但代碼不同、或有主附關係者一律排除，避免誤擋。
+  const duplicateGroups = useMemo(() => {
+    const groups: { parent: KolRow; child: KolRow }[] = [];
+    const byAccCode = new Map<string, KolRow[]>();
+    for (const r of sortedRows) {
+      const acc = r.accommodation_id;
+      const code = r.cid_code ? normalizeCode(r.cid_code) : "";
+      if (!acc || !code) continue;
+      const key = `${acc}::${code}`;
+      const arr = byAccCode.get(key) ?? [];
+      arr.push(r);
+      byAccCode.set(key, arr);
+    }
+    const primaryId = (r: KolRow) => r.primary_profile_id ?? null;
+    for (const arr of byAccCode.values()) {
+      if (arr.length < 2) continue;
+      const independent = arr.filter((r) => {
+        const p = primaryId(r);
+        // 有主附關係：只要主檔也在同組內即視為已歸戶；主檔不在組內則屬孤兒，另視情況
+        return !p || !arr.some((o) => o.id === p);
+      });
+      if (independent.length < 2) continue;
+      // 同一合約不視為重複
+      const contractSeen = new Set<string>();
+      const isolated: KolRow[] = [];
+      for (const r of independent) {
+        const g = r.contract_group_id ?? "";
+        if (g && contractSeen.has(g)) continue;
+        if (g) contractSeen.add(g);
+        isolated.push(r);
+      }
+      if (isolated.length < 2) continue;
+      // 以建立時間較早者為主檔
+      const sorted = [...isolated].sort((a, b) =>
+        (a.created_at ?? "").localeCompare(b.created_at ?? ""),
+      );
+      groups.push({ parent: sorted[0], child: sorted[1] });
+    }
+    return groups;
+  }, [sortedRows]);
+
+
+
 
 
 
@@ -1198,6 +1249,50 @@ function InvitationsTab({
     }, 400);
     return () => clearTimeout(handle);
   }, [form.ig_handle, editingId]);
+
+  // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
+  // 不阻擋、不改資料，只列出相似紀錄並提供「查看明細」與「設為附屬」捷徑。
+  useEffect(() => {
+    if (!sheetOpen) {
+      setSimilarMatches([]);
+      return;
+    }
+    const code = normalizeCode(form.cid_code);
+    const name = kolNameKey(form.name);
+    const acc = form.accommodation_id;
+    if (!acc || (!code && !name)) {
+      setSimilarMatches([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      try {
+        let q = supabase
+          .from("kol_profiles")
+          .select("id, name, cid_code, venue_name, check_in_date, invited_at, booking_status, primary_profile_id, contract_group_id")
+          .eq("is_error", false)
+          .eq("accommodation_id", acc)
+          .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+          .limit(20);
+        // 同折扣碼優先；無折扣碼時改用同名比對
+        q = code ? q.eq("cid_code", code) : q.eq("name_normalized", name);
+        const { data } = await q;
+        const list = ((data ?? []) as unknown) as KolRow[];
+        // 排除同住合拍（本筆掛在該主檔下、或對方掛在本筆下、或兩筆同主檔）——那些是合法的共用
+        const selfPrimary = form.primary_profile_id ?? null;
+        const filtered = list.filter((m) => {
+          const mPrimary = m.primary_profile_id ?? null;
+          if (selfPrimary && (m.id === selfPrimary || mPrimary === selfPrimary)) return false;
+          if (editingId && mPrimary === editingId) return false;
+          return true;
+        });
+        setSimilarMatches(filtered.slice(0, 5));
+      } catch {
+        setSimilarMatches([]);
+      }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [sheetOpen, form.accommodation_id, form.cid_code, form.name, form.primary_profile_id, editingId]);
+
 
   const openCreate = () => {
     setEditingId(null);
@@ -1858,6 +1953,46 @@ function InvitationsTab({
     fetchRows();
   };
 
+  // 列表一鍵合併：將 child 設為 parent 的附屬記錄，並讓兩者歸入同一合約。
+  // 僅管理員可用；零刪除、不改獎金口徑，只建立歸戶關係。
+  const handleConfirmMerge = async () => {
+    if (!mergeConfirm) return;
+    setMergeSubmitting(true);
+    const { parent, child } = mergeConfirm;
+    const gid = parent.contract_group_id ?? child.contract_group_id ?? crypto.randomUUID();
+    // child 設為附屬；雙方 contract_group_id 統一（留空者補上，非空者維持既有歸戶）
+    const linkRes = await supabase
+      .from("kol_profiles")
+      .update({ primary_profile_id: parent.id, kpi_qualified: false } as any)
+      .eq("id", child.id);
+    let updateError = linkRes.error;
+    if (!updateError && !parent.contract_group_id) {
+      const r = await supabase
+        .from("kol_profiles")
+        .update({ contract_group_id: gid } as any)
+        .eq("id", parent.id);
+      updateError = r.error;
+    }
+    if (!updateError && !child.contract_group_id) {
+      const r = await supabase
+        .from("kol_profiles")
+        .update({ contract_group_id: gid } as any)
+        .eq("id", child.id);
+      updateError = r.error;
+    }
+    setMergeSubmitting(false);
+    if (updateError) {
+      toast.error(updateError.message ?? "合併失敗");
+      return;
+    }
+    toast.success(`已將「${child.name}」設為「${parent.name}」的附屬記錄並歸入同一合約`);
+    setMergeConfirm(null);
+    fetchRows();
+  };
+
+
+
+
 
 
   const handleReportError = async () => {
@@ -2365,12 +2500,15 @@ function InvitationsTab({
                     const subs = groupedRows.subMap.get(r.id) ?? [];
                     const hasSubs = subs.length > 0;
                     const expanded = expandedRows.has(r.id);
+                    // 疑似重複：管理員可一鍵合併的候選（僅主檔側標紅）
+                    const dupPair = duplicateGroups.find((p) => p.parent.id === r.id);
                     return (
                       <TableRow
                         key={r.id}
-                        className={`cursor-pointer hover:bg-muted/50 ${opts.isSub ? "bg-muted/20" : ""}`}
+                        className={`cursor-pointer hover:bg-muted/50 ${opts.isSub ? "bg-muted/20" : ""} ${dupPair ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : ""}`}
                         onClick={() => setViewingRow(r)}
                       >
+
                         <TableCell className="max-w-[200px]">
                           <div className="flex items-center gap-1 max-w-[200px]">
                             {opts.isSub ? (
