@@ -3235,14 +3235,24 @@ function InvitationsTab({
 
 
             <Field label="同住夥伴" anchorId="kolf-companion">
-              <CompanionSearch
-                value={form.companion_cid}
-                onChange={(cid) => setForm({ ...form, companion_cid: cid })}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                填寫同住夥伴後，本筆將不列入 KPI 與住宿間數，分潤一律歸主檔。
-              </p>
+              {form.primary_profile_id ? (
+                <div className="rounded-md border bg-muted/40 p-2 text-sm">
+                  已掛在主檔底下（附屬記錄）。本筆不列入 KPI 與住宿間數，分潤一律歸主檔。
+                  <button
+                    type="button"
+                    className="ml-2 underline underline-offset-2"
+                    onClick={() => setForm({ ...form, primary_profile_id: null })}
+                  >
+                    取消主檔關係
+                  </button>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  同住合拍請於上方「折扣碼 / CID」出現衝突提示時，點「設為主檔」建立關係（舊的「同住夥伴折扣碼」欄位已停用）。
+                </p>
+              )}
             </Field>
+
 
 
             <Field label="KOL購票連結">
