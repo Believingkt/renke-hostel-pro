@@ -1172,19 +1172,21 @@ export default function AdminGroupBuy() {
               </div>
 
               <div className="md:col-span-2">
-                <Label>活動文案（HTML）</Label>
-                <Textarea
-                  rows={5}
+                <Label>活動文案</Label>
+                <RichTextEditor
+                  variant="simple"
+                  placeholder="輸入活動文案，可使用粗體、標題與條列整理段落…"
                   value={editing.description_html ?? ""}
-                  onChange={(e) => setEditing({ ...editing, description_html: e.target.value })}
+                  onChange={(html) => setEditing({ ...editing, description_html: html })}
                 />
               </div>
               <div className="md:col-span-2">
-                <Label>注意事項（HTML）</Label>
-                <Textarea
-                  rows={4}
+                <Label>團購活動注意事項</Label>
+                <RichTextEditor
+                  variant="simple"
+                  placeholder="輸入注意事項，建議以條列呈現…"
                   value={editing.terms_html ?? ""}
-                  onChange={(e) => setEditing({ ...editing, terms_html: e.target.value })}
+                  onChange={(html) => setEditing({ ...editing, terms_html: html })}
                 />
               </div>
               <div className="md:col-span-2">
