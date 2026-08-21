@@ -246,6 +246,28 @@ Deno.serve(async (req) => {
       toddlerCount > 0 ? `${childRules.tiers.toddler.label} ${toddlerCount}` : null,
       infantCount > 0 ? `${childRules.tiers.infant.label} ${infantCount}` : null,
     ].filter(Boolean).join("／");
+    // 兒童加價明細（只列出人數 > 0 的 tier；免費者顯示「免費」而非 NT$0 × N）
+    const twdInt = (v: number) => `NT$${Math.round(Number(v) || 0).toLocaleString("en-US")}`;
+    const childDetailLines = childEval.breakdown.flatMap((b) => {
+      const head = `　${b.label} ${b.count} 位`;
+      if (b.free) return [head, "　　免費"];
+      const parts: string[] = [];
+      if (b.base_count > 0 && b.fee_per_night > 0) {
+        parts.push(
+          `　　${twdInt(b.fee_per_night)} × ${b.base_count} 位 × ${b.nights} 晚 = ${
+            twdInt(b.fee_per_night * b.base_count * b.nights)
+          }`,
+        );
+      }
+      if (b.over_count > 0) {
+        parts.push(
+          `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.over_count} 位 × ${b.nights} 晚 = ${
+            twdInt(b.over_limit_fee_per_night * b.over_count * b.nights)
+          }`,
+        );
+      }
+      return [head, ...parts];
+    });
     const noteLines = [
       `【團購】${campaign.title}`,
       campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
@@ -254,7 +276,9 @@ Deno.serve(async (req) => {
       `住宿費：${stay.nightlyBreakdown
         .map((x) => `${x.date} ${GROUP_BUY_DAY_TYPE_LABEL[x.type]} ${x.price}`)
         .join("／")}（小計 ${baseTotal} 元）`,
-      childExtraTotal > 0 ? `兒童加價：${childExtraTotal} 元（房費 ${baseTotal} 元）` : null,
+      childDetailLines.length > 0 ? "兒童加價：" : null,
+      ...(childDetailLines.length > 0 ? childDetailLines : []),
+      childDetailLines.length > 0 ? `兒童加價合計：${twdInt(childExtraTotal)}（房費 ${twdInt(baseTotal)}）` : null,
       `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
       guestNote ? `旅客備註：${guestNote}` : null,
     ].filter(Boolean);
