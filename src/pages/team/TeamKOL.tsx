@@ -35,6 +35,14 @@ import { KolStatsTab } from "@/components/team/KolStatsTab";
 import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
+import KolSuggestInput from "@/components/team/KolSuggestInput";
+import {
+  validateInvite,
+  normalizeIgHandle,
+  normalizeCode,
+  type CodeConflict,
+  type CompanionProfile,
+} from "@/lib/kolInviteValidation";
 
 // ====== 型別 & 常數 ======
 // 正式邀約 Tab：booking_status 僅保留以下三種顯示，其他值（含 null / 舊資料）一律顯示「—」
@@ -674,6 +682,11 @@ function InvitationsTab({
   const [dupWarning, setDupWarning] = useState<string | null>(null);
   const [newTagInput, setNewTagInput] = useState("");
   const [followerError, setFollowerError] = useState<string | null>(null);
+  // 防呆：阻擋訊息 / 合拍同住確認 / IG 重複確認
+  const [blockMessages, setBlockMessages] = useState<string[]>([]);
+  const [collabConfirmed, setCollabConfirmed] = useState(false);
+  const [igDupConfirmed, setIgDupConfirmed] = useState(false);
+  const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
 
   // 填錯 Dialog
   const [errorTarget, setErrorTarget] = useState<KolRow | null>(null);
@@ -1215,6 +1228,30 @@ function InvitationsTab({
 
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
+  // 折扣碼即時衝突檢查
+  useEffect(() => {
+    if (!sheetOpen) {
+      setCidConflicts([]);
+      setCollabConfirmed(false);
+      setIgDupConfirmed(false);
+      return;
+    }
+    const code = normalizeCode(form.cid_code);
+    if (!code) {
+      setCidConflicts([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      const { data } = await supabase.rpc("check_discount_code_conflict", {
+        _code: code,
+        _accommodation_id: form.accommodation_id || null,
+        _exclude_profile_id: editingId,
+      });
+      setCidConflicts(((data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info"));
+    }, 350);
+    return () => clearTimeout(t);
+  }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
+
   const handleSave = async () => {
     if (!form.accommodation_id && !form.venue_id) {
       toast.error("請選擇館別");
@@ -1240,6 +1277,113 @@ function InvitationsTab({
       return;
     }
 
+    // ===== 防呆檢查（阻擋 / 警告）=====
+    const normIg = normalizeIgHandle(form.ig_handle);
+    const normCid = normalizeCode(form.cid_code);
+    const normCompanion = normalizeCode(form.companion_cid);
+    const orderNo = form.order_number.trim();
+
+    let orderExists: boolean | null = null;
+    let orderDiscountCode: string | null = null;
+    let orderBoundTo: string | null = null;
+    let companion: CompanionProfile = null;
+    let conflicts: CodeConflict[] = [];
+    let igDupName: string | null = null;
+
+    try {
+      const [orderRes, boundRes, companionRes, conflictRes, igRes] = await Promise.all([
+        orderNo
+          ? supabase.from("orders").select("id, discount_code").eq("order_number", orderNo).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        orderNo
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name")
+              .eq("order_number", orderNo)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(1)
+          : Promise.resolve({ data: [] } as any),
+        normCompanion
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name, cid_code, companion_cid, accommodation_id, venue_id, check_in_date")
+              .eq("cid_code", normCompanion)
+              .maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        normCid
+          ? supabase.rpc("check_discount_code_conflict", {
+              _code: normCid,
+              _accommodation_id: form.accommodation_id || null,
+              _exclude_profile_id: editingId,
+            })
+          : Promise.resolve({ data: [] } as any),
+        normIg
+          ? supabase
+              .from("kol_profiles")
+              .select("id, name, ig_handle")
+              .ilike("ig_handle", normIg)
+              .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
+              .limit(5)
+          : Promise.resolve({ data: [] } as any),
+      ]);
+
+      if (orderNo) {
+        orderExists = !!orderRes?.data;
+        orderDiscountCode = (orderRes?.data as any)?.discount_code ?? null;
+        orderBoundTo = (boundRes?.data as any[])?.[0]?.name ?? null;
+      }
+      companion = (companionRes?.data as CompanionProfile) ?? null;
+      conflicts = ((conflictRes?.data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info");
+      const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
+      igDupName = igDup?.name ?? null;
+    } catch {
+      // 查詢失敗不阻擋儲存，僅略過進階檢查
+    }
+
+    const venueParentAcc = form.venue_id
+      ? (venues.find((v) => v.id === form.venue_id)?.accommodation_id ?? null)
+      : null;
+
+    const { blocks, warnings } = validateInvite(
+      {
+        name: form.name,
+        ig_handle: normIg,
+        scout_id: form.scout_id,
+        accommodation_id: form.accommodation_id,
+        venue_id: form.venue_id,
+        venue_parent_accommodation_id: venueParentAcc,
+        venue_label: form.venue_name || "",
+        accommodation_label: accommodations.find((a) => a.id === form.accommodation_id)?.name ?? "",
+        invited_at: form.invited_at,
+        check_in_date: form.check_in_date,
+        check_out_date: form.check_out_date,
+        order_number: orderNo,
+        order_exists: orderExists,
+        order_discount_code: orderDiscountCode,
+        order_bound_to_other_profile: orderBoundTo,
+        cid_code: form.cid_code,
+        companion_cid: form.companion_cid,
+        publish_url: form.publish_url,
+        publish_date: form.publish_date,
+        follower_count_original: form.follower_count_original,
+        follower_count_next: followerParsed.value,
+        ig_duplicate_confirmed: igDupConfirmed,
+        ig_duplicate_name: igDupName,
+        collab_confirmed: collabConfirmed,
+      },
+      { companion, conflicts, isManager },
+    );
+
+    if (blocks.length > 0) {
+      setBlockMessages(blocks);
+      return;
+    }
+    setBlockMessages([]);
+    if (warnings.length > 0) {
+      const ok = window.confirm(`請確認以下事項：\n\n${warnings.map((w) => `• ${w}`).join("\n")}\n\n仍要繼續儲存嗎？`);
+      if (!ok) return;
+    }
+
     setSaving(true);
     const kpiEligible = !!form.check_in_date;
     const kpiMonth = form.check_in_date ? form.check_in_date.slice(0, 7) + "-01" : null;
@@ -1260,7 +1404,7 @@ function InvitationsTab({
       venue_id: resolvedVenueId,
       venue_name: resolvedVenueName,
       name: form.name.trim(),
-      ig_handle: form.ig_handle.trim(),
+      ig_handle: normIg,
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
@@ -1270,7 +1414,7 @@ function InvitationsTab({
       inventory_status: toNullable(form.inventory_status),
       booking_status: form.booking_status,
       cid_code: toNullable(form.cid_code),
-      companion_cid: toNullable(form.companion_cid),
+      companion_cid: normCompanion || null,
       short_url: toNullable(form.short_url),
       contract_progress: toNullable(form.contract_progress),
       contract_file_url: toNullable(form.contract_file_url),
@@ -2578,18 +2722,48 @@ function InvitationsTab({
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="KOL 名稱 *">
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <KolSuggestInput
+                  field="name"
+                  value={form.name}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, name: v })}
+                  onPick={(s) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      name: s.name ?? prev.name,
+                      ig_handle: prev.ig_handle || s.ig_handle || "",
+                      cid_code: prev.cid_code || s.cid_code || "",
+                    }))
+                  }
+                />
               </Field>
               <Field label="網紅帳號連結 *">
-                <Input value={form.ig_handle} onChange={(e) => setForm({ ...form, ig_handle: e.target.value })} />
+                <KolSuggestInput
+                  field="ig_handle"
+                  value={form.ig_handle}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, ig_handle: v })}
+                  onPick={(s) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      ig_handle: s.ig_handle ?? prev.ig_handle,
+                      name: prev.name || s.name || "",
+                    }))
+                  }
+                />
               </Field>
             </div>
 
             {dupWarning && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
-                ⚠️ {dupWarning}（仍可繼續新增）
+                <div>⚠️ {dupWarning}</div>
+                <label className="mt-2 flex items-center gap-2">
+                  <Checkbox checked={igDupConfirmed} onCheckedChange={(c) => setIgDupConfirmed(!!c)} />
+                  <span>確認為不同人／二次合作</span>
+                </label>
               </div>
             )}
+
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="稀有度">
@@ -2815,7 +2989,31 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID">
-                <Input value={form.cid_code} onChange={(e) => setForm({ ...form, cid_code: e.target.value })} />
+                <KolSuggestInput
+                  field="cid_code"
+                  value={form.cid_code}
+                  excludeId={editingId}
+                  onChange={(v) => setForm({ ...form, cid_code: v })}
+                />
+                {cidConflicts.length > 0 && (
+                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 space-y-1">
+                    {cidConflicts.map((c, i) => (
+                      <div key={i}>
+                        ⚠️ {c.source === "scout_discount_codes"
+                          ? `此碼已是星探專屬碼${c.owner_name ? `（${c.owner_name}）` : ""}，命名空間衝突。`
+                          : c.source === "kol_profiles"
+                            ? `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
+                            : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
+                      </div>
+                    ))}
+                    {cidConflicts.some((c) => c.source === "kol_profiles") && (
+                      <label className="mt-1 flex items-center gap-2">
+                        <Checkbox checked={collabConfirmed} onCheckedChange={(c) => setCollabConfirmed(!!c)} />
+                        <span>確認為合拍同住（分潤歸主檔）</span>
+                      </label>
+                    )}
+                  </div>
+                )}
               </Field>
             )}
 
@@ -2824,6 +3022,9 @@ function InvitationsTab({
                 value={form.companion_cid}
                 onChange={(cid) => setForm({ ...form, companion_cid: cid })}
               />
+              <p className="mt-1 text-xs text-muted-foreground">
+                填寫同住夥伴後，本筆將不列入 KPI 與住宿間數，分潤一律歸主檔。
+              </p>
             </Field>
 
 
@@ -2995,6 +3196,24 @@ function InvitationsTab({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setFollowerError(null)}>知道了</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={blockMessages.length > 0} onOpenChange={(o) => !o && setBlockMessages([])}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>無法儲存，請先修正以下問題</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <ul className="list-disc space-y-1 pl-5 text-left">
+                {blockMessages.map((m, i) => (
+                  <li key={i}>{m}</li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setBlockMessages([])}>知道了</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

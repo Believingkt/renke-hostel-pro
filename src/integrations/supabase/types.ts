@@ -12658,6 +12658,22 @@ export type Database = {
         }
         Returns: Json
       }
+      check_discount_code_conflict: {
+        Args: {
+          _accommodation_id?: string
+          _code: string
+          _exclude_profile_id?: string
+        }
+        Returns: {
+          accommodation_id: string
+          accommodation_name: string
+          code: string
+          detail: Json
+          owner_name: string
+          severity: string
+          source: string
+        }[]
+      }
       check_exclusive_room_booking: {
         Args: { p_accommodation_id: string; p_date: string }
         Returns: {

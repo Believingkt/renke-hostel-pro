@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.check_discount_code_conflict(text, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.check_discount_code_conflict(text, uuid, uuid) TO authenticated, service_role;
