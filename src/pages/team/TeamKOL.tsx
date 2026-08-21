@@ -1243,6 +1243,8 @@ function InvitationsTab({
       setCidConflicts([]);
       setCollabConfirmed(false);
       setIgDupConfirmed(false);
+      setNameVariantConfirmed(false);
+      setNameVariant(null);
       return;
     }
     const code = normalizeCode(form.cid_code);
