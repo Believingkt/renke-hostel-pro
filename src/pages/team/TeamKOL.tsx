@@ -2651,13 +2651,6 @@ function InvitationsTab({
                           )}
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
-                        <TableCell className="tabular-nums">
-                          {r.order_number ? (
-                            <span title={r.order_number}>{r.order_number}</span>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
                         <TableCell>
                           {r.rarity && (
                             <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
@@ -2686,6 +2679,14 @@ function InvitationsTab({
                         <TableCell>{r.day_of_week ?? "-"}</TableCell>
                         <TableCell>{r._scout_name}</TableCell>
                         <TableCell>{renderBookingStatusBadge(r._effective_booking_status ?? r.booking_status)}</TableCell>
+                        <TableCell className="tabular-nums">
+                          {r.order_number ? (
+                            <span title={r.order_number}>{r.order_number}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+
                         <TableCell>
                           {contractStatus && !contractStatus.empty ? (
                             contractStatus.plain ? (
