@@ -295,3 +295,47 @@ describe("其他規則", () => {
     expect(r.warnings).toEqual(r.issues.filter((i) => i.level === "warning").map((i) => i.message));
   });
 });
+
+describe("normalizeKolName / kolNameKey", () => {
+  it("全形英文轉半形並首字大寫", () => {
+    expect(normalizeKolName("歐妮Ｏni")).toBe("歐妮Oni");
+    expect(normalizeKolName("KIMBO")).toBe("Kimbo");
+    expect(normalizeKolName("VIna")).toBe("Vina");
+    expect(normalizeKolName("Ｍie")).toBe("Mie");
+  });
+  it("移除中英文之間的空白，保留英文單字間空白", () => {
+    expect(normalizeKolName("Annie 與美食")).toBe("Annie與美食");
+    expect(normalizeKolName("小比 簡君如")).toBe("小比簡君如");
+    expect(normalizeKolName("john  doe")).toBe("John Doe");
+  });
+  it("比對鍵忽略大小寫與空白", () => {
+    expect(kolNameKey("Annie 與美食")).toBe(kolNameKey("annie與美食"));
+    expect(kolNameKey("  ")).toBe("");
+  });
+});
+
+describe("名稱寫法防呆", () => {
+  const base = () => ({ ...baseForm(), name: "歐妮Ｏni" });
+  it("既有同名不同寫法時阻擋，並建議套用既有寫法", () => {
+    const r = validateInvite(
+      { ...base(), name_variant_existing: "歐妮Oni", name_variant_confirmed: false },
+      { companion: null, conflicts: [], isManager: true },
+    );
+    const issue = r.issues.find((i) => i.rule === "name.variant_existing");
+    expect(issue?.level).toBe("block");
+    expect(issue?.suggestion).toContain("歐妮Oni");
+  });
+  it("勾選確認為不同人後不再阻擋", () => {
+    const r = validateInvite(
+      { ...base(), name_variant_existing: "歐妮Oni", name_variant_confirmed: true },
+      { companion: null, conflicts: [], isManager: true },
+    );
+    expect(r.issues.some((i) => i.rule === "name.variant_existing")).toBe(false);
+  });
+  it("無既有紀錄但寫法需正規化時只給警告", () => {
+    const r = validateInvite(base(), { companion: null, conflicts: [], isManager: true });
+    const issue = r.issues.find((i) => i.rule === "name.normalized");
+    expect(issue?.level).toBe("warning");
+    expect(issue?.expected).toBe("歐妮Oni");
+  });
+});
