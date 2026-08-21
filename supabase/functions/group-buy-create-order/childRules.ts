@@ -153,7 +153,19 @@ export function evaluateChildSelection(
     const overPerNight = (tier.over_limit_fee_per_night || 0) * overCount;
     extraFeePerNight += basePerNight + overPerNight;
     const subtotal = (basePerNight + overPerNight) * safeNights;
-    if (subtotal > 0) breakdown.push({ key, label: tier.label, count, subtotal });
+    // 免費 tier（例如嬰兒）也保留於 breakdown，供備註／快照顯示「免費」
+    breakdown.push({
+      key,
+      label: tier.label,
+      count,
+      base_count: baseCount,
+      fee_per_night: Math.max(0, tier.fee_per_night || 0),
+      over_count: overCount,
+      over_limit_fee_per_night: Math.max(0, tier.over_limit_fee_per_night || 0),
+      nights: safeNights,
+      subtotal,
+      free: subtotal <= 0,
+    });
   }
 
   let totalExceeded = false;
