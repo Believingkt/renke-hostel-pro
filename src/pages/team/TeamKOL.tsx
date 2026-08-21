@@ -1380,7 +1380,7 @@ function InvitationsTab({
       venue_id: resolvedVenueId,
       venue_name: resolvedVenueName,
       name: form.name.trim(),
-      ig_handle: form.ig_handle.trim(),
+      ig_handle: normIg,
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
