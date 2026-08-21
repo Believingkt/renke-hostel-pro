@@ -53,13 +53,14 @@ export function remainingRefundable(order: OrderPaymentShape): number {
 
 /**
  * 退款狀態語意（沿用 orders.refund_status，不另建欄位）：
- *   none            不需退款（未收款，或無任何應退金額）
- *   pending         已取消且有已收款尚未退回 → 待退款
+ *   none             不需退款（未收款，或無任何應退金額）
+ *   pending_manual   已取消且有已收款尚未退回 → 待人工退款（與一般訂房既有值一致）
  *   partial_refunded 已退部分
- *   refunded        已全額退回
- *   failed / pending_manual 為既有一般訂房流程使用值，此處不覆寫
+ *   refunded         已全額退回
+ *
+ * 寫入端一律使用 pending_manual；舊資料可能存在 "pending"，讀取端需相容。
  */
-export type RefundStatus = "none" | "pending" | "partial_refunded" | "refunded";
+export type RefundStatus = "none" | "pending_manual" | "partial_refunded" | "refunded";
 
 /** 取消訂單當下應寫入的退款狀態 */
 export function refundStatusOnCancel(paid: number, alreadyRefunded: number): RefundStatus {
@@ -68,7 +69,7 @@ export function refundStatusOnCancel(paid: number, alreadyRefunded: number): Ref
   if (p <= 0) return "none";
   if (r >= p) return "refunded";
   if (r > 0) return "partial_refunded";
-  return "pending";
+  return "pending_manual";
 }
 
 /** 完成一次退款後的狀態 */
@@ -78,7 +79,7 @@ export function refundStatusAfterRefund(paid: number, totalRefunded: number): Re
   if (p <= 0) return "none";
   if (t >= p) return "refunded";
   if (t > 0) return "partial_refunded";
-  return "pending";
+  return "pending_manual";
 }
 
 export interface RefundRequest {

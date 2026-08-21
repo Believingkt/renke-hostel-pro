@@ -199,7 +199,6 @@ interface OrderRow {
   payment_provider?: string | null;
   campaign_id?: string | null;
   reported?: boolean;
-  confirmed?: boolean;
   cancelRequested?: boolean;
 
 }
@@ -311,11 +310,10 @@ export default function AdminGroupBuy() {
         .order("created_at", { ascending: true }),
     ]);
     setEvents((events ?? []) as unknown as EventRow[]);
+    // 注意：付款狀態一律讀 orders（payment_status / paid_amount / deposit_amount）。
+    // 這裡只取「事件性」旗標，admin_confirmed 僅保留於稽核紀錄，不再轉成第二套付款狀態。
     const reportedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "guest_reported").map((e: any) => e.order_id),
-    );
-    const confirmedSet = new Set(
-      (events ?? []).filter((e: any) => e.event_type === "admin_confirmed").map((e: any) => e.order_id),
     );
     const cancelRequestedSet = new Set(
       (events ?? []).filter((e: any) => e.event_type === "cancel_requested").map((e: any) => e.order_id),
@@ -324,7 +322,6 @@ export default function AdminGroupBuy() {
       ((orderRows ?? []) as unknown as OrderRow[]).map((o) => ({
         ...o,
         reported: reportedSet.has(o.id),
-        confirmed: confirmedSet.has(o.id),
         cancelRequested: cancelRequestedSet.has(o.id),
       })),
     );
@@ -554,7 +551,7 @@ export default function AdminGroupBuy() {
         title: "訂單已取消",
         description: payload?.refundAmount > 0
           ? `已登記退款 ${twd(payload.refundAmount)}`
-          : payload?.refundStatus === "pending"
+          : payload?.refundStatus === "pending_manual" || payload?.refundStatus === "pending"
             ? "已標記為待退款，請於銀行退匯後按「處理退款」登記"
             : "不需退款，已寫入稽核紀錄",
       });
@@ -1240,7 +1237,7 @@ export default function AdminGroupBuy() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="manual_bank_transfer">銀行匯款（人工對帳）</SelectItem>
-                    <SelectItem value="tappay">線上刷卡 TapPay（尚未開放）</SelectItem>
+                    <SelectItem value="tappay" disabled>線上刷卡 TapPay（尚未開放）</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="mt-1 text-xs text-muted-foreground">目前僅支援銀行匯款；選擇 TapPay 不會改變前台流程。</p>
