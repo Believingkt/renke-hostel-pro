@@ -2757,7 +2757,7 @@ function InvitationsTab({
 
           <div className="mt-4 space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="KOL 名稱 *">
+              <Field label="KOL 名稱 *" anchorId="kolf-name">
                 <KolSuggestInput
                   field="name"
                   value={form.name}
@@ -2773,7 +2773,7 @@ function InvitationsTab({
                   }
                 />
               </Field>
-              <Field label="網紅帳號連結 *">
+              <Field label="網紅帳號連結 *" anchorId="kolf-ig">
                 <KolSuggestInput
                   field="ig_handle"
                   value={form.ig_handle}
@@ -2919,7 +2919,7 @@ function InvitationsTab({
               </Field>
             </div>
 
-            <Field label="粉絲數">
+            <Field label="粉絲數" anchorId="kolf-follower">
               <Input
                 value={form.follower_count_input}
                 placeholder="例如：57.7萬 或 57.7k 或 1226"
@@ -2931,7 +2931,7 @@ function InvitationsTab({
             </Field>
 
 
-            <Field label="邀約人">
+            <Field label="邀約人" anchorId="kolf-scout">
               {isManager ? (
                 <Select
                   value={form.scout_id || "none"}
@@ -2958,7 +2958,7 @@ function InvitationsTab({
               )}
             </Field>
 
-            <Field label="館別 *">
+            <Field label="館別 *" anchorId="kolf-venue">
               <Select
                 value={form.accommodation_select}
                 onValueChange={(v) => {
@@ -2993,7 +2993,7 @@ function InvitationsTab({
 
 
 
-            <Field label="入住日期">
+            <Field label="入住日期" anchorId="kolf-dates">
               <Input
                 type="date"
                 value={form.check_in_date}
@@ -3011,7 +3011,7 @@ function InvitationsTab({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="訂單編號">
+              <Field label="訂單編號" anchorId="kolf-order">
                 <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
               </Field>
               <Field label="訂房狀態（自動）">
@@ -3024,7 +3024,7 @@ function InvitationsTab({
             </div>
 
             {showCid && (
-              <Field label="折扣碼 / CID">
+              <Field label="折扣碼 / CID" anchorId="kolf-cid">
                 <KolSuggestInput
                   field="cid_code"
                   value={form.cid_code}
@@ -3053,7 +3053,7 @@ function InvitationsTab({
               </Field>
             )}
 
-            <Field label="同住夥伴">
+            <Field label="同住夥伴" anchorId="kolf-companion">
               <CompanionSearch
                 value={form.companion_cid}
                 onChange={(cid) => setForm({ ...form, companion_cid: cid })}
@@ -3144,7 +3144,7 @@ function InvitationsTab({
             </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="發布連結">
+              <Field label="發布連結" anchorId="kolf-publish">
                 <Input value={form.publish_url} onChange={(e) => setForm({ ...form, publish_url: e.target.value })} />
               </Field>
               <Field label="發布日期">
@@ -3444,9 +3444,9 @@ function InvitationsTab({
   );
 }
 
-function Field({ label, children, required }: { label: string; children: React.ReactNode; required?: boolean }) {
+function Field({ label, children, required, anchorId }: { label: string; children: React.ReactNode; required?: boolean; anchorId?: string }) {
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 scroll-mt-24" id={anchorId}>
       <Label className="text-xs text-muted-foreground">
         {label}
         {required && <span className="text-destructive ml-0.5">*</span>}
