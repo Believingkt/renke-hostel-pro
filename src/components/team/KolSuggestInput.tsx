@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { kolNameKey } from "@/lib/kolInviteValidation";
 
 type Suggestion = {
   id: string;
@@ -9,6 +10,7 @@ type Suggestion = {
   cid_code: string | null;
   venue_name: string | null;
   check_in_date: string | null;
+  name_normalized?: string | null;
 };
 
 type Props = {
@@ -39,18 +41,54 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
       return;
     }
     const t = setTimeout(async () => {
-      const esc = q.replace(/[%_]/g, (m) => `\\${m}`);
+      const esc = (s: string) => s.replace(/[%_]/g, (m) => `\\${m}`);
+      const key = field === "name" ? kolNameKey(q) : "";
+      // 名稱：同時比對原始寫法與正規化後寫法，讓全半形／大小寫差異也能命中
+      const filter =
+        field === "name" && key
+          ? `name.ilike.%${esc(q)}%,name_normalized.ilike.%${esc(key)}%`
+          : null;
+
       let query = supabase
         .from("kol_profiles")
-        .select("id, name, ig_handle, cid_code, venue_name, check_in_date")
-        .ilike(field, `%${esc}%`)
+        .select("id, name, ig_handle, cid_code, venue_name, check_in_date, name_normalized")
         .order("check_in_date", { ascending: false, nullsFirst: false })
-        .limit(8);
+        .limit(30);
+      if (filter) query = query.or(filter);
+      else query = query.ilike(field, `%${esc(q)}%`);
       if (excludeId) query = query.neq("id", excludeId);
+
       const { data } = await query;
-      setItems((data as Suggestion[]) ?? []);
+      const rows = (data as Suggestion[]) ?? [];
+
+      // 依「正規化後匹配程度」排序：完全相同 > 開頭相符 > 包含
+      const norm = (s: string) => (field === "name" ? kolNameKey(s) : s.trim().toLowerCase());
+      const nq = norm(q);
+      const score = (s: Suggestion) => {
+        const v = norm(((s as any)[field] ?? "").toString());
+        if (!v || !nq) return 3;
+        if (v === nq) return 0;
+        if (v.startsWith(nq)) return 1;
+        if (v.includes(nq)) return 2;
+        return 3;
+      };
+      // 同一寫法只留最新一筆
+      const seen = new Set<string>();
+      const ranked = rows
+        .map((r) => ({ r, s: score(r) }))
+        .sort((a, b) => a.s - b.s || (b.r.check_in_date ?? "").localeCompare(a.r.check_in_date ?? ""))
+        .filter(({ r }) => {
+          const k = `${norm(((r as any)[field] ?? "").toString())}|${r.check_in_date ?? ""}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        })
+        .slice(0, 8)
+        .map(({ r }) => r);
+
+      setItems(ranked);
       setOpen(true);
-    }, 250);
+    }, 200);
     return () => clearTimeout(t);
   }, [value, field, excludeId, touched]);
 
@@ -62,9 +100,12 @@ export default function KolSuggestInput({ value, onChange, field, placeholder, o
     return () => document.removeEventListener("mousedown", onDoc);
   }, []);
 
-  const exactMatch = items.some(
-    (i) => ((i as any)[field] ?? "").toString().trim().toLowerCase() === value.trim().toLowerCase(),
-  );
+  const exactMatch = items.some((i) => {
+    const v = ((i as any)[field] ?? "").toString();
+    return field === "name"
+      ? kolNameKey(v) === kolNameKey(value)
+      : v.trim().toLowerCase() === value.trim().toLowerCase();
+  });
 
   return (
     <div className="relative" ref={boxRef}>
