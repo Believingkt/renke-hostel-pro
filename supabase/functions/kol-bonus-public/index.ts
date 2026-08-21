@@ -234,14 +234,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     // 優先用 venue_id 從 kol_venues 取得顯示名稱；fallback 用 venue_name 欄位
+    // venue_accommodation_id：場域對應的 PMS 母館（房型級場域亦帶父館 id）；外部場域為 null
     let displayVenueName: string | null = null;
+    let venueAccommodationId: string | null = null;
     if (kol.venue_id) {
       const { data: kv } = await admin
         .from("kol_venues")
-        .select("name")
+        .select("name, accommodation_id")
         .eq("id", kol.venue_id)
         .maybeSingle();
       displayVenueName = (kv?.name as string | null) ?? null;
+      venueAccommodationId = (kv?.accommodation_id as string | null) ?? null;
     }
     displayVenueName = displayVenueName ?? (kol.venue_name as string | null);
 
@@ -251,6 +254,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       cid_code: kol.cid_code,
       venue_id: kol.venue_id,
       venue_name: displayVenueName,
+      venue_accommodation_id: venueAccommodationId,
       accommodation_id: kol.accommodation_id,
       token_expires_at: kol.token_expires_at,
       merged_into_primary: !!mergedIntoName,
@@ -258,6 +262,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       publish_url: (kol.publish_url as string | null) ?? null,
       ig_url: (kol.ig_url as string | null) ?? null,
     };
+
 
 
 
