@@ -1450,7 +1450,7 @@ function InvitationsTab({
         order_discount_code: orderDiscountCode,
         order_bound_to_other_profile: orderBoundTo,
         cid_code: form.cid_code,
-        companion_cid: form.companion_cid,
+        companion_cid: "",
         publish_url: form.publish_url,
         publish_date: form.publish_date,
         follower_count_original: form.follower_count_original,
