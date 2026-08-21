@@ -381,16 +381,24 @@ export function validateInvite(
           suggestion: `請改填主檔的 CID：${companion.companion_cid}。`,
         });
       }
+      // 同一支折扣碼（CID）＝同一份合約：跨館與跨日只提醒，不阻擋
+      const sameContract =
+        !!normalizeCode(f.cid_code) &&
+        normalizeCode(companion.cid_code ?? "") === normalizeCode(f.cid_code);
       const compAcc = companion.accommodation_id;
       if (compAcc && f.accommodation_id && compAcc !== f.accommodation_id) {
         add({
-          level: "block",
-          rule: "companion.different_accommodation",
+          level: sameContract ? "warning" : "block",
+          rule: sameContract ? "companion.cross_accommodation_same_contract" : "companion.different_accommodation",
           field: "companion_cid",
-          message: `同住夥伴「${companion.name ?? "-"}」的館別與本筆不同。`,
-          expected: "同住必然同館同日",
+          message: sameContract
+            ? `同住夥伴「${companion.name ?? "-"}」與本筆分屬不同館別，但折扣碼相同（同一份合約）。`
+            : `同住夥伴「${companion.name ?? "-"}」的館別與本筆不同。`,
+          expected: sameContract ? "同一份合約可跨館歸戶，分潤仍算主檔一份" : "同住必然同館同日",
           actual: "兩筆邀約分屬不同館別",
-          suggestion: "請確認館別，或改填同館的夥伴。",
+          suggestion: sameContract
+            ? "若確為同一份合作案（同一組折扣碼）可直接儲存；若不是，請改為各自獨立的主檔。"
+            : "請確認館別，或改填同館的夥伴；若確為同一份合約，請先將兩筆的折扣碼（CID）改為一致。",
         });
       }
       if (companion.check_in_date && f.check_in_date && companion.check_in_date !== f.check_in_date) {
@@ -400,29 +408,37 @@ export function validateInvite(
               new Date(`${companion.check_in_date}T00:00:00`).getTime(),
           ) / 86400000,
         );
-        // 同一份合約可能為了連住而有相鄰入住日（例如主檔 3/3、本筆 3/2），此情況只提醒不擋
-        if (diffDays <= 3) {
+        // 同一份合約（同一組折扣碼）：檔期 30 天內只提醒；否則沿用相鄰 3 天的舊規則
+        const limit = sameContract ? 30 : 3;
+        if (diffDays <= limit) {
           add({
             level: "warning",
             rule: "companion.adjacent_checkin",
             field: "companion_cid",
             message: `同住夥伴「${companion.name ?? "-"}」的入住日（${companion.check_in_date}）與本筆相差 ${diffDays} 天。`,
-            expected: "同一份合約連住（同一組折扣碼）視為正常",
+            expected: sameContract
+              ? "同一份合約（同一組折扣碼）於同一檔期內視為正常"
+              : "同一份合約連住（同一組折扣碼）視為正常",
             actual: f.check_in_date,
-            suggestion: "若確為連住可直接儲存；若日期填錯請修正。",
+            suggestion: "若確為同一份合作案可直接儲存；若日期填錯請修正。",
           });
         } else {
           add({
             level: "block",
             rule: "companion.different_checkin",
             field: "companion_cid",
-            message: `同住夥伴「${companion.name ?? "-"}」的入住日與本筆相差 ${diffDays} 天。`,
-            expected: `與夥伴相同或相鄰（3 天內）：${companion.check_in_date}`,
+            message: `同住夥伴「${companion.name ?? "-"}」的入住日與本筆相差 ${diffDays} 天，已超過${sameContract ? "同一份合約的檔期上限（30 天）" : "相鄰入住的上限（3 天）"}。`,
+            expected: sameContract
+              ? `同一份合約的入住日需在 30 天內：${companion.check_in_date}`
+              : `與夥伴相同或相鄰（3 天內）：${companion.check_in_date}`,
             actual: f.check_in_date,
-            suggestion: `請把入住日改為 ${companion.check_in_date}，或改填正確的夥伴。`,
+            suggestion: sameContract
+              ? "檔期差距過大通常代表是兩份不同的合作案，請改為各自獨立的主檔（不要設為附屬）。"
+              : `請把入住日改為 ${companion.check_in_date}，或改填正確的夥伴；若為同一份合約請先統一折扣碼（CID）。`,
           });
         }
       }
+
 
     }
   }
