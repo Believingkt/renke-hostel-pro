@@ -1373,6 +1373,58 @@ export default function AdminGroupBuy() {
         </DialogContent>
       </Dialog>
 
+      {/* 人工退款登記（已取消訂單） */}
+      <Dialog open={!!refundTarget} onOpenChange={(o) => !o && setRefundTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>處理退款</DialogTitle>
+            <DialogDescription>
+              團購為銀行匯款（人工對帳），請於銀行端實際完成退匯後再登記。
+            </DialogDescription>
+          </DialogHeader>
+          {refundTarget && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                <div className="text-muted-foreground">訂單編號</div>
+                <div className="text-right font-medium">{refundTarget.order_number}</div>
+                <div className="text-muted-foreground">旅客</div>
+                <div className="text-right font-medium">{refundTarget.guest_name}</div>
+                <div className="text-muted-foreground">已付款金額</div>
+                <div className="text-right tabular-nums">{twd(refundTarget.paid_amount || 0)}</div>
+                <div className="text-muted-foreground">已退款金額</div>
+                <div className="text-right tabular-nums">{twd(refundTarget.refunded_amount || 0)}</div>
+                <div className="text-muted-foreground">尚可退款金額</div>
+                <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
+              </div>
+              <div>
+                <Label>退款金額</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={remainingRefundable(refundTarget)}
+                  value={refundAmount}
+                  onChange={(e) => setRefundAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>退款備註（會寫入稽核紀錄）</Label>
+                <Textarea rows={3} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRefundTarget(null)}>
+              返回
+            </Button>
+            <Button onClick={processRefund} disabled={refunding}>
+              {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認已完成退款
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
       {/* 訂單狀態稽核紀錄 */}
       <Dialog open={!!auditTarget} onOpenChange={(v) => !v && setAuditTarget(null)}>
         <DialogContent className="max-w-lg">
