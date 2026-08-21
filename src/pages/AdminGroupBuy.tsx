@@ -959,6 +959,9 @@ export default function AdminGroupBuy() {
                     <Button variant="outline" size="sm" onClick={() => deletePackage(p.id)}>
                       <Trash2 className="mr-1 h-4 w-4" /> 刪除
                     </Button>
+                    <Button variant="outline" size="sm" onClick={() => duplicatePackage(p)}>
+                      <CopyPlus className="mr-1 h-4 w-4" /> 複製方案
+                    </Button>
                     <Button size="sm" onClick={() => savePackage(p)}>
                       儲存
                     </Button>
@@ -1226,6 +1229,23 @@ export default function AdminGroupBuy() {
                   onChange={(e) => setEditing({ ...editing, commission_rate: Number(e.target.value) || 0 })}
                 />
               </div>
+              <div>
+                <Label>付款方式</Label>
+                <Select
+                  value={editing.payment_method ?? "manual_bank_transfer"}
+                  onValueChange={(v) => setEditing({ ...editing, payment_method: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual_bank_transfer">銀行匯款（人工對帳）</SelectItem>
+                    <SelectItem value="tappay">線上刷卡 TapPay（尚未開放）</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">目前僅支援銀行匯款；選擇 TapPay 不會改變前台流程。</p>
+              </div>
+
               <div className="md:col-span-2">
                 <Label>活動主賣點（每行一點，前台首屏最多顯示 3 點）</Label>
                 <Textarea
