@@ -683,7 +683,7 @@ function InvitationsTab({
   const [newTagInput, setNewTagInput] = useState("");
   const [followerError, setFollowerError] = useState<string | null>(null);
   // 防呆：阻擋訊息 / 合拍同住確認 / IG 重複確認
-  const [blockMessages, setBlockMessages] = useState<string[]>([]);
+  const [blockIssues, setBlockIssues] = useState<ValidationIssue[]>([]);
   const [collabConfirmed, setCollabConfirmed] = useState(false);
   const [igDupConfirmed, setIgDupConfirmed] = useState(false);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
