@@ -1368,7 +1368,7 @@ function InvitationsTab({
       venue_id: row.venue_id ?? "",
       venue_name: row.venue_name ?? "",
       name: row.name ?? "",
-      ig_handle: row.ig_handle ?? "",
+      ig_handle: row.ig_url || igProfileUrl(row.ig_handle) || row.ig_handle || "",
       rarity: row.rarity ?? "",
       scout_id: row.scout_id ?? "",
       invited_at: row.invited_at ?? "",
@@ -2567,7 +2567,7 @@ function InvitationsTab({
               <TableBody>
                 {(() => {
                   const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean; isSub?: boolean } = {}) => {
-                    const igUrl = igProfileUrl(r.ig_handle) || null;
+                    const igUrl = r.ig_url || igProfileUrl(r.ig_handle) || null;
                     const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                     const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                     const codeOrCid = codeOrCidValue ?? "-";
@@ -2950,7 +2950,7 @@ function InvitationsTab({
           {viewingRow &&
             (() => {
               const r = viewingRow;
-              const igUrl = igProfileUrl(r.ig_handle) || null;
+              const igUrl = r.ig_url || igProfileUrl(r.ig_handle) || null;
               const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
                 <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
                   <div className="text-xs text-muted-foreground">{label}</div>
@@ -4058,7 +4058,7 @@ function InvitationsTab({
                 >
                   <div className="font-medium">{r.name ?? "-"}</div>
                   <div className="text-xs text-muted-foreground break-all">
-                    {r.ig_handle ?? "-"}
+                    {r.ig_url || igProfileUrl(r.ig_handle) || r.ig_handle || "-"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                     {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"}
