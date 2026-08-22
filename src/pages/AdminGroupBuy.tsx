@@ -158,6 +158,9 @@ interface PackageRow {
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
+  /** 方案最多入住人數；NULL＝沿用房型 capacity */
+  max_guests: number | null;
+
   sort_order: number;
   is_active: boolean;
 }
