@@ -29,6 +29,8 @@ import {
 } from "@/lib/groupBuyPricing";
 import { GroupBuyPackageGallery } from "@/components/groupbuy/GroupBuyPackageGallery";
 import { GroupBuyRichContent } from "@/components/groupbuy/GroupBuyRichContent";
+import { GroupBuyTermsHighlights } from "@/components/groupbuy/GroupBuyTermsHighlights";
+
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
 import { GroupBuySummaryCard } from "@/components/groupbuy/GroupBuySummaryCard";
