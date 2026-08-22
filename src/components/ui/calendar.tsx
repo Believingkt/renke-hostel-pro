@@ -100,6 +100,14 @@ function Calendar({ className, classNames, showOutsideDays = true, variant = "ba
         day_hidden: "invisible",
         ...classNames,
       }}
+      formatters={
+        isAdmin
+          ? {
+              formatCaption: (month) => `${month.getFullYear()} 年 ${String(month.getMonth() + 1).padStart(2, "0")} 月`,
+              ...props.formatters,
+            }
+          : props.formatters
+      }
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
