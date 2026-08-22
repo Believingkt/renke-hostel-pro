@@ -119,7 +119,8 @@ export function renderBookingWithBankInfo(
        ${bankBlock}
        ${o.deadlineText ? `<p><strong style="color:${BRAND.primary}">匯款期限：${esc(o.deadlineText)}</strong>（逾期系統將自動取消訂單）</p>` : ""}
        <p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
-       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">匯款回報 / 查詢訂單</a></p>` : ""}`,
+
     ),
   };
 }
