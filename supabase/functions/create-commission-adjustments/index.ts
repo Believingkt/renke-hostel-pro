@@ -101,8 +101,21 @@ serve(async (req) => {
     if (snapsAErr) throw snapsAErr;
 
     const aSnaps = snapsA ?? [];
+    let amountChangeSkippedUnpaid = 0;
     if (aSnaps.length > 0) {
       const orderIds = aSnaps.map((s) => s.order_id as string);
+
+      // 已發放標記：未發放的快照由 create-commission-snapshots 的 resync 直接改寫金額，
+      // 此處不得再產生 amount_change，否則同一差額會被重複計算。
+      const { data: paidMarks, error: paidMarksErr } = await supabase
+        .from("commission_payout_marks")
+        .select("source_id")
+        .eq("source_table", "closer_commission_snapshots")
+        .eq("payout_status", "paid")
+        .in("source_id", aSnaps.map((s) => s.id as string));
+      if (paidMarksErr) throw paidMarksErr;
+      const paidSnapIds = new Set<string>((paidMarks ?? []).map((r) => r.source_id as string));
+
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
@@ -131,6 +144,9 @@ serve(async (req) => {
         const ord = ordersMap.get(orderId);
         if (!ord) continue;
         if (ord.order_status === "cancelled") continue; // handled in scenario B
+        // 未發放 → 由 resync 改寫快照，不建立補差（互斥責任）
+        if (!paidSnapIds.has(s.id as string)) { amountChangeSkippedUnpaid++; continue; }
+
         // 非台幣訂單不計入獎金（null 視為台幣）
         if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
         // 免抽成來源訂單不產生調整
@@ -333,6 +349,8 @@ serve(async (req) => {
       target_month: targetMonthStr,
       adjustment_month: adjMonthStr,
       amount_changes: amountChanges,
+      amount_changes_skipped_unpaid: amountChangeSkippedUnpaid,
+
       cancellations,
       reactivations,
       errors,
