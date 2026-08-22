@@ -34,7 +34,13 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, MoreHorizontal, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   DEPOSIT_STATE_LABEL,
   DEPOSIT_STATE_VARIANT,
