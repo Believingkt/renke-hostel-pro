@@ -12,12 +12,16 @@ export function looksLikeHtml(text: string | null | undefined): boolean {
   return !!text && HTML_TAG_RE.test(text);
 }
 
-/** 常見條列行首符號 */
-const BULLET_RE = /^\s*([・．·•●◦*\-－–—]|\d+[.)、])\s*/;
+/** 無序條列行首符號 */
+const BULLET_RE = /^\s*([・．·•●◦*\-－–—])\s*/;
+/** 有序條列行首（1. / 1) / 1、） */
+const ORDERED_RE = /^\s*(\d{1,2})[.)、]\s*/;
 
 export interface PlainTextBlock {
   type: "li" | "p";
   text: string;
+  /** li 專用：是否為有序清單項目 */
+  ordered?: boolean;
 }
 
 /** 將純文字切成條列／段落區塊，保留原有換行語意 */
@@ -29,11 +33,13 @@ export function toPlainTextBlocks(text: string | null | undefined): PlainTextBlo
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
     .map((line) => {
-      const bullet = BULLET_RE.test(line);
-      return {
-        type: bullet ? ("li" as const) : ("p" as const),
-        text: bullet ? line.replace(BULLET_RE, "").trim() : line,
-      };
+      if (ORDERED_RE.test(line)) {
+        return { type: "li" as const, ordered: true, text: line.replace(ORDERED_RE, "").trim() };
+      }
+      if (BULLET_RE.test(line)) {
+        return { type: "li" as const, ordered: false, text: line.replace(BULLET_RE, "").trim() };
+      }
+      return { type: "p" as const, text: line };
     })
     .filter((b) => b.text.length > 0);
 }
