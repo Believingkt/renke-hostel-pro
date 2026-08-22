@@ -37,14 +37,14 @@ interface LocationSectionProps {
   initialAttractionCount?: number;
   /** 桌機版第一層顯示幾個景點（未設定＝沿用 initialAttractionCount） */
   initialAttractionCountDesktop?: number;
-
+  /** 精簡模式（團購頁手機版）：縮小標題間距、地圖高度 */
   compact?: boolean;
 }
 
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount, compact }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount, initialAttractionCountDesktop, compact }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
