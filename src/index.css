@@ -2089,7 +2089,7 @@ button > svg,
   padding-left: 0;
   padding-right: 0;
 }
-.gb-lookup-notice #booking-info > .container > .text-center:first-child {
+.gb-lookup-notice #booking-info .text-center:first-child {
   display: none;
 }
 .gb-lookup-notice #booking-info .md\:grid {
