@@ -45,6 +45,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
 import { boostedAmount } from "@/lib/bonusMultiplier";
+import { fetchCloserTeamPool } from "@/lib/closerTeamPool";
 
 interface Props {
   isAdmin: boolean;
@@ -171,7 +172,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   useEffect(() => {
     void computePeriod();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [year, month]);
+  }, [periodYear, periodMonth, year, month]);
 
   async function loadSettings() {
     const { data, error } = await supabase
