@@ -30,7 +30,6 @@ import {
 import { GroupBuyPackageGallery } from "@/components/groupbuy/GroupBuyPackageGallery";
 import { GroupBuyRichContent } from "@/components/groupbuy/GroupBuyRichContent";
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
-import { GroupBuyQuickPreview } from "@/components/groupbuy/GroupBuyQuickPreview";
 import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
 import { GroupBuySummaryCard } from "@/components/groupbuy/GroupBuySummaryCard";
 import { GroupBuyPaymentSteps } from "@/components/groupbuy/GroupBuyPaymentSteps";
