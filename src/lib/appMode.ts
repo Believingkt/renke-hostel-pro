@@ -7,6 +7,8 @@
  *                          可用 ?mode=pms / ?mode=frontend 切換，記在 sessionStorage
  */
 
+import { PMS_RESERVED_FIRST_SEGMENT_SET } from "@/lib/reservedRoutes";
+
 export const PMS_ORIGIN = "https://pms.lakeze.com";
 export const BOOKING_ORIGIN = "https://booking.lakeze.com";
 /** 密碼重設信固定回到 PMS 網域（勿用 window.location.origin 硬拼） */
