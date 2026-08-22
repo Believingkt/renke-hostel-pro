@@ -182,7 +182,7 @@ export function MultiImageUploadField({ value, onChange, pathPrefix, className, 
           onClick={() => inputRef.current?.click()}
           disabled={uploading}
           className={cn(
-            "flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/40 text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground",
+            "flex w-full max-w-sm flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/40 px-3 text-center text-sm text-muted-foreground transition hover:border-primary/50 hover:text-foreground",
             aspect,
           )}
         >
