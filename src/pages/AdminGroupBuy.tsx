@@ -123,6 +123,8 @@ interface Campaign {
   subtitle: string | null;
   description_html: string | null;
   cover_image_url: string | null;
+  cover_focus_x?: number | null;
+  cover_focus_y?: number | null;
   kol_display_name: string | null;
   discount_code: string | null;
   sale_start: string | null;
@@ -945,6 +947,9 @@ export default function AdminGroupBuy() {
                   <div>
 
                     <Label>方案圖片（可多張，第一張為主圖）</Label>
+                    <p className="mb-1.5 text-xs text-muted-foreground">
+                      建議尺寸 1200×900（4:3）以上，橫式拍攝、主體置中；第一張會作為方案卡大圖。
+                    </p>
                     <MultiImageUploadField
                       value={(p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [])}
                       onChange={(urls) =>
