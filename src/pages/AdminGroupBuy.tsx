@@ -258,8 +258,12 @@ export default function AdminGroupBuy() {
   const [events, setEvents] = useState<EventRow[]>([]);
   /** 訂單價格快照（group_buy_commissions.price_snapshot），僅供稽核檢視 */
   const [snapshots, setSnapshots] = useState<Record<string, PriceSnapshot | null>>({});
+  /** 分潤快照（唯一 Source of Truth） */
+  const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [auditTarget, setAuditTarget] = useState<OrderRow | null>(null);
-  const [roomTypes, setRoomTypes] = useState<{ id: string; name: string }[]>([]);
+  /** 修改分潤比例的確認彈窗 */
+  const [rateDialog, setRateDialog] = useState<{ oldRate: number; newRate: number } | null>(null);
+
   const [editing, setEditing] = useState<Partial<Campaign> | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<OrderRow | null>(null);
