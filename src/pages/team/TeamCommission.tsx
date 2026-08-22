@@ -304,7 +304,11 @@ interface SourceItem {
   rate_kind?: string | null;         // "percent" | "fixed"
   split_headcount?: number | null;   // 均分人數
   prorate_ratio?: number | null;     // 在職比例
+  // 成交組 80/20：amount 為個人實發，這裡保留原始 Gross 與團獎池提撥供稽核顯示
+  gross_amount?: number | null;
+  pool_amount?: number | null;
 }
+
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
 function bonusTypeOf(source_table: string, role_key: string): string | null {
