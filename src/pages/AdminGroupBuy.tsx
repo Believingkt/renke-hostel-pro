@@ -711,7 +711,7 @@ export default function AdminGroupBuy() {
       try {
         const { error } = await supabase
           .from("group_buy_campaigns")
-          .update({ commission_rate: rateDialog.newRate })
+          .update({ ...(editing as any), commission_rate: rateDialog.newRate, accommodation_id: accommodationId })
           .eq("id", editing.id);
         if (error) throw error;
 
