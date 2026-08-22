@@ -181,8 +181,10 @@ export default function GroupBuyOrderLookup() {
                 <XCircle className="h-4 w-4" />
                 <AlertTitle>取消申請處理中</AlertTitle>
                 <AlertDescription>
-                  已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中；
-                  若符合退款條件，退款將於當月月底前完成處理。訂單在民宿確認前仍維持原狀態。
+                  <p>
+                    已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
+                  </p>
+                  <CancellationRefundNotice showPendingReview className="mt-2" />
                 </AlertDescription>
               </Alert>
             )}
