@@ -1567,7 +1567,7 @@ export default function TeamCommissionStatsTab() {
                         <TableHead>訂單編號</TableHead>
                         <TableHead>類型</TableHead>
                         <TableHead>說明</TableHead>
-                        <TableHead className="tabular-nums">補差金額</TableHead>
+                        <TableHead className="tabular-nums">原始補差金額</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
