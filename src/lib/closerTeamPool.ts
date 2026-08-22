@@ -16,12 +16,21 @@ export interface CloserTeamPoolResult {
   bonus_rate: number;
   gross_total: number;
   personal_total: number;
+  snapshot_gross?: number;
+  snapshot_personal?: number;
   snapshot_pool: number;
+  /** 正式 Snapshot 尚未建立期間的 Preview 補位（逐筆 order_id 去重） */
+  preview_gross?: number;
+  preview_personal?: number;
+  preview_pool?: number;
+  adjustment_gross?: number;
+  adjustment_personal?: number;
   adjustment_pool: number;
   positive_adjustment_pool: number;
   negative_adjustment_pool: number;
   pool_total: number;
   snapshot_count: number;
+  preview_count?: number;
   adjustment_count: number;
 }
 
