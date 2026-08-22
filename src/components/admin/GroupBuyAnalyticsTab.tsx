@@ -172,20 +172,23 @@ export function GroupBuyAnalyticsTab({
         </CardHeader>
 
         <CardContent className="space-y-3 p-0">
-          <div className="gb-no-print flex flex-wrap items-center gap-2 px-4">
-            {ANALYTICS_FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                size="sm"
-                variant={filter === f.key ? "default" : "outline"}
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-              </Button>
-            ))}
-            <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
+          <div className="gb-no-print space-y-2 px-3 md:px-4">
+            <div className="-mx-3 flex flex-nowrap items-center gap-2 overflow-x-auto px-3 md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+              {ANALYTICS_FILTERS.map((f) => (
+                <Button
+                  key={f.key}
+                  size="sm"
+                  className="shrink-0"
+                  variant={filter === f.key ? "default" : "outline"}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm md:justify-end">
               <select
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-base md:h-9 md:flex-none md:text-sm"
                 value={dateField}
                 onChange={(e) => setDateField(e.target.value as "order_date" | "check_in_date")}
               >
@@ -193,6 +196,7 @@ export function GroupBuyAnalyticsTab({
                 <option value="check_in_date">入住日期</option>
               </select>
               <AdminDateRangeField
+                className="w-full md:w-auto [&>button]:flex-1 md:[&>button]:flex-none"
                 from={from}
                 to={to}
                 onChange={(f, t) => {
@@ -208,6 +212,7 @@ export function GroupBuyAnalyticsTab({
               )}
             </div>
           </div>
+
 
           <div className="overflow-x-auto">
             <Table className="min-w-[1100px]">
