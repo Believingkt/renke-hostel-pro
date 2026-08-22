@@ -180,7 +180,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
                   <MapPin className="h-4 w-4 md:h-5 md:w-5 lg:h-5 lg:w-5 text-primary" />
                   位置資訊
                 </h3>
-                <div className="h-[280px] md:h-[400px] lg:h-[600px] bg-muted rounded-lg overflow-hidden">
+                <div className={`bg-muted rounded-lg overflow-hidden ${compact ? "h-[280px] md:h-[340px] lg:h-[380px]" : "h-[280px] md:h-[400px] lg:h-[600px]"}`}>
                   <iframe
                     src={`https://www.google.com/maps?q=${encodeURIComponent(address || "宜蘭縣冬山鄉大進三路208號")}&output=embed`}
                     width="100%"
