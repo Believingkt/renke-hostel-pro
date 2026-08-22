@@ -83,7 +83,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
             href={`https://www.google.com/maps?q=${encodeURIComponent(address || "")}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center"
+            className="icon-btn absolute bottom-2 right-2 h-10 w-10 rounded-full bg-white shadow-md"
             aria-label="放大地圖"
           >
             <Maximize2 className="h-4 w-4 text-foreground" />

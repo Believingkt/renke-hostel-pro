@@ -70,7 +70,7 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
           </button>
           <button
             onClick={onClose}
-            className="h-9 w-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="icon-btn h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             aria-label="關閉"
           >
             <X className="h-5 w-5" />
@@ -129,14 +129,14 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
                 <button
                   onClick={prev}
                   aria-label="上一張"
-                  className="absolute left-2 md:left-5 top-1/2 -translate-y-1/2 h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
+                  className="icon-btn absolute left-2 md:left-5 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button
                   onClick={next}
                   aria-label="下一張"
-                  className="absolute right-2 md:right-5 top-1/2 -translate-y-1/2 h-10 w-10 md:h-12 md:w-12 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
+                  className="icon-btn absolute right-2 md:right-5 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
                 >
                   <ChevronRight className="h-6 w-6" />
                 </button>

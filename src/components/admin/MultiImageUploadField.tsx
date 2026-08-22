@@ -56,7 +56,7 @@ function SortableThumb({
     >
       <img src={url} alt={`方案圖片 ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
       {index === 0 && (
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-primary-foreground">
+        <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
           主圖
         </span>
       )}
@@ -65,20 +65,19 @@ function SortableThumb({
         {...attributes}
         {...listeners}
         aria-label="拖曳排序"
-        className="absolute bottom-1.5 left-1.5 cursor-grab rounded-md bg-background/85 p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+        className="no-touch-enlarge icon-btn absolute bottom-1.5 left-1.5 h-7 w-7 cursor-grab rounded-md bg-background/85 text-muted-foreground shadow-sm hover:text-foreground active:cursor-grabbing"
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-3.5 w-3.5" />
       </button>
-      <Button
+      <button
         type="button"
-        size="icon"
-        variant="secondary"
-        className="absolute right-1.5 top-1.5 h-7 w-7"
+        className="no-touch-enlarge icon-btn absolute right-1.5 top-1.5 h-7 w-7 rounded-md bg-background/85 text-muted-foreground shadow-sm hover:bg-destructive hover:text-destructive-foreground"
         onClick={onRemove}
         aria-label={`移除圖片 ${index + 1}`}
       >
-        <X className="h-4 w-4" />
-      </Button>
+        <X className="h-3.5 w-3.5" />
+      </button>
+
     </div>
   );
 }
@@ -165,7 +164,7 @@ export function MultiImageUploadField({ value, onChange, pathPrefix, className, 
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={urls} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
               {urls.map((url, i) => (
                 <SortableThumb
                   key={url}
