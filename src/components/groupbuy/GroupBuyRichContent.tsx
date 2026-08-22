@@ -72,7 +72,7 @@ export function plainTextToGroupBuyHtml(raw: string | null | undefined): string 
 }
 
 const ORDERED_LINE_RE = /^\s*(\d{1,2})[.)、]\s+/;
-const BULLET_LINE_RE = /^\s*([・．·•●◦－–—]|-)\s+/;
+const BULLET_LINE_RE = /^\s*(?:[・．·•●◦]\s*|[-－–—]\s+)/;
 
 /**
  * 顯示層自動格式化（不改 DB）：
@@ -119,7 +119,7 @@ export function autoFormatGroupBuyLists(html: string): string {
           kind === "ol"
             ? line.replace(/^(\s*(?:<[^>]*>\s*)*)\d{1,2}[.)、]\s+/, "$1")
             : kind === "ul"
-              ? line.replace(/^(\s*(?:<[^>]*>\s*)*)[・．·•●◦－–—-]\s+/, "$1")
+              ? line.replace(/^(\s*(?:<[^>]*>\s*)*)(?:[・．·•●◦]\s*|[-－–—]\s+)/, "$1")
               : line;
         const last = chunks[chunks.length - 1];
         if (last && last.kind === kind && kind !== "p") last.items.push(text);
