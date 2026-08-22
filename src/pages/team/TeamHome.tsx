@@ -405,6 +405,7 @@ export default function TeamHome() {
     setCloserBackfill(p.closerBackfillSum ?? 0);
     setCloserBackfillCnt(p.closerBackfillCount ?? 0);
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
+    setCloserPreviewCnt(p.closerPreviewCount ?? 0);
     setScoutCloserAmt(p.scoutCloserSum);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
