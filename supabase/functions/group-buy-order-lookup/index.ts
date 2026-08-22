@@ -402,8 +402,20 @@ Deno.serve(async (req) => {
           phone: (intro as any)?.phone || (acc as any).phone || null,
         }
         : null,
-      // 下單當下的訂房須知快照（immutable；舊訂單為 null → 前台 fallback live data）
-      bookingNoticeSnapshot: (order as any).group_buy_booking_notice_snapshot ?? null,
+      // 下單當下的訂房須知快照：只回傳「渲染用的面板內容」，不外洩 version / captured_at /
+      // visible_keys / campaign_id / accommodation_id 等內部結構（舊訂單為 null → 前台 fallback live data）
+      bookingNoticeSections: (() => {
+        const snap = (order as any).group_buy_booking_notice_snapshot;
+        const list = Array.isArray(snap?.sections) ? snap.sections : null;
+        if (!list || list.length === 0) return null;
+        return list.map((p: any) => ({
+          key: String(p?.key ?? ""),
+          title: String(p?.title ?? ""),
+          ...(p?.subtitle ? { subtitle: String(p.subtitle) } : {}),
+          ...(Array.isArray(p?.textRows) ? { textRows: p.textRows } : {}),
+          ...(p?.html ? { html: String(p.html) } : {}),
+        }));
+      })(),
       // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則。
       // 有快照時優先使用快照版本（保留下單當時提供給客人的內容）。
       preArrivalNotice: (order as any).group_buy_booking_notice_snapshot?.post_booking_notice

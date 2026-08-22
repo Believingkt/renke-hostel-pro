@@ -117,10 +117,12 @@ export default function GroupBuyOrderLookup() {
   const cancelRequest = data?.cancelRequest ?? null;
   /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
   const bn = data?.bookingNotice;
-  /** 下單當下的訂房須知快照（新訂單一定有；舊訂單為 null → fallback live data） */
-  const snap = data?.bookingNoticeSnapshot ?? null;
+  /** 下單當下的訂房須知快照面板（後端已剝除內部結構；舊訂單為 null → fallback live data） */
   const snapshotSections: BookingNoticePanel[] | null =
-    snap && Array.isArray(snap.sections) && snap.sections.length > 0 ? (snap.sections as BookingNoticePanel[]) : null;
+    Array.isArray(data?.bookingNoticeSections) && data.bookingNoticeSections.length > 0
+      ? (data.bookingNoticeSections as BookingNoticePanel[])
+      : null;
+  const snap = snapshotSections;
   const hasBookingNotice = Boolean(
     snapshotSections ||
       (bn && !snap &&
