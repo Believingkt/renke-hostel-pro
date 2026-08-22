@@ -641,7 +641,8 @@ export default function TeamHome() {
           const { data: bonusSetting } = await db
             .from("closer_team_bonus_settings")
             .select("bonus_rate, effective_from")
-            .lte("effective_from", monthInfo.monthStartDate)
+            // 團獎池 rate 與個人發放同口徑：以「該發放月」生效版本解析
+            .lte("effective_from", `${monthInfo.payoutMonthKey}-01`)
             .order("effective_from", { ascending: false })
             .limit(1)
             .maybeSingle();
