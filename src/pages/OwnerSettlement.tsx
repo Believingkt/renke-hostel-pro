@@ -724,17 +724,18 @@ export default function OwnerSettlement() {
 
       {/* Hero：業主實收 */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-        <CardContent className="p-6 md:p-8">
+        <CardContent className="p-4 md:p-8">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                 {monthLabel} 業主淨收益
               </div>
-              <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
+              <div className="text-3xl md:text-5xl font-bold text-primary tabular-nums leading-tight break-all">
                 NT$ {fmt(summary.ownerNet)}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
+            <div className="grid grid-cols-3 gap-2 md:gap-6 md:text-right text-[11px] md:text-xs">
+
               <div>
                 <div className="text-muted-foreground">
                   本月入住營收
