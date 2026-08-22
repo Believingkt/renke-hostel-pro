@@ -144,25 +144,55 @@ export default function OwlTingEmailIngest() {
       .limit(100);
     let rawRows = (list as RawEmail[]) ?? [];
 
-    // 待補 PII 的紀錄必須永遠看得到（即使已被較新的信件擠出時間視窗）。
-    // 以「原始信件的 accommodation_id」做租戶範圍，涵蓋 staging 尚未回填民宿的情況。
+    // 只有「真的還能按補單」的待補 PII 紀錄才強制保留（不因較新的信件被擠出視窗而消失）；
+    // 已取消、自家推送、或無需處理者不再回補顯示。
     const { data: pendingStaging } = await supabase
       .from("owlting_email_parsed_staging")
-      .select("raw_email_id, raw:owlting_email_orders_raw!inner(accommodation_id)")
+      .select(
+        "raw_email_id, review_status, channel_source, raw:owlting_email_orders_raw!inner(id,accommodation_id,message_type,obe_number,ingest_outcome)",
+      )
       .eq("pii_status", "pending_pii_fillup")
       .eq("raw.accommodation_id", currentAccommodationId);
-    const pendingRawIds = (pendingStaging ?? [])
-      .map((s: any) => s.raw_email_id as string | null)
-      .filter((v): v is string => !!v && !rawRows.some((r) => r.id === v));
-    if (pendingRawIds.length > 0) {
-      const { data: extra } = await supabase
-        .from("owlting_email_orders_raw")
-        .select(RAW_SELECT)
-        .in("id", pendingRawIds);
-      rawRows = [...rawRows, ...((extra as RawEmail[]) ?? [])].sort((a, b) =>
-        (b.received_at ?? "").localeCompare(a.received_at ?? ""),
+
+    const candidates = (pendingStaging ?? []).filter((s: any) => {
+      const raw = s.raw;
+      if (!raw?.id || rawRows.some((r) => r.id === raw.id)) return false;
+      if (raw.message_type === "cancelled") return false;
+      if (isSelfPushSource(s.channel_source)) return false;
+      if (isNoActionNeeded({ ingest_outcome: raw.ingest_outcome }, { review_status: s.review_status } as StagingLite)) return false;
+      return true;
+    });
+
+    if (candidates.length > 0) {
+      // 同一 OBE 只要有取消信，整組都不需要補單。
+      const obes = Array.from(
+        new Set(candidates.map((s: any) => s.raw.obe_number).filter(Boolean) as string[]),
       );
+      let cancelledObes = new Set<string>();
+      if (obes.length > 0) {
+        const { data: cancelRows } = await supabase
+          .from("owlting_email_orders_raw")
+          .select("obe_number")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("message_type", "cancelled")
+          .in("obe_number", obes);
+        cancelledObes = new Set((cancelRows ?? []).map((c: any) => c.obe_number as string));
+      }
+      const pendingRawIds = candidates
+        .filter((s: any) => !(s.raw.obe_number && cancelledObes.has(s.raw.obe_number)))
+        .map((s: any) => s.raw.id as string);
+
+      if (pendingRawIds.length > 0) {
+        const { data: extra } = await supabase
+          .from("owlting_email_orders_raw")
+          .select(RAW_SELECT)
+          .in("id", pendingRawIds);
+        rawRows = [...rawRows, ...((extra as RawEmail[]) ?? [])].sort((a, b) =>
+          (b.received_at ?? "").localeCompare(a.received_at ?? ""),
+        );
+      }
     }
+
     setRows(rawRows);
 
 
