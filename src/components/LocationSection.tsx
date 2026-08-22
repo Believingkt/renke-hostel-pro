@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus, Navigation } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
