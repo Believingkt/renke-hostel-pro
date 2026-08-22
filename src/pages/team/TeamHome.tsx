@@ -55,6 +55,8 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 import { roundBonus, roundBoosted } from "@/lib/bonusRounding";
+import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
   name: string;
