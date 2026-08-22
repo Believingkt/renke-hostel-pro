@@ -1683,6 +1683,9 @@ export default function GroupBuyCampaign() {
 
       <BookingFooter
         hidePartnershipInfo
+        compactLinks
+        /* 頁面前段已有 LINE 客服 CTA 時，不再重複「聯繫客服」 */
+        showSupportLink={!(accInfo as any)?.line_id}
         lineId={(accInfo as any)?.line_id}
         facebookUrl={(accInfo as any)?.facebook_url}
         instagramUrl={(accInfo as any)?.instagram_url}
