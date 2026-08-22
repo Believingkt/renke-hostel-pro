@@ -966,30 +966,32 @@ export default function TeamCommissionStatsTab() {
       role === "closer" ? backfillMaps.closerByUidAcc : backfillMaps.videoByUidAcc;
     const hasBackfill = showAdj && backfills.length > 0;
     const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
-    /** Gross → 個人實發（唯一拆分規則，共用 helper） */
-    const netCommission = (amount: number) =>
-      showBonus ? splitCloserBonus(amount, bonusRate).personal : roundBonus(amount);
-    const splitTitle = (amount: number) => {
+    /**
+     * 逐筆拆分後的加總（Gross / Personal / Pool 皆為逐筆結果之和），
+     * 顯示層一律讀取這裡，不得對「已聚合的 Gross」再做第二次拆分。
+     */
+    const netCommission = (s: SplitSum) => (showBonus ? s.personal : roundBonus(s.gross));
+    const sumOf = (s: SplitSum | undefined) => s ?? emptySplitSum();
+    const splitTitle = (s: SplitSum) => {
       if (!showBonus) return undefined;
-      const s = splitCloserBonus(amount, bonusRate);
       return `原始成交獎金 ${fmtMoney(s.gross)}／團獎池提撥 ${(bonusRate * 100).toFixed(1)}% -${fmtMoney(s.pool)}／個人發放 ${fmtMoney(s.personal)}`;
     };
-    const renderCommissionCell = (amount: number) => {
-      if (!showBonus) return <BoostedAmount amount={amount} multiplier={bonusMultiplier} />;
+    const renderCommissionCell = (s: SplitSum) => {
+      if (!showBonus) return <BoostedAmount amount={s.gross} multiplier={bonusMultiplier} />;
       return (
-        <div className="flex flex-col leading-tight" title={splitTitle(amount)}>
+        <div className="flex flex-col leading-tight" title={splitTitle(s)}>
           <span className="text-muted-foreground line-through text-xs">
-            {fmtMoney(amount)}
+            {fmtMoney(s.gross)}
           </span>
           <span className="text-orange-600 font-medium">
-            <BoostedAmount amount={netCommission(amount)} multiplier={bonusMultiplier} />
+            <BoostedAmount amount={netCommission(s)} multiplier={bonusMultiplier} />
           </span>
         </div>
       );
     };
-    /** Gross 金額（回溯補建／分潤補差）→ 個人實發顯示 */
-    const renderAdjCell = (grossAmount: number) => {
-      const amount = netCommission(grossAmount);
+    /** 回溯補建／分潤補差（逐筆拆分後的加總）→ 個人實發顯示 */
+    const renderAdjCell = (s: SplitSum) => {
+      const amount = netCommission(s);
       const cls = cn(
         "tabular-nums",
         amount === 0
@@ -998,15 +1000,15 @@ export default function TeamCommissionStatsTab() {
             ? "text-destructive"
             : "text-emerald-600",
       );
-      if (grossAmount === 0) return <span className={cls}>—</span>;
+      if (s.gross === 0) return <span className={cls}>—</span>;
       if (bonusMultiplier <= 1)
         return (
-          <span className={cls} title={splitTitle(grossAmount)}>
+          <span className={cls} title={splitTitle(s)}>
             {fmtMoney(amount)}
           </span>
         );
       return (
-        <div className="flex flex-col leading-tight items-end" title={splitTitle(grossAmount)}>
+        <div className="flex flex-col leading-tight items-end" title={splitTitle(s)}>
           <span className="text-muted-foreground line-through text-xs">{fmtMoney(amount)}</span>
           <span className={cls}>
             {fmtMoney(boostedAmount(amount, bonusMultiplier))}
@@ -1017,6 +1019,7 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
+
 
 
     return (
