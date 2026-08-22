@@ -217,12 +217,26 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
         </div>
 
         <div className="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
-          <p className="mb-1 font-medium text-foreground">設施與入住須知已改由專屬模組維護</p>
+          <p className="mb-1 font-medium text-foreground">設施與正式訂房須知已改由專屬模組維護</p>
           <p>
             團購頁的「設施與服務」讀取後台〈網站內容 → 設施與服務〉，「訂房須知」讀取〈網站內容 → 訂房須知〉，
-            此處不再重複輸入（原有資料仍保留於資料庫，未被清除）。本區僅負責民宿簡介、聯絡資訊與相簿。
+            此處不再重複輸入（原有資料仍保留於資料庫，未被清除）。本區僅負責民宿簡介、入住前提醒、聯絡資訊與相簿。
           </p>
         </div>
+
+        <div>
+          <Label>入住前提醒（訂單成立後顯示）</Label>
+          <Textarea
+            rows={5}
+            value={form.check_in_notice}
+            onChange={(e) => setForm((f) => ({ ...f, check_in_notice: e.target.value }))}
+            placeholder="例如：管家聯絡方式、抵達方式、門鎖／入住流程提醒"
+          />
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            此內容僅顯示於客人的團購訂單查詢頁，適合填寫入住前才需要知道的補充資訊，例如管家聯絡方式、抵達方式、門鎖／入住流程、入住前提醒等。正式住宿規則請至「訂房須知」維護。
+          </p>
+        </div>
+
 
 
         <div className="grid gap-3 sm:grid-cols-2">
