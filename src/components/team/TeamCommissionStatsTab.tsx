@@ -651,19 +651,14 @@ export default function TeamCommissionStatsTab() {
       setPreviewMap(pMap);
 
 
-      // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
+      // 讀取「本期發放月」當時生效的成交組團獎提撥比例（共用 resolver，不各頁自挑版本）
       try {
-        const { data: bonusData } = await supabase
-          .from("closer_team_bonus_settings")
-          .select("bonus_rate, effective_from")
-          .lte("effective_from", period.startDate)
-          .order("effective_from", { ascending: false })
-          .limit(1);
-        const br = Number((bonusData?.[0] as any)?.bonus_rate ?? 0);
-        setBonusRate(Number.isFinite(br) ? br : 0);
+        const resolver = await loadCloserBonusRateResolver(supabase);
+        setBonusRate(resolver.rateForPayoutMonth(payoutMonthKey));
       } catch {
         setBonusRate(0);
       }
+
 
       const { data: scData } = await supabase
         .from("scout_discount_codes")
