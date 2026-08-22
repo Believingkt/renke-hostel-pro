@@ -295,16 +295,40 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {data.checkInNotice && (
-              <Accordion type="single" collapsible className="rounded-lg border px-4">
-                <AccordionItem value="notice" className="border-0">
-                  <AccordionTrigger className="text-sm font-semibold">入住須知</AccordionTrigger>
+            {/* 正式訂房須知：與團購活動頁同源（booking_settings ＋ accommodation_info.check_in_notice ＋ custom_sections），
+                依 campaign.booking_notice_keys 過濾；此處為 live data，顯示最新版本而非下單當時的條款快照。 */}
+            {hasBookingNotice && (
+              <div className="rounded-lg border px-4 [&>section]:py-4">
+                <GroupBuyBookingInfoCompact
+                  bookingSettings={data.bookingNotice?.bookingSettings}
+                  visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                >
+                  <BookingInfoSection
+                    bookingSettings={data.bookingNotice?.bookingSettings}
+                    checkInNotice={data.bookingNotice?.checkInNotice ?? ""}
+                    customSections={data.bookingNotice?.customSections ?? []}
+                    visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                    mobileSingleAccordion
+                  />
+                </GroupBuyBookingInfoCompact>
+                <p className="pb-4 text-xs text-muted-foreground">
+                  以上為目前最新的訂房須知，非下單當時版本。
+                </p>
+              </div>
+            )}
+
+            {/* 入住前提醒（group_buy_venue_intros.check_in_notice）：訂單成立後的補充資訊，非正式住宿規則 */}
+            {typeof data.preArrivalNotice === "string" && data.preArrivalNotice.trim() !== "" && (
+              <Accordion type="single" collapsible className="rounded-lg border border-primary/30 bg-primary/5 px-4">
+                <AccordionItem value="pre-arrival" className="border-0">
+                  <AccordionTrigger className="text-sm font-semibold">入住前提醒</AccordionTrigger>
                   <AccordionContent className="whitespace-pre-line text-muted-foreground">
-                    {data.checkInNotice}
+                    {data.preArrivalNotice}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
             )}
+
 
             {order.orderStatus !== "cancelled" && (
               <div className="rounded-lg border p-4">
