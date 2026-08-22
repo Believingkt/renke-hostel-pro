@@ -307,7 +307,7 @@ export default function GroupBuyOrderLookup() {
             {/* 正式訂房須知：與團購活動頁同源（booking_settings ＋ accommodation_info.check_in_notice ＋ custom_sections），
                 依 campaign.booking_notice_keys 過濾；此處為 live data，顯示最新版本而非下單當時的條款快照。 */}
             {hasBookingNotice && (
-              <div className="rounded-lg border px-4 [&>section]:py-4">
+              <div className="gb-lookup-notice rounded-lg border px-4 [&>section]:py-4">
                 <GroupBuyBookingInfoCompact
                   bookingSettings={data.bookingNotice?.bookingSettings}
                   visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
