@@ -121,7 +121,7 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
       ...f,
       description: htmlToPlainText(official.description),
       facilities: official.facilities.join("、"),
-      check_in_notice: htmlToPlainText(official.check_in_notice),
+      // 入住前提醒為此區獨立內容，不再從官網「訂房須知」覆蓋
       phone: official.phone ?? "",
       address: official.address ?? "",
       gallery_urls: official.gallery_urls.slice(0, 12),
