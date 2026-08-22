@@ -106,6 +106,8 @@ export default function GroupBuyOrderLookup() {
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
+  /** 已全額退款時，狀態一律優先顯示「已退款」 */
+  const refundedFully = data?.refund?.status === "refunded";
 
 
   return (
@@ -145,8 +147,12 @@ export default function GroupBuyOrderLookup() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between text-base">
               <span>{data.campaign?.title ?? "團購訂單"}</span>
-              {order.orderStatus === "cancelled" ? (
+              {refundedFully ? (
+                <Badge variant="secondary">已退款</Badge>
+              ) : order.orderStatus === "cancelled" ? (
                 <Badge variant="destructive">已取消</Badge>
+              ) : cancelRequest ? (
+                <Badge variant="destructive">取消申請處理中</Badge>
               ) : confirmed ? (
                 <Badge className="bg-primary">已收訂金</Badge>
               ) : reported ? (
@@ -157,6 +163,17 @@ export default function GroupBuyOrderLookup() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
+            {cancelRequest && order.orderStatus !== "cancelled" && (
+              <Alert variant="destructive">
+                <XCircle className="h-4 w-4" />
+                <AlertTitle>取消申請處理中</AlertTitle>
+                <AlertDescription>
+                  已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中；
+                  若符合退款條件，退款將於當月月底前完成處理。訂單在民宿確認前仍維持原狀態。
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="rounded-lg bg-muted p-4">
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">訂單編號</span>
