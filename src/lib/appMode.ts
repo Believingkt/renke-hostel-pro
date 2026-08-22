@@ -92,19 +92,10 @@ export function bookingHref(path: string): string {
 /**
  * PMS 網域允許的路徑（其餘一律導回前台網域）
  * 支援 /{slug}/admin/... 形式，會先剝掉 alias 前綴再判斷。
+ *
+ * 保留字唯一來源：src/lib/reservedRoutes.ts（PMS 清單為全站清單的子集）。
  */
-const PMS_RESERVED_FIRST = new Set([
-  "admin",
-  "auth",
-  "login",
-  "reset-password",
-  "change-password",
-  "hq",
-  "hq-auth",
-  "headquarters",
-  "team",
-  "team-auth",
-]);
+const PMS_RESERVED_FIRST = PMS_RESERVED_FIRST_SEGMENT_SET;
 
 export function normalizePmsPath(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
