@@ -26,7 +26,10 @@ export default function GroupBuyOrderLookup() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [accountLast5, setAccountLast5] = useState("");
-  const [transferredAt, setTransferredAt] = useState("");
+  // 匯款日期／時間分開輸入，送出時固定組成台灣時區（+08:00）字串，不依賴裝置時區
+  const [transferDate, setTransferDate] = useState<string>(taipeiToday());
+  const [transferTime, setTransferTime] = useState<string>("");
+
   const [reporting, setReporting] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
