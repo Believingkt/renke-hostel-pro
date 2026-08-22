@@ -1799,14 +1799,14 @@ export default function TeamHome() {
       });
     } else {
       const noteParts = [
-        monthlyNote("需下個月初由管理員設定分配後才能確認個人實拿"),
+        monthlyNote("本期成交組團獎池總額，尚未完成個人分配；需下個月初由管理員設定分配後才能確認個人實拿"),
       ];
       if (closerTeamBonusNoSetting) {
         noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
       }
       cards.push({
         key: "closer_team_bonus",
-        title: "成交組團隊獎金",
+        title: "成交組團隊獎金（尚未分配・全隊團獎池總額）",
         amount: roundBoosted(closerTeamBonusAmt, m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
