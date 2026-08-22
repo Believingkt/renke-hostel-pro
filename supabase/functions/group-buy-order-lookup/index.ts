@@ -312,6 +312,24 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: [] as any[] }),
     ]);
 
+    // ── 常見問題：與團購活動頁完全同源 ──
+    // 資料表 faqs（accommodation_id + is_published，display_order 排序），
+    // 後台若於 group_buy_campaigns.faq_item_ids 指定，則依該陣列順序過濾。
+    let faqItems: { id: string; question: string; answer: string }[] = [];
+    if (accommodationId) {
+      const { data: faqRows } = await admin
+        .from("faqs")
+        .select("id, question, answer")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_published", true)
+        .order("display_order");
+      const all = (faqRows ?? []) as { id: string; question: string; answer: string }[];
+      const picked = (campaign as any)?.faq_item_ids;
+      faqItems = Array.isArray(picked)
+        ? (picked.map((id: string) => all.find((f) => f.id === id)).filter(Boolean) as typeof all)
+        : all;
+    }
+
 
     let pkg: any = null;
     if (campaign?.id) {
