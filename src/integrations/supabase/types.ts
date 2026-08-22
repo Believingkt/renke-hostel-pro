@@ -7219,6 +7219,7 @@ export type Database = {
           discount_code: string | null
           exchange_rate_snapshot: number | null
           final_price: number
+          group_buy_booking_notice_snapshot: Json | null
           guest_address: string | null
           guest_count: number
           guest_email: string | null
@@ -7313,6 +7314,7 @@ export type Database = {
           discount_code?: string | null
           exchange_rate_snapshot?: number | null
           final_price: number
+          group_buy_booking_notice_snapshot?: Json | null
           guest_address?: string | null
           guest_count?: number
           guest_email?: string | null
@@ -7407,6 +7409,7 @@ export type Database = {
           discount_code?: string | null
           exchange_rate_snapshot?: number | null
           final_price?: number
+          group_buy_booking_notice_snapshot?: Json | null
           guest_address?: string | null
           guest_count?: number
           guest_email?: string | null
