@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
-import { ChevronDown, Info } from "lucide-react";
+import { ChevronDown, ChevronUp, Info } from "lucide-react";
 import { renderGroupBuyRichHtml } from "@/components/groupbuy/GroupBuyRichContent";
 
 interface Props {
+  /** 完整團購活動注意事項（Rich Text，Source of Truth） */
   html: string | null | undefined;
-  /** 第一層摘要顯示幾條（3～5） */
+  /** 後台設定的「活動須知重點」（3～5 條），沒有設定時自動由完整內容取前幾條 */
+  highlights?: string[] | null;
+  /** 沒有重點欄位時，自動摘要顯示幾條 */
   summaryCount?: number;
 }
 
-/** 從已 sanitize 的 HTML 取出前幾條「條列或段落」純文字，作為第一層摘要 */
+/** 從已 render 的 HTML 取出條列／段落純文字，作為 fallback 摘要 */
 function extractLines(rendered: string): string[] {
   if (typeof window === "undefined" || !rendered) return [];
   const doc = new DOMParser().parseFromString(`<div>${rendered}</div>`, "text/html");
@@ -20,18 +23,20 @@ function extractLines(rendered: string): string[] {
 }
 
 /**
- * 團購活動須知：第一層只顯示 3～5 條最重要條件，完整 Rich Text 收合在「查看完整團購活動須知」。
- * 內容全部來自既有 campaign.terms_html，不寫死任何文案。
+ * 團購活動須知：
+ * 收合＝「活動須知重點」3～5 條（自然換行，不做 line-clamp）
+ * 展開＝後台完整 Rich Text（無任何高度／溢出限制）
  */
-export function GroupBuyTermsHighlights({ html, summaryCount = 4 }: Props) {
+export function GroupBuyTermsHighlights({ html, highlights, summaryCount = 5 }: Props) {
   const rendered = useMemo(() => renderGroupBuyRichHtml(html), [html]);
-  const lines = useMemo(() => extractLines(rendered), [rendered]);
+  const manual = (highlights ?? []).map((s) => (s ?? "").trim()).filter(Boolean);
+  const autoLines = useMemo(() => (manual.length > 0 ? [] : extractLines(rendered)), [rendered, manual.length]);
   const [open, setOpen] = useState(false);
 
-  if (!rendered) return null;
-  const summary = lines.slice(0, summaryCount);
-  // 條列被截斷（line-clamp-2）時也要能展開看完整內容
-  const hasMore = lines.length > summary.length || summary.some((t) => t.length > 40);
+  if (!rendered && manual.length === 0) return null;
+
+  const summary = manual.length > 0 ? manual.slice(0, 5) : autoLines.slice(0, summaryCount);
+  const canExpand = !!rendered;
 
   return (
     <div className="mt-6 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:p-5">
@@ -45,7 +50,7 @@ export function GroupBuyTermsHighlights({ html, summaryCount = 4 }: Props) {
           {summary.map((t, i) => (
             <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
               <span aria-hidden className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
-              <span className="line-clamp-2">{t}</span>
+              <span className="min-w-0 break-words">{t}</span>
             </li>
           ))}
         </ul>
@@ -53,20 +58,28 @@ export function GroupBuyTermsHighlights({ html, summaryCount = 4 }: Props) {
 
       {open && (
         <div
-          className="prose prose-sm max-w-none text-muted-foreground prose-headings:text-foreground prose-strong:text-foreground"
+          className="gb-rich max-w-[70ch] text-sm text-muted-foreground"
           dangerouslySetInnerHTML={{ __html: rendered }}
         />
       )}
 
-      {(hasMore || open) && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="mt-2 inline-flex min-h-[44px] items-center justify-center gap-1.5 p-0 text-sm font-medium leading-none text-primary underline underline-offset-4"
-        >
-          {open ? "收合活動須知" : "查看完整團購活動須知"}
-          <ChevronDown className={`block h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
+      {canExpand && (
+        <>
+          <div className="mt-3 border-t border-border/60" />
+          <button
+            type="button"
+            aria-expanded={open}
+            onClick={() => setOpen((v) => !v)}
+            className="icon-btn mt-1 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 text-sm font-medium leading-none text-primary underline underline-offset-4 sm:w-auto"
+          >
+            <span>{open ? "收合活動須知" : "查看完整活動須知"}</span>
+            {open ? (
+              <ChevronUp className="block h-4 w-4 shrink-0" />
+            ) : (
+              <ChevronDown className="block h-4 w-4 shrink-0" />
+            )}
+          </button>
+        </>
       )}
     </div>
   );

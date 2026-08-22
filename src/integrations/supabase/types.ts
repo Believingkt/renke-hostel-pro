@@ -4262,6 +4262,7 @@ export type Database = {
           stay_end_date: string | null
           stay_start_date: string | null
           subtitle: string | null
+          terms_highlights: string[]
           terms_html: string | null
           title: string
           updated_at: string
@@ -4304,6 +4305,7 @@ export type Database = {
           stay_end_date?: string | null
           stay_start_date?: string | null
           subtitle?: string | null
+          terms_highlights?: string[]
           terms_html?: string | null
           title: string
           updated_at?: string
@@ -4346,6 +4348,7 @@ export type Database = {
           stay_end_date?: string | null
           stay_start_date?: string | null
           subtitle?: string | null
+          terms_highlights?: string[]
           terms_html?: string | null
           title?: string
           updated_at?: string

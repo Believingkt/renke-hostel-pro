@@ -847,6 +847,7 @@ export default function GroupBuyCampaign() {
   const showHighlightSection =
     !!campaign.description_html?.trim() ||
     !!campaign.terms_html?.trim() ||
+    (((campaign as any).terms_highlights ?? []) as string[]).some((s) => !!s?.trim()) ||
     (campaign.highlight_points ?? []).some((s) => !!s?.trim());
   const showRulesSection = showBookingNotice;
 
@@ -1550,7 +1551,12 @@ export default function GroupBuyCampaign() {
                 lessLabel="收合介紹"
               />
             )}
-            {campaign.terms_html && <GroupBuyTermsHighlights html={campaign.terms_html} />}
+            {(campaign.terms_html || ((campaign as any).terms_highlights ?? []).length > 0) && (
+              <GroupBuyTermsHighlights
+                html={campaign.terms_html}
+                highlights={(campaign as any).terms_highlights ?? []}
+              />
+            )}
           </section>
 
         )}
