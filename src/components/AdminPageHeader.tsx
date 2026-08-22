@@ -53,14 +53,14 @@ export function AdminPageHeader({
   children,
 }: AdminPageHeaderProps) {
   return (
-    <div className={cn("space-y-6", className)}>
-      <Breadcrumb>
-        <BreadcrumbList>
+    <div className={cn("min-w-0 space-y-4 md:space-y-6", className)}>
+      <Breadcrumb className="min-w-0">
+        <BreadcrumbList className="flex-wrap gap-x-1.5 gap-y-1 text-xs sm:text-sm">
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link
                 to="/admin"
-                className="flex items-center hover:opacity-70 transition-opacity"
+                className="flex items-center admin-icon-btn justify-center -ml-2 hover:opacity-70 transition-opacity sm:ml-0 sm:min-h-0 sm:min-w-0"
               >
                 <Home className="h-4 w-4" />
               </Link>
