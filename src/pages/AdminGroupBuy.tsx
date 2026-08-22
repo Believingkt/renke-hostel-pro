@@ -142,6 +142,8 @@ interface Campaign {
   stay_start_date: string | null;
   stay_end_date: string | null;
   status: string;
+  is_archived?: boolean | null;
+
   deposit_percentage: number;
   payment_deadline_hours: number;
   payment_method: string | null;
@@ -626,8 +628,9 @@ export default function AdminGroupBuy() {
           <SelectContent>
             {campaigns.map((c) => (
               <SelectItem key={c.id} value={c.id}>
-                {c.title}（{c.status === "active" ? "上架中" : c.status === "draft" ? "草稿" : "已結束"}）
+                {c.title}（{c.is_archived ? "已封存" : c.status === "active" ? "上架中" : c.status === "draft" ? "草稿" : "已結束"}）
               </SelectItem>
+
             ))}
           </SelectContent>
         </Select>
