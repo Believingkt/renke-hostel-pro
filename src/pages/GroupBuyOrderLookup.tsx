@@ -316,30 +316,23 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {/* 正式訂房須知：
-                1) 優先顯示下單當下的快照（order.group_buy_booking_notice_snapshot，immutable）
-                2) 舊訂單無快照時 fallback 目前 live data（與團購活動頁同源、依 booking_notice_keys 過濾） */}
-            {hasBookingNotice && (
-              <div className="gb-lookup-notice rounded-lg border px-4 [&>section]:py-4">
-                <GroupBuyBookingInfoCompact
-                  bookingSettings={data.bookingNotice?.bookingSettings}
-                  visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
-                  sections={snapshotSections ?? undefined}
-                >
-                  <BookingInfoSection
-                    bookingSettings={data.bookingNotice?.bookingSettings}
-                    checkInNotice={data.bookingNotice?.checkInNotice ?? ""}
-                    customSections={data.bookingNotice?.customSections ?? []}
-                    visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
-                    sections={snapshotSections ?? undefined}
-                    mobileSingleAccordion
-                  />
-                </GroupBuyBookingInfoCompact>
-                {!snapshotSections && (
-                  <p className="pb-4 text-xs text-muted-foreground">
-                    以上為目前最新的訂房須知。
-                  </p>
-                )}
+            {/* 常見問題：與團購活動頁同源（faqs + campaign.faq_item_ids）。
+                訂房須知快照仍完整保存於資料庫供後台稽核，僅不在此頁顯示。 */}
+            {faqItems.length > 0 && (
+              <div className="rounded-lg border px-4">
+                <p className="pt-4 font-semibold text-foreground">常見問題</p>
+                <Accordion type="single" collapsible className="w-full">
+                  {faqItems.map((f) => (
+                    <AccordionItem key={f.id} value={f.id}>
+                      <AccordionTrigger className="text-left text-sm font-medium">
+                        {f.question}
+                      </AccordionTrigger>
+                      <AccordionContent className="whitespace-pre-line text-muted-foreground">
+                        {f.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </div>
             )}
 
