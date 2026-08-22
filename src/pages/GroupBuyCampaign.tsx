@@ -1228,12 +1228,8 @@ export default function GroupBuyCampaign() {
           </div>
         </section>
 
-        {/* ── 住宿亮點（僅文字，照片交由首屏 Hero 與下方完整相簿） ── */}
-        <GroupBuyQuickPreview
-          facilities={featuredFacilities.length > 0 ? featuredFacilities : previewFacilities}
-          totalPhotos={previewPhotos.length}
-          onViewAll={() => goTo("gb-venue")}
-        />
+        {/* 住宿亮點已移至下方「民宿介紹」區，維持成交區資訊精簡 */}
+
 
 
 
