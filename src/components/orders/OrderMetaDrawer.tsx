@@ -1010,67 +1010,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                     placeholder="例外原因（必填，將寫入變更紀錄）"
                     rows={2}
                   />
-                  <div className="text-xs space-y-0.5 rounded-md bg-muted/40 p-2">
+                  <div className="text-xs space-y-1 rounded-md bg-muted/40 p-2">
                     <div>
-                      快照歸期：{snapshotMonthOfOrder || "-"}　→　發放期：
-                      <span className="font-medium">{currentPayoutMonth}</span>
-                      （每月 10 日發放，已過 10 日則歸次月）
-                    </div>
-                    <div>
-                      預估獎金：
+                      目前計獎基準：
                       <span className="font-medium">
-                        {forceEstimateAmount !== null
-                          ? `NT$ ${forceEstimateAmount.toLocaleString()}`
+                        {commissionBaseForDisplay !== null
+                          ? `NT$ ${commissionBaseForDisplay.toLocaleString()}`
                           : "—"}
                       </span>
-                      {closerRate !== null && (
-                        <>
-                          （基準 NT${" "}
-                          {Number(teamCommissionPrice ?? autoTeamCommissionPrice ?? 0).toLocaleString()} ×{" "}
-                          {(closerRate * 100).toFixed(2)}%）
-                        </>
-                      )}
                     </div>
                     <div className="text-muted-foreground">
-                      快照為 append-only，需重算該期後才會出現在發放管理。
+                      實際獎金仍依正式結算時的訂單狀態、合作條件及成交組獎金規則計算。
+                    </div>
+                    {commissionBlockers.map((msg) => (
+                      <div key={msg} className="text-amber-600">
+                        ⚠️ {msg}
+                      </div>
+                    ))}
+                    <div className="text-muted-foreground">
+                      例外設定僅解除來源排除；仍須符合其他成交獎金條件。
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isSuperAdmin ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
-                        onClick={handleResyncSnapshots}
-                      >
-                        {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        重算該期需由超級管理員執行。
-                      </p>
-                    )}
-                    <span className="text-xs">
-                      {checkingPayout ? (
-                        <span className="text-muted-foreground">查詢發放期中…</span>
-                      ) : actualPayoutMonth ? (
-                        <>
-                          實際發放期：
-                          <span className="font-medium text-green-700">{actualPayoutMonth}</span>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">尚未產生快照</span>
-                      )}
-                    </span>
-                  </div>
-                  {forceEligible !== initialForceEligible && (
-                    <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
-                  )}
-
                 </div>
               )}
+
             </div>
           )}
 
