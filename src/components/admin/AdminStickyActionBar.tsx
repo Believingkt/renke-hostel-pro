@@ -24,7 +24,7 @@ export function AdminStickyActionBar({ children, info, className }: AdminStickyA
   return (
     <div
       className={cn(
-        "sticky bottom-0 left-0 right-0 z-30 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur",
+        "sticky bottom-0 left-0 right-0 z-30 -mx-3 border-t bg-background/95 px-3 py-3 backdrop-blur md:-mx-0",
         "safe-bottom md:mx-0 md:rounded-lg md:border md:px-4",
         className,
       )}
