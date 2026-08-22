@@ -606,9 +606,10 @@ export default function AdminGroupBuy() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={() => void loadCampaigns()} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> 重新整理
+        <Button variant="outline" size="sm" onClick={() => void refreshAll()} disabled={loading || refreshing}>
+          <RefreshCw className={`mr-1 h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} /> 重新整理
         </Button>
+
         <Button size="sm" onClick={() => setEditing(emptyCampaign(accommodationId))}>
           <Plus className="mr-1 h-4 w-4" /> 新增活動
         </Button>
