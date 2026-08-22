@@ -4472,6 +4472,10 @@ export type Database = {
           created_at: string
           id: string
           kol_profile_id: string | null
+          manual_eligibility: string | null
+          manual_note: string | null
+          manual_set_at: string | null
+          manual_set_by: string | null
           note: string | null
           order_id: string
           price_snapshot: Json | null
@@ -4487,6 +4491,10 @@ export type Database = {
           created_at?: string
           id?: string
           kol_profile_id?: string | null
+          manual_eligibility?: string | null
+          manual_note?: string | null
+          manual_set_at?: string | null
+          manual_set_by?: string | null
           note?: string | null
           order_id: string
           price_snapshot?: Json | null
@@ -4502,6 +4510,10 @@ export type Database = {
           created_at?: string
           id?: string
           kol_profile_id?: string | null
+          manual_eligibility?: string | null
+          manual_note?: string | null
+          manual_set_at?: string | null
+          manual_set_by?: string | null
           note?: string | null
           order_id?: string
           price_snapshot?: Json | null
