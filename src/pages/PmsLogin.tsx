@@ -44,6 +44,19 @@ function readLocal(key: string): string | null {
   }
 }
 
+/** 讀取 ?next= 深連結目標，僅接受站內後台路徑（避免 open redirect） */
+function readSafeNextPath(): string | null {
+  try {
+    const raw = new URLSearchParams(window.location.search).get("next");
+    if (!raw) return null;
+    const decoded = decodeURIComponent(raw);
+    if (!decoded.startsWith("/") || decoded.startsWith("//")) return null;
+    return decoded;
+  } catch {
+    return null;
+  }
+}
+
 export default function PmsLogin() {
   const [email, setEmail] = useState(() => readLocal(LAST_EMAIL_KEY) ?? "");
   const [password, setPassword] = useState("");
@@ -67,8 +80,10 @@ export default function PmsLogin() {
     } catch {
       /* ignore */
     }
+    // Email 後台深連結：登入後回到原本指定的頁面（含 accId / campaignId / tab / orderNumber）
+    const target = readSafeNextPath() ?? `/${option.short_url_alias}/admin`;
     // 用整頁導向，確保後台版面在載入時就讀得到最新 session
-    window.location.assign(pmsHref(`/${option.short_url_alias}/admin`));
+    window.location.assign(pmsHref(target));
   }, []);
 
   /** 查詢此帳號可進入的民宿清單（沒有任何權限時回傳 null） */

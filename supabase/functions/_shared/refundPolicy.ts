@@ -1,0 +1,24 @@
+// 團購取消／退款規則（Email 版本）
+// 與前台 src/lib/refundPolicy.ts 為同一份規則，兩邊需同步更新。
+
+export const REFUND_HANDLING_FEE = 30;
+
+export const REFUND_SCHEDULE_RULES = [
+  "前月 25 日～本月 10 日確認 → 本月 15 日退款",
+  "本月 11 日～25 日確認 → 本月最後一天退款",
+];
+
+export const REFUND_SCHEDULE_INTRO = "若符合退款條件，將以「審核確認日」為基準：";
+export const REFUND_FEE_TEXT = `退款將扣除 NT$${REFUND_HANDLING_FEE} 匯款手續費。`;
+export const REFUND_PENDING_REVIEW_TEXT = "在民宿完成審核前，訂單仍維持原訂房狀態。";
+export const CANCEL_REQUEST_RECEIVED_TEXT = "已收到您的取消申請，民宿正在審核。";
+
+/** 退款時程規則 HTML 區塊（供 Email template 使用） */
+export function refundScheduleHtml(opts: { showPendingReview?: boolean } = {}): string {
+  return `<p style="margin:0 0 6px">${REFUND_SCHEDULE_INTRO}</p>
+   <ul style="margin:0 0 8px;padding-left:20px">
+     ${REFUND_SCHEDULE_RULES.map((r) => `<li style="margin:2px 0">${r}</li>`).join("")}
+   </ul>
+   <p style="margin:0">${REFUND_FEE_TEXT}</p>
+   ${opts.showPendingReview ? `<p style="margin:6px 0 0">${REFUND_PENDING_REVIEW_TEXT}</p>` : ""}`;
+}

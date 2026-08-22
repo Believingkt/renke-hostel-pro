@@ -77,6 +77,20 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
     }
   }, [mode, location.pathname, location.search, navigate]);
 
+  // PMS 模式：未登入者點 Email 後台深連結 → 導向登入頁並保留完整目標路徑（含 query）
+  useEffect(() => {
+    if (mode !== "pms" || !onAdminPath) return;
+    let cancelled = false;
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled || session) return;
+      const next = `${location.pathname}${location.search}${location.hash}`;
+      navigate(`/login?next=${encodeURIComponent(next)}`, { replace: true });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, onAdminPath, location.pathname, location.search, location.hash, navigate]);
+
   // 前台模式：未登入者直接轉去 PMS 登入頁
   useEffect(() => {
     if (!legacyAdminOnFrontend) return;
