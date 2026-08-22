@@ -1548,7 +1548,9 @@ export default function GroupBuyCampaign() {
                 lessLabel="收合介紹"
               />
             )}
+            {campaign.terms_html && <GroupBuyTermsHighlights html={campaign.terms_html} />}
           </section>
+
         )}
 
         {/* 活動相簿：僅在張數足夠時顯示，避免與下方民宿相簿重複 */}
