@@ -1352,6 +1352,23 @@ export default function AdminGroupBuy() {
                 />
               </div>
               <div className="md:col-span-2">
+                <Label>活動須知重點（每行一點，前台收合時顯示，建議 3～5 點）</Label>
+                <Textarea
+                  rows={5}
+                  placeholder={"贈送食材為 10 人份\n僅適用指定包棟方案\n10 人方案僅適用平日\n加購食材需另外付費\n入住須收 NT$5,000 押金"}
+                  value={(editing.terms_highlights ?? []).join("\n")}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      terms_highlights: e.target.value.split("\n").map((v) => v.trim()).filter(Boolean),
+                    })
+                  }
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  建議填寫 3～5 項最重要的團購限制，例如適用日期、贈品份數、押金、加購規則等。完整規則請填寫於下方「團購活動注意事項」。
+                </p>
+              </div>
+              <div className="md:col-span-2">
                 <Label>團購活動注意事項</Label>
                 <RichTextEditor
                   variant="simple"
