@@ -1145,26 +1145,17 @@ export default function AdminGroupBuy() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: "有效訂單", value: `${stats.valid} 筆` },
-                { label: "待匯款 / 待核對", value: `${stats.pendingTransfer} / ${stats.awaitingCheck}` },
-                { label: "取消訂單", value: `${stats.cancelled} 筆` },
-                { label: "團購營收", value: twd(stats.revenue) },
-                { label: "已收訂金", value: twd(stats.collected) },
-                { label: `網紅分潤（${activeCampaign.commission_rate}%）`, value: twd(stats.commission) },
-              ].map((s) => (
-                <Card key={s.label}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-normal text-muted-foreground">{s.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <GroupBuyAnalyticsTab
+              rows={analyticsRows}
+              campaignTitle={activeCampaign.title}
+              kolName={activeCampaign.kol_display_name ?? ""}
+              salePeriod={`${(activeCampaign.sale_start ?? "").slice(0, 10) || "—"} ~ ${(activeCampaign.sale_end ?? "").slice(0, 10) || "—"}`}
+              stayPeriod={`${activeCampaign.stay_start_date ?? "—"} ~ ${activeCampaign.stay_end_date ?? "—"}`}
+              currentRate={Number(activeCampaign.commission_rate) || 0}
+              onOpenOrder={openOrderFromAnalytics}
+            />
           </TabsContent>
+
 
           <TabsContent value="venue">
             {accommodationId && <GroupBuyVenueIntroEditor accommodationId={accommodationId} />}
