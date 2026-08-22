@@ -1107,6 +1107,13 @@ export default function GroupBuyCampaign() {
                         {p.short_summary?.trim() || p.description}
                       </p>
                     )}
+                    {/* 方案人數上限（後台未設定時不顯示，沿用房型上限） */}
+                    {p.max_guests && Number(p.max_guests) > 0 ? (
+                      <p className="mt-1.5 inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                        最多入住 {Number(p.max_guests)} 人
+                      </p>
+                    ) : null}
+
                     {/* 第三層：完整方案內容（預設收合，完整內容不刪除） */}
                     {p.description && (
                       <>
