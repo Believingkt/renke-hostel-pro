@@ -2077,3 +2077,21 @@ button > svg,
 .gb-rich > *:first-child {
   margin-top: 0;
 }
+
+/* 團購訂單查詢頁：共用 BookingInfoSection 但塞在窄卡片內，
+   需壓縮外距、隱藏重複大標，並強制單欄避免文字被擠成直排。 */
+.gb-lookup-notice #booking-info {
+  padding-top: 0;
+  padding-bottom: 0;
+  background: transparent;
+}
+.gb-lookup-notice #booking-info > .container {
+  padding-left: 0;
+  padding-right: 0;
+}
+.gb-lookup-notice #booking-info .text-center:first-child {
+  display: none;
+}
+.gb-lookup-notice #booking-info .md\:grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}

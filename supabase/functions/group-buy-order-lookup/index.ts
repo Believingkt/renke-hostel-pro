@@ -286,11 +286,12 @@ Deno.serve(async (req) => {
 
 
 
-    // ── 民宿基本資料／入住須知／方案內容 ──
+    // ── 民宿基本資料／訂房須知（正式規則）／入住前提醒／方案內容 ──
+    // 注意：訂房須知為 live data（顯示目前最新版本），非下單當時的條款快照。
     const accommodationId = (order as any).accommodation_id ?? campaign?.accommodation_id ?? null;
-    const [{ data: acc }, { data: intro }] = await Promise.all([
+    const [{ data: acc }, { data: intro }, { data: bookingSettings }, { data: customSections }] = await Promise.all([
       accommodationId
-        ? admin.from("accommodation_info").select("name, address, phone").eq("id", accommodationId).maybeSingle()
+        ? admin.from("accommodation_info").select("name, address, phone, check_in_notice").eq("id", accommodationId).maybeSingle()
         : Promise.resolve({ data: null as any }),
       accommodationId
         ? admin
@@ -299,7 +300,18 @@ Deno.serve(async (req) => {
           .eq("accommodation_id", accommodationId)
           .maybeSingle()
         : Promise.resolve({ data: null as any }),
+      accommodationId
+        ? admin.from("booking_settings").select("*").eq("accommodation_id", accommodationId).maybeSingle()
+        : Promise.resolve({ data: null as any }),
+      accommodationId
+        ? admin
+          .from("custom_sections")
+          .select("id, section_title, section_subtitle, section_content, display_order, is_enabled")
+          .eq("accommodation_id", accommodationId)
+          .order("display_order")
+        : Promise.resolve({ data: [] as any[] }),
     ]);
+
 
     let pkg: any = null;
     if (campaign?.id) {
@@ -390,7 +402,17 @@ Deno.serve(async (req) => {
           phone: (intro as any)?.phone || (acc as any).phone || null,
         }
         : null,
-      checkInNotice: (intro as any)?.check_in_notice ?? null,
+      // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則
+      preArrivalNotice: (intro as any)?.check_in_notice ?? null,
+      // 正式訂房須知（與團購活動頁同源，live data；campaign 不存在時 visibleKeys=null → 顯示全部）
+      bookingNotice: {
+        bookingSettings: bookingSettings ?? null,
+        checkInNotice: (acc as any)?.check_in_notice ?? null,
+        customSections: (customSections ?? []) as any[],
+        visibleKeys: (campaign as any)?.booking_notice_keys ?? null,
+        isLive: true,
+      },
+
       package: pkg
         ? {
           name: pkg.display_name,
