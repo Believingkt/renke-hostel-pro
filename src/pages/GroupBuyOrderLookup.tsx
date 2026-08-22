@@ -112,8 +112,14 @@ export default function GroupBuyOrderLookup() {
   const cancelRequest = data?.cancelRequest ?? null;
   /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
   const bn = data?.bookingNotice;
+  /** 下單當下的訂房須知快照（新訂單一定有；舊訂單為 null → fallback live data） */
+  const snap = data?.bookingNoticeSnapshot ?? null;
+  const snapshotSections: BookingNoticePanel[] | null =
+    snap && Array.isArray(snap.sections) && snap.sections.length > 0 ? (snap.sections as BookingNoticePanel[]) : null;
   const hasBookingNotice = Boolean(
-    bn && (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0),
+    snapshotSections ||
+      (bn && !snap &&
+        (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0)),
   );
 
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
