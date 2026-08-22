@@ -816,8 +816,11 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
       b.validAmount += amount;
-      // 對齊發放管理：每筆訂單先四捨五入再加總，避免尾差
-      b.commission += roundBonus(amount * rate);
+      // 對齊發放管理：每筆訂單先四捨五入、先拆分個人／團獎池，再加總
+      const s = splitCloserBonus(amount * rate, bonusRate);
+      b.commission += s.gross;
+      b.commissionPersonal += s.personal;
+      b.commissionPool += s.pool;
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
