@@ -12,7 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  AdminPageShell,
+  AdminToolbar,
+  ResponsiveDataView,
+  type ResponsiveColumn,
+} from "@/components/admin";
 import { Download, Receipt, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAccommodation } from "@/contexts/AccommodationContext";
