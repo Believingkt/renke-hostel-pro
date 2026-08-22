@@ -2122,3 +2122,37 @@ button > svg,
 .time-input::-webkit-calendar-picker-indicator {
   margin-left: auto;
 }
+
+/* 團購銷售分析列印：只印分析區塊，橫式、隱藏操作元件 */
+@media print {
+  body.gb-printing * {
+    visibility: hidden;
+  }
+  body.gb-printing .gb-print-area,
+  body.gb-printing .gb-print-area * {
+    visibility: visible;
+  }
+  body.gb-printing .gb-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  body.gb-printing .gb-no-print,
+  body.gb-printing .gb-no-print * {
+    display: none !important;
+  }
+  body.gb-printing .gb-print-only {
+    display: block !important;
+  }
+  body.gb-printing table {
+    font-size: 11px;
+  }
+  body.gb-printing tr {
+    break-inside: avoid;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+}

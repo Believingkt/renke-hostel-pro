@@ -90,12 +90,39 @@ export function GroupBuyNotificationSettings({ campaignId, accommodationId }: Pr
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* 目前實際收件人：直接呈現「這個活動現在會寄給誰」 */}
+        {(() => {
+          const effective = override ? normalizeNotificationEmails(emails) : venueEmails;
+          const source = override ? "此活動自訂信箱" : "民宿預設訂房通知信箱";
+          return (
+            <div
+              className={`rounded-md border p-3 text-sm ${
+                effective.length === 0 ? "border-destructive/40 bg-destructive/5" : "bg-muted/30"
+              }`}
+            >
+              <p className="font-medium">目前實際收件人（來源：{source}）</p>
+              {effective.length > 0 ? (
+                <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                  {effective.map((e) => (
+                    <li key={e}>{e}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-destructive">
+                  ⚠️ 目前沒有任何收件人，此活動的新訂單與匯款回報通知將不會寄出。請設定民宿預設訂房通知信箱，或於下方啟用自訂信箱。
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="rounded-md border bg-muted/30 p-3 text-sm">
-          <p className="font-medium mb-1">沿用民宿設定：</p>
+          <p className="font-medium mb-1">民宿預設訂房通知信箱：</p>
           {venueEmails.length > 0
             ? <ul className="text-muted-foreground space-y-0.5">{venueEmails.map((e) => <li key={e}>{e}</li>)}</ul>
-            : <p className="text-muted-foreground">民宿尚未設定訂房通知信箱（此活動將不寄送民宿通知）。</p>}
+            : <p className="text-muted-foreground">尚未設定。</p>}
         </div>
+
 
         <div className="flex items-center gap-3">
           <Switch id="gb-notify-override" checked={override} onCheckedChange={setOverride} />

@@ -55,6 +55,11 @@ import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import { GroupBuyCampaignDangerZone } from "@/components/admin/GroupBuyCampaignDangerZone";
+import GroupBuyPackageCard from "@/components/admin/GroupBuyPackageCard";
+import GroupBuyAnalyticsTab from "@/components/admin/GroupBuyAnalyticsTab";
+import GroupBuyCommissionStatusPanel from "@/components/admin/GroupBuyCommissionStatusPanel";
+import GroupBuyCommissionRateDialog, { type CommissionRateApplyMode } from "@/components/admin/GroupBuyCommissionRateDialog";
+import { buildAnalyticsRows, type CommissionRecord } from "@/lib/groupBuyAnalytics";
 
 
 
@@ -253,8 +258,13 @@ export default function AdminGroupBuy() {
   const [events, setEvents] = useState<EventRow[]>([]);
   /** 訂單價格快照（group_buy_commissions.price_snapshot），僅供稽核檢視 */
   const [snapshots, setSnapshots] = useState<Record<string, PriceSnapshot | null>>({});
+  /** 分潤快照（唯一 Source of Truth） */
+  const [commissions, setCommissions] = useState<CommissionRecord[]>([]);
   const [auditTarget, setAuditTarget] = useState<OrderRow | null>(null);
+  /** 修改分潤比例的確認彈窗 */
+  const [rateDialog, setRateDialog] = useState<{ oldRate: number; newRate: number } | null>(null);
   const [roomTypes, setRoomTypes] = useState<{ id: string; name: string }[]>([]);
+
   const [editing, setEditing] = useState<Partial<Campaign> | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmTarget, setConfirmTarget] = useState<OrderRow | null>(null);
@@ -312,13 +322,20 @@ export default function AdminGroupBuy() {
     const [{ data: pkgs }, { data: bankRows }, { data: comms }] = await Promise.all([
       supabase.from("group_buy_campaign_packages").select("*").eq("campaign_id", activeId).order("sort_order"),
       supabase.from("group_buy_bank_accounts").select("*").eq("campaign_id", activeId).order("is_default", { ascending: false }),
-      supabase.from("group_buy_commissions").select("order_id, price_snapshot").eq("campaign_id", activeId),
+      supabase
+        .from("group_buy_commissions")
+        .select(
+          "order_id, revenue_base, commission_rate, commission_amount, status, manual_eligibility, manual_note, price_snapshot",
+        )
+        .eq("campaign_id", activeId),
     ]);
     setPackages((pkgs ?? []) as unknown as PackageRow[]);
     setBanks((bankRows ?? []) as unknown as BankRow[]);
+    setCommissions((comms ?? []) as unknown as CommissionRecord[]);
     setSnapshots(
       Object.fromEntries((comms ?? []).map((c: any) => [c.order_id, (c.price_snapshot ?? null) as PriceSnapshot | null])),
     );
+
 
     const orderIds = (comms ?? []).map((c: any) => c.order_id);
     if (orderIds.length === 0) {
@@ -402,6 +419,13 @@ export default function AdminGroupBuy() {
         description: Object.values(dateErrors).join("；"),
         variant: "destructive",
       });
+      return;
+    }
+    // 分潤比例變更：歷史分潤預設鎖定，需先確認套用範圍
+    const oldRate = Number(campaigns.find((c) => c.id === editing.id)?.commission_rate ?? 0);
+    const newRate = Number(editing.commission_rate ?? 0);
+    if (editing.id && newRate !== oldRate) {
+      setRateDialog({ oldRate, newRate });
       return;
     }
     setSaving(true);
@@ -621,6 +645,117 @@ export default function AdminGroupBuy() {
     };
 
   }, [orders, activeCampaign]);
+
+  /** 銷售分析／匯出／列印共用同一份資料（分潤一律讀快照） */
+  const analyticsRows = useMemo(
+    () => buildAnalyticsRows(orders as any, commissions),
+    [orders, commissions],
+  );
+  const analyticsByOrderId = useMemo(
+    () => new Map(analyticsRows.map((r) => [r.order.id, r])),
+    [analyticsRows],
+  );
+
+  /** 由銷售分析點訂單編號 → 切到訂單對帳並高亮該筆 */
+  const openOrderFromAnalytics = useCallback(
+    (orderNumber: string) => {
+      setTab("orders");
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", "orders");
+      next.set("orderNumber", orderNumber);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  /** 特例退款人工判定：寫入 group_buy_commissions 並留下稽核事件 */
+  const setManualEligibility = useCallback(
+    async (orderId: string, value: "include" | "exclude") => {
+      const { data: userData } = await supabase.auth.getUser();
+      const row = analyticsByOrderId.get(orderId);
+      const rate = row?.commissionRate ?? (Number(activeCampaign?.commission_rate) || 0);
+      const amount = value === "include" ? Math.round(((row?.revenueBase ?? 0) * rate) / 100) : 0;
+      const { error } = await supabase
+        .from("group_buy_commissions")
+        .update({
+          manual_eligibility: value,
+          manual_set_by: userData.user?.id ?? null,
+          manual_set_at: new Date().toISOString(),
+          commission_amount: amount,
+        } as any)
+        .eq("order_id", orderId);
+      if (error) {
+        toast({ title: "分潤判定儲存失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+      await supabase.from("group_buy_payment_events").insert({
+        order_id: orderId,
+        campaign_id: activeId,
+        event_type: "note",
+        actor_user_id: userData.user?.id ?? null,
+        actor_label: userData.user?.email ?? null,
+        amount,
+        note: value === "include" ? "人工判定：此訂單列入網紅分潤" : "人工判定：此訂單不列入網紅分潤",
+      } as any);
+      toast({ title: value === "include" ? "已設定為列入分潤" : "已設定為不列入分潤" });
+      await loadDetails();
+    },
+    [analyticsByOrderId, activeCampaign, activeId, toast, loadDetails],
+  );
+
+  /** 套用新分潤比例：預設只影響新訂單；同步模式僅改「未結算且未取消」的快照 */
+  const applyCommissionRate = useCallback(
+    async (mode: CommissionRateApplyMode) => {
+      if (!rateDialog || !editing?.id) return;
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from("group_buy_campaigns")
+          .update({ ...(editing as any), commission_rate: rateDialog.newRate, accommodation_id: accommodationId })
+          .eq("id", editing.id);
+        if (error) throw error;
+
+        if (mode === "sync_pending") {
+          const targets = analyticsRows.filter(
+            (r) =>
+              r.commission &&
+              r.commission.status === "pending" &&
+              r.order.order_status !== "cancelled" &&
+              r.manual !== "exclude",
+          );
+          const { data: userData } = await supabase.auth.getUser();
+          for (const r of targets) {
+            await supabase
+              .from("group_buy_commissions")
+              .update({
+                commission_rate: rateDialog.newRate,
+                commission_amount: Math.round((r.revenueBase * rateDialog.newRate) / 100),
+              })
+              .eq("order_id", r.order.id);
+            await supabase.from("group_buy_payment_events").insert({
+              order_id: r.order.id,
+              campaign_id: activeId,
+              event_type: "note",
+              actor_user_id: userData.user?.id ?? null,
+              actor_label: userData.user?.email ?? null,
+              note: `分潤比例調整：${r.commissionRate ?? rateDialog.oldRate}% → ${rateDialog.newRate}%`,
+            } as any);
+          }
+          toast({ title: "已更新分潤比例", description: `同步調整 ${targets.length} 筆未結算訂單` });
+        } else {
+          toast({ title: "已更新分潤比例", description: "僅套用於之後成立的新訂單" });
+        }
+        setRateDialog(null);
+        setEditing(null);
+        await refreshAll();
+      } catch (e) {
+        toast({ title: "儲存失敗", description: e instanceof Error ? e.message : "", variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [rateDialog, editing, analyticsRows, activeId, accommodationId, toast, refreshAll],
+  );
 
   const publicUrl = activeCampaign ? `${window.location.origin}/g/${activeCampaign.slug}` : "";
 
@@ -856,223 +991,20 @@ export default function AdminGroupBuy() {
               <Plus className="mr-1 h-4 w-4" /> 新增方案
             </Button>
             {packages.map((p, idx) => (
-              <Card key={p.id}>
-                <CardContent className="grid gap-3 p-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <Label>方案名稱</Label>
-                    <Input
-                      className="mt-1"
-                      value={p.display_name}
-                      onChange={(e) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, display_name: e.target.value } : x)))
-                      }
-                    />
-                  </div>
-                  <div className="grid items-start gap-3 md:col-span-2 md:grid-cols-[1.6fr_1fr]">
-                  <div>
-                    <Label>對應房型（可複選，庫存依據）</Label>
-                    <div className="mt-1 max-h-36 space-y-2 overflow-y-auto rounded-md border border-input p-2">
-                      {roomTypes.length === 0 && (
-                        <p className="text-sm text-muted-foreground">此館別尚未建立房型</p>
-                      )}
-                      {roomTypes.map((rt) => {
-                        const selected = (p.room_type_ids ?? []).includes(rt.id);
-                        return (
-                          <label key={rt.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                            <Checkbox
-                              checked={selected}
-                              onCheckedChange={(v) =>
-                                setPackages((prev) =>
-                                  prev.map((x, i) => {
-                                    if (i !== idx) return x;
-                                    const cur = x.room_type_ids ?? [];
-                                    const next = v === true ? [...cur, rt.id] : cur.filter((id) => id !== rt.id);
-                                    return { ...x, room_type_ids: next, room_type_id: next[0] ?? null };
-                                  }),
-                                )
-                              }
-                            />
-                            <span>{rt.name}</span>
-                          </label>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-1.5 text-xs text-muted-foreground">
-                      勾選多個房型時，系統會依「分配優先順序」逐一比對真實庫存，指派第一個有空房的房型。
-                    </p>
-                  </div>
-                    {(p.room_type_ids ?? []).length > 1 && (
-                      <div className="rounded-md border border-input p-2">
-                        <p className="mb-1 text-xs font-medium">分配優先順序（由上而下）</p>
-                        <div className="space-y-1">
-                          {(p.room_type_ids ?? []).map((rtId, order) => {
-                            const move = (delta: number) =>
-                              setPackages((prev) =>
-                                prev.map((x, i) => {
-                                  if (i !== idx) return x;
-                                  const cur = [...(x.room_type_ids ?? [])];
-                                  const to = order + delta;
-                                  if (to < 0 || to >= cur.length) return x;
-                                  [cur[order], cur[to]] = [cur[to], cur[order]];
-                                  return { ...x, room_type_ids: cur, room_type_id: cur[0] ?? null };
-                                }),
-                              );
-                            return (
-                              <div key={rtId} className="flex items-center gap-2 text-sm">
-                                <span className="w-5 text-muted-foreground tabular-nums">{order + 1}.</span>
-                                <span className="flex-1 truncate">
-                                  {roomTypes.find((rt) => rt.id === rtId)?.name ?? rtId}
-                                </span>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 px-2"
-                                  disabled={order === 0}
-                                  onClick={() => move(-1)}
-                                >
-                                  ↑
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-7 px-2"
-                                  disabled={order === (p.room_type_ids ?? []).length - 1}
-                                  onClick={() => move(1)}
-                                >
-                                  ↓
-                                </Button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-
-
-                  <GroupBuyPackagePricingFields
-                    value={{
-                      group_buy_price: p.group_buy_price,
-                      weekday_price: p.weekday_price,
-                      peak_price: p.peak_price,
-                      holiday_price: p.holiday_price,
-                      original_price: p.original_price,
-                      disabled_date_types: p.disabled_date_types ?? [],
-                    }}
-                    onChange={(patch) =>
-                      setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)))
-                    }
-                  />
-
-                  <GroupBuyExcludedDatesField
-                    value={p.excluded_dates ?? []}
-                    min={activeCampaign?.stay_start_date ?? null}
-                    max={activeCampaign?.stay_end_date ?? null}
-                    onChange={(dates) =>
-                      setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, excluded_dates: dates } : x)))
-                    }
-                  />
-
-                  <div>
-                    <Label>單筆最多間數（可留空）</Label>
-                    <Input
-                      type="number"
-                      value={p.max_quantity ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, max_quantity: e.target.value === "" ? null : Number(e.target.value) } : x,
-                          ),
-                        )
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label>最多入住人數（可留空）</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={p.max_guests ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, max_guests: e.target.value === "" ? null : Number(e.target.value) } : x,
-                          ),
-                        )
-                      }
-                    />
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      限制此團購方案最多可入住的人數。留空則依房型原本人數上限。
-                    </p>
-                  </div>
-                  <div className="md:col-span-2">
-
-
-                    <Label>方案圖片（可多張，第一張為主圖）</Label>
-                    <p className="mb-1.5 text-xs text-muted-foreground">
-                      建議尺寸 1200×900（4:3）以上，橫式拍攝、主體置中；第一張會作為方案卡大圖。
-                    </p>
-                    <MultiImageUploadField
-                      value={(p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [])}
-                      onChange={(urls) =>
-                        setPackages((prev) =>
-                          prev.map((x, i) =>
-                            i === idx ? { ...x, image_urls: urls, image_url: urls[0] ?? null } : x,
-                          ),
-                        )
-                      }
-                      pathPrefix={`${accommodationId}/group-buy/package`}
-                      aspect="aspect-[4/3]"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label>方案短摘要（團購頁方案卡第二行，建議 30 字內）</Label>
-                    <Input
-                      value={p.short_summary ?? ""}
-                      placeholder="例：2 大 2 小・含早餐・可帶寵物"
-                      onChange={(e) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, short_summary: e.target.value } : x)))
-                      }
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <Label>方案說明</Label>
-                    <Textarea
-                      rows={3}
-                      value={p.description ?? ""}
-                      onChange={(e) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, description: e.target.value } : x)))
-                      }
-                    />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={p.is_active}
-                      onCheckedChange={(v) =>
-                        setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, is_active: v } : x)))
-                      }
-                    />
-                    <span className="text-sm">上架販售</span>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" size="sm" onClick={() => deletePackage(p.id)}>
-                      <Trash2 className="mr-1 h-4 w-4" /> 刪除
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => duplicatePackage(p)}>
-                      <CopyPlus className="mr-1 h-4 w-4" /> 複製方案
-                    </Button>
-                    <Button size="sm" onClick={() => savePackage(p)}>
-                      儲存
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <GroupBuyPackageCard
+                key={p.id}
+                pkg={p}
+                roomTypes={roomTypes}
+                accommodationId={accommodationId}
+                stayStart={activeCampaign?.stay_start_date ?? null}
+                stayEnd={activeCampaign?.stay_end_date ?? null}
+                onPatch={(patch) => setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)))}
+                onSave={() => void savePackage(p)}
+                onDuplicate={() => void duplicatePackage(p)}
+                onDelete={() => void deletePackage(p.id)}
+              />
             ))}
+
           </TabsContent>
 
           <TabsContent value="bank" className="space-y-3">
@@ -1145,26 +1077,17 @@ export default function AdminGroupBuy() {
           </TabsContent>
 
           <TabsContent value="analytics">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: "有效訂單", value: `${stats.valid} 筆` },
-                { label: "待匯款 / 待核對", value: `${stats.pendingTransfer} / ${stats.awaitingCheck}` },
-                { label: "取消訂單", value: `${stats.cancelled} 筆` },
-                { label: "團購營收", value: twd(stats.revenue) },
-                { label: "已收訂金", value: twd(stats.collected) },
-                { label: `網紅分潤（${activeCampaign.commission_rate}%）`, value: twd(stats.commission) },
-              ].map((s) => (
-                <Card key={s.label}>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-normal text-muted-foreground">{s.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <GroupBuyAnalyticsTab
+              rows={analyticsRows}
+              campaignTitle={activeCampaign.title}
+              kolName={activeCampaign.kol_display_name ?? ""}
+              salePeriod={`${(activeCampaign.sale_start ?? "").slice(0, 10) || "—"} ~ ${(activeCampaign.sale_end ?? "").slice(0, 10) || "—"}`}
+              stayPeriod={`${activeCampaign.stay_start_date ?? "—"} ~ ${activeCampaign.stay_end_date ?? "—"}`}
+              currentRate={Number(activeCampaign.commission_rate) || 0}
+              onOpenOrder={openOrderFromAnalytics}
+            />
           </TabsContent>
+
 
           <TabsContent value="venue">
             {accommodationId && <GroupBuyVenueIntroEditor accommodationId={accommodationId} />}
@@ -1613,6 +1536,11 @@ export default function AdminGroupBuy() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <GroupBuyCommissionStatusPanel
+              row={auditTarget ? analyticsByOrderId.get(auditTarget.id) ?? null : null}
+              onSetManual={(v) => (auditTarget ? setManualEligibility(auditTarget.id, v) : Promise.resolve())}
+            />
+
             <div>
               <p className="mb-1.5 text-sm font-semibold">訂單價格快照</p>
               <GroupBuyPriceSnapshot snapshot={auditTarget ? snapshots[auditTarget.id] : null} />
@@ -1647,6 +1575,17 @@ export default function AdminGroupBuy() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GroupBuyCommissionRateDialog
+        open={!!rateDialog}
+        oldRate={rateDialog?.oldRate ?? 0}
+        newRate={rateDialog?.newRate ?? 0}
+        rows={analyticsRows}
+        saving={saving}
+        onCancel={() => setRateDialog(null)}
+        onConfirm={(mode) => void applyCommissionRate(mode)}
+      />
     </div>
   );
 }
+
