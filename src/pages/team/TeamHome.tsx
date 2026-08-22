@@ -538,10 +538,13 @@ export default function TeamHome() {
         const toCloserPersonal = (gross: number) =>
           splitCloserBonus(gross, closerBonusRate).personal;
 
+        // Snapshot 為唯一 Source of Truth；Preview 只補「尚未建立任何 Snapshot」的訂單，
+        // 去重以 order_id 為鍵並跨所有 payout_month 檢查，避免舊快照被重複計入。
+        let closerPreviewCount = 0;
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
+            .select("order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -564,17 +567,47 @@ export default function TeamHome() {
                 videoSum += roundBonus(r.video_commission_amount);
               }
             }
-          } else {
-            const { data: preview } = await supabase.functions.invoke(
-              "preview-closer-commission",
-              { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
-            );
-            if (preview?.success) {
-              if (showCloser) closerSum = toCloserPersonal(Number(preview.self?.closer_commission ?? 0));
-              if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+          }
+
+          // Preview 補位：本期資料月的即時試算，逐筆檢查是否已有 Snapshot
+          const { data: preview } = await supabase.functions.invoke(
+            "preview-closer-commission",
+            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
+          );
+          if (preview?.success) {
+            const rows = (Array.isArray(preview.orders) ? preview.orders : []) as any[];
+            const mineCloser = showCloser
+              ? rows.filter((r) => r?.closer_id === userId && r?.order_id)
+              : [];
+            const previewIds = Array.from(new Set(mineCloser.map((r) => String(r.order_id))));
+
+            // 跨 payout_month 檢查該 order_id 是否已存在任何 Snapshot
+            const snapshotted = new Set<string>();
+            for (let i = 0; i < previewIds.length; i += 300) {
+              const chunk = previewIds.slice(i, i + 300);
+              const { data: existing } = await db
+                .from("closer_commission_snapshots")
+                .select("order_id")
+                .in("order_id", chunk);
+              (existing ?? []).forEach((e: any) => snapshotted.add(String(e.order_id)));
+            }
+
+            const counted = new Set<string>();
+            for (const r of mineCloser) {
+              const oid = String(r.order_id);
+              if (snapshotted.has(oid) || counted.has(oid)) continue;
+              counted.add(oid);
+              closerSum += toCloserPersonal(Number(r.closer_commission ?? 0));
+            }
+            closerPreviewCount = counted.size;
+
+            // 影音已停用：僅在完全沒有任何快照時沿用舊行為
+            if (showVideo && snaps.length === 0) {
+              videoSum = Number(preview.self?.video_commission ?? 0);
             }
           }
         }
+
 
 
 
