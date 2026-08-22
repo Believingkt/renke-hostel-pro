@@ -145,11 +145,12 @@ export default function OwlTingEmailIngest() {
     let rawRows = (list as RawEmail[]) ?? [];
 
     // 待補 PII 的紀錄必須永遠看得到（即使已被較新的信件擠出時間視窗）。
+    // 以「原始信件的 accommodation_id」做租戶範圍，涵蓋 staging 尚未回填民宿的情況。
     const { data: pendingStaging } = await supabase
       .from("owlting_email_parsed_staging")
-      .select("raw_email_id")
-      .eq("accommodation_id", currentAccommodationId)
-      .eq("pii_status", "pending_pii_fillup");
+      .select("raw_email_id, raw:owlting_email_orders_raw!inner(accommodation_id)")
+      .eq("pii_status", "pending_pii_fillup")
+      .eq("raw.accommodation_id", currentAccommodationId);
     const pendingRawIds = (pendingStaging ?? [])
       .map((s: any) => s.raw_email_id as string | null)
       .filter((v): v is string => !!v && !rawRows.some((r) => r.id === v));
@@ -166,11 +167,13 @@ export default function OwlTingEmailIngest() {
 
 
     if (rawRows.length > 0) {
+      // 只以 raw_email_id 對應（rawRows 已是本民宿範圍），
+      // 避免 staging.accommodation_id 尚未回填時整列失去補單狀態與按鈕。
       const { data: staging } = await supabase
         .from("owlting_email_parsed_staging")
         .select("id,raw_email_id,pii_status,review_status,modification_diff_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
-        .eq("accommodation_id", currentAccommodationId)
         .in("raw_email_id", rawRows.map((r) => r.id));
+
 
       // Fetch order_number for auto-created pending orders (for display).
       const autoOrderIds = (staging ?? [])
