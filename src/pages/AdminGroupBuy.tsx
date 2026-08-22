@@ -127,6 +127,11 @@ interface Campaign {
   cover_image_url: string | null;
   cover_focus_x?: number | null;
   cover_focus_y?: number | null;
+  cover_zoom?: number | null;
+  cover_focus_x_mobile?: number | null;
+  cover_focus_y_mobile?: number | null;
+  cover_zoom_mobile?: number | null;
+
   kol_display_name: string | null;
   discount_code: string | null;
   sale_start: string | null;
