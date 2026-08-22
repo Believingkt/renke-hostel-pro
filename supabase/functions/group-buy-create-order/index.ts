@@ -23,7 +23,8 @@ import {
   findDisabledTypeNight,
   findExcludedNight,
 } from "./groupBuyPricing.ts";
-import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { renderBookingWithBankInfo, renderVenueNewOrder, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 import { resolveCampaignPayment } from "../_shared/paymentAdapter.ts";
 import { taipeiToday } from "../_shared/taipeiToday.ts";
 
@@ -455,9 +456,56 @@ Deno.serve(async (req) => {
       event_type: mailResult.ok ? "email_sent" : "email_failed",
       actor_label: "system",
       note: mailResult.ok
-        ? `訂房通知＋匯款資訊信已寄至 ${guestEmail}`
-        : `訂房通知信寄送失敗：${mailResult.reason ?? "unknown"}`,
+        ? `recipient_type:guest／template_type:booking_pending／recipient_count:1／訂房通知＋匯款資訊信已寄至 ${guestEmail}`
+        : `recipient_type:guest／template_type:booking_pending／訂房通知信寄送失敗：${mailResult.reason ?? "unknown"}`,
     });
+
+    // 9.6) 民宿／管理者內部通知（與旅客信完全獨立；收件人只由後端 DB 設定解析）
+    try {
+      const { emails: venueEmails, source: venueSource } = await resolveOrderNotifyEmails(admin, {
+        accommodationId: campaign.accommodation_id,
+        campaignId: campaign.id,
+      });
+      if (venueEmails.length === 0) {
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaign.id,
+          order_id: order.id,
+          event_type: "note",
+          actor_label: "system",
+          note: "venue_email_skipped／recipient_type:venue／template_type:venue_new_order／no_recipients",
+        });
+      } else {
+        const adminOrigin = origin && /^https?:\/\//.test(origin) ? origin : "https://pms.lakeze.com";
+        const venueMail = await sendGroupBuyEmail(
+          venueEmails,
+          renderVenueNewOrder({
+            ...emailOrder,
+            guestPhone: order.guest_phone ?? null,
+            guestEmail: order.guest_email ?? null,
+            nights: n,
+            adultCount,
+            childCount,
+            toddlerCount,
+            infantCount,
+            childBreakdownText: childDetailLines.length > 0 ? childDetailLines.join("\n") : null,
+            paymentStatusText: "待匯款",
+            adminUrl: `${adminOrigin}/admin/group-buy`,
+          }),
+        );
+        if (!venueMail.ok) console.error(`[${FN}] venue email failed: ${venueMail.reason}`);
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaign.id,
+          order_id: order.id,
+          event_type: venueMail.ok ? "email_sent" : "email_failed",
+          actor_label: "system",
+          note: `recipient_type:venue／template_type:venue_new_order／recipient_count:${venueEmails.length}／source:${venueSource}${
+            venueMail.ok ? "" : `／reason:${venueMail.reason ?? "unknown"}`
+          }`,
+        });
+      }
+    } catch (venueErr) {
+      console.error(`[${FN}] venue notify threw`, venueErr);
+    }
 
     const deadline = paymentDeadline(order.created_at ?? order.order_date ?? new Date().toISOString(), campaign.payment_deadline_hours);
 

@@ -13,6 +13,10 @@ interface BookingFooterProps {
   tiktokUrl?: string;
   /** 隱藏「技術合作」等合作品牌資訊（團購前台使用） */
   hidePartnershipInfo?: boolean;
+  /** 團購前台：精簡連結（只留隱私政策，可另選是否保留客服入口） */
+  compactLinks?: boolean;
+  /** compactLinks 時是否保留「聯繫客服」（頁面前面已有客服 CTA 時請設為 false） */
+  showSupportLink?: boolean;
 }
 
 const BookingFooter = ({
@@ -23,6 +27,8 @@ const BookingFooter = ({
   youtubeUrl,
   tiktokUrl,
   hidePartnershipInfo,
+  compactLinks,
+  showSupportLink,
 }: BookingFooterProps = {}) => {
 
   const navigate = useNavigate();
@@ -51,17 +57,23 @@ const BookingFooter = ({
           </div>
 
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm text-muted-foreground">
-            <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
-              會員中心
-            </button>
-            <button className="hover:text-foreground transition-colors">關於我們</button>
-            <button className="hover:text-foreground transition-colors">聯繫客服</button>
+            {!compactLinks && (
+              <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
+                會員中心
+              </button>
+            )}
+            {!compactLinks && <button className="hover:text-foreground transition-colors">關於我們</button>}
+            {(!compactLinks || showSupportLink) && (
+              <button className="hover:text-foreground transition-colors">聯繫客服</button>
+            )}
             <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">
               隱私政策
             </button>
-            <button onClick={() => navigate("/data-deletion")} className="hover:text-foreground transition-colors">
-              資料刪除
-            </button>
+            {!compactLinks && (
+              <button onClick={() => navigate("/data-deletion")} className="hover:text-foreground transition-colors">
+                資料刪除
+              </button>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} 人客多. All rights reserved.
@@ -77,7 +89,7 @@ const BookingFooter = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="text-muted-foreground hover:text-foreground transition-colors"
+                className={`hover:text-foreground transition-colors ${compactLinks ? "text-muted-foreground/60" : "text-muted-foreground"}`}
               >
                 <Icon className="h-5 w-5" />
               </a>
