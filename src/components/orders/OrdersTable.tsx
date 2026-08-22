@@ -327,7 +327,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
       </div>
 
       {/* 行動版卡片 */}
-      <div className="md:hidden space-y-4">
+      <div className="md:hidden space-y-3">
         {orders.length === 0 ? (
           <EmptyState
             icon={ShoppingCart}
@@ -341,211 +341,169 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
             const effectiveMobilePaymentStatus = getDisplayPaymentStatus(order as any);
             const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
             const orderSourceConfig = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any));
+            const method = getOrderPaymentMethod(order);
+            const dep = (order as any).deposit_amount ?? 0;
+            const showSplit = method === 'bank_transfer' && dep > 0 && dep < order.final_price;
+            const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || order.paid_amount >= dep;
+            const balancePaid = order.payment_status === 'paid';
+            const atm = getAtmDisplayInfo(order as any);
+            const atmSettled = order.payment_status === 'deposit_paid' || order.payment_status === 'paid';
+            const showAtm = atm.hasAtm && !atmSettled && order.order_status !== 'cancelled';
 
             return (
-              <Card key={order.id} className="overflow-hidden">
-                <CardContent className="p-4">
-                  {/* 訂單編號和狀態 */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex flex-col gap-1">
-                      <Link
-                        to={`/admin/orders/${order.id}`}
-                        state={{ from: backTo }}
-                        className="text-primary hover:underline font-semibold text-base"
-                      >
-                        {order.order_number}
-                      </Link>
-                      <TooltipProvider delayDuration={200}><Tooltip>
-                        <TooltipTrigger asChild>
-                          {onChangeOrderSource ? (
-                            <button
-                              onClick={() => onChangeOrderSource(order)}
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit cursor-pointer hover:opacity-80 transition-opacity ${orderSourceConfig.className}`}
-                            >
-                              {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                              {orderSourceConfig.label}
-                            </button>
-                          ) : (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border w-fit cursor-help ${orderSourceConfig.className}`}>
-                              {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
-                              {orderSourceConfig.label}
-                            </span>
-                          )}
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs">
-                          <div className="space-y-1 text-xs">
-                            <div className="flex gap-2"><span className="text-muted-foreground">來源 code：</span><span className="font-mono">{order.order_source || "—"}</span></div>
-                            <div className="flex gap-2"><span className="text-muted-foreground">顯示名稱：</span><span>{getOrderSourceDisplayName(order.order_source || "")}</span></div>
-                            {getOrderOtaCode(order as any) && (
-                              <>
-                                <div className="border-t border-border/50 my-1" />
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA code：</span><span className="font-mono">{getOrderOtaCode(order as any)}</span></div>
-                                <div className="flex gap-2"><span className="text-muted-foreground">OTA 通路：</span><span>{getHotelnabeOtaDisplayName(getOrderOtaCode(order as any) || "")}</span></div>
-                              </>
-                            )}
-                          </div>
-                        </TooltipContent>
-                      </Tooltip></TooltipProvider>
-                    </div>
+              <Card key={order.id} className="overflow-hidden rounded-xl border-border/70 shadow-sm">
+                <CardContent className="p-3.5 space-y-2.5">
+                  {/* 第一列：訂單編號 + 訂單狀態 */}
+                  <div className="flex items-start justify-between gap-2">
+                    <Link
+                      to={`/admin/orders/${order.id}`}
+                      state={{ from: backTo }}
+                      className="min-w-0 break-all font-mono text-[15px] font-semibold text-primary hover:underline"
+                    >
+                      {order.order_number}
+                    </Link>
                     {onChangeOrderStatus ? (
                       <button
                         onClick={() => onChangeOrderStatus(order)}
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity ${orderStatusConfig.className}`}
+                        className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}
                       >
                         {orderStatusConfig.label}
                       </button>
                     ) : (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
+                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border whitespace-nowrap ${orderStatusConfig.className}`}>
                         {orderStatusConfig.label}
                       </span>
                     )}
                   </div>
 
-                  {/* 訂購人和訂購時間 */}
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center text-sm">
-                      <User className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span className="text-muted-foreground mr-2">訂購人:</span>
-                      <span className="font-medium">{cleanGuestNameDisplay(order.guest_name)}</span>
+                  {/* 第二列：客人 + 來源 */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 truncate text-base font-medium">
+                      {cleanGuestNameDisplay(order.guest_name)}
                     </div>
-                    <div className="flex items-center text-sm">
-                      <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span className="text-muted-foreground mr-2">訂購時間:</span>
-                      <span>{format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}</span>
-                    </div>
-                    {order.meal_plan && (
-                      <div className="flex items-center text-sm">
-                        <Utensils className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span className="text-muted-foreground mr-2">專案:</span>
-                        <span className="font-medium">{getMealPlanDisplayName(order.meal_plan)}</span>
-                      </div>
+                    {onChangeOrderSource ? (
+                      <button
+                        onClick={() => onChangeOrderSource(order)}
+                        className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${orderSourceConfig.className}`}
+                      >
+                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                        {orderSourceConfig.label}
+                      </button>
+                    ) : (
+                      <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border ${orderSourceConfig.className}`}>
+                        {order.order_source === 'website' ? <Globe className="w-3 h-3" /> : <UserPlus className="w-3 h-3" />}
+                        {orderSourceConfig.label}
+                      </span>
                     )}
                   </div>
 
-                  {/* 入住和退房日期 */}
-                  <div className="bg-muted/50 rounded-lg p-3 mb-3">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <div className="text-muted-foreground text-xs mb-1">入住日期</div>
-                        <div className="font-medium">{order.check_in_date}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground text-xs mb-1">退房日期</div>
-                        <div className="font-medium">{order.check_out_date}</div>
-                      </div>
-                    </div>
+                  {/* 第三列：入住 → 退房（＋方案） */}
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{order.check_in_date}</span>
+                    <span className="mx-1.5">→</span>
+                    <span className="font-medium text-foreground">{order.check_out_date}</span>
+                    {order.meal_plan && (
+                      <span className="ml-2">· {getMealPlanDisplayName(order.meal_plan)}</span>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    訂購 {format(new Date(order.order_date), "yyyy-MM-dd HH:mm")}
+                    {method && <span className="ml-2">· {getPaymentMethodLabel(method)}</span>}
                   </div>
 
-                  {/* 金額 */}
-                  <div className="flex items-center justify-between text-sm mb-2">
-                    <div className="flex items-center">
-                      <DollarSign className="w-4 h-4 mr-1 text-muted-foreground" />
-                      <span className="text-muted-foreground">實收金額:</span>
-                    </div>
-                    <span className="font-semibold text-base">{renderAmount(order, order.final_price)}</span>
-                  </div>
-
-                  {/* 已付金額 / 訂金尾款拆分（匯款） */}
-                  {(() => {
-                    const method = getOrderPaymentMethod(order);
-                    const dep = (order as any).deposit_amount ?? 0;
-                    if (method === 'bank_transfer' && dep > 0 && dep < order.final_price) {
-                      const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || order.paid_amount >= dep;
-                      const balancePaid = order.payment_status === 'paid';
-                      return (
-                        <div className="space-y-1 mb-2">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground pl-5">訂金:</span>
-                            <span className="font-medium">
-                              {currencyPrefix(order)} {dep.toLocaleString()}
-                              <span className={`ml-2 text-xs ${depositPaid ? 'text-primary' : 'text-destructive'}`}>{depositPaid ? '已付' : '未付'}</span>
-                            </span>
+                  {/* 金額 + 付款狀態 */}
+                  <div className="flex items-end justify-between gap-2 border-t pt-2.5">
+                    <div className="min-w-0">
+                      <div className="text-lg font-bold tabular-nums">
+                        {renderAmount(order, order.final_price)}
+                      </div>
+                      {showSplit ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground leading-tight">
+                          <div>
+                            訂金 {currencyPrefix(order)} {dep.toLocaleString()}
+                            <span className={`ml-1 ${depositPaid ? 'text-primary' : 'text-destructive'}`}>{depositPaid ? '已付' : '未付'}</span>
                           </div>
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-muted-foreground pl-5">尾款:</span>
-                            <span className="font-medium">
-                              {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()}
-                              <span className={`ml-2 text-xs ${balancePaid ? 'text-primary' : 'text-destructive'}`}>{balancePaid ? '已付' : '未付'}</span>
-                            </span>
+                          <div>
+                            尾款 {currencyPrefix(order)} {(order.final_price - dep).toLocaleString()}
+                            <span className={`ml-1 ${balancePaid ? 'text-primary' : 'text-destructive'}`}>{balancePaid ? '已付' : '未付'}</span>
                           </div>
                         </div>
-                      );
-                    }
-                    if (order.paid_amount > 0 && order.paid_amount < order.final_price) {
-                      return (
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="text-muted-foreground pl-5">已付:</span>
-                          <span className="font-medium">{currencyPrefix(order)} {order.paid_amount.toLocaleString()}</span>
+                      ) : order.paid_amount > 0 && order.paid_amount < order.final_price ? (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          已付 {currencyPrefix(order)} {order.paid_amount.toLocaleString()}
                         </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  {/* 付款方式與付款狀態 */}
-                  <div className="flex items-center justify-between text-sm mb-3">
-                    <div className="flex items-center">
-                      <CreditCard className="w-4 h-4 mr-1 text-muted-foreground" />
-                      <span className="text-muted-foreground mr-2">付款方式:</span>
-                      <span className="font-medium">
-                        {getPaymentMethodLabel(getOrderPaymentMethod(order)) || "—"}
-                      </span>
+                      ) : null}
                     </div>
                     {onChangePaymentStatus && order.order_status !== 'cancelled' ? (
                       <button
                         onClick={() => onChangePaymentStatus(order)}
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer hover:opacity-80 transition-opacity ${paymentStatusConfig.className}`}
+                        className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}
                       >
                         {paymentStatusConfig.label}
                       </button>
                     ) : (
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
+                      <span className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${paymentStatusConfig.className}`}>
                         {paymentStatusConfig.label}
                       </span>
                     )}
                   </div>
 
-                  {(() => {
-                    const atm = getAtmDisplayInfo(order as any);
-                    const atmSettled = order.payment_status === 'deposit_paid' || order.payment_status === 'paid';
-                    if (!atm.hasAtm || atmSettled || order.order_status === 'cancelled') return null;
-                    return (
-                      <div className={`mb-3 rounded-md border px-2.5 py-2 text-xs ${atm.expired ? "border-destructive/30 text-destructive" : "border-border text-muted-foreground"}`}>
-                        <div className="font-medium">
-                          ATM {atm.expired ? "已逾期" : "待匯款"} NT$ {atm.amount.toLocaleString()}
-                          {atm.depositPercent ? `（訂金 ${atm.depositPercent}%）` : ""}
-                        </div>
-                        {atm.expireAt && <div className="mt-0.5">繳費期限 {atm.expireText}</div>}
+                  {showAtm && (
+                    <div className={`rounded-md border px-2.5 py-2 text-xs ${atm.expired ? "border-destructive/40 text-destructive" : "border-border text-muted-foreground"}`}>
+                      <div className="font-medium">
+                        ATM {atm.expired ? "已逾期" : "待匯款"} NT$ {atm.amount.toLocaleString()}
+                        {atm.depositPercent ? `（訂金 ${atm.depositPercent}%）` : ""}
                       </div>
-                    );
-                  })()}
+                      {atm.expireAt && <div className="mt-0.5">繳費期限 {atm.expireText}</div>}
+                    </div>
+                  )}
 
-
-
-                  {/* 操作按鈕 */}
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="default"
-                      className="flex-1 h-11 touch-manipulation gap-1.5 px-2 text-sm"
-                      asChild
-                    >
+                  {/* 操作 */}
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <Button variant="default" className="flex-1 h-11 gap-1.5 touch-manipulation" asChild>
                       <Link to={`/admin/orders/${order.id}`} state={{ from: backTo }}>
                         <Eye className="h-4 w-4" />
-                        <span>詳情</span>
+                        <span>查看</span>
                       </Link>
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="default"
-                      className="flex-1 h-11 touch-manipulation gap-1.5 px-2 text-sm"
-                      asChild
-                    >
+                    <Button variant="outline" className="flex-1 h-11 gap-1.5 touch-manipulation" asChild>
                       <Link to={`/admin/orders/${order.id}?editing=true`} state={{ from: backTo }}>
                         <Edit className="h-4 w-4" />
                         <span>編輯</span>
                       </Link>
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-11 w-11 shrink-0 touch-manipulation" aria-label="更多操作">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="z-[60] w-44">
+                        {onEditPrice && (
+                          <DropdownMenuItem className="py-2.5" onSelect={() => onEditPrice(order)}>
+                            修改金額
+                          </DropdownMenuItem>
+                        )}
+                        {onChangePaymentStatus && (
+                          <DropdownMenuItem className="py-2.5" onSelect={() => onChangePaymentStatus(order)}>
+                            變更付款狀態
+                          </DropdownMenuItem>
+                        )}
+                        {onChangeOrderSource && (
+                          <DropdownMenuItem className="py-2.5" onSelect={() => onChangeOrderSource(order)}>
+                            變更訂單來源
+                          </DropdownMenuItem>
+                        )}
+                        {onChangeOrderStatus && (
+                          <DropdownMenuItem
+                            className="py-2.5 text-destructive focus:text-destructive"
+                            onSelect={() => onChangeOrderStatus(order)}
+                          >
+                            變更訂單狀態／取消
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </CardContent>
               </Card>
@@ -553,6 +511,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
           })
         )}
       </div>
+
     </>
   );
 }
