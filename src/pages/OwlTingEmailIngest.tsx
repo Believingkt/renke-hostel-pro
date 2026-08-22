@@ -317,7 +317,7 @@ export default function OwlTingEmailIngest() {
       <Card>
         <CardHeader>
           <CardTitle>
-            最近 50 筆 Email
+            最近 100 筆 Email（含所有待補單）
             {(() => {
               const hidden = rows.filter((r) => {
                 const st = stagingMap[r.id];
