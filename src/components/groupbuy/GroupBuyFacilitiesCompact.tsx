@@ -41,7 +41,7 @@ export function GroupBuyFacilitiesCompact({ highlights, totalCount, children }: 
           <button
             type="button"
             onClick={() => setOpen((o) => !o)}
-            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 min-h-[44px] py-2"
           >
             {open ? "收合設施清單" : `查看全部 ${totalCount} 項設施`}
             <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />

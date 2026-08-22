@@ -38,7 +38,7 @@ export function GroupBuyCollapsibleHtml({
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
-          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 min-h-[44px] py-2"
         >
           {open ? lessLabel : moreLabel}
           <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
