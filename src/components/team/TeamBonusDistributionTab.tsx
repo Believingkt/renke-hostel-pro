@@ -451,7 +451,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               </span>
             </div>
             <div className="text-xs text-muted-foreground">
-              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜有效訂單分潤金額 = 全館別+全成交組成員加總）
+              （本期抽成比例：{Number((appliedRate * 100).toFixed(4))}%｜依本期發放月的成交組分潤快照＋補差逐筆提撥加總，與個人發放同源）
               {loading && <span className="ml-2">計算中…</span>}
             </div>
           </div>
