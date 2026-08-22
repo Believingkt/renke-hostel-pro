@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { AdminPageShell, AdminStickyActionBar } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -531,7 +532,7 @@ export default function OwnerSettlementSettings({
 
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <AdminPageShell maxWidth="7xl" hasStickyActionBar>
       <AdminPageHeader
         title="業主月結設定"
         description={
@@ -1027,17 +1028,18 @@ export default function OwnerSettlementSettings({
       </Collapsible>
 
 
-      <div className="flex flex-col items-end gap-2">
-        <p className="text-xs text-muted-foreground text-right">
-          儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
-          」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
-
-        </p>
+      <AdminStickyActionBar
+        info={
+          <>
+            儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
+            」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
+          </>
+        }
+      >
         <Button onClick={handleSave} disabled={saving}>
           {saving ? "儲存中..." : "儲存設定"}
         </Button>
-      </div>
-
-    </div>
+      </AdminStickyActionBar>
+    </AdminPageShell>
   );
 }

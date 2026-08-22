@@ -1969,6 +1969,40 @@ body[data-radix-scroll-lock] {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ── PMS 後台觸控目標規範（僅 admin 使用，不影響前台按鈕尺寸） ──
+   icon-only 互動元素在手機一律 >= 44x44px；桌機維持既有密度。 */
+.admin-icon-btn {
+  min-height: 2.25rem; /* 36px：桌機維持既有密度 */
+  min-width: 2.25rem;
+}
+
+.admin-touch-target {
+  min-height: 2.25rem;
+}
+
+@media (max-width: 767px) {
+  .admin-icon-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .admin-touch-target {
+    min-height: 44px;
+  }
+
+  /* 後台 TipTap 工具列：允許換行、不產生整頁水平捲動、觸控目標放大 */
+  .admin-theme .rich-text-toolbar {
+    max-width: 100%;
+    overflow-x: hidden;
+    row-gap: 0.25rem;
+  }
+
+  .admin-theme .rich-text-toolbar button {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
 /* ── 團媽專屬團購頁：暖米白精品旅宿主題（僅作用於 .gb-theme 範圍內） ── */
 .gb-theme {
   --background: 41 32% 95%;      /* #F6F3ED */

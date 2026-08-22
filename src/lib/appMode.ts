@@ -7,6 +7,8 @@
  *                          可用 ?mode=pms / ?mode=frontend 切換，記在 sessionStorage
  */
 
+import { PMS_RESERVED_FIRST_SEGMENT_SET } from "@/lib/reservedRoutes";
+
 export const PMS_ORIGIN = "https://pms.lakeze.com";
 export const BOOKING_ORIGIN = "https://booking.lakeze.com";
 /** 密碼重設信固定回到 PMS 網域（勿用 window.location.origin 硬拼） */
@@ -55,6 +57,8 @@ function readModeOverride(): AppMode | null {
 
 export function resolveAppMode(hostname = window.location.hostname): AppMode {
   if (isPmsHost(hostname)) return "pms";
+  // 原生 APP：僅在「明確指定 PMS」時才進後台模式；否則沿用既有 booking/neutral 行為
+  if (isNativePmsApp()) return "pms";
   if (isDevOrPreviewHost(hostname)) return readModeOverride() ?? "neutral";
   return "frontend";
 }
@@ -92,19 +96,10 @@ export function bookingHref(path: string): string {
 /**
  * PMS 網域允許的路徑（其餘一律導回前台網域）
  * 支援 /{slug}/admin/... 形式，會先剝掉 alias 前綴再判斷。
+ *
+ * 保留字唯一來源：src/lib/reservedRoutes.ts（PMS 清單為全站清單的子集）。
  */
-const PMS_RESERVED_FIRST = new Set([
-  "admin",
-  "auth",
-  "login",
-  "reset-password",
-  "change-password",
-  "hq",
-  "hq-auth",
-  "headquarters",
-  "team",
-  "team-auth",
-]);
+const PMS_RESERVED_FIRST = PMS_RESERVED_FIRST_SEGMENT_SET;
 
 export function normalizePmsPath(pathname: string): string {
   const segments = pathname.split("/").filter(Boolean);
@@ -173,4 +168,55 @@ export function isNativeApp(): boolean {
   } catch {
     return false;
   }
+}
+
+/* ──────────────────────────────────────────────────────────────
+ * 原生 APP 目標（Native Booking / Native PMS）
+ *
+ * 背景：原生 WebView 的 hostname 是 localhost / capacitor:，無法用網域判斷模式。
+ * 既有行為：原生一律等同訂房前台（booking）。此為預設值，不得改變。
+ *
+ * 新增能力：可「明確指定」原生 APP 以 PMS 後台為入口，供未來獨立 PMS APP 使用。
+ * 指定方式（優先序）：
+ *   1) build-time：VITE_NATIVE_APP_TARGET=pms（獨立打包 PMS APP 時設定）
+ *   2) runtime：localStorage `native_app_target` = "pms"（內部測試用）
+ * 未設定時一律回 "booking"，正式 APP 預設入口完全不變。
+ * ────────────────────────────────────────────────────────────── */
+
+export type NativeAppTarget = "booking" | "pms";
+
+export const NATIVE_APP_TARGET_KEY = "native_app_target";
+
+export function getNativeAppTarget(): NativeAppTarget {
+  try {
+    const buildTarget = String(import.meta.env?.VITE_NATIVE_APP_TARGET ?? "").toLowerCase();
+    if (buildTarget === "pms") return "pms";
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem(NATIVE_APP_TARGET_KEY);
+      if (saved === "pms") return "pms";
+    }
+  } catch {
+    /* ignore */
+  }
+  return "booking";
+}
+
+/** 僅供內部測試切換；正式 APP 預設入口不受影響 */
+export function setNativeAppTarget(target: NativeAppTarget): void {
+  try {
+    if (target === "booking") window.localStorage.removeItem(NATIVE_APP_TARGET_KEY);
+    else window.localStorage.setItem(NATIVE_APP_TARGET_KEY, target);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 原生 APP 且以訂房前台為入口（＝現行預設行為） */
+export function isNativeBookingApp(): boolean {
+  return isNativeApp() && getNativeAppTarget() === "booking";
+}
+
+/** 原生 APP 且被明確指定為 PMS 後台入口 */
+export function isNativePmsApp(): boolean {
+  return isNativeApp() && getNativeAppTarget() === "pms";
 }

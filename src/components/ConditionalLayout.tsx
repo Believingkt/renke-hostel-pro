@@ -14,6 +14,7 @@ import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
+import { isReservedFirstSegment } from "@/lib/reservedRoutes";
 
 const isDev = import.meta.env.DEV;
 
@@ -21,15 +22,9 @@ export function ConditionalLayout() {
   const location = useLocation();
 
   // 將 /:alias/<rest> 視同 /<rest>，以支援 booking.lakeze.com/{alias}/admin 等路徑
-  const RESERVED = new Set([
-    "admin", "auth", "login", "hq", "hq-auth", "headquarters", "booking", "book",
-    "member", "ai-booking", "order-search", "profile", "payment-test",
-    "kol-api-docs", "points-api-docs", "pay", "payment-result",
-    "reset-password", "change-password", "og-preview", "__cb",
-    "team", "team-auth",
-  ]);
+  // 保留字唯一來源：src/lib/reservedRoutes.ts
   const segments = location.pathname.split("/").filter(Boolean);
-  const hasAliasPrefix = segments.length > 0 && !RESERVED.has(segments[0]);
+  const hasAliasPrefix = segments.length > 0 && !isReservedFirstSegment(segments[0]);
   const normalizedPath = hasAliasPrefix
     ? "/" + segments.slice(1).join("/")
     : location.pathname;
