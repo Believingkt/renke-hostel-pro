@@ -134,14 +134,36 @@ export default function OwlTingEmailIngest() {
     setLoading(true);
     // Tenant-scoped: only rows already matched to current accommodation.
     // RLS additionally enforces this at the database layer.
+    const RAW_SELECT =
+      "id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes,ingest_outcome";
     const { data: list } = await supabase
       .from("owlting_email_orders_raw")
-      .select("id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes,ingest_outcome")
+      .select(RAW_SELECT)
       .eq("accommodation_id", currentAccommodationId)
       .order("received_at", { ascending: false })
-      .limit(50);
-    const rawRows = (list as RawEmail[]) ?? [];
+      .limit(100);
+    let rawRows = (list as RawEmail[]) ?? [];
+
+    // 待補 PII 的紀錄必須永遠看得到（即使已被較新的信件擠出時間視窗）。
+    const { data: pendingStaging } = await supabase
+      .from("owlting_email_parsed_staging")
+      .select("raw_email_id")
+      .eq("accommodation_id", currentAccommodationId)
+      .eq("pii_status", "pending_pii_fillup");
+    const pendingRawIds = (pendingStaging ?? [])
+      .map((s: any) => s.raw_email_id as string | null)
+      .filter((v): v is string => !!v && !rawRows.some((r) => r.id === v));
+    if (pendingRawIds.length > 0) {
+      const { data: extra } = await supabase
+        .from("owlting_email_orders_raw")
+        .select(RAW_SELECT)
+        .in("id", pendingRawIds);
+      rawRows = [...rawRows, ...((extra as RawEmail[]) ?? [])].sort((a, b) =>
+        (b.received_at ?? "").localeCompare(a.received_at ?? ""),
+      );
+    }
     setRows(rawRows);
+
 
     if (rawRows.length > 0) {
       const { data: staging } = await supabase
@@ -295,7 +317,7 @@ export default function OwlTingEmailIngest() {
       <Card>
         <CardHeader>
           <CardTitle>
-            最近 50 筆 Email
+            最近 100 筆 Email（含所有待補單）
             {(() => {
               const hidden = rows.filter((r) => {
                 const st = stagingMap[r.id];
