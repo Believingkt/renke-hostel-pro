@@ -895,17 +895,24 @@ export default function GroupBuyCampaign() {
       <header className="relative">
         {campaign.cover_image_url ? (
           <div className="relative">
+            {/* 手機 Hero：16:10 */}
             <img
               src={campaign.cover_image_url}
               alt={venueName || campaign.title}
-              style={{
-                objectPosition: `${Number(campaign.cover_focus_x ?? 50)}% ${Number(campaign.cover_focus_y ?? 50)}%`,
-              }}
-              className="h-[62vw] max-h-[560px] min-h-[300px] w-full object-cover sm:h-[42vw]"
+              style={coverImageStyle(resolveCoverFocus(campaign as any, "mobile"))}
+              className="aspect-[16/10] w-full object-cover sm:hidden"
+            />
+            {/* 桌機 Hero：16:6 */}
+            <img
+              src={campaign.cover_image_url}
+              alt={venueName || campaign.title}
+              style={coverImageStyle(resolveCoverFocus(campaign as any, "desktop"))}
+              className="hidden aspect-[16/6] w-full object-cover sm:block"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background/85 to-transparent" />
           </div>
         ) : (
+
           <div className="h-20 w-full" />
         )}
         <div className={SHELL}>
