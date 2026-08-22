@@ -14,6 +14,7 @@ import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
 import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
 import BookingInfoSection from "@/components/BookingInfoSection";
+import type { BookingNoticePanel } from "@/lib/bookingNoticePanels";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
 
 
