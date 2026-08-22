@@ -790,6 +790,8 @@ export default function TeamCommissionStatsTab() {
           validCount: 0,
           validAmount: 0,
           commission: 0,
+          commissionPersonal: 0,
+          commissionPool: 0,
           cancelCount: 0,
           cancelAmount: 0,
           cancelCommission: 0,
