@@ -93,6 +93,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [depositConfirmDateVerified, setDepositConfirmDateVerified] = useState<boolean>(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
@@ -136,9 +137,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [canForceCommission, setCanForceCommission] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [closerRate, setCloserRate] = useState<number | null>(null);
-  const [resyncing, setResyncing] = useState(false);
-  const [actualPayoutMonth, setActualPayoutMonth] = useState<string | null>(null);
-  const [checkingPayout, setCheckingPayout] = useState(false);
   const [saving, setSaving] = useState(false);
 
 
@@ -196,6 +194,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setDepositConfirmDateVerified(false);
       setPaymentStatus(null);
       setOrderDate(null);
+      setOrderStatus(null);
       setFinalPrice(null);
       setTeamCommissionPrice(null);
       setInitialTeamCommissionPrice(null);
@@ -281,7 +280,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
+          .select("order_date, order_status, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -336,6 +335,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       const orderRowTyped =
         (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null; accommodation_id?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
+      setOrderStatus(((orderRow as any)?.order_status as string) ?? null);
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
       setAccommodationId(orderRowTyped?.accommodation_id ?? null);
@@ -567,91 +567,25 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   };
 
-  /** 台北時區的年月（YYYY-MM） */
-  const taipeiMonthOf = (value?: string | Date | null) => {
-    const d = value ? new Date(value) : new Date();
-    if (Number.isNaN(d.getTime())) return "";
-    const f = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-    });
-    return f.format(d).slice(0, 7);
-  };
-  /** 快照歸期＝訂單日所屬月；發放期＝下一個尚未發放的 10 日期 */
-  const snapshotMonthOfOrder = useMemo(() => taipeiMonthOf(orderDate), [orderDate]);
-  const currentPayoutMonth = useMemo(() => {
-    const f = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    const [y, m, d] = f.format(new Date()).split("-").map(Number);
-    // 每月 10 日發放：已過 10 日 → 補建的快照歸入次月發放期
-    const zero = y * 12 + (m - 1) + (d > 10 ? 1 : 0);
-    return `${Math.floor(zero / 12)}-${String((zero % 12) + 1).padStart(2, "0")}`;
-  }, []);
-  const forceEstimateAmount = useMemo(() => {
+  /** 目前可辨識的計獎基準（僅供顯示，不等於正式獎金） */
+  const commissionBaseForDisplay = useMemo(() => {
     const base = teamCommissionPrice ?? autoTeamCommissionPrice;
-    if (base === null || base === undefined || closerRate === null) return null;
-    return Math.round(Number(base) * closerRate);
-  }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
+    if (base === null || base === undefined) return null;
+    return Number(base);
+  }, [teamCommissionPrice, autoTeamCommissionPrice]);
 
-  /** 查詢此訂單實際落在哪個發放期（取最新一筆快照） */
-  const fetchActualPayoutMonth = useCallback(async () => {
-    if (!orderId) return;
-    setCheckingPayout(true);
-    try {
-      const { data, error } = await supabase
-        .from("closer_commission_snapshots")
-        .select("payout_month, created_at")
-        .eq("order_id", orderId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      setActualPayoutMonth((data?.[0] as any)?.payout_month ?? null);
-    } catch {
-      setActualPayoutMonth(null);
-    } finally {
-      setCheckingPayout(false);
-    }
-  }, [orderId]);
+  /** 純 UI 提示：目前為何可能無法計獎 */
+  const commissionBlockers = useMemo(() => {
+    const list: string[] = [];
+    if (!closerId || closerId === NONE) list.push("尚未指定成交組成員，暫無法計算成交獎金。");
+    if (orderStatus === "cancelled") list.push("此訂單已取消，目前不列入成交獎金。");
+    if (orderStatus === "hold") list.push("此訂單目前為保留狀態，不列入成交獎金。");
+    if (commissionBaseForDisplay !== null && commissionBaseForDisplay <= 0)
+      list.push("目前沒有可計入成交獎金的金額。");
+    return list;
+  }, [closerId, orderStatus, commissionBaseForDisplay]);
 
-  useEffect(() => {
-    if (open && orderId) fetchActualPayoutMonth();
-  }, [open, orderId, fetchActualPayoutMonth]);
 
-  /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
-  const handleResyncSnapshots = async () => {
-    if (!snapshotMonthOfOrder) return;
-    setResyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-commission-snapshots", {
-        body: {
-          test_mode: true,
-          test_month: snapshotMonthOfOrder,
-          payout_month: currentPayoutMonth,
-        },
-      });
-      if (error) throw error;
-      const created = (data as any)?.results?.reduce?.(
-        (acc: number, r: any) => acc + Number(r?.created ?? 0),
-        0,
-      );
-      await fetchActualPayoutMonth();
-      toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
-        description:
-          created === undefined
-            ? "請至發放管理確認結果"
-            : `新建 ${created} 筆，發放期 ${currentPayoutMonth}`,
-      });
-    } catch (e: any) {
-      toast.error(`重算失敗：${e?.message ?? "未知錯誤"}`);
-    } finally {
-      setResyncing(false);
-    }
-  };
 
 
   const handleSkip = () => {
@@ -997,8 +931,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                     計入成交組獎金（例外）
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    來源屬免抽成清單（如 KOL）但客人自費時勾選；其餘獎金規則不變。
+                    適用於原本因訂單來源而不列入成交組獎金的特殊訂單。啟用後僅解除獎金資格排除，後續仍依一般成交組獎金規則、結算期程與多退少補機制處理。
                   </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    儲存後不會立即建立或發放獎金，系統將依正式結算流程處理。
+                  </p>
+
                 </div>
               </div>
 
@@ -1010,67 +948,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                     placeholder="例外原因（必填，將寫入變更紀錄）"
                     rows={2}
                   />
-                  <div className="text-xs space-y-0.5 rounded-md bg-muted/40 p-2">
+                  <div className="text-xs space-y-1 rounded-md bg-muted/40 p-2">
                     <div>
-                      快照歸期：{snapshotMonthOfOrder || "-"}　→　發放期：
-                      <span className="font-medium">{currentPayoutMonth}</span>
-                      （每月 10 日發放，已過 10 日則歸次月）
-                    </div>
-                    <div>
-                      預估獎金：
+                      目前計獎基準：
                       <span className="font-medium">
-                        {forceEstimateAmount !== null
-                          ? `NT$ ${forceEstimateAmount.toLocaleString()}`
+                        {commissionBaseForDisplay !== null
+                          ? `NT$ ${commissionBaseForDisplay.toLocaleString()}`
                           : "—"}
                       </span>
-                      {closerRate !== null && (
-                        <>
-                          （基準 NT${" "}
-                          {Number(teamCommissionPrice ?? autoTeamCommissionPrice ?? 0).toLocaleString()} ×{" "}
-                          {(closerRate * 100).toFixed(2)}%）
-                        </>
-                      )}
                     </div>
                     <div className="text-muted-foreground">
-                      快照為 append-only，需重算該期後才會出現在發放管理。
+                      實際獎金仍依正式結算時的訂單狀態、合作條件及成交組獎金規則計算。
+                    </div>
+                    {commissionBlockers.map((msg) => (
+                      <div key={msg} className="text-amber-600">
+                        ⚠️ {msg}
+                      </div>
+                    ))}
+                    <div className="text-muted-foreground">
+                      例外設定僅解除來源排除；仍須符合其他成交獎金條件。
                     </div>
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {isSuperAdmin ? (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="h-8 text-xs"
-                        disabled={resyncing || !snapshotMonthOfOrder || forceEligible !== initialForceEligible}
-                        onClick={handleResyncSnapshots}
-                      >
-                        {resyncing ? "重算中…" : `重算該期（${snapshotMonthOfOrder || "-"}）`}
-                      </Button>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">
-                        重算該期需由超級管理員執行。
-                      </p>
-                    )}
-                    <span className="text-xs">
-                      {checkingPayout ? (
-                        <span className="text-muted-foreground">查詢發放期中…</span>
-                      ) : actualPayoutMonth ? (
-                        <>
-                          實際發放期：
-                          <span className="font-medium text-green-700">{actualPayoutMonth}</span>
-                        </>
-                      ) : (
-                        <span className="text-muted-foreground">尚未產生快照</span>
-                      )}
-                    </span>
-                  </div>
-                  {forceEligible !== initialForceEligible && (
-                    <p className="text-xs text-orange-600">請先儲存後再重算該期。</p>
-                  )}
-
                 </div>
               )}
+
             </div>
           )}
 
