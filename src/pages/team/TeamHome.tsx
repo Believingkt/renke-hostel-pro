@@ -1546,6 +1546,7 @@ export default function TeamHome() {
           closerBackfillSum,
           closerBackfillCount,
           closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
+          closerPreviewCount,
           scoutCloserSum,
           closerTeamBonusSum,
           closerTeamBonusRateVal,
