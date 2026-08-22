@@ -829,15 +829,16 @@ export default function AdminGroupBuy() {
           }}
         >
 
-          <TabsList>
-            <TabsTrigger value="orders">訂單對帳</TabsTrigger>
-            <TabsTrigger value="packages">方案設定</TabsTrigger>
-            <TabsTrigger value="bank">匯款帳戶</TabsTrigger>
-            <TabsTrigger value="analytics">銷售分析</TabsTrigger>
-            <TabsTrigger value="venue">民宿介紹</TabsTrigger>
-            <TabsTrigger value="page-content">頁面內容</TabsTrigger>
-            <TabsTrigger value="notify">通知設定</TabsTrigger>
+          <TabsList className="flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto md:w-auto [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger value="orders" className="shrink-0">訂單對帳</TabsTrigger>
+            <TabsTrigger value="packages" className="shrink-0">方案設定</TabsTrigger>
+            <TabsTrigger value="bank" className="shrink-0">匯款帳戶</TabsTrigger>
+            <TabsTrigger value="analytics" className="shrink-0">銷售分析</TabsTrigger>
+            <TabsTrigger value="venue" className="shrink-0">民宿介紹</TabsTrigger>
+            <TabsTrigger value="page-content" className="shrink-0">頁面內容</TabsTrigger>
+            <TabsTrigger value="notify" className="shrink-0">通知設定</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="notify" className="space-y-3">
             <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />
