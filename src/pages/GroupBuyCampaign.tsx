@@ -1505,14 +1505,29 @@ export default function GroupBuyCampaign() {
 
         )}
 
-        {/* ── 完整民宿介紹（放在訂房流程之後） ── */}
-        {campaign.description_html && (
-          <GroupBuyRichContent
-            html={campaign.description_html}
-            className="prose prose-sm mt-10 max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
-            moreLabel="展開完整介紹"
-            lessLabel="收合介紹"
-          />
+        {/* ── 活動亮點與介紹（訂房流程之後的「了解區」起點） ── */}
+        {showHighlightSection && (
+          <section id="gb-highlights" className="mt-10 scroll-mt-16">
+            <h2 className="mb-3 text-base font-semibold text-foreground">活動亮點</h2>
+            {highlightPoints.length > 0 && (
+              <ul className="mb-4 space-y-2">
+                {highlightPoints.map((h, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <span>{h}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {campaign.description_html && (
+              <GroupBuyRichContent
+                html={campaign.description_html}
+                className="prose prose-sm max-w-none text-foreground prose-headings:text-foreground prose-p:leading-relaxed prose-strong:text-foreground"
+                moreLabel="展開完整介紹"
+                lessLabel="收合介紹"
+              />
+            )}
+          </section>
         )}
 
         {/* 活動相簿：僅在張數足夠時顯示，避免與下方民宿相簿重複 */}
@@ -1528,19 +1543,6 @@ export default function GroupBuyCampaign() {
         />
 
 
-
-        {campaign.terms_html && (
-          <div className="mt-6">
-            <h2 className="mb-2 text-base font-semibold text-foreground">團購活動注意事項</h2>
-            <GroupBuyRichContent
-              html={campaign.terms_html}
-              collapsedHeight={160}
-              className="prose prose-sm max-w-none text-muted-foreground"
-              moreLabel="展開注意事項"
-              lessLabel="收合注意事項"
-            />
-          </div>
-        )}
 
 
         {(campaign.contact_note || lineUrl) && (
