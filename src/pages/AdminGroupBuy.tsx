@@ -421,6 +421,13 @@ export default function AdminGroupBuy() {
       });
       return;
     }
+    // 分潤比例變更：歷史分潤預設鎖定，需先確認套用範圍
+    const oldRate = Number(campaigns.find((c) => c.id === editing.id)?.commission_rate ?? 0);
+    const newRate = Number(editing.commission_rate ?? 0);
+    if (editing.id && newRate !== oldRate) {
+      setRateDialog({ oldRate, newRate });
+      return;
+    }
     setSaving(true);
     try {
       const payload = { ...editing, accommodation_id: accommodationId } as any;
