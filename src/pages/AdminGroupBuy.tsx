@@ -754,7 +754,7 @@ export default function AdminGroupBuy() {
         setSaving(false);
       }
     },
-    [rateDialog, editing, analyticsRows, activeId, toast, refreshAll],
+    [rateDialog, editing, analyticsRows, activeId, accommodationId, toast, refreshAll],
   );
 
   const publicUrl = activeCampaign ? `${window.location.origin}/g/${activeCampaign.slug}` : "";
