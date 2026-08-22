@@ -331,6 +331,17 @@ export default function AdminGroupBuy() {
     );
 
   }, [activeId]);
+  /** 重新整理：活動 + 方案／匯款帳戶／訂單／分潤／稽核事件一次重抓 */
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadCampaigns(), loadDetails()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadCampaigns, loadDetails]);
+
 
   useEffect(() => {
     void loadCampaigns();
