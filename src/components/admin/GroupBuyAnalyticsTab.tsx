@@ -26,6 +26,8 @@ import {
 } from "@/lib/groupBuyAnalytics";
 import { DEPOSIT_STATE_LABEL, REFUND_STATE_LABEL, REFUND_STATE_VARIANT } from "@/lib/groupBuyPayment";
 import { exportAnalyticsExcel, exportAnalyticsPdf, printAnalytics, type ExportMeta } from "@/lib/groupBuyExport";
+import AdminDateRangeField from "@/components/admin/AdminDateRangeField";
+
 
 interface Props {
   rows: GroupBuyAnalyticsRow[];
@@ -189,9 +191,15 @@ export function GroupBuyAnalyticsTab({
                 <option value="order_date">下單日期</option>
                 <option value="check_in_date">入住日期</option>
               </select>
-              <Input type="date" className="h-9 w-[150px]" value={from} onChange={(e) => setFrom(e.target.value)} />
-              <span className="text-muted-foreground">~</span>
-              <Input type="date" className="h-9 w-[150px]" value={to} onChange={(e) => setTo(e.target.value)} />
+              <AdminDateRangeField
+                from={from}
+                to={to}
+                onChange={(f, t) => {
+                  setFrom(f);
+                  setTo(t);
+                }}
+              />
+
               {(from || to) && (
                 <Button size="sm" variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>
                   清除
