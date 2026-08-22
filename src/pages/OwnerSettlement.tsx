@@ -724,17 +724,18 @@ export default function OwnerSettlement() {
 
       {/* Hero：業主實收 */}
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
-        <CardContent className="p-6 md:p-8">
+        <CardContent className="p-4 md:p-8">
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
             <div className="space-y-1">
               <div className="text-xs uppercase tracking-wider text-muted-foreground font-medium">
                 {monthLabel} 業主淨收益
               </div>
-              <div className="text-4xl md:text-5xl font-bold text-primary tabular-nums leading-tight">
+              <div className="text-3xl md:text-5xl font-bold text-primary tabular-nums leading-tight break-all">
                 NT$ {fmt(summary.ownerNet)}
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 md:gap-6 md:text-right text-xs">
+            <div className="grid grid-cols-3 gap-2 md:gap-6 md:text-right text-[11px] md:text-xs">
+
               <div>
                 <div className="text-muted-foreground">
                   本月入住營收
@@ -1099,7 +1100,8 @@ export default function OwnerSettlement() {
             {`含 ${monthLabel} 入住的訂單；僅計入本月住宿夜數的比例；僅顯示不抽成的增值服務金額。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="hidden overflow-x-auto md:block print:block">
+
           {loading ? (
             <TableSkeleton rows={6} columns={8} />
           ) : tableRows.length === 0 ? (
@@ -1339,6 +1341,85 @@ export default function OwnerSettlement() {
             </Table>
           )}
         </CardContent>
+
+        {/* Mobile：訂單明細卡片 */}
+        <CardContent className="flex flex-col gap-3 p-3 md:hidden print:hidden">
+          {loading ? (
+            <TableSkeleton rows={4} columns={3} />
+          ) : tableRows.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">{monthLabel} 無入住訂單</p>
+          ) : (
+            tableRows.map((r) => (
+              <div key={r.order.id} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 truncate font-mono text-xs">
+                    {r.order.order_number}
+                    {isGuestCount && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
+                      <span className="ml-1 text-amber-600">⚠</span>
+                    )}
+                  </span>
+                  {r.exempt && (
+                    <Badge variant="outline" className="shrink-0 text-xs">不抽成</Badge>
+                  )}
+                </div>
+                <div className="mt-1 min-w-0 break-words text-sm">{r.order.guest_name}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                  {r.order.check_in_date} → {r.order.check_out_date}
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground">本月夜數</div>
+                    <div className="tabular-nums">
+                      {isGuestCount
+                        ? `${r.gc.nightsInMonth} / ${r.gc.totalNights}`
+                        : `${r.std!.nightsInMonth} / ${r.std!.totalNights}`}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">本月營收</div>
+                    <div className="font-semibold tabular-nums">
+                      {r.isForeign
+                        ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}`
+                        : fmt(r.revenue)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">增值服務</div>
+                    <div className="tabular-nums">
+                      {r.addonTotal > 0
+                        ? r.isForeign
+                          ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
+                          : fmt(r.addonTotal)
+                        : r.hasUnexcludedAddon
+                          ? "0"
+                          : "—"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">抽成</div>
+                    <div className="tabular-nums">
+                      {r.exempt ? (
+                        <span className="text-xs text-muted-foreground">
+                          {r.order.owner_direct
+                            ? "業主自帶"
+                            : `不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
+                        </span>
+                      ) : (
+                        <span className="text-destructive">-{fmt(r.commission)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-xs text-muted-foreground">
+                  入住人數：{r.order.guest_count ?? "—"}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+
       </Card>
 
       {/* 購物商品明細 */}

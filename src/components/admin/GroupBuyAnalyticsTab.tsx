@@ -133,19 +133,20 @@ export function GroupBuyAnalyticsTab({
         <p className="text-xs text-muted-foreground">資料範圍：{meta.filterLabel}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         {kpis.map((s) => (
-          <Card key={s.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-normal text-muted-foreground">{s.label}</CardTitle>
+          <Card key={s.label} className="min-w-0">
+            <CardHeader className="p-3 pb-1 md:p-6 md:pb-2">
+              <CardTitle className="text-xs font-normal text-muted-foreground md:text-sm">{s.label}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
-              {s.hint && <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>}
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-lg font-semibold tabular-nums text-foreground md:text-2xl">{s.value}</p>
+              {s.hint && <p className="mt-1 text-[11px] text-muted-foreground md:text-xs">{s.hint}</p>}
             </CardContent>
           </Card>
         ))}
       </div>
+
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
@@ -171,20 +172,23 @@ export function GroupBuyAnalyticsTab({
         </CardHeader>
 
         <CardContent className="space-y-3 p-0">
-          <div className="gb-no-print flex flex-wrap items-center gap-2 px-4">
-            {ANALYTICS_FILTERS.map((f) => (
-              <Button
-                key={f.key}
-                size="sm"
-                variant={filter === f.key ? "default" : "outline"}
-                onClick={() => setFilter(f.key)}
-              >
-                {f.label}
-              </Button>
-            ))}
-            <div className="ml-auto flex flex-wrap items-center gap-2 text-sm">
+          <div className="gb-no-print space-y-2 px-3 md:px-4">
+            <div className="-mx-3 flex flex-nowrap items-center gap-2 overflow-x-auto px-3 md:mx-0 md:flex-wrap md:px-0 [&::-webkit-scrollbar]:hidden">
+              {ANALYTICS_FILTERS.map((f) => (
+                <Button
+                  key={f.key}
+                  size="sm"
+                  className="shrink-0"
+                  variant={filter === f.key ? "default" : "outline"}
+                  onClick={() => setFilter(f.key)}
+                >
+                  {f.label}
+                </Button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-sm md:justify-end">
               <select
-                className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+                className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-base md:h-9 md:flex-none md:text-sm"
                 value={dateField}
                 onChange={(e) => setDateField(e.target.value as "order_date" | "check_in_date")}
               >
@@ -192,6 +196,7 @@ export function GroupBuyAnalyticsTab({
                 <option value="check_in_date">入住日期</option>
               </select>
               <AdminDateRangeField
+                className="w-full md:w-auto [&>button]:flex-1 md:[&>button]:flex-none"
                 from={from}
                 to={to}
                 onChange={(f, t) => {
@@ -208,8 +213,10 @@ export function GroupBuyAnalyticsTab({
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+
+          <div className="hidden overflow-x-auto md:block print:block">
             <Table className="min-w-[1100px]">
+
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">訂單編號</TableHead>
@@ -286,6 +293,77 @@ export function GroupBuyAnalyticsTab({
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile：分析明細卡片 */}
+          <div className="gb-no-print flex flex-col gap-3 p-3 md:hidden print:hidden">
+            {filtered.map((r) => {
+              const c = commissionCellText(r);
+              return (
+                <div key={r.order.id} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      className="min-w-0 truncate font-medium text-primary underline-offset-2"
+                      onClick={() => onOpenOrder(r.order.order_number)}
+                    >
+                      {r.order.order_number}
+                    </button>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {ymd(r.order.order_date)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 min-w-0 text-sm">
+                    <span className="break-words">{r.order.guest_name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{r.order.guest_phone}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                    {ymd(r.order.check_in_date)} → {ymd(r.order.check_out_date)}
+                  </div>
+                  <div className="mt-0.5 break-words text-xs text-muted-foreground">{r.packageName}</div>
+
+                  <div className="mt-2 flex items-end justify-between gap-2 border-t pt-2">
+                    <span className="text-xs text-muted-foreground">訂單總額</span>
+                    <span className="text-lg font-bold tabular-nums">
+                      {twdPlain(Number(r.order.final_price) || 0)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      已收（{DEPOSIT_STATE_LABEL[r.deposit]}）
+                    </span>
+                    <span className="text-sm font-medium tabular-nums">
+                      {twdPlain(Number(r.order.paid_amount) || 0)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">網紅分潤</span>
+                    <span className="text-sm font-medium tabular-nums">{c.amount}</span>
+                  </div>
+                  <div className="text-right text-[11px] text-muted-foreground">{c.note || c.rate}</div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
+                    <Badge variant="outline">{ORDER_STATUS_TEXT(r.order)}</Badge>
+                    <Badge variant={REFUND_STATE_VARIANT[r.refund]}>{REFUND_STATE_LABEL[r.refund]}</Badge>
+                    <Badge variant={COMMISSION_STATE_VARIANT[r.state]}>{r.stateLabel}</Badge>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="admin-touch-target mt-3 w-full"
+                    onClick={() => onOpenOrder(r.order.order_number)}
+                  >
+                    查看訂單
+                  </Button>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground">目前沒有符合條件的訂單資料。</div>
+            )}
+          </div>
+
         </CardContent>
       </Card>
     </div>

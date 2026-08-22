@@ -34,7 +34,13 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, MoreHorizontal, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   DEPOSIT_STATE_LABEL,
   DEPOSIT_STATE_VARIANT,
@@ -823,15 +829,16 @@ export default function AdminGroupBuy() {
           }}
         >
 
-          <TabsList>
-            <TabsTrigger value="orders">訂單對帳</TabsTrigger>
-            <TabsTrigger value="packages">方案設定</TabsTrigger>
-            <TabsTrigger value="bank">匯款帳戶</TabsTrigger>
-            <TabsTrigger value="analytics">銷售分析</TabsTrigger>
-            <TabsTrigger value="venue">民宿介紹</TabsTrigger>
-            <TabsTrigger value="page-content">頁面內容</TabsTrigger>
-            <TabsTrigger value="notify">通知設定</TabsTrigger>
+          <TabsList className="flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto md:w-auto [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger value="orders" className="shrink-0">訂單對帳</TabsTrigger>
+            <TabsTrigger value="packages" className="shrink-0">方案設定</TabsTrigger>
+            <TabsTrigger value="bank" className="shrink-0">匯款帳戶</TabsTrigger>
+            <TabsTrigger value="analytics" className="shrink-0">銷售分析</TabsTrigger>
+            <TabsTrigger value="venue" className="shrink-0">民宿介紹</TabsTrigger>
+            <TabsTrigger value="page-content" className="shrink-0">頁面內容</TabsTrigger>
+            <TabsTrigger value="notify" className="shrink-0">通知設定</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="notify" className="space-y-3">
             <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />
@@ -839,7 +846,7 @@ export default function AdminGroupBuy() {
 
           <TabsContent value="orders" className="space-y-3">
             <Card>
-              <CardContent className="overflow-x-auto p-0">
+              <CardContent className="hidden overflow-x-auto p-0 md:block">
                 <Table className="min-w-[900px]">
                   <TableHeader>
                     <TableRow>
@@ -965,8 +972,148 @@ export default function AdminGroupBuy() {
                   </TableBody>
                 </Table>
               </CardContent>
+
+              {/* Mobile：訂單對帳卡片（沿用 M2-A 訂單卡片語言） */}
+              <CardContent className="flex flex-col gap-3 p-3 md:hidden">
+                {orders.map((o) => {
+                  const dState = depositState(o);
+                  const rState = refundState(o);
+                  const showRefundBtn = canProcessRefund(o);
+                  const highlighted =
+                    highlightOrderNumber && o.order_number?.toUpperCase() === highlightOrderNumber;
+                  return (
+                    <div
+                      key={o.id}
+                      className={`min-w-0 rounded-lg border bg-card p-3 shadow-sm ${
+                        highlighted ? "ring-1 ring-primary/40" : ""
+                      }`}
+                    >
+                      {/* L1 訂單編號 + 狀態 */}
+                      <div className="flex items-start justify-between gap-2">
+                        <Link
+                          to={`/admin/orders/${o.id}`}
+                          className="inline-flex min-w-0 items-center gap-1 font-medium text-primary underline-offset-2"
+                        >
+                          <span className="truncate">{o.order_number}</span>
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        </Link>
+                        <div className="shrink-0">
+                          {o.order_status === "cancelled" ? (
+                            <Badge variant="destructive">已取消</Badge>
+                          ) : o.cancelRequested ? (
+                            <Badge variant="destructive">旅客申請取消</Badge>
+                          ) : o.reported && dState === "unpaid" ? (
+                            <Badge variant="secondary">旅客已回報</Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              {o.order_status === "confirmed" ? "已確認" : "待處理"}
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* L2 旅客 */}
+                      <div className="mt-1 min-w-0 text-sm">
+                        <span className="break-words">{o.guest_name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">{o.guest_phone}</span>
+                      </div>
+
+                      {/* L3 入住 */}
+                      <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                        {o.check_in_date} → {o.check_out_date}
+                      </div>
+
+                      {/* L4 訂單總額（主金額） */}
+                      <div className="mt-2 flex items-end justify-between gap-2 border-t pt-2">
+                        <span className="text-xs text-muted-foreground">訂單總額</span>
+                        <span className="text-lg font-bold tabular-nums">{twd(o.final_price)}</span>
+                      </div>
+
+                      {/* L5 訂金 / 已收 */}
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">應付訂金</span>
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm font-medium tabular-nums">{twd(o.deposit_amount)}</span>
+                          <Badge variant={DEPOSIT_STATE_VARIANT[dState]}>{DEPOSIT_STATE_LABEL[dState]}</Badge>
+                        </span>
+                      </div>
+                      {Number(o.paid_amount || 0) > 0 && (
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span>已收</span>
+                          <span className="tabular-nums">{twd(o.paid_amount || 0)}</span>
+                        </div>
+                      )}
+
+                      {/* L6 退款 / 付款方式 */}
+                      <div className="mt-1 flex items-center justify-between gap-2">
+                        <span className="text-xs text-muted-foreground">{paymentProviderLabel(o)}</span>
+                        <span className="flex items-center gap-2">
+                          {Number(o.refunded_amount || 0) > 0 && (
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              已退 {twd(o.refunded_amount || 0)}
+                            </span>
+                          )}
+                          <Badge variant={REFUND_STATE_VARIANT[rState]}>{REFUND_STATE_LABEL[rState]}</Badge>
+                        </span>
+                      </div>
+
+                      {/* 主要 CTA + More menu */}
+                      <div className="mt-3 flex items-center gap-2 border-t pt-3">
+                        {o.order_status !== "cancelled" && dState !== "paid" ? (
+                          <Button
+                            size="sm"
+                            className="admin-touch-target flex-1"
+                            onClick={() => {
+                              setConfirmTarget(o);
+                              setConfirmAmount(String(o.deposit_amount ?? 0));
+                            }}
+                          >
+                            確認收到訂金
+                          </Button>
+                        ) : (
+                          <Button asChild size="sm" variant="outline" className="admin-touch-target flex-1">
+                            <Link to={`/admin/orders/${o.id}`}>查看訂單</Link>
+                          </Button>
+                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="icon" className="admin-icon-btn shrink-0" aria-label="更多操作">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="z-[60]">
+                            <DropdownMenuItem asChild>
+                              <Link to={`/admin/orders/${o.id}`}>查看訂單</Link>
+                            </DropdownMenuItem>
+                            {showRefundBtn && (
+                              <DropdownMenuItem onSelect={() => openRefund(o)}>
+                                <Banknote className="mr-2 h-4 w-4" /> 處理退款
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onSelect={() => setAuditTarget(o)}>
+                              <History className="mr-2 h-4 w-4" /> 稽核紀錄
+                            </DropdownMenuItem>
+                            {o.order_status !== "cancelled" && (
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onSelect={() => openCancel(o)}
+                              >
+                                <Undo2 className="mr-2 h-4 w-4" /> 取消／退款
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  );
+                })}
+                {orders.length === 0 && (
+                  <div className="py-10 text-center text-muted-foreground">尚無團購訂單</div>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
+
 
 
           <TabsContent value="packages" className="space-y-3">
