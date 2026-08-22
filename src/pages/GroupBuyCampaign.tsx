@@ -901,7 +901,7 @@ export default function GroupBuyCampaign() {
       {/* ── Hero ── */}
       <header className="relative">
         {campaign.cover_image_url ? (
-          <div className="relative">
+          <div className="relative overflow-hidden">
             {/* 手機 Hero：16:10 */}
             <img
               src={campaign.cover_image_url}
