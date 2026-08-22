@@ -1,0 +1,1 @@
+ALTER TABLE public.group_buy_campaigns ADD COLUMN IF NOT EXISTS terms_highlights text[] NOT NULL DEFAULT '{}'::text[];
