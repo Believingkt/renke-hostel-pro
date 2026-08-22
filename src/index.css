@@ -2190,3 +2190,63 @@ button > svg,
     margin: 10mm;
   }
 }
+
+/* ── PMS 後台手機版共用骨架（M1）：僅作用於 .admin-theme 範圍，不影響前台 ──
+   目標：320–430px 可用、safe-area 相容、dvh 避免 iOS 位址列造成的高度跳動。 */
+.admin-shell {
+  /* 舊瀏覽器 fallback → 支援者以 dvh 覆蓋 */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+}
+
+/* 後台頁面內容層左右內距（手機 12–16px，桌機維持原密度） */
+.admin-main {
+  padding-left: clamp(0.75rem, 3vw, 1rem);
+  padding-right: clamp(0.75rem, 3vw, 1rem);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: max(clamp(0.75rem, 3vw, 1rem), env(safe-area-inset-left, 0px));
+  padding-right: max(clamp(0.75rem, 3vw, 1rem), env(safe-area-inset-right, 0px));
+}
+
+@media (min-width: 768px) {
+  .admin-main {
+    padding: 1.5rem;
+  }
+}
+
+/* 後台長字串（訂單號、Email、備註）在窄螢幕正常換行，避免頁面級水平溢位 */
+@media (max-width: 767px) {
+  .admin-theme .admin-wrap-anywhere,
+  .admin-theme h1,
+  .admin-theme h2,
+  .admin-theme h3 {
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Admin Mobile 文字層級（僅在手機生效，桌機沿用既有 Tailwind 尺寸） */
+@media (max-width: 767px) {
+  .admin-theme .admin-section-title {
+    font-size: 1rem;
+    line-height: 1.4;
+    font-weight: 600;
+  }
+
+  .admin-theme .admin-body-text {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  .admin-theme .admin-help-text {
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .admin-theme .admin-amount {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+}
