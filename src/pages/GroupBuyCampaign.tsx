@@ -1513,7 +1513,7 @@ export default function GroupBuyCampaign() {
               <ul className="mb-4 space-y-2">
                 {highlightPoints.map((h, i) => (
                   <li key={i} className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
                     <span>{h}</span>
                   </li>
                 ))}
