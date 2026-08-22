@@ -13,6 +13,7 @@ import lokezeLogo from "@/assets/lokeze-logo-auth.png";
 import { getPasswordIssues } from "@/utils/passwordPolicy";
 import { PMS_RESET_PASSWORD_URL } from "@/lib/appMode";
 import { useLoginThrottle } from "@/hooks/use-login-throttle";
+import { isReservedFirstSegment } from "@/lib/reservedRoutes";
 
 const AUTH_REMEMBER_EMAIL_KEY = "auth_remember_email";
 

@@ -14,6 +14,7 @@ import { useOrderNotifications } from "@/hooks/use-order-notifications";
 import { useSessionKeepAlive } from "@/hooks/use-session-keepalive";
 import { toast } from "sonner";
 import { HQProvider } from "@/contexts/HQContext";
+import { isReservedFirstSegment } from "@/lib/reservedRoutes";
 
 const isDev = import.meta.env.DEV;
 
