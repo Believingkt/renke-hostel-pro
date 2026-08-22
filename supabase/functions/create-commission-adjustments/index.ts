@@ -349,6 +349,8 @@ serve(async (req) => {
       target_month: targetMonthStr,
       adjustment_month: adjMonthStr,
       amount_changes: amountChanges,
+      amount_changes_skipped_unpaid: amountChangeSkippedUnpaid,
+
       cancellations,
       reactivations,
       errors,
