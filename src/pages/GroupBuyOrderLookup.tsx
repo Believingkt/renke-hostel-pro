@@ -115,18 +115,10 @@ export default function GroupBuyOrderLookup() {
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
-  /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
-  const bn = data?.bookingNotice;
-  /** 下單當下的訂房須知快照面板（後端已剝除內部結構；舊訂單為 null → fallback live data） */
-  const snapshotSections: BookingNoticePanel[] | null =
-    Array.isArray(data?.bookingNoticeSections) && data.bookingNoticeSections.length > 0
-      ? (data.bookingNoticeSections as BookingNoticePanel[])
-      : null;
-  const hasBookingNotice = Boolean(
-    snapshotSections ||
-      (bn && !snapshotSections &&
-        (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0)),
-  );
+  /** 常見問題（與團購活動頁同源，由 Edge Function 依 campaign.faq_item_ids 過濾排序） */
+  const faqItems: { id: string; question: string; answer: string }[] = Array.isArray(data?.faqItems)
+    ? data.faqItems.filter((f: any) => f?.question && f?.answer)
+    : [];
 
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
   const refundedFully = data?.refund?.status === "refunded";
