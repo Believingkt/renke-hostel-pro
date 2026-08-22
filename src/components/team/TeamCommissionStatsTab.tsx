@@ -152,6 +152,10 @@ interface AccBreakdown {
   validCount: number;
   validAmount: number;
   commission: number;
+  /** 逐筆 splitCloserBonus 後加總的個人實發（與發放管理同粒度） */
+  commissionPersonal: number;
+  /** 逐筆 splitCloserBonus 後加總的團獎池提撥 */
+  commissionPool: number;
   cancelCount: number;
   cancelAmount: number;
   cancelCommission: number;
@@ -164,11 +168,22 @@ interface MemberStats {
   validCount: number;
   validAmount: number;
   commission: number;
+  commissionPersonal: number;
+  commissionPool: number;
   cancelCount: number;
   cancelAmount: number;
   cancelCommission: number;
   byAcc: AccBreakdown[];
 }
+
+/** 逐筆 Gross 拆分後加總（Gross / Personal / Pool 三者恆等） */
+interface SplitSum {
+  gross: number;
+  personal: number;
+  pool: number;
+}
+const emptySplitSum = (): SplitSum => ({ gross: 0, personal: 0, pool: 0 });
+
 
 export default function TeamCommissionStatsTab() {
   const { roles } = useTeam();
@@ -410,14 +425,21 @@ export default function TeamCommissionStatsTab() {
     };
   }, [mode, payoutMonthKey, dataMonthKey]);
 
-  // 回溯補建彙總：成員層級 / 成員+館別層級
+  // 回溯補建彙總：成員層級 / 成員+館別層級（逐筆拆分後加總，與發放管理同粒度）
   const backfillMaps = useMemo(() => {
-    const closerByUid = new Map<string, number>();
-    const closerByUidAcc = new Map<string, number>();
-    const videoByUid = new Map<string, number>();
-    const videoByUidAcc = new Map<string, number>();
-    const add = (m: Map<string, number>, k: string, v: number) =>
-      m.set(k, (m.get(k) ?? 0) + v);
+    const closerByUid = new Map<string, SplitSum>();
+    const closerByUidAcc = new Map<string, SplitSum>();
+    const videoByUid = new Map<string, SplitSum>();
+    const videoByUidAcc = new Map<string, SplitSum>();
+    const add = (m: Map<string, SplitSum>, k: string, v: number) => {
+      const s = splitCloserBonus(v, bonusRate);
+      const cur = m.get(k) ?? emptySplitSum();
+      m.set(k, {
+        gross: cur.gross + s.gross,
+        personal: cur.personal + s.personal,
+        pool: cur.pool + s.pool,
+      });
+    };
     for (const b of backfills) {
       if (b.closer_id && b.closer_amount !== 0) {
         add(closerByUid, b.closer_id, b.closer_amount);
@@ -431,16 +453,23 @@ export default function TeamCommissionStatsTab() {
       }
     }
     return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
-  }, [backfills]);
+  }, [backfills, bonusRate]);
 
-  // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
+  // 補差彙總：成員層級 / 成員+館別層級（逐筆拆分後加總）
   const adjMaps = useMemo(() => {
-    const closerByUid = new Map<string, number>();
-    const closerByUidAcc = new Map<string, number>();
-    const videoByUid = new Map<string, number>();
-    const videoByUidAcc = new Map<string, number>();
-    const add = (m: Map<string, number>, k: string, v: number) =>
-      m.set(k, (m.get(k) ?? 0) + v);
+    const closerByUid = new Map<string, SplitSum>();
+    const closerByUidAcc = new Map<string, SplitSum>();
+    const videoByUid = new Map<string, SplitSum>();
+    const videoByUidAcc = new Map<string, SplitSum>();
+    const add = (m: Map<string, SplitSum>, k: string, v: number) => {
+      const s = splitCloserBonus(v, bonusRate);
+      const cur = m.get(k) ?? emptySplitSum();
+      m.set(k, {
+        gross: cur.gross + s.gross,
+        personal: cur.personal + s.personal,
+        pool: cur.pool + s.pool,
+      });
+    };
     for (const a of adjustments) {
       if (a.closer_id && a.closer_amount !== 0) {
         add(closerByUid, a.closer_id, a.closer_amount);
@@ -454,7 +483,8 @@ export default function TeamCommissionStatsTab() {
       }
     }
     return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
-  }, [adjustments]);
+  }, [adjustments, bonusRate]);
+
 
 
 
@@ -760,6 +790,8 @@ export default function TeamCommissionStatsTab() {
           validCount: 0,
           validAmount: 0,
           commission: 0,
+          commissionPersonal: 0,
+          commissionPool: 0,
           cancelCount: 0,
           cancelAmount: 0,
           cancelCommission: 0,
@@ -784,8 +816,11 @@ export default function TeamCommissionStatsTab() {
       const b = getBucket(uid, o.accommodation_id, rate);
       b.validCount += 1;
       b.validAmount += amount;
-      // 對齊發放管理：每筆訂單先四捨五入再加總，避免尾差
-      b.commission += roundBonus(amount * rate);
+      // 對齊發放管理：每筆訂單先四捨五入、先拆分個人／團獎池，再加總
+      const s = splitCloserBonus(amount * rate, bonusRate);
+      b.commission += s.gross;
+      b.commissionPersonal += s.personal;
+      b.commissionPool += s.pool;
       b.validOrders.push(o);
     });
     cancelOrders.forEach((o) => {
@@ -816,12 +851,23 @@ export default function TeamCommissionStatsTab() {
             acc.validCount += b.validCount;
             acc.validAmount += b.validAmount;
             acc.commission += b.commission;
+            acc.commissionPersonal += b.commissionPersonal;
+            acc.commissionPool += b.commissionPool;
             acc.cancelCount += b.cancelCount;
             acc.cancelAmount += b.cancelAmount;
             acc.cancelCommission += b.cancelCommission;
             return acc;
           },
-          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0, cancelCommission: 0 },
+          {
+            validCount: 0,
+            validAmount: 0,
+            commission: 0,
+            commissionPersonal: 0,
+            commissionPool: 0,
+            cancelCount: 0,
+            cancelAmount: 0,
+            cancelCommission: 0,
+          },
         );
         return {
           uid,
@@ -836,13 +882,14 @@ export default function TeamCommissionStatsTab() {
   const closerStats = useMemo(
     () => buildMemberStats("closer_id", "closer_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
   );
   const videoStats = useMemo(
     () => buildMemberStats("video_creator_id", "video_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
   );
+
 
   const scoutStats = useMemo(() => {
     return scoutCodes
@@ -919,30 +966,32 @@ export default function TeamCommissionStatsTab() {
       role === "closer" ? backfillMaps.closerByUidAcc : backfillMaps.videoByUidAcc;
     const hasBackfill = showAdj && backfills.length > 0;
     const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
-    /** Gross → 個人實發（唯一拆分規則，共用 helper） */
-    const netCommission = (amount: number) =>
-      showBonus ? splitCloserBonus(amount, bonusRate).personal : roundBonus(amount);
-    const splitTitle = (amount: number) => {
+    /**
+     * 逐筆拆分後的加總（Gross / Personal / Pool 皆為逐筆結果之和），
+     * 顯示層一律讀取這裡，不得對「已聚合的 Gross」再做第二次拆分。
+     */
+    const netCommission = (s: SplitSum) => (showBonus ? s.personal : roundBonus(s.gross));
+    const sumOf = (s: SplitSum | undefined) => s ?? emptySplitSum();
+    const splitTitle = (s: SplitSum) => {
       if (!showBonus) return undefined;
-      const s = splitCloserBonus(amount, bonusRate);
       return `原始成交獎金 ${fmtMoney(s.gross)}／團獎池提撥 ${(bonusRate * 100).toFixed(1)}% -${fmtMoney(s.pool)}／個人發放 ${fmtMoney(s.personal)}`;
     };
-    const renderCommissionCell = (amount: number) => {
-      if (!showBonus) return <BoostedAmount amount={amount} multiplier={bonusMultiplier} />;
+    const renderCommissionCell = (s: SplitSum) => {
+      if (!showBonus) return <BoostedAmount amount={s.gross} multiplier={bonusMultiplier} />;
       return (
-        <div className="flex flex-col leading-tight" title={splitTitle(amount)}>
+        <div className="flex flex-col leading-tight" title={splitTitle(s)}>
           <span className="text-muted-foreground line-through text-xs">
-            {fmtMoney(amount)}
+            {fmtMoney(s.gross)}
           </span>
           <span className="text-orange-600 font-medium">
-            <BoostedAmount amount={netCommission(amount)} multiplier={bonusMultiplier} />
+            <BoostedAmount amount={netCommission(s)} multiplier={bonusMultiplier} />
           </span>
         </div>
       );
     };
-    /** Gross 金額（回溯補建／分潤補差）→ 個人實發顯示 */
-    const renderAdjCell = (grossAmount: number) => {
-      const amount = netCommission(grossAmount);
+    /** 回溯補建／分潤補差（逐筆拆分後的加總）→ 個人實發顯示 */
+    const renderAdjCell = (s: SplitSum) => {
+      const amount = netCommission(s);
       const cls = cn(
         "tabular-nums",
         amount === 0
@@ -951,15 +1000,15 @@ export default function TeamCommissionStatsTab() {
             ? "text-destructive"
             : "text-emerald-600",
       );
-      if (grossAmount === 0) return <span className={cls}>—</span>;
+      if (s.gross === 0) return <span className={cls}>—</span>;
       if (bonusMultiplier <= 1)
         return (
-          <span className={cls} title={splitTitle(grossAmount)}>
+          <span className={cls} title={splitTitle(s)}>
             {fmtMoney(amount)}
           </span>
         );
       return (
-        <div className="flex flex-col leading-tight items-end" title={splitTitle(grossAmount)}>
+        <div className="flex flex-col leading-tight items-end" title={splitTitle(s)}>
           <span className="text-muted-foreground line-through text-xs">{fmtMoney(amount)}</span>
           <span className={cls}>
             {fmtMoney(boostedAmount(amount, bonusMultiplier))}
@@ -970,6 +1019,7 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
+
 
 
     return (
@@ -1039,14 +1089,19 @@ export default function TeamCommissionStatsTab() {
 
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
-                  const memberAdjGross = byUid.get(r.uid) ?? 0;
-                  const memberBfGross = bfByUid.get(r.uid) ?? 0;
-                  const memberAdj = netCommission(memberAdjGross);
-                  const memberBf = netCommission(memberBfGross);
-                  const memberTotal = netCommission(r.commission) + memberAdj + memberBf;
+                  const memberAdjSum = sumOf(byUid.get(r.uid));
+                  const memberBfSum = sumOf(bfByUid.get(r.uid));
+                  const memberCommissionSum: SplitSum = {
+                    gross: r.commission,
+                    personal: r.commissionPersonal,
+                    pool: r.commissionPool,
+                  };
+                  const memberAdj = netCommission(memberAdjSum);
+                  const memberBf = netCommission(memberBfSum);
+                  const memberTotal = netCommission(memberCommissionSum) + memberAdj + memberBf;
 
                   const memberTotalBoosted =
-                    boostedAmount(netCommission(r.commission), bonusMultiplier) +
+                    boostedAmount(netCommission(memberCommissionSum), bonusMultiplier) +
                     boostedAmount(memberAdj, bonusMultiplier) +
                     boostedAmount(memberBf, bonusMultiplier);
 
@@ -1066,13 +1121,13 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="font-medium">{r.name}</TableCell>
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
-                        <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        <TableCell className="tabular-nums">{renderCommissionCell(memberCommissionSum)}</TableCell>
                         {hasBackfill && (
-                          <TableCell className="tabular-nums">{renderAdjCell(memberBfGross)}</TableCell>
+                          <TableCell className="tabular-nums">{renderAdjCell(memberBfSum)}</TableCell>
                         )}
                         {showAdj && (
                           <>
-                            <TableCell className="tabular-nums">{renderAdjCell(memberAdjGross)}</TableCell>
+                            <TableCell className="tabular-nums">{renderAdjCell(memberAdjSum)}</TableCell>
 
 
                             <TableCell className="tabular-nums font-semibold">
@@ -1107,14 +1162,19 @@ export default function TeamCommissionStatsTab() {
                           // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
                           const firstOfAcc =
                             r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
-                          const accAdjGross = firstOfAcc
-                            ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
-                            : 0;
-                          const accBfGross = firstOfAcc
-                            ? (bfByUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
-                            : 0;
-                          const accAdj = netCommission(accAdjGross);
-                          const accBf = netCommission(accBfGross);
+                          const accAdjSum = firstOfAcc
+                            ? sumOf(byUidAcc.get(`${r.uid}|${b.accId}`))
+                            : emptySplitSum();
+                          const accBfSum = firstOfAcc
+                            ? sumOf(bfByUidAcc.get(`${r.uid}|${b.accId}`))
+                            : emptySplitSum();
+                          const accCommissionSum: SplitSum = {
+                            gross: b.commission,
+                            personal: b.commissionPersonal,
+                            pool: b.commissionPool,
+                          };
+                          const accAdj = netCommission(accAdjSum);
+                          const accBf = netCommission(accBfSum);
 
                           const adjList =
                             showAdj && firstOfAcc
@@ -1168,30 +1228,30 @@ export default function TeamCommissionStatsTab() {
                               </TableCell>
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
-                              <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              <TableCell className="tabular-nums">{renderCommissionCell(accCommissionSum)}</TableCell>
                               {hasBackfill && (
-                                <TableCell className="tabular-nums">{renderAdjCell(accBfGross)}</TableCell>
+                                <TableCell className="tabular-nums">{renderAdjCell(accBfSum)}</TableCell>
                               )}
                               {showAdj && (
                                 <>
-                                  <TableCell className="tabular-nums">{renderAdjCell(accAdjGross)}</TableCell>
+                                  <TableCell className="tabular-nums">{renderAdjCell(accAdjSum)}</TableCell>
 
                                   <TableCell className="tabular-nums font-medium">
                                     {bonusMultiplier > 1 ? (
                                       <div className="flex flex-col leading-tight items-end">
                                         <span className="text-muted-foreground line-through text-xs font-normal">
-                                          {fmtMoney(netCommission(b.commission) + accAdj + accBf)}
+                                          {fmtMoney(netCommission(accCommissionSum) + accAdj + accBf)}
                                         </span>
                                         <span className="text-primary">
                                           {fmtMoney(
-                                            boostedAmount(netCommission(b.commission), bonusMultiplier) +
+                                            boostedAmount(netCommission(accCommissionSum), bonusMultiplier) +
                                               boostedAmount(accAdj, bonusMultiplier) +
                                               boostedAmount(accBf, bonusMultiplier),
                                           )}
                                         </span>
                                       </div>
                                     ) : (
-                                      fmtMoney(netCommission(b.commission) + accAdj + accBf)
+                                      fmtMoney(netCommission(accCommissionSum) + accAdj + accBf)
                                     )}
                                   </TableCell>
                                 </>
