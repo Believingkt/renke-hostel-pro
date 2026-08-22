@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+import { toGuestMessage, isGuestSafeMessage } from "@/lib/guestFacingError";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -672,9 +673,11 @@ export default function GroupBuyCampaign() {
             /* ignore */
           }
         }
+        // 只顯示業務語意訊息，技術錯誤一律轉為客人版文案（原始錯誤留在 console / server log）
+        if (!isGuestSafeMessage(message)) console.error("[group-buy-create-order] failed", error ?? payload);
         toast({
           title: "預訂失敗",
-          description: message ?? error?.message ?? "請稍後再試",
+          description: toGuestMessage(message, "目前無法完成預訂，請稍後再試或聯繫客服。"),
           variant: "destructive",
         });
         setConfirmOpen(false);
@@ -687,7 +690,12 @@ export default function GroupBuyCampaign() {
         state: { phoneLast4: guestPhone.replace(/\D/g, "").slice(-4), result: payload },
       });
     } catch (e) {
-      toast({ title: "預訂失敗", description: e instanceof Error ? e.message : "請稍後再試", variant: "destructive" });
+      console.error("[group-buy-create-order] unexpected error", e);
+      toast({
+        title: "預訂失敗",
+        description: "目前無法完成預訂，請稍後再試或聯繫客服。",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

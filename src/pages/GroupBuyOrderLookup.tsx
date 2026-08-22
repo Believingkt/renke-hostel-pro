@@ -1,6 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { toGuestMessage, isGuestSafeMessage } from "@/lib/guestFacingError";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,7 +54,8 @@ export default function GroupBuyOrderLookup() {
       });
       const payload: any = res;
       if (error || payload?.error) {
-        toast({ title: "查詢失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        if (!isGuestSafeMessage(payload?.error)) console.error("[group-buy-order-lookup] 查詢失敗", error ?? payload);
+        toast({ title: "查詢失敗", description: toGuestMessage(payload?.error, "目前無法查詢訂單，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
       setData(payload);
@@ -74,7 +76,8 @@ export default function GroupBuyOrderLookup() {
 
       const payload: any = res;
       if (error || payload?.error) {
-        toast({ title: "回報失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        if (!isGuestSafeMessage(payload?.error)) console.error("[group-buy-order-lookup] 回報失敗", error ?? payload);
+        toast({ title: "回報失敗", description: toGuestMessage(payload?.error, "目前無法送出匯款回報，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
       toast({ title: "已收到您的匯款回報", description: "我們核對入帳後會再寄出確認信" });
@@ -92,7 +95,8 @@ export default function GroupBuyOrderLookup() {
       });
       const payload: any = res;
       if (error || payload?.error) {
-        toast({ title: "取消申請失敗", description: payload?.error ?? error?.message, variant: "destructive" });
+        if (!isGuestSafeMessage(payload?.error)) console.error("[group-buy-order-lookup] 取消申請失敗", error ?? payload);
+        toast({ title: "取消申請失敗", description: toGuestMessage(payload?.error, "目前無法送出取消申請，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
       toast({
