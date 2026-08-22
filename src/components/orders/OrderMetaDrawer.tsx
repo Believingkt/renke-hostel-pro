@@ -567,91 +567,25 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   };
 
-  /** 台北時區的年月（YYYY-MM） */
-  const taipeiMonthOf = (value?: string | Date | null) => {
-    const d = value ? new Date(value) : new Date();
-    if (Number.isNaN(d.getTime())) return "";
-    const f = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-    });
-    return f.format(d).slice(0, 7);
-  };
-  /** 快照歸期＝訂單日所屬月；發放期＝下一個尚未發放的 10 日期 */
-  const snapshotMonthOfOrder = useMemo(() => taipeiMonthOf(orderDate), [orderDate]);
-  const currentPayoutMonth = useMemo(() => {
-    const f = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Taipei",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
-    const [y, m, d] = f.format(new Date()).split("-").map(Number);
-    // 每月 10 日發放：已過 10 日 → 補建的快照歸入次月發放期
-    const zero = y * 12 + (m - 1) + (d > 10 ? 1 : 0);
-    return `${Math.floor(zero / 12)}-${String((zero % 12) + 1).padStart(2, "0")}`;
-  }, []);
-  const forceEstimateAmount = useMemo(() => {
+  /** 目前可辨識的計獎基準（僅供顯示，不等於正式獎金） */
+  const commissionBaseForDisplay = useMemo(() => {
     const base = teamCommissionPrice ?? autoTeamCommissionPrice;
-    if (base === null || base === undefined || closerRate === null) return null;
-    return Math.round(Number(base) * closerRate);
-  }, [teamCommissionPrice, autoTeamCommissionPrice, closerRate]);
+    if (base === null || base === undefined) return null;
+    return Number(base);
+  }, [teamCommissionPrice, autoTeamCommissionPrice]);
 
-  /** 查詢此訂單實際落在哪個發放期（取最新一筆快照） */
-  const fetchActualPayoutMonth = useCallback(async () => {
-    if (!orderId) return;
-    setCheckingPayout(true);
-    try {
-      const { data, error } = await supabase
-        .from("closer_commission_snapshots")
-        .select("payout_month, created_at")
-        .eq("order_id", orderId)
-        .order("created_at", { ascending: false })
-        .limit(1);
-      if (error) throw error;
-      setActualPayoutMonth((data?.[0] as any)?.payout_month ?? null);
-    } catch {
-      setActualPayoutMonth(null);
-    } finally {
-      setCheckingPayout(false);
-    }
-  }, [orderId]);
+  /** 純 UI 提示：目前為何可能無法計獎 */
+  const commissionBlockers = useMemo(() => {
+    const list: string[] = [];
+    if (!closerId || closerId === NONE) list.push("尚未指定成交組成員，暫無法計算成交獎金。");
+    if (orderStatus === "cancelled") list.push("此訂單已取消，目前不列入成交獎金。");
+    if (orderStatus === "hold") list.push("此訂單目前為保留狀態，不列入成交獎金。");
+    if (commissionBaseForDisplay !== null && commissionBaseForDisplay <= 0)
+      list.push("目前沒有可計入成交獎金的金額。");
+    return list;
+  }, [closerId, orderStatus, commissionBaseForDisplay]);
 
-  useEffect(() => {
-    if (open && orderId) fetchActualPayoutMonth();
-  }, [open, orderId, fetchActualPayoutMonth]);
 
-  /** 重跑該訂單所屬月份的成交組快照（僅 super_admin） */
-  const handleResyncSnapshots = async () => {
-    if (!snapshotMonthOfOrder) return;
-    setResyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-commission-snapshots", {
-        body: {
-          test_mode: true,
-          test_month: snapshotMonthOfOrder,
-          payout_month: currentPayoutMonth,
-        },
-      });
-      if (error) throw error;
-      const created = (data as any)?.results?.reduce?.(
-        (acc: number, r: any) => acc + Number(r?.created ?? 0),
-        0,
-      );
-      await fetchActualPayoutMonth();
-      toast.success(`已重算 ${snapshotMonthOfOrder} 快照`, {
-        description:
-          created === undefined
-            ? "請至發放管理確認結果"
-            : `新建 ${created} 筆，發放期 ${currentPayoutMonth}`,
-      });
-    } catch (e: any) {
-      toast.error(`重算失敗：${e?.message ?? "未知錯誤"}`);
-    } finally {
-      setResyncing(false);
-    }
-  };
 
 
   const handleSkip = () => {
