@@ -376,7 +376,16 @@ export default function GroupBuyCampaign() {
     roomCaps.length > 0 && fittingRoomTypeIds.length === 0
       ? "目前可用房型無法容納此入住人數，請調整入住人數。"
       : "";
-  const guestError = childEval.blockReason || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
+  /** 方案人數上限（未設定＝沿用房型容量，行為不變）；後端會再驗一次 */
+  const pkgMaxGuests =
+    selectedPkg?.max_guests && Number(selectedPkg.max_guests) > 0 ? Number(selectedPkg.max_guests) : null;
+  const pkgMaxGuestsError =
+    pkgMaxGuests && capacityHeadcount > pkgMaxGuests
+      ? `此方案最多入住 ${pkgMaxGuests} 人，請調整入住人數或選擇其他方案。`
+      : "";
+  const guestError =
+    childEval.blockReason || pkgMaxGuestsError || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
+
   const guestCount = billableGuestCount(guests);
   const guestSummary = formatGuestComposition(guests, childRules);
 
