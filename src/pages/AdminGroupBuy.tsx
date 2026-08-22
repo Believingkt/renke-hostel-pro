@@ -145,6 +145,7 @@ interface Campaign {
   commission_rate: number;
   contact_note: string | null;
   terms_html: string | null;
+  terms_highlights: string[] | null;
   highlight_points: string[] | null;
   featured_facilities: string[] | null;
   featured_photo_urls: string[] | null;
