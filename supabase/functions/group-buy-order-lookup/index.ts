@@ -123,9 +123,9 @@ Deno.serve(async (req) => {
           await admin.from("group_buy_payment_events").insert({
             campaign_id: campaign?.id ?? null,
             order_id: order.id,
-            event_type: "venue_email_skipped",
+            event_type: "note",
             actor_label: "system",
-            note: "recipient_type:venue／template_type:venue_transfer_reported／no_recipients",
+            note: "venue_email_skipped／recipient_type:venue／template_type:venue_transfer_reported／no_recipients",
           });
         } else {
           const { data: accRow } = await admin

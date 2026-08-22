@@ -470,9 +470,9 @@ Deno.serve(async (req) => {
         await admin.from("group_buy_payment_events").insert({
           campaign_id: campaign.id,
           order_id: order.id,
-          event_type: "venue_email_skipped",
+          event_type: "note",
           actor_label: "system",
-          note: "recipient_type:venue／template_type:venue_new_order／no_recipients",
+          note: "venue_email_skipped／recipient_type:venue／template_type:venue_new_order／no_recipients",
         });
       } else {
         const adminOrigin = origin && /^https?:\/\//.test(origin) ? origin : "https://pms.lakeze.com";
