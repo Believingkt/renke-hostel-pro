@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { CoverFocusField } from "@/components/admin/CoverFocusField";
 import { GroupBuyVenueIntroEditor } from "@/components/admin/GroupBuyVenueIntroEditor";
 import { FeaturedFacilityPicker, FeaturedPhotoPicker } from "@/components/admin/GroupBuyFeaturedPickers";
 
