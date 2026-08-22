@@ -236,50 +236,15 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
   async function computePeriod() {
     setLoading(true);
     try {
-      const monthFirst = `${year}-${String(month).padStart(2, "0")}-01`;
-      const nextY = month === 12 ? year + 1 : year;
-      const nextM = month === 12 ? 1 : month + 1;
-      const nextFirst = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+      // 成交組 20% 團獎池：與個人成交組獎金發放完全同源（Phase 2B）。
+      // Snapshot 依 payout_month、Adjustment 依 adjustment_month，逐筆 splitCloserBonus().pool 加總，
+      // bonus_rate 亦以「該發放月」生效版本解析（不再用 order_date 資料月 preview × rate）。
+      const payoutMonthKey = `${periodYear}-${String(periodMonth).padStart(2, "0")}`;
+      const poolRes = await fetchCloserTeamPool(payoutMonthKey);
+      setAppliedRate(Number(poolRes?.bonus_rate ?? 0));
+      setPool(Number(poolRes?.pool_total ?? 0));
+      setTotalCommission(Number(poolRes?.gross_total ?? 0));
 
-      // Rate for this month
-      const { data: sData } = await supabase
-        .from("closer_team_bonus_settings")
-        .select("id, bonus_rate, effective_from, note, created_at")
-        .lte("effective_from", monthFirst)
-        .order("effective_from", { ascending: false })
-        .limit(1);
-      const rate = sData && sData.length > 0 ? Number(sData[0].bonus_rate) : 0;
-      setAppliedRate(rate);
-
-      // 成交組分潤基礎金額：改由 preview-closer-commission Edge Function 計算，
-      // 與正式快照 closer_commission_snapshots 完全同一套公式
-      // （commissionBaseFromOrder 扣加購、isExempt 排除、排非台幣、排 cancelled，分月基準 order_date）。
-      const startIso = `${monthFirst}T00:00:00+08:00`;
-      const endIso = `${nextFirst}T00:00:00+08:00`;
-
-      const { data: previewRes, error: previewErr } = await supabase.functions.invoke(
-        "preview-closer-commission",
-        {
-          body: {
-            scope: "team",
-            year,
-            month,
-            start_iso: new Date(startIso).toISOString(),
-            end_iso: new Date(endIso).toISOString(),
-          },
-        },
-      );
-      if (previewErr) throw previewErr;
-      if (!previewRes?.success) throw new Error(previewRes?.error || "試算失敗");
-
-      let commissionAcc = 0;
-      for (const row of (previewRes.orders ?? []) as Array<{ closer_id: string | null; closer_commission: number }>) {
-        if (!row.closer_id) continue;
-        commissionAcc += Number(row.closer_commission) || 0;
-      }
-      const poolAcc = commissionAcc * rate;
-      setPool(poolAcc);
-      setTotalCommission(commissionAcc);
 
 
       // Load existing distributions
