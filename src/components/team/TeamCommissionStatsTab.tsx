@@ -425,14 +425,21 @@ export default function TeamCommissionStatsTab() {
     };
   }, [mode, payoutMonthKey, dataMonthKey]);
 
-  // 回溯補建彙總：成員層級 / 成員+館別層級
+  // 回溯補建彙總：成員層級 / 成員+館別層級（逐筆拆分後加總，與發放管理同粒度）
   const backfillMaps = useMemo(() => {
-    const closerByUid = new Map<string, number>();
-    const closerByUidAcc = new Map<string, number>();
-    const videoByUid = new Map<string, number>();
-    const videoByUidAcc = new Map<string, number>();
-    const add = (m: Map<string, number>, k: string, v: number) =>
-      m.set(k, (m.get(k) ?? 0) + v);
+    const closerByUid = new Map<string, SplitSum>();
+    const closerByUidAcc = new Map<string, SplitSum>();
+    const videoByUid = new Map<string, SplitSum>();
+    const videoByUidAcc = new Map<string, SplitSum>();
+    const add = (m: Map<string, SplitSum>, k: string, v: number) => {
+      const s = splitCloserBonus(v, bonusRate);
+      const cur = m.get(k) ?? emptySplitSum();
+      m.set(k, {
+        gross: cur.gross + s.gross,
+        personal: cur.personal + s.personal,
+        pool: cur.pool + s.pool,
+      });
+    };
     for (const b of backfills) {
       if (b.closer_id && b.closer_amount !== 0) {
         add(closerByUid, b.closer_id, b.closer_amount);
@@ -446,16 +453,23 @@ export default function TeamCommissionStatsTab() {
       }
     }
     return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
-  }, [backfills]);
+  }, [backfills, bonusRate]);
 
-  // 補差彙總：成員層級 / 成員+館別層級（供業績卡片欄位使用）
+  // 補差彙總：成員層級 / 成員+館別層級（逐筆拆分後加總）
   const adjMaps = useMemo(() => {
-    const closerByUid = new Map<string, number>();
-    const closerByUidAcc = new Map<string, number>();
-    const videoByUid = new Map<string, number>();
-    const videoByUidAcc = new Map<string, number>();
-    const add = (m: Map<string, number>, k: string, v: number) =>
-      m.set(k, (m.get(k) ?? 0) + v);
+    const closerByUid = new Map<string, SplitSum>();
+    const closerByUidAcc = new Map<string, SplitSum>();
+    const videoByUid = new Map<string, SplitSum>();
+    const videoByUidAcc = new Map<string, SplitSum>();
+    const add = (m: Map<string, SplitSum>, k: string, v: number) => {
+      const s = splitCloserBonus(v, bonusRate);
+      const cur = m.get(k) ?? emptySplitSum();
+      m.set(k, {
+        gross: cur.gross + s.gross,
+        personal: cur.personal + s.personal,
+        pool: cur.pool + s.pool,
+      });
+    };
     for (const a of adjustments) {
       if (a.closer_id && a.closer_amount !== 0) {
         add(closerByUid, a.closer_id, a.closer_amount);
@@ -469,7 +483,8 @@ export default function TeamCommissionStatsTab() {
       }
     }
     return { closerByUid, closerByUidAcc, videoByUid, videoByUidAcc };
-  }, [adjustments]);
+  }, [adjustments, bonusRate]);
+
 
 
 
