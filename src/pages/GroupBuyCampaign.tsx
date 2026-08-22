@@ -919,26 +919,33 @@ export default function GroupBuyCampaign() {
               </p>
             )}
 
-            {/* 3 團購價格錨點 */}
+            {/* 3 團購價格錨點（最低價／原價／現省皆來自同一個方案） */}
             {lowestPkg && lowestPkgPrice != null && (
-              <div className="mt-3 flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                <span className="text-sm text-muted-foreground">團購價</span>
-                <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
-                  {twd(lowestPkgPrice)}
-                </span>
-                <span className="text-sm text-muted-foreground">起／晚</span>
-                {lowestPkg.original_price ? (
-                  <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
-                    原價 {twd(lowestPkg.original_price)}
+              <div className="mt-3">
+                <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                  <span className="text-sm text-muted-foreground">團購方案</span>
+                  <span className="text-sm text-muted-foreground">每晚</span>
+                  <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
+                    {twd(lowestPkgPrice)}
                   </span>
-                ) : null}
-                {maxSave > 0 && (
-                  <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
-                    最高現省 {twd(maxSave)}
-                  </span>
-                )}
+                  <span className="text-sm text-muted-foreground">起</span>
+                  {lowestPkg.original_price ? (
+                    <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
+                      原價 {twd(lowestPkg.original_price)}
+                    </span>
+                  ) : null}
+                  {heroSave > 0 && (
+                    <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold text-accent">
+                      現省 {twd(heroSave)}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  方案最低價｜{bookablePackages.length > 1 ? "多種包棟方案可選" : "依入住日期與方案計價"}
+                </p>
               </div>
             )}
+
 
             {/* 4 活動主賣點（後台可設定，最多 3 點） */}
             {highlightPoints.length > 0 && (
