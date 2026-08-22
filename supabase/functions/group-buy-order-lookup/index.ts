@@ -1,7 +1,9 @@
 // 團購訂單查詢／回報匯款（公開端點，以「訂單編號 + 聯絡電話後四碼」驗證）
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { bankToInfo, formatTaipei, paymentDeadline, splitDeposit } from "../_shared/groupBuy.ts";
+import { bankToInfo, buildEmailOrder, formatTaipei, paymentDeadline, splitDeposit } from "../_shared/groupBuy.ts";
+import { renderVenueTransferReported, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
 const FN = "group-buy-order-lookup";
 
