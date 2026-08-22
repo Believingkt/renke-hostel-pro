@@ -1099,7 +1099,8 @@ export default function OwnerSettlement() {
             {`含 ${monthLabel} 入住的訂單；僅計入本月住宿夜數的比例；僅顯示不抽成的增值服務金額。已取消訂單不列入。`}
           </CardDescription>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="hidden overflow-x-auto md:block print:block">
+
           {loading ? (
             <TableSkeleton rows={6} columns={8} />
           ) : tableRows.length === 0 ? (
