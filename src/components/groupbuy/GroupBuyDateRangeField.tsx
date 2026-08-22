@@ -201,6 +201,8 @@ export function GroupBuyDateRangeField({
           mode="range"
           variant="frontend"
           locale={zhTW}
+          weekStartsOn={0}
+
           selected={{ from, to }}
           defaultMonth={from ?? minDate}
           onDayClick={handleDayClick}

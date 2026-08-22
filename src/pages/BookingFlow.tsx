@@ -186,6 +186,9 @@ import {
   overrideKey,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
+import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
+import TermsConsentText from "@/components/common/TermsConsentText";
+
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
@@ -5341,28 +5344,8 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 條款說明（送出訂單即視為同意） */}
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      送出訂單即表示我已閱讀並接受 Lakeze 人客多 之
-                      <a
-                        href="/legal/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mx-1 text-primary underline underline-offset-4"
-                      >
-                        條款及細則
-                      </a>
-                      與
-                      <a
-                        href="/legal/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mx-1 text-primary underline underline-offset-4"
-                      >
-                        隱私條款
-                      </a>
-                      。
-                    </p>
+
+
 
                   </div>
                 )}
@@ -5574,8 +5557,23 @@ const BookingFlow = () => {
                             <li>• 如需修改，請點擊「上一步」返回編輯</li>
                           </ul>
                         </div>
-                      </div>
                     </div>
+
+                    {/* 防詐騙提醒（固定顯示） */}
+                    <FraudPreventionNotice
+                      variant={
+                        orderPaymentType === "credit_card"
+                          ? "credit_card"
+                          : orderPaymentType === "atm"
+                            ? "atm"
+                            : "generic"
+                      }
+                    />
+
+                    {/* 條款說明（送出訂單即視為同意） */}
+                    <TermsConsentText />
+                  </div>
+
                   </div>
                 )}
               </CardContent>

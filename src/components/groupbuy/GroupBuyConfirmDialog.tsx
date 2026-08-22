@@ -8,6 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
+import TermsConsentText from "@/components/common/TermsConsentText";
+
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -84,6 +87,10 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="Email" value={guestEmail} />
         </div>
 
+        <FraudPreventionNotice variant="bank_transfer" />
+
+        <TermsConsentText variant="group_buy" />
+
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
@@ -96,14 +103,15 @@ export function GroupBuyConfirmDialog(props: Props) {
           </Button>
           <Button
             type="button"
-            className="h-12 rounded-xl bg-accent px-6 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
+            className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
             disabled={submitting}
             onClick={onConfirm}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            確認預訂
+            確認訂房並取得匯款資訊
           </Button>
         </div>
+
       </DialogContent>
     </Dialog>
   );
