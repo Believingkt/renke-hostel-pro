@@ -104,6 +104,8 @@ serve(async (req) => {
 
     let grossTotal = 0;
     let personalTotal = 0;
+    let snapshotGross = 0;
+    let snapshotPersonal = 0;
     let snapshotPool = 0;
     let snapshotCount = 0;
     for (const s of (snaps ?? []) as any[]) {
@@ -112,10 +114,74 @@ serve(async (req) => {
       const sp = splitCloserBonus(amt, bonusRate);
       grossTotal += sp.gross;
       personalTotal += sp.personal;
+      snapshotGross += sp.gross;
+      snapshotPersonal += sp.personal;
       snapshotPool += sp.pool;
       snapshotCount += 1;
     }
 
+    // ── Preview 補位（P0-1）────────────────────────────────────────────
+    // 正式 Snapshot 尚未由 9/10 cron 建立前，本期資料月（= 發放月 − 1）
+    // 中「還沒有任何 Snapshot 的 order_id」以既有 preview-closer-commission
+    // 即時試算補位。eligibility / 公式一律沿用該函式，本檔不重寫。
+    // 去重鍵固定為 order_id（不看 snapshot_month / payout_month），
+    // 只要該訂單已存在任何 Snapshot，Preview 一律排除，避免 double count。
+    let previewGross = 0;
+    let previewPersonal = 0;
+    let previewPool = 0;
+    let previewCount = 0;
+    try {
+      const [py, pm] = payoutMonth.split("-").map(Number);
+      const dataYear = pm === 1 ? py - 1 : py;
+      const dataMonth = pm === 1 ? 12 : pm - 1;
+
+      const baseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (baseUrl && serviceKey) {
+        const res = await fetch(`${baseUrl}/functions/v1/preview-closer-commission`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceKey}`,
+            apikey: serviceKey,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ year: dataYear, month: dataMonth, scope: "team" }),
+        });
+        const pv = await res.json().catch(() => null);
+        const rows: any[] = pv?.success && Array.isArray(pv.orders) ? pv.orders : [];
+
+        const candidates = rows.filter((r) => r?.closer_id && Number(r?.closer_commission ?? 0));
+        const ids = Array.from(new Set(candidates.map((r) => String(r.order_id))));
+
+        // 已存在 Snapshot 的 order_id（不限月份）→ Preview 排除
+        const snapshotted = new Set<string>();
+        for (let i = 0; i < ids.length; i += 300) {
+          const chunk = ids.slice(i, i + 300);
+          const { data: exist, error: existErr } = await supabase
+            .from("closer_commission_snapshots")
+            .select("order_id")
+            .in("order_id", chunk);
+          if (existErr) throw existErr;
+          for (const e of exist ?? []) snapshotted.add(String((e as any).order_id));
+        }
+
+        for (const r of candidates) {
+          if (snapshotted.has(String(r.order_id))) continue;
+          const sp = splitCloserBonus(Number(r.closer_commission ?? 0), bonusRate);
+          grossTotal += sp.gross;
+          personalTotal += sp.personal;
+          previewGross += sp.gross;
+          previewPersonal += sp.personal;
+          previewPool += sp.pool;
+          previewCount += 1;
+        }
+      }
+    } catch (_e) {
+      // Preview 補位失敗不影響正式 Snapshot 聚合結果
+    }
+
+    let adjustmentGross = 0;
+    let adjustmentPersonal = 0;
     let adjustmentPool = 0;
     let positiveAdjustmentPool = 0;
     let negativeAdjustmentPool = 0;
@@ -126,13 +192,15 @@ serve(async (req) => {
       const sp = splitCloserBonus(amt, bonusRate);
       grossTotal += sp.gross;
       personalTotal += sp.personal;
+      adjustmentGross += sp.gross;
+      adjustmentPersonal += sp.personal;
       adjustmentPool += sp.pool;
       if (sp.pool >= 0) positiveAdjustmentPool += sp.pool;
       else negativeAdjustmentPool += sp.pool;
       adjustmentCount += 1;
     }
 
-    const poolTotal = snapshotPool + adjustmentPool;
+    const poolTotal = snapshotPool + previewPool + adjustmentPool;
 
     return json({
       success: true,
@@ -140,14 +208,23 @@ serve(async (req) => {
       bonus_rate: bonusRate,
       gross_total: grossTotal,
       personal_total: personalTotal,
+      snapshot_gross: snapshotGross,
+      snapshot_personal: snapshotPersonal,
       snapshot_pool: snapshotPool,
+      preview_gross: previewGross,
+      preview_personal: previewPersonal,
+      preview_pool: previewPool,
+      adjustment_gross: adjustmentGross,
+      adjustment_personal: adjustmentPersonal,
       adjustment_pool: adjustmentPool,
       positive_adjustment_pool: positiveAdjustmentPool,
       negative_adjustment_pool: negativeAdjustmentPool,
       pool_total: poolTotal,
       snapshot_count: snapshotCount,
+      preview_count: previewCount,
       adjustment_count: adjustmentCount,
     });
+
   } catch (e: any) {
     return json({ success: false, error: e?.message || "團獎池聚合失敗" }, 500);
   }
