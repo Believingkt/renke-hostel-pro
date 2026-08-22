@@ -30,7 +30,8 @@ export function GroupBuyTermsHighlights({ html, summaryCount = 4 }: Props) {
 
   if (!rendered) return null;
   const summary = lines.slice(0, summaryCount);
-  const hasMore = lines.length > summary.length;
+  // 條列被截斷（line-clamp-2）時也要能展開看完整內容
+  const hasMore = lines.length > summary.length || summary.some((t) => t.length > 40);
 
   return (
     <div className="mt-6 rounded-2xl border border-border/70 bg-muted/30 p-4 sm:p-5">

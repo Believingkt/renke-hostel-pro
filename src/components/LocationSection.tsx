@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent } from "@/components/ui/card";
 import { MapPin, Car, Bus, Navigation } from "lucide-react";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
@@ -35,6 +36,8 @@ interface LocationSectionProps {
   customSubtitle?: string;
   /** 第一層最多顯示幾個附近景點（未設定＝全部顯示，維持一般訂房頁行為） */
   initialAttractionCount?: number;
+  /** 桌機版第一層顯示幾個景點（未設定＝沿用 initialAttractionCount） */
+  initialAttractionCountDesktop?: number;
   /** 精簡模式（團購頁手機版）：縮小標題間距、地圖高度 */
   compact?: boolean;
 }
@@ -42,7 +45,7 @@ interface LocationSectionProps {
 // 景點描述字數閾值
 const ATTRACTION_DESCRIPTION_THRESHOLD = 200;
 
-const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount, compact }: LocationSectionProps) => {
+const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, initialAttractionCount, initialAttractionCountDesktop, compact }: LocationSectionProps) => {
   const [selectedAttraction, setSelectedAttraction] = useState<{
     name: string;
     distance: string;
@@ -50,6 +53,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
     image_url?: string;
   } | null>(null);
   const [showAllAttractions, setShowAllAttractions] = useState(false);
+  const isMobile = useIsMobile();
 
 
   // 檢查是否有任何資料設定
@@ -67,10 +71,13 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
   }
 
   const allNearbyAttractions = locationInfo?.nearby_attractions || [];
+  const effectiveInitialCount = isMobile
+    ? initialAttractionCount
+    : (initialAttractionCountDesktop ?? initialAttractionCount);
   const collapsedAttractions =
-    !!initialAttractionCount && !showAllAttractions && allNearbyAttractions.length > initialAttractionCount;
+    !!effectiveInitialCount && !showAllAttractions && allNearbyAttractions.length > effectiveInitialCount;
   const nearbyAttractions = collapsedAttractions
-    ? allNearbyAttractions.slice(0, initialAttractionCount)
+    ? allNearbyAttractions.slice(0, effectiveInitialCount)
     : allNearbyAttractions;
 
 
