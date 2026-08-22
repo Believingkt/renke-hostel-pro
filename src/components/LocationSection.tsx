@@ -311,7 +311,16 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
                 </div>
 
                 {/* 桌面版：原本網格 */}
-                <div className="hidden md:grid md:grid-cols-3 gap-6 md:gap-8">
+                <div
+                  className={`hidden md:grid gap-6 md:gap-8 ${
+                    nearbyAttractions.length === 1
+                      ? "md:grid-cols-1 md:max-w-md"
+                      : nearbyAttractions.length === 2
+                        ? "md:grid-cols-2"
+                        : "md:grid-cols-3"
+                  }`}
+                >
+
                   {nearbyAttractions.map((attraction, index) => {
                     const isLongDescription = attraction.description.length > ATTRACTION_DESCRIPTION_THRESHOLD;
                     const displayDescription = isLongDescription
