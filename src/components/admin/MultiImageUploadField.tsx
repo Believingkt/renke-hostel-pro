@@ -56,7 +56,7 @@ function SortableThumb({
     >
       <img src={url} alt={`方案圖片 ${index + 1}`} className="aspect-[4/3] w-full object-cover" />
       {index === 0 && (
-        <span className="absolute left-1.5 top-1.5 rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-primary-foreground">
+        <span className="absolute left-1 top-1 rounded bg-primary/90 px-1.5 py-px text-[10px] font-medium leading-4 text-primary-foreground">
           主圖
         </span>
       )}
@@ -65,22 +65,22 @@ function SortableThumb({
         {...attributes}
         {...listeners}
         aria-label="拖曳排序"
-        className="no-touch-enlarge icon-btn absolute bottom-1.5 left-1.5 h-7 w-7 cursor-grab rounded-md bg-background/85 text-muted-foreground shadow-sm hover:text-foreground active:cursor-grabbing"
+        className="no-touch-enlarge absolute bottom-1 left-1 inline-flex h-7 w-7 cursor-grab items-center justify-center rounded-md bg-background/70 p-0 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground active:cursor-grabbing"
       >
-        <GripVertical className="h-3.5 w-3.5" />
+        <GripVertical className="h-4 w-4" />
       </button>
       <button
         type="button"
-        className="no-touch-enlarge icon-btn absolute right-1.5 top-1.5 h-7 w-7 rounded-md bg-background/85 text-muted-foreground shadow-sm hover:bg-destructive hover:text-destructive-foreground"
+        className="no-touch-enlarge absolute right-1 top-1 inline-flex h-7 w-7 items-center justify-center rounded-md bg-background/70 p-0 text-muted-foreground shadow-sm hover:bg-destructive hover:text-destructive-foreground"
         onClick={onRemove}
         aria-label={`移除圖片 ${index + 1}`}
       >
-        <X className="h-3.5 w-3.5" />
+        <X className="h-4 w-4" />
       </button>
-
     </div>
   );
 }
+
 
 /** 多圖上傳欄位：逐張上傳、可刪除、可拖曳排序，第一張即為主圖 */
 export function MultiImageUploadField({ value, onChange, pathPrefix, className, aspect = "aspect-[4/3]" }: Props) {
