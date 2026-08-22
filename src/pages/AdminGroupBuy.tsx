@@ -1575,6 +1575,17 @@ export default function AdminGroupBuy() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GroupBuyCommissionRateDialog
+        open={!!rateDialog}
+        oldRate={rateDialog?.oldRate ?? 0}
+        newRate={rateDialog?.newRate ?? 0}
+        rows={analyticsRows}
+        saving={saving}
+        onCancel={() => setRateDialog(null)}
+        onConfirm={(mode) => void applyCommissionRate(mode)}
+      />
     </div>
   );
 }
+
