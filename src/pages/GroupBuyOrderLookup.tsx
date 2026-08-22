@@ -60,9 +60,13 @@ export default function GroupBuyOrderLookup() {
   const report = async () => {
     setReporting(true);
     try {
+      const transferredAt = transferDate
+        ? `${transferDate}T${(transferTime || "00:00").slice(0, 5)}:00+08:00`
+        : "";
       const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "report_transfer", accountLast5, transferredAt },
       });
+
       const payload: any = res;
       if (error || payload?.error) {
         toast({ title: "回報失敗", description: payload?.error ?? error?.message, variant: "destructive" });
