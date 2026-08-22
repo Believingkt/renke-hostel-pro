@@ -92,14 +92,14 @@ export default function TeamLayout() {
         <Toaster />
         <Sonner />
         <SidebarProvider>
-          <div className="admin-theme flex min-h-screen w-full">
+          <div className="admin-theme admin-shell flex w-full">
             <TeamSidebar />
             <div className="flex flex-1 flex-col overflow-hidden">
               <TeamHeader />
-              <main className="flex-1 p-4 md:p-6 overflow-y-auto overflow-x-hidden">
+              <main className="admin-main flex-1 min-w-0 overflow-y-auto overflow-x-hidden">
                 <Outlet />
               </main>
-              <footer className="border-t py-3 px-4 md:py-4 md:px-6">
+              <footer className="border-t py-3 px-4 md:py-4 md:px-6 safe-bottom">
                 <p className="text-xs md:text-sm text-center text-muted-foreground">
                   © 2026 人客多行銷團隊後台
                 </p>
