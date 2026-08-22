@@ -5341,28 +5341,8 @@ const BookingFlow = () => {
                       </CardContent>
                     </Card>
 
-                    {/* 條款說明（送出訂單即視為同意） */}
-                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-                      送出訂單即表示我已閱讀並接受 Lakeze 人客多 之
-                      <a
-                        href="/legal/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mx-1 text-primary underline underline-offset-4"
-                      >
-                        條款及細則
-                      </a>
-                      與
-                      <a
-                        href="/legal/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mx-1 text-primary underline underline-offset-4"
-                      >
-                        隱私條款
-                      </a>
-                      。
-                    </p>
+
+
 
                   </div>
                 )}
