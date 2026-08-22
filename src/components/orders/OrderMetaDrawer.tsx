@@ -93,6 +93,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [depositConfirmDateVerified, setDepositConfirmDateVerified] = useState<boolean>(false);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
   const [orderDate, setOrderDate] = useState<string | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
   const [checkOutDate, setCheckOutDate] = useState<string | null>(null);
   const [finalPrice, setFinalPrice] = useState<number | null>(null);
   const [accommodationId, setAccommodationId] = useState<string | null>(null);
@@ -136,9 +137,6 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [canForceCommission, setCanForceCommission] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [closerRate, setCloserRate] = useState<number | null>(null);
-  const [resyncing, setResyncing] = useState(false);
-  const [actualPayoutMonth, setActualPayoutMonth] = useState<string | null>(null);
-  const [checkingPayout, setCheckingPayout] = useState(false);
   const [saving, setSaving] = useState(false);
 
 
@@ -196,6 +194,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setDepositConfirmDateVerified(false);
       setPaymentStatus(null);
       setOrderDate(null);
+      setOrderStatus(null);
       setFinalPrice(null);
       setTeamCommissionPrice(null);
       setInitialTeamCommissionPrice(null);
@@ -281,7 +280,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
+          .select("order_date, order_status, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -336,6 +335,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       const orderRowTyped =
         (orderRow as { order_date?: string | null; final_price?: number | null; check_out_date?: string | null; payment_status?: string | null; accommodation_id?: string | null } | null);
       setOrderDate(orderRowTyped?.order_date ?? null);
+      setOrderStatus(((orderRow as any)?.order_status as string) ?? null);
       setCheckOutDate(orderRowTyped?.check_out_date ?? null);
       setPaymentStatus(orderRowTyped?.payment_status ?? null);
       setAccommodationId(orderRowTyped?.accommodation_id ?? null);
