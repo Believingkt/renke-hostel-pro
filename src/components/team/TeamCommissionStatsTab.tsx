@@ -1538,7 +1538,8 @@ export default function TeamCommissionStatsTab() {
                       <TableRow>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>原資料月</TableHead>
-                        <TableHead className="tabular-nums">分潤金額</TableHead>
+                        <TableHead className="tabular-nums">原始成交獎金</TableHead>
+
                       </TableRow>
                     </TableHeader>
                     <TableBody>
