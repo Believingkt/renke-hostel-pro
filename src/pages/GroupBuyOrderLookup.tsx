@@ -122,10 +122,9 @@ export default function GroupBuyOrderLookup() {
     Array.isArray(data?.bookingNoticeSections) && data.bookingNoticeSections.length > 0
       ? (data.bookingNoticeSections as BookingNoticePanel[])
       : null;
-  const snap = snapshotSections;
   const hasBookingNotice = Boolean(
     snapshotSections ||
-      (bn && !snap &&
+      (bn && !snapshotSections &&
         (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0)),
   );
 
