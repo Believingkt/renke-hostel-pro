@@ -4231,6 +4231,8 @@ export type Database = {
           commission_rate: number
           contact_note: string | null
           counts_owner_settlement: boolean
+          cover_focus_x: number
+          cover_focus_y: number
           cover_image_url: string | null
           created_at: string
           created_by: string | null
@@ -4267,6 +4269,8 @@ export type Database = {
           commission_rate?: number
           contact_note?: string | null
           counts_owner_settlement?: boolean
+          cover_focus_x?: number
+          cover_focus_y?: number
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
@@ -4303,6 +4307,8 @@ export type Database = {
           commission_rate?: number
           contact_note?: string | null
           counts_owner_settlement?: boolean
+          cover_focus_x?: number
+          cover_focus_y?: number
           cover_image_url?: string | null
           created_at?: string
           created_by?: string | null
