@@ -48,7 +48,7 @@ import {
 } from "@/lib/groupBuyPayment";
 import { nextCopyName } from "@/lib/groupBuyPackageCopy";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -241,6 +241,10 @@ export default function AdminGroupBuy() {
   const [loading, setLoading] = useState(false);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeId, setActiveId] = useState<string>("");
+  /** Email 深連結：?campaignId=&tab=orders&orderNumber= */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tab, setTab] = useState<string>(() => searchParams.get("tab") || "orders");
+  const highlightOrderNumber = (searchParams.get("orderNumber") || "").trim().toUpperCase();
   const [packages, setPackages] = useState<PackageRow[]>([]);
   const [banks, setBanks] = useState<BankRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -287,9 +291,13 @@ export default function AdminGroupBuy() {
       .order("created_at", { ascending: false });
     const list = (data ?? []) as unknown as Campaign[];
     setCampaigns(list);
-    setActiveId((prev) => (list.some((c) => c.id === prev) ? prev : list[0]?.id ?? ""));
+    const fromUrl = searchParams.get("campaignId");
+    setActiveId((prev) => {
+      if (fromUrl && list.some((c) => c.id === fromUrl)) return fromUrl;
+      return list.some((c) => c.id === prev) ? prev : list[0]?.id ?? "";
+    });
     setLoading(false);
-  }, [accommodationId]);
+  }, [accommodationId, searchParams]);
 
   const loadDetails = useCallback(async () => {
     if (!activeId) {
@@ -685,7 +693,15 @@ export default function AdminGroupBuy() {
       ) : (
         <>
         <CampaignWindowSummary campaign={activeCampaign} />
-        <Tabs defaultValue="orders">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v);
+            const next = new URLSearchParams(searchParams);
+            next.set("tab", v);
+            setSearchParams(next, { replace: true });
+          }}
+        >
 
           <TabsList>
             <TabsTrigger value="orders">訂單對帳</TabsTrigger>
@@ -723,7 +739,14 @@ export default function AdminGroupBuy() {
                       const rState = refundState(o);
                       const showRefundBtn = canProcessRefund(o);
                       return (
-                      <TableRow key={o.id}>
+                      <TableRow
+                        key={o.id}
+                        className={
+                          highlightOrderNumber && o.order_number?.toUpperCase() === highlightOrderNumber
+                            ? "bg-primary/5 ring-1 ring-inset ring-primary/40"
+                            : undefined
+                        }
+                      >
                         <TableCell className="whitespace-nowrap font-medium">
                           <Link
                             to={`/admin/orders/${o.id}`}

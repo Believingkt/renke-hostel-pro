@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { Order, CustomMealPlan } from "@/types/order";
-import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, getEffectivePaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
+import { getPaymentStatusConfig, getOrderStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSourceDisplayName, getHotelnabeOtaDisplayName, getEffectivePaymentStatus, getDisplayPaymentStatus, getPaymentMethodLabel, getOrderPaymentMethod, cleanGuestNameDisplay } from "@/utils/orderHelpers";
 import { ArrowUpDown, ArrowUp, ArrowDown, Calendar, User, DollarSign, ShoppingCart, Edit, Eye, Utensils, Globe, UserPlus, CreditCard } from "lucide-react";
 import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@/components/EmptyState";
@@ -144,7 +144,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
             ) : (
               orders.map((order) => {
                 const orderStatusConfig = getOrderStatusConfig(order.order_status);
-                const effectivePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
+                const effectivePaymentStatus = getDisplayPaymentStatus(order as any);
                 const paymentStatusConfig = getPaymentStatusConfig(effectivePaymentStatus);
                 const orderSourceConfig = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any));
 
@@ -338,7 +338,7 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
         ) : (
           orders.map((order) => {
             const orderStatusConfig = getOrderStatusConfig(order.order_status);
-            const effectiveMobilePaymentStatus = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
+            const effectiveMobilePaymentStatus = getDisplayPaymentStatus(order as any);
             const paymentStatusConfig = getPaymentStatusConfig(effectiveMobilePaymentStatus);
             const orderSourceConfig = getOrderSourceConfig(order.order_source, getOrderOtaCode(order as any));
 

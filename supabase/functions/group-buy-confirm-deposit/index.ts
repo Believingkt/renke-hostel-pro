@@ -100,8 +100,9 @@ Deno.serve(async (req) => {
       actor_user_id: ctx.userId,
       actor_label: ctx.userEmail ?? "admin",
       note: mail.ok
-        ? `訂金確認信已寄至 ${order.guest_email}`
-        : `訂金確認信寄送失敗：${mail.reason ?? "unknown"}`,
+        ? `recipient_type:guest／template_type:deposit_received／recipient_count:1／訂金確認信已寄至 ${order.guest_email}`
+        : `recipient_type:guest／template_type:deposit_received／訂金確認信寄送失敗：${mail.reason ?? "unknown"}`,
+
     });
 
     return json({ success: true, paymentStatus, receivedAmount: received, emailSent: mail.ok });

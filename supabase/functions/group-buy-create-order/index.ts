@@ -9,6 +9,7 @@ import {
   buildEmailOrder,
   formatTaipei,
   nightDates,
+  buildAdminGroupBuyUrl,
   nights as calcNights,
   paymentDeadline,
   splitDeposit,
@@ -489,7 +490,12 @@ Deno.serve(async (req) => {
             infantCount,
             childBreakdownText: childDetailLines.length > 0 ? childDetailLines.join("\n") : null,
             paymentStatusText: "待匯款",
-            adminUrl: `${adminOrigin}/admin/group-buy`,
+            adminUrl: buildAdminGroupBuyUrl({
+              origin: adminOrigin,
+              accommodationId: order.accommodation_id ?? campaign.accommodation_id ?? null,
+              campaignId: campaign.id,
+              orderNumber: order.order_number,
+            }),
           }),
         );
         if (!venueMail.ok) console.error(`[${FN}] venue email failed: ${venueMail.reason}`);

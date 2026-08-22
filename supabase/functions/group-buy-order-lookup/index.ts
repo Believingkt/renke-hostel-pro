@@ -1,8 +1,13 @@
 // 團購訂單查詢／回報匯款（公開端點，以「訂單編號 + 聯絡電話後四碼」驗證）
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { bankToInfo, buildEmailOrder, formatTaipei, paymentDeadline, splitDeposit } from "../_shared/groupBuy.ts";
-import { renderVenueTransferReported, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { bankToInfo, buildAdminGroupBuyUrl, buildEmailOrder, formatTaipei, paymentDeadline, splitDeposit } from "../_shared/groupBuy.ts";
+import {
+  renderGuestCancelRequested,
+  renderVenueCancelRequested,
+  renderVenueTransferReported,
+  sendGroupBuyEmail,
+} from "../_shared/groupBuyEmail.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
 const FN = "group-buy-order-lookup";
@@ -151,7 +156,11 @@ Deno.serve(async (req) => {
                 guestPhone: order.guest_phone ?? null,
                 guestEmail: order.guest_email ?? null,
                 paymentStatusText: "待匯款（旅客已回報）",
-                adminUrl: "https://pms.lakeze.com/admin/group-buy",
+                adminUrl: buildAdminGroupBuyUrl({
+                  accommodationId: (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+                  campaignId: campaign?.id ?? null,
+                  orderNumber: order.order_number,
+                }),
               },
               {
                 accountLast5,
@@ -193,6 +202,80 @@ Deno.serve(async (req) => {
         actor_label: order.guest_name,
         note: reason ? `旅客申請取消訂單：${reason}` : "旅客申請取消訂單",
       });
+
+      // 通知：旅客取消申請確認信 + 民宿／管理者通知（寄信失敗不影響申請結果）
+      try {
+        const { data: accRow } = await admin
+          .from("accommodation_info")
+          .select("name")
+          .eq("id", (order as any).accommodation_id ?? campaign?.accommodation_id ?? "")
+          .maybeSingle();
+        const emailOrder = buildEmailOrder({
+          order,
+          campaign: campaign ?? { title: "團購活動", deposit_percentage: depositPct, payment_deadline_hours: 72 },
+          accommodationName: (accRow as any)?.name ?? null,
+          packageName: null,
+          frontendOrigin: typeof body.origin === "string" ? body.origin : null,
+        });
+        const requestedAtText = formatTaipei(new Date());
+        const paidAmount = Math.max(0, Math.round(Number((order as any).paid_amount) || 0));
+
+        const guestMail = await sendGroupBuyEmail(
+          order.guest_email,
+          renderGuestCancelRequested(emailOrder, { requestedAtText, reason: reason || null }),
+        );
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaign?.id ?? null,
+          order_id: order.id,
+          event_type: guestMail.ok ? "email_sent" : "email_failed",
+          actor_label: "system",
+          note: `recipient_type:guest／template_type:guest_cancel_requested${
+            guestMail.ok ? "／recipient_count:1" : `／reason:${guestMail.reason ?? "unknown"}`
+          }`,
+        });
+
+        const { emails: venueEmails, source: venueSource } = await resolveOrderNotifyEmails(admin, {
+          accommodationId: (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+          campaignId: campaign?.id ?? null,
+        });
+        if (venueEmails.length === 0) {
+          await admin.from("group_buy_payment_events").insert({
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: "note",
+            actor_label: "system",
+            note: "venue_email_skipped／recipient_type:venue／template_type:venue_cancel_requested／no_recipients",
+          });
+        } else {
+          const venueMail = await sendGroupBuyEmail(
+            venueEmails,
+            renderVenueCancelRequested(
+              {
+                ...emailOrder,
+                guestPhone: order.guest_phone ?? null,
+                guestEmail: order.guest_email ?? null,
+                adminUrl: buildAdminGroupBuyUrl({
+                  accommodationId: (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+                  campaignId: campaign?.id ?? null,
+                  orderNumber: order.order_number,
+                }),
+              },
+              { requestedAtText, reason: reason || null, paidAmount },
+            ),
+          );
+          await admin.from("group_buy_payment_events").insert({
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: venueMail.ok ? "email_sent" : "email_failed",
+            actor_label: "system",
+            note: `recipient_type:venue／template_type:venue_cancel_requested／recipient_count:${venueEmails.length}／source:${venueSource}${
+              venueMail.ok ? "" : `／reason:${venueMail.reason ?? "unknown"}`
+            }`,
+          });
+        }
+      } catch (notifyErr) {
+        console.error("[group-buy-order-lookup] cancel notify threw", notifyErr);
+      }
 
       return json({
         success: true,
@@ -247,6 +330,14 @@ Deno.serve(async (req) => {
       order: {
         orderNumber: order.order_number,
         guestName: order.guest_name,
+        // 只回傳遮罩後的信箱給前台顯示（不外流完整 PII）
+        guestEmailMasked: (() => {
+          const em = String(order.guest_email ?? "");
+          const [local, domain] = em.split("@");
+          if (!domain || !local) return null;
+          return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 1))}@${domain}`;
+        })(),
+
         checkInDate: order.check_in_date,
         checkOutDate: order.check_out_date,
         guestCount: order.guest_count,
@@ -280,11 +371,18 @@ Deno.serve(async (req) => {
         ? { requestedAt: (cancelRequestedEvent as any).created_at, note: (cancelRequestedEvent as any).note }
         : null,
 
-      emails: emailEvents.map((e: any) => ({
-        status: e.event_type === "email_sent" ? "sent" : "failed",
-        note: e.note,
-        createdAt: e.created_at,
-      })),
+      // 只回傳結構化欄位，raw note（內部 metadata）不外流給前台
+      emails: emailEvents.map((e: any) => {
+        const note = String(e.note ?? "");
+        const pick = (k: string) => note.match(new RegExp(`${k}:([^／/]+)`))?.[1]?.trim() ?? null;
+        return {
+          status: e.event_type === "email_sent" ? "sent" : "failed",
+          recipientType: pick("recipient_type"),
+          templateType: pick("template_type"),
+          createdAt: e.created_at,
+        };
+      }),
+
       venue: acc
         ? {
           name: (acc as any).name ?? null,
