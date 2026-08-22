@@ -345,8 +345,11 @@ Deno.serve(async (req) => {
       .single();
     if (oErr) {
       console.error(`[${FN}] insert order failed`, oErr);
+      // 只回傳業務語意訊息；DB / trigger 原始錯誤僅留在 server log，不可傳到客人 UI
       const msg = String(oErr.message ?? "");
-      if (/庫存|inventory|預訂|booked/i.test(msg)) return json({ error: `預訂失敗：${msg}` }, 409);
+      if (/庫存|inventory|預訂|booked/i.test(msg)) {
+        return json({ error: "此日期房況已變動，請重新選擇日期或改選其他方案" }, 409);
+      }
       return json({ error: "訂單建立失敗，請稍後再試" }, 500);
     }
 
@@ -362,7 +365,24 @@ Deno.serve(async (req) => {
         .update({ group_buy_booking_notice_snapshot: noticeSnapshot })
         .eq("id", order.id);
     } catch (snapErr) {
-      console.error(`[${FN}] booking notice snapshot failed`, snapErr);
+      // 快照失敗不影響訂單成立，也不可讓客人看到技術錯誤；僅記錄於 server log 與內部稽核事件
+      console.error(`[${FN}] booking_notice_snapshot_failed`, {
+        order_id: order.id,
+        order_number: order.order_number,
+        campaign_id: campaign.id,
+        reason: snapErr instanceof Error ? snapErr.message : String(snapErr),
+      });
+      try {
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaign.id,
+          order_id: order.id,
+          event_type: "booking_notice_snapshot_failed",
+          actor_label: "系統",
+          note: `訂房須知快照建立失敗：${snapErr instanceof Error ? snapErr.message : String(snapErr)}`.slice(0, 500),
+        });
+      } catch (evErr) {
+        console.error(`[${FN}] snapshot failure audit insert failed`, evErr);
+      }
     }
 
     // 6.5) 稽核：訂單建立事件
@@ -545,6 +565,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
-    return json({ error: e instanceof Error ? e.message : "internal_error" }, 500);
+    // 對客一律回傳友善文案，原始 exception 只留在 server log
+    return json({ error: "目前無法完成預訂，請稍後再試或聯繫客服。" }, 500);
   }
 });

@@ -25,6 +25,16 @@ async function reportError(errorType: string, errorMessage: string) {
   }
 }
 
+/**
+ * 技術錯誤細節只在內部頁面（後台／團隊／總部）或開發環境顯示。
+ * 客人可見頁面（團購、訂房、訂單查詢…）一律只顯示友善 fallback，不得出現原始錯誤訊息。
+ */
+function showTechnicalDetails(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === "undefined") return false;
+  return /^\/(admin|hq|team|ai-training)(\/|$)/.test(window.location.pathname);
+}
+
 export class ChunkErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
@@ -98,7 +108,7 @@ export class ChunkErrorBoundary extends Component<Props, State> {
             <h2 className="text-xl font-semibold">載入失敗</h2>
             <p className="text-muted-foreground">偵測到檔案更新或快取衝突，請重新整理。</p>
 
-            {this.state.errorMessage ? (
+            {this.state.errorMessage && showTechnicalDetails() ? (
               <div className="text-left rounded-md border border-border bg-muted/20 p-3">
                 <p className="text-xs text-muted-foreground mb-1">錯誤訊息（可複製回報）</p>
                 <pre className="text-xs whitespace-pre-wrap break-words text-foreground">
@@ -132,7 +142,9 @@ export class ChunkErrorBoundary extends Component<Props, State> {
                 type="button"
                 onClick={async () => {
                   try {
-                    await navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2));
+                    await navigator.clipboard.writeText(
+                      showTechnicalDetails() ? JSON.stringify(debugInfo, null, 2) : `${debugInfo.url}\n${debugInfo.time}`,
+                    );
                   } catch {
                     // ignore
                   }
