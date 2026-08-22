@@ -402,7 +402,17 @@ Deno.serve(async (req) => {
           phone: (intro as any)?.phone || (acc as any).phone || null,
         }
         : null,
-      checkInNotice: (intro as any)?.check_in_notice ?? null,
+      // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則
+      preArrivalNotice: (intro as any)?.check_in_notice ?? null,
+      // 正式訂房須知（與團購活動頁同源，live data；campaign 不存在時 visibleKeys=null → 顯示全部）
+      bookingNotice: {
+        bookingSettings: bookingSettings ?? null,
+        checkInNotice: (acc as any)?.check_in_notice ?? null,
+        customSections: (customSections ?? []) as any[],
+        visibleKeys: (campaign as any)?.booking_notice_keys ?? null,
+        isLive: true,
+      },
+
       package: pkg
         ? {
           name: pkg.display_name,
