@@ -666,7 +666,7 @@ export default function AdminGroupBuy() {
     async (orderId: string, value: "include" | "exclude") => {
       const { data: userData } = await supabase.auth.getUser();
       const row = analyticsByOrderId.get(orderId);
-      const rate = row?.commissionRate ?? Number(activeCampaign?.commission_rate) || 0;
+      const rate = row?.commissionRate ?? (Number(activeCampaign?.commission_rate) || 0);
       const amount = value === "include" ? Math.round(((row?.revenueBase ?? 0) * rate) / 100) : 0;
       const { error } = await supabase
         .from("group_buy_commissions")
