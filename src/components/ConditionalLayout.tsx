@@ -169,7 +169,9 @@ export function ConditionalLayout() {
   const aliasPrefix = hasAliasPrefix ? `/${segments[0]}` : "";
 
   if (isAdminPage && !session && !loading) {
-    return <Navigate to={`${aliasPrefix}/auth`} replace />;
+    // 保留原本要前往的頁面（含 query，例如 Email 深連結），登入後由 Auth 的 ?next= 導回
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`${aliasPrefix}/auth?next=${encodeURIComponent(next)}`} replace />;
   }
 
   if (isHQPage && !session && !loading) {
