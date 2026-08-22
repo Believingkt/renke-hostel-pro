@@ -213,10 +213,30 @@ export default function GroupBuyOrderLookup() {
                     onChange={(e) => setAccountLast5(e.target.value.replace(/\D/g, "").slice(0, 5))}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="tat">匯款時間</Label>
-                  <Input id="tat" type="datetime-local" value={transferredAt} onChange={(e) => setTransferredAt(e.target.value)} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tdate">匯款日期</Label>
+                    <DateField
+                      value={transferDate}
+                      onChange={(v) => setTransferDate(v ?? "")}
+                      maxDate={taipeiToday()}
+                      clearable={false}
+                      placeholder="選擇匯款日期"
+                      className="h-10 text-base"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ttime">匯款時間</Label>
+                    <Input
+                      id="ttime"
+                      type="time"
+                      value={transferTime}
+                      onChange={(e) => setTransferTime(e.target.value)}
+                      className="h-10 text-base"
+                    />
+                  </div>
                 </div>
+
                 <Button className="w-full" onClick={report} disabled={reporting || accountLast5.length !== 5}>
                   {reporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   送出匯款回報
