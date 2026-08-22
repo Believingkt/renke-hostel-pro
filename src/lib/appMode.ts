@@ -57,6 +57,8 @@ function readModeOverride(): AppMode | null {
 
 export function resolveAppMode(hostname = window.location.hostname): AppMode {
   if (isPmsHost(hostname)) return "pms";
+  // 原生 APP：僅在「明確指定 PMS」時才進後台模式；否則沿用既有 booking/neutral 行為
+  if (isNativePmsApp()) return "pms";
   if (isDevOrPreviewHost(hostname)) return readModeOverride() ?? "neutral";
   return "frontend";
 }

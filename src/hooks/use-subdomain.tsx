@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cacheAccommodationTheme } from "@/constants/themes";
-import { isNativeApp } from "@/lib/appMode";
+import { isNativeBookingApp } from "@/lib/appMode";
 
 interface AccommodationData {
   id: string;
@@ -75,7 +75,7 @@ export function useSubdomain() {
       // ========== HQ / Booking Portal 專屬網域檢測 ==========
       const isHQDomain = hostname === 'hq.lakeze.com' || hostname === 'www.hq.lakeze.com';
       // Capacitor 原生 App（hostname = localhost）比照訂房平台網域處理
-      const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com' || isNativeApp();
+      const isBookingDomain = hostname === 'booking.lakeze.com' || hostname === 'www.booking.lakeze.com' || isNativeBookingApp();
       if (isHQDomain || isBookingDomain) {
         if (isBookingDomain) {
           // 1. 路徑首段為 alias（/{alias} 或 /{alias}/admin）
