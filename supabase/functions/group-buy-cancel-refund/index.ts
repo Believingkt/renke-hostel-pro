@@ -200,6 +200,18 @@ Deno.serve(async (req) => {
         },
       });
 
+      // 退款資料已成功更新後才寄信；寄信失敗不影響退款登記
+      await notify(
+        renderRefundProcessed(await buildMailOrder(), {
+          refundAmount,
+          refundedTotal: totalRefunded,
+          paidAmount: paid,
+          refundStatus,
+          refundedAtText: formatTaipei(new Date(nowIso)),
+          note: reason || null,
+        }),
+      );
+
       return json({
         success: true,
         mode: "refund",
@@ -208,6 +220,7 @@ Deno.serve(async (req) => {
         totalRefunded,
         remainingRefundable: Math.max(0, paid - totalRefunded),
       });
+
     }
 
     // ---------------------------------------------------------------- cancel
