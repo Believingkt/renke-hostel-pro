@@ -122,6 +122,19 @@ const Orders = () => {
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
+  // 行動版：已套用條件 Chips（純顯示，不影響 query 邏輯）
+  const mobileActiveFilters = [
+    startDate || endDate
+      ? `${dateType === "order" ? "訂購" : "入住"} ${startDate || "…"}~${endDate || "…"}`
+      : "",
+    paymentStatus ? `付款：${paymentStatus}` : "",
+    orderStatus ? `狀態：${orderStatus}` : "",
+    orderSource ? `來源：${orderSource}` : "",
+    searchKeyword ? `關鍵字：${searchKeyword}` : "",
+  ].filter(Boolean) as string[];
+
+
+
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab && tab === "list") {
