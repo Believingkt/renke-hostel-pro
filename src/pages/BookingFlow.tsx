@@ -5554,8 +5554,23 @@ const BookingFlow = () => {
                             <li>• 如需修改，請點擊「上一步」返回編輯</li>
                           </ul>
                         </div>
-                      </div>
                     </div>
+
+                    {/* 防詐騙提醒（固定顯示） */}
+                    <FraudPreventionNotice
+                      variant={
+                        orderPaymentType === "credit_card"
+                          ? "credit_card"
+                          : orderPaymentType === "atm"
+                            ? "atm"
+                            : "generic"
+                      }
+                    />
+
+                    {/* 條款說明（送出訂單即視為同意） */}
+                    <TermsConsentText />
+                  </div>
+
                   </div>
                 )}
               </CardContent>
