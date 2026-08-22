@@ -186,6 +186,9 @@ import {
   overrideKey,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
+import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
+import TermsConsentText from "@/components/common/TermsConsentText";
+
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
 
