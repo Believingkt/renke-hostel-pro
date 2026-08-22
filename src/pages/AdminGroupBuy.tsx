@@ -1153,10 +1153,20 @@ export default function AdminGroupBuy() {
               </div>
               <div className="md:col-span-2">
                 <Label>封面圖片</Label>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                  建議尺寸 1920×1080（16:9）以上，橫式、主體置中，檔案 8MB 以內。
+                </p>
                 <ImageUploadField
                   value={editing.cover_image_url ?? null}
                   onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
                   pathPrefix={`${accommodationId}/group-buy/cover`}
+                />
+                <CoverFocusField
+                  className="mt-3"
+                  imageUrl={editing.cover_image_url}
+                  x={Number((editing as any).cover_focus_x ?? 50)}
+                  y={Number((editing as any).cover_focus_y ?? 50)}
+                  onChange={({ x, y }) => setEditing({ ...editing, cover_focus_x: x, cover_focus_y: y } as any)}
                 />
               </div>
               <div>
