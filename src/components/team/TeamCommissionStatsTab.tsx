@@ -851,12 +851,23 @@ export default function TeamCommissionStatsTab() {
             acc.validCount += b.validCount;
             acc.validAmount += b.validAmount;
             acc.commission += b.commission;
+            acc.commissionPersonal += b.commissionPersonal;
+            acc.commissionPool += b.commissionPool;
             acc.cancelCount += b.cancelCount;
             acc.cancelAmount += b.cancelAmount;
             acc.cancelCommission += b.cancelCommission;
             return acc;
           },
-          { validCount: 0, validAmount: 0, commission: 0, cancelCount: 0, cancelAmount: 0, cancelCommission: 0 },
+          {
+            validCount: 0,
+            validAmount: 0,
+            commission: 0,
+            commissionPersonal: 0,
+            commissionPool: 0,
+            cancelCount: 0,
+            cancelAmount: 0,
+            cancelCommission: 0,
+          },
         );
         return {
           uid,
@@ -871,13 +882,14 @@ export default function TeamCommissionStatsTab() {
   const closerStats = useMemo(
     () => buildMemberStats("closer_id", "closer_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
   );
   const videoStats = useMemo(
     () => buildMemberStats("video_creator_id", "video_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap],
+    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
   );
+
 
   const scoutStats = useMemo(() => {
     return scoutCodes
