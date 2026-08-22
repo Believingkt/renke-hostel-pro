@@ -184,14 +184,127 @@ export default function PaymentAudit() {
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="space-y-4">
-      <AdminPageHeader
-        title="金流稽核紀錄"
-        description="綁卡、入住扣款、取消手續費與退款的完整流水，可下載供客服查核"
-        icon={Receipt}
-      />
+  const columns: ResponsiveColumn<ChargeRow>[] = [
+    {
+      key: "time",
+      header: "時間",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => new Date(r.created_at).toLocaleString("zh-TW"),
+    },
+    {
+      key: "order",
+      header: "訂單",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => (
+        <>
+          <div className="font-medium">{r.orders?.order_number}</div>
+          <div className="text-muted-foreground">
+            {r.orders?.guest_name} · 入住 {r.orders?.check_in_date}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: "action",
+      header: "事件",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => (
+        <>
+          {ACTION_LABELS[r.action] ?? r.action}
+          <div className="text-muted-foreground">{r.trigger_source}</div>
+        </>
+      ),
+    },
+    {
+      key: "amount",
+      header: "金額",
+      align: "right",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => `NT$ ${Number(r.amount || 0).toLocaleString()}`,
+    },
+    {
+      key: "status",
+      header: "狀態",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => (
+        <>
+          <Badge variant={r.status === "success" ? "secondary" : "destructive"}>
+            {STATUS_LABELS[r.status] ?? r.status}
+          </Badge>
+          {r.error_message && (
+            <div className="text-destructive mt-1 max-w-[180px] truncate" title={r.error_message}>
+              {r.error_message}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: "webhook",
+      header: "金流回報",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => WEBHOOK_LABELS[r.webhook_status ?? ""] ?? r.webhook_status ?? "—",
+    },
+    {
+      key: "fee",
+      header: "手續費計算",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) =>
+        r.orders?.cancellation_fee_percent != null ? (
+          <>
+            <div>級距 {r.orders.cancellation_fee_percent}%</div>
+            <div className="text-muted-foreground tabular-nums">
+              手續費 NT$ {Number(r.orders.cancellation_fee_amount || 0).toLocaleString()} ／ 已退 NT${" "}
+              {Number(r.orders.refunded_amount || 0).toLocaleString()}
+            </div>
+          </>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
+      key: "trade",
+      header: "交易編號",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) => (
+        <>
+          <div>{r.rec_trade_id || "—"}</div>
+          {r.bank_transaction_id && (
+            <div className="text-muted-foreground">{r.bank_transaction_id}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: "resolve",
+      header: "處理",
+      className: "text-xs whitespace-nowrap",
+      cell: (r) =>
+        r.needs_manual_review ? (
+          <Button size="sm" variant="outline" onClick={() => openResolve(r)}>
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 一鍵核對處理
+          </Button>
+        ) : r.resolved_at ? (
+          <span className="text-muted-foreground">
+            已於 {new Date(r.resolved_at).toLocaleDateString("zh-TW")} 處理
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+  ];
 
+  return (
+    <AdminPageShell
+      header={
+        <AdminPageHeader
+          title="金流稽核紀錄"
+          description="綁卡、入住扣款、取消手續費與退款的完整流水，可下載供客服查核"
+          icon={Receipt}
+        />
+      }
+      spacing="tight"
+    >
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -201,140 +314,115 @@ export default function PaymentAudit() {
             )}
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Input
-            placeholder="搜尋訂單編號／旅客／交易編號"
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            className="w-full sm:w-64"
+        <CardContent>
+          <AdminToolbar
+            filters={
+              <>
+                <Input
+                  placeholder="搜尋訂單編號／旅客／交易編號"
+                  value={keyword}
+                  onChange={(e) => setKeyword(e.target.value)}
+                  className="w-full sm:w-64"
+                />
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部事件</SelectItem>
+                    {Object.entries(ACTION_LABELS).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部狀態</SelectItem>
+                    <SelectItem value="success">成功</SelectItem>
+                    <SelectItem value="failed">失敗</SelectItem>
+                    <SelectItem value="review">待人工處理</SelectItem>
+                  </SelectContent>
+                </Select>
+              </>
+            }
+            secondaryActions={[
+              {
+                key: "reload",
+                label: "重新整理",
+                icon: <RefreshCw className="h-4 w-4 mr-1" />,
+                onClick: () => setReloadKey((k) => k + 1),
+              },
+            ]}
+            primaryAction={
+              <Button onClick={downloadCsv} disabled={filtered.length === 0}>
+                <Download className="h-4 w-4 mr-1" /> 下載 CSV
+              </Button>
+            }
           />
-          <Select value={actionFilter} onValueChange={setActionFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部事件</SelectItem>
-              {Object.entries(ACTION_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">全部狀態</SelectItem>
-              <SelectItem value="success">成功</SelectItem>
-              <SelectItem value="failed">失敗</SelectItem>
-              <SelectItem value="review">待人工處理</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" onClick={() => setReloadKey((k) => k + 1)}>
-            <RefreshCw className="h-4 w-4 mr-1" /> 重新整理
-          </Button>
-          <Button onClick={downloadCsv} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-1" /> 下載 CSV
-          </Button>
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="p-0 overflow-x-auto">
-          <Table className="fixed-table">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">時間</TableHead>
-                <TableHead className="whitespace-nowrap">訂單</TableHead>
-                <TableHead className="whitespace-nowrap">事件</TableHead>
-                <TableHead className="whitespace-nowrap text-right">金額</TableHead>
-                <TableHead className="whitespace-nowrap">狀態</TableHead>
-                <TableHead className="whitespace-nowrap">金流回報</TableHead>
-                <TableHead className="whitespace-nowrap">手續費計算</TableHead>
-                <TableHead className="whitespace-nowrap">交易編號</TableHead>
-                <TableHead className="whitespace-nowrap">處理</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!loading && filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                    尚無金流事件紀錄
-                  </TableCell>
-                </TableRow>
-              )}
-              {filtered.map((r) => (
-                <TableRow key={r.id} className={r.needs_manual_review ? "bg-destructive/5" : undefined}>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {new Date(r.created_at).toLocaleString("zh-TW")}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    <div className="font-medium">{r.orders?.order_number}</div>
-                    <div className="text-muted-foreground">{r.orders?.guest_name} · 入住 {r.orders?.check_in_date}</div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {ACTION_LABELS[r.action] ?? r.action}
-                    <div className="text-muted-foreground">{r.trigger_source}</div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-right tabular-nums text-xs">
-                    NT$ {Number(r.amount || 0).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    <Badge variant={r.status === "success" ? "secondary" : "destructive"}>
-                      {STATUS_LABELS[r.status] ?? r.status}
-                    </Badge>
-                    {r.error_message && (
-                      <div className="text-destructive mt-1 max-w-[180px] truncate" title={r.error_message}>
-                        {r.error_message}
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {WEBHOOK_LABELS[r.webhook_status ?? ""] ?? r.webhook_status ?? "—"}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {r.orders?.cancellation_fee_percent != null ? (
-                      <>
-                        <div>級距 {r.orders.cancellation_fee_percent}%</div>
-                        <div className="text-muted-foreground tabular-nums">
-                          手續費 NT$ {Number(r.orders.cancellation_fee_amount || 0).toLocaleString()} ／ 已退 NT$ {Number(r.orders.refunded_amount || 0).toLocaleString()}
-                        </div>
-                      </>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    <div>{r.rec_trade_id || "—"}</div>
-                    {r.bank_transaction_id && (
-                      <div className="text-muted-foreground">{r.bank_transaction_id}</div>
-                    )}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap text-xs">
-                    {r.needs_manual_review ? (
-                      <Button size="sm" variant="outline" onClick={() => openResolve(r)}>
-                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 一鍵核對處理
-                      </Button>
-
-                    ) : r.resolved_at ? (
-                      <span className="text-muted-foreground">已於 {new Date(r.resolved_at).toLocaleDateString("zh-TW")} 處理</span>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <CardContent className="p-0 md:p-0">
+          <div className="p-3 md:p-0">
+            <ResponsiveDataView
+              rows={filtered}
+              columns={columns}
+              rowKey={(r) => r.id}
+              loading={loading}
+              empty="尚無金流事件紀錄"
+              rowClassName={(r) => (r.needs_manual_review ? "bg-destructive/5" : undefined)}
+              mobileCard={{
+                title: (r) => r.orders?.order_number ?? "—",
+                subtitle: (r) => (
+                  <>
+                    {ACTION_LABELS[r.action] ?? r.action} · {new Date(r.created_at).toLocaleString("zh-TW")}
+                  </>
+                ),
+                status: (r) => (
+                  <Badge variant={r.status === "success" ? "secondary" : "destructive"}>
+                    {STATUS_LABELS[r.status] ?? r.status}
+                  </Badge>
+                ),
+                fields: (r) => [
+                  { label: "金額", value: `NT$ ${Number(r.amount || 0).toLocaleString()}` },
+                  { label: "旅客／入住", value: `${r.orders?.guest_name ?? "—"} · ${r.orders?.check_in_date ?? "—"}` },
+                  { label: "金流回報", value: WEBHOOK_LABELS[r.webhook_status ?? ""] ?? r.webhook_status ?? "—" },
+                  { label: "交易編號", value: r.rec_trade_id || "—" },
+                  ...(r.orders?.cancellation_fee_percent != null
+                    ? [
+                        {
+                          label: "手續費",
+                          value: `級距 ${r.orders.cancellation_fee_percent}% ／ NT$ ${Number(
+                            r.orders.cancellation_fee_amount || 0,
+                          ).toLocaleString()}`,
+                        },
+                      ]
+                    : []),
+                  ...(r.error_message ? [{ label: "錯誤", value: r.error_message }] : []),
+                ],
+                footer: (r) =>
+                  r.needs_manual_review ? (
+                    <Button size="sm" variant="outline" className="w-full admin-touch-target" onClick={() => openResolve(r)}>
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" /> 一鍵核對處理
+                    </Button>
+                  ) : r.resolved_at ? (
+                    <span className="text-xs text-muted-foreground">
+                      已於 {new Date(r.resolved_at).toLocaleDateString("zh-TW")} 處理
+                    </span>
+                  ) : null,
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
 
       <PaymentAuditActionLog accommodationId={currentAccommodationId} reloadKey={reloadKey} />
-
-
 
       <PaymentAuditResolveDialog
         target={resolveTarget}
         onOpenChange={(open) => !open && setResolveTarget(null)}
         onDone={() => setReloadKey((k) => k + 1)}
       />
-    </div>
-
+    </AdminPageShell>
   );
 }
