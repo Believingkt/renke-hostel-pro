@@ -622,10 +622,11 @@ export default function AdminGroupBuy() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={activeId} onValueChange={setActiveId}>
-          <SelectTrigger className="w-full max-w-full sm:w-[360px] lg:w-[440px]">
+          <SelectTrigger className="w-full max-w-full sm:w-[420px] lg:w-[560px]">
             <SelectValue placeholder="選擇團購活動" />
           </SelectTrigger>
-          <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[min(92vw,560px)]">
+          <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[min(92vw,680px)]">
+
             {campaigns.map((c) => {
               const statusLabel = c.is_archived
                 ? "已封存"
