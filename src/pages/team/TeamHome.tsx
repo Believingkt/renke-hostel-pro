@@ -271,6 +271,7 @@ export default function TeamHome() {
   const [closerBackfill, setCloserBackfill] = useState(0);
   const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
+  const [closerPreviewCnt, setCloserPreviewCnt] = useState(0);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
