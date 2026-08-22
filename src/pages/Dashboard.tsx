@@ -394,7 +394,7 @@ const Dashboard = () => {
 
         <TabsContent value="overview" className="space-y-6 mt-0">
       {/* 統計卡片 */}
-      <div className="grid gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
+      <div className="grid gap-4 md:gap-6 grid-cols-2 lg:grid-cols-4 px-2 md:px-0">
         {isLoading ? (
           <>
             <StatCardSkeleton />
@@ -485,10 +485,10 @@ const Dashboard = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <CardTitle className="text-base md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       接單 & 住宿趨勢
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">
+                    <p className="text-xs md:text-sm text-muted-foreground font-medium">
                       接單以成交日期、住宿以入住日期計算，並疊加當月營收
                     </p>
                   </div>
@@ -513,10 +513,10 @@ const Dashboard = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <CardTitle className="text-base md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       營收統計
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">每月總營收金額</p>
+                    <p className="text-xs md:text-sm text-muted-foreground font-medium">每月總營收金額</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
                     <DollarSign className="h-4 w-4 text-primary" />
@@ -540,10 +540,10 @@ const Dashboard = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <CardTitle className="text-base md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       住房率
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">每月入住率統計，可疊加當月營收</p>
+                    <p className="text-xs md:text-sm text-muted-foreground font-medium">每月入住率統計，可疊加當月營收</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
                     <Hotel className="h-4 w-4 text-emerald-600" />
@@ -564,10 +564,10 @@ const Dashboard = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                    <CardTitle className="text-base md:text-xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
                       平均房價
                     </CardTitle>
-                    <p className="text-sm text-muted-foreground font-medium">訂單總金額 / 總訂單數</p>
+                    <p className="text-xs md:text-sm text-muted-foreground font-medium">訂單總金額 / 總訂單數</p>
                   </div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
                     <DollarSign className="h-4 w-4 text-purple-600" />

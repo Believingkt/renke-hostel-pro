@@ -20,7 +20,8 @@ import { OrderSourceDialog } from "@/components/orders/OrderSourceDialog";
 import { CreateOrderDialog } from "@/components/orders/CreateOrderDialog";
 import { CreateHoldOrderDialog } from "@/components/orders/CreateHoldOrderDialog";
 import { Button } from "@/components/ui/button";
-import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Filter, ShoppingCart, CalendarDays, CreditCard, Package, ShoppingBag, Plus, CalendarClock, Download, Upload, MoreHorizontal, Eye, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportOrdersToExcel } from "@/utils/exportOrders";
 import { ImportOrdersDialog } from "@/components/orders/ImportOrdersDialog";
@@ -120,6 +121,25 @@ const Orders = () => {
   
   // 篩選抽屜狀態
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+
+  // 行動版：已套用條件 Chips（純顯示，不影響 query 邏輯）
+  const PAYMENT_LABELS: Record<string, string> = {
+    unpaid: "未付款", paid: "已付清", overdue: "已逾期", refunded: "已退款", partial_refunded: "部分退款",
+  };
+  const STATUS_LABELS: Record<string, string> = {
+    hold: "保留中", pending: "待確認", confirmed: "已確認", cancelled: "已取消",
+  };
+  const mobileActiveFilters = [
+    startDate || endDate
+      ? `${dateType === "order" ? "訂購" : "入住"} ${startDate || "…"}~${endDate || "…"}`
+      : "",
+    paymentStatus ? `付款：${PAYMENT_LABELS[paymentStatus] ?? paymentStatus}` : "",
+    orderStatus ? `狀態：${STATUS_LABELS[orderStatus] ?? orderStatus}` : "",
+    orderSource ? `來源：${orderSource}` : "",
+    searchKeyword ? `關鍵字：${searchKeyword}` : "",
+  ].filter(Boolean) as string[];
+
+
 
   useEffect(() => {
     const tab = searchParams.get("tab");
@@ -644,20 +664,59 @@ const Orders = () => {
                 />
               </div>
 
-              {/* 行動版篩選按鈕 */}
-              <div className="md:hidden">
+              {/* 行動版搜尋 + 篩選 */}
+              <div className="md:hidden space-y-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    type="search"
+                    inputMode="search"
+                    placeholder="搜尋訂單編號 / 姓名 / 電話"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        (e.target as HTMLInputElement).blur();
+                        handleFilterSubmit();
+                      }
+                    }}
+                    className="h-12 pl-9 text-base touch-manipulation"
+                  />
+                </div>
+
+                {mobileActiveFilters.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {mobileActiveFilters.map((chip) => (
+                      <span
+                        key={chip}
+                        className="inline-flex items-center rounded-full border bg-muted/60 px-2.5 py-1 text-xs text-muted-foreground"
+                      >
+                        {chip}
+                      </span>
+                    ))}
+                    <button
+                      onClick={clearAllFilters}
+                      className="inline-flex items-center rounded-full border border-destructive/40 px-2.5 py-1 text-xs text-destructive touch-manipulation"
+                    >
+                      清除全部
+                    </button>
+                  </div>
+                )}
+
                 <Sheet open={filterDrawerOpen} onOpenChange={setFilterDrawerOpen}>
                   <SheetTrigger asChild>
                     <Button variant="outline" className="w-full h-12 touch-manipulation">
                       <Filter className="w-5 h-5 mr-2" />
                       <span className="text-base">進階篩選</span>
-                      {(startDate || endDate || paymentStatus || orderStatus || orderSource || searchKeyword) && (
-                        <span className="ml-2 bg-primary text-primary-foreground rounded-full px-2.5 py-1 text-xs font-medium">
-                          已套用
+                      {mobileActiveFilters.length > 0 && (
+                        <span className="ml-2 rounded-full bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-foreground">
+                          {mobileActiveFilters.length}
                         </span>
                       )}
                     </Button>
                   </SheetTrigger>
+
                   <SheetContent side="bottom" className="h-[85vh] overflow-y-auto">
                     <SheetHeader className="pb-4">
                       <SheetTitle className="text-lg">進階篩選</SheetTitle>
