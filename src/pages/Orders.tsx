@@ -123,12 +123,18 @@ const Orders = () => {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
 
   // 行動版：已套用條件 Chips（純顯示，不影響 query 邏輯）
+  const PAYMENT_LABELS: Record<string, string> = {
+    unpaid: "未付款", paid: "已付清", overdue: "已逾期", refunded: "已退款", partial_refunded: "部分退款",
+  };
+  const STATUS_LABELS: Record<string, string> = {
+    hold: "保留中", pending: "待確認", confirmed: "已確認", cancelled: "已取消",
+  };
   const mobileActiveFilters = [
     startDate || endDate
       ? `${dateType === "order" ? "訂購" : "入住"} ${startDate || "…"}~${endDate || "…"}`
       : "",
-    paymentStatus ? `付款：${paymentStatus}` : "",
-    orderStatus ? `狀態：${orderStatus}` : "",
+    paymentStatus ? `付款：${PAYMENT_LABELS[paymentStatus] ?? paymentStatus}` : "",
+    orderStatus ? `狀態：${STATUS_LABELS[orderStatus] ?? orderStatus}` : "",
     orderSource ? `來源：${orderSource}` : "",
     searchKeyword ? `關鍵字：${searchKeyword}` : "",
   ].filter(Boolean) as string[];
