@@ -162,7 +162,7 @@ export function RichTextEditor({
         'border rounded-md overflow-hidden',
         error && 'border-destructive'
       )}>
-        <div className="flex items-center gap-1 p-2 border-b bg-muted/30 flex-wrap">
+        <div className="rich-text-toolbar flex min-w-0 max-w-full flex-wrap items-center gap-1 overflow-x-hidden border-b bg-muted/30 p-2">
           {simple ? (
             <>
               <MenuButton
