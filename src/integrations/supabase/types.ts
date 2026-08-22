@@ -725,6 +725,38 @@ export type Database = {
           },
         ]
       }
+      accommodation_notification_settings: {
+        Row: {
+          accommodation_id: string
+          booking_notification_emails: string[]
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          booking_notification_emails?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          booking_notification_emails?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_notification_settings_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_order_sources: {
         Row: {
           accommodation_id: string
@@ -4118,6 +4150,38 @@ export type Database = {
             foreignKeyName: "group_buy_bank_accounts_campaign_id_fkey"
             columns: ["campaign_id"]
             isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_buy_campaign_notification_settings: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          notification_emails: string[]
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          notification_emails?: string[]
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          notification_emails?: string[]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_campaign_notification_settings_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
             referencedRelation: "group_buy_campaigns"
             referencedColumns: ["id"]
           },
