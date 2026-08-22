@@ -46,6 +46,8 @@ import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookin
 import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
 import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/GroupBuyQuickNav";
 import { taipeiToday } from "@/lib/taipeiToday";
+import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
+
 import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
