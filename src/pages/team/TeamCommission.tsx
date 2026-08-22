@@ -120,6 +120,8 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 };
 
 import { roundBonus } from "@/lib/bonusRounding";
+import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
 
@@ -304,7 +306,11 @@ interface SourceItem {
   rate_kind?: string | null;         // "percent" | "fixed"
   split_headcount?: number | null;   // 均分人數
   prorate_ratio?: number | null;     // 在職比例
+  // 成交組 80/20：amount 為個人實發，這裡保留原始 Gross 與團獎池提撥供稽核顯示
+  gross_amount?: number | null;
+  pool_amount?: number | null;
 }
+
 
 // 依 (source_table, role_key) 對應到 bonus_multiplier_settings.bonus_type
 function bonusTypeOf(source_table: string, role_key: string): string | null {
@@ -624,6 +630,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           rate_kind?: string | null;
           split_headcount?: number | null;
           prorate_ratio?: number | null;
+          gross_amount?: number | null;
+          pool_amount?: number | null;
         },
       ) => {
         if (!amount || amount === 0) return;
@@ -648,14 +656,25 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           rate_kind: extra?.rate_kind ?? null,
           split_headcount: extra?.split_headcount ?? null,
           prorate_ratio: extra?.prorate_ratio ?? null,
+          gross_amount: extra?.gross_amount ?? null,
+          pool_amount: extra?.pool_amount ?? null,
         });
+      };
+
+      // 成交組 80/20：DB 存 Gross，發放清單一律以「個人實發」列示
+      const closerRateResolver = await loadCloserBonusRateResolver(supabase);
+      const closerBonusRate = closerRateResolver.rateForPayoutMonth(payoutMonthKey);
+      const closerSplitMeta = (gross: number, meta: Record<string, any>) => {
+        const s = splitCloserBonus(gross, closerBonusRate);
+        return { split: s, meta: { ...meta, gross_amount: s.gross, pool_amount: s.pool } };
       };
 
       (closers ?? []).forEach((r: any) => {
         const orderNo = r.orders?.order_number ?? String(r.order_id).slice(0, 8);
         const meta = { venue_name: venueOf(r.accommodation_id), order_number: orderNo };
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, r.closer_commission_amount, meta);
+          const { split, meta: m } = closerSplitMeta(Number(r.closer_commission_amount), meta);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, split.personal, m);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
           pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${orderNo}`, r.video_commission_amount, meta);
@@ -670,12 +689,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         const meta = { venue_name: venue, order_number: orderNo };
         // 補差獨立成一個類別，不與成交組／影音組分潤混在一起
         if (r.closer_id && Number(r.closer_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), `${SOURCE_LABEL.closer}補差`, detail, Number(r.closer_amount), meta);
+          const { split, meta: m } = closerSplitMeta(Number(r.closer_amount), meta);
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), `${SOURCE_LABEL.closer}補差`, detail, split.personal, m);
         }
         if (r.video_creator_id && Number(r.video_amount) !== 0) {
           pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), `${SOURCE_LABEL.video}補差`, detail, Number(r.video_amount), meta);
         }
       });
+
 
 
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
@@ -1797,9 +1818,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               <TableBody>
                 {(venueDetail?.items ?? []).map((it) => (
                   <TableRow key={it.key}>
-                    <TableCell className="text-xs">{it.detail || it.order_number || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {it.detail || it.order_number || "—"}
+                      {it.gross_amount != null && it.pool_amount != null && (
+                        <span className="ml-1 text-[11px] text-muted-foreground">
+                          （原始 {formatMoney(it.gross_amount)}、團獎池提撥 -{formatMoney(it.pool_amount)}）
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div
+                        className="flex items-center justify-end gap-1.5"
+                        title={
+                          it.gross_amount != null && it.pool_amount != null
+                            ? `原始成交獎金 ${formatMoney(it.gross_amount)}／團獎池提撥 -${formatMoney(it.pool_amount)}／個人實發 ${formatMoney(it.amount)}`
+                            : undefined
+                        }
+                      >
                         {it.multiplier > 1 && (
                           <span className="text-xs text-muted-foreground line-through">
                             {formatMoney(it.amount)}
@@ -1813,6 +1848,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                         <span>{formatMoney(it.multiplied_amount)}</span>
                       </div>
                     </TableCell>
+
                     <TableCell>
                       {it.paid ? (
                         <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { roundBonus } from "@/lib/bonusRounding";
+import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+
 import {
   Select,
   SelectTrigger,
@@ -651,19 +653,14 @@ export default function TeamCommissionStatsTab() {
       setPreviewMap(pMap);
 
 
-      // 讀取當期適用的成交組團獎比例（以結算月份第一天為基準）
+      // 讀取「本期發放月」當時生效的成交組團獎提撥比例（共用 resolver，不各頁自挑版本）
       try {
-        const { data: bonusData } = await supabase
-          .from("closer_team_bonus_settings")
-          .select("bonus_rate, effective_from")
-          .lte("effective_from", period.startDate)
-          .order("effective_from", { ascending: false })
-          .limit(1);
-        const br = Number((bonusData?.[0] as any)?.bonus_rate ?? 0);
-        setBonusRate(Number.isFinite(br) ? br : 0);
+        const resolver = await loadCloserBonusRateResolver(supabase);
+        setBonusRate(resolver.rateForPayoutMonth(payoutMonthKey));
       } catch {
         setBonusRate(0);
       }
+
 
       const { data: scData } = await supabase
         .from("scout_discount_codes")
@@ -914,7 +911,6 @@ export default function TeamCommissionStatsTab() {
     role: "closer" | "video" = "closer",
   ) => {
     const showBonus = applyBonus && bonusRate > 0;
-    const netFactor = 1 - bonusRate;
     const showAdj = mode === "period";
     const byUid = role === "closer" ? adjMaps.closerByUid : adjMaps.videoByUid;
     const byUidAcc = role === "closer" ? adjMaps.closerByUidAcc : adjMaps.videoByUidAcc;
@@ -923,21 +919,30 @@ export default function TeamCommissionStatsTab() {
       role === "closer" ? backfillMaps.closerByUidAcc : backfillMaps.videoByUidAcc;
     const hasBackfill = showAdj && backfills.length > 0;
     const bonusMultiplier = role === "closer" ? closerMultiplier : videoMultiplier;
-    const netCommission = (amount: number) => (showBonus ? amount * netFactor : amount);
+    /** Gross → 個人實發（唯一拆分規則，共用 helper） */
+    const netCommission = (amount: number) =>
+      showBonus ? splitCloserBonus(amount, bonusRate).personal : roundBonus(amount);
+    const splitTitle = (amount: number) => {
+      if (!showBonus) return undefined;
+      const s = splitCloserBonus(amount, bonusRate);
+      return `原始成交獎金 ${fmtMoney(s.gross)}／團獎池提撥 ${(bonusRate * 100).toFixed(1)}% -${fmtMoney(s.pool)}／個人發放 ${fmtMoney(s.personal)}`;
+    };
     const renderCommissionCell = (amount: number) => {
       if (!showBonus) return <BoostedAmount amount={amount} multiplier={bonusMultiplier} />;
       return (
-        <div className="flex flex-col leading-tight">
+        <div className="flex flex-col leading-tight" title={splitTitle(amount)}>
           <span className="text-muted-foreground line-through text-xs">
             {fmtMoney(amount)}
           </span>
           <span className="text-orange-600 font-medium">
-            <BoostedAmount amount={amount * netFactor} multiplier={bonusMultiplier} />
+            <BoostedAmount amount={netCommission(amount)} multiplier={bonusMultiplier} />
           </span>
         </div>
       );
     };
-    const renderAdjCell = (amount: number) => {
+    /** Gross 金額（回溯補建／分潤補差）→ 個人實發顯示 */
+    const renderAdjCell = (grossAmount: number) => {
+      const amount = netCommission(grossAmount);
       const cls = cn(
         "tabular-nums",
         amount === 0
@@ -946,10 +951,15 @@ export default function TeamCommissionStatsTab() {
             ? "text-destructive"
             : "text-emerald-600",
       );
-      if (amount === 0) return <span className={cls}>—</span>;
-      if (bonusMultiplier <= 1) return <span className={cls}>{fmtMoney(amount)}</span>;
+      if (grossAmount === 0) return <span className={cls}>—</span>;
+      if (bonusMultiplier <= 1)
+        return (
+          <span className={cls} title={splitTitle(grossAmount)}>
+            {fmtMoney(amount)}
+          </span>
+        );
       return (
-        <div className="flex flex-col leading-tight items-end">
+        <div className="flex flex-col leading-tight items-end" title={splitTitle(grossAmount)}>
           <span className="text-muted-foreground line-through text-xs">{fmtMoney(amount)}</span>
           <span className={cls}>
             {fmtMoney(boostedAmount(amount, bonusMultiplier))}
@@ -960,6 +970,7 @@ export default function TeamCommissionStatsTab() {
         </div>
       );
     };
+
 
     return (
     <Card>
@@ -1028,13 +1039,17 @@ export default function TeamCommissionStatsTab() {
 
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
-                  const memberAdj = byUid.get(r.uid) ?? 0;
-                  const memberBf = bfByUid.get(r.uid) ?? 0;
+                  const memberAdjGross = byUid.get(r.uid) ?? 0;
+                  const memberBfGross = bfByUid.get(r.uid) ?? 0;
+                  const memberAdj = netCommission(memberAdjGross);
+                  const memberBf = netCommission(memberBfGross);
                   const memberTotal = netCommission(r.commission) + memberAdj + memberBf;
+
                   const memberTotalBoosted =
                     boostedAmount(netCommission(r.commission), bonusMultiplier) +
                     boostedAmount(memberAdj, bonusMultiplier) +
                     boostedAmount(memberBf, bonusMultiplier);
+
                   return (
                     <Fragment key={r.uid}>
                       <TableRow
@@ -1053,11 +1068,12 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
                         <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
                         {hasBackfill && (
-                          <TableCell className="tabular-nums">{renderAdjCell(memberBf)}</TableCell>
+                          <TableCell className="tabular-nums">{renderAdjCell(memberBfGross)}</TableCell>
                         )}
                         {showAdj && (
                           <>
-                            <TableCell className="tabular-nums">{renderAdjCell(memberAdj)}</TableCell>
+                            <TableCell className="tabular-nums">{renderAdjCell(memberAdjGross)}</TableCell>
+
 
                             <TableCell className="tabular-nums font-semibold">
                               {bonusMultiplier > 1 ? (
@@ -1091,12 +1107,15 @@ export default function TeamCommissionStatsTab() {
                           // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
                           const firstOfAcc =
                             r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
-                          const accAdj = firstOfAcc
+                          const accAdjGross = firstOfAcc
                             ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
-                          const accBf = firstOfAcc
+                          const accBfGross = firstOfAcc
                             ? (bfByUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
                             : 0;
+                          const accAdj = netCommission(accAdjGross);
+                          const accBf = netCommission(accBfGross);
+
                           const adjList =
                             showAdj && firstOfAcc
                               ? adjustments
@@ -1151,11 +1170,12 @@ export default function TeamCommissionStatsTab() {
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
                               <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
                               {hasBackfill && (
-                                <TableCell className="tabular-nums">{renderAdjCell(accBf)}</TableCell>
+                                <TableCell className="tabular-nums">{renderAdjCell(accBfGross)}</TableCell>
                               )}
                               {showAdj && (
                                 <>
-                                  <TableCell className="tabular-nums">{renderAdjCell(accAdj)}</TableCell>
+                                  <TableCell className="tabular-nums">{renderAdjCell(accAdjGross)}</TableCell>
+
                                   <TableCell className="tabular-nums font-medium">
                                     {bonusMultiplier > 1 ? (
                                       <div className="flex flex-col leading-tight items-end">
@@ -1518,7 +1538,8 @@ export default function TeamCommissionStatsTab() {
                       <TableRow>
                         <TableHead>訂單編號</TableHead>
                         <TableHead>原資料月</TableHead>
-                        <TableHead className="tabular-nums">分潤金額</TableHead>
+                        <TableHead className="tabular-nums">原始成交獎金</TableHead>
+
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1546,7 +1567,7 @@ export default function TeamCommissionStatsTab() {
                         <TableHead>訂單編號</TableHead>
                         <TableHead>類型</TableHead>
                         <TableHead>說明</TableHead>
-                        <TableHead className="tabular-nums">補差金額</TableHead>
+                        <TableHead className="tabular-nums">原始補差金額</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

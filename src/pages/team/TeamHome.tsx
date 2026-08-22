@@ -55,6 +55,8 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 import { roundBonus, roundBoosted } from "@/lib/bonusRounding";
+import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+
 /** 館別營收／獎金明細列 */
 interface VenueRevenueLine {
   name: string;
@@ -523,6 +525,18 @@ export default function TeamHome() {
         let closerBackfillCount = 0;
         const closerBackfillMonthSet = new Set<string>();
 
+        // 成交組個人獎金一律顯示「個人實發」＝ Gross ×(1 − bonus_rate)，
+        // Gross 語意不變（DB 仍存 100%），拆分只在顯示層以共用 helper 進行。
+        const closerRateResolver = showCloser
+          ? await loadCloserBonusRateResolver(db as any)
+          : null;
+        const closerBonusRate = closerRateResolver
+          ? closerRateResolver.rateForPayoutMonth(payoutMonthKey)
+          : 0;
+
+        const toCloserPersonal = (gross: number) =>
+          splitCloserBonus(gross, closerBonusRate).personal;
+
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
@@ -535,8 +549,8 @@ export default function TeamHome() {
             monthlySettledFlag = true;
             for (const r of snaps) {
               if (showCloser && r.closer_id === userId) {
-                // 單一取整點：與發放管理／成交統計相同，逐筆訂單先取整再加總
-                const amt = roundBonus(r.closer_commission_amount);
+                // 單一取整點：逐筆訂單先拆分取整再加總
+                const amt = toCloserPersonal(Number(r.closer_commission_amount ?? 0));
                 closerSum += amt;
                 const sm = String(r.snapshot_month ?? "");
                 if (sm && sm !== currentMonthKey) {
@@ -555,11 +569,12 @@ export default function TeamHome() {
               { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
             );
             if (preview?.success) {
-              if (showCloser) closerSum = Number(preview.self?.closer_commission ?? 0);
+              if (showCloser) closerSum = toCloserPersonal(Number(preview.self?.closer_commission ?? 0));
               if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
             }
           }
         }
+
 
 
 
@@ -683,12 +698,14 @@ export default function TeamHome() {
             .eq("adjustment_month", monthInfo.payoutMonthKey)
             .eq("closer_id", userId);
           for (const r of (adjRows ?? []) as any[]) {
-            const amt = Number(r.closer_amount ?? 0);
+            // 補差同樣是 Gross，顯示為個人實發
+            const amt = toCloserPersonal(Number(r.closer_amount ?? 0));
             if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
             else closerOtherAdjSum += amt;
           }
           closerCancelAdjSum = Math.round(closerCancelAdjSum);
           closerOtherAdjSum = Math.round(closerOtherAdjSum);
+
         }
 
 
