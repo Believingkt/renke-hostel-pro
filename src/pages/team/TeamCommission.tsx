@@ -628,6 +628,8 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           rate_kind?: string | null;
           split_headcount?: number | null;
           prorate_ratio?: number | null;
+          gross_amount?: number | null;
+          pool_amount?: number | null;
         },
       ) => {
         if (!amount || amount === 0) return;
@@ -652,14 +654,25 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           rate_kind: extra?.rate_kind ?? null,
           split_headcount: extra?.split_headcount ?? null,
           prorate_ratio: extra?.prorate_ratio ?? null,
+          gross_amount: extra?.gross_amount ?? null,
+          pool_amount: extra?.pool_amount ?? null,
         });
+      };
+
+      // 成交組 80/20：DB 存 Gross，發放清單一律以「個人實發」列示
+      const closerRateResolver = await loadCloserBonusRateResolver(supabase);
+      const closerBonusRate = closerRateResolver.rateForPayoutMonth(payoutMonthKey);
+      const closerSplitMeta = (gross: number, meta: Record<string, any>) => {
+        const s = splitCloserBonus(gross, closerBonusRate);
+        return { split: s, meta: { ...meta, gross_amount: s.gross, pool_amount: s.pool } };
       };
 
       (closers ?? []).forEach((r: any) => {
         const orderNo = r.orders?.order_number ?? String(r.order_id).slice(0, 8);
         const meta = { venue_name: venueOf(r.accommodation_id), order_number: orderNo };
         if (r.closer_id && Number(r.closer_commission_amount) > 0) {
-          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, r.closer_commission_amount, meta);
+          const { split, meta: m } = closerSplitMeta(Number(r.closer_commission_amount), meta);
+          pushItem("closer_commission_snapshots", r.id, "closer", profileByUserId.get(r.closer_id), SOURCE_LABEL.closer, `訂單 ${orderNo}`, split.personal, m);
         }
         if (r.video_creator_id && Number(r.video_commission_amount) > 0) {
           pushItem("closer_commission_snapshots", r.id, "video", profileByUserId.get(r.video_creator_id), SOURCE_LABEL.video, `訂單 ${orderNo}`, r.video_commission_amount, meta);
@@ -674,12 +687,14 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         const meta = { venue_name: venue, order_number: orderNo };
         // 補差獨立成一個類別，不與成交組／影音組分潤混在一起
         if (r.closer_id && Number(r.closer_amount) !== 0) {
-          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), `${SOURCE_LABEL.closer}補差`, detail, Number(r.closer_amount), meta);
+          const { split, meta: m } = closerSplitMeta(Number(r.closer_amount), meta);
+          pushItem("closer_commission_adjustments", r.id, "closer", profileByUserId.get(r.closer_id), `${SOURCE_LABEL.closer}補差`, detail, split.personal, m);
         }
         if (r.video_creator_id && Number(r.video_amount) !== 0) {
           pushItem("closer_commission_adjustments", r.id, "video", profileByUserId.get(r.video_creator_id), `${SOURCE_LABEL.video}補差`, detail, Number(r.video_amount), meta);
         }
       });
+
 
 
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
