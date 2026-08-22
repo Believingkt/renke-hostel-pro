@@ -622,16 +622,29 @@ export default function AdminGroupBuy() {
 
       <div className="flex flex-wrap items-center gap-2">
         <Select value={activeId} onValueChange={setActiveId}>
-          <SelectTrigger className="w-[260px]">
+          <SelectTrigger className="w-full max-w-full sm:w-[360px] lg:w-[440px]">
             <SelectValue placeholder="選擇團購活動" />
           </SelectTrigger>
-          <SelectContent>
-            {campaigns.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.title}（{c.is_archived ? "已封存" : c.status === "active" ? "上架中" : c.status === "draft" ? "草稿" : "已結束"}）
-              </SelectItem>
-
-            ))}
+          <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[min(92vw,560px)]">
+            {campaigns.map((c) => {
+              const statusLabel = c.is_archived
+                ? "已封存"
+                : c.status === "active"
+                  ? "上架中"
+                  : c.status === "draft"
+                    ? "草稿"
+                    : "已結束";
+              return (
+                <SelectItem key={c.id} value={c.id}>
+                  <span className="flex w-full items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate">{c.title}</span>
+                    <Badge variant={c.status === "active" && !c.is_archived ? "default" : "secondary"} className="shrink-0 text-[11px]">
+                      {statusLabel}
+                    </Badge>
+                  </span>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={() => void refreshAll()} disabled={loading || refreshing}>
@@ -819,18 +832,20 @@ export default function AdminGroupBuy() {
             {packages.map((p, idx) => (
               <Card key={p.id}>
                 <CardContent className="grid gap-3 p-4 md:grid-cols-2">
-                  <div>
+                  <div className="md:col-span-2">
                     <Label>方案名稱</Label>
                     <Input
+                      className="mt-1"
                       value={p.display_name}
                       onChange={(e) =>
                         setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, display_name: e.target.value } : x)))
                       }
                     />
                   </div>
+                  <div className="grid items-start gap-3 md:col-span-2 md:grid-cols-[1.6fr_1fr]">
                   <div>
                     <Label>對應房型（可複選，庫存依據）</Label>
-                    <div className="mt-1 max-h-40 space-y-2 overflow-y-auto rounded-md border border-input p-2">
+                    <div className="mt-1 max-h-36 space-y-2 overflow-y-auto rounded-md border border-input p-2">
                       {roomTypes.length === 0 && (
                         <p className="text-sm text-muted-foreground">此館別尚未建立房型</p>
                       )}
@@ -856,8 +871,12 @@ export default function AdminGroupBuy() {
                         );
                       })}
                     </div>
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      勾選多個房型時，系統會依「分配優先順序」逐一比對真實庫存，指派第一個有空房的房型。
+                    </p>
+                  </div>
                     {(p.room_type_ids ?? []).length > 1 && (
-                      <div className="mt-2 rounded-md border border-input p-2">
+                      <div className="rounded-md border border-input p-2">
                         <p className="mb-1 text-xs font-medium">分配優先順序（由上而下）</p>
                         <div className="space-y-1">
                           {(p.room_type_ids ?? []).map((rtId, order) => {
@@ -904,10 +923,8 @@ export default function AdminGroupBuy() {
                         </div>
                       </div>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      勾選多個房型時，系統會依上方順序逐一比對真實庫存，指派第一個有空房的房型。
-                    </p>
                   </div>
+
 
 
                   <GroupBuyPackagePricingFields
@@ -965,7 +982,8 @@ export default function AdminGroupBuy() {
                       限制此團購方案最多可入住的人數。留空則依房型原本人數上限。
                     </p>
                   </div>
-                  <div>
+                  <div className="md:col-span-2">
+
 
                     <Label>方案圖片（可多張，第一張為主圖）</Label>
                     <p className="mb-1.5 text-xs text-muted-foreground">

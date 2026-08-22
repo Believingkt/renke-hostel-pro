@@ -82,7 +82,7 @@ export function GroupBuyPackagePricingFields({ value, onChange }: Props) {
           {enabled ? (
             <>
               實際套用：NT$ {eff[type].toLocaleString("en-US")}
-              {value[key] == null ? "（沿用原團購價）" : ""}
+              {value[key] == null ? "（沿用基準團購價）" : ""}
             </>
           ) : (
             "此日期類型不適用，前台不可預訂（原價格數字保留，重新開啟即恢復）"
@@ -116,7 +116,7 @@ export function GroupBuyPackagePricingFields({ value, onChange }: Props) {
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
         <div>
-          <Label>原團購價（相容欄位／三段價未填時的預設值）</Label>
+          <Label>基準團購價（三段價未填時沿用，參與計價）</Label>
           <Input
             type="number"
             min={0}
@@ -125,20 +125,20 @@ export function GroupBuyPackagePricingFields({ value, onChange }: Props) {
           />
         </div>
         <div>
-          <Label>一般原價／晚（可留空）</Label>
+          <Label>參考原價／晚（可留空，僅供顯示）</Label>
           <Input
             type="number"
             value={value.original_price ?? ""}
             onChange={(e) => onChange({ original_price: num(e.target.value) })}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            指「一般訂房的每晚原價」，不是整趟總價或方案總價。用於前台原價刪除線與最高現省計算。
+            指「一般訂房的每晚原價」，僅供前台原價刪除線與現省金額顯示，不參與實際訂單計價。
           </p>
         </div>
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        三段價留空時會自動沿用「原團購價」，不會讓既有活動無法預訂；「不適用」則代表該日期類型完全不可預訂（與價格留空不同）。國定假日一律優先套用假日規則（假日資料來自各館別「國定假日」設定）。
+        三段價留空時會自動沿用「基準團購價」，不會讓既有活動無法預訂；「不適用」則代表該日期類型完全不可預訂（與價格留空不同）。國定假日一律優先套用假日規則（假日資料來自各館別「國定假日」設定）。
       </p>
     </div>
   );
