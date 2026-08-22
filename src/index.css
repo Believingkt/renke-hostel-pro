@@ -2019,3 +2019,61 @@ button > svg,
   display: block;
   flex-shrink: 0;
 }
+
+/* 團購 Rich Text（活動須知／文案）統一排版 */
+.gb-rich {
+  line-height: 1.75;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.gb-rich p {
+  margin-bottom: 0.875rem;
+}
+.gb-rich p:last-child {
+  margin-bottom: 0;
+}
+.gb-rich ul,
+.gb-rich ol {
+  margin: 0.75rem 0;
+  padding-left: 1.375rem;
+}
+.gb-rich ul {
+  list-style: disc;
+}
+.gb-rich ol {
+  list-style: decimal;
+}
+.gb-rich li {
+  display: list-item;
+  margin-bottom: 0.4375rem;
+  padding-left: 0.125rem;
+}
+.gb-rich li:last-child {
+  margin-bottom: 0;
+}
+.gb-rich h2 {
+  margin: 1.25rem 0 0.625rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+.gb-rich h3,
+.gb-rich h4 {
+  margin: 1rem 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.gb-rich strong,
+.gb-rich b {
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.gb-rich a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.gb-rich > *:first-child {
+  margin-top: 0;
+}
