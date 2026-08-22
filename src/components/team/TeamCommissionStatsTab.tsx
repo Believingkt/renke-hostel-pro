@@ -1162,14 +1162,19 @@ export default function TeamCommissionStatsTab() {
                           // 同館別可能有多筆費率列，補差只掛在第一筆避免重複
                           const firstOfAcc =
                             r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
-                          const accAdjGross = firstOfAcc
-                            ? (byUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
-                            : 0;
-                          const accBfGross = firstOfAcc
-                            ? (bfByUidAcc.get(`${r.uid}|${b.accId}`) ?? 0)
-                            : 0;
-                          const accAdj = netCommission(accAdjGross);
-                          const accBf = netCommission(accBfGross);
+                          const accAdjSum = firstOfAcc
+                            ? sumOf(byUidAcc.get(`${r.uid}|${b.accId}`))
+                            : emptySplitSum();
+                          const accBfSum = firstOfAcc
+                            ? sumOf(bfByUidAcc.get(`${r.uid}|${b.accId}`))
+                            : emptySplitSum();
+                          const accCommissionSum: SplitSum = {
+                            gross: b.commission,
+                            personal: b.commissionPersonal,
+                            pool: b.commissionPool,
+                          };
+                          const accAdj = netCommission(accAdjSum);
+                          const accBf = netCommission(accBfSum);
 
                           const adjList =
                             showAdj && firstOfAcc
