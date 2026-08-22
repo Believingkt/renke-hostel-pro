@@ -14,6 +14,7 @@ import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
 import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
 import BookingInfoSection from "@/components/BookingInfoSection";
+import type { BookingNoticePanel } from "@/lib/bookingNoticePanels";
 import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
 
 
@@ -112,8 +113,14 @@ export default function GroupBuyOrderLookup() {
   const cancelRequest = data?.cancelRequest ?? null;
   /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
   const bn = data?.bookingNotice;
+  /** 下單當下的訂房須知快照（新訂單一定有；舊訂單為 null → fallback live data） */
+  const snap = data?.bookingNoticeSnapshot ?? null;
+  const snapshotSections: BookingNoticePanel[] | null =
+    snap && Array.isArray(snap.sections) && snap.sections.length > 0 ? (snap.sections as BookingNoticePanel[]) : null;
   const hasBookingNotice = Boolean(
-    bn && (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0),
+    snapshotSections ||
+      (bn && !snap &&
+        (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0)),
   );
 
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
@@ -304,25 +311,30 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {/* 正式訂房須知：與團購活動頁同源（booking_settings ＋ accommodation_info.check_in_notice ＋ custom_sections），
-                依 campaign.booking_notice_keys 過濾；此處為 live data，顯示最新版本而非下單當時的條款快照。 */}
+            {/* 正式訂房須知：
+                1) 優先顯示下單當下的快照（order.group_buy_booking_notice_snapshot，immutable）
+                2) 舊訂單無快照時 fallback 目前 live data（與團購活動頁同源、依 booking_notice_keys 過濾） */}
             {hasBookingNotice && (
               <div className="gb-lookup-notice rounded-lg border px-4 [&>section]:py-4">
                 <GroupBuyBookingInfoCompact
                   bookingSettings={data.bookingNotice?.bookingSettings}
                   visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                  sections={snapshotSections ?? undefined}
                 >
                   <BookingInfoSection
                     bookingSettings={data.bookingNotice?.bookingSettings}
                     checkInNotice={data.bookingNotice?.checkInNotice ?? ""}
                     customSections={data.bookingNotice?.customSections ?? []}
                     visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                    sections={snapshotSections ?? undefined}
                     mobileSingleAccordion
                   />
                 </GroupBuyBookingInfoCompact>
-                <p className="pb-4 text-xs text-muted-foreground">
-                  以上為目前最新的訂房須知，非下單當時版本。
-                </p>
+                {!snapshotSections && (
+                  <p className="pb-4 text-xs text-muted-foreground">
+                    以上為目前最新的訂房須知。
+                  </p>
+                )}
               </div>
             )}
 

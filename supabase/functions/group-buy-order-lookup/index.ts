@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, order_source, order_date, notes, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -402,8 +402,12 @@ Deno.serve(async (req) => {
           phone: (intro as any)?.phone || (acc as any).phone || null,
         }
         : null,
-      // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則
-      preArrivalNotice: (intro as any)?.check_in_notice ?? null,
+      // 下單當下的訂房須知快照（immutable；舊訂單為 null → 前台 fallback live data）
+      bookingNoticeSnapshot: (order as any).group_buy_booking_notice_snapshot ?? null,
+      // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則。
+      // 有快照時優先使用快照版本（保留下單當時提供給客人的內容）。
+      preArrivalNotice: (order as any).group_buy_booking_notice_snapshot?.post_booking_notice
+        ?? (intro as any)?.check_in_notice ?? null,
       // 正式訂房須知（與團購活動頁同源，live data；campaign 不存在時 visibleKeys=null → 顯示全部）
       bookingNotice: {
         bookingSettings: bookingSettings ?? null,

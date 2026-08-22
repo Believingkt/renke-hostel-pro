@@ -48,6 +48,7 @@ import {
 } from "@/lib/groupBuyPayment";
 import { nextCopyName } from "@/lib/groupBuyPackageCopy";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
+import { GroupBuyBookingNoticeSnapshotView } from "@/components/admin/GroupBuyBookingNoticeSnapshotView";
 import { Link, useSearchParams } from "react-router-dom";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
@@ -327,7 +328,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider, group_buy_booking_notice_snapshot",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
@@ -1614,6 +1615,12 @@ export default function AdminGroupBuy() {
             <div>
               <p className="mb-1.5 text-sm font-semibold">訂單價格快照</p>
               <GroupBuyPriceSnapshot snapshot={auditTarget ? snapshots[auditTarget.id] : null} />
+            </div>
+            <div>
+              <p className="mb-1.5 text-sm font-semibold">下單當時訂房須知</p>
+              <GroupBuyBookingNoticeSnapshotView
+                snapshot={(auditTarget as any)?.group_buy_booking_notice_snapshot ?? null}
+              />
             </div>
             <p className="text-sm font-semibold">狀態紀錄</p>
             {(auditTarget ? events.filter((e) => e.order_id === auditTarget.id) : []).map((e) => (

@@ -25,6 +25,7 @@ import {
   findExcludedNight,
 } from "./groupBuyPricing.ts";
 import { renderBookingWithBankInfo, renderVenueNewOrder, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
+import { buildBookingNoticeSnapshot } from "../_shared/groupBuyBookingNoticeSnapshot.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 import { resolveCampaignPayment } from "../_shared/paymentAdapter.ts";
 import { taipeiToday } from "../_shared/taipeiToday.ts";
@@ -347,6 +348,21 @@ Deno.serve(async (req) => {
       const msg = String(oErr.message ?? "");
       if (/庫存|inventory|預訂|booked/i.test(msg)) return json({ error: `預訂失敗：${msg}` }, 409);
       return json({ error: "訂單建立失敗，請稍後再試" }, 500);
+    }
+
+    // 6.4) 下單當下訂房須知快照（immutable，僅此處寫入一次；失敗不影響訂單成立）
+    try {
+      const noticeSnapshot = await buildBookingNoticeSnapshot(admin, {
+        accommodationId: campaign.accommodation_id ?? null,
+        campaignId: campaign.id ?? null,
+        visibleKeys: (campaign as any).booking_notice_keys ?? null,
+      });
+      await admin
+        .from("orders")
+        .update({ group_buy_booking_notice_snapshot: noticeSnapshot })
+        .eq("id", order.id);
+    } catch (snapErr) {
+      console.error(`[${FN}] booking notice snapshot failed`, snapErr);
     }
 
     // 6.5) 稽核：訂單建立事件
