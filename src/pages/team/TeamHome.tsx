@@ -84,6 +84,7 @@ interface TeamHomePayload {
   closerBackfillSum: number;
   closerBackfillCount: number;
   closerBackfillMonths: string[];
+  closerPreviewCount: number;
   scoutCloserSum: number;
   closerTeamBonusSum: number;
   closerTeamBonusRateVal: number;
@@ -270,6 +271,7 @@ export default function TeamHome() {
   const [closerBackfill, setCloserBackfill] = useState(0);
   const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
+  const [closerPreviewCnt, setCloserPreviewCnt] = useState(0);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
@@ -403,6 +405,7 @@ export default function TeamHome() {
     setCloserBackfill(p.closerBackfillSum ?? 0);
     setCloserBackfillCnt(p.closerBackfillCount ?? 0);
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
+    setCloserPreviewCnt(p.closerPreviewCount ?? 0);
     setScoutCloserAmt(p.scoutCloserSum);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
@@ -538,10 +541,13 @@ export default function TeamHome() {
         const toCloserPersonal = (gross: number) =>
           splitCloserBonus(gross, closerBonusRate).personal;
 
+        // Snapshot 為唯一 Source of Truth；Preview 只補「尚未建立任何 Snapshot」的訂單，
+        // 去重以 order_id 為鍵並跨所有 payout_month 檢查，避免舊快照被重複計入。
+        let closerPreviewCount = 0;
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
+            .select("order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -564,17 +570,47 @@ export default function TeamHome() {
                 videoSum += roundBonus(r.video_commission_amount);
               }
             }
-          } else {
-            const { data: preview } = await supabase.functions.invoke(
-              "preview-closer-commission",
-              { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
-            );
-            if (preview?.success) {
-              if (showCloser) closerSum = toCloserPersonal(Number(preview.self?.closer_commission ?? 0));
-              if (showVideo) videoSum = Number(preview.self?.video_commission ?? 0);
+          }
+
+          // Preview 補位：本期資料月的即時試算，逐筆檢查是否已有 Snapshot
+          const { data: preview } = await supabase.functions.invoke(
+            "preview-closer-commission",
+            { body: { year: monthInfo.y, month: monthInfo.m, scope: "self", target_user_id: userId } },
+          );
+          if (preview?.success) {
+            const rows = (Array.isArray(preview.orders) ? preview.orders : []) as any[];
+            const mineCloser = showCloser
+              ? rows.filter((r) => r?.closer_id === userId && r?.order_id)
+              : [];
+            const previewIds = Array.from(new Set(mineCloser.map((r) => String(r.order_id))));
+
+            // 跨 payout_month 檢查該 order_id 是否已存在任何 Snapshot
+            const snapshotted = new Set<string>();
+            for (let i = 0; i < previewIds.length; i += 300) {
+              const chunk = previewIds.slice(i, i + 300);
+              const { data: existing } = await db
+                .from("closer_commission_snapshots")
+                .select("order_id")
+                .in("order_id", chunk);
+              (existing ?? []).forEach((e: any) => snapshotted.add(String(e.order_id)));
+            }
+
+            const counted = new Set<string>();
+            for (const r of mineCloser) {
+              const oid = String(r.order_id);
+              if (snapshotted.has(oid) || counted.has(oid)) continue;
+              counted.add(oid);
+              closerSum += toCloserPersonal(Number(r.closer_commission ?? 0));
+            }
+            closerPreviewCount = counted.size;
+
+            // 影音已停用：僅在完全沒有任何快照時沿用舊行為
+            if (showVideo && snaps.length === 0) {
+              videoSum = Number(preview.self?.video_commission ?? 0);
             }
           }
         }
+
 
 
 
@@ -1512,6 +1548,7 @@ export default function TeamHome() {
           closerBackfillSum,
           closerBackfillCount,
           closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
+          closerPreviewCount,
           scoutCloserSum,
           closerTeamBonusSum,
           closerTeamBonusRateVal,
@@ -1721,13 +1758,18 @@ export default function TeamHome() {
       amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
       baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
-      note: monthlyNote(
-        backfillBoosted !== 0
-          ? "含回溯補建（前期漏建訂單），故與「成交統計」的資料月口徑不同"
-          : cancelAdj !== 0 || otherAdj !== 0
-            ? "已含本期分潤補差（取消扣回）"
-            : undefined,
-      ),
+      note: [
+        monthlyNote(
+          backfillBoosted !== 0
+            ? "含回溯補建（前期漏建訂單），故與「成交統計」的資料月口徑不同"
+            : cancelAdj !== 0 || otherAdj !== 0
+              ? "已含本期分潤補差（取消扣回）"
+              : undefined,
+        ),
+        closerPreviewCnt > 0
+          ? `含 ${closerPreviewCnt} 筆尚未建立正式快照的訂單（預估補位，正式快照建立後金額不變）`
+          : null,
+      ].filter(Boolean).join("；"),
       lines,
       alwaysShowLines: backfillBoosted !== 0 || cancelAdj !== 0 || otherAdj !== 0,
     });
@@ -1757,14 +1799,14 @@ export default function TeamHome() {
       });
     } else {
       const noteParts = [
-        monthlyNote("需下個月初由管理員設定分配後才能確認個人實拿"),
+        monthlyNote("本期成交組團獎池總額，尚未完成個人分配；需下個月初由管理員設定分配後才能確認個人實拿"),
       ];
       if (closerTeamBonusNoSetting) {
         noteParts.push("本期尚未設定分配比例，請管理員至「成交大師 → 團隊成交統計」設定");
       }
       cards.push({
         key: "closer_team_bonus",
-        title: "成交組團隊獎金",
+        title: "成交組團隊獎金（尚未分配・全隊團獎池總額）",
         amount: roundBoosted(closerTeamBonusAmt, m),
         baseAmount: closerTeamBonusAmt,
         multiplier: m,
