@@ -639,6 +639,117 @@ export default function AdminGroupBuy() {
 
   }, [orders, activeCampaign]);
 
+  /** 銷售分析／匯出／列印共用同一份資料（分潤一律讀快照） */
+  const analyticsRows = useMemo(
+    () => buildAnalyticsRows(orders as any, commissions),
+    [orders, commissions],
+  );
+  const analyticsByOrderId = useMemo(
+    () => new Map(analyticsRows.map((r) => [r.order.id, r])),
+    [analyticsRows],
+  );
+
+  /** 由銷售分析點訂單編號 → 切到訂單對帳並高亮該筆 */
+  const openOrderFromAnalytics = useCallback(
+    (orderNumber: string) => {
+      setTab("orders");
+      const next = new URLSearchParams(searchParams);
+      next.set("tab", "orders");
+      next.set("orderNumber", orderNumber);
+      setSearchParams(next, { replace: true });
+    },
+    [searchParams, setSearchParams],
+  );
+
+  /** 特例退款人工判定：寫入 group_buy_commissions 並留下稽核事件 */
+  const setManualEligibility = useCallback(
+    async (orderId: string, value: "include" | "exclude") => {
+      const { data: userData } = await supabase.auth.getUser();
+      const row = analyticsByOrderId.get(orderId);
+      const rate = row?.commissionRate ?? Number(activeCampaign?.commission_rate) || 0;
+      const amount = value === "include" ? Math.round(((row?.revenueBase ?? 0) * rate) / 100) : 0;
+      const { error } = await supabase
+        .from("group_buy_commissions")
+        .update({
+          manual_eligibility: value,
+          manual_set_by: userData.user?.id ?? null,
+          manual_set_at: new Date().toISOString(),
+          commission_amount: amount,
+        } as any)
+        .eq("order_id", orderId);
+      if (error) {
+        toast({ title: "分潤判定儲存失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+      await supabase.from("group_buy_payment_events").insert({
+        order_id: orderId,
+        campaign_id: activeId,
+        event_type: "note",
+        actor_user_id: userData.user?.id ?? null,
+        actor_label: userData.user?.email ?? null,
+        amount,
+        note: value === "include" ? "人工判定：此訂單列入網紅分潤" : "人工判定：此訂單不列入網紅分潤",
+      } as any);
+      toast({ title: value === "include" ? "已設定為列入分潤" : "已設定為不列入分潤" });
+      await loadDetails();
+    },
+    [analyticsByOrderId, activeCampaign, activeId, toast, loadDetails],
+  );
+
+  /** 套用新分潤比例：預設只影響新訂單；同步模式僅改「未結算且未取消」的快照 */
+  const applyCommissionRate = useCallback(
+    async (mode: CommissionRateApplyMode) => {
+      if (!rateDialog || !editing?.id) return;
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from("group_buy_campaigns")
+          .update({ commission_rate: rateDialog.newRate })
+          .eq("id", editing.id);
+        if (error) throw error;
+
+        if (mode === "sync_pending") {
+          const targets = analyticsRows.filter(
+            (r) =>
+              r.commission &&
+              r.commission.status === "pending" &&
+              r.order.order_status !== "cancelled" &&
+              r.manual !== "exclude",
+          );
+          const { data: userData } = await supabase.auth.getUser();
+          for (const r of targets) {
+            await supabase
+              .from("group_buy_commissions")
+              .update({
+                commission_rate: rateDialog.newRate,
+                commission_amount: Math.round((r.revenueBase * rateDialog.newRate) / 100),
+              })
+              .eq("order_id", r.order.id);
+            await supabase.from("group_buy_payment_events").insert({
+              order_id: r.order.id,
+              campaign_id: activeId,
+              event_type: "note",
+              actor_user_id: userData.user?.id ?? null,
+              actor_label: userData.user?.email ?? null,
+              note: `分潤比例調整：${r.commissionRate ?? rateDialog.oldRate}% → ${rateDialog.newRate}%`,
+            } as any);
+          }
+          toast({ title: "已更新分潤比例", description: `同步調整 ${targets.length} 筆未結算訂單` });
+        } else {
+          toast({ title: "已更新分潤比例", description: "僅套用於之後成立的新訂單" });
+        }
+        setRateDialog(null);
+        setEditing(null);
+        await refreshAll();
+      } catch (e) {
+        toast({ title: "儲存失敗", description: e instanceof Error ? e.message : "", variant: "destructive" });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [rateDialog, editing, analyticsRows, activeId, toast, refreshAll],
+  );
+
   const publicUrl = activeCampaign ? `${window.location.origin}/g/${activeCampaign.slug}` : "";
 
   if (!accommodationId) return null;
