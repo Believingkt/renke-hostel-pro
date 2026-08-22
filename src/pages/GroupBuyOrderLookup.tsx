@@ -14,9 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
 import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
-import BookingInfoSection from "@/components/BookingInfoSection";
-import type { BookingNoticePanel } from "@/lib/bookingNoticePanels";
-import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
+import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
 
 
