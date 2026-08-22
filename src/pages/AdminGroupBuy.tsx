@@ -656,7 +656,9 @@ export default function AdminGroupBuy() {
             >
               <Copy className="mr-1 h-4 w-4" /> 複製團購連結
             </Button>
+            <GroupBuyCampaignDangerZone campaign={activeCampaign} onChanged={() => refreshAll()} />
           </>
+
         )}
       </div>
 
