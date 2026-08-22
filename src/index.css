@@ -2004,3 +2004,18 @@ body[data-radix-scroll-lock] {
   line-height: 1.65;
   text-rendering: optimizeLegibility;
 }
+
+/* 純圖示按鈕：強制置中、避免行高／基線造成圖示偏移（全站共用） */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+}
+button > svg,
+[role="button"] > svg,
+.icon-btn > svg {
+  display: block;
+  flex-shrink: 0;
+}
