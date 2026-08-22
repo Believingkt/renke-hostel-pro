@@ -152,6 +152,10 @@ interface AccBreakdown {
   validCount: number;
   validAmount: number;
   commission: number;
+  /** 逐筆 splitCloserBonus 後加總的個人實發（與發放管理同粒度） */
+  commissionPersonal: number;
+  /** 逐筆 splitCloserBonus 後加總的團獎池提撥 */
+  commissionPool: number;
   cancelCount: number;
   cancelAmount: number;
   cancelCommission: number;
@@ -164,11 +168,22 @@ interface MemberStats {
   validCount: number;
   validAmount: number;
   commission: number;
+  commissionPersonal: number;
+  commissionPool: number;
   cancelCount: number;
   cancelAmount: number;
   cancelCommission: number;
   byAcc: AccBreakdown[];
 }
+
+/** 逐筆 Gross 拆分後加總（Gross / Personal / Pool 三者恆等） */
+interface SplitSum {
+  gross: number;
+  personal: number;
+  pool: number;
+}
+const emptySplitSum = (): SplitSum => ({ gross: 0, personal: 0, pool: 0 });
+
 
 export default function TeamCommissionStatsTab() {
   const { roles } = useTeam();
