@@ -4290,6 +4290,8 @@ export type Database = {
       group_buy_campaigns: {
         Row: {
           accommodation_id: string
+          archived_at: string | null
+          archived_by: string | null
           booking_notice_keys: string[] | null
           commission_note: string | null
           commission_rate: number
@@ -4314,6 +4316,7 @@ export type Database = {
           gallery_urls: string[]
           highlight_points: string[]
           id: string
+          is_archived: boolean
           kol_display_name: string | null
           kol_profile_id: string | null
           payment_deadline_hours: number
@@ -4333,6 +4336,8 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          archived_at?: string | null
+          archived_by?: string | null
           booking_notice_keys?: string[] | null
           commission_note?: string | null
           commission_rate?: number
@@ -4357,6 +4362,7 @@ export type Database = {
           gallery_urls?: string[]
           highlight_points?: string[]
           id?: string
+          is_archived?: boolean
           kol_display_name?: string | null
           kol_profile_id?: string | null
           payment_deadline_hours?: number
@@ -4376,6 +4382,8 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          archived_at?: string | null
+          archived_by?: string | null
           booking_notice_keys?: string[] | null
           commission_note?: string | null
           commission_rate?: number
@@ -4400,6 +4408,7 @@ export type Database = {
           gallery_urls?: string[]
           highlight_points?: string[]
           id?: string
+          is_archived?: boolean
           kol_display_name?: string | null
           kol_profile_id?: string | null
           payment_deadline_hours?: number
@@ -12882,6 +12891,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      delete_group_buy_campaign: {
+        Args: { _campaign_id: string }
+        Returns: Json
+      }
       email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
@@ -13024,6 +13037,10 @@ export type Database = {
           accommodation_id: string
           role: Database["public"]["Enums"]["app_role"]
         }[]
+      }
+      group_buy_campaign_delete_precheck: {
+        Args: { _campaign_id: string }
+        Returns: Json
       }
       import_ryoan_order_bypass: {
         Args: { p_meta: Json; p_order: Json; p_rooms: Json }
