@@ -997,8 +997,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
                     計入成交組獎金（例外）
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    來源屬免抽成清單（如 KOL）但客人自費時勾選；其餘獎金規則不變。
+                    適用於原本因訂單來源而不列入成交組獎金的特殊訂單。啟用後僅解除獎金資格排除，後續仍依一般成交組獎金規則、結算期程與多退少補機制處理。
                   </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    儲存後不會立即建立或發放獎金，系統將依正式結算流程處理。
+                  </p>
+
                 </div>
               </div>
 
