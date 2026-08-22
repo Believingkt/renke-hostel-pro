@@ -383,9 +383,8 @@ export default function GroupBuyOrderLookup() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-muted-foreground">
-                      需要取消這筆訂房嗎？送出申請後由民宿審核，退款將於當月月底前處理完成。
-                    </p>
+                    <p className="text-muted-foreground">需要取消這筆訂房嗎？送出申請後由民宿審核。</p>
+                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
                       我要申請取消訂單
                     </Button>
