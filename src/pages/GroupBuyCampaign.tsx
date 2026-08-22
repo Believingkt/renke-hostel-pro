@@ -101,6 +101,9 @@ interface CampaignPackage {
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
+  /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
+  max_guests: number | null;
+
   room_type_id: string | null;
   room_type_ids: string[] | null;
   package_id: string | null;
