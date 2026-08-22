@@ -100,7 +100,7 @@ export default function GroupBuyOrderLookup() {
       }
       toast({
         title: "已收到您的取消申請",
-        description: "民宿確認後會處理退款，退款將於當月月底前完成。",
+        description: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
       });
       setCancelOpen(false);
       setCancelReason("");
