@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, Fragment } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { roundBonus } from "@/lib/bonusRounding";
+import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+
 import {
   Select,
   SelectTrigger,
