@@ -57,12 +57,12 @@ export function AdminToolbar({
       {title && <div className="min-w-0 text-base font-semibold md:text-lg">{title}</div>}
 
       {filters && (
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 [&>*]:min-w-0 [&_button[role=combobox]]:w-full sm:[&_button[role=combobox]]:w-40">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 [&>*]:min-w-0 [&_input]:admin-touch-target [&_button[role=combobox]]:admin-touch-target [&_button[role=combobox]]:w-full [&_input[type=search]]:w-full sm:[&_button[role=combobox]]:w-40">
           {filters}
         </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 md:ml-auto md:flex-nowrap">
+      <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:ml-auto md:flex-nowrap">
         {/* Desktop：全部次要操作平鋪 */}
         <div className="hidden items-center gap-2 md:flex">
           {secondaryActions.map((a) => (

@@ -53,7 +53,7 @@ export function AdminPageShell({
         maxWidth !== "full" && "mx-auto",
         SPACING[spacing],
         // 手機底部留白（含 iOS safe area）；有 sticky bar 時再多留一段
-        hasStickyActionBar ? "pb-28 md:pb-24" : "pb-6 md:pb-4",
+        hasStickyActionBar ? "pb-28 md:pb-24" : "pb-4 md:pb-4",
         "safe-bottom",
         className,
       )}
