@@ -841,10 +841,13 @@ export default function GroupBuyCampaign() {
       (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0);
   const showLocationSection = !!accInfo && (accInfo as any).show_location_section !== false;
 
-  /** 活動亮點區（含活動介紹摘要）／訂房規則區是否存在 */
+  /** 活動亮點區（含活動介紹摘要＋團購活動須知）／訂房規則區是否存在 */
   const showHighlightSection =
-    !!campaign.description_html?.trim() || (campaign.highlight_points ?? []).some((s) => !!s?.trim());
-  const showRulesSection = !!campaign.terms_html?.trim() || showBookingNotice;
+    !!campaign.description_html?.trim() ||
+    !!campaign.terms_html?.trim() ||
+    (campaign.highlight_points ?? []).some((s) => !!s?.trim());
+  const showRulesSection = showBookingNotice;
+
 
   /** 頁內快速導覽（只列出實際存在的區塊，順序與頁面一致） */
   const quickNavItems: QuickNavItem[] = [
