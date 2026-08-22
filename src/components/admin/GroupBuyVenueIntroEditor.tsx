@@ -216,33 +216,14 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
           />
         </div>
 
-        <div>
-          <Label>設施（以頓號或逗號分隔）</Label>
-          <Textarea
-            rows={3}
-            value={form.facilities}
-            onChange={(e) => setForm((f) => ({ ...f, facilities: e.target.value }))}
-            placeholder="免費停車、Wi-Fi、寵物友善"
-          />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {form.facilities
-              .split(/[、,，\n]/)
-              .map((s) => s.trim())
-              .filter(Boolean)
-              .map((f, i) => (
-                <Badge key={f + i} variant="secondary" className="text-xs">{f}</Badge>
-              ))}
-          </div>
+        <div className="rounded-lg border border-dashed border-border bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+          <p className="mb-1 font-medium text-foreground">設施與入住須知已改由專屬模組維護</p>
+          <p>
+            團購頁的「設施與服務」讀取後台〈網站內容 → 設施與服務〉，「訂房須知」讀取〈網站內容 → 訂房須知〉，
+            此處不再重複輸入（原有資料仍保留於資料庫，未被清除）。本區僅負責民宿簡介、聯絡資訊與相簿。
+          </p>
         </div>
 
-        <div>
-          <Label>入住須知</Label>
-          <Textarea
-            rows={5}
-            value={form.check_in_notice}
-            onChange={(e) => setForm((f) => ({ ...f, check_in_notice: e.target.value }))}
-          />
-        </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>

@@ -861,7 +861,7 @@ export default function GroupBuyCampaign() {
     ...(showFacilitiesSection ? [{ id: "gb-facilities", label: "設施" }] : []),
     ...(showLocationSection ? [{ id: "gb-transport", label: "交通資訊" }] : []),
     ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
-    ...(showRulesSection ? [{ id: "gb-rules", label: "訂房規則" }] : []),
+    ...(showRulesSection ? [{ id: "gb-rules", label: "訂房須知" }] : []),
   ];
 
 
