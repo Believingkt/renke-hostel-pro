@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { isCommissionEligible } from "../_shared/commissionEligibility.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 
@@ -133,7 +134,7 @@ serve(async (req) => {
 
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
-        .select("order_id, team_commission_price")
+        .select("order_id, team_commission_price, force_commission_eligible")
         .in("order_id", orderIds);
       if (metasErr) throw metasErr;
       const metaMap = new Map<string, any>();
@@ -149,10 +150,10 @@ serve(async (req) => {
 
         // 非台幣訂單不計入獎金（null 視為台幣）
         if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
-        // 免抽成來源訂單不產生調整
-        if (isExemptA(ord)) continue;
-
         const meta = metaMap.get(orderId);
+        // 免抽成來源訂單不產生調整（例外旗標可單筆解除）
+        if (!isCommissionEligible(ord, meta, isExemptA)) continue;
+
         const tcp = meta?.team_commission_price;
         const ordFinal = Number(ord.final_price ?? 0);
         const currentBase =
@@ -211,6 +212,14 @@ serve(async (req) => {
         (cancelledOrders ?? []).map((o) => o.accommodation_id as string),
       );
 
+      const { data: metasB, error: metasBErr } = await supabase
+        .from("order_meta")
+        .select("order_id, force_commission_eligible")
+        .in("order_id", cancelledIds);
+      if (metasBErr) throw metasBErr;
+      const metaMapB = new Map<string, any>();
+      for (const m of metasB ?? []) metaMapB.set(m.order_id as string, m);
+
       const { data: snapsB, error: snapsBErr } = await supabase
         .from("closer_commission_snapshots")
         .select("id, order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount")
@@ -235,7 +244,7 @@ serve(async (req) => {
         if (existingCancel.has(orderId)) continue;
         // 免抽成來源訂單本來就不該有分潤，不產生扣回調整
         const ordB = cancelledMap.get(orderId);
-        if (ordB && isExemptB(ordB)) continue;
+        if (ordB && !isCommissionEligible(ordB, metaMapB.get(orderId), isExemptB)) continue;
 
         const row = {
           snapshot_id: s.id,
@@ -291,6 +300,14 @@ serve(async (req) => {
         (cOrders ?? []).map((o) => o.accommodation_id as string),
       );
 
+      const { data: metasC, error: metasCErr } = await supabase
+        .from("order_meta")
+        .select("order_id, force_commission_eligible")
+        .in("order_id", cIds);
+      if (metasCErr) throw metasCErr;
+      const metaMapC = new Map<string, any>();
+      for (const m of metasC ?? []) metaMapC.set(m.order_id as string, m);
+
       const { data: existReact, error: existRErr } = await supabase
         .from("closer_commission_adjustments")
         .select("order_id")
@@ -315,7 +332,7 @@ serve(async (req) => {
         if (existingReact.has(orderId)) continue;
         // 免抽成來源訂單不補回分潤
         const ordC = cOrderMap.get(orderId);
-        if (ordC && isExemptC(ordC)) continue;
+        if (ordC && !isCommissionEligible(ordC, metaMapC.get(orderId), isExemptC)) continue;
         const snap = snapByOrder.get(orderId);
         if (!snap) continue;
 
