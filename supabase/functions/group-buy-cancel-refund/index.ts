@@ -323,6 +323,17 @@ Deno.serve(async (req) => {
       },
     });
 
+    // 取消成功後寄「訂單已取消」信（若同一次操作已完成退款，退款結果併入此信，不再另寄退款信）
+    await notify(
+      renderOrderCancelled(await buildMailOrder(), {
+        cancelledAtText: formatTaipei(new Date(nowIso)),
+        paidAmount: paid,
+        refundedTotal: totalRefunded,
+        refundStatus,
+        reason: reason || null,
+      }),
+    );
+
     return json({
       success: true,
       mode: "cancel",
@@ -331,6 +342,7 @@ Deno.serve(async (req) => {
       totalRefunded,
       remainingRefundable: Math.max(0, paid - totalRefunded),
     });
+
   } catch (e) {
     console.error(`[${FN}] error`, e);
     return json({ error: e instanceof Error ? e.message : "internal_error" }, 500);
