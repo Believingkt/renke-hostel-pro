@@ -317,13 +317,20 @@ export default function AdminGroupBuy() {
     const [{ data: pkgs }, { data: bankRows }, { data: comms }] = await Promise.all([
       supabase.from("group_buy_campaign_packages").select("*").eq("campaign_id", activeId).order("sort_order"),
       supabase.from("group_buy_bank_accounts").select("*").eq("campaign_id", activeId).order("is_default", { ascending: false }),
-      supabase.from("group_buy_commissions").select("order_id, price_snapshot").eq("campaign_id", activeId),
+      supabase
+        .from("group_buy_commissions")
+        .select(
+          "order_id, revenue_base, commission_rate, commission_amount, status, manual_eligibility, manual_note, price_snapshot",
+        )
+        .eq("campaign_id", activeId),
     ]);
     setPackages((pkgs ?? []) as unknown as PackageRow[]);
     setBanks((bankRows ?? []) as unknown as BankRow[]);
+    setCommissions((comms ?? []) as unknown as CommissionRecord[]);
     setSnapshots(
       Object.fromEntries((comms ?? []).map((c: any) => [c.order_id, (c.price_snapshot ?? null) as PriceSnapshot | null])),
     );
+
 
     const orderIds = (comms ?? []).map((c: any) => c.order_id);
     if (orderIds.length === 0) {
