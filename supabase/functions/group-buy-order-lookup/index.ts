@@ -280,7 +280,7 @@ Deno.serve(async (req) => {
       return json({
         success: true,
         cancelRequested: true,
-        message: "已收到您的取消申請，退款將於當月月底前完成處理。",
+        message: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
       });
     }
 
