@@ -43,6 +43,8 @@ interface Props {
   onSave: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** 新建立／正在編輯的方案可預設展開；其餘預設收合 */
+  defaultExpanded?: boolean;
 }
 
 const twd = (n: number | null | undefined) => `NT$${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
@@ -83,7 +85,10 @@ export function GroupBuyPackageCard({
   onSave,
   onDuplicate,
   onDelete,
+  defaultExpanded = false,
 }: Props) {
+  /** 整張方案卡收合：僅隱藏（非 unmount），未儲存的編輯狀態完整保留 */
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const disabled = p.disabled_date_types ?? [];
   const priceText = (label: string, off: boolean, value: number | null) =>
     `${label} ${off ? "不適用" : twd(value ?? p.group_buy_price)}`;
@@ -117,9 +122,21 @@ export function GroupBuyPackageCard({
             <Button size="sm" onClick={onSave}>
               儲存
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-expanded={expanded}
+              aria-label={expanded ? "收合方案" : "展開方案"}
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? "收合" : "展開"}
+              <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            </Button>
           </div>
         </div>
 
+        {/* 展開後的完整編輯區：以 hidden 切換，避免 unmount 重置表單 */}
+        <div className={expanded ? "space-y-3" : "hidden"}>
         {/* 1. 基本設定 */}
         <Section title="1. 基本設定" defaultOpen>
           <div className="md:col-span-2">
@@ -264,6 +281,7 @@ export function GroupBuyPackageCard({
             <Textarea rows={3} value={p.description ?? ""} onChange={(e) => onPatch({ description: e.target.value })} />
           </div>
         </Section>
+        </div>
       </CardContent>
     </Card>
   );

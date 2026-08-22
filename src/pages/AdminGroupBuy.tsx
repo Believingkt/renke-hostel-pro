@@ -628,23 +628,6 @@ export default function AdminGroupBuy() {
     }
   };
 
-  const stats = useMemo(() => {
-    const valid = orders.filter((o) => o.order_status !== "cancelled");
-    const paid = valid.filter((o) => depositState(o) !== "unpaid");
-    return {
-      total: orders.length,
-      valid: valid.length,
-      cancelled: orders.length - valid.length,
-      pendingTransfer: valid.filter((o) => depositState(o) === "unpaid").length,
-      awaitingCheck: valid.filter((o) => o.reported && depositState(o) === "unpaid").length,
-      revenue: valid.reduce((s, o) => s + Number(o.final_price || 0), 0),
-      collected: paid.reduce((s, o) => s + Number(o.paid_amount || 0), 0),
-      commission: Math.round(
-        (valid.reduce((s, o) => s + Number(o.final_price || 0), 0) * Number(activeCampaign?.commission_rate || 0)) / 100,
-      ),
-    };
-
-  }, [orders, activeCampaign]);
 
   /** 銷售分析／匯出／列印共用同一份資料（分潤一律讀快照） */
   const analyticsRows = useMemo(
