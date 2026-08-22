@@ -1340,6 +1340,85 @@ export default function OwnerSettlement() {
             </Table>
           )}
         </CardContent>
+
+        {/* Mobile：訂單明細卡片 */}
+        <CardContent className="flex flex-col gap-3 p-3 md:hidden print:hidden">
+          {loading ? (
+            <TableSkeleton rows={4} columns={3} />
+          ) : tableRows.length === 0 ? (
+            <p className="py-8 text-center text-muted-foreground">{monthLabel} 無入住訂單</p>
+          ) : (
+            tableRows.map((r) => (
+              <div key={r.order.id} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 truncate font-mono text-xs">
+                    {r.order.order_number}
+                    {isGuestCount && gcRowByOrderId[r.order.id]?.premiumBaseFallback && (
+                      <span className="ml-1 text-amber-600">⚠</span>
+                    )}
+                  </span>
+                  {r.exempt && (
+                    <Badge variant="outline" className="shrink-0 text-xs">不抽成</Badge>
+                  )}
+                </div>
+                <div className="mt-1 min-w-0 break-words text-sm">{r.order.guest_name}</div>
+                <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                  {r.order.check_in_date} → {r.order.check_out_date}
+                </div>
+
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t pt-2 text-sm">
+                  <div>
+                    <div className="text-xs text-muted-foreground">本月夜數</div>
+                    <div className="tabular-nums">
+                      {isGuestCount
+                        ? `${r.gc.nightsInMonth} / ${r.gc.totalNights}`
+                        : `${r.std!.nightsInMonth} / ${r.std!.totalNights}`}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">本月營收</div>
+                    <div className="font-semibold tabular-nums">
+                      {r.isForeign
+                        ? `${getCurrencySymbol(r.currency)}${fmt(r.revenueOriginal)}`
+                        : fmt(r.revenue)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground">增值服務</div>
+                    <div className="tabular-nums">
+                      {r.addonTotal > 0
+                        ? r.isForeign
+                          ? `${getCurrencySymbol(r.currency)}${fmt(r.addonTotalOriginal)}`
+                          : fmt(r.addonTotal)
+                        : r.hasUnexcludedAddon
+                          ? "0"
+                          : "—"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-muted-foreground">抽成</div>
+                    <div className="tabular-nums">
+                      {r.exempt ? (
+                        <span className="text-xs text-muted-foreground">
+                          {r.order.owner_direct
+                            ? "業主自帶"
+                            : `不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
+                        </span>
+                      ) : (
+                        <span className="text-destructive">-{fmt(r.commission)}</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-2 text-xs text-muted-foreground">
+                  入住人數：{r.order.guest_count ?? "—"}
+                </div>
+              </div>
+            ))
+          )}
+        </CardContent>
+
       </Card>
 
       {/* 購物商品明細 */}
