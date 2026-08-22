@@ -214,8 +214,9 @@ export function GroupBuyAnalyticsTab({
           </div>
 
 
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block print:block">
             <Table className="min-w-[1100px]">
+
               <TableHeader>
                 <TableRow>
                   <TableHead className="whitespace-nowrap">訂單編號</TableHead>
