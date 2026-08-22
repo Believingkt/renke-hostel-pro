@@ -8,6 +8,7 @@ import {
   renderVenueTransferReported,
   sendGroupBuyEmail,
 } from "../_shared/groupBuyEmail.ts";
+import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_shared/refundPolicy.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
 const FN = "group-buy-order-lookup";
