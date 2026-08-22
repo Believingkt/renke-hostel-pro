@@ -107,6 +107,12 @@ export default function GroupBuyOrderLookup() {
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
+  /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
+  const bn = data?.bookingNotice;
+  const hasBookingNotice = Boolean(
+    bn && (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0),
+  );
+
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
   const refundedFully = data?.refund?.status === "refunded";
 
