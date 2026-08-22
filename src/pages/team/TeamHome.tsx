@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useTeam } from "@/components/team/TeamContext";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCloserTeamPool } from "@/lib/closerTeamPool";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
 import { pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
@@ -663,14 +664,13 @@ export default function TeamHome() {
               closerTeamBonusSum = Math.round(Number((ownDist as any).bonus_amount ?? 0));
               closerTeamBonusNoSet = false;
             } else {
-              // 未定案：全隊當月累積預估池（同樣改由 Edge Function 試算）
-              const { data: teamPreview } = await supabase.functions.invoke(
-                "preview-closer-commission",
-                { body: { year: monthInfo.y, month: monthInfo.m, scope: "team" } },
-              );
-              if (teamPreview?.success) {
-                const totalCloserCommission = Number(teamPreview.team?.closer_commission ?? 0);
-                closerTeamBonusSum = Math.round(totalCloserCommission * bonusRate);
+              // 未定案：全隊本發放期預估池。與分配頁同一個唯讀聚合入口
+              //（snapshots.payout_month + adjustments.adjustment_month，逐筆 split pool 加總）。
+              try {
+                const poolRes = await fetchCloserTeamPool(monthInfo.payoutMonthKey);
+                closerTeamBonusSum = Math.round(Number(poolRes?.pool_total ?? 0));
+              } catch {
+                closerTeamBonusSum = 0;
               }
 
 
