@@ -84,6 +84,7 @@ interface TeamHomePayload {
   closerBackfillSum: number;
   closerBackfillCount: number;
   closerBackfillMonths: string[];
+  closerPreviewCount: number;
   scoutCloserSum: number;
   closerTeamBonusSum: number;
   closerTeamBonusRateVal: number;
