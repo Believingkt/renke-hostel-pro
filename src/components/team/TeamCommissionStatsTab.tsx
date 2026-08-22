@@ -1121,13 +1121,13 @@ export default function TeamCommissionStatsTab() {
                         <TableCell className="font-medium">{r.name}</TableCell>
                         <TableCell className="tabular-nums">{r.validCount}</TableCell>
                         <TableCell className="tabular-nums">{fmtMoney(r.validAmount)}</TableCell>
-                        <TableCell className="tabular-nums">{renderCommissionCell(r.commission)}</TableCell>
+                        <TableCell className="tabular-nums">{renderCommissionCell(memberCommissionSum)}</TableCell>
                         {hasBackfill && (
-                          <TableCell className="tabular-nums">{renderAdjCell(memberBfGross)}</TableCell>
+                          <TableCell className="tabular-nums">{renderAdjCell(memberBfSum)}</TableCell>
                         )}
                         {showAdj && (
                           <>
-                            <TableCell className="tabular-nums">{renderAdjCell(memberAdjGross)}</TableCell>
+                            <TableCell className="tabular-nums">{renderAdjCell(memberAdjSum)}</TableCell>
 
 
                             <TableCell className="tabular-nums font-semibold">
