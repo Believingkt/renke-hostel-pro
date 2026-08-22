@@ -1622,27 +1622,43 @@ export default function GroupBuyCampaign() {
 
 
 
-          {showFaq && <FaqSection items={faqItems} formatPlainText mobileInitialCount={5} />}
+          {showFaq && <FaqSection items={faqItems} formatPlainText mobileInitialCount={3} />}
 
-          {showBookingNotice && (
-            <div id="gb-notice" className="scroll-mt-16">
-              <GroupBuyBookingInfoCompact
-                bookingSettings={secondaryData?.bookingSettings}
-                visibleKeys={campaign.booking_notice_keys ?? undefined}
-              >
-                <BookingInfoSection
+          {/* ── 訂房規則（活動注意事項＋訂房須知，統一收在頁尾前） ── */}
+          {showRulesSection && (
+            <section id="gb-rules" className="scroll-mt-16 py-8 sm:py-10">
+              {campaign.terms_html && (
+                <div className="mb-6">
+                  <h2 className="mb-2 text-base font-semibold text-foreground">團購活動注意事項</h2>
+                  <GroupBuyRichContent
+                    html={campaign.terms_html}
+                    collapsedHeight={160}
+                    className="prose prose-sm max-w-none text-muted-foreground"
+                    moreLabel="展開注意事項"
+                    lessLabel="收合注意事項"
+                  />
+                </div>
+              )}
+              {showBookingNotice && (
+                <GroupBuyBookingInfoCompact
                   bookingSettings={secondaryData?.bookingSettings}
-                  checkInNotice={accInfo.check_in_notice}
-                  customSections={secondaryData?.customBookingSections}
                   visibleKeys={campaign.booking_notice_keys ?? undefined}
-                  mobileSingleAccordion
-                />
-              </GroupBuyBookingInfoCompact>
-            </div>
+                >
+                  <BookingInfoSection
+                    bookingSettings={secondaryData?.bookingSettings}
+                    checkInNotice={accInfo.check_in_notice}
+                    customSections={secondaryData?.customBookingSections}
+                    visibleKeys={campaign.booking_notice_keys ?? undefined}
+                    mobileSingleAccordion
+                  />
+                </GroupBuyBookingInfoCompact>
+              )}
+            </section>
           )}
 
         </div>
       )}
+
 
       <BookingFooter
         hidePartnershipInfo
