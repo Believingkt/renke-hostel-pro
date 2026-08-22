@@ -263,6 +263,7 @@ export default function AdminGroupBuy() {
   const [auditTarget, setAuditTarget] = useState<OrderRow | null>(null);
   /** 修改分潤比例的確認彈窗 */
   const [rateDialog, setRateDialog] = useState<{ oldRate: number; newRate: number } | null>(null);
+  const [roomTypes, setRoomTypes] = useState<{ id: string; name: string }[]>([]);
 
   const [editing, setEditing] = useState<Partial<Campaign> | null>(null);
   const [saving, setSaving] = useState(false);
