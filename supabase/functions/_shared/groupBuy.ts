@@ -125,3 +125,18 @@ export function buildEmailOrder(params: {
     orderUrl: `${origin}/g/order/${encodeURIComponent(order.order_number)}`,
   };
 }
+
+/** 後台團購訂單對帳深連結：直接定位到該活動的「訂單對帳」分頁並標示該筆訂單 */
+export function buildAdminGroupBuyUrl(params: {
+  origin?: string | null;
+  accommodationId?: string | null;
+  campaignId?: string | null;
+  orderNumber?: string | null;
+}): string {
+  const origin = params.origin || "https://pms.lakeze.com";
+  const qs = new URLSearchParams({ tab: "orders" });
+  if (params.accommodationId) qs.set("accId", params.accommodationId);
+  if (params.campaignId) qs.set("campaignId", params.campaignId);
+  if (params.orderNumber) qs.set("orderNumber", params.orderNumber);
+  return `${origin}/admin/group-buy?${qs.toString()}`;
+}

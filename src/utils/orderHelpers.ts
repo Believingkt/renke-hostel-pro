@@ -33,8 +33,29 @@ export const getPaymentStatusConfig = (status: string) => {
     overdue: { label: "已逾期", className: "bg-red-100 text-red-700 border-red-200" },
     refunded: { label: "已退款", className: "bg-gray-100 text-gray-700 border-gray-200" },
     partial_refunded: { label: "部分退款", className: "bg-amber-100 text-amber-700 border-amber-200" },
+    pending_refund: { label: "待退款", className: "bg-amber-100 text-amber-700 border-amber-200" },
   };
   return statusMap[status] || { label: status, className: "bg-muted text-muted-foreground border-border" };
+};
+
+/**
+ * 顯示用付款狀態：退款狀態優先於付款狀態。
+ * 已退款／部分退款／待退款一律蓋過「已付訂金／已付清」，避免退款完成仍顯示已收款。
+ */
+export const getDisplayPaymentStatus = (order: {
+  payment_status?: string | null;
+  refund_status?: string | null;
+  refunded_amount?: number | null;
+  paid_amount?: number | null;
+  payment_link_created_at?: string | null;
+}): string => {
+  const refundStatus = String(order.refund_status ?? "none");
+  const refunded = Math.max(0, Math.round(Number(order.refunded_amount) || 0));
+  const paid = Math.max(0, Math.round(Number(order.paid_amount) || 0));
+  if (refundStatus === "refunded" || (refunded > 0 && refunded >= paid && paid > 0)) return "refunded";
+  if (refunded > 0 || refundStatus === "partial_refunded") return "partial_refunded";
+  if (refundStatus === "pending" || refundStatus === "pending_manual") return "pending_refund";
+  return getEffectivePaymentStatus(String(order.payment_status ?? ""), order.payment_link_created_at);
 };
 
 export const getOrderStatusConfig = (status: string) => {

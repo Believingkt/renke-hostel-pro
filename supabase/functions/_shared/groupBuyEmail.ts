@@ -393,3 +393,59 @@ export function renderVenueTransferReported(
     ),
   };
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * 旅客提出取消申請（旅客確認信 + 民宿通知信）
+ * ───────────────────────────────────────────────────────────── */
+
+export interface GroupBuyCancelRequestInfo {
+  requestedAtText: string;
+  reason?: string | null;
+  paidAmount?: number | null;
+}
+
+/** 寄給旅客：已收到取消申請 */
+export function renderGuestCancelRequested(
+  o: GroupBuyEmailOrder,
+  info: GroupBuyCancelRequestInfo,
+): { subject: string; html: string } {
+  return {
+    subject: `【已收到取消申請】${o.campaignTitle} 訂單 ${o.orderNumber}`,
+    html: layout(
+      "已收到取消申請",
+      `訂單 ${o.orderNumber} 取消申請已送出`,
+      `<h1>已收到您的取消申請</h1>
+       <p>${esc(o.guestName)} 您好，我們已收到訂單 <strong>${esc(o.orderNumber)}</strong> 的取消申請，民宿將盡快與您確認後續處理。</p>
+       ${orderTable(o)}
+       <table class="info">
+         <tr><td class="k">申請時間</td><td>${esc(info.requestedAtText)}</td></tr>
+         ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
+       </table>
+       <p>提醒：取消申請尚未完成，訂單狀態仍為原狀態，實際取消與退款結果將於民宿確認後另行通知。</p>
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單狀態</a></p>` : ""}`,
+    ),
+  };
+}
+
+/** 寄給民宿／管理者：旅客提出取消申請 */
+export function renderVenueCancelRequested(
+  o: VenueNotifyOrder,
+  info: GroupBuyCancelRequestInfo,
+): { subject: string; html: string } {
+  return {
+    subject: `【取消申請】${o.campaignTitle}／訂單 ${o.orderNumber}`,
+    html: layout(
+      "旅客提出取消申請",
+      `訂單 ${o.orderNumber} 旅客提出取消申請`,
+      `<h1>旅客提出取消申請</h1>
+       <p>請前往後台確認是否受理取消，並依收款狀況處理退款。</p>
+       <table class="info">
+         ${venueBaseRows(o)}
+         <tr><td class="k">申請時間</td><td>${esc(info.requestedAtText)}</td></tr>
+         ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
+         ${info.paidAmount ? `<tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>` : ""}
+       </table>
+       ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台處理取消</a></p>` : ""}`,
+    ),
+  };
+}

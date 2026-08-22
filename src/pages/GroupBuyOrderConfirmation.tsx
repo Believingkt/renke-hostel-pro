@@ -61,16 +61,19 @@ export default function GroupBuyOrderConfirmation() {
   const result = state.result ?? null;
   const order = data?.order ?? null;
   const emails: any[] = data?.emails ?? [];
-  const lastBookingMail = emails[0] ?? null;
-  const bookingMailState: MailState = lastBookingMail
-    ? lastBookingMail.status
+  // 只看寄給旅客的信件事件；內部（民宿）通知與 raw metadata 一律不呈現給客人
+  const guestEmails = emails.filter((e) => !e.recipientType || e.recipientType === "guest");
+  const bookingMail = guestEmails.find((e) => !e.templateType || e.templateType === "booking_pending") ?? null;
+  const bookingMailState: MailState = bookingMail
+    ? bookingMail.status
     : result
       ? (result.emailSent ? "sent" : "failed")
       : "pending";
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
-  const depositMailState: MailState = confirmed
-    ? (emails.some((e) => e.status === "sent" && String(e.note ?? "").includes("訂金確認信")) ? "sent" : "failed")
-    : "pending";
+  const depositMail = guestEmails.find((e) => e.templateType === "deposit_received") ?? null;
+  const depositMailState: MailState = confirmed ? (depositMail?.status ?? "sent") : "pending";
+  const maskedEmail: string | null = order?.guestEmailMasked ?? null;
+
 
   const bank = data?.bank ?? result?.bank ?? null;
   const total = order?.total ?? result?.total ?? 0;
@@ -131,13 +134,24 @@ export default function GroupBuyOrderConfirmation() {
             <MailRow
               label="訂房通知＋匯款資訊信"
               state={bookingMailState}
-              note={lastBookingMail?.note ?? (result ? undefined : "尚無寄送紀錄")}
+              note={
+                bookingMailState === "sent"
+                  ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                  : bookingMailState === "failed"
+                    ? "通知信寄送失敗，請依下方匯款資訊完成匯款"
+                    : "訂單成立後寄出"
+              }
             />
             <MailRow
               label="訂金確認信"
               state={depositMailState}
-              note={confirmed ? undefined : "民宿確認收到訂金後寄出"}
+              note={
+                depositMailState === "sent"
+                  ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                  : "民宿確認收到訂金後寄出"
+              }
             />
+
             {bookingMailState === "failed" && (
               <p className="mt-2 text-xs text-destructive">
                 通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
