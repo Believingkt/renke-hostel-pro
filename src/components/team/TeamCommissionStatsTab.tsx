@@ -1039,9 +1039,12 @@ export default function TeamCommissionStatsTab() {
 
                 stats.map((r) => {
                   const isOpen = expanded.has(r.uid);
-                  const memberAdj = netCommission(byUid.get(r.uid) ?? 0);
-                  const memberBf = netCommission(bfByUid.get(r.uid) ?? 0);
+                  const memberAdjGross = byUid.get(r.uid) ?? 0;
+                  const memberBfGross = bfByUid.get(r.uid) ?? 0;
+                  const memberAdj = netCommission(memberAdjGross);
+                  const memberBf = netCommission(memberBfGross);
                   const memberTotal = netCommission(r.commission) + memberAdj + memberBf;
+
                   const memberTotalBoosted =
                     boostedAmount(netCommission(r.commission), bonusMultiplier) +
                     boostedAmount(memberAdj, bonusMultiplier) +
