@@ -164,6 +164,32 @@ function dateList(checkIn: string, n: number) {
   );
 }
 
+/**
+ * Hero 起價用：此方案在活動可入住期間內是否還有「可訂的住宿夜」。
+ * 只看日期類型與不適用日期（純展示層判斷，不涉及庫存與實際計價）。
+ */
+function hasBookableNight(
+  p: CampaignPackage,
+  campaign: { stay_start_date: string | null; stay_end_date: string | null },
+  today: string,
+  holidays: Set<string>,
+): boolean {
+  if (enabledDateTypes(p).length === 0) return false;
+  const excluded = new Set((p.excluded_dates ?? []).map((d) => String(d).slice(0, 10)));
+  const start =
+    campaign.stay_start_date && campaign.stay_start_date > today ? campaign.stay_start_date : today;
+  const end = campaign.stay_end_date;
+  const [y, m, d] = start.split("-").map(Number);
+  for (let i = 0; i < 400; i++) {
+    const iso = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + i)).toISOString().split("T")[0];
+    if (end && iso > end) break;
+    if (excluded.has(iso)) continue;
+    if (isDateTypeEnabled(p, getGroupBuyDateType(iso, holidays))) return true;
+  }
+  return false;
+}
+
+
 export default function GroupBuyCampaign() {
   const { slug } = useParams<{ slug: string }>();
   const { toast } = useToast();
