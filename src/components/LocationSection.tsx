@@ -71,10 +71,13 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
   }
 
   const allNearbyAttractions = locationInfo?.nearby_attractions || [];
+  const effectiveInitialCount = isMobile
+    ? initialAttractionCount
+    : (initialAttractionCountDesktop ?? initialAttractionCount);
   const collapsedAttractions =
-    !!initialAttractionCount && !showAllAttractions && allNearbyAttractions.length > initialAttractionCount;
+    !!effectiveInitialCount && !showAllAttractions && allNearbyAttractions.length > effectiveInitialCount;
   const nearbyAttractions = collapsedAttractions
-    ? allNearbyAttractions.slice(0, initialAttractionCount)
+    ? allNearbyAttractions.slice(0, effectiveInitialCount)
     : allNearbyAttractions;
 
 
