@@ -144,6 +144,9 @@ serve(async (req) => {
         const ord = ordersMap.get(orderId);
         if (!ord) continue;
         if (ord.order_status === "cancelled") continue; // handled in scenario B
+        // 未發放 → 由 resync 改寫快照，不建立補差（互斥責任）
+        if (!paidSnapIds.has(s.id as string)) { amountChangeSkippedUnpaid++; continue; }
+
         // 非台幣訂單不計入獎金（null 視為台幣）
         if (ord.currency_at_booking && ord.currency_at_booking !== "TWD") continue;
         // 免抽成來源訂單不產生調整
