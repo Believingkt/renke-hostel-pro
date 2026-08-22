@@ -32,13 +32,7 @@ export default function Auth() {
     const nextPath = getNextPath();
     if (nextPath) return nextPath;
     const segments = window.location.pathname.split("/").filter(Boolean);
-    const RESERVED = new Set([
-      "admin", "auth", "login", "hq", "hq-auth", "headquarters", "booking", "book",
-      "member", "ai-booking", "order-search", "profile", "payment-test",
-      "kol-api-docs", "points-api-docs", "pay", "payment-result",
-      "reset-password", "change-password", "og-preview", "__cb",
-    ]);
-    if (segments.length > 0 && !RESERVED.has(segments[0])) {
+    if (segments.length > 0 && !isReservedFirstSegment(segments[0])) {
       return `/${segments[0]}/admin`;
     }
     return "/admin";
