@@ -35,7 +35,9 @@ interface LocationSectionProps {
   customSubtitle?: string;
   /** 第一層最多顯示幾個附近景點（未設定＝全部顯示，維持一般訂房頁行為） */
   initialAttractionCount?: number;
-  /** 精簡模式（團購頁手機版）：縮小標題間距、地圖高度 */
+  /** 桌機版第一層顯示幾個景點（未設定＝沿用 initialAttractionCount） */
+  initialAttractionCountDesktop?: number;
+
   compact?: boolean;
 }
 
