@@ -54,7 +54,7 @@ export function DateField({ value, onChange, minDate, maxDate, placeholder = "ÈÅ
           <span className="truncate">
             {selected ? format(selected, "yyyy/MM/dd (EEE)", { locale: zhTW }) : placeholder}
           </span>
-          {selected && (
+          {selected && clearable && (
             <X
               className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
@@ -74,7 +74,15 @@ export function DateField({ value, onChange, minDate, maxDate, placeholder = "ÈÅ
             onChange(d ? format(d, "yyyy-MM-dd") : null);
             setOpen(false);
           }}
-          disabled={min ? (date) => startOfDay(date) < min : undefined}
+          disabled={
+            min || max
+              ? (date) => {
+                  const d = startOfDay(date);
+                  return (min ? d < min : false) || (max ? d > max : false);
+                }
+              : undefined
+          }
+
           initialFocus
           locale={zhTW}
           className={cn("p-3 pointer-events-auto")}
