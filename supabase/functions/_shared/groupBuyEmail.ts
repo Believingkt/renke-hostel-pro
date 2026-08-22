@@ -267,10 +267,13 @@ export function renderRefundProcessed(
 
 /** 實際送出（缺 key 或缺信箱時安靜跳過，不影響主流程） */
 export async function sendGroupBuyEmail(
-  to: string | null | undefined,
+  to: string | string[] | null | undefined,
   mail: { subject: string; html: string },
 ): Promise<{ ok: boolean; reason?: string }> {
-  if (!to) return { ok: false, reason: "no_email" };
+  const recipients = (Array.isArray(to) ? to : [to])
+    .map((v) => String(v ?? "").trim())
+    .filter((v) => v.length > 0);
+  if (recipients.length === 0) return { ok: false, reason: "no_email" };
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY_1");
   if (!lovableKey || !resendKey) return { ok: false, reason: "email_not_configured" };
@@ -283,7 +286,7 @@ export async function sendGroupBuyEmail(
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": resendKey,
       },
-      body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject: mail.subject, html: mail.html }),
+      body: JSON.stringify({ from: FROM_EMAIL, to: recipients, subject: mail.subject, html: mail.html }),
     });
     if (!resp.ok) {
       const text = await resp.text();
@@ -295,4 +298,98 @@ export async function sendGroupBuyEmail(
     console.error("[groupBuyEmail] send threw", e);
     return { ok: false, reason: "exception" };
   }
+}
+
+
+/* ─────────────────────────────────────────────────────────────
+ * 民宿／管理者內部通知（與旅客信完全分開，收件人只由後端 DB 設定解析）
+ * ───────────────────────────────────────────────────────────── */
+
+export interface VenueNotifyOrder extends GroupBuyEmailOrder {
+  guestPhone?: string | null;
+  guestEmail?: string | null;
+  nights?: number | null;
+  adultCount?: number | null;
+  childCount?: number | null;
+  toddlerCount?: number | null;
+  infantCount?: number | null;
+  childBreakdownText?: string | null;
+  paymentStatusText?: string | null;
+  /** 後台連結（AdminGroupBuy） */
+  adminUrl?: string | null;
+}
+
+function venueBaseRows(o: VenueNotifyOrder): string {
+  return `<tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
+    <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
+    ${o.accommodationName ? `<tr><td class="k">民宿</td><td>${esc(o.accommodationName)}</td></tr>` : ""}
+    ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
+    <tr><td class="k">入住日期</td><td>${esc(o.checkInDate)}</td></tr>
+    <tr><td class="k">退房日期</td><td>${esc(o.checkOutDate)}</td></tr>
+    ${o.nights ? `<tr><td class="k">住宿晚數</td><td>${esc(o.nights)} 晚</td></tr>` : ""}
+    <tr><td class="k">旅客姓名</td><td>${esc(o.guestName)}</td></tr>
+    ${o.guestPhone ? `<tr><td class="k">聯絡電話</td><td>${esc(o.guestPhone)}</td></tr>` : ""}
+    ${o.guestEmail ? `<tr><td class="k">Email</td><td>${esc(o.guestEmail)}</td></tr>` : ""}`;
+}
+
+export function renderVenueNewOrder(o: VenueNotifyOrder): { subject: string; html: string } {
+  const guests = [
+    `成人 ${Number(o.adultCount ?? 0)}`,
+    `兒童 ${Number(o.childCount ?? 0)}`,
+    `幼兒 ${Number(o.toddlerCount ?? 0)}`,
+    `嬰兒 ${Number(o.infantCount ?? 0)}`,
+  ].join("　");
+  return {
+    subject: `【新團購訂單・待匯款】${o.accommodationName ?? o.campaignTitle} 訂單 ${o.orderNumber}`,
+    html: layout(
+      "新團購訂單",
+      `訂單 ${o.orderNumber} 已成立，待旅客匯款`,
+      `<h1>新團購訂單</h1>
+       <p>有一筆新的團購訂單成立，目前狀態為「待匯款」，請留意入帳並於後台確認。</p>
+       <table class="info">
+         ${venueBaseRows(o)}
+         <tr><td class="k">入住人數</td><td>${esc(guests)}</td></tr>
+         <tr><td class="k">訂單金額</td><td>${money(o.totalPrice)}</td></tr>
+         <tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
+         <tr><td class="k">入住支付尾款</td><td>${money(o.balanceAmount)}</td></tr>
+         <tr><td class="k">付款狀態</td><td>待匯款</td></tr>
+       </table>
+       ${o.childBreakdownText ? `<div class="box"><h2>兒童加價</h2><p style="white-space:pre-line;margin:0">${esc(o.childBreakdownText)}</p></div>` : ""}
+       ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台查看訂單</a></p>` : ""}`,
+    ),
+  };
+}
+
+export interface VenueTransferInfo {
+  accountLast5: string;
+  transferDateText: string;
+  transferTimeText: string;
+}
+
+export function renderVenueTransferReported(
+  o: VenueNotifyOrder,
+  info: VenueTransferInfo,
+): { subject: string; html: string } {
+  return {
+    subject: `【客人已回報匯款】${o.accommodationName ?? o.campaignTitle} 訂單 ${o.orderNumber}`,
+    html: layout(
+      "客人已回報匯款",
+      `訂單 ${o.orderNumber} 旅客已回報完成匯款`,
+      `<h1>客人已回報匯款</h1>
+       <p>旅客已回報完成匯款，請核對入帳後於後台確認收款。</p>
+       <table class="info">
+         ${venueBaseRows(o)}
+         <tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
+         <tr><td class="k">目前付款狀態</td><td>${esc(o.paymentStatusText ?? "待匯款")}</td></tr>
+       </table>
+       <div class="box"><h2>匯款回報資訊</h2>
+         <table class="info" style="margin:0">
+           <tr><td class="k">匯款帳號後五碼</td><td><strong>${esc(info.accountLast5)}</strong></td></tr>
+           <tr><td class="k">匯款日期</td><td>${esc(info.transferDateText)}</td></tr>
+           <tr><td class="k">匯款時間</td><td>${esc(info.transferTimeText)}</td></tr>
+         </table>
+       </div>
+       ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台確認入帳</a></p>` : ""}`,
+    ),
+  };
 }
