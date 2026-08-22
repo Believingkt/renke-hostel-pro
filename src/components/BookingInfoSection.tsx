@@ -57,46 +57,6 @@ const BookingInfoSection = ({
   visibleKeys,
   mobileSingleAccordion,
 }: BookingInfoSectionProps) => {
-  const hasPetPolicy = bookingSettings?.pet_policy && bookingSettings.pet_policy.trim() !== "";
-  const hasOtherNotes = bookingSettings?.other_notes && bookingSettings.other_notes.trim() !== "";
-  const hasCheckInTime = bookingSettings?.check_in_time && bookingSettings.check_in_time.trim() !== "";
-  const hasCheckOutTime = bookingSettings?.check_out_time && bookingSettings.check_out_time.trim() !== "";
-  const hasPaymentMethods = Array.isArray(bookingSettings?.payment_methods) && bookingSettings.payment_methods.length > 0;
-  const hasCancellationPolicy = bookingSettings?.cancellation_policy && bookingSettings.cancellation_policy.trim() !== "";
-  const hasCheckInNotice = checkInNotice && checkInNotice.trim() !== "";
-  const hasCustomSections = customSections.filter((s) => s.is_enabled && s.section_content?.trim()).length > 0;
-
-  const sectionLabels = {
-    checkIn: {
-      title: bookingSettings?.check_in_section_title || "入住時間",
-      subtitle: bookingSettings?.check_in_section_subtitle || undefined,
-    },
-    payment: {
-      title: bookingSettings?.payment_section_title || "付款方式",
-      subtitle: bookingSettings?.payment_section_subtitle || undefined,
-    },
-    cancellation: {
-      title: bookingSettings?.cancellation_section_title || "取消政策",
-      subtitle: bookingSettings?.cancellation_section_subtitle || undefined,
-    },
-    important: {
-      title: bookingSettings?.important_section_title || "重要事項",
-      subtitle: bookingSettings?.important_section_subtitle || undefined,
-    },
-    pet: {
-      title: bookingSettings?.pet_section_title || "寵物入住守則",
-      subtitle: bookingSettings?.pet_section_subtitle || undefined,
-    },
-    other: {
-      title: bookingSettings?.other_section_title || "其他注意事項",
-      subtitle: bookingSettings?.other_section_subtitle || undefined,
-    },
-  };
-
-  const hasAnyData =
-    hasCheckInTime || hasCheckOutTime || hasPaymentMethods || hasCancellationPolicy ||
-    hasCheckInNotice || hasPetPolicy || hasOtherNotes || hasCustomSections;
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
 
@@ -105,86 +65,12 @@ const BookingInfoSection = ({
     setDialogOpen(true);
   };
 
-  if (!hasAnyData) return null;
-
-  const enabledCustomSections = customSections
-    .filter((s) => s.is_enabled && s.section_content?.trim())
-    .sort((a, b) => a.display_order - b.display_order);
-
-  // 統一面板資料，供桌面卡片與手機 Accordion 共用
-  const panels: Panel[] = [];
-
-  if (hasCheckInTime || hasCheckOutTime) {
-    panels.push({
-      key: "checkIn",
-      icon: Clock,
-      title: sectionLabels.checkIn.title,
-      subtitle: sectionLabels.checkIn.subtitle,
-      textRows: [
-        ...(hasCheckInTime ? [{ label: "入住", value: `${bookingSettings.check_in_time} 之後` }] : []),
-        ...(hasCheckOutTime ? [{ label: "退房", value: `${bookingSettings.check_out_time} 之前` }] : []),
-      ],
-    });
-  }
-  if (hasPaymentMethods) {
-    panels.push({
-      key: "payment",
-      icon: CreditCard,
-      title: sectionLabels.payment.title,
-      subtitle: sectionLabels.payment.subtitle,
-      textRows: bookingSettings.payment_methods.map((m: string) => ({ value: m })),
-    });
-  }
-  if (hasCancellationPolicy) {
-    panels.push({
-      key: "cancellation",
-      icon: FileText,
-      title: sectionLabels.cancellation.title,
-      subtitle: sectionLabels.cancellation.subtitle,
-      html: bookingSettings.cancellation_policy,
-    });
-  }
-  if (hasCheckInNotice) {
-    panels.push({
-      key: "important",
-      icon: AlertTriangle,
-      title: sectionLabels.important.title,
-      subtitle: sectionLabels.important.subtitle,
-      html: checkInNotice,
-    });
-  }
-  if (hasPetPolicy) {
-    panels.push({
-      key: "pet",
-      icon: PawPrint,
-      title: sectionLabels.pet.title,
-      subtitle: sectionLabels.pet.subtitle,
-      html: bookingSettings.pet_policy,
-    });
-  }
-  if (hasOtherNotes) {
-    panels.push({
-      key: "other",
-      icon: Info,
-      title: sectionLabels.other.title,
-      subtitle: sectionLabels.other.subtitle,
-      html: bookingSettings.other_notes,
-    });
-  }
-  enabledCustomSections.forEach((section) => {
-    panels.push({
-      key: `custom-${section.id}`,
-      icon: LayoutList,
-      title: section.section_title,
-      subtitle: section.section_subtitle || undefined,
-      html: section.section_content || "",
-    });
-  });
-
-  // 指定顯示項目時：依 visibleKeys 順序過濾，失效／不存在的 key 自動略過
-  const visiblePanels = visibleKeys
-    ? (visibleKeys.map((k) => panels.find((p) => p.key === k)).filter(Boolean) as Panel[])
-    : panels;
+  // 面板來源：sections（歷史快照）優先，否則由 live data 組裝後依 visibleKeys 過濾
+  const basePanels = sections ?? applyVisibleKeys(
+    buildBookingNoticePanels(bookingSettings, checkInNotice, customSections),
+    visibleKeys,
+  );
+  const visiblePanels: Panel[] = basePanels.map((p) => ({ ...p, icon: iconForKey(p.key) }));
   if (visiblePanels.length === 0) return null;
 
 
