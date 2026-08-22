@@ -1640,6 +1640,7 @@ export default function GroupBuyCampaign() {
                 customTitle="交通資訊"
                 compact
                 initialAttractionCount={2}
+                initialAttractionCountDesktop={3}
               />
             </div>
           )}
