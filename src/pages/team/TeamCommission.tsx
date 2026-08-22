@@ -1818,9 +1818,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               <TableBody>
                 {(venueDetail?.items ?? []).map((it) => (
                   <TableRow key={it.key}>
-                    <TableCell className="text-xs">{it.detail || it.order_number || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {it.detail || it.order_number || "—"}
+                      {it.gross_amount != null && it.pool_amount != null && (
+                        <span className="ml-1 text-[11px] text-muted-foreground">
+                          （原始 {formatMoney(it.gross_amount)}、團獎池提撥 -{formatMoney(it.pool_amount)}）
+                        </span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div
+                        className="flex items-center justify-end gap-1.5"
+                        title={
+                          it.gross_amount != null && it.pool_amount != null
+                            ? `原始成交獎金 ${formatMoney(it.gross_amount)}／團獎池提撥 -${formatMoney(it.pool_amount)}／個人實發 ${formatMoney(it.amount)}`
+                            : undefined
+                        }
+                      >
                         {it.multiplier > 1 && (
                           <span className="text-xs text-muted-foreground line-through">
                             {formatMoney(it.amount)}
@@ -1834,6 +1848,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                         <span>{formatMoney(it.multiplied_amount)}</span>
                       </div>
                     </TableCell>
+
                     <TableCell>
                       {it.paid ? (
                         <Badge variant="outline" className="text-xs">已發放 {it.payout_date ?? ""}</Badge>
