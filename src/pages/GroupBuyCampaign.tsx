@@ -46,6 +46,8 @@ import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookin
 import { GroupBuyGuestPicker } from "@/components/groupbuy/GroupBuyGuestPicker";
 import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/GroupBuyQuickNav";
 import { taipeiToday } from "@/lib/taipeiToday";
+import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
+
 import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
@@ -68,6 +70,11 @@ interface Campaign {
   /** 封面圖顯示重點（百分比，後台可調；預設置中） */
   cover_focus_x: number | null;
   cover_focus_y: number | null;
+  cover_zoom?: number | null;
+  cover_focus_x_mobile?: number | null;
+  cover_focus_y_mobile?: number | null;
+  cover_zoom_mobile?: number | null;
+
   gallery_urls: string[];
   kol_display_name: string | null;
   sale_start: string | null;
@@ -894,18 +901,25 @@ export default function GroupBuyCampaign() {
       {/* ── Hero ── */}
       <header className="relative">
         {campaign.cover_image_url ? (
-          <div className="relative">
+          <div className="relative overflow-hidden">
+            {/* 手機 Hero：16:10 */}
             <img
               src={campaign.cover_image_url}
               alt={venueName || campaign.title}
-              style={{
-                objectPosition: `${Number(campaign.cover_focus_x ?? 50)}% ${Number(campaign.cover_focus_y ?? 50)}%`,
-              }}
-              className="h-[62vw] max-h-[560px] min-h-[300px] w-full object-cover sm:h-[42vw]"
+              style={coverImageStyle(resolveCoverFocus(campaign as any, "mobile"))}
+              className="aspect-[16/10] w-full object-cover sm:hidden"
+            />
+            {/* 桌機 Hero：16:6 */}
+            <img
+              src={campaign.cover_image_url}
+              alt={venueName || campaign.title}
+              style={coverImageStyle(resolveCoverFocus(campaign as any, "desktop"))}
+              className="hidden aspect-[16/6] w-full object-cover sm:block"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background/85 to-transparent" />
           </div>
         ) : (
+
           <div className="h-20 w-full" />
         )}
         <div className={SHELL}>

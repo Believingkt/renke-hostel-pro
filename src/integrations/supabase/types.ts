@@ -4232,8 +4232,12 @@ export type Database = {
           contact_note: string | null
           counts_owner_settlement: boolean
           cover_focus_x: number
+          cover_focus_x_mobile: number | null
           cover_focus_y: number
+          cover_focus_y_mobile: number | null
           cover_image_url: string | null
+          cover_zoom: number
+          cover_zoom_mobile: number | null
           created_at: string
           created_by: string | null
           deposit_percentage: number
@@ -4270,8 +4274,12 @@ export type Database = {
           contact_note?: string | null
           counts_owner_settlement?: boolean
           cover_focus_x?: number
+          cover_focus_x_mobile?: number | null
           cover_focus_y?: number
+          cover_focus_y_mobile?: number | null
           cover_image_url?: string | null
+          cover_zoom?: number
+          cover_zoom_mobile?: number | null
           created_at?: string
           created_by?: string | null
           deposit_percentage?: number
@@ -4308,8 +4316,12 @@ export type Database = {
           contact_note?: string | null
           counts_owner_settlement?: boolean
           cover_focus_x?: number
+          cover_focus_x_mobile?: number | null
           cover_focus_y?: number
+          cover_focus_y_mobile?: number | null
           cover_image_url?: string | null
+          cover_zoom?: number
+          cover_zoom_mobile?: number | null
           created_at?: string
           created_by?: string | null
           deposit_percentage?: number

@@ -114,7 +114,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilitie
                   type="button"
                   aria-label="上一張"
                   onClick={() => go(-1)}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/80 p-0 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
                 >
                   <ChevronLeft className="h-5 w-5" />
                 </button>
@@ -122,7 +122,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilitie
                   type="button"
                   aria-label="下一張"
                   onClick={() => go(1)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 p-1.5 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/80 p-0 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -132,7 +132,7 @@ export function GroupBuyVenueIntro({ accommodationId, hideGallery, hideFacilitie
               type="button"
               aria-label="全螢幕檢視"
               onClick={() => setLightbox(true)}
-              className="absolute right-2 top-2 rounded-full bg-background/80 p-1.5 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
+              className="absolute right-2 top-2 inline-flex h-11 w-11 items-center justify-center rounded-full bg-background/80 p-0 text-foreground shadow-sm backdrop-blur transition hover:bg-background"
             >
               <Expand className="h-4 w-4" />
             </button>

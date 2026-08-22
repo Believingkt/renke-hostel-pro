@@ -23,7 +23,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
-import { CoverFocusField } from "@/components/admin/CoverFocusField";
+import { CoverCropEditor } from "@/components/admin/CoverCropEditor";
+import { resolveCoverFocus } from "@/lib/coverFocus";
+
 import { GroupBuyVenueIntroEditor } from "@/components/admin/GroupBuyVenueIntroEditor";
 import { FeaturedFacilityPicker, FeaturedPhotoPicker } from "@/components/admin/GroupBuyFeaturedPickers";
 
@@ -125,6 +127,11 @@ interface Campaign {
   cover_image_url: string | null;
   cover_focus_x?: number | null;
   cover_focus_y?: number | null;
+  cover_zoom?: number | null;
+  cover_focus_x_mobile?: number | null;
+  cover_focus_y_mobile?: number | null;
+  cover_zoom_mobile?: number | null;
+
   kol_display_name: string | null;
   discount_code: string | null;
   sale_start: string | null;
@@ -1160,21 +1167,32 @@ export default function AdminGroupBuy() {
               <div className="md:col-span-2">
                 <Label>封面圖片</Label>
                 <p className="mb-1.5 text-xs text-muted-foreground">
-                  建議尺寸 1920×1080（16:9）以上，橫式、主體置中，檔案 8MB 以內。
+                  建議尺寸 2400×900 以上，建議比例 16:6（桌機）／16:10（手機），支援 JPG／PNG／WebP，檔案 8MB 以內。
                 </p>
                 <ImageUploadField
                   value={editing.cover_image_url ?? null}
                   onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
                   pathPrefix={`${accommodationId}/group-buy/cover`}
                 />
-                <CoverFocusField
+                <CoverCropEditor
                   className="mt-3"
                   imageUrl={editing.cover_image_url}
-                  x={Number((editing as any).cover_focus_x ?? 50)}
-                  y={Number((editing as any).cover_focus_y ?? 50)}
-                  onChange={({ x, y }) => setEditing({ ...editing, cover_focus_x: x, cover_focus_y: y } as any)}
+                  desktop={resolveCoverFocus(editing as any, "desktop")}
+                  mobile={resolveCoverFocus(editing as any, "mobile")}
+                  onChange={({ desktop, mobile }) =>
+                    setEditing({
+                      ...editing,
+                      cover_focus_x: desktop.x,
+                      cover_focus_y: desktop.y,
+                      cover_zoom: desktop.zoom,
+                      cover_focus_x_mobile: mobile.x,
+                      cover_focus_y_mobile: mobile.y,
+                      cover_zoom_mobile: mobile.zoom,
+                    } as any)
+                  }
                 />
               </div>
+
               <div>
                 <Label>狀態</Label>
                 <Select value={editing.status ?? "draft"} onValueChange={(v) => setEditing({ ...editing, status: v })}>
