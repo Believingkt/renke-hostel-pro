@@ -832,16 +832,23 @@ export default function GroupBuyCampaign() {
       (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0);
   const showLocationSection = !!accInfo && (accInfo as any).show_location_section !== false;
 
-  /** 頁內快速導覽（只列出實際存在的區塊） */
+  /** 活動亮點區（含活動介紹摘要）／訂房規則區是否存在 */
+  const showHighlightSection =
+    !!campaign.description_html?.trim() || (campaign.highlight_points ?? []).some((s) => !!s?.trim());
+  const showRulesSection = !!campaign.terms_html?.trim() || showBookingNotice;
+
+  /** 頁內快速導覽（只列出實際存在的區塊，順序與頁面一致） */
   const quickNavItems: QuickNavItem[] = [
-    { id: "gb-plans", label: "選擇方案" },
-    { id: "gb-book", label: "選擇日期" },
+    { id: "gb-plans", label: "方案" },
+    { id: "gb-book", label: "日期" },
+    ...(showHighlightSection ? [{ id: "gb-highlights", label: "活動亮點" }] : []),
     { id: "gb-venue", label: "民宿介紹" },
     ...(showFacilitiesSection ? [{ id: "gb-facilities", label: "設施" }] : []),
     ...(showLocationSection ? [{ id: "gb-transport", label: "交通資訊" }] : []),
     ...(showFaq ? [{ id: "faq", label: "常見問題" }] : []),
-    ...(showBookingNotice ? [{ id: "gb-notice", label: "訂房須知" }] : []),
+    ...(showRulesSection ? [{ id: "gb-rules", label: "訂房規則" }] : []),
   ];
+
 
 
 
