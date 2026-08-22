@@ -304,25 +304,30 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {/* 正式訂房須知：與團購活動頁同源（booking_settings ＋ accommodation_info.check_in_notice ＋ custom_sections），
-                依 campaign.booking_notice_keys 過濾；此處為 live data，顯示最新版本而非下單當時的條款快照。 */}
+            {/* 正式訂房須知：
+                1) 優先顯示下單當下的快照（order.group_buy_booking_notice_snapshot，immutable）
+                2) 舊訂單無快照時 fallback 目前 live data（與團購活動頁同源、依 booking_notice_keys 過濾） */}
             {hasBookingNotice && (
               <div className="gb-lookup-notice rounded-lg border px-4 [&>section]:py-4">
                 <GroupBuyBookingInfoCompact
                   bookingSettings={data.bookingNotice?.bookingSettings}
                   visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                  sections={snapshotSections ?? undefined}
                 >
                   <BookingInfoSection
                     bookingSettings={data.bookingNotice?.bookingSettings}
                     checkInNotice={data.bookingNotice?.checkInNotice ?? ""}
                     customSections={data.bookingNotice?.customSections ?? []}
                     visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
+                    sections={snapshotSections ?? undefined}
                     mobileSingleAccordion
                   />
                 </GroupBuyBookingInfoCompact>
-                <p className="pb-4 text-xs text-muted-foreground">
-                  以上為目前最新的訂房須知，非下單當時版本。
-                </p>
+                {!snapshotSections && (
+                  <p className="pb-4 text-xs text-muted-foreground">
+                    以上為目前最新的訂房須知。
+                  </p>
+                )}
               </div>
             )}
 
