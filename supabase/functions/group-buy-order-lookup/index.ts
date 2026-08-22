@@ -111,6 +111,68 @@ Deno.serve(async (req) => {
         note: "旅客自行回報已完成匯款",
       });
 
+      // 民宿／管理者通知（失敗不可影響旅客回報結果）
+      try {
+        const { emails: venueEmails, source: venueSource } = await resolveOrderNotifyEmails(admin, {
+          accommodationId: (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+          campaignId: campaign?.id ?? null,
+        });
+        if (venueEmails.length === 0) {
+          await admin.from("group_buy_payment_events").insert({
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: "venue_email_skipped",
+            actor_label: "system",
+            note: "recipient_type:venue／template_type:venue_transfer_reported／no_recipients",
+          });
+        } else {
+          const { data: accRow } = await admin
+            .from("accommodation_info")
+            .select("name")
+            .eq("id", (order as any).accommodation_id ?? campaign?.accommodation_id ?? "")
+            .maybeSingle();
+          const emailOrder = buildEmailOrder({
+            order,
+            campaign: campaign ?? { title: "團購活動", deposit_percentage: depositPct, payment_deadline_hours: 72 },
+            accommodationName: (accRow as any)?.name ?? null,
+            packageName: null,
+            frontendOrigin: typeof body.origin === "string" ? body.origin : null,
+          });
+          const tpe = (opts: Intl.DateTimeFormatOptions) =>
+            new Intl.DateTimeFormat("zh-TW", { timeZone: "Asia/Taipei", ...opts }).format(transferredAt);
+          const venueMail = await sendGroupBuyEmail(
+            venueEmails,
+            renderVenueTransferReported(
+              {
+                ...emailOrder,
+                depositAmount: deposit,
+                guestPhone: order.guest_phone ?? null,
+                guestEmail: order.guest_email ?? null,
+                paymentStatusText: "待匯款（旅客已回報）",
+                adminUrl: "https://pms.lakeze.com/admin/group-buy",
+              },
+              {
+                accountLast5,
+                transferDateText: tpe({ year: "numeric", month: "2-digit", day: "2-digit" }),
+                transferTimeText: tpe({ hour: "2-digit", minute: "2-digit", hour12: false }),
+              },
+            ),
+          );
+          if (!venueMail.ok) console.error(`[group-buy-order-lookup] venue email failed: ${venueMail.reason}`);
+          await admin.from("group_buy_payment_events").insert({
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: venueMail.ok ? "email_sent" : "email_failed",
+            actor_label: "system",
+            note: `recipient_type:venue／template_type:venue_transfer_reported／recipient_count:${venueEmails.length}／source:${venueSource}${
+              venueMail.ok ? "" : `／reason:${venueMail.reason ?? "unknown"}`
+            }`,
+          });
+        }
+      } catch (venueErr) {
+        console.error("[group-buy-order-lookup] venue notify threw", venueErr);
+      }
+
       return json({ success: true, reported: true });
     }
 
