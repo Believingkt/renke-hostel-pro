@@ -433,6 +433,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
-    return json({ error: e instanceof Error ? e.message : "internal_error" }, 500);
+    // 對客一律回傳友善文案，原始 exception 只留在 server log
+    return json({ error: "目前無法完成操作，請稍後再試或聯繫客服。" }, 500);
   }
 });
