@@ -859,20 +859,24 @@ export default function GroupBuyCampaign() {
   const featuredFacilities = (campaign.featured_facilities ?? []).filter((s) => !!s?.trim());
   const heroPhotos = (campaign.featured_photo_urls ?? []).filter(Boolean).slice(0, 4);
   const heroPhotoRow = (heroPhotos.length > 0 ? heroPhotos : previewPhotos).slice(0, 3);
-  /** 首屏價格錨點：取所有方案中的最低有效團購價（三段價取最低）與對應原價 */
-  /** 只納入「仍有適用日期類型」的方案；全部日期類型不適用的方案不參與比價 */
-  const bookablePackages = packages.filter((p) => enabledDateTypes(p).length > 0);
+  /**
+   * 首屏價格錨點（純展示）：
+   * 只納入「仍有適用日期類型」且「活動期間內仍有可訂住宿夜」的方案，
+   * 並且最低價／原價／現省一律取自「同一個最低價方案」，不跨方案混用。
+   */
+  const bookablePackages = packages.filter((p) => hasBookableNight(p, campaign, today, holidays));
   const lowestPkg = bookablePackages.reduce<CampaignPackage | null>(
     (best, p) =>
       !best || (lowestEnabledPrice(p) ?? Infinity) < (lowestEnabledPrice(best) ?? Infinity) ? p : best,
     null,
   );
   const lowestPkgPrice = lowestPkg ? lowestEnabledPrice(lowestPkg) : null;
-  /** 最高現省：遍歷所有可預訂方案，取 MAX(原價 - 最低有效團購價)，忽略沒有原價的方案 */
-  const maxSave = bookablePackages.reduce((m, p) => {
-    const low = lowestEnabledPrice(p);
-    return p.original_price && low != null ? Math.max(m, Math.round(p.original_price - low)) : m;
-  }, 0);
+  /** 現省：同一最低價方案的（原價 − 最低有效團購價）；沒有可靠原價就不顯示 */
+  const heroSave =
+    lowestPkg?.original_price && lowestPkgPrice != null
+      ? Math.max(0, Math.round(lowestPkg.original_price - lowestPkgPrice))
+      : 0;
+
 
 
 
