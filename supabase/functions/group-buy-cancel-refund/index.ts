@@ -13,6 +13,13 @@ import {
   refundStatusAfterRefund,
   remainingRefundable,
 } from "../_shared/paymentAdapter.ts";
+import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
+import {
+  renderOrderCancelled,
+  renderRefundProcessed,
+  sendGroupBuyEmail,
+} from "../_shared/groupBuyEmail.ts";
+
 
 const FN = "group-buy-cancel-refund";
 
@@ -74,6 +81,55 @@ Deno.serve(async (req) => {
     const campaignId = commission?.campaign_id ?? null;
     const nowIso = new Date().toISOString();
     const actor = ctx.userEmail ?? "admin";
+    const origin = typeof body.origin === "string" && body.origin ? body.origin : null;
+
+    /**
+     * 組出通知信所需的訂單資訊（活動／住宿／方案名稱）。
+     * 取不到資料時仍會以既有訂單欄位寄出，不影響取消／退款主流程。
+     */
+    const buildMailOrder = async () => {
+      const [{ data: campaignRow }, { data: acc }] = await Promise.all([
+        campaignId
+          ? admin.from("group_buy_campaigns").select("*").eq("id", campaignId).maybeSingle()
+          : Promise.resolve({ data: null } as any),
+        admin.from("accommodation_info").select("name").eq("id", order.accommodation_id).maybeSingle(),
+      ]);
+      const packageName = String(order.notes ?? "").match(/方案：(.+?)\s*×/)?.[1]?.trim() ?? null;
+      return buildEmailOrder({
+        order,
+        campaign: campaignRow,
+        accommodationName: (acc as any)?.name ?? null,
+        packageName,
+        frontendOrigin: origin,
+      });
+    };
+
+    /** 寄信 + 稽核事件；寄信失敗一律不影響已完成的取消／退款登記 */
+    const notify = async (mail: { subject: string; html: string } | null) => {
+      if (!mail) return;
+      let ok = false;
+      let reason: string | undefined;
+      try {
+        const res = await sendGroupBuyEmail(order.guest_email, mail);
+        ok = res.ok;
+        reason = res.reason;
+      } catch (e) {
+        reason = e instanceof Error ? e.message : "exception";
+      }
+      try {
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaignId,
+          order_id: order.id,
+          event_type: ok ? "email_sent" : "email_failed",
+          actor_label: "system",
+          note: ok ? `已寄出「${mail.subject}」` : `寄送失敗「${mail.subject}」：${reason ?? "unknown"}`,
+        });
+      } catch (e) {
+        console.error(`[${FN}] email event insert failed`, e);
+      }
+    };
+
+
 
     // ---------------------------------------------------------------- refund
     if (mode === "refund") {
@@ -144,6 +200,18 @@ Deno.serve(async (req) => {
         },
       });
 
+      // 退款資料已成功更新後才寄信；寄信失敗不影響退款登記
+      await notify(
+        renderRefundProcessed(await buildMailOrder(), {
+          refundAmount,
+          refundedTotal: totalRefunded,
+          paidAmount: paid,
+          refundStatus,
+          refundedAtText: formatTaipei(new Date(nowIso)),
+          note: reason || null,
+        }),
+      );
+
       return json({
         success: true,
         mode: "refund",
@@ -152,6 +220,7 @@ Deno.serve(async (req) => {
         totalRefunded,
         remainingRefundable: Math.max(0, paid - totalRefunded),
       });
+
     }
 
     // ---------------------------------------------------------------- cancel
@@ -254,6 +323,17 @@ Deno.serve(async (req) => {
       },
     });
 
+    // 取消成功後寄「訂單已取消」信（若同一次操作已完成退款，退款結果併入此信，不再另寄退款信）
+    await notify(
+      renderOrderCancelled(await buildMailOrder(), {
+        cancelledAtText: formatTaipei(new Date(nowIso)),
+        paidAmount: paid,
+        refundedTotal: totalRefunded,
+        refundStatus,
+        reason: reason || null,
+      }),
+    );
+
     return json({
       success: true,
       mode: "cancel",
@@ -262,6 +342,7 @@ Deno.serve(async (req) => {
       totalRefunded,
       remainingRefundable: Math.max(0, paid - totalRefunded),
     });
+
   } catch (e) {
     console.error(`[${FN}] error`, e);
     return json({ error: e instanceof Error ? e.message : "internal_error" }, 500);

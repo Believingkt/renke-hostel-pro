@@ -4137,6 +4137,7 @@ export type Database = {
           image_url: string | null
           image_urls: string[]
           is_active: boolean
+          max_guests: number | null
           max_quantity: number | null
           original_price: number | null
           package_id: string | null
@@ -4161,6 +4162,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          max_guests?: number | null
           max_quantity?: number | null
           original_price?: number | null
           package_id?: string | null
@@ -4185,6 +4187,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: string[]
           is_active?: boolean
+          max_guests?: number | null
           max_quantity?: number | null
           original_price?: number | null
           package_id?: string | null

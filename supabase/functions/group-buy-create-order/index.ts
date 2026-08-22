@@ -184,6 +184,17 @@ Deno.serve(async (req) => {
     }
     const capacityHeadcount = adultCount + childEval.capacityHeadcount;
 
+    // 4.3b) 方案人數上限（max_guests 為 NULL 時完全沿用房型 capacity，行為不變）
+    const pkgMaxGuests = pkg.max_guests == null ? null : Number(pkg.max_guests);
+    if (pkgMaxGuests && pkgMaxGuests > 0 && capacityHeadcount > pkgMaxGuests) {
+      return json(
+        { error: `此方案最多入住 ${pkgMaxGuests} 人，請調整入住人數或選擇其他方案。` },
+        400,
+      );
+    }
+
+
+
     // 4.4) 日期類型可用性（必須早於房型／庫存判定，否則會被 409 無空房遮蔽）
     const { data: holidayRows } = await admin
       .from("public_holidays")

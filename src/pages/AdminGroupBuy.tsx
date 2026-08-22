@@ -158,6 +158,9 @@ interface PackageRow {
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
+  /** 方案最多入住人數；NULL＝沿用房型 capacity */
+  max_guests: number | null;
+
   sort_order: number;
   is_active: boolean;
 }
@@ -328,6 +331,17 @@ export default function AdminGroupBuy() {
     );
 
   }, [activeId]);
+  /** 重新整理：活動 + 方案／匯款帳戶／訂單／分潤／稽核事件一次重抓 */
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadCampaigns(), loadDetails()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadCampaigns, loadDetails]);
+
 
   useEffect(() => {
     void loadCampaigns();
@@ -603,9 +617,10 @@ export default function AdminGroupBuy() {
             ))}
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" onClick={() => void loadCampaigns()} disabled={loading}>
-          <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> 重新整理
+        <Button variant="outline" size="sm" onClick={() => void refreshAll()} disabled={loading || refreshing}>
+          <RefreshCw className={`mr-1 h-4 w-4 ${loading || refreshing ? "animate-spin" : ""}`} /> 重新整理
         </Button>
+
         <Button size="sm" onClick={() => setEditing(emptyCampaign(accommodationId))}>
           <Plus className="mr-1 h-4 w-4" /> 新增活動
         </Button>
@@ -909,6 +924,25 @@ export default function AdminGroupBuy() {
                     />
                   </div>
                   <div>
+                    <Label>最多入住人數（可留空）</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={p.max_guests ?? ""}
+                      onChange={(e) =>
+                        setPackages((prev) =>
+                          prev.map((x, i) =>
+                            i === idx ? { ...x, max_guests: e.target.value === "" ? null : Number(e.target.value) } : x,
+                          ),
+                        )
+                      }
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      限制此團購方案最多可入住的人數。留空則依房型原本人數上限。
+                    </p>
+                  </div>
+                  <div>
+
                     <Label>方案圖片（可多張，第一張為主圖）</Label>
                     <MultiImageUploadField
                       value={(p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [])}

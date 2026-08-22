@@ -19,17 +19,24 @@ interface DateFieldProps {
   onChange: (value: string | null) => void;
   /** 不可早於此日期（yyyy-MM-dd） */
   minDate?: string | null;
+  /** 不可晚於此日期（yyyy-MM-dd），未傳入時維持原行為（不設上限） */
+  maxDate?: string | null;
   placeholder?: string;
   className?: string;
+  /** 是否可清除（預設 true，維持原行為） */
+  clearable?: boolean;
 }
 
 /** 日期選擇器（yyyy-MM-dd），風格與後台一致 */
-export function DateField({ value, onChange, minDate, placeholder = "選擇日期", className }: DateFieldProps) {
+export function DateField({ value, onChange, minDate, maxDate, placeholder = "選擇日期", className, clearable = true }: DateFieldProps) {
   const [open, setOpen] = useState(false);
   const parsed = value ? parse(value, "yyyy-MM-dd", new Date()) : undefined;
   const selected = parsed && isValid(parsed) ? parsed : undefined;
   const minParsed = minDate ? parse(minDate, "yyyy-MM-dd", new Date()) : undefined;
   const min = minParsed && isValid(minParsed) ? startOfDay(minParsed) : undefined;
+  const maxParsed = maxDate ? parse(maxDate, "yyyy-MM-dd", new Date()) : undefined;
+  const max = maxParsed && isValid(maxParsed) ? startOfDay(maxParsed) : undefined;
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,7 +54,7 @@ export function DateField({ value, onChange, minDate, placeholder = "選擇日�
           <span className="truncate">
             {selected ? format(selected, "yyyy/MM/dd (EEE)", { locale: zhTW }) : placeholder}
           </span>
-          {selected && (
+          {selected && clearable && (
             <X
               className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground hover:text-foreground"
               onClick={(e) => {
@@ -67,7 +74,15 @@ export function DateField({ value, onChange, minDate, placeholder = "選擇日�
             onChange(d ? format(d, "yyyy-MM-dd") : null);
             setOpen(false);
           }}
-          disabled={min ? (date) => startOfDay(date) < min : undefined}
+          disabled={
+            min || max
+              ? (date) => {
+                  const d = startOfDay(date);
+                  return (min ? d < min : false) || (max ? d > max : false);
+                }
+              : undefined
+          }
+
           initialFocus
           locale={zhTW}
           className={cn("p-3 pointer-events-auto")}

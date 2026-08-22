@@ -10,6 +10,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
+import { DateField } from "@/components/admin/DateFields";
+import { taipeiToday } from "@/lib/taipeiToday";
+
 
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
@@ -23,7 +26,10 @@ export default function GroupBuyOrderLookup() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<any>(null);
   const [accountLast5, setAccountLast5] = useState("");
-  const [transferredAt, setTransferredAt] = useState("");
+  // 匯款日期／時間分開輸入，送出時固定組成台灣時區（+08:00）字串，不依賴裝置時區
+  const [transferDate, setTransferDate] = useState<string>(taipeiToday());
+  const [transferTime, setTransferTime] = useState<string>("");
+
   const [reporting, setReporting] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -54,9 +60,13 @@ export default function GroupBuyOrderLookup() {
   const report = async () => {
     setReporting(true);
     try {
+      const transferredAt = transferDate
+        ? `${transferDate}T${(transferTime || "00:00").slice(0, 5)}:00+08:00`
+        : "";
       const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "report_transfer", accountLast5, transferredAt },
       });
+
       const payload: any = res;
       if (error || payload?.error) {
         toast({ title: "回報失敗", description: payload?.error ?? error?.message, variant: "destructive" });
@@ -213,10 +223,30 @@ export default function GroupBuyOrderLookup() {
                     onChange={(e) => setAccountLast5(e.target.value.replace(/\D/g, "").slice(0, 5))}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="tat">匯款時間</Label>
-                  <Input id="tat" type="datetime-local" value={transferredAt} onChange={(e) => setTransferredAt(e.target.value)} />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tdate">匯款日期</Label>
+                    <DateField
+                      value={transferDate}
+                      onChange={(v) => setTransferDate(v ?? "")}
+                      maxDate={taipeiToday()}
+                      clearable={false}
+                      placeholder="選擇匯款日期"
+                      className="h-10 text-base"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ttime">匯款時間</Label>
+                    <Input
+                      id="ttime"
+                      type="time"
+                      value={transferTime}
+                      onChange={(e) => setTransferTime(e.target.value)}
+                      className="h-10 text-base"
+                    />
+                  </div>
                 </div>
+
                 <Button className="w-full" onClick={report} disabled={reporting || accountLast5.length !== 5}>
                   {reporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   送出匯款回報

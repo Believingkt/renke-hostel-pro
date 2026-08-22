@@ -119,7 +119,8 @@ export function renderBookingWithBankInfo(
        ${bankBlock}
        ${o.deadlineText ? `<p><strong style="color:${BRAND.primary}">匯款期限：${esc(o.deadlineText)}</strong>（逾期系統將自動取消訂單）</p>` : ""}
        <p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
-       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">匯款回報 / 查詢訂單</a></p>` : ""}`,
+
     ),
   };
 }
@@ -152,6 +153,117 @@ export function renderExpiredCancelled(o: GroupBuyEmailOrder): { subject: string
     ),
   };
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * 取消 / 退款通知（民宿端人工操作後由 server 端寄出）
+ * 金額一律由呼叫端以 orders 最新資料帶入，此處只負責呈現。
+ * ───────────────────────────────────────────────────────────── */
+
+export interface GroupBuyCancelInfo {
+  /** 取消時間（已格式化為台北時間文字） */
+  cancelledAtText: string;
+  /** 已收款金額 */
+  paidAmount: number;
+  /** 累計已退款金額 */
+  refundedTotal: number;
+  /** 退款狀態：none / pending_manual / partial_refunded / refunded */
+  refundStatus: string;
+  reason?: string | null;
+}
+
+function refundStatusBlock(info: GroupBuyCancelInfo): string {
+  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
+  if (info.paidAmount <= 0) {
+    return `<p>此訂單尚未付款，無需退款。</p>`;
+  }
+  if (info.refundStatus === "refunded") {
+    return `<p>此訂單退款已全部完成，累計退款 <strong>${money(info.refundedTotal)}</strong>。</p>`;
+  }
+  if (info.refundStatus === "partial_refunded") {
+    return `<p>目前已退款 <strong>${money(info.refundedTotal)}</strong>，尚有 <strong>${
+      money(remaining)
+    }</strong> 待退款，我們會盡快處理完成。</p>`;
+  }
+  if (info.refundStatus === "none") {
+    return `<p>此訂單依取消條件不進行退款，如有疑問請與我們聯繫。</p>`;
+  }
+  return `<p>此訂單已有付款紀錄，目前退款處理中（待退款 <strong>${money(remaining)}</strong>）。</p>`;
+}
+
+export function renderOrderCancelled(
+  o: GroupBuyEmailOrder,
+  info: GroupBuyCancelInfo,
+): { subject: string; html: string } {
+  return {
+    subject: `【訂單已取消】${o.campaignTitle} 訂單 ${o.orderNumber}`,
+    html: layout(
+      "訂單已取消",
+      `訂單 ${o.orderNumber} 已取消`,
+      `<h1>您的訂單已取消</h1>
+       <p>${esc(o.guestName)} 您好，您的訂單 <strong>${esc(o.orderNumber)}</strong> 已完成取消。</p>
+       ${orderTable(o)}
+       <table class="info">
+         <tr><td class="k">取消時間</td><td>${esc(info.cancelledAtText)}</td></tr>
+         <tr><td class="k">已付款金額</td><td>${money(info.paidAmount)}</td></tr>
+         ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
+       </table>
+       <div class="box"><h2>退款說明</h2>${refundStatusBlock(info)}</div>
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`,
+    ),
+  };
+}
+
+export interface GroupBuyRefundInfo {
+  /** 本次登記的退款金額 */
+  refundAmount: number;
+  /** 累計已退款 */
+  refundedTotal: number;
+  /** 已收款金額 */
+  paidAmount: number;
+  refundStatus: string;
+  /** 退款時間（已格式化為台北時間文字） */
+  refundedAtText: string;
+  note?: string | null;
+}
+
+export function renderRefundProcessed(
+  o: GroupBuyEmailOrder,
+  info: GroupBuyRefundInfo,
+): { subject: string; html: string } {
+  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
+  const done = info.refundStatus === "refunded";
+  const title = done ? "退款完成" : "退款進度通知";
+  return {
+    subject: `【${title}】${o.campaignTitle} 訂單 ${o.orderNumber}`,
+    html: layout(
+      title,
+      `訂單 ${o.orderNumber} ${title}`,
+      `<h1>${done ? "退款已全部完成 ✅" : "退款進度通知"}</h1>
+       <p>${esc(o.guestName)} 您好，${
+        done
+          ? "此訂單退款已全部完成。"
+          : `本次已登記退款 <strong>${money(info.refundAmount)}</strong>，目前尚有 <strong>${
+            money(remaining)
+          }</strong> 待退款。`
+      }</p>
+       <table class="info">
+         <tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
+         <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
+         ${o.accommodationName ? `<tr><td class="k">住宿</td><td>${esc(o.accommodationName)}</td></tr>` : ""}
+         ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
+         <tr><td class="k">本次退款金額</td><td><strong style="color:${BRAND.primary}">${
+        money(info.refundAmount)
+      }</strong></td></tr>
+         <tr><td class="k">累計已退款</td><td>${money(info.refundedTotal)}</td></tr>
+         <tr><td class="k">剩餘待退款</td><td>${money(remaining)}</td></tr>
+         <tr><td class="k">退款時間</td><td>${esc(info.refundedAtText)}</td></tr>
+         ${info.note ? `<tr><td class="k">備註</td><td>${esc(info.note)}</td></tr>` : ""}
+       </table>
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`,
+    ),
+  };
+}
+
 
 /** 實際送出（缺 key 或缺信箱時安靜跳過，不影響主流程） */
 export async function sendGroupBuyEmail(
