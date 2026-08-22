@@ -1758,13 +1758,18 @@ export default function TeamHome() {
       amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
       baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
-      note: monthlyNote(
-        backfillBoosted !== 0
-          ? "含回溯補建（前期漏建訂單），故與「成交統計」的資料月口徑不同"
-          : cancelAdj !== 0 || otherAdj !== 0
-            ? "已含本期分潤補差（取消扣回）"
-            : undefined,
-      ),
+      note: [
+        monthlyNote(
+          backfillBoosted !== 0
+            ? "含回溯補建（前期漏建訂單），故與「成交統計」的資料月口徑不同"
+            : cancelAdj !== 0 || otherAdj !== 0
+              ? "已含本期分潤補差（取消扣回）"
+              : undefined,
+        ),
+        closerPreviewCnt > 0
+          ? `含 ${closerPreviewCnt} 筆尚未建立正式快照的訂單（預估補位，正式快照建立後金額不變）`
+          : null,
+      ].filter(Boolean).join("；"),
       lines,
       alwaysShowLines: backfillBoosted !== 0 || cancelAdj !== 0 || otherAdj !== 0,
     });
