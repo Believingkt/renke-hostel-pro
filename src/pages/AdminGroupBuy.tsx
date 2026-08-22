@@ -1536,6 +1536,11 @@ export default function AdminGroupBuy() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            <GroupBuyCommissionStatusPanel
+              row={auditTarget ? analyticsByOrderId.get(auditTarget.id) ?? null : null}
+              onSetManual={(v) => (auditTarget ? setManualEligibility(auditTarget.id, v) : Promise.resolve())}
+            />
+
             <div>
               <p className="mb-1.5 text-sm font-semibold">訂單價格快照</p>
               <GroupBuyPriceSnapshot snapshot={auditTarget ? snapshots[auditTarget.id] : null} />
