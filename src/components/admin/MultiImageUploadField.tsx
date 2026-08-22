@@ -164,7 +164,7 @@ export function MultiImageUploadField({ value, onChange, pathPrefix, className, 
           onDragEnd={handleDragEnd}
         >
           <SortableContext items={urls} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
               {urls.map((url, i) => (
                 <SortableThumb
                   key={url}
