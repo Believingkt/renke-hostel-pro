@@ -10,7 +10,7 @@ export function GroupBuyBookingNoticeSnapshotView({ snapshot }: Props) {
   if (!snapshot) {
     return (
       <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
-        此訂單建立於快照機制上線前，無下單當時版本；旅客查詢頁顯示的是目前最新的訂房須知。
+        此訂單缺少下單時訂房須知快照（可能建立於快照機制上線前，或快照建立失敗）；旅客查詢頁目前顯示最新版本的訂房須知。
       </p>
     );
   }

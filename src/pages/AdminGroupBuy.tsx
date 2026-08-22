@@ -84,7 +84,7 @@ const EVENT_LABEL: Record<string, string> = {
   cancel_requested: "旅客申請取消",
   cancel_request_rejected: "取消申請未通過",
   note: "備註",
-
+  booking_notice_snapshot_failed: "訂房須知快照建立失敗",
 };
 
 const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -98,6 +98,7 @@ const EVENT_VARIANT: Record<string, "default" | "secondary" | "outline" | "destr
   email_sent: "outline",
   email_failed: "destructive",
   cancel_requested: "destructive",
+  booking_notice_snapshot_failed: "destructive",
   cancel_request_rejected: "outline",
   note: "outline",
 
