@@ -133,19 +133,20 @@ export function GroupBuyAnalyticsTab({
         <p className="text-xs text-muted-foreground">資料範圍：{meta.filterLabel}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
         {kpis.map((s) => (
-          <Card key={s.label}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-normal text-muted-foreground">{s.label}</CardTitle>
+          <Card key={s.label} className="min-w-0">
+            <CardHeader className="p-3 pb-1 md:p-6 md:pb-2">
+              <CardTitle className="text-xs font-normal text-muted-foreground md:text-sm">{s.label}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold tabular-nums text-foreground">{s.value}</p>
-              {s.hint && <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>}
+            <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+              <p className="text-lg font-semibold tabular-nums text-foreground md:text-2xl">{s.value}</p>
+              {s.hint && <p className="mt-1 text-[11px] text-muted-foreground md:text-xs">{s.hint}</p>}
             </CardContent>
           </Card>
         ))}
       </div>
+
 
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 pb-3">
