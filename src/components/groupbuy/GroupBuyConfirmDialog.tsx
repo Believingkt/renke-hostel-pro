@@ -8,6 +8,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
+import TermsConsentText from "@/components/common/TermsConsentText";
+
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
