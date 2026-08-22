@@ -52,6 +52,7 @@ const LocationSection = ({ address, locationInfo, customTitle, customSubtitle, i
     image_url?: string;
   } | null>(null);
   const [showAllAttractions, setShowAllAttractions] = useState(false);
+  const isMobile = useIsMobile();
 
 
   // 檢查是否有任何資料設定
