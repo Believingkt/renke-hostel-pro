@@ -2095,3 +2095,30 @@ button > svg,
 .gb-lookup-notice #booking-info .md\:grid {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
+
+/* ── iOS Safari 原生 time picker 修正 ──
+   iOS 的 input[type="time"] 會以 -webkit-datetime-edit 內部元件排版，
+   遇到 min-height + padding 時文字會被推到頂端／溢出，看起來像高度異常。
+   這裡只針對 .time-input 修正，不影響 Desktop / Android 的原生行為。 */
+.time-input {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+.time-input::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+  line-height: normal;
+  min-height: 1em;
+}
+.time-input::-webkit-datetime-edit {
+  display: inline-flex;
+  align-items: center;
+  padding: 0;
+  line-height: normal;
+}
+.time-input::-webkit-calendar-picker-indicator {
+  margin-left: auto;
+}

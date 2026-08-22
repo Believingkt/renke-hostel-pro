@@ -14,9 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
 import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
-import BookingInfoSection from "@/components/BookingInfoSection";
-import type { BookingNoticePanel } from "@/lib/bookingNoticePanels";
-import { GroupBuyBookingInfoCompact } from "@/components/groupbuy/GroupBuyBookingInfoCompact";
+import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
+import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
 
 
@@ -101,7 +100,7 @@ export default function GroupBuyOrderLookup() {
       }
       toast({
         title: "已收到您的取消申請",
-        description: "民宿確認後會處理退款，退款將於當月月底前完成。",
+        description: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
       });
       setCancelOpen(false);
       setCancelReason("");
@@ -115,18 +114,10 @@ export default function GroupBuyOrderLookup() {
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
-  /** 正式訂房須知是否有可顯示內容（campaign 不存在時 visibleKeys 為 null → 顯示全部有效項目） */
-  const bn = data?.bookingNotice;
-  /** 下單當下的訂房須知快照面板（後端已剝除內部結構；舊訂單為 null → fallback live data） */
-  const snapshotSections: BookingNoticePanel[] | null =
-    Array.isArray(data?.bookingNoticeSections) && data.bookingNoticeSections.length > 0
-      ? (data.bookingNoticeSections as BookingNoticePanel[])
-      : null;
-  const hasBookingNotice = Boolean(
-    snapshotSections ||
-      (bn && !snapshotSections &&
-        (bn.bookingSettings || (bn.checkInNotice ?? "").trim() !== "" || (bn.customSections ?? []).length > 0)),
-  );
+  /** 常見問題（與團購活動頁同源，由 Edge Function 依 campaign.faq_item_ids 過濾排序） */
+  const faqItems: { id: string; question: string; answer: string }[] = Array.isArray(data?.faqItems)
+    ? data.faqItems.filter((f: any) => f?.question && f?.answer)
+    : [];
 
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
   const refundedFully = data?.refund?.status === "refunded";
@@ -190,8 +181,10 @@ export default function GroupBuyOrderLookup() {
                 <XCircle className="h-4 w-4" />
                 <AlertTitle>取消申請處理中</AlertTitle>
                 <AlertDescription>
-                  已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中；
-                  若符合退款條件，退款將於當月月底前完成處理。訂單在民宿確認前仍維持原狀態。
+                  <p>
+                    已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
+                  </p>
+                  <CancellationRefundNotice showPendingReview className="mt-2" />
                 </AlertDescription>
               </Alert>
             )}
@@ -281,7 +274,7 @@ export default function GroupBuyOrderLookup() {
                       type="time"
                       value={transferTime}
                       onChange={(e) => setTransferTime(e.target.value)}
-                      className="h-10 text-base"
+                      className="time-input h-10 min-h-[40px] text-base"
                     />
                   </div>
                 </div>
@@ -316,30 +309,23 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {/* 正式訂房須知：
-                1) 優先顯示下單當下的快照（order.group_buy_booking_notice_snapshot，immutable）
-                2) 舊訂單無快照時 fallback 目前 live data（與團購活動頁同源、依 booking_notice_keys 過濾） */}
-            {hasBookingNotice && (
-              <div className="gb-lookup-notice rounded-lg border px-4 [&>section]:py-4">
-                <GroupBuyBookingInfoCompact
-                  bookingSettings={data.bookingNotice?.bookingSettings}
-                  visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
-                  sections={snapshotSections ?? undefined}
-                >
-                  <BookingInfoSection
-                    bookingSettings={data.bookingNotice?.bookingSettings}
-                    checkInNotice={data.bookingNotice?.checkInNotice ?? ""}
-                    customSections={data.bookingNotice?.customSections ?? []}
-                    visibleKeys={data.bookingNotice?.visibleKeys ?? undefined}
-                    sections={snapshotSections ?? undefined}
-                    mobileSingleAccordion
-                  />
-                </GroupBuyBookingInfoCompact>
-                {!snapshotSections && (
-                  <p className="pb-4 text-xs text-muted-foreground">
-                    以上為目前最新的訂房須知。
-                  </p>
-                )}
+            {/* 常見問題：與團購活動頁同源（faqs + campaign.faq_item_ids）。
+                訂房須知快照仍完整保存於資料庫供後台稽核，僅不在此頁顯示。 */}
+            {faqItems.length > 0 && (
+              <div className="rounded-lg border px-4">
+                <p className="pt-4 font-semibold text-foreground">常見問題</p>
+                <Accordion type="single" collapsible className="w-full">
+                  {faqItems.map((f) => (
+                    <AccordionItem key={f.id} value={f.id}>
+                      <AccordionTrigger className="text-left text-sm font-medium">
+                        {f.question}
+                      </AccordionTrigger>
+                      <AccordionContent className="whitespace-pre-line text-muted-foreground">
+                        {f.answer}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
               </div>
             )}
 
@@ -362,16 +348,18 @@ export default function GroupBuyOrderLookup() {
                   <XCircle className="h-4 w-4" /> 取消訂單
                 </p>
                 {cancelRequest ? (
-                  <div className="space-y-1 text-muted-foreground">
-                    <p>已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。</p>
-                    <p className="font-medium text-foreground">若符合退款條件，退款將於當月月底前完成處理。</p>
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
+                    </p>
+                    <CancellationRefundNotice showPendingReview className="rounded-lg bg-muted/60 p-3" />
                   </div>
                 ) : cancelOpen ? (
                   <div className="space-y-3">
                     <p className="text-muted-foreground">
-                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核，
-                      <span className="font-medium text-foreground">退款會在當月月底前處理完成</span>。
+                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。
                     </p>
+                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
                     <div>
                       <Label htmlFor="cancel-reason">取消原因（選填）</Label>
                       <Textarea
@@ -399,9 +387,8 @@ export default function GroupBuyOrderLookup() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-muted-foreground">
-                      需要取消這筆訂房嗎？送出申請後由民宿審核，退款將於當月月底前處理完成。
-                    </p>
+                    <p className="text-muted-foreground">需要取消這筆訂房嗎？送出申請後由民宿審核。</p>
+                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
                       我要申請取消訂單
                     </Button>

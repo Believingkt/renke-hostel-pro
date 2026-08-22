@@ -8,6 +8,7 @@ import {
   renderVenueTransferReported,
   sendGroupBuyEmail,
 } from "../_shared/groupBuyEmail.ts";
+import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_shared/refundPolicy.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
 const FN = "group-buy-order-lookup";
@@ -280,7 +281,7 @@ Deno.serve(async (req) => {
       return json({
         success: true,
         cancelRequested: true,
-        message: "已收到您的取消申請，退款將於當月月底前完成處理。",
+        message: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
       });
     }
 
@@ -311,6 +312,24 @@ Deno.serve(async (req) => {
           .order("display_order")
         : Promise.resolve({ data: [] as any[] }),
     ]);
+
+    // ── 常見問題：與團購活動頁完全同源 ──
+    // 資料表 faqs（accommodation_id + is_published，display_order 排序），
+    // 後台若於 group_buy_campaigns.faq_item_ids 指定，則依該陣列順序過濾。
+    let faqItems: { id: string; question: string; answer: string }[] = [];
+    if (accommodationId) {
+      const { data: faqRows } = await admin
+        .from("faqs")
+        .select("id, question, answer")
+        .eq("accommodation_id", accommodationId)
+        .eq("is_published", true)
+        .order("display_order");
+      const all = (faqRows ?? []) as { id: string; question: string; answer: string }[];
+      const picked = (campaign as any)?.faq_item_ids;
+      faqItems = Array.isArray(picked)
+        ? (picked.map((id: string) => all.find((f) => f.id === id)).filter(Boolean) as typeof all)
+        : all;
+    }
 
 
     let pkg: any = null;
@@ -402,32 +421,14 @@ Deno.serve(async (req) => {
           phone: (intro as any)?.phone || (acc as any).phone || null,
         }
         : null,
-      // 下單當下的訂房須知快照：只回傳「渲染用的面板內容」，不外洩 version / captured_at /
-      // visible_keys / campaign_id / accommodation_id 等內部結構（舊訂單為 null → 前台 fallback live data）
-      bookingNoticeSections: (() => {
-        const snap = (order as any).group_buy_booking_notice_snapshot;
-        const list = Array.isArray(snap?.sections) ? snap.sections : null;
-        if (!list || list.length === 0) return null;
-        return list.map((p: any) => ({
-          key: String(p?.key ?? ""),
-          title: String(p?.title ?? ""),
-          ...(p?.subtitle ? { subtitle: String(p.subtitle) } : {}),
-          ...(Array.isArray(p?.textRows) ? { textRows: p.textRows } : {}),
-          ...(p?.html ? { html: String(p.html) } : {}),
-        }));
-      })(),
       // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則。
       // 有快照時優先使用快照版本（保留下單當時提供給客人的內容）。
       preArrivalNotice: (order as any).group_buy_booking_notice_snapshot?.post_booking_notice
         ?? (intro as any)?.check_in_notice ?? null,
-      // 正式訂房須知（與團購活動頁同源，live data；campaign 不存在時 visibleKeys=null → 顯示全部）
-      bookingNotice: {
-        bookingSettings: bookingSettings ?? null,
-        checkInNotice: (acc as any)?.check_in_notice ?? null,
-        customSections: (customSections ?? []) as any[],
-        visibleKeys: (campaign as any)?.booking_notice_keys ?? null,
-        isLive: true,
-      },
+      // 常見問題：與團購活動頁完全同源（faqs 表 + campaign.faq_item_ids 指定順序）
+      faqItems: faqItems,
+      // 註：訂房須知快照（orders.group_buy_booking_notice_snapshot）仍完整保留於資料庫，
+      // 供後台稽核／爭議舉證使用，僅不在旅客訂單查詢頁顯示。
 
       package: pkg
         ? {

@@ -1,6 +1,8 @@
 // 團購訂單三種通知信（訂房＋匯款資訊 / 已收到訂金 / 逾期取消）
 // 走既有 Resend connector gateway，版型沿用品牌橘色調。
 
+import { refundScheduleHtml } from "./refundPolicy.ts";
+
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
 const LOGO_URL =
@@ -173,6 +175,8 @@ export interface GroupBuyCancelInfo {
 
 function refundStatusBlock(info: GroupBuyCancelInfo): string {
   const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
+  // 尚有款項待退時，附上共用的退款時程規則（與前台 refundPolicy 同一份文案）
+  const schedule = `<div style="margin-top:10px">${refundScheduleHtml()}</div>`;
   if (info.paidAmount <= 0) {
     return `<p>此訂單尚未付款，無需退款。</p>`;
   }
@@ -182,12 +186,12 @@ function refundStatusBlock(info: GroupBuyCancelInfo): string {
   if (info.refundStatus === "partial_refunded") {
     return `<p>目前已退款 <strong>${money(info.refundedTotal)}</strong>，尚有 <strong>${
       money(remaining)
-    }</strong> 待退款，我們會盡快處理完成。</p>`;
+    }</strong> 待退款，我們會盡快處理完成。</p>${schedule}`;
   }
   if (info.refundStatus === "none") {
     return `<p>此訂單依取消條件不進行退款，如有疑問請與我們聯繫。</p>`;
   }
-  return `<p>此訂單已有付款紀錄，目前退款處理中（待退款 <strong>${money(remaining)}</strong>）。</p>`;
+  return `<p>此訂單已有付款紀錄，目前退款處理中（待退款 <strong>${money(remaining)}</strong>）。</p>${schedule}`;
 }
 
 export function renderOrderCancelled(
@@ -422,6 +426,7 @@ export function renderGuestCancelRequested(
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <p>提醒：取消申請尚未完成，訂單狀態仍為原狀態，實際取消與退款結果將於民宿確認後另行通知。</p>
+       <div class="box"><h2>退款時間</h2>${refundScheduleHtml({ showPendingReview: true })}</div>
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單狀態</a></p>` : ""}`,
     ),
   };

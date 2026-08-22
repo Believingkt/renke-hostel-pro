@@ -512,7 +512,6 @@ Deno.serve(async (req) => {
           note: "venue_email_skipped／recipient_type:venue／template_type:venue_new_order／no_recipients",
         });
       } else {
-        const adminOrigin = origin && /^https?:\/\//.test(origin) ? origin : "https://pms.lakeze.com";
         const venueMail = await sendGroupBuyEmail(
           venueEmails,
           renderVenueNewOrder({
@@ -527,7 +526,6 @@ Deno.serve(async (req) => {
             childBreakdownText: childDetailLines.length > 0 ? childDetailLines.join("\n") : null,
             paymentStatusText: "待匯款",
             adminUrl: buildAdminGroupBuyUrl({
-              origin: adminOrigin,
               accommodationId: order.accommodation_id ?? campaign.accommodation_id ?? null,
               campaignId: campaign.id,
               orderNumber: order.order_number,

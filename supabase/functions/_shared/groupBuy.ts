@@ -126,17 +126,22 @@ export function buildEmailOrder(params: {
   };
 }
 
-/** 後台團購訂單對帳深連結：直接定位到該活動的「訂單對帳」分頁並標示該筆訂單 */
+/** 後台 canonical 網域：民宿／管理者 Email 的後台 CTA 一律使用 PMS 網域 */
+export const PMS_ADMIN_ORIGIN = "https://pms.lakeze.com";
+
+/**
+ * 後台團購訂單對帳深連結：直接定位到該活動的「訂單對帳」分頁並標示該筆訂單。
+ * 注意：一律使用 PMS 網域，不可用旅客端 origin（booking.lakeze.com 的 /admin/* 會被
+ * 前台守衛攔截並導回登入頁，query string 會遺失）。
+ */
 export function buildAdminGroupBuyUrl(params: {
-  origin?: string | null;
   accommodationId?: string | null;
   campaignId?: string | null;
   orderNumber?: string | null;
 }): string {
-  const origin = params.origin || "https://pms.lakeze.com";
   const qs = new URLSearchParams({ tab: "orders" });
   if (params.accommodationId) qs.set("accId", params.accommodationId);
   if (params.campaignId) qs.set("campaignId", params.campaignId);
   if (params.orderNumber) qs.set("orderNumber", params.orderNumber);
-  return `${origin}/admin/group-buy?${qs.toString()}`;
+  return `${PMS_ADMIN_ORIGIN}/admin/group-buy?${qs.toString()}`;
 }
