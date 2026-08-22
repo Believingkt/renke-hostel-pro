@@ -13,3 +13,4 @@
 - [KOL 跨館同 CID 資格判定](mem://features/admin/kol-cross-venue-contract-scope.md) — 旅行日系列／非民宿場域才算同一份合約，其餘跨館同 CID 各自計資格只給灰色提示。
 - [團購訂房須知快照](mem://features/platform/group-buy-booking-notice-snapshot.md) — 團購訂單下單當下訂房須知/入住前提醒快照，讀取優先序與舊訂單 fallback。
 - [團購銷售分析與分潤](mem://features/admin/group-buy-analytics-commission.md) — 分潤以 group_buy_commissions 快照為準；KPI/明細/匯出同源；比例調整與人工判定規則。
+- [PMS 後台架構地圖](mem://technical/architecture/pms-admin-architecture-map.md) — PMS routing/layout/sidebar/responsive/權限/共用元件與 Mobile Ready 基準，改造前先讀勿重新盤點。
