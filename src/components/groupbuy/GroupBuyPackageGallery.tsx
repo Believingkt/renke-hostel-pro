@@ -33,12 +33,12 @@ export function GroupBuyPackageGallery({ urls, alt, className }: Props) {
           src={main}
           alt={alt}
           loading="lazy"
-          className="aspect-[16/10] w-full object-cover transition hover:scale-[1.02] sm:aspect-[4/3]"
+          className="aspect-[4/3] w-full object-cover transition hover:scale-[1.02]"
         />
       </button>
 
       {thumbs.length > 0 && (
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 sm:grid sm:grid-cols-3 sm:overflow-visible sm:pb-0">
+        <div className="mt-2 grid grid-cols-3 gap-2">
           {thumbs.map((url, i) => {
             const isLast = i === thumbs.length - 1 && overflow > 0;
             return (
@@ -47,7 +47,7 @@ export function GroupBuyPackageGallery({ urls, alt, className }: Props) {
                 type="button"
                 onClick={() => setLightboxIndex(isLast ? i + 2 : i + 1)}
                 aria-label={isLast ? `再檢視其他 ${overflow} 張圖片` : `放大檢視第 ${i + 2} 張圖片`}
-                className="relative w-20 shrink-0 overflow-hidden rounded-lg sm:w-auto"
+                className="relative w-full overflow-hidden rounded-lg"
               >
                 <img
                   src={url}

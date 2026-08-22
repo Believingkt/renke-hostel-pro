@@ -65,6 +65,9 @@ interface Campaign {
   subtitle: string | null;
   description_html: string | null;
   cover_image_url: string | null;
+  /** 封面圖顯示重點（百分比，後台可調；預設置中） */
+  cover_focus_x: number | null;
+  cover_focus_y: number | null;
   gallery_urls: string[];
   kol_display_name: string | null;
   sale_start: string | null;
@@ -895,7 +898,10 @@ export default function GroupBuyCampaign() {
             <img
               src={campaign.cover_image_url}
               alt={venueName || campaign.title}
-              className="h-[66vw] max-h-[560px] min-h-[280px] w-full object-cover object-center sm:h-[46vw]"
+              style={{
+                objectPosition: `${Number(campaign.cover_focus_x ?? 50)}% ${Number(campaign.cover_focus_y ?? 50)}%`,
+              }}
+              className="h-[62vw] max-h-[560px] min-h-[300px] w-full object-cover sm:h-[42vw]"
             />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-background/85 to-transparent" />
           </div>
@@ -929,12 +935,11 @@ export default function GroupBuyCampaign() {
             {lowestPkg && lowestPkgPrice != null && (
               <div className="mt-3">
                 <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
-                  <span className="text-sm text-muted-foreground">團購方案</span>
-                  <span className="text-sm text-muted-foreground">每晚</span>
+                  <span className="text-sm text-muted-foreground">團購價</span>
                   <span className="text-[1.875rem] font-bold leading-none tracking-tight text-accent tabular-nums sm:text-[2.125rem]">
                     {twd(lowestPkgPrice)}
                   </span>
-                  <span className="text-sm text-muted-foreground">起</span>
+                  <span className="text-sm text-muted-foreground">起／晚</span>
                   {lowestPkg.original_price ? (
                     <span className="text-sm text-muted-foreground/80 line-through tabular-nums">
                       原價 {twd(lowestPkg.original_price)}
@@ -947,7 +952,7 @@ export default function GroupBuyCampaign() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  方案最低價｜{bookablePackages.length > 1 ? "多種包棟方案可選" : "依入住日期與方案計價"}
+                  依方案／入住日期不同{bookablePackages.length > 1 ? "・多種方案可選" : ""}
                 </p>
               </div>
             )}
@@ -1082,7 +1087,7 @@ export default function GroupBuyCampaign() {
               return (
                 <div
                   key={p.id}
-                  className={`flex w-full flex-col gap-4 rounded-2xl border p-4 transition sm:flex-row sm:p-5 ${
+                  className={`flex w-full flex-col gap-4 overflow-hidden rounded-2xl border p-4 transition sm:flex-row sm:gap-5 sm:p-5 ${
                     active
                       ? "border-primary bg-secondary/60 ring-1 ring-primary/30"
                       : "border-border/70 bg-card"
@@ -1092,7 +1097,7 @@ export default function GroupBuyCampaign() {
                     <GroupBuyPackageGallery
                       urls={photos}
                       alt={p.display_name}
-                      className="w-full shrink-0 sm:w-48"
+                      className="w-full shrink-0 sm:w-[38%] sm:max-w-[340px]"
                     />
                   )}
                   <div className="min-w-0 flex-1">

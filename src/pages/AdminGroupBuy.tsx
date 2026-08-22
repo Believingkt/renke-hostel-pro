@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { DateField, DateTimeField } from "@/components/admin/DateFields";
 import { ImageUploadField } from "@/components/admin/ImageUploadField";
+import { CoverFocusField } from "@/components/admin/CoverFocusField";
 import { GroupBuyVenueIntroEditor } from "@/components/admin/GroupBuyVenueIntroEditor";
 import { FeaturedFacilityPicker, FeaturedPhotoPicker } from "@/components/admin/GroupBuyFeaturedPickers";
 
@@ -122,6 +123,8 @@ interface Campaign {
   subtitle: string | null;
   description_html: string | null;
   cover_image_url: string | null;
+  cover_focus_x?: number | null;
+  cover_focus_y?: number | null;
   kol_display_name: string | null;
   discount_code: string | null;
   sale_start: string | null;
@@ -944,6 +947,9 @@ export default function AdminGroupBuy() {
                   <div>
 
                     <Label>方案圖片（可多張，第一張為主圖）</Label>
+                    <p className="mb-1.5 text-xs text-muted-foreground">
+                      建議尺寸 1200×900（4:3）以上，橫式拍攝、主體置中；第一張會作為方案卡大圖。
+                    </p>
                     <MultiImageUploadField
                       value={(p.image_urls?.length ? p.image_urls : p.image_url ? [p.image_url] : [])}
                       onChange={(urls) =>
@@ -1153,10 +1159,20 @@ export default function AdminGroupBuy() {
               </div>
               <div className="md:col-span-2">
                 <Label>封面圖片</Label>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                  建議尺寸 1920×1080（16:9）以上，橫式、主體置中，檔案 8MB 以內。
+                </p>
                 <ImageUploadField
                   value={editing.cover_image_url ?? null}
                   onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
                   pathPrefix={`${accommodationId}/group-buy/cover`}
+                />
+                <CoverFocusField
+                  className="mt-3"
+                  imageUrl={editing.cover_image_url}
+                  x={Number((editing as any).cover_focus_x ?? 50)}
+                  y={Number((editing as any).cover_focus_y ?? 50)}
+                  onChange={({ x, y }) => setEditing({ ...editing, cover_focus_x: x, cover_focus_y: y } as any)}
                 />
               </div>
               <div>
