@@ -293,6 +293,77 @@ export function GroupBuyAnalyticsTab({
               </TableBody>
             </Table>
           </div>
+
+          {/* Mobile：分析明細卡片 */}
+          <div className="gb-no-print flex flex-col gap-3 p-3 md:hidden print:hidden">
+            {filtered.map((r) => {
+              const c = commissionCellText(r);
+              return (
+                <div key={r.order.id} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <button
+                      type="button"
+                      className="min-w-0 truncate font-medium text-primary underline-offset-2"
+                      onClick={() => onOpenOrder(r.order.order_number)}
+                    >
+                      {r.order.order_number}
+                    </button>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {ymd(r.order.order_date)}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 min-w-0 text-sm">
+                    <span className="break-words">{r.order.guest_name}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">{r.order.guest_phone}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                    {ymd(r.order.check_in_date)} → {ymd(r.order.check_out_date)}
+                  </div>
+                  <div className="mt-0.5 break-words text-xs text-muted-foreground">{r.packageName}</div>
+
+                  <div className="mt-2 flex items-end justify-between gap-2 border-t pt-2">
+                    <span className="text-xs text-muted-foreground">訂單總額</span>
+                    <span className="text-lg font-bold tabular-nums">
+                      {twdPlain(Number(r.order.final_price) || 0)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      已收（{DEPOSIT_STATE_LABEL[r.deposit]}）
+                    </span>
+                    <span className="text-sm font-medium tabular-nums">
+                      {twdPlain(Number(r.order.paid_amount) || 0)}
+                    </span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">網紅分潤</span>
+                    <span className="text-sm font-medium tabular-nums">{c.amount}</span>
+                  </div>
+                  <div className="text-right text-[11px] text-muted-foreground">{c.note || c.rate}</div>
+
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t pt-2">
+                    <Badge variant="outline">{ORDER_STATUS_TEXT(r.order)}</Badge>
+                    <Badge variant={REFUND_STATE_VARIANT[r.refund]}>{REFUND_STATE_LABEL[r.refund]}</Badge>
+                    <Badge variant={COMMISSION_STATE_VARIANT[r.state]}>{r.stateLabel}</Badge>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="admin-touch-target mt-3 w-full"
+                    onClick={() => onOpenOrder(r.order.order_number)}
+                  >
+                    查看訂單
+                  </Button>
+                </div>
+              );
+            })}
+            {filtered.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground">目前沒有符合條件的訂單資料。</div>
+            )}
+          </div>
+
         </CardContent>
       </Card>
     </div>
