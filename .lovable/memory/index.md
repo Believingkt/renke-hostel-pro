@@ -12,3 +12,4 @@
 - [品牌夥伴 Logo](mem://features/hq/brand-partners.md) — platform_brand_partners + BrandLogoBar 同步 admin/team/hq/portal 五處 logo，HQ /hq/brand-partners 管理。
 - [KOL 跨館同 CID 資格判定](mem://features/admin/kol-cross-venue-contract-scope.md) — 旅行日系列／非民宿場域才算同一份合約，其餘跨館同 CID 各自計資格只給灰色提示。
 - [團購訂房須知快照](mem://features/platform/group-buy-booking-notice-snapshot.md) — 團購訂單下單當下訂房須知/入住前提醒快照，讀取優先序與舊訂單 fallback。
+- [團購銷售分析與分潤](mem://features/admin/group-buy-analytics-commission.md) — 分潤以 group_buy_commissions 快照為準；KPI/明細/匯出同源；比例調整與人工判定規則。
