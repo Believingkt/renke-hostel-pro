@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GroupBuyPageContentTab } from "@/components/admin/GroupBuyPageContentTab";
+import { GroupBuyNotificationSettings } from "@/components/admin/GroupBuyNotificationSettings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -672,7 +673,12 @@ export default function AdminGroupBuy() {
             <TabsTrigger value="analytics">銷售分析</TabsTrigger>
             <TabsTrigger value="venue">民宿介紹</TabsTrigger>
             <TabsTrigger value="page-content">頁面內容</TabsTrigger>
+            <TabsTrigger value="notify">通知設定</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="notify" className="space-y-3">
+            <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />
+          </TabsContent>
 
           <TabsContent value="orders" className="space-y-3">
             <Card>
