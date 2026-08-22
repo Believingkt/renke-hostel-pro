@@ -698,12 +698,14 @@ export default function TeamHome() {
             .eq("adjustment_month", monthInfo.payoutMonthKey)
             .eq("closer_id", userId);
           for (const r of (adjRows ?? []) as any[]) {
-            const amt = Number(r.closer_amount ?? 0);
+            // 補差同樣是 Gross，顯示為個人實發
+            const amt = toCloserPersonal(Number(r.closer_amount ?? 0));
             if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
             else closerOtherAdjSum += amt;
           }
           closerCancelAdjSum = Math.round(closerCancelAdjSum);
           closerOtherAdjSum = Math.round(closerOtherAdjSum);
+
         }
 
 
