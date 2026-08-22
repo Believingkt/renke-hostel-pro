@@ -346,16 +346,18 @@ export default function GroupBuyOrderLookup() {
                   <XCircle className="h-4 w-4" /> 取消訂單
                 </p>
                 {cancelRequest ? (
-                  <div className="space-y-1 text-muted-foreground">
-                    <p>已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。</p>
-                    <p className="font-medium text-foreground">若符合退款條件，退款將於當月月底前完成處理。</p>
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground">
+                      已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
+                    </p>
+                    <CancellationRefundNotice showPendingReview className="rounded-lg bg-muted/60 p-3" />
                   </div>
                 ) : cancelOpen ? (
                   <div className="space-y-3">
                     <p className="text-muted-foreground">
-                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核，
-                      <span className="font-medium text-foreground">退款會在當月月底前處理完成</span>。
+                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。
                     </p>
+                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
                     <div>
                       <Label htmlFor="cancel-reason">取消原因（選填）</Label>
                       <Textarea
