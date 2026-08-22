@@ -11,15 +11,14 @@ import {
 } from "@/components/ui/accordion";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import type { LucideIcon } from "lucide-react";
+import {
+  applyVisibleKeys,
+  buildBookingNoticePanels,
+  type BookingNoticeCustomSection,
+  type BookingNoticePanel,
+} from "@/lib/bookingNoticePanels";
 
-interface CustomSection {
-  id: string;
-  section_title: string;
-  section_subtitle: string | null;
-  section_content: string | null;
-  display_order: number;
-  is_enabled: boolean;
-}
+type CustomSection = BookingNoticeCustomSection;
 
 interface BookingInfoSectionProps {
   bookingSettings: any;
@@ -35,18 +34,25 @@ interface BookingInfoSectionProps {
   visibleKeys?: string[];
   /** 手機版一次只展開一項（團購頁用） */
   mobileSingleAccordion?: boolean;
+  /**
+   * 直接指定要顯示的面板（歷史快照）。提供時完全取代 live data 組裝與 visibleKeys 過濾。
+   */
+  sections?: BookingNoticePanel[];
 }
 
-interface Panel {
-  key: string;
+interface Panel extends BookingNoticePanel {
   icon: LucideIcon;
-  title: string;
-  subtitle?: string;
-  /** 純文字摘要（如：入住/退房時間、付款方式） */
-  textRows?: { label?: string; value: string }[];
-  /** HTML 內容 */
-  html?: string;
 }
+
+const ICONS: Record<string, LucideIcon> = {
+  checkIn: Clock,
+  payment: CreditCard,
+  cancellation: FileText,
+  important: AlertTriangle,
+  pet: PawPrint,
+  other: Info,
+};
+const iconForKey = (key: string): LucideIcon => ICONS[key] ?? LayoutList;
 
 const BookingInfoSection = ({
   bookingSettings,
@@ -56,6 +62,7 @@ const BookingInfoSection = ({
   customSubtitle,
   visibleKeys,
   mobileSingleAccordion,
+  sections,
 }: BookingInfoSectionProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
