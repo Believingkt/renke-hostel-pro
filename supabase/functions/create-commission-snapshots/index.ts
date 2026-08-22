@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { isCommissionEligible } from "../_shared/commissionEligibility.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
@@ -211,7 +212,7 @@ serve(async (req) => {
         const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
         if (cur && cur !== "TWD") continue;
         // 免抽成來源訂單不計入獎金（例外旗標可單筆覆寫）
-        if (!meta.force_commission_eligible && isExempt(o as any)) continue;
+        if (!isCommissionEligible(o, meta, isExempt)) continue;
         // 訂單日不在館別合作期間內 → 不計入獎金
         if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
         // 當月營收未達抽成門檻 → 不計入獎金
@@ -404,7 +405,7 @@ serve(async (req) => {
         // 取消單：若尚未有取消扣回補差，於此補產生（金額不再改寫）
         if (ord.order_status === "cancelled") {
           if (cancelledAdjSet.has(s.order_id as string)) continue;
-          if (!metaMap.get(s.order_id as string)?.force_commission_eligible && isExemptR(ord)) continue;
+          if (!isCommissionEligible(ord, metaMap.get(s.order_id as string), isExemptR)) continue;
           const { error: insErr } = await supabase
             .from("closer_commission_adjustments")
             .insert({
@@ -443,7 +444,7 @@ serve(async (req) => {
           continue;
         }
 
-        if (!metaMap.get(s.order_id as string)?.force_commission_eligible && isExemptR(ord)) {
+        if (!isCommissionEligible(ord, metaMap.get(s.order_id as string), isExemptR)) {
           await revokeSnapshot(s, "免抽成來源（業主自帶／免抽成訂單來源）");
           continue;
         }
