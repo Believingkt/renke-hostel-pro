@@ -1734,15 +1734,21 @@ export default function GroupBuyCampaign() {
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-xs text-muted-foreground">
-                {readyToConfirm ? `訂金（${depositPct}%）` : selectedPkg.display_name}
+                {readyToConfirm ? "訂房總額" : selectedPkg.display_name}
               </p>
               <p className="text-lg font-bold leading-tight text-accent tabular-nums">
-                {readyToConfirm ? twd(deposit) : nights > 0 ? twd(total) : twd(lowestEffectivePrice(selectedPkg))}
+                {readyToConfirm ? twd(total) : nights > 0 ? twd(total) : twd(lowestEffectivePrice(selectedPkg))}
                 {!readyToConfirm && nights <= 0 && (
                   <span className="ml-1 text-xs font-normal text-muted-foreground">／晚</span>
                 )}
               </p>
+              {readyToConfirm && (
+                <p className="truncate text-[0.6875rem] leading-tight text-muted-foreground tabular-nums">
+                  訂金 {depositPct}%：{twd(deposit)}
+                </p>
+              )}
             </div>
+
             <Button
               onClick={() => (readyToConfirm ? setConfirmOpen(true) : scrollToNextStep())}
               className="h-11 shrink-0 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90"
