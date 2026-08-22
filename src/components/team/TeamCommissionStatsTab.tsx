@@ -1228,30 +1228,30 @@ export default function TeamCommissionStatsTab() {
                               </TableCell>
                               <TableCell className="tabular-nums">{b.validCount}</TableCell>
                               <TableCell className="tabular-nums">{fmtMoney(b.validAmount)}</TableCell>
-                              <TableCell className="tabular-nums">{renderCommissionCell(b.commission)}</TableCell>
+                              <TableCell className="tabular-nums">{renderCommissionCell(accCommissionSum)}</TableCell>
                               {hasBackfill && (
-                                <TableCell className="tabular-nums">{renderAdjCell(accBfGross)}</TableCell>
+                                <TableCell className="tabular-nums">{renderAdjCell(accBfSum)}</TableCell>
                               )}
                               {showAdj && (
                                 <>
-                                  <TableCell className="tabular-nums">{renderAdjCell(accAdjGross)}</TableCell>
+                                  <TableCell className="tabular-nums">{renderAdjCell(accAdjSum)}</TableCell>
 
                                   <TableCell className="tabular-nums font-medium">
                                     {bonusMultiplier > 1 ? (
                                       <div className="flex flex-col leading-tight items-end">
                                         <span className="text-muted-foreground line-through text-xs font-normal">
-                                          {fmtMoney(netCommission(b.commission) + accAdj + accBf)}
+                                          {fmtMoney(netCommission(accCommissionSum) + accAdj + accBf)}
                                         </span>
                                         <span className="text-primary">
                                           {fmtMoney(
-                                            boostedAmount(netCommission(b.commission), bonusMultiplier) +
+                                            boostedAmount(netCommission(accCommissionSum), bonusMultiplier) +
                                               boostedAmount(accAdj, bonusMultiplier) +
                                               boostedAmount(accBf, bonusMultiplier),
                                           )}
                                         </span>
                                       </div>
                                     ) : (
-                                      fmtMoney(netCommission(b.commission) + accAdj + accBf)
+                                      fmtMoney(netCommission(accCommissionSum) + accAdj + accBf)
                                     )}
                                   </TableCell>
                                 </>
