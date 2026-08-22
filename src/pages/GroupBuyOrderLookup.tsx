@@ -274,7 +274,7 @@ export default function GroupBuyOrderLookup() {
                       type="time"
                       value={transferTime}
                       onChange={(e) => setTransferTime(e.target.value)}
-                      className="h-10 text-base"
+                      className="time-input h-10 min-h-[40px] text-base"
                     />
                   </div>
                 </div>
