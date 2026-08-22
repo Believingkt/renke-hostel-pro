@@ -1160,21 +1160,32 @@ export default function AdminGroupBuy() {
               <div className="md:col-span-2">
                 <Label>封面圖片</Label>
                 <p className="mb-1.5 text-xs text-muted-foreground">
-                  建議尺寸 1920×1080（16:9）以上，橫式、主體置中，檔案 8MB 以內。
+                  建議尺寸 2400×900 以上，建議比例 16:6（桌機）／16:10（手機），支援 JPG／PNG／WebP，檔案 8MB 以內。
                 </p>
                 <ImageUploadField
                   value={editing.cover_image_url ?? null}
                   onChange={(url) => setEditing({ ...editing, cover_image_url: url })}
                   pathPrefix={`${accommodationId}/group-buy/cover`}
                 />
-                <CoverFocusField
+                <CoverCropEditor
                   className="mt-3"
                   imageUrl={editing.cover_image_url}
-                  x={Number((editing as any).cover_focus_x ?? 50)}
-                  y={Number((editing as any).cover_focus_y ?? 50)}
-                  onChange={({ x, y }) => setEditing({ ...editing, cover_focus_x: x, cover_focus_y: y } as any)}
+                  desktop={resolveCoverFocus(editing as any, "desktop")}
+                  mobile={resolveCoverFocus(editing as any, "mobile")}
+                  onChange={({ desktop, mobile }) =>
+                    setEditing({
+                      ...editing,
+                      cover_focus_x: desktop.x,
+                      cover_focus_y: desktop.y,
+                      cover_zoom: desktop.zoom,
+                      cover_focus_x_mobile: mobile.x,
+                      cover_focus_y_mobile: mobile.y,
+                      cover_zoom_mobile: mobile.zoom,
+                    } as any)
+                  }
                 />
               </div>
+
               <div>
                 <Label>狀態</Label>
                 <Select value={editing.status ?? "draft"} onValueChange={(v) => setEditing({ ...editing, status: v })}>
