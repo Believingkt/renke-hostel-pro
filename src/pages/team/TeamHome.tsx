@@ -531,8 +531,9 @@ export default function TeamHome() {
           ? await loadCloserBonusRateResolver(db as any)
           : null;
         const closerBonusRate = closerRateResolver
-          ? closerRateResolver(payoutMonthKey)
+          ? closerRateResolver.rateForPayoutMonth(payoutMonthKey)
           : 0;
+
         const toCloserPersonal = (gross: number) =>
           splitCloserBonus(gross, closerBonusRate).personal;
 
