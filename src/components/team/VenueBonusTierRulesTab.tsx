@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -54,6 +55,8 @@ const BONUS_TYPES = [
   { value: "closer_performance", label: "成交大師績效獎金" },
 ] as const;
 
+type BonusType = (typeof BONUS_TYPES)[number]["value"];
+
 const bonusLabel = (v: string) => BONUS_TYPES.find((b) => b.value === v)?.label ?? v;
 
 const twMoney = (n: number) =>
@@ -64,14 +67,12 @@ const pct = (r: number) => `${(r * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
 /** effective_from 對齊資料月：落在資料月 1 日之後 → 該資料月仍用舊制 */
 function payoutPeriodHint(effectiveFrom: string): string {
   const [y, m, d] = effectiveFrom.slice(0, 10).split("-").map(Number);
-  // 生效日所在資料月（若不是 1 日則順延到下個資料月）
   let dataY = y;
   let dataM = m;
   if (d > 1) {
     dataM = m === 12 ? 1 : m + 1;
     dataY = m === 12 ? y + 1 : y;
   }
-  // 發放期＝資料月次月 10 日
   const payM = dataM === 12 ? 1 : dataM + 1;
   const payY = dataM === 12 ? dataY + 1 : dataY;
   return `${dataY}/${String(dataM).padStart(2, "0")} 資料月 → 預計自 ${payY}/${String(payM).padStart(2, "0")}/10 期開始正式取用`;
@@ -86,18 +87,69 @@ function todayTaipei(): string {
   }).format(new Date());
 }
 
-/** 依生效日挑出目前生效版本（同館別＋同獎金類型） */
-function currentVersionId(rows: TierRuleRow[]): string | null {
-  const today = todayTaipei();
-  const eligible = rows.filter((r) => r.effective_from <= today);
-  if (eligible.length === 0) return null;
-  return eligible.reduce((best, r) =>
-    r.effective_from > best.effective_from ||
-    (r.effective_from === best.effective_from && r.created_at > best.created_at)
-      ? r
-      : best,
-  ).id;
+/* ------------------------------ 版本聚合 ------------------------------ */
+
+interface VenueVersion {
+  key: string; // accommodation_id|effective_from
+  accommodation_id: string;
+  effective_from: string;
+  rows: Partial<Record<BonusType, TierRuleRow>>;
+  /** 三種獎金的門檻是否一致（不一致代表是舊資料，需降級顯示） */
+  consistent: boolean;
+  thresholds: number[];
+  note: string | null;
 }
+
+function buildVersions(rules: TierRuleRow[], accId: string): VenueVersion[] {
+  const map = new Map<string, VenueVersion>();
+  for (const r of rules) {
+    if (r.accommodation_id !== accId) continue;
+    const key = `${r.accommodation_id}|${r.effective_from}`;
+    let v = map.get(key);
+    if (!v) {
+      v = {
+        key,
+        accommodation_id: r.accommodation_id,
+        effective_from: r.effective_from,
+        rows: {},
+        consistent: true,
+        thresholds: [],
+        note: null,
+      };
+      map.set(key, v);
+    }
+    v.rows[r.bonus_type as BonusType] = r;
+    if (!v.note && r.note) v.note = r.note;
+  }
+  for (const v of map.values()) {
+    const sets = Object.values(v.rows).map((r) =>
+      (r as TierRuleRow).tiers.map((t) => t.min_revenue).sort((a, b) => a - b),
+    );
+    const union = Array.from(new Set(sets.flat())).sort((a, b) => a - b);
+    v.thresholds = union;
+    v.consistent = sets.every((s) => s.length === union.length && s.every((n, i) => n === union[i]));
+  }
+  return Array.from(map.values()).sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
+}
+
+function currentVersionKey(versions: VenueVersion[]): string | null {
+  const today = todayTaipei();
+  const eligible = versions.filter((v) => v.effective_from <= today);
+  if (eligible.length === 0) return null;
+  return eligible.reduce((best, v) => (v.effective_from > best.effective_from ? v : best)).key;
+}
+
+/* ------------------------------ 表單型別 ------------------------------ */
+
+interface FormRow {
+  min: string;
+  rates: Record<BonusType, string>;
+}
+
+const emptyRow = (): FormRow => ({
+  min: "",
+  rates: { am_performance: "", am_manager: "", closer_performance: "" },
+});
 
 /* ------------------------------ 主元件 ------------------------------ */
 
@@ -107,18 +159,20 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const [rules, setRules] = useState<TierRuleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAcc, setSelectedAcc] = useState<string | null>(null);
-  const [selectedBonus, setSelectedBonus] = useState<string>("am_performance");
-  const [activeVersionId, setActiveVersionId] = useState<string | null>(null);
+  const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
 
   // 編輯 Dialog 狀態
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formAcc, setFormAcc] = useState<string>("");
-  const [formBonus, setFormBonus] = useState<string>("am_performance");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
-  const [formTiers, setFormTiers] = useState<Array<{ min: string; rate: string }>>([
-    { min: "0", rate: "0" },
-  ]);
+  const [formEnabled, setFormEnabled] = useState<Record<BonusType, boolean>>({
+    am_performance: true,
+    am_manager: true,
+    closer_performance: true,
+  });
+  const [formRows, setFormRows] = useState<FormRow[]>([emptyRow()]);
+  const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -143,78 +197,141 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     load();
   }, []);
 
-  /** 館別總覽：哪些館有獨立規則 */
   const overview = useMemo(() => {
     return accs.map((a) => {
       const own = rules.filter((r) => r.accommodation_id === a.id);
       const types = Array.from(new Set(own.map((r) => r.bonus_type)));
-      return { acc: a, hasRule: own.length > 0, types, versionCount: own.length };
+      const versionCount = new Set(own.map((r) => r.effective_from)).size;
+      return { acc: a, hasRule: own.length > 0, types, versionCount };
     });
   }, [accs, rules]);
 
-  const venueRules = useMemo(
-    () =>
-      rules
-        .filter((r) => r.accommodation_id === selectedAcc && r.bonus_type === selectedBonus)
-        .sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1)),
-    [rules, selectedAcc, selectedBonus],
+  const versions = useMemo(
+    () => (selectedAcc ? buildVersions(rules, selectedAcc) : []),
+    [rules, selectedAcc],
   );
-
-  const currentId = useMemo(() => currentVersionId(venueRules), [venueRules]);
+  const currentKey = useMemo(() => currentVersionKey(versions), [versions]);
   const shownVersion = useMemo(
-    () => venueRules.find((r) => r.id === activeVersionId) ?? venueRules.find((r) => r.id === currentId) ?? venueRules[0] ?? null,
-    [venueRules, activeVersionId, currentId],
+    () =>
+      versions.find((v) => v.key === activeVersionKey) ??
+      versions.find((v) => v.key === currentKey) ??
+      versions[0] ??
+      null,
+    [versions, activeVersionKey, currentKey],
   );
 
   useEffect(() => {
-    setActiveVersionId(null);
-  }, [selectedAcc, selectedBonus]);
+    setActiveVersionKey(null);
+  }, [selectedAcc]);
 
   /* ------------------------------ 表單操作 ------------------------------ */
 
-  const openCreate = (accId?: string, bonusType?: string) => {
+  const openCreate = (accId?: string) => {
     setFormAcc(accId ?? selectedAcc ?? "");
-    setFormBonus(bonusType ?? selectedBonus);
     setFormDate(todayTaipei());
     setFormNote("");
-    setFormTiers([{ min: "0", rate: "0" }]);
+    setFormEnabled({ am_performance: true, am_manager: true, closer_performance: true });
+    setFormRows([emptyRow()]);
+    setErrors([]);
     setDialogOpen(true);
   };
 
-  const openCopyFrom = (row: TierRuleRow) => {
+  const versionToRows = (v: VenueVersion): FormRow[] =>
+    v.thresholds.map((min) => ({
+      min: String(min),
+      rates: {
+        am_performance: rateAt(v, "am_performance", min),
+        am_manager: rateAt(v, "am_manager", min),
+        closer_performance: rateAt(v, "closer_performance", min),
+      },
+    }));
+
+  const openCopyFrom = (v: VenueVersion) => {
     setFormAcc("");
-    setFormBonus(row.bonus_type);
     setFormDate(todayTaipei());
-    setFormNote(`複製自 ${accs.find((a) => a.id === row.accommodation_id)?.name ?? ""}（${row.effective_from}）`);
-    setFormTiers(
-      row.tiers.map((t) => ({ min: String(t.min_revenue), rate: String(t.rate * 100) })),
+    setFormNote(
+      `複製自 ${accs.find((a) => a.id === v.accommodation_id)?.name ?? ""}（${v.effective_from}）`,
     );
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
     setDialogOpen(true);
+  };
+
+  /** 以此版本為基礎新增下一版（同館別） */
+  const openBasedOn = (v: VenueVersion) => {
+    setFormAcc(v.accommodation_id);
+    setFormDate(todayTaipei());
+    setFormNote("");
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setDialogOpen(true);
+  };
+
+  const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
+
+  const validate = (): string[] => {
+    const errs: string[] = [];
+    if (!formAcc) errs.push("請選擇館別");
+    if (!formDate) errs.push("請選擇生效日");
+    if (enabledTypes.length === 0) errs.push("至少要有一種獎金使用本館級距，否則此版本沒有意義");
+    if (formRows.length === 0) errs.push("請至少填一個級距");
+
+    const mins: number[] = [];
+    formRows.forEach((row, i) => {
+      const min = Number(row.min);
+      if (row.min.trim() === "" || !Number.isFinite(min) || min < 0) {
+        errs.push(`第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+      } else {
+        mins.push(min);
+      }
+      for (const t of enabledTypes) {
+        const raw = row.rates[t];
+        const rate = Number(raw);
+        if (raw.trim() === "" || !Number.isFinite(rate) || rate < 0 || rate > 100) {
+          errs.push(`第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字（0 代表不發）`);
+        }
+      }
+    });
+
+    const sorted = [...mins].sort((a, b) => a - b);
+    if (new Set(sorted).size !== sorted.length) errs.push("營收門檻不可重複");
+
+    return errs;
   };
 
   const save = async () => {
-    if (!formAcc) {
-      toast({ title: "請選擇館別", variant: "destructive" });
+    const errs = validate();
+    setErrors(errs);
+    if (errs.length > 0) {
+      toast({ title: "尚有欄位需修正", description: errs[0], variant: "destructive" });
       return;
     }
-    const tiers: BonusTier[] = formTiers
-      .map((t) => ({ min_revenue: Number(t.min), rate: Number(t.rate) / 100 }))
-      .filter((t) => Number.isFinite(t.min_revenue) && Number.isFinite(t.rate))
-      .sort((a, b) => a.min_revenue - b.min_revenue);
-    if (tiers.length === 0) {
-      toast({ title: "請至少填一個級距", variant: "destructive" });
-      return;
-    }
+
+    const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert({
+    const payload = enabledTypes.map((t) => ({
       accommodation_id: formAcc,
-      bonus_type: formBonus,
+      bonus_type: t,
       effective_from: formDate,
-      tiers: tiers as any,
+      tiers: sortedRows.map((r) => ({
+        min_revenue: Number(r.min),
+        rate: Number(r.rates[t]) / 100,
+      })) as any,
       note: formNote || null,
       created_by: userData?.user?.id ?? null,
-    });
+    }));
+    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(payload);
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
@@ -223,17 +340,22 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     toast({ title: "已新增版本", description: payoutPeriodHint(formDate) });
     setDialogOpen(false);
     setSelectedAcc(formAcc);
-    setSelectedBonus(formBonus);
+    setActiveVersionKey(`${formAcc}|${formDate}`);
     await load();
   };
 
-  const removeVersion = async (id: string) => {
-    const { error } = await supabase.from("venue_team_bonus_tier_rules").delete().eq("id", id);
+  const removeVersion = async (v: VenueVersion) => {
+    const { error } = await supabase
+      .from("venue_team_bonus_tier_rules")
+      .delete()
+      .eq("accommodation_id", v.accommodation_id)
+      .eq("effective_from", v.effective_from);
     if (error) {
       toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
       return;
     }
     toast({ title: "已刪除版本" });
+    setActiveVersionKey(null);
     await load();
   };
 
@@ -245,10 +367,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         <CardHeader>
           <CardTitle>館別獎金級距規則（總部集中管理）</CardTitle>
           <CardDescription>
-            這裡設定的是「館別專屬階層級距」：有設定的館別，AM 績效／AM 總管／成交大師績效改以
-            該館營收落在哪一階，整筆套用該階費率（非超額累進）；沒有設定的館別完全沿用現行系統費率，
-            兩者可在同一期快照裡混算。AM 總管與成交大師績效仍是「逐館級距算完的池 ÷ 人數」，
-            除人數與在職比例邏輯不變。
+            這裡設定的是「館別專屬階層級距」：一個館別、一個生效日，就是一組完整的級距表——
+            營收門檻只定義一次，AM 績效／AM 總管／成交大師績效各自對應一欄費率。
+            有設定的館別，該館營收落在哪一階就整筆套用該階費率（非超額累進）；
+            沒有勾選「使用本館級距」的獎金類型則完全沿用系統費率，兩者可在同一期快照裡混算。
+            AM 總管與成交大師績效仍是「逐館級距算完的池 ÷ 人數」，除人數與在職比例邏輯不變。
             <br />
             版本以資料月對齊：生效日落在資料月 1 日之後，該資料月仍用舊制；資料月次月 9 日 23:59
             定案後不回溯已定案金額。營收基準沿用現行來源白名單口徑，與住房率統計完全脫鉤。
@@ -301,7 +424,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         </CardContent>
       </Card>
 
-      {/* 級距表 + 版本列表 */}
+      {/* 級距矩陣 + 版本列表 */}
       {selectedAcc && (
         <Card>
           <CardHeader className="space-y-3">
@@ -316,58 +439,107 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     新增版本
                   </Button>
                   {shownVersion && (
-                    <Button size="sm" variant="outline" onClick={() => openCopyFrom(shownVersion)}>
-                      <Copy className="mr-1 h-4 w-4" />
-                      複製到其他館別
-                    </Button>
+                    <>
+                      <Button size="sm" variant="outline" onClick={() => openBasedOn(shownVersion)}>
+                        <Copy className="mr-1 h-4 w-4" />
+                        以此版本為基礎新增
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openCopyFrom(shownVersion)}>
+                        <Copy className="mr-1 h-4 w-4" />
+                        複製到其他館別
+                      </Button>
+                    </>
                   )}
                 </div>
               )}
             </div>
-            <Select value={selectedBonus} onValueChange={setSelectedBonus}>
-              <SelectTrigger className="max-w-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BONUS_TYPES.map((b) => (
-                  <SelectItem key={b.value} value={b.value}>
-                    {b.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </CardHeader>
           <CardContent className="space-y-4">
             {!shownVersion ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
-                此館別的「{bonusLabel(selectedBonus)}」尚未設定獨立規則，目前沿用系統費率。
+                此館別尚未設定獨立級距規則，目前三種獎金皆沿用系統費率。
               </p>
             ) : (
               <>
-                <div className="overflow-x-auto">
-                  <table className="w-full table-fixed text-sm tabular-nums">
+                {!shownVersion.consistent && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                    此版本的三種獎金門檻不一致（舊資料）。下表以聯集門檻顯示，缺該門檻的欄位標示為「—」。
+                    建議以此版本為基礎新增一版，統一門檻後再使用。
+                  </p>
+                )}
+
+                {/* 桌機：矩陣表 */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm tabular-nums">
                     <thead>
                       <tr className="border-b text-muted-foreground">
-                        <th className="w-20 py-2 text-left font-medium">階層</th>
+                        <th className="w-16 py-2 text-left font-medium">階層</th>
                         <th className="py-2 text-right font-medium whitespace-nowrap">
                           營收門檻（達到即整筆套用）
                         </th>
-                        <th className="py-2 text-right font-medium whitespace-nowrap">費率</th>
+                        {BONUS_TYPES.map((b) => (
+                          <th key={b.value} className="py-2 text-right font-medium whitespace-nowrap">
+                            {b.label}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {shownVersion.tiers.map((t, i) => (
-                        <tr key={i} className="border-b last:border-0">
+                      {shownVersion.thresholds.map((min, i) => (
+                        <tr key={min} className="border-b last:border-0">
                           <td className="py-2">第 {i + 1} 階</td>
                           <td className="py-2 text-right whitespace-nowrap">
-                            {twMoney(t.min_revenue)} 以上
+                            {twMoney(min)} 以上
                           </td>
-                          <td className="py-2 text-right whitespace-nowrap">{pct(t.rate)}</td>
+                          {BONUS_TYPES.map((b) => (
+                            <td key={b.value} className="py-2 text-right whitespace-nowrap">
+                              {displayRate(shownVersion, b.value, min)}
+                            </td>
+                          ))}
                         </tr>
                       ))}
+                      <tr className="text-xs text-muted-foreground">
+                        <td className="py-2" />
+                        <td className="py-2 text-right">未設定門檻的獎金類型</td>
+                        {BONUS_TYPES.map((b) => (
+                          <td key={b.value} className="py-2 text-right">
+                            {shownVersion.rows[b.value] ? "本館級距" : "沿用系統費率"}
+                          </td>
+                        ))}
+                      </tr>
                     </tbody>
                   </table>
                 </div>
+
+                {/* 手機：每階一張卡 */}
+                <div className="space-y-2 sm:hidden">
+                  {shownVersion.thresholds.map((min, i) => (
+                    <div key={min} className="rounded-md border px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">第 {i + 1} 階</span>
+                        <span className="tabular-nums">{twMoney(min)} 以上</span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+                        {BONUS_TYPES.map((b) => (
+                          <div key={b.value} className="rounded bg-muted/50 px-1 py-1">
+                            <div className="text-muted-foreground">{b.label}</div>
+                            <div className="tabular-nums font-medium">
+                              {displayRate(shownVersion, b.value, min)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-1">
+                    {BONUS_TYPES.map((b) => (
+                      <Badge key={b.value} variant={shownVersion.rows[b.value] ? "default" : "secondary"}>
+                        {b.label}：{shownVersion.rows[b.value] ? "本館級距" : "沿用系統費率"}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
                 {shownVersion.note && (
                   <p className="text-xs text-muted-foreground">備註：{shownVersion.note}</p>
                 )}
@@ -375,22 +547,22 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                 <div>
                   <p className="mb-2 text-sm font-medium">版本列表</p>
                   <ul className="divide-y rounded-md border">
-                    {venueRules.map((r) => {
-                      const isCurrent = r.id === currentId;
-                      const isFuture = r.effective_from > todayTaipei();
+                    {versions.map((v) => {
+                      const isCurrent = v.key === currentKey;
+                      const isFuture = v.effective_from > todayTaipei();
                       return (
                         <li
-                          key={r.id}
+                          key={v.key}
                           className={`flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm ${
-                            shownVersion.id === r.id ? "bg-muted/40" : ""
+                            shownVersion.key === v.key ? "bg-muted/40" : ""
                           }`}
                         >
                           <button
                             type="button"
                             className="flex flex-1 flex-wrap items-center gap-2 text-left"
-                            onClick={() => setActiveVersionId(r.id)}
+                            onClick={() => setActiveVersionKey(v.key)}
                           >
-                            <span className="tabular-nums">生效日：{r.effective_from}</span>
+                            <span className="tabular-nums">生效日：{v.effective_from}</span>
                             {isCurrent ? (
                               <Badge variant="default">目前生效</Badge>
                             ) : isFuture ? (
@@ -399,14 +571,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                               <Badge variant="secondary">已過期</Badge>
                             )}
                             <span className="text-xs text-muted-foreground">
-                              {payoutPeriodHint(r.effective_from)}
+                              {payoutPeriodHint(v.effective_from)}
                             </span>
                           </button>
                           {!readOnly && (
                             <Button
                               size="icon"
                               variant="ghost"
-                              onClick={() => removeVersion(r.id)}
+                              onClick={() => removeVersion(v)}
                               aria-label="刪除版本"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -423,103 +595,163 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         </Card>
       )}
 
-
-
       <VenueTierRuleAuditLog accs={accs} accountFilter={selectedAcc} />
 
-
-      {/* 新增／複製版本 Dialog */}
+      {/* 新增／複製版本 Dialog：整張級距表一次編輯 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>新增級距規則版本</DialogTitle>
             <DialogDescription>
-              新增後不回溯歷史期別，只影響尚未定案的未來期別。
+              門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label>館別</Label>
-              <Select value={formAcc} onValueChange={setFormAcc}>
-                <SelectTrigger>
-                  <SelectValue placeholder="選擇館別" />
-                </SelectTrigger>
-                <SelectContent>
-                  {accs.map((a) => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>館別</Label>
+                <Select value={formAcc} onValueChange={setFormAcc}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="選擇館別" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accs.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="space-y-1.5">
-              <Label>獎金類型</Label>
-              <Select value={formBonus} onValueChange={setFormBonus}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {BONUS_TYPES.map((b) => (
-                    <SelectItem key={b.value} value={b.value}>
-                      {b.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>生效日</Label>
-              <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-              <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+              <div className="space-y-1.5">
+                <Label>生效日</Label>
+                <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
+                <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label>級距（門檻金額／費率 %）</Label>
-              {formTiers.map((t, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input
-                    inputMode="numeric"
-                    placeholder="門檻金額"
-                    value={t.min}
-                    onChange={(e) =>
-                      setFormTiers((prev) =>
-                        prev.map((x, xi) => (xi === i ? { ...x, min: e.target.value } : x)),
-                      )
-                    }
-                  />
-                  <Input
-                    inputMode="decimal"
-                    placeholder="費率 %"
-                    value={t.rate}
-                    onChange={(e) =>
-                      setFormTiers((prev) =>
-                        prev.map((x, xi) => (xi === i ? { ...x, rate: e.target.value } : x)),
-                      )
-                    }
-                  />
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    aria-label="刪除此階"
-                    onClick={() => setFormTiers((prev) => prev.filter((_, xi) => xi !== i))}
+              <Label>哪些獎金使用本館級距？</Label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {BONUS_TYPES.map((b) => (
+                  <div
+                    key={b.value}
+                    className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
                   >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                    <span className="text-sm">{b.label}</span>
+                    <Switch
+                      checked={formEnabled[b.value]}
+                      onCheckedChange={(c) =>
+                        setFormEnabled((prev) => ({ ...prev, [b.value]: c }))
+                      }
+                      aria-label={`${b.label} 使用本館級距`}
+                    />
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>級距表（門檻金額／各獎金費率 %）</Label>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-sm">
+                  <thead>
+                    <tr className="text-xs text-muted-foreground">
+                      <th className="w-14 py-1 text-left font-medium">階層</th>
+                      <th className="py-1 text-left font-medium">營收門檻</th>
+                      {BONUS_TYPES.map((b) => (
+                        <th
+                          key={b.value}
+                          className={`py-1 text-left font-medium ${
+                            formEnabled[b.value] ? "" : "opacity-40"
+                          }`}
+                        >
+                          {b.label} %
+                        </th>
+                      ))}
+                      <th className="w-10" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formRows.map((row, i) => (
+                      <tr key={i}>
+                        <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                          第 {i + 1} 階
+                        </td>
+                        <td className="py-1 pr-2">
+                          <Input
+                            inputMode="numeric"
+                            placeholder="1000000"
+                            className="tabular-nums"
+                            value={row.min}
+                            onChange={(e) =>
+                              setFormRows((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i ? { ...x, min: e.target.value } : x,
+                                ),
+                              )
+                            }
+                          />
+                        </td>
+                        {BONUS_TYPES.map((b) => (
+                          <td key={b.value} className="py-1 pr-2">
+                            <Input
+                              inputMode="decimal"
+                              placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
+                              className="tabular-nums"
+                              disabled={!formEnabled[b.value]}
+                              value={row.rates[b.value]}
+                              onChange={(e) =>
+                                setFormRows((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                          </td>
+                        ))}
+                        <td className="py-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label="刪除此階"
+                            onClick={() =>
+                              setFormRows((prev) => prev.filter((_, xi) => xi !== i))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setFormTiers((prev) => [...prev, { min: "", rate: "" }])}
+                onClick={() => setFormRows((prev) => [...prev, emptyRow()])}
               >
                 <Plus className="mr-1 h-4 w-4" />
                 新增一階
               </Button>
             </div>
+
+            {errors.length > 0 && (
+              <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                {errors.map((e, i) => (
+                  <li key={i}>・{e}</li>
+                ))}
+              </ul>
+            )}
 
             <div className="space-y-1.5">
               <Label>備註</Label>
@@ -539,4 +771,20 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       </Dialog>
     </div>
   );
+}
+
+/* ------------------------------ 顯示輔助 ------------------------------ */
+
+function rateAt(v: VenueVersion, type: BonusType, min: number): string {
+  const row = v.rows[type];
+  if (!row) return "";
+  const hit = row.tiers.find((t) => t.min_revenue === min);
+  return hit ? String(Number((hit.rate * 100).toFixed(4))) : "";
+}
+
+function displayRate(v: VenueVersion, type: BonusType, min: number): string {
+  const row = v.rows[type];
+  if (!row) return "沿用系統";
+  const hit = row.tiers.find((t) => t.min_revenue === min);
+  return hit ? pct(hit.rate) : "—";
 }
