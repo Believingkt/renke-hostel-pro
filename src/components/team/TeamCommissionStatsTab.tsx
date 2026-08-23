@@ -642,6 +642,8 @@ export default function TeamCommissionStatsTab() {
       const { data: csData } = await supabase
         .from("accommodation_commission_settings")
         .select("accommodation_id, closer_rate, video_rate, effective_from")
+        // 與結算口徑一致：只取「檢視期別資料月首日」以前生效的版本
+        .lte("effective_from", rateAsOfForDataMonth(period.startDate.slice(0, 7)))
         .order("effective_from", { ascending: false });
       const csMap = new Map<string, CommissionRow[]>();
       (csData ?? []).forEach((r: any) => {

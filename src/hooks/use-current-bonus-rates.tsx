@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamRole } from "@/components/team/teamConfig";
 import { isRateAdmin, MANAGER_SCOPE } from "@/lib/bonusRateMeta";
+import { rateAsOfForDataMonth } from "@/lib/rateEffectivePeriod";
 
 export interface GlobalRate {
   rate: number | null;
@@ -31,14 +32,20 @@ interface State {
  *
  * 逐館費率的可見範圍：管理員與主管可看全部；一般 AM 只看所轄館別。
  */
-export function useCurrentBonusRates(roles: TeamRole[], userId?: string): State {
+export function useCurrentBonusRates(
+  roles: TeamRole[],
+  userId?: string,
+  /** 檢視期別的資料月 yyyy-MM；省略時取台北當月 */
+  dataMonthKey?: string,
+): State {
   const [state, setState] = useState<State>({ globalRates: {}, venueRates: [], loading: true });
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      const today = new Date().toISOString().slice(0, 10);
+      // 與結算口徑一致：以「資料月首日」取版本，而非今天
+      const today = rateAsOfForDataMonth(dataMonthKey);
 
       const [globalRes, venueRes, accRes] = await Promise.all([
         supabase
@@ -103,7 +110,7 @@ export function useCurrentBonusRates(roles: TeamRole[], userId?: string): State 
     return () => {
       cancelled = true;
     };
-  }, [roles.join(","), userId]);
+  }, [roles.join(","), userId, dataMonthKey]);
 
   return state;
 }

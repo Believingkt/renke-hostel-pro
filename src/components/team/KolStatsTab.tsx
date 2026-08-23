@@ -205,7 +205,8 @@ export function KolStatsTab() {
       try {
         const yearAll = year === 0;
         const effYear = yearAll ? currentYear : year;
-        const asOfDate = `${effYear}-12-31`;
+        // 與 calculate-scout-payout 一致：費率版本取「結算年月 28 日」為切點
+        const asOfDate = scoutRateAsOf(effYear, periodMonth(period));
         const range = periodRange(effYear, period);
         const month = periodMonth(period);
         const showSalary = periodIsDayTen(period);
