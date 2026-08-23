@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -235,6 +235,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     setFormEnabled({ am_performance: true, am_manager: true, closer_performance: true });
     setFormRows([emptyRow()]);
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -261,6 +262,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     });
     setFormRows(versionToRows(v));
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -276,6 +278,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     });
     setFormRows(versionToRows(v));
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
