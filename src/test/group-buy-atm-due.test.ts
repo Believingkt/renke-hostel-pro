@@ -14,7 +14,7 @@ describe("團購 ATM 應收金額 SoT", () => {
     for (const bad of [0, null, undefined, -100, "abc"] as unknown[]) {
       const r = resolveGroupBuyAtmDue({ deposit_amount: bad as number });
       expect(r.ok).toBe(false);
-      if (!r.ok) expect(r.error).toBe(GB_ATM_ERR_NO_DEPOSIT);
+      if (r.ok === false) expect(r.error).toBe(GB_ATM_ERR_NO_DEPOSIT);
     }
   });
 
@@ -35,7 +35,7 @@ describe("團購 ATM 應收金額 SoT", () => {
       paid_amount: 3000,
     });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("已收訖");
+    if (r.ok === false) expect(r.error).toContain("已收訖");
   });
 
   it("部分付款 → 只收剩餘差額", () => {
