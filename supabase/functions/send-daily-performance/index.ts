@@ -71,6 +71,51 @@ function toWan(n: number): string {
   return `${Math.floor((n || 0) / 10000)}萬`;
 }
 
+// ── 訂單來源顯示名稱 ────────────────────────────────────────
+const SOURCE_LABELS: Record<string, string> = {
+  website: "官網訂房",
+  manual: "現場訂房",
+  line: "Line@",
+  agoda: "Agoda",
+  booking: "Booking",
+  trip: "Trip",
+  travel_agency: "旅行社",
+  peer_trade: "同業",
+  kol: "KOL互惠",
+  points_starchain: "星鏈會員",
+  official_use: "公務使用",
+  franchise_diff: "加盟價差",
+  owner_provided: "業主自帶",
+  accommodation_voucher: "住宿票卷",
+  group_buy: "網紅團購",
+  owlting: "奧丁丁",
+};
+function sourceLabel(v: string | null | undefined): string {
+  const key = (v ?? "").trim();
+  if (!key) return "未指定來源";
+  return SOURCE_LABELS[key] ?? key;
+}
+// 依來源彙總金額／筆數，產生明細文字
+function buildSourceBreakdown(
+  rows: Array<{ final_price?: unknown; order_source?: string | null }> | null | undefined,
+  title: string,
+): string {
+  const map = new Map<string, { amount: number; count: number }>();
+  for (const r of rows ?? []) {
+    const key = sourceLabel(r.order_source);
+    const cur = map.get(key) ?? { amount: 0, count: 0 };
+    cur.amount += Number(r.final_price || 0);
+    cur.count += 1;
+    map.set(key, cur);
+  }
+  const list = [...map.entries()]
+    .filter(([, v]) => v.amount > 0)
+    .sort((a, b) => b[1].amount - a[1].amount);
+  if (list.length === 0) return "";
+  return `${title}\n` +
+    list.map(([k, v]) => `・${k} NT$${fmtMoney(v.amount)}（${v.count} 筆）`).join("\n");
+}
+
 // ── Email rendering ────────────────────────────────────────
 function defaultTemplate(hasFranchise: boolean): string {
   const general = `{日期}
@@ -79,12 +124,15 @@ function defaultTemplate(hasFranchise: boolean): string {
 今日訂單：{今日訂單筆數} 筆，金額 {今日訂單}
 今日訂單取消：{今日取消筆數} 筆，金額 {今日取消金額}
 
+{今日來源明細}
+
 本月累積訂房業績：{月累積}
 目標訂房業績：{月目標}／月
 本月({M}月)訂房達成率：{達成率}%
 
 前月累積訂房業績：{前月累積}
 年度累積訂房金額：{年度累積}`;
+
 
   if (hasFranchise) {
     return `{日期}\n【{民宿名稱}特許加盟紀錄報表】\n\n今日特許加盟銷售：{今日加盟銷售}\n本月累積銷售額：{加盟月累積}\n目標月銷售：{加盟月目標}/月\n\n本月銷售達成率({加盟月目標})：{加盟月達成率}%\n累積銷售業績：{加盟年累積}\n累積銷售達成率({加盟年目標})：{加盟年達成率}%\n-------------\n今日特許加盟訂房業績：{今日加盟訂房筆數} 筆，金額 {今日加盟訂房}萬\n本月累積訂房業績：{加盟訂房月累積}\n目標特許加盟訂房：{加盟訂房月目標}/月\n本月累積訂房達成率：{加盟訂房達成率}%\n\n特許加盟年度累積訂房金額：{加盟訂房年累積}\n------------\n【{民宿名稱}進單業績】\n\n今日一般訂房業績：{今日訂單筆數} 筆，金額 {今日訂單}\n本月累積訂房業績：{月累積}\n目標訂房業績：{月目標}／月\n本月({M}月)累積訂房達成率：{達成率}%\n\n年度累積訂房金額：{年度累積}`;
