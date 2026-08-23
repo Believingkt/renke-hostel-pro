@@ -117,7 +117,7 @@ serve(async (req) => {
 
     const supaUrl = Deno.env.get('SUPABASE_URL');
     const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (orderPayload && supaUrl && svcKey) {
+    if (orderPayload && !isGroupBuyFlow && supaUrl && svcKey) {
       const payload = orderPayload as Record<string, unknown>;
       if (payload.idempotencyKey !== orderId || payload.finalPrice !== amount) {
         return new Response(JSON.stringify({ success: false, message: '訂房草稿與付款資料不一致' }), {
