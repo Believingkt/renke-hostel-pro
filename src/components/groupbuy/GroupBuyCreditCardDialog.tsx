@@ -55,7 +55,9 @@ export function GroupBuyCreditCardDialog(props: Props) {
   const [cardValid, setCardValid] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [rechecking, setRechecking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [holdSeconds, setHoldSeconds] = useState<number | null>(null);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
 
