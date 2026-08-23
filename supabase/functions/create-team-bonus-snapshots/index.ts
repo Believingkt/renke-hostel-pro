@@ -1092,6 +1092,8 @@ serve(async (req) => {
       if (!isActiveAtMonthEnd(profileById.get(memberId))) continue;
 
       const rate = rateOf(bt);
+      // AM 總管同樣先逐館算級距（closer_manager 無級距規則，等同沿用系統費率）
+      const pool = revenuePool(companyRevenue, rate, bt);
       push({
         bonus_type: bt,
         member_id: memberId,
@@ -1103,17 +1105,18 @@ serve(async (req) => {
         rate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue.payout * Number(rate ?? 0),
-        amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
-        amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
+        amount: pool.amount,
+        amount_incl_owner: pool.incl,
+        amount_excl_owner: pool.excl,
         payout_basis_used: companyRevenue.basis,
-        lines: revenueLines(companyRevenue, rate),
+        lines: revenueLines(companyRevenue, rate, { bonusType: bt }),
         settings_snapshot: {
           as_of: asOf,
           rate,
           shared_sources: sharedSources,
           accommodation_ids: activeAccIds,
           role_binding: bt,
+          tier_rule_accommodation_ids: pool.tierAccIds,
         },
       });
     }
