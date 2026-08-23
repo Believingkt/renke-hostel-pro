@@ -189,22 +189,28 @@ export async function processTapPayEvent(
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
   const appendNote = (line: string) => `${order.notes ? order.notes + "\n" : ""}🔒 ${stamp} ${line}`;
   const orderPatch: Json = {};
+  // Q3-B：無實質變化的重送／亂序舊事件 → 不改 orders（連帶不觸發 OwlTing / Hotelnabe）、不寫 notes、不推播
+  let noOp = false;
 
   if (eventType === "refund") {
     if (ok) {
       const refunded = Math.abs(num(payload.refunded_amount) ?? amount ?? 0);
       // Q3-A：payload.refunded_amount 為「累計退款額」，以差額扣減 paid_amount，
       // 同一退款 callback 重送時 delta = 0，不會重複扣減。
-      const { newPaid, newRefundedTotal } = computeRefundAmounts({
+      const { newPaid, newRefundedTotal, delta } = computeRefundAmounts({
         currentPaid: Number(order.paid_amount || 0),
         currentRefundedTotal: Number(order.refunded_amount || 0),
         incomingRefundedTotal: num(payload.refunded_amount),
         fallbackAmount: amount,
       });
-      orderPatch.refunded_amount = newRefundedTotal;
-      orderPatch.paid_amount = newPaid;
-      orderPatch.payment_status = "refunded";
-      orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
+      if (isStaleRefund(Number(order.refunded_amount || 0), delta)) {
+        noOp = true;
+      } else {
+        orderPatch.refunded_amount = newRefundedTotal;
+        orderPatch.paid_amount = newPaid;
+        orderPatch.payment_status = "refunded";
+        orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
+      }
     } else {
       orderPatch.notes = appendNote(`TapPay 退款失敗（${errMsg}），需人工處理（交易 ${recTradeId}）`);
     }
@@ -213,15 +219,30 @@ export async function processTapPayEvent(
     if (ok) {
       const charged = Math.abs(amount ?? 0);
       const newPaid = Math.max(Number(order.paid_amount || 0), charged);
-      orderPatch.paid_amount = newPaid;
-      orderPatch.payment_status = newPaid >= Number(order.final_price || 0) ? "paid" : "deposit_paid";
-      if (order.room_charge_status && order.room_charge_status !== "cancelled") {
-        orderPatch.room_charge_status = "charged";
-        orderPatch.room_charge_at = new Date().toISOString();
-        orderPatch.room_charge_rec_trade_id = recTradeId;
-        orderPatch.room_charge_error = null;
+      const newStatus = newPaid >= Number(order.final_price || 0) ? "paid" : "deposit_paid";
+      if (
+        isNoOpCharge({
+          currentPaid: Number(order.paid_amount || 0),
+          newPaid,
+          currentPaymentStatus: order.payment_status ?? null,
+          newPaymentStatus: newStatus,
+          currentRoomChargeStatus: order.room_charge_status ?? null,
+          currentRoomChargeRecTradeId: order.room_charge_rec_trade_id ?? null,
+          incomingRecTradeId: recTradeId,
+        })
+      ) {
+        noOp = true;
+      } else {
+        orderPatch.paid_amount = newPaid;
+        orderPatch.payment_status = newStatus;
+        if (order.room_charge_status && order.room_charge_status !== "cancelled") {
+          orderPatch.room_charge_status = "charged";
+          orderPatch.room_charge_at = new Date().toISOString();
+          orderPatch.room_charge_rec_trade_id = recTradeId;
+          orderPatch.room_charge_error = null;
+        }
+        orderPatch.notes = appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`);
       }
-      orderPatch.notes = appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`);
     } else {
       orderPatch.payment_status = Number(order.paid_amount || 0) > 0 ? order.payment_status : "unpaid";
       if (order.room_charge_status && order.room_charge_status !== "cancelled") {
@@ -238,7 +259,7 @@ export async function processTapPayEvent(
   }
 
   // App 推播：付款成功／退款完成（ATM 入帳、3DS 補回呼皆走這裡）
-  if (ok) {
+  if (ok && !noOp) {
     if (eventType === "refund") {
       await pushOrderEvent(order.id, "order_cancelled", {
         amount: Number(orderPatch.refunded_amount ?? 0),
@@ -250,6 +271,14 @@ export async function processTapPayEvent(
     }
   }
 
-  return { matched: true, ok, orderId: order.id, orderNumber: order.order_number, eventType };
+  return {
+    matched: true,
+    ok,
+    orderId: order.id,
+    orderNumber: order.order_number,
+    eventType,
+    duplicate: noOp || undefined,
+  };
+
 }
 
