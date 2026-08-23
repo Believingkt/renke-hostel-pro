@@ -44,6 +44,7 @@ import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderH
 import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
 import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
+import { payoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 /* ------------------------------ 四步流程導引 ------------------------------ */
 
@@ -110,6 +111,8 @@ function GateVsAmountBar() {
 
 
 /* ------------------------------ 共用工具 ------------------------------ */
+
+
 
 
 /** 今天（Asia/Taipei）的 yyyy-MM-dd */
@@ -656,7 +659,15 @@ function RateSection({
                             ? `${Number(((cur.rate ?? 0) * 100).toFixed(4))}%`
                             : money(cur.fixed_amount)}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">{cur?.effective_from ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {cur?.effective_from ?? "—"}
+                        {cur?.effective_from && (
+                          <div className="text-[11px] text-muted-foreground">
+                            預計自 {payoutPeriodLabel(cur.effective_from)} 起正式採用
+                          </div>
+                        )}
+                      </TableCell>
+
                       <TableCell className="text-right">
                         {readOnly ? null : (
                           <Button variant="outline" size="sm" onClick={() => openDialog(b.type)}>
@@ -685,7 +696,11 @@ function RateSection({
                                   <TableRow key={h.id}>
                                     <TableCell className="whitespace-nowrap">
                                       {h.effective_from}
+                                      <div className="text-[11px] text-muted-foreground">
+                                        自 {payoutPeriodLabel(h.effective_from)} 起採用
+                                      </div>
                                     </TableCell>
+
                                     <TableCell className="tabular-nums">
                                       {h.rate != null
                                         ? `${Number((h.rate * 100).toFixed(4))}%`
@@ -752,7 +767,14 @@ function RateSection({
                 value={effectiveFrom}
                 onChange={(e) => setEffectiveFrom(e.target.value)}
               />
+              {effectiveFrom && (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  本次版本新增，預計從 {payoutPeriodLabel(effectiveFrom)} 開始正式取用費率。
+                  （結算以「資料月首日」為版本切點：生效日若不是當月 1 日，該資料月仍沿用舊費率。）
+                </p>
+              )}
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogType(null)}>
