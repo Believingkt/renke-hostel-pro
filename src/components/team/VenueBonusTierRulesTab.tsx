@@ -762,11 +762,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                         <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
                           第 {i + 1} 階
                         </td>
-                        <td className="py-1 pr-2">
+                        <td className="py-1 pr-2 align-top">
                           <Input
                             inputMode="numeric"
                             placeholder="1000000"
-                            className="tabular-nums"
+                            ref={(el) => (fieldRefs.current[`min-${i}`] = el)}
+                            className={`tabular-nums ${
+                              fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                            }`}
                             value={row.min}
                             onChange={(e) =>
                               setFormRows((prev) =>
@@ -776,13 +779,21 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                               )
                             }
                           />
+                          {fieldErrors[`min-${i}`] && (
+                            <p className="mt-1 text-xs text-destructive">
+                              {fieldErrors[`min-${i}`]}
+                            </p>
+                          )}
                         </td>
                         {BONUS_TYPES.map((b) => (
-                          <td key={b.value} className="py-1 pr-2">
+                          <td key={b.value} className="py-1 pr-2 align-top">
                             <Input
                               inputMode="decimal"
                               placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
-                              className="tabular-nums"
+                              ref={(el) => (fieldRefs.current[`rate-${i}-${b.value}`] = el)}
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
                               disabled={!formEnabled[b.value]}
                               value={row.rates[b.value]}
                               onChange={(e) =>
@@ -795,8 +806,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                                 )
                               }
                             />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="mt-1 text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
                           </td>
                         ))}
+
                         <td className="py-1">
                           <Button
                             size="icon"
