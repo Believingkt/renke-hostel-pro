@@ -2270,8 +2270,9 @@ export default function TeamHome() {
                     營收合計 {fmt(totalRevenue)}　獎金合計 {fmt(totalAmount)}
                   </DrawerDescription>
                 </DrawerHeader>
-                <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
-                  <table className="w-full text-sm">
+                <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-xs sm:text-sm">
+
                     <thead>
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>
