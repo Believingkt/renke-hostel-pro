@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.log_venue_team_bonus_tier_rule_change() FROM PUBLIC, anon, authenticated;
