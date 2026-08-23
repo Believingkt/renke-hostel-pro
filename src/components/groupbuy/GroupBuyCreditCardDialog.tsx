@@ -134,6 +134,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
     if (!open) {
       setError(null);
       setSubmitting(false);
+      setRechecking(false);
+
       setHoldSeconds(null);
       draftRef.current = null;
     }
