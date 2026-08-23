@@ -484,12 +484,58 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       title: replaceTarget ? "已重建版本" : "已新增版本",
       description: payoutPeriodHint(formDate),
     });
+    if (replaceTarget && replaceSnapshot && replaceSnapshot.length > 0) {
+      setUndoState({
+        accommodation_id: replaceTarget.accommodation_id,
+        effective_from: replaceTarget.effective_from,
+        rows: replaceSnapshot,
+        expiresAt: Date.now() + 120_000,
+      });
+    }
     setDialogOpen(false);
     setReplaceTarget(null);
+    setReplaceSnapshot(null);
     setSelectedAcc(formAcc);
     setActiveVersionKey(`${formAcc}|${formDate}`);
     await load();
   };
+
+  /** 撤銷上一步：刪掉剛重建的內容，還原成修正前的原始級距 */
+  const undoRebuild = async () => {
+    if (!undoState) return;
+    setUndoing(true);
+    const { error: delErr } = await supabase
+      .from("venue_team_bonus_tier_rules")
+      .delete()
+      .eq("accommodation_id", undoState.accommodation_id)
+      .eq("effective_from", undoState.effective_from);
+    if (delErr) {
+      setUndoing(false);
+      toast({ title: "撤銷失敗", description: delErr.message, variant: "destructive" });
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(
+      undoState.rows.map((r) => ({
+        accommodation_id: r.accommodation_id,
+        bonus_type: r.bonus_type,
+        effective_from: r.effective_from,
+        tiers: r.tiers as any,
+        note: r.note,
+        created_by: userData?.user?.id ?? null,
+      })),
+    );
+    setUndoing(false);
+    if (error) {
+      toast({ title: "還原失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "已撤銷，版本已還原為修正前內容" });
+    setUndoState(null);
+    await load();
+  };
+
+
 
 
   const removeVersion = async (v: VenueVersion) => {
