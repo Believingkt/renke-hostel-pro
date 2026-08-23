@@ -22,6 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, PencilLine, Plus, Trash2 } from "lucide-react";
 
@@ -171,6 +181,8 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     accommodation_id: string;
     effective_from: string;
   } | null>(null);
+  /** 修正前的確認視窗對象 */
+  const [fixCandidate, setFixCandidate] = useState<VenueVersion | null>(null);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
@@ -508,7 +520,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <div>
             <CardTitle className="text-base">館別總覽</CardTitle>
-            <CardDescription>哪些館別已改用獨立業務規則</CardDescription>
+            <CardDescription>
+              哪些館別已改用獨立業務規則
+              <br />
+              <span className="text-xs">
+                提醒：要新增版本時，建議先點選館別後使用「以此版本為基礎新增」（同館沿用級距、只改生效日）或「複製到其他館別」，
+                比從零填寫更快也不易漏填。
+              </span>
+            </CardDescription>
           </div>
           {!readOnly && (
             <Button size="sm" onClick={() => openCreate()}>
@@ -569,7 +588,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           已被快照採用，僅能新增新版本
                         </Badge>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => openFix(shownVersion)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setFixCandidate(shownVersion)}
+                        >
                           <PencilLine className="mr-1 h-4 w-4" />
                           修正此版本（刪除並重建）
                         </Button>
@@ -716,7 +739,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                onClick={() => openFix(v)}
+                                onClick={() => setFixCandidate(v)}
                                 className="admin-touch-target"
                               >
                                 <PencilLine className="mr-1 h-4 w-4" />
@@ -1081,6 +1104,53 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
         </DialogContent>
       </Dialog>
+
+      {/* 修正前確認 */}
+      <AlertDialog open={!!fixCandidate} onOpenChange={(o) => !o && setFixCandidate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認修正此版本？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  系統會<strong>先刪除</strong>下列版本，再以相同生效日重新建立你編輯後的內容。
+                </p>
+                <ul className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                  <li>
+                    館別：
+                    <strong>
+                      {accs.find((a) => a.id === fixCandidate?.accommodation_id)?.name ?? "—"}
+                    </strong>
+                  </li>
+                  <li>
+                    會刪除的版本：<strong>生效日 {fixCandidate?.effective_from}</strong>（含此版本
+                    {fixCandidate ? Object.values(fixCandidate.rows).filter(Boolean).length : 0}{" "}
+                    種獎金的所有級距）
+                  </li>
+                  <li>
+                    保留的生效日：<strong>{fixCandidate?.effective_from}</strong>（重建後生效期別不變）
+                  </li>
+                </ul>
+                <p className="text-xs text-muted-foreground">
+                  此版本尚未被任何快照採用，因此可安全重建；若只是想調整未來期別，請改用「以此版本為基礎新增」。
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const v = fixCandidate;
+                setFixCandidate(null);
+                if (v) openFix(v);
+              }}
+            >
+              確認並開始修正
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
