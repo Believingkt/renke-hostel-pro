@@ -6455,7 +6455,21 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               <h3 className="font-semibold">稀有度邀約獎金</h3>
               <p className="text-xs text-muted-foreground">
                 目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
+                {current && scoutPayoutPeriodLabel(current.effective_from)
+                  ? `（自 ${scoutPayoutPeriodLabel(current.effective_from)} 起採用）`
+                  : ""}
               </p>
+              <p className="text-[11px] text-muted-foreground">
+                星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+              </p>
+              {pendingVersions.length > 0 && (
+                <p className="text-[11px] text-amber-600">
+                  待生效版本：
+                  {pendingVersions
+                    .map((v) => `${v.effective_from}（${scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起）`)
+                    .join("、")}
+                </p>
+              )}
             </div>
             {isManager && (
               <Button onClick={openCreate}>
