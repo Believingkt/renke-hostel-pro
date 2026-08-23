@@ -1487,11 +1487,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
 
         {!loading && groups.length > 0 && (
-          <div className="flex gap-6 text-sm bg-muted/30 rounded p-3">
-            <div>總人數：<span className="font-medium">{groups.length}</span></div>
-            <div>總金額：<span className="font-medium">{formatMoney(totalAll)}</span></div>
-            <div>未發放：<span className="font-medium text-amber-700">{formatMoney(totalUnpaid)}</span></div>
+          <div className="grid grid-cols-1 gap-1 rounded bg-muted/30 p-3 text-sm min-[380px]:grid-cols-3 sm:flex sm:gap-6">
+            <div className="flex justify-between sm:block">總人數：<span className="font-medium tabular-nums">{groups.length}</span></div>
+            <div className="flex justify-between sm:block">總金額：<span className="font-medium tabular-nums">{formatMoney(totalAll)}</span></div>
+            <div className="flex justify-between sm:block">未發放：<span className="font-medium tabular-nums text-amber-700">{formatMoney(totalUnpaid)}</span></div>
           </div>
+
         )}
 
         {loading ? null : groups.length === 0 ? (
