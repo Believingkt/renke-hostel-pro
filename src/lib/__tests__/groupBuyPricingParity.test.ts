@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 import * as fe from "@/lib/groupBuyPricing";
-import * as be from "../../../supabase/functions/group-buy-create-order/groupBuyPricing";
+import * as be from "../../../supabase/functions/_shared/groupBuyPricing";
 
 // 2026-08：17(一) 21(五) 22(六) 23(日)
 const HOLIDAYS = new Set(["2026-08-17"]);
