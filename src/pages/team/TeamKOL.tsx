@@ -7613,9 +7613,13 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  const latestDate = rows[0]?.effective_from;
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  const tierAsOf = scoutRateAsOfToday();
+  const allDates = Array.from(new Set(rows.map((r) => r.effective_from)));
+  const latestDate = allDates.find((d) => d <= tierAsOf);
   const latestRows = rows.filter((r) => r.effective_from === latestDate);
-  const historyDates = Array.from(new Set(rows.map((r) => r.effective_from))).slice(1);
+  const historyDates = allDates.filter((d) => d !== latestDate && d <= tierAsOf);
+  const pendingDates = allDates.filter((d) => d > tierAsOf);
 
   const openNew = () => {
     setEffectiveFrom(todayStr());
