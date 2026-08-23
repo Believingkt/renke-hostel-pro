@@ -142,6 +142,9 @@ export default function HQBonusSettings() {
                 分給誰 → ④ 分多少、何時發。最上方的試算檢查器可輸入訂單編號，直接看到該筆訂單在每一步的判定結果。
                 所有設定皆為 append-only 版本制，新增生效版本不會覆寫歷史期別的已算金額；
                 /team/commission 的「獎金設定」分頁為唯讀鏡像。
+                <br />
+                注意：這裡的費率是「全站預設值」。若某館別在「館別獎金級距規則」分頁設有獨立階層級距，
+                該館的 AM 績效／AM 總管／成交大師績效會改用級距費率，不受此處費率影響。
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0" />
