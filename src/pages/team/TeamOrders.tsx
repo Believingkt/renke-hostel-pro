@@ -906,23 +906,24 @@ export default function TeamOrders() {
   const bookingMap = new Map(bookingMethods.map((b) => [b.id, b.name]));
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4 overflow-x-hidden pb-6 safe-bottom">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">成交大師</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold">成交大師</h1>
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <div className="overflow-x-auto">
-          <TabsList>
-            {!isScout && <TabsTrigger value="orders">訂單列表</TabsTrigger>}
-            <TabsTrigger value="scout-codes">星探專屬折扣碼</TabsTrigger>
-            <TabsTrigger value="stats">成交統計</TabsTrigger>
-            {(isAdmin || isCloser) && <TabsTrigger value="team-bonus">團隊成交統計</TabsTrigger>}
-            {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates">民宿分潤比例</TabsTrigger>}
-            {(isAdmin || isCloser) && <TabsTrigger value="all-inventory">全館庫存日曆</TabsTrigger>}
-            {!isScout && <TabsTrigger value="settings">設定</TabsTrigger>}
+        <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="w-max">
+            {!isScout && <TabsTrigger value="orders" className="whitespace-nowrap">訂單列表</TabsTrigger>}
+            <TabsTrigger value="scout-codes" className="whitespace-nowrap">星探專屬折扣碼</TabsTrigger>
+            <TabsTrigger value="stats" className="whitespace-nowrap">成交統計</TabsTrigger>
+            {(isAdmin || isCloser) && <TabsTrigger value="team-bonus" className="whitespace-nowrap">團隊成交統計</TabsTrigger>}
+            {(isAdmin || isCloser || isVideo) && <TabsTrigger value="commission-rates" className="whitespace-nowrap">民宿分潤比例</TabsTrigger>}
+            {(isAdmin || isCloser) && <TabsTrigger value="all-inventory" className="whitespace-nowrap">全館庫存日曆</TabsTrigger>}
+            {!isScout && <TabsTrigger value="settings" className="whitespace-nowrap">設定</TabsTrigger>}
           </TabsList>
         </div>
+
 
         <TabsContent value="orders" className="space-y-4">
           <Card>
