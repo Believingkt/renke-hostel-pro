@@ -447,10 +447,11 @@ export async function completeGroupBuyCreditOrder(
   });
 
   if (!created.ok) {
+    const createError = (created as { error?: string }).error ?? "unknown";
     // transaction 已 rollback，不會留下半張 order
     await admin
       .from("group_buy_payment_drafts")
-      .update({ status: "manual_review", last_error: created.error })
+      .update({ status: "manual_review", last_error: createError })
       .eq("id", claimed.id)
       .is("converted_order_id", null);
     await admin.from("group_buy_payment_events").insert({
@@ -459,7 +460,7 @@ export async function completeGroupBuyCreditOrder(
       event_type: "manual_review",
       amount: verifiedAmount,
       actor_label: "system",
-      note: `付款成功但建單失敗（draft:${claimed.id}）：${created.error}`,
+      note: `付款成功但建單失敗（draft:${claimed.id}）：${createError}`,
     });
     // B4：一定要有站內通知，不能只留 console / event
     await notifyAdmins(admin, {
@@ -469,7 +470,7 @@ export async function completeGroupBuyCreditOrder(
         `團購活動：${plan.campaign?.title ?? claimed.campaign_id}／Draft ID：${claimed.id}／` +
         `rec_trade_id：${recTradeId}／已付款金額：NT$${verifiedAmount}／` +
         `旅客：${claimed.guest_name}（${claimed.guest_phone}）／日期：${claimed.check_in_date} → ${claimed.check_out_date}／` +
-        `錯誤原因：${created.error}。TapPay 已付款，但正式訂單建立失敗，需要人工處理。`,
+        `錯誤原因：${createError}。TapPay 已付款，但正式訂單建立失敗，需要人工處理。`,
     });
     return { ok: false, manualReview: true, error: "付款成功但訂單建立失敗，客服將盡快與您聯繫", status: 500 };
   }

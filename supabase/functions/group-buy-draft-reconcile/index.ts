@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     const results: any[] = [];
     for (const d of drafts) {
-      const record = await queryTapPayRecord({ partnerKey, recTradeId: d.rec_trade_id });
+      const record = await queryTapPayRecord({ partnerKey, recTradeId: String(d.rec_trade_id) });
       if (!record.found) {
         results.push({ draftId: d.id, recTradeId: d.rec_trade_id, found: false });
         continue;
