@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
     if (!post.ok) {
       await admin
         .from("orders")
-        .update({ order_status: "cancelled", notes: `${order.notes}\n【系統】並發超賣自動取消：${post.message}` })
+        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString(), notes: `${order.notes}\n【系統】並發超賣自動取消：${post.message}` })
         .eq("id", order.id);
       await admin.from("group_buy_payment_events").insert({
         campaign_id: campaign.id,

@@ -257,6 +257,7 @@ Deno.serve(async (req) => {
       .from("orders")
       .update({
         order_status: "cancelled",
+        cancelled_at: order.cancelled_at ?? nowIso,
         refunded_amount: totalRefunded,
         refunded_at: refundAmount > 0 ? nowIso : order.refunded_at,
         refund_status: refundStatus,

@@ -3676,6 +3676,7 @@ const BookingFlow = () => {
                 .from("orders")
                 .update({
                   order_status: "cancelled",
+                  cancelled_at: new Date().toISOString(),
                   notes: `[系統自動取消] 並發下訂庫存複驗失敗：${detail}`,
                 })
                 .eq("id", orderData.id);

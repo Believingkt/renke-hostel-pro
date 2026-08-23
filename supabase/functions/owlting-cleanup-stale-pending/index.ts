@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
           .from("orders")
           .update({
             order_status: "cancelled",
+            cancelled_at: new Date().toISOString(),
             is_pii_pending: false,
             notes: sweep.cancelReason,
           })

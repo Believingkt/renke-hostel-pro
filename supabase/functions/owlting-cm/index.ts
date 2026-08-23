@@ -792,7 +792,7 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
     // ----- handle by ResStatus -----
     if (resStatus === "Cancel") {
       await supabase.from("orders")
-        .update({ order_status: "cancelled" })
+        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
         .eq("owlting_reservation_id", uniqueId);
       successItems.push(uniqueIdItem(uniqueId, ""));
       continue;
