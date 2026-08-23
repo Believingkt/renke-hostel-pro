@@ -158,6 +158,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const { toast } = useToast();
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rules, setRules] = useState<TierRuleRow[]>([]);
+  const [usedRuleIds, setUsedRuleIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedAcc, setSelectedAcc] = useState<string | null>(null);
   const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
@@ -165,6 +166,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   // 編輯 Dialog 狀態
   const keyboardInset = useKeyboardInset();
   const [dialogOpen, setDialogOpen] = useState(false);
+  /** 非 null 代表「刪除並重新新增」模式：儲存時會先刪掉同館同生效日的舊版本 */
+  const [replaceTarget, setReplaceTarget] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+  } | null>(null);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
@@ -180,12 +186,16 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [accRes, ruleRes] = await Promise.all([
+    const [accRes, ruleRes, usedRes] = await Promise.all([
       supabase.from("accommodation_info").select("id, name").order("name"),
       supabase
         .from("venue_team_bonus_tier_rules")
         .select("id, accommodation_id, bonus_type, effective_from, tiers, note, created_at")
         .order("effective_from", { ascending: false }),
+      supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .select("tier_rule_id")
+        .not("tier_rule_id", "is", null),
     ]);
     setAccs(((accRes.data ?? []) as AccOption[]).filter((a) => a.id && a.name));
     setRules(
@@ -193,6 +203,9 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         ...r,
         tiers: Array.isArray(r.tiers) ? (r.tiers as BonusTier[]) : [],
       })),
+    );
+    setUsedRuleIds(
+      new Set(((usedRes.data ?? []) as any[]).map((r) => r.tier_rule_id).filter(Boolean)),
     );
     setLoading(false);
   };
