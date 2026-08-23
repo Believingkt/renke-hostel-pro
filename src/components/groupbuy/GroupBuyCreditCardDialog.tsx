@@ -137,6 +137,49 @@ export function GroupBuyCreditCardDialog(props: Props) {
     }
   }, [open]);
 
+  /** 建立全新的 payment draft（永不復活舊 draft） */
+  const createDraft = useCallback(async () => {
+    const { data, error: dErr } = await supabase.functions.invoke("group-buy-create-payment-draft", {
+      body: { ...buildRequest(), origin: window.location.origin },
+    });
+    const payload: any = data;
+    if (dErr || !payload?.success) {
+      let message: string | null = payload?.error ?? null;
+      const ctx: any = (dErr as any)?.context;
+      if (!message && ctx && typeof ctx.json === "function") {
+        try {
+          message = (await ctx.clone().json())?.error ?? null;
+        } catch {
+          /* ignore */
+        }
+      }
+      throw new Error(toGuestMessage(message, "目前無法開始付款，請稍後再試或聯繫客服。"));
+    }
+    const next = {
+      draftId: payload.draftId as string,
+      expiresAt: payload.expiresAt as string,
+      amount: payload.amountToCharge as number,
+    };
+    draftRef.current = next;
+    setHoldSeconds(Math.max(0, Math.floor((new Date(next.expiresAt).getTime() - Date.now()) / 1000)));
+    return next;
+  }, [buildRequest]);
+
+  /** 倒數歸零後：丟棄舊 draft，重新確認房況並建立新的保留 */
+  const recheck = useCallback(async () => {
+    setError(null);
+    setRechecking(true);
+    draftRef.current = null;
+    setHoldSeconds(null);
+    try {
+      await createDraft();
+    } catch (e: any) {
+      setError(e?.message || "重新確認房況失敗，請稍後再試。");
+    } finally {
+      setRechecking(false);
+    }
+  }, [createDraft]);
+
   const pay = useCallback(async () => {
     setError(null);
     setSubmitting(true);
@@ -145,29 +188,9 @@ export function GroupBuyCreditCardDialog(props: Props) {
       let draft = draftRef.current;
       const expired = draft ? new Date(draft.expiresAt).getTime() < Date.now() : true;
       if (!draft || expired) {
-        const { data, error: dErr } = await supabase.functions.invoke("group-buy-create-payment-draft", {
-          body: { ...buildRequest(), origin: window.location.origin },
-        });
-        const payload: any = data;
-        if (dErr || !payload?.success) {
-          let message: string | null = payload?.error ?? null;
-          const ctx: any = (dErr as any)?.context;
-          if (!message && ctx && typeof ctx.json === "function") {
-            try {
-              message = (await ctx.clone().json())?.error ?? null;
-            } catch {
-              /* ignore */
-            }
-          }
-          throw new Error(toGuestMessage(message, "目前無法開始付款，請稍後再試或聯繫客服。"));
-        }
-        draft = {
-          draftId: payload.draftId,
-          expiresAt: payload.expiresAt,
-          amount: payload.amountToCharge,
-        };
-        draftRef.current = draft;
-        setHoldSeconds(Math.max(0, Math.floor((new Date(draft.expiresAt).getTime() - Date.now()) / 1000)));
+        // 逾時的 draft 一律作廢，改建立全新 draft（不得復活舊 draft）
+        draftRef.current = null;
+        draft = await createDraft();
       }
 
       // 2) 取得 prime
@@ -209,11 +232,13 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setError(e?.message || "付款失敗，請稍後再試。");
       setSubmitting(false);
     }
-  }, [buildRequest]);
+  }, [createDraft]);
 
+  const holdExpired = holdSeconds != null && holdSeconds <= 0;
   const holdText = holdSeconds != null && holdSeconds > 0
     ? `${Math.floor(holdSeconds / 60)}:${String(holdSeconds % 60).padStart(2, "0")}`
     : null;
+
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
