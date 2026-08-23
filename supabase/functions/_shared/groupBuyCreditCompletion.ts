@@ -376,7 +376,7 @@ export async function completeGroupBuyCreditOrder(
         refunded_amount: refund.success ? verifiedAmount : 0,
         refund_status: refund.success ? "refunded" : "refund_failed",
         refund_checked_at: new Date().toISOString(),
-        last_error: `${expired ? "expired_and_" : ""}unavailable: ${validated.error}${
+        last_error: `${expired ? "expired_and_" : ""}unavailable: ${failReason}${
           refund.success ? "／已自動全額退款" : `／自動退款失敗:${refund.msg ?? "unknown"}`
         }`,
       })
@@ -389,7 +389,7 @@ export async function completeGroupBuyCreditOrder(
       amount: verifiedAmount,
       actor_label: "system",
       note:
-        `付款成功但已無法建單（draft:${claimed.id}／${expired ? "保留已逾時／" : ""}原因:${validated.error}）${refund.success ? "，已自動全額退款" : `，自動退款失敗：${refund.msg ?? "unknown"}，需人工處理`}`,
+        `付款成功但已無法建單（draft:${claimed.id}／${expired ? "保留已逾時／" : ""}原因:${failReason}）${refund.success ? "，已自動全額退款" : `，自動退款失敗：${refund.msg ?? "unknown"}，需人工處理`}`,
     });
     await notifyAdmins(admin, {
       accommodationId: claimed.accommodation_id,
