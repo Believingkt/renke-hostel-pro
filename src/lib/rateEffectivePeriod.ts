@@ -60,46 +60,76 @@ export function rateAsOfForDataMonth(dataMonthKey?: string): string {
   return `${key}-01`;
 }
 
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+function shiftMonth(year: number, month: number, delta: number) {
+  const zero = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(zero / 12), month: (zero % 12) + 1 };
+}
+
 /**
- * 星探結算費率切點：與 calculate-scout-payout 一致，取「結算年月的 28 日」。
+ * 星探結算費率切點（A 口徑）：與資料窗起點對齊。
+ *   10 日期 → 上月 21 日（資料窗 上月21–當月5 的起點）
+ *   25 日期 → 當月 6 日（資料窗 當月6–當月20 的起點）
+ * 即「資料期間開始前已生效」的版本才會被該期採用。
  */
-export function scoutRateAsOf(year: number, month: number | null): string {
+export function scoutRateAsOf(
+  year: number,
+  month: number | null,
+  period: "10" | "25" | number | null = "10",
+): string {
   if (!month) return `${year}-12-31`;
-  return `${year}-${String(month).padStart(2, "0")}-28`;
+  const code = String(period ?? "10");
+  if (code === "25") return `${year}-${pad2(month)}-06`;
+  const prev = shiftMonth(year, month, -1);
+  return `${prev.year}-${pad2(prev.month)}-21`;
 }
 
-/** 星探系「目前應採用版本」的切點：台北當月 28 日 */
+/** 星探系「目前累積中期別」的切點：最近一個已開始的資料窗起點 */
 export function scoutRateAsOfToday(): string {
-  const [y, m] = taipeiTodayStr().split("-");
-  return `${y}-${m}-28`;
+  const [ys, ms, ds] = taipeiTodayStr().split("-");
+  const y = Number(ys);
+  const m = Number(ms);
+  const d = Number(ds);
+  if (d >= 21) return `${y}-${pad2(m)}-21`;
+  if (d >= 6) return `${y}-${pad2(m)}-06`;
+  const prev = shiftMonth(y, m, -1);
+  return `${prev.year}-${pad2(prev.month)}-21`;
 }
 
 /**
- * 星探系費率版本 → 首次被採用的發放期別。
- * calculate-scout-payout 以「結算年月 28 日」為切點，且同月 10 日期／25 日期共用同一切點，
- * 因此生效日 <= 該月 28 日 → 自該月 10 日期起採用；日期 > 28 → 順延至次月 10 日期。
+ * 星探系費率版本 → 首次被採用的發放期別（A 口徑）。
+ * 期別資料窗起點：10 日期 = 上月 21、25 日期 = 當月 6。
+ * 取「起點 >= 生效日」的最早一期。
  */
-export function scoutFirstPayoutPeriod(effectiveFrom: string): string | null {
+export function scoutFirstPayoutPeriod(
+  effectiveFrom: string,
+): { date: string; period: "10" | "25" } | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(effectiveFrom);
   if (!m) return null;
-  let year = Number(m[1]);
-  let month = Number(m[2]);
+  const year = Number(m[1]);
+  const month = Number(m[2]);
   const day = Number(m[3]);
-  if (day > 28) {
-    month += 1;
-    if (month > 12) {
-      month = 1;
-      year += 1;
-    }
+
+  if (day <= 6) {
+    // 同月 6 日起的資料窗 → 該月 25 日期
+    return { date: `${year}-${pad2(month)}-25`, period: "25" };
   }
-  return `${year}-${String(month).padStart(2, "0")}-10`;
+  if (day <= 21) {
+    // 同月 21 日起的資料窗 → 次月 10 日期
+    const n = shiftMonth(year, month, 1);
+    return { date: `${n.year}-${pad2(n.month)}-10`, period: "10" };
+  }
+  // 次月 6 日起的資料窗 → 次月 25 日期
+  const n = shiftMonth(year, month, 1);
+  return { date: `${n.year}-${pad2(n.month)}-25`, period: "25" };
 }
 
-/** 星探系顯示用短格式，例如「7/10 期」 */
+/** 星探系顯示用短格式，例如「7/25 期」 */
 export function scoutPayoutPeriodLabel(effectiveFrom: string): string | null {
   const p = scoutFirstPayoutPeriod(effectiveFrom);
   if (!p) return null;
-  const [, mm] = p.split("-");
-  return `${Number(mm)}/10 期`;
+  const [, mm] = p.date.split("-");
+  return `${Number(mm)}/${p.period} 期`;
 }
 
