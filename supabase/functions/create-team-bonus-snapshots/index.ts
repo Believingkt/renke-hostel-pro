@@ -138,7 +138,62 @@ async function getRevenueSourceWhitelist(
   return sources.map((s: unknown) => String(s)).filter(Boolean);
 }
 
+/* ==================== 館別專屬獎金級距規則（venue tier rules） ==================== */
+
+export interface BonusTier {
+  /** 門檻營收（含）；達到此門檻即整筆套用該階費率（flat，非超額累進） */
+  min_revenue: number;
+  rate: number;
+}
+
+interface VenueTierRule {
+  id: string;
+  accommodation_id: string;
+  bonus_type: string;
+  effective_from: string;
+  created_at?: string;
+  tiers: BonusTier[];
+}
+
+/** 依「整筆套用」規則挑出命中的級距；低於最低門檻則回 null（＝不發） */
+export function pickTier(tiers: BonusTier[], revenue: number): BonusTier | null {
+  const sorted = (tiers ?? [])
+    .filter((t) => t && Number.isFinite(Number(t.min_revenue)))
+    .map((t) => ({ min_revenue: Number(t.min_revenue), rate: Number(t.rate ?? 0) }))
+    .sort((a, b) => a.min_revenue - b.min_revenue);
+  let hit: BonusTier | null = null;
+  for (const t of sorted) {
+    if (revenue >= t.min_revenue) hit = t;
+    else break;
+  }
+  return hit;
+}
+
+/** 取各館各獎金類型「資料月當時生效」的級距規則版本 */
+async function getVenueTierRules(client: any, asOf: string): Promise<Map<string, VenueTierRule>> {
+  const { data } = await client
+    .from("venue_team_bonus_tier_rules")
+    .select("id, accommodation_id, bonus_type, effective_from, created_at, tiers")
+    .lte("effective_from", asOf);
+
+  const grouped = new Map<string, VenueTierRule[]>();
+  for (const row of (data ?? []) as any[]) {
+    const key = `${row.accommodation_id}|${row.bonus_type}`;
+    const list = grouped.get(key) ?? [];
+    list.push({ ...row, tiers: Array.isArray(row.tiers) ? row.tiers : [] });
+    grouped.set(key, list);
+  }
+
+  const out = new Map<string, VenueTierRule>();
+  for (const [key, list] of grouped) {
+    const cur = pickCurrent(list, asOf);
+    if (cur) out.set(key, cur);
+  }
+  return out;
+}
+
 const CHUNK = 500;
+
 
 /** 團隊獎金口徑切換生效資料月（含當月起改用入住營收，與業主月結一致） */
 const STAY_REVENUE_SWITCH_MONTH = "2026-07-01";
@@ -633,14 +688,22 @@ serve(async (req) => {
     const supabase = authRes.ctx.admin;
 
     /* ---------- 設定（全部以 asOf 鎖定版本） ---------- */
-    const [rateSettings, sharedSources, kolSources, amManagerId, closerManagerId, kolRecipientId] =
-      await Promise.all([
+    const [
+      rateSettings,
+      sharedSources,
+      kolSources,
+      amManagerId,
+      closerManagerId,
+      kolRecipientId,
+      venueTierRules,
+    ] = await Promise.all([
         getBonusRateSettings(supabase, asOf),
         getRevenueSourceWhitelist(supabase, "teamcommission_shared_revenue_source_whitelist", asOf),
         getRevenueSourceWhitelist(supabase, "teamcommission_kol_revenue_source_whitelist", asOf),
         getRoleBinding(supabase, "am_manager", asOf),
         getRoleBinding(supabase, "closer_manager", asOf),
         getRoleBinding(supabase, "kol_bonus_recipient", asOf),
+        getVenueTierRules(supabase, asOf),
       ]);
 
     /* ---------- 成員與角色 ---------- */
@@ -718,34 +781,85 @@ serve(async (req) => {
       prorate_ratio: number | null;
       countable_ranges: CountableRange[];
       multiplier?: number | null;
+      /** 該館命中的館別專屬級距規則（沒有規則的館為 null，代表沿用系統費率） */
+      tier_rule_id?: string | null;
+      tier_min_revenue?: number | null;
+      tier_rate?: number | null;
     }
+
+    /**
+     * 逐館費率解析：有「館別專屬級距規則」的館用級距（整筆套用），
+     * 沒有的館 fallback 回系統費率。
+     */
+    const resolveVenueRate = (
+      accId: string,
+      bonusType: string,
+      defaultRate: number | null,
+      revenue: number,
+    ): { rate: number; tierRuleId: string | null; tierMin: number | null } => {
+      const rule = venueTierRules.get(`${accId}|${bonusType}`);
+      if (!rule) return { rate: Number(defaultRate ?? 0), tierRuleId: null, tierMin: null };
+      const tier = pickTier(rule.tiers, revenue);
+      return {
+        rate: Number(tier?.rate ?? 0),
+        tierRuleId: rule.id,
+        tierMin: tier ? Number(tier.min_revenue) : null,
+      };
+    };
 
     /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
     const revenueLines = (
       rev: RevenueTotals,
       rate: number | null,
-      opts?: { splitHeadcount?: number | null; prorateRatio?: number | null },
+      opts?: {
+        splitHeadcount?: number | null;
+        prorateRatio?: number | null;
+        /** 指定時，逐館改以館別專屬級距規則解析費率（查無規則者沿用 rate） */
+        bonusType?: string;
+      },
     ): LineDraft[] => {
-      const r = Number(rate ?? 0);
       const headcount = opts?.splitHeadcount ?? null;
       const ratio = opts?.prorateRatio ?? null;
       const extra = (headcount && headcount > 0 ? 1 / headcount : 1) * (ratio ?? 1);
-      return rev.detail.map((d) => ({
-        accommodation_id: d.accommodation_id,
-        accommodation_name: accNameById.get(d.accommodation_id) ?? null,
-        revenue_base: d.payout,
-        revenue_base_incl_owner: d.incl,
-        revenue_base_excl_owner: d.excl,
-        rate_value: rate,
-        rate_kind: "percent" as const,
-        amount: d.payout * r * extra,
-        amount_incl_owner: d.incl * r * extra,
-        amount_excl_owner: d.excl * r * extra,
-        split_headcount: headcount,
-        prorate_ratio: ratio,
-        countable_ranges: d.ranges,
-      }));
+      return rev.detail.map((d) => {
+        const resolved = opts?.bonusType
+          ? resolveVenueRate(d.accommodation_id, opts.bonusType, rate, d.payout)
+          : { rate: Number(rate ?? 0), tierRuleId: null, tierMin: null };
+        const r = resolved.rate;
+        return {
+          accommodation_id: d.accommodation_id,
+          accommodation_name: accNameById.get(d.accommodation_id) ?? null,
+          revenue_base: d.payout,
+          revenue_base_incl_owner: d.incl,
+          revenue_base_excl_owner: d.excl,
+          rate_value: resolved.tierRuleId ? r : rate,
+          rate_kind: "percent" as const,
+          amount: d.payout * r * extra,
+          amount_incl_owner: d.incl * r * extra,
+          amount_excl_owner: d.excl * r * extra,
+          split_headcount: headcount,
+          prorate_ratio: ratio,
+          countable_ranges: d.ranges,
+          tier_rule_id: resolved.tierRuleId,
+          tier_min_revenue: resolved.tierMin,
+          tier_rate: resolved.tierRuleId ? r : null,
+        };
+      });
     };
+
+    /** 逐館級距／費率算完後的獎金池（extra = 1，尚未除人數或乘在職比例） */
+    const revenuePool = (rev: RevenueTotals, rate: number | null, bonusType: string) => {
+      const lines = revenueLines(rev, rate, { bonusType });
+      const sum = (k: "amount" | "amount_incl_owner" | "amount_excl_owner") =>
+        lines.reduce((acc, l) => acc + Number(l[k] ?? 0), 0);
+      return {
+        amount: sum("amount"),
+        incl: sum("amount_incl_owner"),
+        excl: sum("amount_excl_owner"),
+        tierAccIds: lines.filter((l) => l.tier_rule_id).map((l) => l.accommodation_id),
+      };
+    };
+
 
     /** 固定額類：逐館一份固定金額 */
     const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
@@ -830,6 +944,8 @@ serve(async (req) => {
         sharedSources,
       );
 
+      const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
+
       push({
         bonus_type: "am_performance",
         member_id: profile.id,
@@ -841,19 +957,21 @@ serve(async (req) => {
         rate: amPerfRate,
         fixed_amount: null,
         venue_count: managedNoTravel.length,
-        amount: myRevenue.payout * Number(amPerfRate ?? 0),
-        amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
-        amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
+        amount: amPerfPool.amount,
+        amount_incl_owner: amPerfPool.incl,
+        amount_excl_owner: amPerfPool.excl,
         payout_basis_used: myRevenue.basis,
-        lines: revenueLines(myRevenue, amPerfRate),
+        lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
           shared_sources: sharedSources,
           accommodation_ids: managedNoTravel,
           excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+          tier_rule_accommodation_ids: amPerfPool.tierAccIds,
         },
       });
+
 
       push({
         bonus_type: "am_venue_bonus",
@@ -918,9 +1036,11 @@ serve(async (req) => {
       });
     }
 
-    const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
-    const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
-    const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
+    // 先逐館算（有級距規則的館用級距，其餘用系統費率），加總成池後再除人數
+    const closerPool = revenuePool(companyRevenue, closerPerfRate, "closer_performance");
+    const closerPoolAmount = closerPool.amount;
+    const closerPoolIncl = closerPool.incl;
+    const closerPoolExcl = closerPool.excl;
     const closerHeadcount = closerProfiles.length;
     for (const { profile, activeDays, ratio } of closerProfiles) {
       push({
@@ -941,6 +1061,7 @@ serve(async (req) => {
         lines: revenueLines(companyRevenue, closerPerfRate, {
           splitHeadcount: closerHeadcount,
           prorateRatio: ratio,
+          bonusType: "closer_performance",
         }),
         active_days: activeDays,
         period_days: periodDays,
@@ -955,6 +1076,7 @@ serve(async (req) => {
           active_days: activeDays,
           period_days: periodDays,
           prorate_ratio: ratio,
+          tier_rule_accommodation_ids: closerPool.tierAccIds,
         },
       });
     }
@@ -971,6 +1093,8 @@ serve(async (req) => {
       if (!isActiveAtMonthEnd(profileById.get(memberId))) continue;
 
       const rate = rateOf(bt);
+      // AM 總管同樣先逐館算級距（closer_manager 無級距規則，等同沿用系統費率）
+      const pool = revenuePool(companyRevenue, rate, bt);
       push({
         bonus_type: bt,
         member_id: memberId,
@@ -982,17 +1106,18 @@ serve(async (req) => {
         rate,
         fixed_amount: null,
         venue_count: null,
-        amount: companyRevenue.payout * Number(rate ?? 0),
-        amount_incl_owner: companyRevenue.incl * Number(rate ?? 0),
-        amount_excl_owner: companyRevenue.excl * Number(rate ?? 0),
+        amount: pool.amount,
+        amount_incl_owner: pool.incl,
+        amount_excl_owner: pool.excl,
         payout_basis_used: companyRevenue.basis,
-        lines: revenueLines(companyRevenue, rate),
+        lines: revenueLines(companyRevenue, rate, { bonusType: bt }),
         settings_snapshot: {
           as_of: asOf,
           rate,
           shared_sources: sharedSources,
           accommodation_ids: activeAccIds,
           role_binding: bt,
+          tier_rule_accommodation_ids: pool.tierAccIds,
         },
       });
     }

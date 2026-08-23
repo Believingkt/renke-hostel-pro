@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import VenueBonusTierRulesTab from "@/components/team/VenueBonusTierRulesTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
 import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,7 @@ interface AccOption {
   name: string;
 }
 
-type SettingsTab = "bonus" | "owner-settlement" | "base-salary";
+type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers";
 
 /**
  * HQ 整合頁：獎金設定 ＋ 業主月結設定（總部唯一可編輯入口）。
@@ -55,13 +56,17 @@ export default function HQBonusSettings() {
       ? "owner-settlement"
       : tabParam === "base-salary"
         ? "base-salary"
-        : "bonus";
+        : tabParam === "venue-tiers"
+          ? "venue-tiers"
+          : "bonus";
   const tab: SettingsTab =
     rawTab === "base-salary" && !isHQAdmin
       ? "owner-settlement"
-      : canSeeBonus
-        ? rawTab
-        : "owner-settlement";
+      : rawTab === "venue-tiers" && !canSeeBonus
+        ? "owner-settlement"
+        : canSeeBonus
+          ? rawTab
+          : "owner-settlement";
   const accId = searchParams.get("acc") ?? "global";
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
@@ -81,6 +86,9 @@ export default function HQBonusSettings() {
     if (value === "owner-settlement") next.set("tab", "owner-settlement");
     else if (value === "base-salary") {
       next.set("tab", "base-salary");
+      next.delete("acc");
+    } else if (value === "venue-tiers") {
+      next.set("tab", "venue-tiers");
       next.delete("acc");
     } else {
       next.delete("tab");
@@ -113,9 +121,17 @@ export default function HQBonusSettings() {
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
+          {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
           <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
           {isHQAdmin && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
         </TabsList>
+
+        {canSeeBonus && (
+          <TabsContent value="venue-tiers" className="space-y-4">
+            <VenueBonusTierRulesTab readOnly={!isHQAdmin} />
+          </TabsContent>
+        )}
+
 
         <TabsContent value="bonus" className="space-y-4">
           <Card>
@@ -126,6 +142,9 @@ export default function HQBonusSettings() {
                 分給誰 → ④ 分多少、何時發。最上方的試算檢查器可輸入訂單編號，直接看到該筆訂單在每一步的判定結果。
                 所有設定皆為 append-only 版本制，新增生效版本不會覆寫歷史期別的已算金額；
                 /team/commission 的「獎金設定」分頁為唯讀鏡像。
+                <br />
+                注意：這裡的費率是「全站預設值」。若某館別在「館別獎金級距規則」分頁設有獨立階層級距，
+                該館的 AM 績效／AM 總管／成交大師績效會改用級距費率，不受此處費率影響。
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-0" />

@@ -11946,6 +11946,9 @@ export type Database = {
           revenue_base_incl_owner: number | null
           snapshot_id: string
           split_headcount: number | null
+          tier_min_revenue: number | null
+          tier_rate: number | null
+          tier_rule_id: string | null
         }
         Insert: {
           accommodation_id?: string | null
@@ -11965,6 +11968,9 @@ export type Database = {
           revenue_base_incl_owner?: number | null
           snapshot_id: string
           split_headcount?: number | null
+          tier_min_revenue?: number | null
+          tier_rate?: number | null
+          tier_rule_id?: string | null
         }
         Update: {
           accommodation_id?: string | null
@@ -11984,6 +11990,9 @@ export type Database = {
           revenue_base_incl_owner?: number | null
           snapshot_id?: string
           split_headcount?: number | null
+          tier_min_revenue?: number | null
+          tier_rate?: number | null
+          tier_rule_id?: string | null
         }
         Relationships: [
           {
@@ -12582,6 +12591,50 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "permission_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_team_bonus_tier_rules: {
+        Row: {
+          accommodation_id: string
+          bonus_type: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          id: string
+          note: string | null
+          tiers: Json
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          bonus_type: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          id?: string
+          note?: string | null
+          tiers?: Json
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          bonus_type?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          id?: string
+          note?: string | null
+          tiers?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_team_bonus_tier_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
           },
         ]
