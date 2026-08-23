@@ -263,7 +263,27 @@ export function GroupBuyCreditCardDialog(props: Props) {
               房位保留剩餘 {holdText}，逾時後需重新選擇日期
             </p>
           )}
+          {holdExpired && (
+            <div className="mt-3 rounded-xl bg-destructive/10 px-3 py-2.5">
+              <p className="flex items-center gap-1.5 text-sm font-medium text-destructive">
+                <Timer className="h-4 w-4 shrink-0" />
+                付款保留時間已結束，請重新確認房況。
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 h-10 rounded-lg"
+                disabled={rechecking || submitting}
+                onClick={() => void recheck()}
+              >
+                {rechecking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                重新確認房況
+              </Button>
+            </div>
+          )}
         </div>
+
 
         <div className="space-y-3 rounded-2xl border border-border/70 p-4">
           <div>
