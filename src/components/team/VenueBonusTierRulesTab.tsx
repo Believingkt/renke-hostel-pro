@@ -632,16 +632,45 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               哪些館別已改用獨立業務規則
               <br />
               <span className="text-xs">
-                提醒：要新增版本時，建議先點選館別後使用「以此版本為基礎新增」（同館沿用級距、只改生效日）或「複製到其他館別」，
+                提醒：要新增版本時，建議使用右上「從其他館別帶入」直接套用現成級距，或先點選館別後用「以此版本為基礎新增」（同館沿用級距、只改生效日），
                 比從零填寫更快也不易漏填。
               </span>
             </CardDescription>
           </div>
           {!readOnly && (
-            <Button size="sm" onClick={() => openCreate()}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增規則版本
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {templateVersions.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <LayoutTemplate className="mr-1 h-4 w-4" />
+                      從其他館別帶入
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="max-h-72 w-64 overflow-y-auto">
+                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                      選擇參考範本（帶入級距後再挑館別與生效日）
+                    </DropdownMenuLabel>
+                    {templateVersions.map(({ acc, version }) => (
+                      <DropdownMenuItem
+                        key={version.key}
+                        onSelect={() => openCopyFrom(version)}
+                        className="flex flex-col items-start gap-0.5"
+                      >
+                        <span className="text-sm font-medium">{acc.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {version.effective_from.slice(0, 10)}．{version.thresholds.length} 階
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Button size="sm" onClick={() => openCreate()}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增規則版本
+              </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent className="space-y-2">
