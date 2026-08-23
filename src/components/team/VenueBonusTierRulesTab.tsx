@@ -173,6 +173,8 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   });
   const [formRows, setFormRows] = useState<FormRow[]>([emptyRow()]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
