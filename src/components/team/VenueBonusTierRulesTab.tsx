@@ -793,7 +793,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           )}
                         </td>
                         {BONUS_TYPES.map((b) => (
-                          <td key={b.value} className="py-1 pr-2 align-top">
+                          <td key={b.value} className="min-w-[7.5rem] border-b px-2 py-1.5 align-top">
                             <Input
                               inputMode="decimal"
                               placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
@@ -821,7 +821,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           </td>
                         ))}
 
-                        <td className="py-1">
+                        <td className="border-b px-1 py-1.5">
                           <Button
                             size="icon"
                             variant="ghost"
