@@ -767,7 +767,14 @@ function RateSection({
                 value={effectiveFrom}
                 onChange={(e) => setEffectiveFrom(e.target.value)}
               />
+              {effectiveFrom && (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  本次版本新增，預計從 {payoutPeriodLabel(effectiveFrom)} 開始正式取用費率。
+                  （結算以「資料月首日」為版本切點：生效日若不是當月 1 日，該資料月仍沿用舊費率。）
+                </p>
+              )}
             </div>
+
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogType(null)}>
