@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Copy, PencilLine, Plus, Trash2 } from "lucide-react";
 
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
