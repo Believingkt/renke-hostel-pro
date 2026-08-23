@@ -6554,9 +6554,6 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                 <TableBody>
                   {RARITY_ORDER.map((r) => {
                     const hit = selectedVersion.items.find((x) => x.rarity === r);
-                    const prevHit = prevOfSelected?.items.find((x) => x.rarity === r);
-                    const diff =
-                      hit && prevHit ? Number(hit.bonus_amount) - Number(prevHit.bonus_amount) : 0;
                     return (
                       <TableRow key={r}>
                         <TableCell>
@@ -6567,25 +6564,13 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                         <TableCell className="text-sm">{hit?.fan_range_desc ?? "-"}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
-                          {diff !== 0 && (
-                            <span
-                              className={`ml-1 text-[11px] ${diff > 0 ? "text-emerald-600" : "text-destructive"}`}
-                            >
-                              {diff > 0 ? "+" : ""}
-                              {diff.toLocaleString()}
-                            </span>
-                          )}
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-              {prevOfSelected && (
-                <p className="text-[11px] text-muted-foreground">
-                  差額對照前一版本（生效日期 {prevOfSelected.effective_from}）
-                </p>
-              )}
+
             </>
           )}
 
