@@ -935,14 +935,19 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setDialogOpen(false)}
+            >
               取消
             </Button>
-            <Button onClick={save} disabled={saving}>
+            <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
               儲存版本
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
