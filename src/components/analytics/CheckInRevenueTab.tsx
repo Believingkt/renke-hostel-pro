@@ -11,6 +11,7 @@ import { DateRangePicker } from "@/components/DateRangePicker";
 import type { DateRange } from "react-day-picker";
 import { TRAVELDAYS_ACC_ID } from "@/lib/currency";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Props {
   accommodationId: string;
@@ -56,6 +57,7 @@ export function CheckInRevenueTab({
   exchangeRate: exchangeRateProp,
 }: Props) {
   const isTraveldays = accommodationId === TRAVELDAYS_ACC_ID;
+  const isMobile = useIsMobile();
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [customRange, setCustomRange] = useState<DateRange | undefined>(() => ({
@@ -399,7 +401,7 @@ export function CheckInRevenueTab({
               <CardDescription>{kpi.label}</CardDescription>
             </CardHeader>
             <CardContent>
-              {loading ? <Skeleton className="h-7 w-24" /> : <div className="text-2xl font-bold tabular-nums">{kpi.value}</div>}
+              {loading ? <Skeleton className="h-7 w-24" /> : <div className="text-lg sm:text-2xl font-bold tabular-nums whitespace-nowrap">{kpi.value}</div>}
             </CardContent>
           </Card>
         ))}
@@ -412,7 +414,89 @@ export function CheckInRevenueTab({
           <CardDescription>以入住日落在區間內的訂單全額計算</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table className="table-fixed">
+          {isMobile ? (
+            <div className="flex min-w-0 flex-col gap-2">
+              {stats.length === 0 && !loading && (
+                <div className="py-6 text-center text-sm text-muted-foreground">此區間尚無入住訂單</div>
+              )}
+              {stats.map((s) => (
+                <Fragment key={s.source}>
+                  <div
+                    className={`min-w-0 rounded-lg border bg-card p-3 ${s.breakdown ? "cursor-pointer active:bg-muted/50" : ""}`}
+                    onClick={() => s.breakdown && toggle(s.source)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex min-w-0 items-center gap-1 font-medium">
+                        {s.breakdown && (
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 shrink-0 transition-transform ${expanded.has(s.source) ? "" : "-rotate-90"}`}
+                          />
+                        )}
+                        <span className="truncate">{s.label}</span>
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {s.count} 筆 · 收款率 {s.rate.toFixed(0)}%
+                      </span>
+                    </div>
+                    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2">
+                      {([["總金額", nt(s.total)], ["已收", nt(s.paid)], ["未收", nt(s.pending)]] as [string, string][]).map(
+                        ([l, v]) => (
+                          <div key={l} className="min-w-0">
+                            <dt className="text-xs text-muted-foreground">{l}</dt>
+                            <dd className="text-sm font-medium tabular-nums whitespace-nowrap">{v}</dd>
+                          </div>
+                        ),
+                      )}
+                    </dl>
+                  </div>
+                  {s.breakdown &&
+                    expanded.has(s.source) &&
+                    s.breakdown.map((b) => (
+                      <div key={b.source} className="ml-4 min-w-0 rounded-lg border bg-muted/40 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm">{b.label}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                            {b.count} 筆 · {b.rate.toFixed(0)}%
+                          </span>
+                        </div>
+                        <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2">
+                          {([["總金額", nt(b.total)], ["已收", nt(b.paid)], ["未收", nt(b.pending)]] as [string, string][]).map(
+                            ([l, v]) => (
+                              <div key={l} className="min-w-0">
+                                <dt className="text-xs text-muted-foreground">{l}</dt>
+                                <dd className="text-sm tabular-nums whitespace-nowrap">{v}</dd>
+                              </div>
+                            ),
+                          )}
+                        </dl>
+                      </div>
+                    ))}
+                </Fragment>
+              ))}
+              {stats.length > 0 && (
+                <div className="min-w-0 rounded-lg border bg-muted/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">合計</span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {totals.count} 筆 · 收款率 {totals.total > 0 ? ((totals.paid / totals.total) * 100).toFixed(0) : 0}%
+                    </span>
+                  </div>
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2">
+                    {([["總金額", nt(totals.total)], ["已收", nt(totals.paid)], ["未收", nt(totals.pending)]] as [string, string][]).map(
+                      ([l, v]) => (
+                        <div key={l} className="min-w-0">
+                          <dt className="text-xs text-muted-foreground">{l}</dt>
+                          <dd className="text-sm font-semibold tabular-nums whitespace-nowrap">{v}</dd>
+                        </div>
+                      ),
+                    )}
+                  </dl>
+                </div>
+              )}
+            </div>
+          ) : (
+          <Table className="table-fixed min-w-[760px]">
+
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[160px]">來源</TableHead>
@@ -476,6 +560,8 @@ export function CheckInRevenueTab({
               )}
             </TableBody>
           </Table>
+          )}
+
         </CardContent>
       </Card>
 
@@ -486,7 +572,83 @@ export function CheckInRevenueTab({
           <CardDescription>點選日期可展開該日入住的訂單明細</CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
-          <Table className="table-fixed">
+          {isMobile ? (
+            <div className="flex min-w-0 flex-col gap-2">
+              {dailyRows.length === 0 && !loading && (
+                <div className="py-6 text-center text-sm text-muted-foreground">此區間尚無入住訂單</div>
+              )}
+              {dailyRows.map((d) => (
+                <Fragment key={d.date}>
+                  <div
+                    className="min-w-0 cursor-pointer rounded-lg border bg-card p-3 active:bg-muted/50"
+                    onClick={() => setDetailKey(detailKey === d.date ? null : d.date)}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex min-w-0 items-center gap-1 font-medium tabular-nums">
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${detailKey === d.date ? "" : "-rotate-90"}`}
+                        />
+                        {d.date}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{d.count} 筆</span>
+                    </div>
+                    <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2">
+                      {([
+                        ["總金額", nt(d.total)],
+                        ["已收", nt(d.paid)],
+                        ["未收", nt(Math.max(0, d.total - d.paid))],
+                      ] as [string, string][]).map(([l, v]) => (
+                        <div key={l} className="min-w-0">
+                          <dt className="text-xs text-muted-foreground">{l}</dt>
+                          <dd className="text-sm font-medium tabular-nums whitespace-nowrap">{v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                  {detailKey === d.date &&
+                    detailOrders.map((o) => {
+                      const nights =
+                        o.check_in_date && o.check_out_date
+                          ? Math.max(
+                              1,
+                              Math.round(
+                                (new Date(o.check_out_date).getTime() - new Date(o.check_in_date).getTime()) / 86400000,
+                              ),
+                            )
+                          : null;
+                      return (
+                        <div key={o.id} className="ml-4 min-w-0 rounded-lg border bg-muted/40 p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-medium">{o.order_number || o.id.slice(0, 8)}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {nights ? `${nights} 晚` : "—"}
+                            </span>
+                          </div>
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground">{o.guest_name || "—"}</div>
+                          <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 border-t pt-2">
+                            {([
+                              ["總金額", nt(Number(o.final_price) || 0)],
+                              ["已收", nt(Number(o.paid_amount) || 0)],
+                              [
+                                "未收",
+                                nt(Math.max(0, (Number(o.final_price) || 0) - (Number(o.paid_amount) || 0))),
+                              ],
+                            ] as [string, string][]).map(([l, v]) => (
+                              <div key={l} className="min-w-0">
+                                <dt className="text-xs text-muted-foreground">{l}</dt>
+                                <dd className="text-sm tabular-nums whitespace-nowrap">{v}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </div>
+                      );
+                    })}
+                </Fragment>
+              ))}
+            </div>
+          ) : (
+          <Table className="table-fixed min-w-[760px]">
+
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[140px]">入住日</TableHead>
@@ -554,6 +716,8 @@ export function CheckInRevenueTab({
               ))}
             </TableBody>
           </Table>
+          )}
+
         </CardContent>
       </Card>
     </div>
