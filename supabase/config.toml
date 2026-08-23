@@ -148,6 +148,8 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.group-buy-expire-orders]
     verify_jwt = false
+  [functions.group-buy-start-payment]
+    verify_jwt = false
   [functions.create-trip-order]
     verify_jwt = false
 

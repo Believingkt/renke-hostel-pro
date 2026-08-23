@@ -127,7 +127,20 @@ export function renderBookingWithBankInfo(
   };
 }
 
-export function renderDepositReceived(o: GroupBuyEmailOrder): { subject: string; html: string } {
+/**
+ * 已收到訂金通知。
+ * opts 為選填：不帶時行為與既有人工匯款流程完全相同（不可變更）。
+ * 帶入時可標示收款方式（例如 ATM 虛擬帳號轉帳）與本次實收金額。
+ */
+export function renderDepositReceived(
+  o: GroupBuyEmailOrder,
+  opts?: { providerLabel?: string | null; paidThisTime?: number | null },
+): { subject: string; html: string } {
+  const providerLine = opts?.providerLabel
+    ? `<p>收款方式：<strong>${esc(opts.providerLabel)}</strong>${
+      typeof opts.paidThisTime === "number" ? `，本次收款 <strong>${money(opts.paidThisTime)}</strong>` : ""
+    }</p>`
+    : "";
   return {
     subject: `【已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
@@ -136,6 +149,7 @@ export function renderDepositReceived(o: GroupBuyEmailOrder): { subject: string;
       `<h1>已收到您的訂金 ✅</h1>
        <p>${esc(o.guestName)} 您好，我們已確認收到您的訂金 <strong>${money(o.depositAmount)}</strong>，您的訂房已完成確認。</p>
        ${orderTable(o)}
+       ${providerLine}
        <p>尾款 ${money(o.balanceAmount)} 請於入住當天現場付清。期待與您相見！</p>
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,
     ),

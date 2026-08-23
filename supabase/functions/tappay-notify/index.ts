@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
+import { notifyGroupBuyPaymentReceived } from "../_shared/groupBuyPaymentNotify.ts";
 
 // CORS headers for webhook (TapPay backend calls)
 const corsHeaders = {
@@ -409,6 +410,22 @@ Deno.serve(async (req) => {
             is_read: false,
           });
 
+          // ===== 團購訂單分支：Email／通知語意走團購，不寄一般訂房通知信 =====
+          // 一般訂房（order_source !== 'group_buy'）完全走下方原始邏輯，行為不變。
+          if (order.order_source === 'group_buy') {
+            try {
+              const gbMail = await notifyGroupBuyPaymentReceived(supabase, {
+                orderId: order.id,
+                paidThisTime: amount,
+                paymentStatus: newPaymentStatus,
+                providerLabel: isAtm ? 'ATM 虛擬帳號轉帳' : '信用卡(3D驗證)',
+              });
+              console.log('[tappay-notify] group-buy payment email:', gbMail);
+            } catch (mailErr) {
+              console.error('[tappay-notify] group-buy email failed (non-fatal):', mailErr);
+            }
+          } else {
+
           // ATM 付款完成或現場刷卡 → 首次付款（付清或已付訂金）寄送訂房通知 email
           // （3DS/非3DS 信用卡的通知信由 complete-3ds-booking / create-paid-order 在建單時寄出，
           //  webhook 不重複發送。）
@@ -470,6 +487,9 @@ Deno.serve(async (req) => {
               console.error('[tappay-notify] final-payment email failed (non-fatal):', mailErr);
             }
           }
+
+          }
+
         }
       } else {
         console.log('[tappay-notify] Payment failed (verified):', { 
