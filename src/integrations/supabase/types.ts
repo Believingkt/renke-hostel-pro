@@ -4559,6 +4559,139 @@ export type Database = {
           },
         ]
       }
+      group_buy_payment_drafts: {
+        Row: {
+          accommodation_id: string
+          adult_count: number
+          amount_to_charge: number
+          booking_payload: Json
+          campaign_id: string
+          campaign_package_id: string
+          check_in_date: string
+          check_out_date: string
+          child_count: number
+          converted_at: string | null
+          converted_order_id: string | null
+          created_at: string
+          deposit_amount: number
+          expires_at: string
+          guest_count: number
+          guest_email: string
+          guest_name: string
+          guest_note: string | null
+          guest_phone: string
+          id: string
+          idempotency_key: string
+          infant_count: number
+          last_error: string | null
+          payment_attempts: Json
+          payment_provider: string
+          payment_type: string
+          price_snapshot: Json
+          rec_trade_id: string | null
+          room_quantity: number
+          room_type_id: string
+          status: string
+          toddler_count: number
+          total_price: number
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          adult_count?: number
+          amount_to_charge: number
+          booking_payload?: Json
+          campaign_id: string
+          campaign_package_id: string
+          check_in_date: string
+          check_out_date: string
+          child_count?: number
+          converted_at?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          deposit_amount: number
+          expires_at: string
+          guest_count?: number
+          guest_email: string
+          guest_name: string
+          guest_note?: string | null
+          guest_phone: string
+          id?: string
+          idempotency_key: string
+          infant_count?: number
+          last_error?: string | null
+          payment_attempts?: Json
+          payment_provider?: string
+          payment_type?: string
+          price_snapshot?: Json
+          rec_trade_id?: string | null
+          room_quantity?: number
+          room_type_id: string
+          status?: string
+          toddler_count?: number
+          total_price: number
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          adult_count?: number
+          amount_to_charge?: number
+          booking_payload?: Json
+          campaign_id?: string
+          campaign_package_id?: string
+          check_in_date?: string
+          check_out_date?: string
+          child_count?: number
+          converted_at?: string | null
+          converted_order_id?: string | null
+          created_at?: string
+          deposit_amount?: number
+          expires_at?: string
+          guest_count?: number
+          guest_email?: string
+          guest_name?: string
+          guest_note?: string | null
+          guest_phone?: string
+          id?: string
+          idempotency_key?: string
+          infant_count?: number
+          last_error?: string | null
+          payment_attempts?: Json
+          payment_provider?: string
+          payment_type?: string
+          price_snapshot?: Json
+          rec_trade_id?: string | null
+          room_quantity?: number
+          room_type_id?: string
+          status?: string
+          toddler_count?: number
+          total_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_buy_payment_drafts_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_payment_drafts_campaign_package_id_fkey"
+            columns: ["campaign_package_id"]
+            isOneToOne: false
+            referencedRelation: "group_buy_campaign_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_buy_payment_drafts_converted_order_id_fkey"
+            columns: ["converted_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_buy_payment_events: {
         Row: {
           account_last5: string | null
@@ -13176,6 +13309,20 @@ export type Database = {
         Args: never
         Returns: {
           profile_id: string
+        }[]
+      }
+      get_group_buy_adjusted_inventory_batch: {
+        Args: {
+          p_accommodation_id: string
+          p_dates: string[]
+          p_exclude_draft_id?: string
+          p_room_type_id: string
+        }
+        Returns: {
+          available_rooms: number
+          blocked_by_room_name: string
+          date_value: string
+          is_blocked: boolean
         }[]
       }
       get_order_source_owners: {
