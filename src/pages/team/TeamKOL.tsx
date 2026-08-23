@@ -6426,13 +6426,28 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
       toast.error("請填寫生效日期");
       return;
     }
-    setSaving(true);
     const rows = RARITY_ORDER.map((r) => ({
       rarity: r,
       fan_range_desc: draft[r].fan_range_desc.trim() || null,
       bonus_amount: parseInt(draft[r].bonus_amount || "0", 10) || 0,
       effective_from: newEffectiveFrom,
     }));
+    // 防呆：與目前版本完全相同時不需另存新版本
+    if (
+      current &&
+      rows.every((row) => {
+        const hit = current.items.find((x) => x.rarity === row.rarity);
+        return (
+          hit &&
+          Number(hit.bonus_amount) === row.bonus_amount &&
+          (hit.fan_range_desc ?? null) === row.fan_range_desc
+        );
+      })
+    ) {
+      toast.error("內容與目前生效版本相同，無需新增版本（避免產生重複版本）");
+      return;
+    }
+    setSaving(true);
     const { error } = await supabase.from("kol_rarity_settings" as any).insert(rows);
     setSaving(false);
     if (error) {
