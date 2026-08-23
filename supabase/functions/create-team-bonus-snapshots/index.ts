@@ -138,7 +138,62 @@ async function getRevenueSourceWhitelist(
   return sources.map((s: unknown) => String(s)).filter(Boolean);
 }
 
+/* ==================== 館別專屬獎金級距規則（venue tier rules） ==================== */
+
+export interface BonusTier {
+  /** 門檻營收（含）；達到此門檻即整筆套用該階費率（flat，非超額累進） */
+  min_revenue: number;
+  rate: number;
+}
+
+interface VenueTierRule {
+  id: string;
+  accommodation_id: string;
+  bonus_type: string;
+  effective_from: string;
+  created_at?: string;
+  tiers: BonusTier[];
+}
+
+/** 依「整筆套用」規則挑出命中的級距；低於最低門檻則回 null（＝不發） */
+export function pickTier(tiers: BonusTier[], revenue: number): BonusTier | null {
+  const sorted = (tiers ?? [])
+    .filter((t) => t && Number.isFinite(Number(t.min_revenue)))
+    .map((t) => ({ min_revenue: Number(t.min_revenue), rate: Number(t.rate ?? 0) }))
+    .sort((a, b) => a.min_revenue - b.min_revenue);
+  let hit: BonusTier | null = null;
+  for (const t of sorted) {
+    if (revenue >= t.min_revenue) hit = t;
+    else break;
+  }
+  return hit;
+}
+
+/** 取各館各獎金類型「資料月當時生效」的級距規則版本 */
+async function getVenueTierRules(client: any, asOf: string): Promise<Map<string, VenueTierRule>> {
+  const { data } = await client
+    .from("venue_team_bonus_tier_rules")
+    .select("id, accommodation_id, bonus_type, effective_from, created_at, tiers")
+    .lte("effective_from", asOf);
+
+  const grouped = new Map<string, VenueTierRule[]>();
+  for (const row of (data ?? []) as any[]) {
+    const key = `${row.accommodation_id}|${row.bonus_type}`;
+    const list = grouped.get(key) ?? [];
+    list.push({ ...row, tiers: Array.isArray(row.tiers) ? row.tiers : [] });
+    grouped.set(key, list);
+  }
+
+  const out = new Map<string, VenueTierRule>();
+  for (const [key, list] of grouped) {
+    const cur = pickCurrent(list, asOf);
+    if (cur) out.set(key, cur);
+  }
+  return out;
+}
+
 const CHUNK = 500;
+
 
 /** 團隊獎金口徑切換生效資料月（含當月起改用入住營收，與業主月結一致） */
 const STAY_REVENUE_SWITCH_MONTH = "2026-07-01";
