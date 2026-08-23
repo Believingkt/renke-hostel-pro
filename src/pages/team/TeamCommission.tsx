@@ -173,19 +173,20 @@ export default function TeamCommission() {
 
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-bold">獎金管理</h2>
+    <div className="min-w-0 space-y-4 overflow-x-hidden pb-6 safe-bottom">
+      <h2 className="text-xl sm:text-2xl font-bold">獎金管理</h2>
       <Tabs value={tab} onValueChange={setTab}>
-        <div className="overflow-x-auto">
-          <TabsList>
-            <TabsTrigger value="payouts">發放管理</TabsTrigger>
-            {showAdminTabs && <TabsTrigger value="financial-report">財務報表</TabsTrigger>}
-            {showAdminTabs && <TabsTrigger value="payout">結算規則</TabsTrigger>}
-            {showAdminTabs && <TabsTrigger value="multiplier">獎金加倍活動</TabsTrigger>}
-            {showAdminTabs && <TabsTrigger value="ragic-sync">Ragic匯入</TabsTrigger>}
-            {showAdminTabs && <TabsTrigger value="bonus-settings">獎金設定</TabsTrigger>}
+        <div className="-mx-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <TabsList className="w-max">
+            <TabsTrigger value="payouts" className="whitespace-nowrap">發放管理</TabsTrigger>
+            {showAdminTabs && <TabsTrigger value="financial-report" className="whitespace-nowrap">財務報表</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="payout" className="whitespace-nowrap">結算規則</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="multiplier" className="whitespace-nowrap">獎金加倍活動</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="ragic-sync" className="whitespace-nowrap">Ragic匯入</TabsTrigger>}
+            {showAdminTabs && <TabsTrigger value="bonus-settings" className="whitespace-nowrap">獎金設定</TabsTrigger>}
           </TabsList>
         </div>
+
         {/* 首次進入才掛載，之後保持掛載（隱藏），切回來不重新載入 */}
         <KeepAliveTab value="payouts" active={tab}>
           <PayoutsBlock
