@@ -412,9 +412,10 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               value={String(periodYear)}
               onValueChange={(v) => setPeriodYear(Number(v))}
             >
-              <SelectTrigger className="w-28">
+              <SelectTrigger className="h-11 w-[calc(50%-0.25rem)] sm:h-10 sm:w-28">
                 <SelectValue />
               </SelectTrigger>
+
               <SelectContent>
                 {yearOptions.map((y) => (
                   <SelectItem key={y} value={String(y)}>
