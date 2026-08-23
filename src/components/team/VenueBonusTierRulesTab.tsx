@@ -664,7 +664,10 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               <div className="space-y-1.5">
                 <Label>館別</Label>
                 <Select value={formAcc} onValueChange={setFormAcc}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    ref={(el) => (fieldRefs.current["acc"] = el)}
+                    className={fieldErrors.acc ? "border-destructive" : ""}
+                  >
                     <SelectValue placeholder="選擇館別" />
                   </SelectTrigger>
                   <SelectContent>
@@ -675,14 +678,28 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.acc && (
+                  <p className="text-xs text-destructive">{fieldErrors.acc}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label>生效日</Label>
-                <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+                <Input
+                  type="date"
+                  ref={(el) => (fieldRefs.current["date"] = el)}
+                  className={fieldErrors.date ? "border-destructive" : ""}
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                />
+                {fieldErrors.date ? (
+                  <p className="text-xs text-destructive">{fieldErrors.date}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+                )}
               </div>
             </div>
+
 
             <div className="space-y-2">
               <Label>哪些獎金使用本館級距？</Label>
