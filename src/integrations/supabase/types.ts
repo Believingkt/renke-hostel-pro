@@ -9192,6 +9192,85 @@ export type Database = {
           },
         ]
       }
+      performance_notification_source_rule_logs: {
+        Row: {
+          accommodation_id: string
+          changes: Json
+          created_at: string
+          id: string
+          user_email: string | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          user_email?: string | null
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_notification_source_rule_logs_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      performance_notification_source_rules: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          id: string
+          included: boolean
+          source: string
+          updated_at: string
+          updated_by: string | null
+          updated_by_email: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          id?: string
+          included?: boolean
+          source: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          id?: string
+          included?: boolean
+          source?: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_notification_source_rules_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_notification_templates: {
         Row: {
           accommodation_id: string

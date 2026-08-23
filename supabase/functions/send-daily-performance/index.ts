@@ -71,6 +71,51 @@ function toWan(n: number): string {
   return `${Math.floor((n || 0) / 10000)}萬`;
 }
 
+// ── 訂單來源顯示名稱 ────────────────────────────────────────
+const SOURCE_LABELS: Record<string, string> = {
+  website: "官網訂房",
+  manual: "現場訂房",
+  line: "Line@",
+  agoda: "Agoda",
+  booking: "Booking",
+  trip: "Trip",
+  travel_agency: "旅行社",
+  peer_trade: "同業",
+  kol: "KOL互惠",
+  points_starchain: "星鏈會員",
+  official_use: "公務使用",
+  franchise_diff: "加盟價差",
+  owner_provided: "業主自帶",
+  accommodation_voucher: "住宿票卷",
+  group_buy: "網紅團購",
+  owlting: "奧丁丁",
+};
+function sourceLabel(v: string | null | undefined): string {
+  const key = (v ?? "").trim();
+  if (!key) return "未指定來源";
+  return SOURCE_LABELS[key] ?? key;
+}
+// 依來源彙總金額／筆數，產生明細文字
+function buildSourceBreakdown(
+  rows: Array<{ final_price?: unknown; order_source?: string | null }> | null | undefined,
+  title: string,
+): string {
+  const map = new Map<string, { amount: number; count: number }>();
+  for (const r of rows ?? []) {
+    const key = sourceLabel(r.order_source);
+    const cur = map.get(key) ?? { amount: 0, count: 0 };
+    cur.amount += Number(r.final_price || 0);
+    cur.count += 1;
+    map.set(key, cur);
+  }
+  const list = [...map.entries()]
+    .filter(([, v]) => v.amount > 0)
+    .sort((a, b) => b[1].amount - a[1].amount);
+  if (list.length === 0) return "";
+  return `${title}\n` +
+    list.map(([k, v]) => `・${k} NT$${fmtMoney(v.amount)}（${v.count} 筆）`).join("\n");
+}
+
 // ── Email rendering ────────────────────────────────────────
 function defaultTemplate(hasFranchise: boolean): string {
   const general = `{日期}
@@ -79,6 +124,8 @@ function defaultTemplate(hasFranchise: boolean): string {
 今日訂單：{今日訂單筆數} 筆，金額 {今日訂單}
 今日訂單取消：{今日取消筆數} 筆，金額 {今日取消金額}
 
+{今日來源明細}
+
 本月累積訂房業績：{月累積}
 目標訂房業績：{月目標}／月
 本月({M}月)訂房達成率：{達成率}%
@@ -86,8 +133,9 @@ function defaultTemplate(hasFranchise: boolean): string {
 前月累積訂房業績：{前月累積}
 年度累積訂房金額：{年度累積}`;
 
+
   if (hasFranchise) {
-    return `{日期}\n【{民宿名稱}特許加盟紀錄報表】\n\n今日特許加盟銷售：{今日加盟銷售}\n本月累積銷售額：{加盟月累積}\n目標月銷售：{加盟月目標}/月\n\n本月銷售達成率({加盟月目標})：{加盟月達成率}%\n累積銷售業績：{加盟年累積}\n累積銷售達成率({加盟年目標})：{加盟年達成率}%\n-------------\n今日特許加盟訂房業績：{今日加盟訂房筆數} 筆，金額 {今日加盟訂房}萬\n本月累積訂房業績：{加盟訂房月累積}\n目標特許加盟訂房：{加盟訂房月目標}/月\n本月累積訂房達成率：{加盟訂房達成率}%\n\n特許加盟年度累積訂房金額：{加盟訂房年累積}\n------------\n【{民宿名稱}進單業績】\n\n今日一般訂房業績：{今日訂單筆數} 筆，金額 {今日訂單}\n本月累積訂房業績：{月累積}\n目標訂房業績：{月目標}／月\n本月({M}月)累積訂房達成率：{達成率}%\n\n年度累積訂房金額：{年度累積}`;
+    return `{日期}\n【{民宿名稱}特許加盟紀錄報表】\n\n今日特許加盟銷售：{今日加盟銷售}\n本月累積銷售額：{加盟月累積}\n目標月銷售：{加盟月目標}/月\n\n本月銷售達成率({加盟月目標})：{加盟月達成率}%\n累積銷售業績：{加盟年累積}\n累積銷售達成率({加盟年目標})：{加盟年達成率}%\n-------------\n今日特許加盟訂房業績：{今日加盟訂房筆數} 筆，金額 {今日加盟訂房}萬\n本月累積訂房業績：{加盟訂房月累積}\n目標特許加盟訂房：{加盟訂房月目標}/月\n本月累積訂房達成率：{加盟訂房達成率}%\n\n特許加盟年度累積訂房金額：{加盟訂房年累積}\n------------\n【{民宿名稱}進單業績】\n\n今日一般訂房業績：{今日訂單筆數} 筆，金額 {今日訂單}\n\n{今日來源明細}\n\n本月累積訂房業績：{月累積}\n目標訂房業績：{月目標}／月\n本月({M}月)累積訂房達成率：{達成率}%\n\n年度累積訂房金額：{年度累積}`;
   }
   return general;
 }
@@ -287,14 +335,34 @@ Deno.serve(async (req) => {
             .or("order_source.is.null,order_source.neq.票卷訂房") as T;
         };
 
+        // ── 業績推播來源設定：被關閉的來源不計入 ──────────────
+        const { data: sourceRuleRows } = await supabase
+          .from("performance_notification_source_rules")
+          .select("source, included")
+          .eq("accommodation_id", accId);
+        const excludedSources = (sourceRuleRows ?? [])
+          .filter((r: any) => r.included === false)
+          .map((r: any) => String(r.source))
+          .filter((v: string) => v.length > 0);
+        const applySourceRules = <T extends any>(qb: T): T => {
+          if (excludedSources.length === 0) return qb;
+          const list = excludedSources
+            .map((v) => `"${v.replace(/"/g, '\\"')}"`)
+            .join(",");
+          // null 來源視為「未指定」，仍然計入
+          return (qb as any).or(`order_source.is.null,order_source.not.in.(${list})`) as T;
+        };
+
         // ── General booking metrics ────────────────────────
         // 全館別一致：期間以 order_date 為準，並排除「保留單」與 final_price <= 0 的訂單。
         // 天送另加：團媽/票卷訂房排除。
         const applyBookingFilters = <T extends any>(qb: T): T => {
           let q: any = applyTiansongExclusions(qb as any);
           q = q.neq("order_status", "hold").gt("final_price", 0);
+          q = applySourceRules(q);
           return q as T;
         };
+
 
         const applyPeriodFilter = <T extends any>(qb: T, startDay: string, endDay: string): T => {
           let q: any = qb;
@@ -332,7 +400,7 @@ Deno.serve(async (req) => {
           applyBookingFilters(
             supabase
               .from("orders")
-              .select("final_price, order_status")
+              .select("final_price, order_status, order_source")
               .eq("accommodation_id", accId)
               .neq("order_status", "cancelled"),
           ),
@@ -366,7 +434,7 @@ Deno.serve(async (req) => {
           applyBookingFilters(
             supabase
               .from("orders")
-              .select("final_price")
+              .select("final_price, order_source")
               .eq("accommodation_id", accId)
               .neq("order_status", "cancelled"),
           ),
@@ -526,7 +594,10 @@ Deno.serve(async (req) => {
           "加盟訂房月目標": toWan(fBookingTarget),
           "加盟訂房達成率": fmtPct(franchiseBookingMonth, fBookingTarget),
           "加盟訂房年累積": fmtMoney(franchiseBookingYear),
+          "今日來源明細": buildSourceBreakdown(todayOrders as any, "📊 今日來源明細"),
+          "本月來源明細": buildSourceBreakdown(monthOrders as any, "📊 本月來源明細"),
         };
+
 
         // ── 載入該館通報模板（方案 B：多模板）──────────────
         const { data: tplRows } = await supabase
@@ -624,9 +695,12 @@ Deno.serve(async (req) => {
             ? String(tpl.body)
             : fallbackBody;
           const withNotice = !tpl || tpl.include_modified_notice !== false;
-          return applyVars(raw, vars) +
+          // 變數若為空字串（例如當日無來源明細），收斂多餘空行
+          const rendered = applyVars(raw, vars).replace(/\n{3,}/g, "\n\n").trim();
+          return rendered +
             (withNotice ? modifiedNotice + backfillNotice + holdConvertedNotice : "");
         };
+
 
         // Email：固定只寄「完整版」(is_primary)，一館一天一封
         const body = renderTemplate(primaryTpl);

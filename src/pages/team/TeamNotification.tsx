@@ -27,6 +27,8 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import PerformanceTemplatesSection, { type PerformanceTemplatesHandle } from "@/components/team/PerformanceTemplatesSection";
+import PerformanceSourceRulesSection from "@/components/team/PerformanceSourceRulesSection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 interface Accommodation {
@@ -89,6 +91,8 @@ const GENERAL_TEMPLATE_VARS = [
   "{達成率}",
   "{前月累積}",
   "{年度累積}",
+  "{今日來源明細}",
+  "{本月來源明細}",
 ];
 
 const FRANCHISE_TEMPLATE_VARS = [
@@ -111,6 +115,8 @@ const GENERAL_TEMPLATE = `{日期}
 
 今日訂單：{今日訂單筆數} 筆，金額 {今日訂單}
 今日訂單取消：{今日取消筆數} 筆，金額 {今日取消金額}
+
+{今日來源明細}
 
 本月累積訂房業績：{月累積}
 目標訂房業績：{月目標}／月
@@ -140,6 +146,9 @@ const FRANCHISE_TEMPLATE = `{日期}
 【{民宿名稱}進單業績】
 
 今日一般訂房業績：{今日訂單筆數} 筆，金額 {今日訂單}
+
+{今日來源明細}
+
 本月累積訂房業績：{月累積}
 目標訂房業績：{月目標}／月
 本月({M}月)累積訂房達成率：{達成率}%
@@ -282,6 +291,14 @@ export default function TeamNotification() {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">業績通報設定</h2>
+
+      <Tabs defaultValue="settings" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="settings">通報設定</TabsTrigger>
+          <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="space-y-6">
 
       <Card>
         <CardContent className="py-4 text-sm space-y-2 text-muted-foreground">
@@ -542,6 +559,29 @@ export default function TeamNotification() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="sources" className="space-y-4">
+          <div className="max-w-xs space-y-1">
+            <Label className="text-xs">館別</Label>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇館別" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <PerformanceSourceRulesSection
+            accommodationId={selectedId}
+            accommodationName={accommodations.find((a) => a.id === selectedId)?.name}
+            canEdit={canAccess}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
