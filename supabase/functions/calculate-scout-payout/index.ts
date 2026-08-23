@@ -67,7 +67,9 @@ serve(async (req) => {
 
     const { startDate: periodStart, endExclusive: periodEnd } = periodRange(year, month, period);
     const kpiMonth = `${year}-${pad(month)}-01`;
-    const asOfDate = `${year}-${pad(month)}-28`;
+    // 費率版本切點（A 口徑）：對齊資料窗起點（10 日期＝上月21、25 日期＝當月6），
+    // 即「資料期間開始前已生效」的版本才被本期採用。
+    const asOfDate = periodStart;
     const currentYM = `${year}-${pad(month)}`;
 
     // ===== 一、讀取設定 =====

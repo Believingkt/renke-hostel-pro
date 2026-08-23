@@ -6398,7 +6398,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
     loadVersions();
   }, [loadVersions]);
 
-  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點，尚未到切點的版本不算目前生效
+  // 與 calculate-scout-payout 一致：以「資料窗起點」為切點，尚未到切點的版本不算目前生效
   const scoutAsOf = scoutRateAsOfToday();
   const currentIdx = versions.findIndex((v) => v.effective_from <= scoutAsOf);
   const current = currentIdx >= 0 ? versions[currentIdx] : undefined;
@@ -6475,7 +6475,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                   : ""}
               </p>
               <p className="text-[11px] text-muted-foreground">
-                星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+                星探結算以「該期資料窗起點」為版本切點（10 日期＝上月 21、25 日期＝當月 6），資料期間開始後才生效的版本順延至下一期採用。
               </p>
               {pendingVersions.length > 0 && (
                 <p className="text-[11px] text-amber-600">
@@ -7628,7 +7628,7 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  // 與 calculate-scout-payout 一致：以「資料窗起點」為切點
   const tierAsOf = scoutRateAsOfToday();
   const allDates = Array.from(new Set(rows.map((r) => r.effective_from)));
   const latestDate = allDates.find((d) => d <= tierAsOf);
@@ -7724,7 +7724,7 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
               ）
             </div>
             <p className="mb-2 text-[11px] text-muted-foreground">
-              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+              星探結算以「該期資料窗起點」為版本切點（10 日期＝上月 21、25 日期＝當月 6），資料期間開始後才生效的版本順延至下一期採用。
             </p>
             {pendingDates.length > 0 && (
               <p className="mb-2 text-[11px] text-amber-600">
@@ -7908,7 +7908,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  // 與 calculate-scout-payout 一致：以「資料窗起點」為切點
   const salaryAsOf = scoutRateAsOfToday();
   const latestIdx = rows.findIndex((r) => r.effective_from <= salaryAsOf);
   const latest = latestIdx >= 0 ? rows[latestIdx] : undefined;
@@ -7973,7 +7973,7 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                 : ""}
             </div>
             <div className="text-[11px] text-muted-foreground">
-              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+              星探結算以「該期資料窗起點」為版本切點（10 日期＝上月 21、25 日期＝當月 6），資料期間開始後才生效的版本順延至下一期採用。
             </div>
             {pendingSalary.length > 0 && (
               <div className="text-[11px] text-amber-600">
