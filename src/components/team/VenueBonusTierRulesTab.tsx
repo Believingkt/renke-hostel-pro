@@ -535,6 +535,19 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     await load();
   };
 
+  useEffect(() => {
+    if (!undoState) return;
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((undoState.expiresAt - Date.now()) / 1000));
+      setUndoLeft(left);
+      if (left === 0) setUndoState(null);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [undoState]);
+
+
 
 
 
