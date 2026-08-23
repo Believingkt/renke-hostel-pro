@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Plus, Trash2 } from "lucide-react";
-import VenueTierRulePreview from "./VenueTierRulePreview";
+
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
 
 /* ------------------------------ 型別與常數 ------------------------------ */
@@ -423,7 +423,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         </Card>
       )}
 
-      <VenueTierRulePreview accs={accs} rules={rules} />
+
 
       <VenueTierRuleAuditLog accs={accs} accountFilter={selectedAcc} />
 
