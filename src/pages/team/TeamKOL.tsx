@@ -6461,21 +6461,45 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
 
   if (loading) return null;
 
+  const selectedVersion =
+    versions.find((v) => v.effective_from === selectedEf) ?? current ?? versions[0];
+  const selectedStatus: "current" | "pending" | "history" | null = !selectedVersion
+    ? null
+    : selectedVersion.effective_from === current?.effective_from
+      ? "current"
+      : selectedVersion.effective_from > scoutAsOf
+        ? "pending"
+        : "history";
+  const prevOfSelected = selectedVersion
+    ? versions[versions.findIndex((v) => v.effective_from === selectedVersion.effective_from) + 1]
+    : undefined;
+
   return (
     <div className="space-y-4">
       <Card>
         <CardContent className="p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold">稀有度邀約獎金</h3>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <h3 className="font-semibold">稀有度邀約獎金</h3>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button type="button" className="text-muted-foreground" aria-label="費率切點規則">
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[260px] text-xs">
+                      星探結算以「該期資料窗起點」為版本切點（10 日期＝上月 21、25 日期＝當月 6），資料期間開始後才生效的版本順延至下一期採用。
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <p className="text-xs text-muted-foreground">
                 目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
                 {current && scoutPayoutPeriodLabel(current.effective_from)
                   ? `（自 ${scoutPayoutPeriodLabel(current.effective_from)} 起採用）`
                   : ""}
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                星探結算以「該期資料窗起點」為版本切點（10 日期＝上月 21、25 日期＝當月 6），資料期間開始後才生效的版本順延至下一期採用。
               </p>
               {pendingVersions.length > 0 && (
                 <p className="text-[11px] text-amber-600">
@@ -6486,84 +6510,109 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
                 </p>
               )}
             </div>
-            {isManager && (
-              <Button onClick={openCreate}>
-                <Plus className="mr-1 h-4 w-4" />
-                新增生效版本
-              </Button>
-            )}
+            <div className="flex flex-col gap-2 sm:items-end">
+              {versions.length > 0 && (
+                <Select
+                  value={selectedVersion?.effective_from ?? ""}
+                  onValueChange={setSelectedEf}
+                >
+                  <SelectTrigger className="w-full sm:w-[280px]">
+                    <SelectValue placeholder="選擇版本" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {versions.map((v) => {
+                      const label =
+                        v.effective_from === current?.effective_from
+                          ? "目前生效"
+                          : v.effective_from > scoutAsOf
+                            ? "待生效"
+                            : "歷史";
+                      return (
+                        <SelectItem key={v.effective_from} value={v.effective_from}>
+                          {`${label}・${v.effective_from}（${scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起）`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
+              {isManager && (
+                <Button onClick={openCreate} className="w-full sm:w-auto">
+                  <Plus className="mr-1 h-4 w-4" />
+                  新增生效版本
+                </Button>
+              )}
+            </div>
           </div>
-          {current && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>稀有度</TableHead>
-                  <TableHead>粉絲數範圍說明</TableHead>
-                  <TableHead className="text-right">每期獎金</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {RARITY_ORDER.map((r) => {
-                  const hit = current.items.find((x) => x.rarity === r);
-                  return (
-                    <TableRow key={r}>
-                      <TableCell>
-                        <Badge variant="outline" className={RARITY_CLASS[r as Rarity] ?? ""}>
-                          {r}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">{hit?.fan_range_desc ?? "-"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+
+          {selectedVersion && (
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <Badge
+                  variant="outline"
+                  className={
+                    selectedStatus === "current"
+                      ? "border-emerald-500 text-emerald-600"
+                      : selectedStatus === "pending"
+                        ? "border-amber-500 text-amber-600"
+                        : "text-muted-foreground"
+                  }
+                >
+                  {selectedStatus === "current" ? "目前生效" : selectedStatus === "pending" ? "待生效" : "歷史版本"}
+                </Badge>
+                <span className="text-muted-foreground">
+                  生效日期 {selectedVersion.effective_from}・自{" "}
+                  {scoutPayoutPeriodLabel(selectedVersion.effective_from) ?? "—"} 起採用
+                </span>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>稀有度</TableHead>
+                    <TableHead>粉絲數範圍說明</TableHead>
+                    <TableHead className="text-right">每期獎金</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {RARITY_ORDER.map((r) => {
+                    const hit = selectedVersion.items.find((x) => x.rarity === r);
+                    const prevHit = prevOfSelected?.items.find((x) => x.rarity === r);
+                    const diff =
+                      hit && prevHit ? Number(hit.bonus_amount) - Number(prevHit.bonus_amount) : 0;
+                    return (
+                      <TableRow key={r}>
+                        <TableCell>
+                          <Badge variant="outline" className={RARITY_CLASS[r as Rarity] ?? ""}>
+                            {r}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{hit?.fan_range_desc ?? "-"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          NT$ {(hit?.bonus_amount ?? 0).toLocaleString()}
+                          {diff !== 0 && (
+                            <span
+                              className={`ml-1 text-[11px] ${diff > 0 ? "text-emerald-600" : "text-destructive"}`}
+                            >
+                              {diff > 0 ? "+" : ""}
+                              {diff.toLocaleString()}
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+              {prevOfSelected && (
+                <p className="text-[11px] text-muted-foreground">
+                  差額對照前一版本（生效日期 {prevOfSelected.effective_from}）
+                </p>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
 
-      {history.length > 0 && (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <h3 className="font-semibold">歷史版本</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>生效日期</TableHead>
-                  {RARITY_ORDER.map((r) => (
-                    <TableHead key={r} className="text-right">
-                      {r}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.map((v) => (
-                  <TableRow key={v.effective_from}>
-                    <TableCell>
-                      {v.effective_from}
-                      <div className="text-[11px] text-muted-foreground">
-                        自 {scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起採用
-                      </div>
-                    </TableCell>
-                    {RARITY_ORDER.map((r) => {
-                      const hit = v.items.find((x) => x.rarity === r);
-                      return (
-                        <TableCell key={r} className="text-right tabular-nums text-xs">
-                          {hit ? `$${hit.bonus_amount.toLocaleString()}` : "-"}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl overflow-x-hidden">
