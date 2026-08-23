@@ -23,7 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Copy, PencilLine, Plus, Trash2 } from "lucide-react";
 
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
@@ -158,6 +158,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const { toast } = useToast();
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rules, setRules] = useState<TierRuleRow[]>([]);
+  const [usedRuleIds, setUsedRuleIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedAcc, setSelectedAcc] = useState<string | null>(null);
   const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
@@ -165,6 +166,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   // 編輯 Dialog 狀態
   const keyboardInset = useKeyboardInset();
   const [dialogOpen, setDialogOpen] = useState(false);
+  /** 非 null 代表「刪除並重新新增」模式：儲存時會先刪掉同館同生效日的舊版本 */
+  const [replaceTarget, setReplaceTarget] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+  } | null>(null);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
@@ -180,12 +186,16 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    const [accRes, ruleRes] = await Promise.all([
+    const [accRes, ruleRes, usedRes] = await Promise.all([
       supabase.from("accommodation_info").select("id, name").order("name"),
       supabase
         .from("venue_team_bonus_tier_rules")
         .select("id, accommodation_id, bonus_type, effective_from, tiers, note, created_at")
         .order("effective_from", { ascending: false }),
+      supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .select("tier_rule_id")
+        .not("tier_rule_id", "is", null),
     ]);
     setAccs(((accRes.data ?? []) as AccOption[]).filter((a) => a.id && a.name));
     setRules(
@@ -193,6 +203,9 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         ...r,
         tiers: Array.isArray(r.tiers) ? (r.tiers as BonusTier[]) : [],
       })),
+    );
+    setUsedRuleIds(
+      new Set(((usedRes.data ?? []) as any[]).map((r) => r.tier_rule_id).filter(Boolean)),
     );
     setLoading(false);
   };
@@ -230,7 +243,12 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   /* ------------------------------ 表單操作 ------------------------------ */
 
+  /** 此版本是否已被獎金快照採用（採用過就不能刪除重建） */
+  const isVersionLocked = (v: VenueVersion) =>
+    Object.values(v.rows).some((r) => r && usedRuleIds.has((r as TierRuleRow).id));
+
   const openCreate = (accId?: string) => {
+    setReplaceTarget(null);
     setFormAcc(accId ?? selectedAcc ?? "");
     setFormDate(todayTaipei());
     setFormNote("");
@@ -252,6 +270,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     }));
 
   const openCopyFrom = (v: VenueVersion) => {
+    setReplaceTarget(null);
     setFormAcc("");
     setFormDate(todayTaipei());
     setFormNote(
@@ -270,6 +289,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   /** 以此版本為基礎新增下一版（同館別） */
   const openBasedOn = (v: VenueVersion) => {
+    setReplaceTarget(null);
     setFormAcc(v.accommodation_id);
     setFormDate(todayTaipei());
     setFormNote("");
@@ -283,6 +303,32 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     setFieldErrors({});
     setDialogOpen(true);
   };
+
+  /** 修正此版本：刪除並以相同生效日重新新增（僅限尚未被快照採用的版本） */
+  const openFix = (v: VenueVersion) => {
+    if (isVersionLocked(v)) {
+      toast({
+        title: "此版本已被快照採用，無法修正",
+        description: "請改用「以此版本為基礎新增」建立較晚生效的新版本。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setReplaceTarget({ accommodation_id: v.accommodation_id, effective_from: v.effective_from });
+    setFormAcc(v.accommodation_id);
+    setFormDate(v.effective_from.slice(0, 10));
+    setFormNote(v.note ?? "");
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
 
   const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
 
@@ -374,6 +420,21 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
+
+    // 修正模式：先刪除舊版本（同館別、同生效日），再整批重新新增
+    if (replaceTarget) {
+      const { error: delErr } = await supabase
+        .from("venue_team_bonus_tier_rules")
+        .delete()
+        .eq("accommodation_id", replaceTarget.accommodation_id)
+        .eq("effective_from", replaceTarget.effective_from);
+      if (delErr) {
+        setSaving(false);
+        toast({ title: "舊版本刪除失敗", description: delErr.message, variant: "destructive" });
+        return;
+      }
+    }
+
     const payload = enabledTypes.map((t) => ({
       accommodation_id: formAcc,
       bonus_type: t,
@@ -388,15 +449,24 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(payload);
     setSaving(false);
     if (error) {
-      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      toast({
+        title: replaceTarget ? "重建失敗（舊版本已刪除，請重新儲存）" : "儲存失敗",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
-    toast({ title: "已新增版本", description: payoutPeriodHint(formDate) });
+    toast({
+      title: replaceTarget ? "已重建版本" : "已新增版本",
+      description: payoutPeriodHint(formDate),
+    });
     setDialogOpen(false);
+    setReplaceTarget(null);
     setSelectedAcc(formAcc);
     setActiveVersionKey(`${formAcc}|${formDate}`);
     await load();
   };
+
 
   const removeVersion = async (v: VenueVersion) => {
     const { error } = await supabase
@@ -494,6 +564,16 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                   </Button>
                   {shownVersion && (
                     <>
+                      {isVersionLocked(shownVersion) ? (
+                        <Badge variant="secondary" className="self-center">
+                          已被快照採用，僅能新增新版本
+                        </Badge>
+                      ) : (
+                        <Button size="sm" variant="outline" onClick={() => openFix(shownVersion)}>
+                          <PencilLine className="mr-1 h-4 w-4" />
+                          修正此版本（刪除並重建）
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => openBasedOn(shownVersion)}>
                         <Copy className="mr-1 h-4 w-4" />
                         以此版本為基礎新增
@@ -504,6 +584,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                       </Button>
                     </>
                   )}
+
                 </div>
               )}
             </div>
@@ -604,6 +685,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     {versions.map((v) => {
                       const isCurrent = v.key === currentKey;
                       const isFuture = v.effective_from > todayTaipei();
+                      const locked = isVersionLocked(v);
                       return (
                         <li
                           key={v.key}
@@ -624,23 +706,36 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                             ) : (
                               <Badge variant="secondary">已過期</Badge>
                             )}
+                            {locked && <Badge variant="secondary">已被快照採用</Badge>}
                             <span className="text-xs text-muted-foreground">
                               {payoutPeriodHint(v.effective_from)}
                             </span>
                           </button>
-                          {!readOnly && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeVersion(v)}
-                              aria-label="刪除版本"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          {!readOnly && !locked && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openFix(v)}
+                                className="admin-touch-target"
+                              >
+                                <PencilLine className="mr-1 h-4 w-4" />
+                                修正
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeVersion(v)}
+                                aria-label="刪除版本"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
                         </li>
                       );
                     })}
+
                   </ul>
                 </div>
               </>
@@ -655,18 +750,31 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:w-full sm:max-w-4xl">
           <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
-            <DialogTitle className="text-base sm:text-lg">新增級距規則版本</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              {replaceTarget ? "修正級距規則版本（刪除並重建）" : "新增級距規則版本"}
+            </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。
+              {replaceTarget
+                ? "已帶入原版本的生效日、獎金開關與整張級距表。儲存時會先刪除原版本，再以相同生效日重新建立，等同一次完成重建。"
+                : "門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+            {replaceTarget && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                修正模式：此版本尚未被任何獎金快照採用，因此可以直接重建。儲存後原本的
+                {` ${replaceTarget.effective_from} `}
+                版本會被刪除並以新內容取代（審計紀錄會同時留下刪除與新增兩筆）。若要保留原版本，請改用「以此版本為基礎新增」。
+              </div>
+            )}
+
+
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>館別</Label>
-                <Select value={formAcc} onValueChange={setFormAcc}>
+                <Select value={formAcc} onValueChange={setFormAcc} disabled={!!replaceTarget}>
                   <SelectTrigger
                     ref={(el) => (fieldRefs.current["acc"] = el)}
                     className={fieldErrors.acc ? "border-destructive" : ""}
@@ -967,7 +1075,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               取消
             </Button>
             <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
-              儲存版本
+              {replaceTarget ? "刪除並重建此版本" : "儲存版本"}
             </Button>
           </DialogFooter>
 
