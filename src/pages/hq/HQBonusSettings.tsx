@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import VenueBonusTierRulesTab from "@/components/team/VenueBonusTierRulesTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
 import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -55,13 +56,17 @@ export default function HQBonusSettings() {
       ? "owner-settlement"
       : tabParam === "base-salary"
         ? "base-salary"
-        : "bonus";
+        : tabParam === "venue-tiers"
+          ? "venue-tiers"
+          : "bonus";
   const tab: SettingsTab =
     rawTab === "base-salary" && !isHQAdmin
       ? "owner-settlement"
-      : canSeeBonus
-        ? rawTab
-        : "owner-settlement";
+      : rawTab === "venue-tiers" && !canSeeBonus
+        ? "owner-settlement"
+        : canSeeBonus
+          ? rawTab
+          : "owner-settlement";
   const accId = searchParams.get("acc") ?? "global";
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
