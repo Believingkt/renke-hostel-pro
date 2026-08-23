@@ -112,8 +112,8 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="!flex max-h-[90dvh] max-w-md flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <DialogTitle>取消訂單 {order.order_number}</DialogTitle>
           <DialogDescription>
             付款方式：<span className="font-medium text-foreground">{methodLabel}</span>
@@ -121,6 +121,7 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           </DialogDescription>
         </DialogHeader>
 
+        <div className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
         {order.order_source === "group_buy" && (
           <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
             這是團購訂單（銀行匯款人工對帳）。請改到「訂單資訊 → 網紅團購」的訂單列使用「取消／退款」與「處理退款」，
@@ -200,7 +201,9 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           </div>
         )}
 
-        <DialogFooter>
+        </div>
+
+        <DialogFooter className="safe-bottom shrink-0 gap-2 border-t pt-3 [&>button]:min-h-[44px] [&>button]:flex-1 sm:[&>button]:min-h-0 sm:[&>button]:flex-none">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
             返回
           </Button>
