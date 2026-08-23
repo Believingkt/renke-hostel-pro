@@ -96,6 +96,8 @@ interface Campaign {
   faq_item_ids: string[] | null;
   /** 後台指定要在團購頁顯示的訂房須知 panel key（依陣列順序）；null＝顯示全部 */
   booking_notice_keys: string[] | null;
+  /** 活動層級線上付款開關（ATM＝Phase G1；信用卡為下一階段，前台目前不讀） */
+  enable_atm?: boolean | null;
 }
 
 interface CampaignPackage {
@@ -237,6 +239,8 @@ export default function GroupBuyCampaign() {
 
   const [result, setResult] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  /** 付款方式：預設銀行匯款（人工對帳），僅活動開啟 ATM 時可切換 */
+  const [paymentMethod, setPaymentMethod] = useState<"bank" | "atm">("bank");
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   /** 備註為次要欄位，預設收合（非必填，未變更任何驗證） */
@@ -687,7 +691,11 @@ export default function GroupBuyCampaign() {
       setResult(payload);
       window.scrollTo({ top: 0, behavior: "smooth" });
       navigate(`/g/order/${payload.orderNumber}/confirmed`, {
-        state: { phoneLast4: guestPhone.replace(/\D/g, "").slice(-4), result: payload },
+        state: {
+          phoneLast4: guestPhone.replace(/\D/g, "").slice(-4),
+          result: payload,
+          paymentMethod: campaign.enable_atm ? paymentMethod : "bank",
+        },
       });
     } catch (e) {
       console.error("[group-buy-create-order] unexpected error", e);
@@ -1725,6 +1733,9 @@ export default function GroupBuyCampaign() {
           guestName={guestName}
           guestPhone={guestPhone}
           guestEmail={guestEmail}
+          atmEnabled={!!campaign.enable_atm}
+          paymentMethod={paymentMethod}
+          onPaymentMethodChange={setPaymentMethod}
         />
       )}
 

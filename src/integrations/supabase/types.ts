@@ -4310,6 +4310,8 @@ export type Database = {
           description_html: string | null
           discount_code: string | null
           discount_code_id: string | null
+          enable_atm: boolean
+          enable_credit_card: boolean
           faq_item_ids: string[] | null
           featured_facilities: string[]
           featured_photo_urls: string[]
@@ -4356,6 +4358,8 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          enable_atm?: boolean
+          enable_credit_card?: boolean
           faq_item_ids?: string[] | null
           featured_facilities?: string[]
           featured_photo_urls?: string[]
@@ -4402,6 +4406,8 @@ export type Database = {
           description_html?: string | null
           discount_code?: string | null
           discount_code_id?: string | null
+          enable_atm?: boolean
+          enable_credit_card?: boolean
           faq_item_ids?: string[] | null
           featured_facilities?: string[]
           featured_photo_urls?: string[]

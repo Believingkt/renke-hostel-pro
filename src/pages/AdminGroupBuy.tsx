@@ -160,6 +160,8 @@ interface Campaign {
   deposit_percentage: number;
   payment_deadline_hours: number;
   payment_method: string | null;
+  enable_atm?: boolean | null;
+  enable_credit_card?: boolean | null;
   commission_rate: number;
   contact_note: string | null;
   terms_html: string | null;
@@ -1407,21 +1409,34 @@ export default function AdminGroupBuy() {
                   onChange={(e) => setEditing({ ...editing, commission_rate: Number(e.target.value) || 0 })}
                 />
               </div>
-              <div>
-                <Label>付款方式</Label>
-                <Select
-                  value={editing.payment_method ?? "manual_bank_transfer"}
-                  onValueChange={(v) => setEditing({ ...editing, payment_method: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="manual_bank_transfer">銀行匯款（人工對帳）</SelectItem>
-                    <SelectItem value="tappay" disabled>線上刷卡 TapPay（尚未開放）</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="mt-1 text-xs text-muted-foreground">目前僅支援銀行匯款；選擇 TapPay 不會改變前台流程。</p>
+              <div className="md:col-span-2 space-y-3 rounded-lg border p-4">
+                <Label>付款方式（可多選）</Label>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">銀行匯款（人工對帳）</p>
+                    <p className="text-xs text-muted-foreground">預設付款方式，一律開啟。</p>
+                  </div>
+                  <Switch checked disabled />
+                </div>
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">ATM 虛擬帳號（TapPay）</p>
+                    <p className="text-xs text-muted-foreground">
+                      開啟後旅客可於下單時選擇 ATM 虛擬帳號繳交訂金，入帳由系統自動確認。
+                    </p>
+                  </div>
+                  <Switch
+                    checked={!!editing.enable_atm}
+                    onCheckedChange={(v) => setEditing({ ...editing, enable_atm: v })}
+                  />
+                </div>
+                <div className="flex items-start justify-between gap-4 opacity-60">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">信用卡（TapPay）</p>
+                    <p className="text-xs text-muted-foreground">信用卡 TapPay 將於下一階段啟用，開啟後前台仍不會顯示。</p>
+                  </div>
+                  <Switch checked={!!editing.enable_credit_card} disabled />
+                </div>
               </div>
 
               <div className="md:col-span-2">

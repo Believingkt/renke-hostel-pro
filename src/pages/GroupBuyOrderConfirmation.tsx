@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, CheckCircle2, Clock, Loader2, MailCheck, MapPin } from "lucide-react";
+import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -37,13 +38,14 @@ function MailRow({ label, state, note }: { label: string; state: MailState; note
 export default function GroupBuyOrderConfirmation() {
   const { orderNumber = "" } = useParams<{ orderNumber: string }>();
   const location = useLocation();
-  const state = (location.state ?? {}) as { phoneLast4?: string; result?: any };
+  const state = (location.state ?? {}) as { phoneLast4?: string; result?: any; paymentMethod?: "bank" | "atm" };
+  const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
+  const useAtm = state.paymentMethod === "atm";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
     if (!orderNumber || phoneLast4.length !== 4) {
       setLoading(false);
       return;
@@ -172,22 +174,40 @@ export default function GroupBuyOrderConfirmation() {
             </div>
           )}
 
-          {bank && (
-            <div className="rounded-lg border p-4">
-              <p className="mb-2 font-semibold text-foreground">匯款資訊</p>
-              <p>
-                {bank.bankName}
-                {bank.bankCode ? `（${bank.bankCode}）` : ""}
-                {bank.branchName ? ` ${bank.branchName}` : ""}
-              </p>
-              <p>戶名：{bank.accountName}</p>
-              <p className="font-semibold">帳號：{bank.accountNumber}</p>
-              {bank.note && <p className="text-muted-foreground">{bank.note}</p>}
+          {useAtm ? (
+            <div className="space-y-2">
+              <p className="font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
+              <AtmPaymentPanel
+                orderId={order?.id ?? ""}
+                orderNumber={orderNumber}
+                amount={Math.max(0, Math.round(Number(deposit) || 0))}
+                amountLabel="轉帳金額（訂金）"
+                cardholder={{ name: order?.guestName ?? "訂購人", email: "", phoneNumber: "" }}
+                createEndpoint="group-buy-start-payment"
+                extraBody={{ phoneLast4, paymentType: "atm" }}
+                expireInDays={3}
+              />
             </div>
+          ) : (
+            bank && (
+              <div className="rounded-lg border p-4">
+                <p className="mb-2 font-semibold text-foreground">匯款資訊</p>
+                <p>
+                  {bank.bankName}
+                  {bank.bankCode ? `（${bank.bankCode}）` : ""}
+                  {bank.branchName ? ` ${bank.branchName}` : ""}
+                </p>
+                <p>戶名：{bank.accountName}</p>
+                <p className="font-semibold">帳號：{bank.accountNumber}</p>
+                {bank.note && <p className="text-muted-foreground">{bank.note}</p>}
+              </div>
+            )
           )}
 
           <Button asChild className="w-full">
-            <Link to={`/g/order/${orderNumber}`}>前往訂單查詢／回報匯款</Link>
+            <Link to={`/g/order/${orderNumber}`}>
+              {useAtm ? "前往訂單查詢" : "前往訂單查詢／回報匯款"}
+            </Link>
           </Button>
         </CardContent>
       </Card>

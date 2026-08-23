@@ -75,10 +75,15 @@ interface Props {
   /** 已入帳金額（顯示用） */
   paidAmount?: number;
   onCreated?: (info: AtmInfo) => void;
+  /** 開立虛擬帳號的 Edge Function（預設一般訂房的 tappay-atm-create，不可改變既有行為） */
+  createEndpoint?: string;
+  /** 附加於 request body 的欄位（例如團購的身分驗證 phoneLast4） */
+  extraBody?: Record<string, unknown>;
 }
 
 export function AtmPaymentPanel({
   orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, expireInMinutes, expireInDays = 3, paid = false, paidAmount, onCreated,
+  createEndpoint = "tappay-atm-create", extraBody,
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
@@ -180,11 +185,11 @@ export function AtmPaymentPanel({
         });
       });
 
-      const { data, error: invErr } = await supabase.functions.invoke("tappay-atm-create", {
-        body: { prime, orderId, orderNumber, amount, cardholder, expireInDays, expireInMinutes },
+      const { data, error: invErr } = await supabase.functions.invoke(createEndpoint, {
+        body: { prime, orderId, orderNumber, amount, cardholder, expireInDays, expireInMinutes, ...(extraBody ?? {}) },
       });
       if (invErr) throw invErr;
-      if (!data?.success) throw new Error(data?.message || "建立虛擬帳號失敗");
+      if (!data?.success) throw new Error(data?.message || data?.error || "建立虛擬帳號失敗");
       const info: AtmInfo = {
         vaccNo: data.vaccNo,
         bankCode: data.bankCode,

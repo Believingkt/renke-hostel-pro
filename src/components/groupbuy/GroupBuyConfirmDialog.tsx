@@ -35,6 +35,10 @@ interface Props {
   guestName: string;
   guestPhone: string;
   guestEmail: string;
+  /** 活動是否開放 ATM 虛擬帳號；false 時完全維持既有人工匯款流程 */
+  atmEnabled?: boolean;
+  paymentMethod?: "bank" | "atm";
+  onPaymentMethodChange?: (v: "bank" | "atm") => void;
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -52,7 +56,9 @@ export function GroupBuyConfirmDialog(props: Props) {
     open, onOpenChange, submitting, onConfirm, venueName, packageName,
     checkIn, checkOut, nights, roomQuantity, guestSummary, baseTotal, childExtraTotal,
     total, deposit, balance, depositPct, guestName, guestPhone, guestEmail,
+    atmEnabled = false, paymentMethod = "bank", onPaymentMethodChange,
   } = props;
+  const method = atmEnabled ? paymentMethod : "bank";
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
@@ -87,6 +93,31 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="Email" value={guestEmail} />
         </div>
 
+        {atmEnabled && (
+          <div className="rounded-2xl border border-border/70 p-4">
+            <p className="mb-2 text-sm font-semibold text-foreground">訂金付款方式</p>
+            <div className="grid gap-2">
+              {([
+                { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。" },
+                { key: "atm" as const, title: "ATM 虛擬帳號", desc: "系統開立專屬帳號，入帳後自動確認訂單。" },
+              ]).map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => onPaymentMethodChange?.(opt.key)}
+                  className={`rounded-xl border p-3 text-left transition ${
+                    method === opt.key ? "border-accent bg-accent/10" : "border-border/70 hover:bg-muted/60"
+                  }`}
+                >
+                  <span className="block text-sm font-medium text-foreground">{opt.title}</span>
+                  <span className="block text-xs text-muted-foreground">{opt.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <FraudPreventionNotice variant="bank_transfer" />
 
         <TermsConsentText variant="group_buy" />
@@ -108,7 +139,7 @@ export function GroupBuyConfirmDialog(props: Props) {
             onClick={onConfirm}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            確認訂房並取得匯款資訊
+            {method === "atm" ? "確認訂房並取得虛擬帳號" : "確認訂房並取得匯款資訊"}
           </Button>
         </div>
 
