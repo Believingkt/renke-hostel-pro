@@ -10,6 +10,7 @@ import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
 import { dedupeByContractGroup } from "@/lib/contractGroup";
+import { scoutRateAsOf } from "@/lib/rateEffectivePeriod";
 
 
 

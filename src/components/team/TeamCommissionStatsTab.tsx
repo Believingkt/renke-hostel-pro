@@ -46,6 +46,7 @@ import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
 import { isHoldOrder } from "@/lib/holdOrder";
 import { boostedAmount } from "@/lib/bonusMultiplier";
+import { rateAsOfForDataMonth } from "@/lib/rateEffectivePeriod";
 
 function DateYMDPicker({
   label,
