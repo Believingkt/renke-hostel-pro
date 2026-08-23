@@ -7934,10 +7934,26 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
           <div className="space-y-1 text-sm">
             <div>兼職個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
             <div>團隊獎金金額：{formatMoney(latest.team_bonus)}</div>
-            <div className="text-xs text-muted-foreground">生效日：{latest.effective_from}</div>
+            <div className="text-xs text-muted-foreground">
+              生效日：{latest.effective_from}
+              {scoutPayoutPeriodLabel(latest.effective_from)
+                ? `（自 ${scoutPayoutPeriodLabel(latest.effective_from)} 起採用）`
+                : ""}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+            </div>
+            {pendingSalary.length > 0 && (
+              <div className="text-[11px] text-amber-600">
+                待生效版本：
+                {pendingSalary
+                  .map((r) => `${r.effective_from}（${scoutPayoutPeriodLabel(r.effective_from) ?? "—"} 起）`)
+                  .join("、")}
+              </div>
+            )}
           </div>
         )}
-        {rows.length > 1 && (
+        {salaryHistory.length > 0 && (
           <div className="mt-4">
             <div className="text-sm font-medium mb-1">歷史版本</div>
             <Table>
@@ -7949,9 +7965,14 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.slice(1).map((r) => (
+                {salaryHistory.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell>{r.effective_from}</TableCell>
+                    <TableCell>
+                      {r.effective_from}
+                      <div className="text-[11px] text-muted-foreground">
+                        自 {scoutPayoutPeriodLabel(r.effective_from) ?? "—"} 起採用
+                      </div>
+                    </TableCell>
                     <TableCell>{formatMoney(r.base_salary)}</TableCell>
                     <TableCell>{formatMoney(r.team_bonus)}</TableCell>
                   </TableRow>
