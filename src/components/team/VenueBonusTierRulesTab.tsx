@@ -420,6 +420,21 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
     setSaving(true);
     const { data: userData } = await supabase.auth.getUser();
+
+    // 修正模式：先刪除舊版本（同館別、同生效日），再整批重新新增
+    if (replaceTarget) {
+      const { error: delErr } = await supabase
+        .from("venue_team_bonus_tier_rules")
+        .delete()
+        .eq("accommodation_id", replaceTarget.accommodation_id)
+        .eq("effective_from", replaceTarget.effective_from);
+      if (delErr) {
+        setSaving(false);
+        toast({ title: "舊版本刪除失敗", description: delErr.message, variant: "destructive" });
+        return;
+      }
+    }
+
     const payload = enabledTypes.map((t) => ({
       accommodation_id: formAcc,
       bonus_type: t,
@@ -434,15 +449,24 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(payload);
     setSaving(false);
     if (error) {
-      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      toast({
+        title: replaceTarget ? "重建失敗（舊版本已刪除，請重新儲存）" : "儲存失敗",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
-    toast({ title: "已新增版本", description: payoutPeriodHint(formDate) });
+    toast({
+      title: replaceTarget ? "已重建版本" : "已新增版本",
+      description: payoutPeriodHint(formDate),
+    });
     setDialogOpen(false);
+    setReplaceTarget(null);
     setSelectedAcc(formAcc);
     setActiveVersionKey(`${formAcc}|${formDate}`);
     await load();
   };
+
 
   const removeVersion = async (v: VenueVersion) => {
     const { error } = await supabase
