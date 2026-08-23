@@ -6513,31 +6513,6 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               )}
             </div>
             <div className="flex flex-col gap-2 sm:items-end">
-              {versions.length > 0 && (
-                <Select
-                  value={selectedVersion?.effective_from ?? ""}
-                  onValueChange={setSelectedEf}
-                >
-                  <SelectTrigger className="w-full sm:w-[280px]">
-                    <SelectValue placeholder="選擇版本" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {versions.map((v) => {
-                      const label =
-                        v.effective_from === current?.effective_from
-                          ? "目前生效"
-                          : v.effective_from > scoutAsOf
-                            ? "待生效"
-                            : "歷史";
-                      return (
-                        <SelectItem key={v.effective_from} value={v.effective_from}>
-                          {`${label}・${v.effective_from}（${scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起）`}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              )}
               {isManager && (
                 <Button onClick={openCreate} className="w-full sm:w-auto">
                   <Plus className="mr-1 h-4 w-4" />
@@ -6546,6 +6521,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               )}
             </div>
           </div>
+
 
           {selectedVersion && (
             <>
