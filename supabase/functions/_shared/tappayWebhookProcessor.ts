@@ -1,6 +1,13 @@
 // 共用：TapPay Webhook 事件處理核心（供 tappay-payment-webhook 即時處理與 tappay-webhook-retry 重試共用）
 import { pushOrderEvent } from "./push.ts";
 import { computeRefundAmounts } from "./refundIdempotency.ts";
+import {
+  eventSignature,
+  isNoOpCharge,
+  isStaleRefund,
+  signatureFromRaw,
+} from "./tappayEventDedupe.ts";
+
 
 
 type Json = Record<string, unknown>;
@@ -36,7 +43,7 @@ export function nextRetryAt(retryCount: number): string | null {
 }
 
 const ORDER_FIELDS =
-  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, notes, refunded_amount, cancellation_fee_amount";
+  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount";
 
 export interface ProcessResult {
   matched: boolean;
@@ -45,7 +52,39 @@ export interface ProcessResult {
   orderNumber?: string;
   eventType: "refund" | "charge";
   reason?: string;
+  /** Q3-B：判定為「先前已成功處理過的相同事件」，本次不再產生副作用 */
+  duplicate?: boolean;
 }
+
+/** Q3-B：查詢是否已有「相同指紋且成功處理完成」的事件 */
+async function findProcessedDuplicate(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  recTradeId: string | null,
+  signature: string,
+  eventType: "refund" | "charge",
+  // deno-lint-ignore no-explicit-any
+): Promise<any | null> {
+  if (!recTradeId) return null;
+  const { data, error } = await supabase
+    .from("tappay_webhook_events")
+    .select("id, raw, status, amount, matched_order_id, order_number")
+    .eq("rec_trade_id", recTradeId)
+    .eq("event_type", eventType)
+    .eq("processed", true)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error || !data) return null;
+  // deno-lint-ignore no-explicit-any
+  return (data as any[]).find((row) =>
+    signatureFromRaw(row.raw as Record<string, unknown> | null, {
+      eventType,
+      status: num(row.status),
+      amount: num(row.amount),
+    }) === signature
+  ) ?? null;
+}
+
 
 /**
  * 依 TapPay 通知內容同步 deposit_charges 與 orders。
@@ -62,6 +101,28 @@ export async function processTapPayEvent(
   const amount = num(payload.amount);
   const eventType = classify(payload);
   const ok = status === 0;
+
+  // Q3-B：同一事件（相同 rec_trade_id + 事件種類 + 狀態 + 金額 + 累計退款額）
+  // 若先前已成功處理完成，直接視為重送，不再執行任何副作用。
+  const signature = eventSignature({
+    eventType,
+    status,
+    amount,
+    refundedTotal: num(payload.refunded_amount),
+  });
+  const dup = await findProcessedDuplicate(supabase, recTradeId, signature, eventType);
+  if (dup) {
+    console.log("[tappay] duplicate event skipped", { recTradeId, signature });
+    return {
+      matched: true,
+      ok,
+      eventType,
+      duplicate: true,
+      orderId: dup.matched_order_id ?? undefined,
+      orderNumber: orderNumber ?? dup.order_number ?? undefined,
+    };
+  }
+
 
   let order: any = null;
   if (recTradeId) {
@@ -135,22 +196,28 @@ export async function processTapPayEvent(
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
   const appendNote = (line: string) => `${order.notes ? order.notes + "\n" : ""}🔒 ${stamp} ${line}`;
   const orderPatch: Json = {};
+  // Q3-B：無實質變化的重送／亂序舊事件 → 不改 orders（連帶不觸發 OwlTing / Hotelnabe）、不寫 notes、不推播
+  let noOp = false;
 
   if (eventType === "refund") {
     if (ok) {
       const refunded = Math.abs(num(payload.refunded_amount) ?? amount ?? 0);
       // Q3-A：payload.refunded_amount 為「累計退款額」，以差額扣減 paid_amount，
       // 同一退款 callback 重送時 delta = 0，不會重複扣減。
-      const { newPaid, newRefundedTotal } = computeRefundAmounts({
+      const { newPaid, newRefundedTotal, delta } = computeRefundAmounts({
         currentPaid: Number(order.paid_amount || 0),
         currentRefundedTotal: Number(order.refunded_amount || 0),
         incomingRefundedTotal: num(payload.refunded_amount),
         fallbackAmount: amount,
       });
-      orderPatch.refunded_amount = newRefundedTotal;
-      orderPatch.paid_amount = newPaid;
-      orderPatch.payment_status = "refunded";
-      orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
+      if (isStaleRefund(Number(order.refunded_amount || 0), delta)) {
+        noOp = true;
+      } else {
+        orderPatch.refunded_amount = newRefundedTotal;
+        orderPatch.paid_amount = newPaid;
+        orderPatch.payment_status = "refunded";
+        orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
+      }
     } else {
       orderPatch.notes = appendNote(`TapPay 退款失敗（${errMsg}），需人工處理（交易 ${recTradeId}）`);
     }
@@ -159,15 +226,30 @@ export async function processTapPayEvent(
     if (ok) {
       const charged = Math.abs(amount ?? 0);
       const newPaid = Math.max(Number(order.paid_amount || 0), charged);
-      orderPatch.paid_amount = newPaid;
-      orderPatch.payment_status = newPaid >= Number(order.final_price || 0) ? "paid" : "deposit_paid";
-      if (order.room_charge_status && order.room_charge_status !== "cancelled") {
-        orderPatch.room_charge_status = "charged";
-        orderPatch.room_charge_at = new Date().toISOString();
-        orderPatch.room_charge_rec_trade_id = recTradeId;
-        orderPatch.room_charge_error = null;
+      const newStatus = newPaid >= Number(order.final_price || 0) ? "paid" : "deposit_paid";
+      if (
+        isNoOpCharge({
+          currentPaid: Number(order.paid_amount || 0),
+          newPaid,
+          currentPaymentStatus: order.payment_status ?? null,
+          newPaymentStatus: newStatus,
+          currentRoomChargeStatus: order.room_charge_status ?? null,
+          currentRoomChargeRecTradeId: order.room_charge_rec_trade_id ?? null,
+          incomingRecTradeId: recTradeId,
+        })
+      ) {
+        noOp = true;
+      } else {
+        orderPatch.paid_amount = newPaid;
+        orderPatch.payment_status = newStatus;
+        if (order.room_charge_status && order.room_charge_status !== "cancelled") {
+          orderPatch.room_charge_status = "charged";
+          orderPatch.room_charge_at = new Date().toISOString();
+          orderPatch.room_charge_rec_trade_id = recTradeId;
+          orderPatch.room_charge_error = null;
+        }
+        orderPatch.notes = appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`);
       }
-      orderPatch.notes = appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`);
     } else {
       orderPatch.payment_status = Number(order.paid_amount || 0) > 0 ? order.payment_status : "unpaid";
       if (order.room_charge_status && order.room_charge_status !== "cancelled") {
@@ -184,7 +266,7 @@ export async function processTapPayEvent(
   }
 
   // App 推播：付款成功／退款完成（ATM 入帳、3DS 補回呼皆走這裡）
-  if (ok) {
+  if (ok && !noOp) {
     if (eventType === "refund") {
       await pushOrderEvent(order.id, "order_cancelled", {
         amount: Number(orderPatch.refunded_amount ?? 0),
@@ -196,6 +278,14 @@ export async function processTapPayEvent(
     }
   }
 
-  return { matched: true, ok, orderId: order.id, orderNumber: order.order_number, eventType };
+  return {
+    matched: true,
+    ok,
+    orderId: order.id,
+    orderNumber: order.order_number,
+    eventType,
+    duplicate: noOp || undefined,
+  };
+
 }
 
