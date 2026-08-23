@@ -335,14 +335,34 @@ Deno.serve(async (req) => {
             .or("order_source.is.null,order_source.neq.票卷訂房") as T;
         };
 
+        // ── 業績推播來源設定：被關閉的來源不計入 ──────────────
+        const { data: sourceRuleRows } = await supabase
+          .from("performance_notification_source_rules")
+          .select("source, included")
+          .eq("accommodation_id", accId);
+        const excludedSources = (sourceRuleRows ?? [])
+          .filter((r: any) => r.included === false)
+          .map((r: any) => String(r.source))
+          .filter((v: string) => v.length > 0);
+        const applySourceRules = <T extends any>(qb: T): T => {
+          if (excludedSources.length === 0) return qb;
+          const list = excludedSources
+            .map((v) => `"${v.replace(/"/g, '\\"')}"`)
+            .join(",");
+          // null 來源視為「未指定」，仍然計入
+          return (qb as any).or(`order_source.is.null,order_source.not.in.(${list})`) as T;
+        };
+
         // ── General booking metrics ────────────────────────
         // 全館別一致：期間以 order_date 為準，並排除「保留單」與 final_price <= 0 的訂單。
         // 天送另加：團媽/票卷訂房排除。
         const applyBookingFilters = <T extends any>(qb: T): T => {
           let q: any = applyTiansongExclusions(qb as any);
           q = q.neq("order_status", "hold").gt("final_price", 0);
+          q = applySourceRules(q);
           return q as T;
         };
+
 
         const applyPeriodFilter = <T extends any>(qb: T, startDay: string, endDay: string): T => {
           let q: any = qb;
