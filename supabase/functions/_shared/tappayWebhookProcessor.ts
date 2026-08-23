@@ -36,7 +36,7 @@ export function nextRetryAt(retryCount: number): string | null {
 }
 
 const ORDER_FIELDS =
-  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, notes, refunded_amount, cancellation_fee_amount";
+  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount";
 
 export interface ProcessResult {
   matched: boolean;
@@ -45,7 +45,39 @@ export interface ProcessResult {
   orderNumber?: string;
   eventType: "refund" | "charge";
   reason?: string;
+  /** Q3-B：判定為「先前已成功處理過的相同事件」，本次不再產生副作用 */
+  duplicate?: boolean;
 }
+
+/** Q3-B：查詢是否已有「相同指紋且成功處理完成」的事件 */
+async function findProcessedDuplicate(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  recTradeId: string | null,
+  signature: string,
+  eventType: "refund" | "charge",
+  // deno-lint-ignore no-explicit-any
+): Promise<any | null> {
+  if (!recTradeId) return null;
+  const { data, error } = await supabase
+    .from("tappay_webhook_events")
+    .select("id, raw, status, amount, matched_order_id, order_number")
+    .eq("rec_trade_id", recTradeId)
+    .eq("event_type", eventType)
+    .eq("processed", true)
+    .order("created_at", { ascending: false })
+    .limit(20);
+  if (error || !data) return null;
+  // deno-lint-ignore no-explicit-any
+  return (data as any[]).find((row) =>
+    signatureFromRaw(row.raw as Record<string, unknown> | null, {
+      eventType,
+      status: num(row.status),
+      amount: num(row.amount),
+    }) === signature
+  ) ?? null;
+}
+
 
 /**
  * 依 TapPay 通知內容同步 deposit_charges 與 orders。
