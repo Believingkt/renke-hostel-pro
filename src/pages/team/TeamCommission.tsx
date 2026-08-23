@@ -1353,7 +1353,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           )}
         </div>
 
-        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1">
+        <div className="rounded-md border border-border bg-muted/40 p-3 space-y-1.5">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             每月 10、25 日自動寫入；未到日期空白為正常，逾期無資料請按「手動重新試算」。
 
@@ -1370,8 +1370,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               </>
             )}
           </p>
-
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">與 TeamHome 核對前請先看這裡：</span>
+            本頁金額一律以「快照」為準。系統每天 23:59 產一次<span className="font-medium">草稿快照</span>，
+            資料月次月 <span className="font-medium">9 日 23:59</span> 產出<span className="font-medium">定案快照</span>並鎖定，
+            10 日依定案金額發放。
+          </p>
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            定案前，TeamHome 對尚未有快照的獎金會顯示「即時試算」，會隨訂單新增／修改／取消變動，
+            因此與本頁數字不一致屬正常現象。要即時核對，請先按「手動重新試算」重產當期快照，再重新整理 TeamHome 比對；
+            已定案／已發放的期別不會被覆寫。
+          </p>
         </div>
+
 
         {teamBonusNotFinalized && (
           <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
