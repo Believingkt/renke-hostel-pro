@@ -54,6 +54,7 @@ import {
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
 import { describeKolSaveError } from "@/lib/kolSaveErrors";
+import { scoutRateAsOfToday, scoutPayoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 
 // ====== 型別 & 常數 ======
