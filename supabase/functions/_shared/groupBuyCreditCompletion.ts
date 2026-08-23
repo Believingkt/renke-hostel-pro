@@ -10,8 +10,7 @@
 //   DB 端另有 unique index group_buy_payment_drafts_converted_order_key 作為最後防線。
 // deno-lint-ignore-file no-explicit-any
 
-import { createGroupBuyOrderCore, groupBuyInventory, validateAndPriceGroupBuyBooking } from "./groupBuyBooking.ts";
-import { verifyInventory } from "./groupBuy.ts";
+import { createGroupBuyOrderCore, validateAndPriceGroupBuyBooking } from "./groupBuyBooking.ts";
 import { queryTapPayRecord, refundTapPay } from "./tappay.ts";
 
 /** 搶佔後若超過此時間仍未完成建單，視為前一次處理中斷，允許重新搶佔 */
@@ -188,28 +187,14 @@ export async function completeGroupBuyCreditOrder(
     },
   );
 
-  const stillAvailable = validated.ok
-    ? true
-    : await (async () => {
-      // 只針對庫存類失敗做二次確認（其它為設定類錯誤，一律轉人工）
-      if (validated.status !== 409) return false;
-      const rows = await groupBuyInventory(admin, {
-        roomTypeId: claimed.room_type_id,
-        dates: [],
-        accommodationId: claimed.accommodation_id,
-        excludeDraftId: claimed.id,
-      });
-      return verifyInventory(rows, claimed.room_quantity, false).ok;
-    })();
-
-  if (!validated.ok || !stillAvailable) {
+  if (!validated.ok) {
     // 付款成功但無法建單 → 自動全額退款 + 人工處理通知（絕不默默吞掉付款）
     const refund = await refundTapPay(partnerKey, recTradeId, verifiedAmount);
     await admin
       .from("group_buy_payment_drafts")
       .update({
         status: "manual_review",
-        last_error: `${expired ? "expired_and_" : ""}unavailable: ${validated.ok ? "inventory" : validated.error}${
+        last_error: `${expired ? "expired_and_" : ""}unavailable: ${validated.error}${
           refund.success ? "／已自動全額退款" : `／自動退款失敗:${refund.msg ?? "unknown"}`
         }`,
       })
@@ -222,9 +207,7 @@ export async function completeGroupBuyCreditOrder(
       amount: verifiedAmount,
       actor_label: "system",
       note:
-        `付款成功但已無法建單（draft:${claimed.id}／${expired ? "保留已逾時／" : ""}原因:${
-          validated.ok ? "庫存不足" : validated.error
-        }）${refund.success ? "，已自動全額退款" : `，自動退款失敗：${refund.msg ?? "unknown"}，需人工處理`}`,
+        `付款成功但已無法建單（draft:${claimed.id}／${expired ? "保留已逾時／" : ""}原因:${validated.error}）${refund.success ? "，已自動全額退款" : `，自動退款失敗：${refund.msg ?? "unknown"}，需人工處理`}`,
     });
     try {
       await admin.from("notifications").insert({
