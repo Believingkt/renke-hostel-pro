@@ -54,15 +54,114 @@ Deno.serve(async (req) => {
     const paymentType = String(body.paymentType ?? "atm");
     const prime = String(body.prime ?? "").trim();
 
-    if (paymentType !== "atm") {
-      return json({ success: false, error: "目前僅支援 ATM 虛擬帳號付款" }, 400);
-    }
-    if (!orderNumber || phoneLast4.length !== 4) {
-      return json({ success: false, error: "請提供訂單編號與聯絡電話後四碼" }, 400);
+    if (paymentType !== "atm" && paymentType !== "credit_card") {
+      return json({ success: false, error: "不支援的付款方式" }, 400);
     }
     if (!prime || prime.length < 10) {
       return json({ success: false, error: "付款授權資訊無效，請重新操作" }, 400);
     }
+
+    // ── 信用卡 3DS：付款成功後才建單，因此不查 orders，改以 payment draft 為主體 ──
+    if (paymentType === "credit_card") {
+      const draftId = String(body.draftId ?? "").trim();
+      if (!draftId) return json({ success: false, error: "缺少付款資料，請重新操作" }, 400);
+
+      const { data: draft } = await admin
+        .from("group_buy_payment_drafts")
+        .select("*")
+        .eq("id", draftId)
+        .maybeSingle();
+      if (!draft) return json({ success: false, error: "查無此付款資料，請重新操作" }, 404);
+      if (draft.converted_order_id) {
+        return json({ success: false, error: "此筆付款已完成，請至訂單查詢頁確認" }, 409);
+      }
+      if (draft.status !== "pending" && draft.status !== "failed") {
+        return json({ success: false, error: "此筆付款正在處理中，請稍候" }, 409);
+      }
+      if (new Date(draft.expires_at).getTime() < Date.now()) {
+        return json({ success: false, error: "付款保留已逾時，請重新選擇日期與方案" }, 410);
+      }
+
+      const { data: campaignRow } = await admin
+        .from("group_buy_campaigns")
+        .select("id, title, enable_credit_card")
+        .eq("id", draft.campaign_id)
+        .maybeSingle();
+      if (!campaignRow?.enable_credit_card) {
+        return json({ success: false, error: "此活動未開放信用卡付款" }, 400);
+      }
+
+      const amount = Math.round(Number(draft.amount_to_charge) || 0);
+      if (amount <= 0) return json({ success: false, error: "此筆付款金額無效，請聯繫客服" }, 400);
+
+      const origin = String(body.origin ?? "").trim() || "https://booking.lakeze.com";
+      const frontendRedirectUrl =
+        `${origin.replace(/\/$/, "")}/payment-result?source=group_buy&draft=${draft.id}`;
+
+      const resp = await fetch(`${supabaseUrl}/functions/v1/process-tappay-payment`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({
+          prime,
+          amount,
+          orderId: draft.idempotency_key,
+          flow: "group_buy",
+          details: `團購訂金 ${campaignRow.title ?? ""}`.slice(0, 100),
+          cardholder: {
+            name: draft.guest_name || "訂購人",
+            email: draft.guest_email || "noreply@lakeze.com",
+            phoneNumber: draft.guest_phone || "",
+          },
+          frontendRedirectUrl,
+        }),
+      });
+      const ccResult = await resp.json().catch(() => ({} as any));
+
+      if (!ccResult?.success) {
+        await admin
+          .from("group_buy_payment_drafts")
+          .update({ status: "failed", last_error: String(ccResult?.technicalMessage ?? ccResult?.message ?? "charge failed") })
+          .eq("id", draft.id)
+          .is("converted_order_id", null);
+        return json({
+          success: false,
+          error: ccResult?.message || "付款失敗，請確認卡片資訊或改用其他付款方式",
+        }, 200);
+      }
+
+      await admin
+        .from("group_buy_payment_drafts")
+        .update({
+          status: "payment_processing",
+          rec_trade_id: ccResult.recTradeId ?? ccResult.transactionId ?? null,
+        })
+        .eq("id", draft.id)
+        .is("converted_order_id", null);
+
+      await admin.from("group_buy_payment_events").insert({
+        campaign_id: draft.campaign_id,
+        order_id: null,
+        event_type: "payment_started",
+        amount,
+        actor_label: "system",
+        note: `信用卡付款啟動（draft:${draft.id}／rec_trade_id:${ccResult.recTradeId ?? ccResult.transactionId ?? "-"}）`,
+      });
+
+      return json({
+        success: true,
+        paymentType: "credit_card",
+        requires3DSecure: Boolean(ccResult.requires3DSecure),
+        paymentUrl: ccResult.paymentUrl ?? null,
+        recTradeId: ccResult.recTradeId ?? ccResult.transactionId ?? null,
+        draftId: draft.id,
+        amount,
+      });
+    }
+
+    if (!orderNumber || phoneLast4.length !== 4) {
+      return json({ success: false, error: "請提供訂單編號與聯絡電話後四碼" }, 400);
+    }
+
 
     // ── 1) 取單並驗證身分（公開端點：訂單編號 + 電話後四碼） ──
     const { data: order, error: oErr } = await admin
