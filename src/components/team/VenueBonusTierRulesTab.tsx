@@ -183,6 +183,17 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   } | null>(null);
   /** 修正前的確認視窗對象 */
   const [fixCandidate, setFixCandidate] = useState<VenueVersion | null>(null);
+  /** 修正模式下被刪除前的原始資料列（供「撤銷上一步」還原） */
+  const [replaceSnapshot, setReplaceSnapshot] = useState<TierRuleRow[] | null>(null);
+  /** 重建完成後的可撤銷狀態（限時） */
+  const [undoState, setUndoState] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+    rows: TierRuleRow[];
+    expiresAt: number;
+  } | null>(null);
+  const [undoLeft, setUndoLeft] = useState(0);
+  const [undoing, setUndoing] = useState(false);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
@@ -327,6 +338,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       return;
     }
     setReplaceTarget({ accommodation_id: v.accommodation_id, effective_from: v.effective_from });
+    setReplaceSnapshot(Object.values(v.rows).filter(Boolean) as TierRuleRow[]);
     setFormAcc(v.accommodation_id);
     setFormDate(v.effective_from.slice(0, 10));
     setFormNote(v.note ?? "");
@@ -472,12 +484,71 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       title: replaceTarget ? "已重建版本" : "已新增版本",
       description: payoutPeriodHint(formDate),
     });
+    if (replaceTarget && replaceSnapshot && replaceSnapshot.length > 0) {
+      setUndoState({
+        accommodation_id: replaceTarget.accommodation_id,
+        effective_from: replaceTarget.effective_from,
+        rows: replaceSnapshot,
+        expiresAt: Date.now() + 120_000,
+      });
+    }
     setDialogOpen(false);
     setReplaceTarget(null);
+    setReplaceSnapshot(null);
     setSelectedAcc(formAcc);
     setActiveVersionKey(`${formAcc}|${formDate}`);
     await load();
   };
+
+  /** 撤銷上一步：刪掉剛重建的內容，還原成修正前的原始級距 */
+  const undoRebuild = async () => {
+    if (!undoState) return;
+    setUndoing(true);
+    const { error: delErr } = await supabase
+      .from("venue_team_bonus_tier_rules")
+      .delete()
+      .eq("accommodation_id", undoState.accommodation_id)
+      .eq("effective_from", undoState.effective_from);
+    if (delErr) {
+      setUndoing(false);
+      toast({ title: "撤銷失敗", description: delErr.message, variant: "destructive" });
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(
+      undoState.rows.map((r) => ({
+        accommodation_id: r.accommodation_id,
+        bonus_type: r.bonus_type,
+        effective_from: r.effective_from,
+        tiers: r.tiers as any,
+        note: r.note,
+        created_by: userData?.user?.id ?? null,
+      })),
+    );
+    setUndoing(false);
+    if (error) {
+      toast({ title: "還原失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "已撤銷，版本已還原為修正前內容" });
+    setUndoState(null);
+    await load();
+  };
+
+  useEffect(() => {
+    if (!undoState) return;
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((undoState.expiresAt - Date.now()) / 1000));
+      setUndoLeft(left);
+      if (left === 0) setUndoState(null);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [undoState]);
+
+
+
 
 
   const removeVersion = async (v: VenueVersion) => {
@@ -514,6 +585,25 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* 重建後限時撤銷 */}
+      {undoState && !readOnly && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm">
+          <span>
+            已重建「{accs.find((a) => a.id === undoState.accommodation_id)?.name}」生效日{" "}
+            {undoState.effective_from} 的版本。若是誤觸，可在 {undoLeft} 秒內還原成修正前內容。
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={undoRebuild} disabled={undoing}>
+              {undoing ? "還原中…" : "撤銷上一步"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setUndoState(null)}>
+              知道了
+            </Button>
+          </div>
+        </div>
+      )}
+
 
       {/* 館別總覽 */}
       <Card>
@@ -1131,8 +1221,52 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     保留的生效日：<strong>{fixCandidate?.effective_from}</strong>（重建後生效期別不變）
                   </li>
                 </ul>
+
+                {fixCandidate && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium">
+                      將被刪除的級距內容（重建時會先帶入這份資料，供你逐階比對修改）
+                    </p>
+                    <div className="max-h-56 overflow-auto rounded-md border">
+                      <table className="w-full text-xs tabular-nums">
+                        <thead className="sticky top-0 bg-muted/60">
+                          <tr>
+                            <th className="px-2 py-1 text-left">營收門檻</th>
+                            {BONUS_TYPES.map((b) => (
+                              <th key={b.value} className="px-2 py-1 text-right">
+                                {b.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fixCandidate.thresholds.map((min, i) => (
+                            <tr key={min} className={i % 2 ? "bg-muted/20" : ""}>
+                              <td className="px-2 py-1">{twMoney(min)} 起</td>
+                              {BONUS_TYPES.map((b) => (
+                                <td key={b.value} className="px-2 py-1 text-right">
+                                  {displayRate(fixCandidate, b.value, min)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      共 {fixCandidate.thresholds.length} 階；
+                      {BONUS_TYPES.map(
+                        (b) =>
+                          `${b.label}：${fixCandidate.rows[b.value] ? "本館級距" : "沿用系統費率"}`,
+                      ).join("｜")}
+                      {fixCandidate.note ? `｜備註：${fixCandidate.note}` : ""}
+                    </p>
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   此版本尚未被任何快照採用，因此可安全重建；若只是想調整未來期別，請改用「以此版本為基礎新增」。
+                  重建完成後 2 分鐘內可按「撤銷上一步」還原成現在這份內容。
                 </p>
               </div>
             </AlertDialogDescription>
