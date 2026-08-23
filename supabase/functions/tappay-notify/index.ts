@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { notifyGroupBuyPaymentReceived } from "../_shared/groupBuyPaymentNotify.ts";
+import { completeGroupBuyCreditOrder } from "../_shared/groupBuyCreditCompletion.ts";
+
 
 // CORS headers for webhook (TapPay backend calls)
 const corsHeaders = {
@@ -205,7 +207,45 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Strategy 2.5（團購信用卡專用補救）：付款成功但客人未回到前端 → 由 callback 完成建單。
+    // 只在「找不到既有 orders」且存在對應 group_buy_payment_drafts 時進入，
+    // 完全不影響一般訂房（pending_paid_order_drafts）的 Strategy 3。
+    if (!order && isSuccess && rec_trade_id) {
+      const { data: gbDraft } = await supabase
+        .from('group_buy_payment_drafts')
+        .select('id, converted_order_id')
+        .or(`rec_trade_id.eq.${rec_trade_id},idempotency_key.eq.${order_number || '__none__'}`)
+        .maybeSingle();
+
+      if (gbDraft) {
+        const gbResult = await completeGroupBuyCreditOrder(supabase, {
+          draftId: gbDraft.id,
+          recTradeId: rec_trade_id,
+          authCode: auth_code ?? null,
+          source: 'callback',
+        });
+        console.log('[tappay-notify] group_buy draft completion', {
+          rec_trade_id,
+          draftId: gbDraft.id,
+          ok: gbResult.ok,
+          orderNumber: gbResult.orderNumber,
+          manualReview: gbResult.manualReview,
+        });
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            flow: 'group_buy',
+            recovered: gbResult.ok,
+            orderNumber: gbResult.orderNumber ?? null,
+            manualReview: Boolean(gbResult.manualReview),
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // Strategy 3: Check for pending 3DS booking that needs order creation
+
     if (!order && isSuccess && rec_trade_id) {
       const { data: draft } = await supabase
         .from('pending_paid_order_drafts')

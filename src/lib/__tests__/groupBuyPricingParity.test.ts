@@ -2,13 +2,13 @@
  * 前後端 pricing helper 一致性測試。
  *
  * src/lib/groupBuyPricing.ts 與
- * supabase/functions/group-buy-create-order/groupBuyPricing.ts
+ * supabase/functions/_shared/groupBuyPricing.ts
  * 目前是兩份相同邏輯的複本。任一份的日期分類、三段價 fallback 或逐晚計價被修改
  * 而另一份沒有同步時，本測試會失敗。
  */
 import { describe, expect, it } from "vitest";
 import * as fe from "@/lib/groupBuyPricing";
-import * as be from "../../../supabase/functions/group-buy-create-order/groupBuyPricing";
+import * as be from "../../../supabase/functions/_shared/groupBuyPricing";
 
 // 2026-08：17(一) 21(五) 22(六) 23(日)
 const HOLIDAYS = new Set(["2026-08-17"]);
@@ -73,7 +73,7 @@ describe("前後端 groupBuyPricing 一致性", () => {
     const [a, b] = await Promise.all([
       import("fs/promises").then((m) => m.readFile("src/lib/groupBuyPricing.ts", "utf8")),
       import("fs/promises").then((m) =>
-        m.readFile("supabase/functions/group-buy-create-order/groupBuyPricing.ts", "utf8"),
+        m.readFile("supabase/functions/_shared/groupBuyPricing.ts", "utf8"),
       ),
     ]);
     expect(b.trim()).toBe(a.trim());

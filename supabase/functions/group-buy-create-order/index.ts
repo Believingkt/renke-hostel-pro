@@ -1,34 +1,23 @@
-// 團購頁下訂：驗證活動 / 方案 / 真實庫存 → 建立訂單 → 建立佣金列 → 寄出「訂房＋匯款資訊」信
+// 團購頁下訂（銀行匯款／ATM）：驗證活動 / 方案 / 真實庫存 → 建立訂單 → 建立佣金列 → 寄出「訂房＋匯款資訊」信
 // 公開端點（匿名可呼叫），所有價格與庫存一律由 server 端重算，不信任前端傳入金額。
+//
+// Phase G2 起，驗證／計價／建單一律使用 _shared/groupBuyBooking.ts 共用內核，
+// 與信用卡（group-buy-complete-paid-order）共享同一套規則。本檔僅負責：
+//   輸入解析 → 呼叫共用內核 → 匯款帳戶／通知信 → 回傳。
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
-  GROUP_BUY_ORDER_SOURCE,
   bankToInfo,
   buildEmailOrder,
   formatTaipei,
-  nightDates,
   buildAdminGroupBuyUrl,
-  nights as calcNights,
   paymentDeadline,
-  splitDeposit,
-  verifyInventory,
 } from "../_shared/groupBuy.ts";
-import { evaluateChildSelection, resolveChildRules } from "./childRules.ts";
-import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
-import {
-  GROUP_BUY_DAY_TYPE_LABEL,
-  calculateGroupBuyStayPrice,
-  enabledDateTypes,
-  findDisabledTypeNight,
-  findExcludedNight,
-} from "./groupBuyPricing.ts";
+import { createGroupBuyOrderCore, validateAndPriceGroupBuyBooking } from "../_shared/groupBuyBooking.ts";
 import { renderBookingWithBankInfo, renderVenueNewOrder, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
-import { buildBookingNoticeSnapshot } from "../_shared/groupBuyBookingNoticeSnapshot.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 import { resolveCampaignPayment } from "../_shared/paymentAdapter.ts";
-import { taipeiToday } from "../_shared/taipeiToday.ts";
 
 const FN = "group-buy-create-order";
 
@@ -38,9 +27,6 @@ function json(body: unknown, status = 200) {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
-
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // 簡易 IP 節流：每分鐘 10 次
 const ipMap = new Map<string, { n: number; reset: number }>();
@@ -70,392 +56,48 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
-    const slug = String(body.slug ?? "").trim();
-    const campaignPackageId = String(body.campaignPackageId ?? "").trim();
-    const checkInDate = String(body.checkInDate ?? "").trim();
-    const checkOutDate = String(body.checkOutDate ?? "").trim();
-    // 團購訂單一次固定 1 間，忽略前端傳入的 roomQuantity
-    const roomQuantity = 1;
-    const adultCount = Math.max(1, Math.min(30, Math.round(Number(body.adultCount ?? 2) || 2)));
-    const childCount = Math.max(0, Math.min(30, Math.round(Number(body.childCount ?? 0) || 0)));
-    const toddlerCount = Math.max(0, Math.min(30, Math.round(Number(body.toddlerCount ?? 0) || 0)));
-    const infantCount = Math.max(0, Math.min(30, Math.round(Number(body.infantCount ?? 0) || 0)));
-    // guest_count = 成人＋兒童＋幼兒（不含嬰兒）
-    const guestCount = adultCount + childCount + toddlerCount;
-    const guestName = String(body.guestName ?? "").trim();
-    const guestPhone = String(body.guestPhone ?? "").trim();
-    const guestEmail = String(body.guestEmail ?? "").trim();
-    const guestNote = String(body.guestNote ?? "").trim().slice(0, 500);
 
-    if (!slug || !campaignPackageId) return json({ error: "缺少活動或方案資訊" }, 400);
-    if (!DATE_RE.test(checkInDate) || !DATE_RE.test(checkOutDate)) return json({ error: "日期格式錯誤" }, 400);
-    if (checkOutDate <= checkInDate) return json({ error: "退房日必須晚於入住日" }, 400);
-    if (guestName.length < 1 || guestName.length > 50) return json({ error: "請填寫訂房人姓名" }, 400);
-    if (!/^[0-9+\-() ]{8,20}$/.test(guestPhone)) return json({ error: "請填寫正確的聯絡電話" }, 400);
-    if (!EMAIL_RE.test(guestEmail)) return json({ error: "請填寫正確的 Email（用於接收匯款資訊）" }, 400);
+    const validated = await validateAndPriceGroupBuyBooking(
+      admin,
+      {
+        slug: String(body.slug ?? "").trim(),
+        campaignPackageId: String(body.campaignPackageId ?? "").trim(),
+        checkInDate: String(body.checkInDate ?? "").trim(),
+        checkOutDate: String(body.checkOutDate ?? "").trim(),
+        adultCount: Number(body.adultCount ?? 2),
+        childCount: Number(body.childCount ?? 0),
+        toddlerCount: Number(body.toddlerCount ?? 0),
+        infantCount: Number(body.infantCount ?? 0),
+        guestName: String(body.guestName ?? ""),
+        guestPhone: String(body.guestPhone ?? ""),
+        guestEmail: String(body.guestEmail ?? ""),
+        guestNote: String(body.guestNote ?? ""),
+      },
+      { expectProvider: "manual" },
+    );
+    if (!validated.ok) return json({ error: validated.error }, validated.status);
+    const plan = validated.plan;
+    const { campaign, pkg } = plan;
 
-    // 1) 活動
-    const { data: campaign, error: cErr } = await admin
-      .from("group_buy_campaigns")
-      .select("*")
-      .eq("slug", slug)
-      .maybeSingle();
-    if (cErr) throw cErr;
-    if (!campaign || campaign.status !== "active") return json({ error: "團購活動不存在或已結束" }, 404);
-
-    // 付款方式：活動層設定（目前僅 manual_bank_transfer 啟用；tappay 保留但尚未接上流程）
+    // 付款方式：活動層設定（本端點僅服務 manual；信用卡走 payment draft 流程）
     const campaignPayment = resolveCampaignPayment(campaign.payment_method);
     if (campaignPayment.provider !== "manual") {
       return json({ error: "此團購活動的線上付款方式尚未啟用，請聯繫客服" }, 400);
     }
 
-    const now = new Date();
-    if (campaign.sale_start && new Date(campaign.sale_start) > now) return json({ error: "團購尚未開賣" }, 400);
-    if (campaign.sale_end && new Date(campaign.sale_end) < now) return json({ error: "團購已結束" }, 400);
-    // 入住日不可早於台灣今天（server-side 一律重驗，不依賴前端日曆停用）
-    if (checkInDate < taipeiToday(now)) {
-      return json({ error: "入住日期不可早於今天。" }, 400);
-    }
-    if (campaign.stay_start_date && checkInDate < campaign.stay_start_date) {
-      return json({ error: `本團購可入住日自 ${campaign.stay_start_date} 起` }, 400);
-    }
-    if (campaign.stay_end_date && checkOutDate > campaign.stay_end_date) {
-      return json({ error: `本團購可入住日至 ${campaign.stay_end_date} 止` }, 400);
-    }
-
-    // 2) 方案
-    const { data: pkg, error: pErr } = await admin
-      .from("group_buy_campaign_packages")
-      .select("*")
-      .eq("id", campaignPackageId)
-      .eq("campaign_id", campaign.id)
-      .maybeSingle();
-    if (pErr) throw pErr;
-    if (!pkg || !pkg.is_active) return json({ error: "此方案已停售" }, 400);
-    if (pkg.max_quantity && roomQuantity > pkg.max_quantity) {
-      return json({ error: `此方案單筆最多預訂 ${pkg.max_quantity} 間` }, 400);
-    }
-
-    // 2.5) 方案不適用日期（退房日不算住宿夜；server 端一律重驗）
-    const excludedDates: string[] = Array.isArray(pkg.excluded_dates)
-      ? (pkg.excluded_dates as unknown[]).map((d) => String(d).slice(0, 10))
-      : [];
-    const hitExcluded = findExcludedNight(checkInDate, checkOutDate, excludedDates);
-    if (hitExcluded) {
-      return json({ error: `此方案於 ${hitExcluded} 不適用，請調整住宿日期` }, 400);
-    }
-
-    // 3) 房型（庫存判定必須要有房型；支援複選房型清單）
-    const candidateRoomTypeIds: string[] = Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.length > 0
-      ? (pkg.room_type_ids as string[])
-      : pkg.room_type_id
-        ? [pkg.room_type_id as string]
-        : [];
-    if (candidateRoomTypeIds.length === 0 && pkg.package_id) {
-      const { data: accPkg } = await admin
-        .from("accommodation_packages")
-        .select("id, room_type_id")
-        .eq("id", pkg.package_id)
-        .maybeSingle();
-      const fallback = (accPkg as any)?.room_type_id ?? null;
-      if (fallback) candidateRoomTypeIds.push(fallback);
-    }
-    if (candidateRoomTypeIds.length === 0) return json({ error: "此方案尚未設定房型，請聯繫客服" }, 400);
-
-    const n = calcNights(checkInDate, checkOutDate);
-    const dates = nightDates(checkInDate, n);
-
-    // 4) 兒童規則（沿用民宿 child_age_rules，方案覆寫優先）
-    const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
-      admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
-      pkg.package_id
-        ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
-        : Promise.resolve({ data: null } as any),
-    ]);
-    const childRules = resolveChildRules(
-      (accInfoRow as any)?.child_age_rules,
-      (accPkgRow as any)?.child_age_rules_override ?? null,
-    );
-    const childEval = evaluateChildSelection(
-      childRules,
-      { infants: infantCount, toddlers: toddlerCount, children: childCount },
-      n,
-      adultCount,
-    );
-    if (childEval.blocked) {
-      return json({ error: childEval.blockReason ?? "入住人數不符合民宿規定" }, 400);
-    }
-    const capacityHeadcount = adultCount + childEval.capacityHeadcount;
-
-    // 4.3b) 方案人數上限（max_guests 為 NULL 時完全沿用房型 capacity，行為不變）
-    const pkgMaxGuests = pkg.max_guests == null ? null : Number(pkg.max_guests);
-    if (pkgMaxGuests && pkgMaxGuests > 0 && capacityHeadcount > pkgMaxGuests) {
-      return json(
-        { error: `此方案最多入住 ${pkgMaxGuests} 人，請調整入住人數或選擇其他方案。` },
-        400,
-      );
-    }
-
-
-
-    // 4.4) 日期類型可用性（必須早於房型／庫存判定，否則會被 409 無空房遮蔽）
-    const { data: holidayRows } = await admin
-      .from("public_holidays")
-      .select("holiday_date")
-      .eq("accommodation_id", campaign.accommodation_id)
-      .in("holiday_date", dates);
-    const holidays = new Set<string>(
-      ((holidayRows as any[]) ?? []).map((r) => String(r.holiday_date).slice(0, 10)),
-    );
-    if (enabledDateTypes(pkg as any).length === 0) {
-      return json({ error: "此方案目前暫不開放預訂，請改選其他方案" }, 400);
-    }
-    const hitDisabledType = findDisabledTypeNight(checkInDate, checkOutDate, pkg as any, holidays);
-    if (hitDisabledType) {
-      return json(
-        {
-          error: `此方案於${GROUP_BUY_DAY_TYPE_LABEL[hitDisabledType.type]}不適用（${hitDisabledType.date}），請調整住宿日期`,
-        },
-        400,
-      );
-    }
-
-    // 4.5) 候選房型：capacity 與庫存必須「同時」成立才可指派
-    const { data: rtRows } = await admin
-      .from("room_types")
-      .select("id, capacity")
-      .in("id", candidateRoomTypeIds);
-    const capacityMap = new Map<string, number>(
-      ((rtRows as any[]) ?? []).map((r) => [String(r.id), Number(r.capacity ?? 0)]),
-    );
-    const candidates = candidateRoomTypeIds.map((id) => ({ id, capacity: capacityMap.get(id) ?? 0 }));
-
-    const selection = await selectRoomType(candidates, capacityHeadcount, async (rtId) => {
-      const { data: invBefore, error: invErr } = await admin.rpc("get_adjusted_room_inventory_batch", {
-        p_room_type_id: rtId,
-        p_dates: dates,
-        p_accommodation_id: campaign.accommodation_id,
-      });
-      if (invErr) throw invErr;
-      return verifyInventory(invBefore as any[], roomQuantity, false).ok;
+    const created = await createGroupBuyOrderCore(admin, plan, {
+      paymentProvider: campaignPayment.provider,
+      paymentMethod: campaignPayment.paymentMethod,
     });
-    const roomTypeId = selection.roomTypeId;
-    if (!roomTypeId) {
-      const failure = selection.failure ?? "inventory";
-      return json({ error: ROOM_SELECT_MESSAGES[failure] }, failure === "capacity" ? 400 : 409);
-    }
+    if (!created.ok) return json({ error: created.error }, created.status);
+    const order = created.order;
 
-    // 5) 價格（server 端重算：逐晚日期分類取價 ＋ 兒童加價；完全不信任前端傳入金額）
+    const total = plan.total;
+    const deposit = plan.deposit;
+    const balance = plan.balance;
+    const guestEmail = plan.input.guestEmail;
 
-
-    const stay = calculateGroupBuyStayPrice({
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      pkg: pkg as any,
-      holidays,
-    });
-    const baseTotal = stay.baseAccommodationTotal;
-    const childExtraTotal = Math.round(childEval.extraFeeTotal);
-    const total = baseTotal + childExtraTotal;
-    if (total <= 0) return json({ error: "方案價格設定有誤，請聯繫客服" }, 400);
-    const { deposit, balance } = splitDeposit(total, campaign.deposit_percentage);
-
-    // 6) 建單（order_number 由 DB trigger 產生）
-    const guestComposition = [
-      `成人 ${adultCount}`,
-      childCount > 0 ? `${childRules.tiers.child.label} ${childCount}` : null,
-      toddlerCount > 0 ? `${childRules.tiers.toddler.label} ${toddlerCount}` : null,
-      infantCount > 0 ? `${childRules.tiers.infant.label} ${infantCount}` : null,
-    ].filter(Boolean).join("／");
-    // 兒童加價明細（只列出人數 > 0 的 tier；免費者顯示「免費」而非 NT$0 × N）
-    const twdInt = (v: number) => `NT$${Math.round(Number(v) || 0).toLocaleString("en-US")}`;
-    const childDetailLines = childEval.breakdown.flatMap((b) => {
-      const head = `　${b.label} ${b.count} 位`;
-      if (b.free) return [head, "　　免費"];
-      const parts: string[] = [];
-      if (b.base_count > 0 && b.fee_per_night > 0) {
-        parts.push(
-          `　　${twdInt(b.fee_per_night)} × ${b.base_count} 位 × ${b.nights} 晚 = ${
-            twdInt(b.fee_per_night * b.base_count * b.nights)
-          }`,
-        );
-      }
-      if (b.over_count > 0) {
-        parts.push(
-          `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.over_count} 位 × ${b.nights} 晚 = ${
-            twdInt(b.over_limit_fee_per_night * b.over_count * b.nights)
-          }`,
-        );
-      }
-      return [head, ...parts];
-    });
-    const noteLines = [
-      `【團購】${campaign.title}`,
-      campaign.kol_display_name ? `合作對象：${campaign.kol_display_name}` : null,
-      `方案：${pkg.display_name} × ${roomQuantity} 間 × ${n} 晚`,
-      `入住人數：${guestComposition}`,
-      `住宿費：${stay.nightlyBreakdown
-        .map((x) => `${x.date} ${GROUP_BUY_DAY_TYPE_LABEL[x.type]} ${x.price}`)
-        .join("／")}（小計 ${baseTotal} 元）`,
-      childDetailLines.length > 0 ? "兒童加價：" : null,
-      ...(childDetailLines.length > 0 ? childDetailLines : []),
-      childDetailLines.length > 0 ? `兒童加價合計：${twdInt(childExtraTotal)}（房費 ${twdInt(baseTotal)}）` : null,
-      `訂金 ${deposit} 元（${campaign.deposit_percentage}%）／尾款 ${balance} 元現場付清`,
-      guestNote ? `旅客備註：${guestNote}` : null,
-    ].filter(Boolean);
-
-
-    const { data: order, error: oErr } = await admin
-      .from("orders")
-      .insert({
-        order_number: "",
-        accommodation_id: campaign.accommodation_id,
-        room_type_id: roomTypeId,
-        package_id: pkg.package_id ?? null,
-        room_quantity: roomQuantity,
-        check_in_date: checkInDate,
-        check_out_date: checkOutDate,
-        guest_count: guestCount,
-        adult_count: adultCount,
-        child_count: childCount,
-        toddler_count: toddlerCount,
-        infant_count: infantCount,
-        guest_name: guestName,
-        guest_phone: guestPhone,
-        guest_email: guestEmail,
-        total_price: total,
-        discount_amount: 0,
-        final_price: total,
-        deposit_amount: deposit,
-        discount_code: campaign.discount_code ?? null,
-        order_status: "pending",
-        payment_status: "unpaid",
-        paid_amount: 0,
-        // 付款系統（provider）由活動設定推導；目前團購一律 manual_bank_transfer → manual
-        payment_provider: campaignPayment.provider,
-        payment_method: campaignPayment.paymentMethod,
-        deposit_payment_method: campaignPayment.paymentMethod,
-        order_source: GROUP_BUY_ORDER_SOURCE,
-        // 以活動 slug 作為「通路代號」，讓後台來源標籤可顯示各團購活動名稱
-        ota_channel: campaign.slug ?? null,
-
-        notes: noteLines.join("\n"),
-      })
-      .select("*")
-      .single();
-    if (oErr) {
-      console.error(`[${FN}] insert order failed`, oErr);
-      // 只回傳業務語意訊息；DB / trigger 原始錯誤僅留在 server log，不可傳到客人 UI
-      const msg = String(oErr.message ?? "");
-      if (/庫存|inventory|預訂|booked/i.test(msg)) {
-        return json({ error: "此日期房況已變動，請重新選擇日期或改選其他方案" }, 409);
-      }
-      return json({ error: "訂單建立失敗，請稍後再試" }, 500);
-    }
-
-    // 6.4) 下單當下訂房須知快照（immutable，僅此處寫入一次；失敗不影響訂單成立）
-    try {
-      const noticeSnapshot = await buildBookingNoticeSnapshot(admin, {
-        accommodationId: campaign.accommodation_id ?? null,
-        campaignId: campaign.id ?? null,
-        visibleKeys: (campaign as any).booking_notice_keys ?? null,
-      });
-      await admin
-        .from("orders")
-        .update({ group_buy_booking_notice_snapshot: noticeSnapshot })
-        .eq("id", order.id);
-    } catch (snapErr) {
-      // 快照失敗不影響訂單成立，也不可讓客人看到技術錯誤；僅記錄於 server log 與內部稽核事件
-      console.error(`[${FN}] booking_notice_snapshot_failed`, {
-        order_id: order.id,
-        order_number: order.order_number,
-        campaign_id: campaign.id,
-        reason: snapErr instanceof Error ? snapErr.message : String(snapErr),
-      });
-      try {
-        await admin.from("group_buy_payment_events").insert({
-          campaign_id: campaign.id,
-          order_id: order.id,
-          event_type: "booking_notice_snapshot_failed",
-          actor_label: "系統",
-          note: `訂房須知快照建立失敗：${snapErr instanceof Error ? snapErr.message : String(snapErr)}`.slice(0, 500),
-        });
-      } catch (evErr) {
-        console.error(`[${FN}] snapshot failure audit insert failed`, evErr);
-      }
-    }
-
-    // 6.5) 稽核：訂單建立事件
-    await admin.from("group_buy_payment_events").insert({
-      campaign_id: campaign.id,
-      order_id: order.id,
-      event_type: "order_created",
-      amount: deposit,
-      actor_label: order.guest_name ?? "guest",
-      note: `旅客於團購頁建立訂單（${roomQuantity} 間 / ${checkInDate} → ${checkOutDate}）`,
-    });
-
-    // 7) 下訂後複驗（並發超賣防護）
-    const { data: invAfter } = await admin.rpc("get_adjusted_room_inventory_batch", {
-      p_room_type_id: roomTypeId,
-      p_dates: dates,
-      p_accommodation_id: campaign.accommodation_id,
-    });
-    const post = verifyInventory(invAfter as any[], roomQuantity, true);
-    if (!post.ok) {
-      await admin
-        .from("orders")
-        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString(), notes: `${order.notes}\n【系統】並發超賣自動取消：${post.message}` })
-        .eq("id", order.id);
-      await admin.from("group_buy_payment_events").insert({
-        campaign_id: campaign.id,
-        order_id: order.id,
-        event_type: "cancelled",
-        actor_label: "system",
-        note: `並發超賣自動取消：${post.message}`,
-      });
-      return json({ error: `預訂失敗：${post.message}，請改選其他日期` }, 409);
-    }
-
-    // 8) 團購專屬佣金列（不進既有團隊分潤）
-    const rate = Number(campaign.commission_rate) || 0;
-    await admin.from("group_buy_commissions").insert({
-      campaign_id: campaign.id,
-      order_id: order.id,
-      kol_profile_id: campaign.kol_profile_id ?? null,
-      revenue_base: total,
-      commission_rate: rate,
-      commission_amount: Math.round((total * rate) / 100),
-      status: "pending",
-      // 價格歷史快照：日後管理員調整方案價格，舊訂單仍可還原當時算法
-      price_snapshot: {
-        version: 1,
-        computed_at: new Date().toISOString(),
-        campaign_package_id: pkg.id,
-        package_name: pkg.display_name,
-        nights: stay.nights,
-        nightly_breakdown: stay.nightlyBreakdown,
-        base_accommodation_total: baseTotal,
-        child_extra_total: childExtraTotal,
-        // 建單當下「實際套用後」的兒童加價計算結果（不可用日後的民宿規則回推）
-        child_breakdown: childEval.breakdown,
-        payment_provider: campaignPayment.provider,
-        campaign_payment_method: campaign.payment_method ?? "manual_bank_transfer",
-        grand_total: total,
-        deposit_percentage: campaign.deposit_percentage,
-        deposit,
-        balance,
-        prices_at_booking: {
-          group_buy_price: Number(pkg.group_buy_price) || 0,
-          weekday_price: pkg.weekday_price ?? null,
-          peak_price: pkg.peak_price ?? null,
-          disabled_date_types: Array.isArray(pkg.disabled_date_types) ? pkg.disabled_date_types : [],
-          holiday_price: pkg.holiday_price ?? null,
-        },
-      },
-    });
-
-    // 9) 匯款帳戶 + 通知信
+    // 匯款帳戶 + 通知信
     const { data: bankRow } = await admin
       .from("group_buy_bank_accounts")
       .select("*")
@@ -486,7 +128,6 @@ Deno.serve(async (req) => {
     );
     if (!mailResult.ok) console.warn(`[${FN}] email skipped: ${mailResult.reason}`);
 
-    // 9.5) 稽核：通知信寄送結果（供訂單確認頁顯示「已寄出／失敗」）
     await admin.from("group_buy_payment_events").insert({
       campaign_id: campaign.id,
       order_id: order.id,
@@ -497,7 +138,7 @@ Deno.serve(async (req) => {
         : `recipient_type:guest／template_type:booking_pending／訂房通知信寄送失敗：${mailResult.reason ?? "unknown"}`,
     });
 
-    // 9.6) 民宿／管理者內部通知（與旅客信完全獨立；收件人只由後端 DB 設定解析）
+    // 民宿／管理者內部通知（與旅客信完全獨立；收件人只由後端 DB 設定解析）
     try {
       const { emails: venueEmails, source: venueSource } = await resolveOrderNotifyEmails(admin, {
         accommodationId: campaign.accommodation_id,
@@ -518,12 +159,12 @@ Deno.serve(async (req) => {
             ...emailOrder,
             guestPhone: order.guest_phone ?? null,
             guestEmail: order.guest_email ?? null,
-            nights: n,
-            adultCount,
-            childCount,
-            toddlerCount,
-            infantCount,
-            childBreakdownText: childDetailLines.length > 0 ? childDetailLines.join("\n") : null,
+            nights: plan.nights,
+            adultCount: plan.input.adultCount,
+            childCount: plan.input.childCount,
+            toddlerCount: plan.input.toddlerCount,
+            infantCount: plan.input.infantCount,
+            childBreakdownText: plan.childDetailLines.length > 0 ? plan.childDetailLines.join("\n") : null,
             paymentStatusText: "待匯款",
             adminUrl: buildAdminGroupBuyUrl({
               accommodationId: order.accommodation_id ?? campaign.accommodation_id ?? null,
@@ -547,7 +188,10 @@ Deno.serve(async (req) => {
       console.error(`[${FN}] venue notify threw`, venueErr);
     }
 
-    const deadline = paymentDeadline(order.created_at ?? order.order_date ?? new Date().toISOString(), campaign.payment_deadline_hours);
+    const deadline = paymentDeadline(
+      order.created_at ?? order.order_date ?? new Date().toISOString(),
+      campaign.payment_deadline_hours,
+    );
 
     return json({
       success: true,
