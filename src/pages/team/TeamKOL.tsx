@@ -6528,7 +6528,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               <TableBody>
                 {history.map((v) => (
                   <TableRow key={v.effective_from}>
-                    <TableCell>{v.effective_from}</TableCell>
+                    <TableCell>
+                      {v.effective_from}
+                      <div className="text-[11px] text-muted-foreground">
+                        自 {scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起採用
+                      </div>
+                    </TableCell>
                     {RARITY_ORDER.map((r) => {
                       const hit = v.items.find((x) => x.rarity === r);
                       return (
