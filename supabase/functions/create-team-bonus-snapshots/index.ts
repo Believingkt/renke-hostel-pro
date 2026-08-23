@@ -1036,9 +1036,11 @@ serve(async (req) => {
       });
     }
 
-    const closerPoolAmount = companyRevenue.payout * Number(closerPerfRate ?? 0);
-    const closerPoolIncl = companyRevenue.incl * Number(closerPerfRate ?? 0);
-    const closerPoolExcl = companyRevenue.excl * Number(closerPerfRate ?? 0);
+    // 先逐館算（有級距規則的館用級距，其餘用系統費率），加總成池後再除人數
+    const closerPool = revenuePool(companyRevenue, closerPerfRate, "closer_performance");
+    const closerPoolAmount = closerPool.amount;
+    const closerPoolIncl = closerPool.incl;
+    const closerPoolExcl = closerPool.excl;
     const closerHeadcount = closerProfiles.length;
     for (const { profile, activeDays, ratio } of closerProfiles) {
       push({
