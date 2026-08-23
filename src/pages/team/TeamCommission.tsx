@@ -259,7 +259,7 @@ function PayoutRulesBlock({
         <div className="rounded-md border p-3 space-y-1">
           <div className="font-medium">團隊獎金的營收採計口徑</div>
           <ul className="pl-6 space-y-1 list-disc text-muted-foreground">
-            <li>快照節奏：每日自動試算一次（草稿），每月 9 日 09:00 定案凍結；定案後金額不再被草稿覆寫。</li>
+            <li>快照節奏：每日自動試算一次（草稿），每月 9 日 23:59（台北）定案凍結；定案後金額不再被草稿覆寫。</li>
             <li>逐館明細（館別／營收基準／當期費率／金額）在凍結當下一併寫入，可用公式反推；明細加總恆等於卡片總額。</li>
 
             <li>採計範圍：各館的「合作期間」（可暫停／重啟）與資料月的交集；沒有有效合作期間、或期間設定為「不發獎金」（含旅行日系列）者一律不採計。</li>
