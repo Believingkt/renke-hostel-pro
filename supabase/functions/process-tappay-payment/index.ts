@@ -94,7 +94,11 @@ serve(async (req) => {
       );
     }
 
-    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl, bindCard, orderPayload } = requestData;
+    const { prime, amount, orderId, cardholder, details, frontendRedirectUrl, backendNotifyUrl, bindCard, orderPayload, flow } = requestData;
+    // flow === 'group_buy'：團購信用卡走 group_buy_payment_drafts，
+    // 絕不寫入 pending_paid_order_drafts（一般訂房草稿表）。
+    const isGroupBuyFlow = flow === 'group_buy';
+
 
     console.log('Processing TapPay payment with 3D Secure:', { orderId, amount, has3DUrls: !!frontendRedirectUrl, bindCard: !!bindCard });
 
