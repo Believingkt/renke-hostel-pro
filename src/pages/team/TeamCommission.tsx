@@ -1506,23 +1506,24 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                   <button
                     type="button"
                     onClick={() => toggleMember(g.member_id)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+                    className="w-full flex flex-col gap-1.5 px-3 py-3 sm:px-4 bg-muted/40 hover:bg-muted/60 transition-colors text-left sm:flex-row sm:items-center sm:justify-between sm:gap-3"
                     aria-expanded={isOpen}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                       <ChevronDown
-                        className={`h-4 w-4 text-muted-foreground transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                        className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
                       />
                       <Badge variant="secondary" className="text-xs">{g.role_label}</Badge>
-                      <span className="font-medium">{g.display_name}</span>
+                      <span className="min-w-0 break-words font-medium">{g.display_name}</span>
                       <span className="text-xs text-muted-foreground">{g.items.length} 筆</span>
                       {allPaid ? (
-                        <Badge variant="outline">全部已發放</Badge>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">全部已發放</Badge>
                       ) : (
-                        <Badge className="bg-amber-100 text-amber-700 border-amber-200">部分待發放</Badge>
+                        <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-[10px] px-1.5 py-0">部分待發放</Badge>
                       )}
                     </div>
-                    <div className="text-sm font-medium">合計 {formatMoney(g.total)}</div>
+                    <div className="pl-6 text-sm font-medium tabular-nums whitespace-nowrap sm:pl-0">合計 {formatMoney(g.total)}</div>
+
                   </button>
                   {isOpen && (
                     <>
