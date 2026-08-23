@@ -292,6 +292,14 @@ export default function TeamNotification() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">業績通報設定</h2>
 
+      <Tabs defaultValue="settings" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="settings">通報設定</TabsTrigger>
+          <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="space-y-6">
+
       <Card>
         <CardContent className="py-4 text-sm space-y-2 text-muted-foreground">
           <p><span className="font-semibold text-foreground">「本月累積訂房業績」</span>＝本月「成交」的訂單全額</p>
@@ -551,6 +559,29 @@ export default function TeamNotification() {
           </Table>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="sources" className="space-y-4">
+          <div className="max-w-xs space-y-1">
+            <Label className="text-xs">館別</Label>
+            <Select value={selectedId} onValueChange={setSelectedId}>
+              <SelectTrigger>
+                <SelectValue placeholder="選擇館別" />
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <PerformanceSourceRulesSection
+            accommodationId={selectedId}
+            accommodationName={accommodations.find((a) => a.id === selectedId)?.name}
+            canEdit={canAccess}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
