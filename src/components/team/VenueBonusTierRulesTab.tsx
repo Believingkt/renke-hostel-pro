@@ -1094,6 +1094,53 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
         </DialogContent>
       </Dialog>
+
+      {/* 修正前確認 */}
+      <AlertDialog open={!!fixCandidate} onOpenChange={(o) => !o && setFixCandidate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認修正此版本？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  系統會<strong>先刪除</strong>下列版本，再以相同生效日重新建立你編輯後的內容。
+                </p>
+                <ul className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                  <li>
+                    館別：
+                    <strong>
+                      {accs.find((a) => a.id === fixCandidate?.accommodation_id)?.name ?? "—"}
+                    </strong>
+                  </li>
+                  <li>
+                    會刪除的版本：<strong>生效日 {fixCandidate?.effective_from}</strong>（含此版本
+                    {fixCandidate ? Object.values(fixCandidate.rows).filter(Boolean).length : 0}{" "}
+                    種獎金的所有級距）
+                  </li>
+                  <li>
+                    保留的生效日：<strong>{fixCandidate?.effective_from}</strong>（重建後生效期別不變）
+                  </li>
+                </ul>
+                <p className="text-xs text-muted-foreground">
+                  此版本尚未被任何快照採用，因此可安全重建；若只是想調整未來期別，請改用「以此版本為基礎新增」。
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const v = fixCandidate;
+                setFixCandidate(null);
+                if (v) openFix(v);
+              }}
+            >
+              確認並開始修正
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
