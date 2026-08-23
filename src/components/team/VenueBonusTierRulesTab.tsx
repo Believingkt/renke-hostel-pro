@@ -171,6 +171,8 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     accommodation_id: string;
     effective_from: string;
   } | null>(null);
+  /** 修正前的確認視窗對象 */
+  const [fixCandidate, setFixCandidate] = useState<VenueVersion | null>(null);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
