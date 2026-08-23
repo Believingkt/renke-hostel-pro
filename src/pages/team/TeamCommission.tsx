@@ -1641,8 +1641,9 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                               </div>
 
                               {srcOpen && (
-                                <div className="overflow-x-auto bg-muted/10">
-                                  <Table>
+                                <div className="-mx-px overflow-x-auto bg-muted/10">
+                                  <Table className="min-w-[720px]">
+
                                     <TableHeader>
                                       <TableRow>
                                         <TableHead>館別</TableHead>
