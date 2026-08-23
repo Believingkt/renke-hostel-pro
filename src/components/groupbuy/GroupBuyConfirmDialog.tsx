@@ -12,6 +12,8 @@ import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
 import TermsConsentText from "@/components/common/TermsConsentText";
 
 
+export type GroupBuyPaymentMethod = "bank" | "atm" | "credit_card";
+
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
 interface Props {
@@ -37,8 +39,10 @@ interface Props {
   guestEmail: string;
   /** 活動是否開放 ATM 虛擬帳號；false 時完全維持既有人工匯款流程 */
   atmEnabled?: boolean;
-  paymentMethod?: "bank" | "atm";
-  onPaymentMethodChange?: (v: "bank" | "atm") => void;
+  /** 活動是否開放信用卡（付款成功後才建立訂單） */
+  creditCardEnabled?: boolean;
+  paymentMethod?: GroupBuyPaymentMethod;
+  onPaymentMethodChange?: (v: GroupBuyPaymentMethod) => void;
 }
 
 function Row({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
@@ -56,9 +60,19 @@ export function GroupBuyConfirmDialog(props: Props) {
     open, onOpenChange, submitting, onConfirm, venueName, packageName,
     checkIn, checkOut, nights, roomQuantity, guestSummary, baseTotal, childExtraTotal,
     total, deposit, balance, depositPct, guestName, guestPhone, guestEmail,
-    atmEnabled = false, paymentMethod = "bank", onPaymentMethodChange,
+    atmEnabled = false, creditCardEnabled = false, paymentMethod = "bank", onPaymentMethodChange,
   } = props;
-  const method = atmEnabled ? paymentMethod : "bank";
+  const options = [
+    { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。", on: true },
+    { key: "atm" as const, title: "ATM 虛擬帳號", desc: "系統開立專屬帳號，入帳後自動確認訂單。", on: atmEnabled },
+    {
+      key: "credit_card" as const,
+      title: "信用卡（3D 驗證）",
+      desc: "線上刷訂金，付款成功後才建立訂單，期間為您保留 10 分鐘房位。",
+      on: creditCardEnabled,
+    },
+  ].filter((o) => o.on);
+  const method: GroupBuyPaymentMethod = options.some((o) => o.key === paymentMethod) ? paymentMethod : "bank";
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
@@ -93,14 +107,11 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="Email" value={guestEmail} />
         </div>
 
-        {atmEnabled && (
+        {options.length > 1 && (
           <div className="rounded-2xl border border-border/70 p-4">
             <p className="mb-2 text-sm font-semibold text-foreground">訂金付款方式</p>
             <div className="grid gap-2">
-              {([
-                { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。" },
-                { key: "atm" as const, title: "ATM 虛擬帳號", desc: "系統開立專屬帳號，入帳後自動確認訂單。" },
-              ]).map((opt) => (
+              {options.map((opt) => (
                 <button
                   key={opt.key}
                   type="button"
@@ -139,7 +150,11 @@ export function GroupBuyConfirmDialog(props: Props) {
             onClick={onConfirm}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {method === "atm" ? "確認訂房並取得虛擬帳號" : "確認訂房並取得匯款資訊"}
+            {method === "credit_card"
+              ? "前往信用卡付款"
+              : method === "atm"
+              ? "確認訂房並取得虛擬帳號"
+              : "確認訂房並取得匯款資訊"}
           </Button>
         </div>
 
