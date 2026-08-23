@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         .from("orders")
         .update({
           order_status: "cancelled",
+          cancelled_at: new Date().toISOString(),
           notes: `${order.notes ?? ""}\n【系統】逾期未匯款自動取消（期限 ${hours} 小時）`.trim(),
         })
         .eq("id", order.id);
