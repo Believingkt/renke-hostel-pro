@@ -206,8 +206,8 @@ export function KolStatsTab() {
       try {
         const yearAll = year === 0;
         const effYear = yearAll ? currentYear : year;
-        // 與 calculate-scout-payout 一致：費率版本取「結算年月 28 日」為切點
-        const asOfDate = scoutRateAsOf(effYear, periodMonth(period));
+        // 與 calculate-scout-payout 一致：費率版本切點對齊該期資料窗起點
+        const asOfDate = scoutRateAsOf(effYear, periodMonth(period), periodIsDayTen(period) ? "10" : "25");
         const range = periodRange(effYear, period);
         const month = periodMonth(period);
         const showSalary = periodIsDayTen(period);
