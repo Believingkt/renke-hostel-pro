@@ -2059,15 +2059,16 @@ export default function TeamHome() {
         </Card>
       )}
 
-      <div>
-        <h2 className="text-2xl font-bold">
+      <div className="min-w-0">
+        <h2 className="text-xl sm:text-2xl font-bold break-words">
           {isViewing ? `檢視中：${displayName}` : `歡迎回來，${displayName}`}
         </h2>
 
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           目前顯示：{monthInfo.periodLabel}
         </p>
       </div>
+
 
       <OwnerDirectSimToggle enabled={simEnabled} onChange={setSimEnabled} visible={canSim} />
 
