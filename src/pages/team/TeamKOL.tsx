@@ -28,7 +28,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown, HelpCircle } from "lucide-react";
+import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ChevronRight, ChevronDown, HelpCircle, Info } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
@@ -6366,6 +6366,7 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newEffectiveFrom, setNewEffectiveFrom] = useState(todayStr());
   const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(() =>
+  const [selectedEf, setSelectedEf] = useState<string>("");
     Object.fromEntries(RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }])),
   );
   const [saving, setSaving] = useState(false);
