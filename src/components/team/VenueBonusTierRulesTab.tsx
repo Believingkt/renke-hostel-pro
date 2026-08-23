@@ -571,7 +571,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           已被快照採用，僅能新增新版本
                         </Badge>
                       ) : (
-                        <Button size="sm" variant="outline" onClick={() => openFix(shownVersion)}>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setFixCandidate(shownVersion)}
+                        >
                           <PencilLine className="mr-1 h-4 w-4" />
                           修正此版本（刪除並重建）
                         </Button>
