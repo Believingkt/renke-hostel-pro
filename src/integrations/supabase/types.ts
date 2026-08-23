@@ -13283,6 +13283,7 @@ export type Database = {
         Args: {
           p_accommodation_id: string
           p_dates: string[]
+          p_exclude_draft_id?: string
           p_room_type_id: string
         }
         Returns: {

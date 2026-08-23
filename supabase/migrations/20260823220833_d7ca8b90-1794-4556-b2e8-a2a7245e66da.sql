@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.get_adjusted_room_inventory_batch(uuid, text[], uuid);
