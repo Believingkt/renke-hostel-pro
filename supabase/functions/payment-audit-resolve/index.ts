@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
       } else if (charge.action !== "card_bind") {
         const newPaid = Math.max(Number(order.paid_amount || 0), verifiedAmount);
         orderPatch.paid_amount = newPaid;
-        orderPatch.payment_status = newPaid >= Number(order.final_price || 0) ? "paid" : "partial";
+        orderPatch.payment_status = newPaid >= Number(order.final_price || 0) ? "paid" : "deposit_paid";
         if (order.room_charge_status && order.room_charge_status !== "cancelled") {
           orderPatch.room_charge_status = "charged";
           orderPatch.room_charge_at = new Date().toISOString();

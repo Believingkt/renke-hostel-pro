@@ -254,7 +254,7 @@ export default function PaymentResult() {
               if (orderData) {
                 const newPaidAmount = (orderData.paid_amount || 0) + pending.amount;
                 const newPaymentStatus = newPaidAmount >= orderData.final_price ? 'paid' :
-                                         newPaidAmount > 0 ? 'partial' : 'unpaid';
+                                         newPaidAmount > 0 ? 'deposit_paid' : 'unpaid';
 
                 await supabase
                   .from('orders')

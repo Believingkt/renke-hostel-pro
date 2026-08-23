@@ -319,8 +319,8 @@ Deno.serve(async (req) => {
         if (newPaidAmount >= order.final_price) {
           newPaymentStatus = 'paid';
         } else if (newPaidAmount > 0) {
-          newPaymentStatus = order.payment_status === 'unpaid' || order.payment_status === 'pending_payment'
-            ? 'deposit_paid' : 'partial';
+          // 部分付款一律使用正式狀態 deposit_paid（制度中不存在 'partial'）
+          newPaymentStatus = 'deposit_paid';
         }
 
         const tag = isAtm ? '[ATM Webhook]' : '[3DS Webhook]';
