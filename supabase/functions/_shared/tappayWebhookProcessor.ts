@@ -1,6 +1,13 @@
 // 共用：TapPay Webhook 事件處理核心（供 tappay-payment-webhook 即時處理與 tappay-webhook-retry 重試共用）
 import { pushOrderEvent } from "./push.ts";
 import { computeRefundAmounts } from "./refundIdempotency.ts";
+import {
+  eventSignature,
+  isNoOpCharge,
+  isStaleRefund,
+  signatureFromRaw,
+} from "./tappayEventDedupe.ts";
+
 
 
 type Json = Record<string, unknown>;
