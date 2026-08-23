@@ -467,7 +467,45 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <Table>
+          {/* 手機版：成員卡片（數量輸入與分配金額同桌機） */}
+          <div className="space-y-2.5 md:hidden">
+            {closers.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">尚無成交組成員</p>
+            ) : (
+              closers.map((m) => (
+                <div key={`m-${m.user_id}`} className="min-w-0 rounded-lg border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 break-words text-sm font-medium">{m.display_name}</span>
+                    <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                      <BoostedAmount amount={amountFor(m.user_id)} multiplier={closerMultiplier} />
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t pt-2">
+                    <span className="text-xs text-muted-foreground">本期負責數量</span>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      step="1"
+                      className="h-11 w-24 text-right text-base"
+                      value={countMap[m.user_id] ?? 0}
+                      disabled={isFinalized || !isAdmin}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                        setCountMap((prev) => ({ ...prev, [m.user_id]: v }));
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              負責數量請於 LINE 後台查看，確認每位成交組夥伴月初～月底的負責客服數量。
+            </p>
+          </div>
+
+          <Table className="hidden md:table">
+
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
