@@ -208,7 +208,15 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                       <TableCell>{r.name}</TableCell>
                       <TableCell>{r.closer_rate != null ? `${Number((r.closer_rate * 100).toFixed(2))}%` : "—"}</TableCell>
 
-                      <TableCell>{r.effective_from ?? "—"}</TableCell>
+                      <TableCell>
+                        {r.effective_from ?? "—"}
+                        {r.effective_from && (
+                          <div className="text-[11px] text-muted-foreground">
+                            自 {payoutPeriodLabel(r.effective_from)} 起採用
+                          </div>
+                        )}
+                      </TableCell>
+
                       {!readOnly && (
                         <TableCell className="text-right">
                           <Button
