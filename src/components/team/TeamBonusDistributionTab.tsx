@@ -538,22 +538,23 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               )}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              數量總和：<span className="font-semibold">{totalCount}</span>
+          <div className="flex flex-col gap-1 border-t pt-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:pt-0">
+            <div className="flex justify-between sm:block">
+              數量總和：<span className="font-semibold tabular-nums">{totalCount}</span>
             </div>
-            <div>
-              分配金額總和：
-              <span className="font-semibold">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-2 sm:justify-end">
+              <span>分配金額總和：</span>
+              <span className="font-semibold tabular-nums">
                 <BoostedAmount amount={totalAmount} multiplier={closerMultiplier} />
               </span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span className="w-full text-xs text-muted-foreground sm:ml-2 sm:w-auto">
                   （若有微小差異來自小數四捨五入）
                 </span>
               )}
             </div>
           </div>
+
 
           {isAdmin && !isFinalized && (
             <div className="flex justify-end">
