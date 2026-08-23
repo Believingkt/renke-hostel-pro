@@ -2138,15 +2138,15 @@ export default function TeamHome() {
 
           {(() => {
             const renderCard = (c: (typeof cards)[number]) => (
-              <Card key={c.key} className="relative">
+              <Card key={c.key} className="relative min-w-0 overflow-hidden">
                 {c.multiplier > 1 && !loading && (
                   <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
                     × {Number(c.multiplier).toFixed(2)} 倍
                   </Badge>
                 )}
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                    {c.title}
+                <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                  <CardTitle className="flex items-start gap-1 pr-14 text-[13px] sm:text-sm text-muted-foreground font-medium leading-snug break-words">
+                    <span className="min-w-0 break-words">{c.title}</span>
                     <BonusFormulaHint
                       bonusKey={c.key}
                       values={[
@@ -2157,18 +2157,19 @@ export default function TeamHome() {
                     />
                   </CardTitle>
                   {c.note ? (
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground/80 mt-0.5 break-words">{c.note}</p>
                   ) : null}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-w-0 px-3 pb-3 sm:px-6 sm:pb-6">
                   {!loading && c.multiplier > 1 ? (
-                    <p className="text-sm text-muted-foreground line-through tabular-nums">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-through tabular-nums">
                       {fmt(c.baseAmount ?? Math.round(c.amount / c.multiplier))}
                     </p>
                   ) : null}
-                  <p className="text-2xl font-semibold">
+                  <p className="text-xl sm:text-2xl font-semibold tabular-nums break-words">
                     {loading ? "—" : fmt(c.amount)}
                   </p>
+
                   {!loading && c.simAmount !== undefined ? (
                     <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                       排除業主自帶：{fmt(c.simAmount)}（
