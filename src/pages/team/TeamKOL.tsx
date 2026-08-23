@@ -7684,7 +7684,24 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
           <p className="text-sm text-muted-foreground">尚無設定</p>
         ) : (
           <>
-            <div className="mb-2 text-sm font-medium">目前版本（生效日：{latestDate}）</div>
+            <div className="mb-2 text-sm font-medium">
+              目前版本（生效日：{latestDate ?? "—"}
+              {latestDate && scoutPayoutPeriodLabel(latestDate)
+                ? `，自 ${scoutPayoutPeriodLabel(latestDate)} 起採用`
+                : ""}
+              ）
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+            </p>
+            {pendingDates.length > 0 && (
+              <p className="mb-2 text-[11px] text-amber-600">
+                待生效版本：
+                {pendingDates
+                  .map((d) => `${d}（${scoutPayoutPeriodLabel(d) ?? "—"} 起）`)
+                  .join("、")}
+              </p>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
