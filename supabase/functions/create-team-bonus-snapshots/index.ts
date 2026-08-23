@@ -944,6 +944,8 @@ serve(async (req) => {
         sharedSources,
       );
 
+      const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
+
       push({
         bonus_type: "am_performance",
         member_id: profile.id,
@@ -955,19 +957,21 @@ serve(async (req) => {
         rate: amPerfRate,
         fixed_amount: null,
         venue_count: managedNoTravel.length,
-        amount: myRevenue.payout * Number(amPerfRate ?? 0),
-        amount_incl_owner: myRevenue.incl * Number(amPerfRate ?? 0),
-        amount_excl_owner: myRevenue.excl * Number(amPerfRate ?? 0),
+        amount: amPerfPool.amount,
+        amount_incl_owner: amPerfPool.incl,
+        amount_excl_owner: amPerfPool.excl,
         payout_basis_used: myRevenue.basis,
-        lines: revenueLines(myRevenue, amPerfRate),
+        lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
         settings_snapshot: {
           as_of: asOf,
           rate: amPerfRate,
           shared_sources: sharedSources,
           accommodation_ids: managedNoTravel,
           excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+          tier_rule_accommodation_ids: amPerfPool.tierAccIds,
         },
       });
+
 
       push({
         bonus_type: "am_venue_bonus",
