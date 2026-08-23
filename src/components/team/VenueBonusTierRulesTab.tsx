@@ -33,7 +33,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, PencilLine, Plus, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Copy, PencilLine, Plus, Trash2, LayoutTemplate } from "lucide-react";
 
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
@@ -250,6 +257,17 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     () => (selectedAcc ? buildVersions(rules, selectedAcc) : []),
     [rules, selectedAcc],
   );
+
+  /** 可作為參考範本的版本：每個已設定館別取「最新生效日」那一版 */
+  const templateVersions = useMemo(() => {
+    const list: { acc: AccOption; version: VenueVersion }[] = [];
+    accs.forEach((a) => {
+      const vs = buildVersions(rules, a.id);
+      if (vs.length > 0) list.push({ acc: a, version: vs[0] });
+    });
+    return list;
+  }, [accs, rules]);
+
   const currentKey = useMemo(() => currentVersionKey(versions), [versions]);
   const shownVersion = useMemo(
     () =>
@@ -614,16 +632,45 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               哪些館別已改用獨立業務規則
               <br />
               <span className="text-xs">
-                提醒：要新增版本時，建議先點選館別後使用「以此版本為基礎新增」（同館沿用級距、只改生效日）或「複製到其他館別」，
+                提醒：要新增版本時，建議使用右上「從其他館別帶入」直接套用現成級距，或先點選館別後用「以此版本為基礎新增」（同館沿用級距、只改生效日），
                 比從零填寫更快也不易漏填。
               </span>
             </CardDescription>
           </div>
           {!readOnly && (
-            <Button size="sm" onClick={() => openCreate()}>
-              <Plus className="mr-1 h-4 w-4" />
-              新增規則版本
-            </Button>
+            <div className="flex flex-wrap items-center gap-2">
+              {templateVersions.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <LayoutTemplate className="mr-1 h-4 w-4" />
+                      從其他館別帶入
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="max-h-72 w-64 overflow-y-auto">
+                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                      選擇參考範本（帶入級距後再挑館別與生效日）
+                    </DropdownMenuLabel>
+                    {templateVersions.map(({ acc, version }) => (
+                      <DropdownMenuItem
+                        key={version.key}
+                        onSelect={() => openCopyFrom(version)}
+                        className="flex flex-col items-start gap-0.5"
+                      >
+                        <span className="text-sm font-medium">{acc.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {version.effective_from.slice(0, 10)}．{version.thresholds.length} 階
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Button size="sm" onClick={() => openCreate()}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增規則版本
+              </Button>
+            </div>
           )}
         </CardHeader>
         <CardContent className="space-y-2">
