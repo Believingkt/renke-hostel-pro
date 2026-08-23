@@ -163,6 +163,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
 
   // 編輯 Dialog 狀態
+  const keyboardInset = useKeyboardInset();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
