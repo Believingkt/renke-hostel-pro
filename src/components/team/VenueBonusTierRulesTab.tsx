@@ -774,7 +774,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>館別</Label>
-                <Select value={formAcc} onValueChange={setFormAcc}>
+                <Select value={formAcc} onValueChange={setFormAcc} disabled={!!replaceTarget}>
                   <SelectTrigger
                     ref={(el) => (fieldRefs.current["acc"] = el)}
                     className={fieldErrors.acc ? "border-destructive" : ""}
@@ -1075,7 +1075,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               取消
             </Button>
             <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
-              儲存版本
+              {replaceTarget ? "刪除並重建此版本" : "儲存版本"}
             </Button>
           </DialogFooter>
 
