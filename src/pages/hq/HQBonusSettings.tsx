@@ -87,6 +87,9 @@ export default function HQBonusSettings() {
     else if (value === "base-salary") {
       next.set("tab", "base-salary");
       next.delete("acc");
+    } else if (value === "venue-tiers") {
+      next.set("tab", "venue-tiers");
+      next.delete("acc");
     } else {
       next.delete("tab");
       next.delete("acc");
