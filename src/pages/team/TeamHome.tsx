@@ -2228,11 +2228,12 @@ export default function TeamHome() {
             return order
               .filter((cat) => (byCat.get(cat)?.length ?? 0) > 0)
               .map((cat) => (
-                <div key={cat} className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">{BONUS_CATEGORY_LABEL[cat]}</h3>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div key={cat} className="mb-5 sm:mb-6 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">{BONUS_CATEGORY_LABEL[cat]}</h3>
+                  <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {byCat.get(cat)!.map(renderCard)}
                   </div>
+
                 </div>
               ));
           })()}
