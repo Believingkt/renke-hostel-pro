@@ -330,11 +330,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
           <Button
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
-            disabled={submitting || !cardValid || !sdkReady}
+            disabled={submitting || rechecking || holdExpired || !cardValid || !sdkReady}
             onClick={() => void pay()}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            確認付款 {twd(deposit)}
+            {holdExpired ? "保留已逾時" : `確認付款 ${twd(deposit)}`}
+
           </Button>
         </div>
       </DialogContent>
