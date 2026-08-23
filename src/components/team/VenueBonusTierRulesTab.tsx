@@ -876,40 +876,53 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                       )}
                     </div>
 
-                    <div className="mt-2 space-y-2">
-                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
-                        <div key={b.value} className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{b.label} %</Label>
-                          <Input
-                            inputMode="decimal"
-                            placeholder="0.80"
-                            className={`tabular-nums ${
-                              fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
-                            }`}
-                            value={row.rates[b.value]}
-                            onChange={(e) =>
-                              setFormRows((prev) =>
-                                prev.map((x, xi) =>
-                                  xi === i
-                                    ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
-                                    : x,
-                                ),
-                              )
-                            }
-                          />
-                          {fieldErrors[`rate-${i}-${b.value}`] && (
-                            <p className="text-xs text-destructive">
-                              {fieldErrors[`rate-${i}-${b.value}`]}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                    <div className="-mx-3 mt-2 overflow-x-auto px-3 [scrollbar-width:thin]">
+                      <div className="flex snap-x snap-mandatory gap-3">
+                        {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
+                          <div
+                            key={b.value}
+                            className="w-[9.5rem] shrink-0 snap-start space-y-1.5"
+                          >
+                            <Label className="block truncate text-xs text-muted-foreground">
+                              {b.label} %
+                            </Label>
+                            <Input
+                              inputMode="decimal"
+                              placeholder="0.80"
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
+                              value={row.rates[b.value]}
+                              onChange={(e) =>
+                                setFormRows((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).length > 1 && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          左右滑動可切換其他獎金費率欄位
+                        </p>
+                      )}
                       {BONUS_TYPES.every((b) => !formEnabled[b.value]) && (
                         <p className="text-xs text-muted-foreground">
                           尚未開啟任何獎金類型，請先於上方選擇。
                         </p>
                       )}
                     </div>
+
                   </div>
                 ))}
               </div>
