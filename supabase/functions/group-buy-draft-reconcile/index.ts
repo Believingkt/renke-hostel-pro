@@ -10,6 +10,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { queryTapPayRecord } from "../_shared/tappay.ts";
+import { deriveRefundStatus } from "../_shared/groupBuyRefundStatus.ts";
 import { forbiddenResponse, isAccommodationAdmin, isSuperAdmin, resolveCaller, unauthorizedResponse } from "../_shared/authz.ts";
 
 const FN = "group-buy-draft-reconcile";
@@ -19,14 +20,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-}
-
-/** 由 TapPay record 推導 draft 的退款狀態 */
-export function deriveRefundStatus(paidAmount: number, refundedAmount: number): string {
-  if (paidAmount <= 0) return "none";
-  if (refundedAmount <= 0) return "none";
-  if (refundedAmount >= paidAmount) return "refunded";
-  return "partial_refunded";
 }
 
 Deno.serve(async (req) => {
@@ -67,7 +60,7 @@ Deno.serve(async (req) => {
     if (!drafts || drafts.length === 0) return json({ success: true, checked: 0, results: [] });
 
     // 權限：super_admin 或該民宿 hotel_admin
-    const accIds = [...new Set(drafts.map((d: any) => d.accommodation_id))];
+    const accIds = [...new Set(drafts.map((d: any) => String(d.accommodation_id)))];
     if (!isSuperAdmin(caller.ctx)) {
       for (const accId of accIds) {
         if (!(await isAccommodationAdmin(caller.ctx, accId))) {

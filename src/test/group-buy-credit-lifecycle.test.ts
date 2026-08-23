@@ -145,7 +145,7 @@ const booking = vi.hoisted(() => ({
 vi.mock("../../supabase/functions/_shared/groupBuyBooking.ts", () => booking);
 
 import { completeGroupBuyCreditOrder } from "../../supabase/functions/_shared/groupBuyCreditCompletion";
-import { deriveRefundStatus } from "../../supabase/functions/group-buy-draft-reconcile/index";
+import { deriveRefundStatus } from "../../supabase/functions/_shared/groupBuyRefundStatus";
 
 /* ─────────────── helpers ─────────────── */
 
