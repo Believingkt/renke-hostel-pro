@@ -781,34 +781,85 @@ serve(async (req) => {
       prorate_ratio: number | null;
       countable_ranges: CountableRange[];
       multiplier?: number | null;
+      /** 該館命中的館別專屬級距規則（沒有規則的館為 null，代表沿用系統費率） */
+      tier_rule_id?: string | null;
+      tier_min_revenue?: number | null;
+      tier_rate?: number | null;
     }
+
+    /**
+     * 逐館費率解析：有「館別專屬級距規則」的館用級距（整筆套用），
+     * 沒有的館 fallback 回系統費率。
+     */
+    const resolveVenueRate = (
+      accId: string,
+      bonusType: string,
+      defaultRate: number | null,
+      revenue: number,
+    ): { rate: number; tierRuleId: string | null; tierMin: number | null } => {
+      const rule = venueTierRules.get(`${accId}|${bonusType}`);
+      if (!rule) return { rate: Number(defaultRate ?? 0), tierRuleId: null, tierMin: null };
+      const tier = pickTier(rule.tiers, revenue);
+      return {
+        rate: Number(tier?.rate ?? 0),
+        tierRuleId: rule.id,
+        tierMin: tier ? Number(tier.min_revenue) : null,
+      };
+    };
 
     /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
     const revenueLines = (
       rev: RevenueTotals,
       rate: number | null,
-      opts?: { splitHeadcount?: number | null; prorateRatio?: number | null },
+      opts?: {
+        splitHeadcount?: number | null;
+        prorateRatio?: number | null;
+        /** 指定時，逐館改以館別專屬級距規則解析費率（查無規則者沿用 rate） */
+        bonusType?: string;
+      },
     ): LineDraft[] => {
-      const r = Number(rate ?? 0);
       const headcount = opts?.splitHeadcount ?? null;
       const ratio = opts?.prorateRatio ?? null;
       const extra = (headcount && headcount > 0 ? 1 / headcount : 1) * (ratio ?? 1);
-      return rev.detail.map((d) => ({
-        accommodation_id: d.accommodation_id,
-        accommodation_name: accNameById.get(d.accommodation_id) ?? null,
-        revenue_base: d.payout,
-        revenue_base_incl_owner: d.incl,
-        revenue_base_excl_owner: d.excl,
-        rate_value: rate,
-        rate_kind: "percent" as const,
-        amount: d.payout * r * extra,
-        amount_incl_owner: d.incl * r * extra,
-        amount_excl_owner: d.excl * r * extra,
-        split_headcount: headcount,
-        prorate_ratio: ratio,
-        countable_ranges: d.ranges,
-      }));
+      return rev.detail.map((d) => {
+        const resolved = opts?.bonusType
+          ? resolveVenueRate(d.accommodation_id, opts.bonusType, rate, d.payout)
+          : { rate: Number(rate ?? 0), tierRuleId: null, tierMin: null };
+        const r = resolved.rate;
+        return {
+          accommodation_id: d.accommodation_id,
+          accommodation_name: accNameById.get(d.accommodation_id) ?? null,
+          revenue_base: d.payout,
+          revenue_base_incl_owner: d.incl,
+          revenue_base_excl_owner: d.excl,
+          rate_value: resolved.tierRuleId ? r : rate,
+          rate_kind: "percent" as const,
+          amount: d.payout * r * extra,
+          amount_incl_owner: d.incl * r * extra,
+          amount_excl_owner: d.excl * r * extra,
+          split_headcount: headcount,
+          prorate_ratio: ratio,
+          countable_ranges: d.ranges,
+          tier_rule_id: resolved.tierRuleId,
+          tier_min_revenue: resolved.tierMin,
+          tier_rate: resolved.tierRuleId ? r : null,
+        };
+      });
     };
+
+    /** 逐館級距／費率算完後的獎金池（extra = 1，尚未除人數或乘在職比例） */
+    const revenuePool = (rev: RevenueTotals, rate: number | null, bonusType: string) => {
+      const lines = revenueLines(rev, rate, { bonusType });
+      const sum = (k: "amount" | "amount_incl_owner" | "amount_excl_owner") =>
+        lines.reduce((acc, l) => acc + Number(l[k] ?? 0), 0);
+      return {
+        amount: sum("amount"),
+        incl: sum("amount_incl_owner"),
+        excl: sum("amount_excl_owner"),
+        tierAccIds: lines.filter((l) => l.tier_rule_id).map((l) => l.accommodation_id),
+      };
+    };
+
 
     /** 固定額類：逐館一份固定金額 */
     const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
