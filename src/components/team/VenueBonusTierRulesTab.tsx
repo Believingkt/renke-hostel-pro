@@ -750,13 +750,26 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:w-full sm:max-w-4xl">
           <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
-            <DialogTitle className="text-base sm:text-lg">新增級距規則版本</DialogTitle>
+            <DialogTitle className="text-base sm:text-lg">
+              {replaceTarget ? "修正級距規則版本（刪除並重建）" : "新增級距規則版本"}
+            </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
-              門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。
+              {replaceTarget
+                ? "已帶入原版本的生效日、獎金開關與整張級距表。儲存時會先刪除原版本，再以相同生效日重新建立，等同一次完成重建。"
+                : "門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。"}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+            {replaceTarget && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                修正模式：此版本尚未被任何獎金快照採用，因此可以直接重建。儲存後原本的
+                {` ${replaceTarget.effective_from} `}
+                版本會被刪除並以新內容取代（審計紀錄會同時留下刪除與新增兩筆）。若要保留原版本，請改用「以此版本為基礎新增」。
+              </div>
+            )}
+
+
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
