@@ -310,16 +310,16 @@ export default function AdminKolOverview() {
 
   return (
     <div className="space-y-5 p-4 md:p-6">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-foreground">創作者導流總覽</h1>
           <p className="text-sm text-muted-foreground">
             KOL 導流、分潤與邀約關係的統一檢視；金額口徑沿用既有折扣碼分潤計算（分潤基準＝實收金額扣加購，乘當期館別抽成）。
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="h-11 w-[150px] flex-1 sm:h-10 sm:flex-none">
               <SelectValue placeholder="選擇月份" />
             </SelectTrigger>
             <SelectContent className="bg-background z-50">
@@ -331,7 +331,7 @@ export default function AdminKolOverview() {
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={fetchAll}>
+          <Button variant="outline" onClick={fetchAll} className="h-11 flex-1 sm:h-10 sm:flex-none">
             <RefreshCw className="mr-2 h-4 w-4" /> 重新整理
           </Button>
         </div>

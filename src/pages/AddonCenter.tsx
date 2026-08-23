@@ -245,10 +245,10 @@ export default function AddonCenter() {
         description="記錄非訂房收入（如商品、餐飲、體驗等銷售）"
         icon={ShoppingBag}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
             <MonthPicker value={monthStr} onChange={(v) => v && v !== "all" && setMonthStr(v)} />
             {editable && (
-              <Button onClick={openCreate}>
+              <Button onClick={openCreate} className="h-11 flex-1 sm:h-10 sm:flex-none">
                 <Plus className="h-4 w-4 mr-1" /> 新增加購
               </Button>
             )}
