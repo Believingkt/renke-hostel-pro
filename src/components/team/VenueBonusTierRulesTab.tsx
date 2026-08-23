@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Plus, Trash2 } from "lucide-react";
+import VenueTierRulePreview from "./VenueTierRulePreview";
+import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
 
 /* ------------------------------ 型別與常數 ------------------------------ */
 
