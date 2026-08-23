@@ -1671,9 +1671,9 @@ export default function TeamHome() {
       `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
       monthlySettled
         ? monthlyDraft
-          ? "每日自動試算（草稿），9 日 09:00 定案"
+          ? "每日自動試算（草稿），9 日 23:59（台北）定案"
           : "已結算，實付金額"
-        : "即時試算，9 日 09:00 定案",
+        : "即時試算，9 日 23:59（台北）定案",
       extra,
     ]
       .filter(Boolean)
