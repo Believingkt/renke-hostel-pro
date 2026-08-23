@@ -67,3 +67,39 @@ export function scoutRateAsOf(year: number, month: number | null): string {
   if (!month) return `${year}-12-31`;
   return `${year}-${String(month).padStart(2, "0")}-28`;
 }
+
+/** 星探系「目前應採用版本」的切點：台北當月 28 日 */
+export function scoutRateAsOfToday(): string {
+  const [y, m] = taipeiTodayStr().split("-");
+  return `${y}-${m}-28`;
+}
+
+/**
+ * 星探系費率版本 → 首次被採用的發放期別。
+ * calculate-scout-payout 以「結算年月 28 日」為切點，且同月 10 日期／25 日期共用同一切點，
+ * 因此生效日 <= 該月 28 日 → 自該月 10 日期起採用；日期 > 28 → 順延至次月 10 日期。
+ */
+export function scoutFirstPayoutPeriod(effectiveFrom: string): string | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(effectiveFrom);
+  if (!m) return null;
+  let year = Number(m[1]);
+  let month = Number(m[2]);
+  const day = Number(m[3]);
+  if (day > 28) {
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+  return `${year}-${String(month).padStart(2, "0")}-10`;
+}
+
+/** 星探系顯示用短格式，例如「7/10 期」 */
+export function scoutPayoutPeriodLabel(effectiveFrom: string): string | null {
+  const p = scoutFirstPayoutPeriod(effectiveFrom);
+  if (!p) return null;
+  const [, mm] = p.split("-");
+  return `${Number(mm)}/10 期`;
+}
+

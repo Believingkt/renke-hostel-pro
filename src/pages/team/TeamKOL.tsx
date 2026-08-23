@@ -54,6 +54,7 @@ import {
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
 import { describeKolSaveError } from "@/lib/kolSaveErrors";
+import { scoutRateAsOfToday, scoutPayoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 
 // ====== 型別 & 常數 ======
@@ -6397,8 +6398,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
     loadVersions();
   }, [loadVersions]);
 
-  const current = versions[0];
-  const history = versions.slice(1);
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點，尚未到切點的版本不算目前生效
+  const scoutAsOf = scoutRateAsOfToday();
+  const currentIdx = versions.findIndex((v) => v.effective_from <= scoutAsOf);
+  const current = currentIdx >= 0 ? versions[currentIdx] : undefined;
+  const history = versions.filter((_, i) => i !== currentIdx);
+  const pendingVersions = versions.filter((v) => v.effective_from > scoutAsOf);
 
   const openCreate = () => {
     // 預填當前版本作為基底
@@ -6421,13 +6426,28 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
       toast.error("請填寫生效日期");
       return;
     }
-    setSaving(true);
     const rows = RARITY_ORDER.map((r) => ({
       rarity: r,
       fan_range_desc: draft[r].fan_range_desc.trim() || null,
       bonus_amount: parseInt(draft[r].bonus_amount || "0", 10) || 0,
       effective_from: newEffectiveFrom,
     }));
+    // 防呆：與目前版本完全相同時不需另存新版本
+    if (
+      current &&
+      rows.every((row) => {
+        const hit = current.items.find((x) => x.rarity === row.rarity);
+        return (
+          hit &&
+          Number(hit.bonus_amount) === row.bonus_amount &&
+          (hit.fan_range_desc ?? null) === row.fan_range_desc
+        );
+      })
+    ) {
+      toast.error("內容與目前生效版本相同，無需新增版本（避免產生重複版本）");
+      return;
+    }
+    setSaving(true);
     const { error } = await supabase.from("kol_rarity_settings" as any).insert(rows);
     setSaving(false);
     if (error) {
@@ -6450,7 +6470,21 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               <h3 className="font-semibold">稀有度邀約獎金</h3>
               <p className="text-xs text-muted-foreground">
                 目前生效版本{current ? `・生效日期：${current.effective_from}` : "：尚無任何版本"}
+                {current && scoutPayoutPeriodLabel(current.effective_from)
+                  ? `（自 ${scoutPayoutPeriodLabel(current.effective_from)} 起採用）`
+                  : ""}
               </p>
+              <p className="text-[11px] text-muted-foreground">
+                星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+              </p>
+              {pendingVersions.length > 0 && (
+                <p className="text-[11px] text-amber-600">
+                  待生效版本：
+                  {pendingVersions
+                    .map((v) => `${v.effective_from}（${scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起）`)
+                    .join("、")}
+                </p>
+              )}
             </div>
             {isManager && (
               <Button onClick={openCreate}>
@@ -6509,7 +6543,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               <TableBody>
                 {history.map((v) => (
                   <TableRow key={v.effective_from}>
-                    <TableCell>{v.effective_from}</TableCell>
+                    <TableCell>
+                      {v.effective_from}
+                      <div className="text-[11px] text-muted-foreground">
+                        自 {scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起採用
+                      </div>
+                    </TableCell>
                     {RARITY_ORDER.map((r) => {
                       const hit = v.items.find((x) => x.rarity === r);
                       return (
@@ -7589,9 +7628,13 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  const latestDate = rows[0]?.effective_from;
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  const tierAsOf = scoutRateAsOfToday();
+  const allDates = Array.from(new Set(rows.map((r) => r.effective_from)));
+  const latestDate = allDates.find((d) => d <= tierAsOf);
   const latestRows = rows.filter((r) => r.effective_from === latestDate);
-  const historyDates = Array.from(new Set(rows.map((r) => r.effective_from))).slice(1);
+  const historyDates = allDates.filter((d) => d !== latestDate && d <= tierAsOf);
+  const pendingDates = allDates.filter((d) => d > tierAsOf);
 
   const openNew = () => {
     setEffectiveFrom(todayStr());
@@ -7616,6 +7659,23 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
     }
     if (draft.some((d) => !d.tier_name)) {
       toast.error("請填入所有等級名稱");
+      return;
+    }
+    // 防呆：與目前版本完全相同時不需另存新版本
+    if (
+      latestRows.length === draft.length &&
+      draft.every((d, idx) => {
+        const cur = latestRows[idx];
+        return (
+          cur &&
+          cur.tier_name === d.tier_name &&
+          Number(cur.min_count) === Number(d.min_count) &&
+          (cur.max_count ?? null) === (d.max_count ?? null) &&
+          Number(cur.commission_rate) === Number(d.commission_rate)
+        );
+      })
+    ) {
+      toast.error("內容與目前生效版本相同，無需新增版本（避免產生重複版本）");
       return;
     }
     setSaving(true);
@@ -7656,7 +7716,24 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
           <p className="text-sm text-muted-foreground">尚無設定</p>
         ) : (
           <>
-            <div className="mb-2 text-sm font-medium">目前版本（生效日：{latestDate}）</div>
+            <div className="mb-2 text-sm font-medium">
+              目前版本（生效日：{latestDate ?? "—"}
+              {latestDate && scoutPayoutPeriodLabel(latestDate)
+                ? `，自 ${scoutPayoutPeriodLabel(latestDate)} 起採用`
+                : ""}
+              ）
+            </div>
+            <p className="mb-2 text-[11px] text-muted-foreground">
+              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+            </p>
+            {pendingDates.length > 0 && (
+              <p className="mb-2 text-[11px] text-amber-600">
+                待生效版本：
+                {pendingDates
+                  .map((d) => `${d}（${scoutPayoutPeriodLabel(d) ?? "—"} 起）`)
+                  .join("、")}
+              </p>
+            )}
             <Table>
               <TableHeader>
                 <TableRow>
@@ -7831,7 +7908,12 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  const latest = rows[0];
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  const salaryAsOf = scoutRateAsOfToday();
+  const latestIdx = rows.findIndex((r) => r.effective_from <= salaryAsOf);
+  const latest = latestIdx >= 0 ? rows[latestIdx] : undefined;
+  const salaryHistory = rows.filter((_, i) => i !== latestIdx);
+  const pendingSalary = rows.filter((r) => r.effective_from > salaryAsOf);
 
   const openEdit = () => {
     setEffectiveFrom(todayStr());
@@ -7842,6 +7924,14 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
 
   const save = async () => {
     if (!effectiveFrom) return toast.error("請填生效日期");
+    // 防呆：金額與目前版本相同時不需要另存新版本
+    if (
+      latest &&
+      Number(base) === Number(latest.base_salary) &&
+      Number(bonus) === Number(latest.team_bonus)
+    ) {
+      return toast.error("金額與目前生效版本相同，無需新增版本（避免產生重複版本）");
+    }
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
     const { error } = await supabase.from("scout_salary_settings").insert({
@@ -7876,10 +7966,26 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
           <div className="space-y-1 text-sm">
             <div>兼職個人目標達成底薪：{formatMoney(latest.base_salary)}</div>
             <div>團隊獎金金額：{formatMoney(latest.team_bonus)}</div>
-            <div className="text-xs text-muted-foreground">生效日：{latest.effective_from}</div>
+            <div className="text-xs text-muted-foreground">
+              生效日：{latest.effective_from}
+              {scoutPayoutPeriodLabel(latest.effective_from)
+                ? `（自 ${scoutPayoutPeriodLabel(latest.effective_from)} 起採用）`
+                : ""}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              星探結算以「結算年月 28 日」為版本切點，生效日 &gt; 該月 28 日者順延至次月 10 日期。
+            </div>
+            {pendingSalary.length > 0 && (
+              <div className="text-[11px] text-amber-600">
+                待生效版本：
+                {pendingSalary
+                  .map((r) => `${r.effective_from}（${scoutPayoutPeriodLabel(r.effective_from) ?? "—"} 起）`)
+                  .join("、")}
+              </div>
+            )}
           </div>
         )}
-        {rows.length > 1 && (
+        {salaryHistory.length > 0 && (
           <div className="mt-4">
             <div className="text-sm font-medium mb-1">歷史版本</div>
             <Table>
@@ -7891,9 +7997,14 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.slice(1).map((r) => (
+                {salaryHistory.map((r) => (
                   <TableRow key={r.id}>
-                    <TableCell>{r.effective_from}</TableCell>
+                    <TableCell>
+                      {r.effective_from}
+                      <div className="text-[11px] text-muted-foreground">
+                        自 {scoutPayoutPeriodLabel(r.effective_from) ?? "—"} 起採用
+                      </div>
+                    </TableCell>
                     <TableCell>{formatMoney(r.base_salary)}</TableCell>
                     <TableCell>{formatMoney(r.team_bonus)}</TableCell>
                   </TableRow>
