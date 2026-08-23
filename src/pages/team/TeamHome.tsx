@@ -2024,7 +2024,7 @@ export default function TeamHome() {
       : null;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl min-w-0 overflow-x-hidden pb-6 safe-bottom">
       {canViewOthers && (
         <Card className="border-dashed">
           <CardContent className="py-3 flex flex-col sm:flex-row sm:items-center gap-3">
