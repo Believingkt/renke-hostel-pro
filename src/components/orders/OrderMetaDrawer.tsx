@@ -799,14 +799,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     <Sheet open={showDrawer} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-md flex flex-col overflow-y-auto"
+        className="flex h-[100dvh] max-h-[100dvh] w-full flex-col overflow-hidden sm:max-w-md"
       >
-        <SheetHeader>
+        <SheetHeader className="shrink-0">
           <SheetTitle>補充行銷資訊</SheetTitle>
           <SheetDescription>此資訊用於獎金計算,可稍後再填</SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 space-y-4 py-4">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
           {/* 下單日(唯讀) */}
           <div className="space-y-1 p-3 rounded-md bg-muted/40">
             <Label className="text-xs text-muted-foreground">下單日</Label>
@@ -1251,7 +1251,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           </div>
         </div>
 
-        <SheetFooter className="flex flex-row justify-end gap-2 pt-2 border-t">
+        <SheetFooter className="safe-bottom shrink-0 flex flex-row justify-end gap-2 border-t bg-background pt-3 [&>button]:min-h-[44px] [&>button]:flex-1 sm:[&>button]:flex-none">
           <Button variant="outline" onClick={handleSkip} disabled={saving}>
             跳過
           </Button>

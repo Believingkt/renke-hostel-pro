@@ -1598,14 +1598,14 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent className="max-h-[95vh]">
-          <DrawerHeader>
+        <DrawerContent className="flex max-h-[92dvh] flex-col">
+          <DrawerHeader className="shrink-0">
             <DrawerTitle className="text-2xl">編輯訂單</DrawerTitle>
           </DrawerHeader>
-          <div className="overflow-y-auto px-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4">
             {formContent}
           </div>
-          <DrawerFooter className="pt-4">
+          <DrawerFooter className="safe-bottom shrink-0 border-t bg-background pt-3">
             {footerButtons}
           </DrawerFooter>
         </DrawerContent>

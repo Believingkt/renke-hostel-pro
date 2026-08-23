@@ -3150,7 +3150,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="!max-w-none !w-screen !h-screen !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
+        className="!max-w-none !w-screen !h-[100dvh] !max-h-[100dvh] !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
       >
         <DialogHeader className="px-4 md:px-6 py-3 md:py-4 border-b shrink-0">
           <div className="flex items-center justify-between gap-3 pr-10">
@@ -3180,7 +3180,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             {formContent}
           </div>
         </div>
-        <DialogFooter className="px-4 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
+        <DialogFooter className="safe-bottom px-4 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
           <div className="max-w-4xl mx-auto w-full flex justify-end gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
             {footerButtons}
           </div>

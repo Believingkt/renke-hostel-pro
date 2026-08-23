@@ -741,14 +741,14 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        <DrawerContent>
-          <DrawerHeader>
+        <DrawerContent className="flex max-h-[92dvh] flex-col">
+          <DrawerHeader className="shrink-0">
             <DrawerTitle>新增保留單</DrawerTitle>
           </DrawerHeader>
-          <ScrollArea className="max-h-[70vh] px-4">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4">
             {formContent}
-          </ScrollArea>
-          <DrawerFooter>
+          </div>
+          <DrawerFooter className="safe-bottom shrink-0 border-t bg-background">
             <Button onClick={handleSave} disabled={isSaving} className="w-full h-12">
               {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               建立保留單
