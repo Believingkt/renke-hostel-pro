@@ -413,15 +413,16 @@ Deno.serve(async (req) => {
           0,
         );
 
-        // Today cancellations (by updated_at within Taipei day — 保留 updated_at 觸發口徑)
+        // Today cancellations (以 cancelled_at 為準；DB trigger 保證取消時必有值，
+        // 避免批次更新刷新 updated_at 造成歷史取消單誤報)
         const { data: cancelOrders } = await applyBookingFilters(
           supabase
             .from("orders")
             .select("final_price")
             .eq("accommodation_id", accId)
             .eq("order_status", "cancelled")
-            .gte("updated_at", todayStartUtc)
-            .lt("updated_at", tomorrowStartUtc),
+            .gte("cancelled_at", todayStartUtc)
+            .lt("cancelled_at", tomorrowStartUtc),
         );
         const cancelCount = (cancelOrders ?? []).length;
         const cancelAmount = (cancelOrders ?? []).reduce(
