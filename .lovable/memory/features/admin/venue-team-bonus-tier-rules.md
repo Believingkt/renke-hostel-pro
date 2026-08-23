@@ -15,3 +15,5 @@ type: feature
 - 快照 `teamcommission_bonus_snapshot_lines` 記錄 `tier_rule_id` / `tier_min_revenue` / `tier_rate`，凍結後不隨規則變動。
 - 營收基準沿用現行來源白名單口徑（舊制），與住房率統計完全脫鉤。
 - UI：HQ 整合頁 `/hq/bonus-settings?tab=venue-tiers`，含館別總覽（已設獨立規則／沿用系統費率）、版本列表切換、新增與跨館複製；super_admin/admin 可編輯，finance 唯讀。
+- 預覽：`VenueTierRulePreview` 可選館別／獎金類型／資料月，手動輸入或自快照抓取基準營收，即時顯示命中級距與該館獎金貢獻（純試算，不寫快照）。
+- 審計：`venue_team_bonus_tier_rule_logs` 由 trigger 自動記錄 create/update/delete 的操作者、時間與 tiers 前後；UI 另以 `tier_rule_id` 反查已被哪些資料月快照採用。
