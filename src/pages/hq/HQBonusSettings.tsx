@@ -15,7 +15,7 @@ interface AccOption {
   name: string;
 }
 
-type SettingsTab = "bonus" | "owner-settlement" | "base-salary";
+type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers";
 
 /**
  * HQ 整合頁：獎金設定 ＋ 業主月結設定（總部唯一可編輯入口）。
