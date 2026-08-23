@@ -651,15 +651,16 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
       {/* 新增／複製版本 Dialog：整張級距表一次編輯 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>新增級距規則版本</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:w-full sm:max-w-4xl">
+          <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+            <DialogTitle className="text-base sm:text-lg">新增級距規則版本</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>館別</Label>
@@ -737,8 +738,9 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full min-w-[560px] text-sm">
+
                   <thead>
                     <tr className="text-xs text-muted-foreground">
                       <th className="w-14 py-1 text-left font-medium">階層</th>
@@ -831,14 +833,92 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                   </tbody>
                 </table>
               </div>
+
+              {/* 手機版：每階一張卡片 */}
+              <div className="space-y-3 sm:hidden">
+                {formRows.map((row, i) => (
+                  <div key={i} className="rounded-lg border p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium">第 {i + 1} 階</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="刪除此階"
+                        className="h-9 w-9"
+                        onClick={() => setFormRows((prev) => prev.filter((_, xi) => xi !== i))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">營收門檻</Label>
+                      <Input
+                        inputMode="numeric"
+                        placeholder="1000000"
+                        className={`tabular-nums ${
+                          fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                        }`}
+                        value={row.min}
+                        onChange={(e) =>
+                          setFormRows((prev) =>
+                            prev.map((x, xi) => (xi === i ? { ...x, min: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      {fieldErrors[`min-${i}`] && (
+                        <p className="text-xs text-destructive">{fieldErrors[`min-${i}`]}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-2 space-y-2">
+                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
+                        <div key={b.value} className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">{b.label} %</Label>
+                          <Input
+                            inputMode="decimal"
+                            placeholder="0.80"
+                            className={`tabular-nums ${
+                              fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                            }`}
+                            value={row.rates[b.value]}
+                            onChange={(e) =>
+                              setFormRows((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                    : x,
+                                ),
+                              )
+                            }
+                          />
+                          {fieldErrors[`rate-${i}-${b.value}`] && (
+                            <p className="text-xs text-destructive">
+                              {fieldErrors[`rate-${i}-${b.value}`]}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                      {BONUS_TYPES.every((b) => !formEnabled[b.value]) && (
+                        <p className="text-xs text-muted-foreground">
+                          尚未開啟任何獎金類型，請先於上方選擇。
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <Button
                 size="sm"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => setFormRows((prev) => [...prev, emptyRow()])}
               >
                 <Plus className="mr-1 h-4 w-4" />
                 新增一階
               </Button>
+
             </div>
 
             {errors.length > 0 && (
@@ -855,14 +935,19 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
+          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setDialogOpen(false)}
+            >
               取消
             </Button>
-            <Button onClick={save} disabled={saving}>
+            <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
               儲存版本
             </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
     </div>
