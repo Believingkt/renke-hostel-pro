@@ -738,33 +738,38 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full min-w-[560px] text-sm">
+              <div className="hidden max-h-[46vh] overflow-auto rounded-md border sm:block">
+                <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
 
-                  <thead>
+                  <thead className="sticky top-0 z-20">
                     <tr className="text-xs text-muted-foreground">
-                      <th className="w-14 py-1 text-left font-medium">階層</th>
-                      <th className="py-1 text-left font-medium">營收門檻</th>
+                      <th className="sticky left-0 z-30 w-16 border-b bg-background px-2 py-2 text-left font-medium">
+                        階層
+                      </th>
+                      <th className="sticky left-16 z-30 w-44 border-b bg-background px-2 py-2 text-left font-medium">
+                        營收門檻
+                      </th>
                       {BONUS_TYPES.map((b) => (
                         <th
                           key={b.value}
-                          className={`py-1 text-left font-medium ${
+                          className={`border-b bg-background px-2 py-2 text-left font-medium whitespace-nowrap ${
                             formEnabled[b.value] ? "" : "opacity-40"
                           }`}
                         >
                           {b.label} %
                         </th>
                       ))}
-                      <th className="w-10" />
+                      <th className="w-12 border-b bg-background" />
                     </tr>
                   </thead>
                   <tbody>
                     {formRows.map((row, i) => (
-                      <tr key={i}>
-                        <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <tr key={i} className="align-top">
+                        <td className="sticky left-0 z-10 border-b bg-background px-2 py-1.5 text-xs text-muted-foreground whitespace-nowrap">
                           第 {i + 1} 階
                         </td>
-                        <td className="py-1 pr-2 align-top">
+                        <td className="sticky left-16 z-10 w-44 border-b bg-background px-2 py-1.5 align-top">
+
                           <Input
                             inputMode="numeric"
                             placeholder="1000000"
