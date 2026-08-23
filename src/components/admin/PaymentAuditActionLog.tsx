@@ -141,20 +141,26 @@ export function PaymentAuditActionLog({ accommodationId, reloadKey }: Props) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-        <CardTitle className="flex items-center gap-2 text-base">
-          <History className="h-4 w-4" /> 人工處理操作紀錄
+      <CardHeader className="flex flex-col gap-3 space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardTitle className="flex min-w-0 flex-wrap items-center gap-2 text-base">
+          <History className="h-4 w-4 shrink-0" /> <span className="whitespace-nowrap">人工處理操作紀錄</span>
           <Badge variant="secondary">{filtered.length}</Badge>
         </CardTitle>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="搜尋訂單／操作者／交易編號"
-            className="w-56"
+            className="h-11 min-w-0 flex-1 text-base sm:h-10 sm:w-56 sm:flex-none sm:text-sm"
           />
-          <Button variant="outline" size="sm" onClick={downloadCsv} disabled={!filtered.length}>
-            <Download className="h-4 w-4 mr-1" /> 下載紀錄
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadCsv}
+            disabled={!filtered.length}
+            className="h-11 shrink-0 sm:h-9"
+          >
+            <Download className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">下載紀錄</span>
           </Button>
         </div>
       </CardHeader>

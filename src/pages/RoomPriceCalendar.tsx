@@ -538,12 +538,12 @@ export default function RoomPriceCalendar() {
             )}
 
             {/* 月份選擇器 */}
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:ml-auto">
               <Button
                 variant="default"
                 size="sm"
                 onClick={() => setBulkOpenDialogOpen(true)}
-                className="gap-1.5"
+                className="h-11 flex-1 gap-1.5 sm:h-9 sm:flex-none"
               >
                 <Zap className="h-4 w-4" />
                 一鍵開啟/關閉庫存
@@ -552,17 +552,18 @@ export default function RoomPriceCalendar() {
                 variant="outline"
                 size="sm"
                 onClick={() => setAuditDialogOpen(true)}
-                className="gap-1.5"
+                className="h-11 flex-1 gap-1.5 sm:h-9 sm:flex-none"
               >
                 <History className="h-4 w-4" />
                 變更紀錄
               </Button>
-              <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+              <div className="flex w-full items-center justify-between gap-2 sm:w-auto sm:justify-start">
+              <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-11 w-11 shrink-0 sm:h-10 sm:w-10">
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Popover>
                 <PopoverTrigger asChild>
-                  <button className="text-lg font-medium min-w-[120px] text-center hover:bg-accent rounded-md px-2 py-1 transition-colors">
+                  <button className="min-h-[44px] min-w-[120px] flex-1 rounded-md px-2 py-1 text-center text-lg font-medium transition-colors hover:bg-accent sm:min-h-0 sm:flex-none">
                     {format(currentMonth, 'yyyy-MM', { locale: zhTW })}
                   </button>
                 </PopoverTrigger>
@@ -598,9 +599,10 @@ export default function RoomPriceCalendar() {
                   </Button>
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="icon" onClick={handleNextMonth}>
+              <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-11 w-11 shrink-0 sm:h-10 sm:w-10">
                 <ChevronRight className="h-4 w-4" />
               </Button>
+              </div>
             </div>
           </div>
 
@@ -610,7 +612,7 @@ export default function RoomPriceCalendar() {
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="sticky left-0 z-20 bg-background border-r px-3 py-2 text-left font-medium min-w-[160px]">
+                    <th className="sticky left-0 z-20 bg-background border-r px-3 py-2 text-left font-medium min-w-[120px] sm:min-w-[160px]">
                       房型 / 專案
                     </th>
                     {monthDays.map(day => {
@@ -642,7 +644,7 @@ export default function RoomPriceCalendar() {
                     <>
                       <tr className="bg-muted/30">
                         <td colSpan={monthDays.length + 1} className="p-0">
-                          <div className="sticky left-0 px-3 py-2 font-semibold text-muted-foreground w-[160px]">
+                          <div className="sticky left-0 px-3 py-2 font-semibold text-muted-foreground w-[120px] sm:w-[160px]">
                             包棟
                           </div>
                         </td>
@@ -807,7 +809,7 @@ function RoomTypeRows({
       {showCategoryHeader && (
         <tr className="bg-muted/30">
           <td colSpan={monthDays.length + 1} className="p-0">
-            <div className="sticky left-0 px-3 py-2 font-semibold text-muted-foreground w-[160px]">
+            <div className="sticky left-0 px-3 py-2 font-semibold text-muted-foreground w-[120px] sm:w-[160px]">
               {roomType.name}
             </div>
           </td>
