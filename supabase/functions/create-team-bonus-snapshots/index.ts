@@ -1076,6 +1076,7 @@ serve(async (req) => {
           active_days: activeDays,
           period_days: periodDays,
           prorate_ratio: ratio,
+          tier_rule_accommodation_ids: closerPool.tierAccIds,
         },
       });
     }
