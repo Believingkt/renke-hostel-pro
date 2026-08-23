@@ -12595,6 +12595,51 @@ export type Database = {
           },
         ]
       }
+      venue_team_bonus_tier_rule_logs: {
+        Row: {
+          accommodation_id: string | null
+          action: string
+          actor_email: string | null
+          actor_id: string | null
+          bonus_type: string
+          created_at: string
+          effective_from: string | null
+          id: string
+          note: string | null
+          rule_id: string | null
+          tiers_after: Json | null
+          tiers_before: Json | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          action: string
+          actor_email?: string | null
+          actor_id?: string | null
+          bonus_type: string
+          created_at?: string
+          effective_from?: string | null
+          id?: string
+          note?: string | null
+          rule_id?: string | null
+          tiers_after?: Json | null
+          tiers_before?: Json | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          action?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          bonus_type?: string
+          created_at?: string
+          effective_from?: string | null
+          id?: string
+          note?: string | null
+          rule_id?: string | null
+          tiers_after?: Json | null
+          tiers_before?: Json | null
+        }
+        Relationships: []
+      }
       venue_team_bonus_tier_rules: {
         Row: {
           accommodation_id: string
