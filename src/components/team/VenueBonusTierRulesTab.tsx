@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Plus, Trash2 } from "lucide-react";
 
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
 
 /* ------------------------------ 型別與常數 ------------------------------ */
@@ -953,7 +954,10 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+          <DialogFooter
+            className="sticky bottom-0 z-40 shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6"
+            style={keyboardInset ? { paddingBottom: keyboardInset + 12 } : undefined}
+          >
             <Button
               variant="outline"
               className="w-full sm:w-auto"
