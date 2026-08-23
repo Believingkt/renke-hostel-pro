@@ -412,9 +412,10 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               value={String(periodYear)}
               onValueChange={(v) => setPeriodYear(Number(v))}
             >
-              <SelectTrigger className="w-28">
+              <SelectTrigger className="h-11 w-[calc(50%-0.25rem)] sm:h-10 sm:w-28">
                 <SelectValue />
               </SelectTrigger>
+
               <SelectContent>
                 {yearOptions.map((y) => (
                   <SelectItem key={y} value={String(y)}>
@@ -427,7 +428,7 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               value={String(periodMonth)}
               onValueChange={(v) => setPeriodMonth(Number(v))}
             >
-              <SelectTrigger className="w-28">
+              <SelectTrigger className="h-11 w-[calc(50%-0.25rem)] sm:h-10 sm:w-28">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -467,7 +468,45 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
           )}
         </CardHeader>
         <CardContent className="space-y-4">
-          <Table>
+          {/* 手機版：成員卡片（數量輸入與分配金額同桌機） */}
+          <div className="space-y-2.5 md:hidden">
+            {closers.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">尚無成交組成員</p>
+            ) : (
+              closers.map((m) => (
+                <div key={`m-${m.user_id}`} className="min-w-0 rounded-lg border bg-card p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 break-words text-sm font-medium">{m.display_name}</span>
+                    <span className="shrink-0 text-right text-sm font-semibold tabular-nums">
+                      <BoostedAmount amount={amountFor(m.user_id)} multiplier={closerMultiplier} />
+                    </span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 border-t pt-2">
+                    <span className="text-xs text-muted-foreground">本期負責數量</span>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      step="1"
+                      className="h-11 w-24 text-right text-base"
+                      value={countMap[m.user_id] ?? 0}
+                      disabled={isFinalized || !isAdmin}
+                      onChange={(e) => {
+                        const v = Math.max(0, Math.floor(Number(e.target.value) || 0));
+                        setCountMap((prev) => ({ ...prev, [m.user_id]: v }));
+                      }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              負責數量請於 LINE 後台查看，確認每位成交組夥伴月初～月底的負責客服數量。
+            </p>
+          </div>
+
+          <Table className="hidden md:table">
+
             <TableHeader>
               <TableRow>
                 <TableHead>姓名</TableHead>
@@ -538,25 +577,26 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
               )}
             </TableBody>
           </Table>
-          <div className="flex items-center justify-between text-sm">
-            <div>
-              數量總和：<span className="font-semibold">{totalCount}</span>
+          <div className="flex flex-col gap-1 border-t pt-3 text-sm sm:flex-row sm:items-center sm:justify-between sm:border-0 sm:pt-0">
+            <div className="flex justify-between sm:block">
+              數量總和：<span className="font-semibold tabular-nums">{totalCount}</span>
             </div>
-            <div>
-              分配金額總和：
-              <span className="font-semibold">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-2 sm:justify-end">
+              <span>分配金額總和：</span>
+              <span className="font-semibold tabular-nums">
                 <BoostedAmount amount={totalAmount} multiplier={closerMultiplier} />
               </span>
               {Math.abs(totalAmount - displayPool) >= 1 && displayPool > 0 && (
-                <span className="ml-2 text-xs text-muted-foreground">
+                <span className="w-full text-xs text-muted-foreground sm:ml-2 sm:w-auto">
                   （若有微小差異來自小數四捨五入）
                 </span>
               )}
             </div>
           </div>
 
+
           {isAdmin && !isFinalized && (
-            <div className="flex justify-end">
+            <div className="flex justify-end [&_button]:w-full sm:[&_button]:w-auto">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button disabled={confirming || loading}>
@@ -581,7 +621,8 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             </div>
           )}
           {isAdmin && isFinalized && canReset && (
-            <div className="flex justify-end">
+            <div className="flex justify-end [&_button]:w-full sm:[&_button]:w-auto">
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button

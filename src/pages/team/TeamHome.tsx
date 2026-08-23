@@ -2024,7 +2024,7 @@ export default function TeamHome() {
       : null;
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-4 sm:space-y-6 max-w-5xl min-w-0 overflow-x-hidden pb-6 safe-bottom">
       {canViewOthers && (
         <Card className="border-dashed">
           <CardContent className="py-3 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -2059,15 +2059,16 @@ export default function TeamHome() {
         </Card>
       )}
 
-      <div>
-        <h2 className="text-2xl font-bold">
+      <div className="min-w-0">
+        <h2 className="text-xl sm:text-2xl font-bold break-words">
           {isViewing ? `檢視中：${displayName}` : `歡迎回來，${displayName}`}
         </h2>
 
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           目前顯示：{monthInfo.periodLabel}
         </p>
       </div>
+
 
       <OwnerDirectSimToggle enabled={simEnabled} onChange={setSimEnabled} visible={canSim} />
 
@@ -2111,15 +2112,16 @@ export default function TeamHome() {
             <CardHeader>
               <CardTitle className="text-base">{monthlySettled ? "本期實付總計" : "本期預估總收入"}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-primary">
+            <CardContent className="min-w-0">
+              <p className="text-3xl sm:text-4xl font-bold text-primary tabular-nums break-words">
                 {loading ? "—" : fmt(total)}
                 {!loading && salaryAmt > 0 && (
-                  <span className="ml-2 text-base font-medium text-muted-foreground">
+                  <span className="ml-2 inline-block text-sm sm:text-base font-medium text-muted-foreground">
                     + 薪資 {fmt(salaryAmt)}
                   </span>
                 )}
               </p>
+
               {!loading && salaryAmt > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   （實際領款時，須扣除勞健保相關金額）
@@ -2136,15 +2138,15 @@ export default function TeamHome() {
 
           {(() => {
             const renderCard = (c: (typeof cards)[number]) => (
-              <Card key={c.key} className="relative">
+              <Card key={c.key} className="relative min-w-0 overflow-hidden">
                 {c.multiplier > 1 && !loading && (
                   <Badge className="absolute top-2 right-2 bg-orange-100 text-orange-700 border-orange-200 text-[10px] px-1.5 py-0">
                     × {Number(c.multiplier).toFixed(2)} 倍
                   </Badge>
                 )}
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
-                    {c.title}
+                <CardHeader className="pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                  <CardTitle className="flex items-start gap-1 pr-14 text-[13px] sm:text-sm text-muted-foreground font-medium leading-snug break-words">
+                    <span className="min-w-0 break-words">{c.title}</span>
                     <BonusFormulaHint
                       bonusKey={c.key}
                       values={[
@@ -2155,18 +2157,19 @@ export default function TeamHome() {
                     />
                   </CardTitle>
                   {c.note ? (
-                    <p className="text-xs text-muted-foreground/80 mt-0.5">{c.note}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground/80 mt-0.5 break-words">{c.note}</p>
                   ) : null}
                 </CardHeader>
-                <CardContent>
+                <CardContent className="min-w-0 px-3 pb-3 sm:px-6 sm:pb-6">
                   {!loading && c.multiplier > 1 ? (
-                    <p className="text-sm text-muted-foreground line-through tabular-nums">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-through tabular-nums">
                       {fmt(c.baseAmount ?? Math.round(c.amount / c.multiplier))}
                     </p>
                   ) : null}
-                  <p className="text-2xl font-semibold">
+                  <p className="text-xl sm:text-2xl font-semibold tabular-nums break-words">
                     {loading ? "—" : fmt(c.amount)}
                   </p>
+
                   {!loading && c.simAmount !== undefined ? (
                     <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
                       排除業主自帶：{fmt(c.simAmount)}（
@@ -2185,7 +2188,7 @@ export default function TeamHome() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 h-7 text-xs"
+                          className="mt-2 h-9 w-full text-xs sm:h-7 sm:w-auto"
                           onClick={() => setDetailCardKey(c.key)}
                         >
                           各館別明細（{c.lines.length} 館）
@@ -2197,9 +2200,9 @@ export default function TeamHome() {
                             {c.lines.map((ln, i) => (
                               <div
                                 key={i}
-                                className="flex justify-between gap-2 text-xs text-muted-foreground"
+                                className="flex items-start justify-between gap-2 text-[11px] sm:text-xs text-muted-foreground"
                               >
-                                <span className="truncate">{ln.label}</span>
+                                <span className="min-w-0 break-words">{ln.label}</span>
                                 <span className="tabular-nums whitespace-nowrap">
                                   {fmt(ln.amount)}
                                 </span>
@@ -2207,6 +2210,7 @@ export default function TeamHome() {
                             ))}
                           </div>
                         )
+
                         : null
                     : null}
                 </CardContent>
@@ -2224,11 +2228,12 @@ export default function TeamHome() {
             return order
               .filter((cat) => (byCat.get(cat)?.length ?? 0) > 0)
               .map((cat) => (
-                <div key={cat} className="mb-6">
-                  <h3 className="text-lg font-semibold mb-3">{BONUS_CATEGORY_LABEL[cat]}</h3>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div key={cat} className="mb-5 sm:mb-6 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">{BONUS_CATEGORY_LABEL[cat]}</h3>
+                  <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-2.5 sm:gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {byCat.get(cat)!.map(renderCard)}
                   </div>
+
                 </div>
               ));
           })()}
@@ -2265,8 +2270,9 @@ export default function TeamHome() {
                     營收合計 {fmt(totalRevenue)}　獎金合計 {fmt(totalAmount)}
                   </DrawerDescription>
                 </DrawerHeader>
-                <div className="px-4 pb-8 max-h-[60vh] overflow-y-auto">
-                  <table className="w-full text-sm">
+                <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-[420px] text-xs sm:text-sm">
+
                     <thead>
                       <tr className="text-muted-foreground border-b">
                         <th className="text-left py-2 font-medium">館別</th>

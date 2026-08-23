@@ -1036,7 +1036,196 @@ export default function TeamCommissionStatsTab() {
             分潤金額欄僅計 {dataMonthKey} 資料月，「發放總計」已含回溯補建與分潤補差，與發放管理／首頁卡片一致。
           </p>
         )}
-        <div className="overflow-x-auto">
+        {/* 手機版：每位成員一張摘要卡（數字沿用桌機同一組計算結果） */}
+        <div className="space-y-2.5 md:hidden">
+          {stats.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">無資料</p>
+          ) : (
+            stats.map((r) => {
+              const isOpen = expanded.has(r.uid);
+              const memberAdjSum = sumOf(byUid.get(r.uid));
+              const memberBfSum = sumOf(bfByUid.get(r.uid));
+              const memberCommissionSum: SplitSum = {
+                gross: r.commission,
+                personal: r.commissionPersonal,
+                pool: r.commissionPool,
+              };
+              const memberAdj = netCommission(memberAdjSum);
+              const memberBf = netCommission(memberBfSum);
+              const memberTotal = netCommission(memberCommissionSum) + memberAdj + memberBf;
+              const memberTotalBoosted =
+                boostedAmount(netCommission(memberCommissionSum), bonusMultiplier) +
+                boostedAmount(memberAdj, bonusMultiplier) +
+                boostedAmount(memberBf, bonusMultiplier);
+              const mainTotal = bonusMultiplier > 1 ? memberTotalBoosted : memberTotal;
+              return (
+                <div key={`m-${r.uid}`} className="min-w-0 rounded-lg border bg-card p-3 shadow-sm">
+                  <button
+                    type="button"
+                    className="flex w-full items-start gap-2 text-left"
+                    onClick={() => toggle(expanded, setExpanded, r.uid)}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold">{r.name}</div>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                        有效訂單 {r.validCount} 筆・{fmtMoney(r.validAmount)}
+                      </div>
+                    </div>
+                    {isOpen ? (
+                      <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                    )}
+                  </button>
+
+                  <div className="mt-2 border-t pt-2">
+                    <div className="text-[11px] text-muted-foreground">
+                      {showAdj ? "發放總計" : "分潤金額"}
+                    </div>
+                    <div className="text-xl font-semibold tabular-nums break-words text-primary">
+                      {fmtMoney(showAdj ? mainTotal : netCommission(memberCommissionSum))}
+                    </div>
+                    {showBonus && memberCommissionSum.gross !== 0 && (
+                      <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
+                        原始 Gross {fmtMoney(memberCommissionSum.gross)}
+                        {memberCommissionSum.pool !== 0
+                          ? `・團獎池 ${fmtMoney(memberCommissionSum.pool)}`
+                          : ""}
+                      </div>
+                    )}
+                  </div>
+
+                  <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t pt-2 text-[11px]">
+                    {hasBackfill && (
+                      <div className="flex min-w-0 items-baseline justify-between gap-2">
+                        <dt className="text-muted-foreground">回溯補建</dt>
+                        <dd
+                          className={cn(
+                            "tabular-nums whitespace-nowrap",
+                            memberBf < 0 ? "text-destructive font-medium" : "",
+                          )}
+                        >
+                          {fmtMoney(memberBf)}
+                        </dd>
+                      </div>
+                    )}
+                    {showAdj && (
+                      <div className="flex min-w-0 items-baseline justify-between gap-2">
+                        <dt className="text-muted-foreground">分潤補差</dt>
+                        <dd
+                          className={cn(
+                            "tabular-nums whitespace-nowrap",
+                            memberAdj < 0 ? "text-destructive font-medium" : "",
+                          )}
+                        >
+                          {fmtMoney(memberAdj)}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex min-w-0 items-baseline justify-between gap-2">
+                      <dt className="text-muted-foreground">取消訂單</dt>
+                      <dd className="tabular-nums whitespace-nowrap">{r.cancelCount} 筆</dd>
+                    </div>
+                    <div className="flex min-w-0 items-baseline justify-between gap-2">
+                      <dt className="text-muted-foreground">取消分潤</dt>
+                      <dd className="tabular-nums whitespace-nowrap text-muted-foreground">
+                        {fmtMoney(r.cancelCommission)}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  {isOpen && (
+                    <div className="mt-2 space-y-1.5 border-t pt-2">
+                      {r.byAcc.map((b, bi) => {
+                        const firstOfAcc = r.byAcc.findIndex((x) => x.accId === b.accId) === bi;
+                        const accAdjSum = firstOfAcc
+                          ? sumOf(byUidAcc.get(`${r.uid}|${b.accId}`))
+                          : emptySplitSum();
+                        const accBfSum = firstOfAcc
+                          ? sumOf(bfByUidAcc.get(`${r.uid}|${b.accId}`))
+                          : emptySplitSum();
+                        const accCommissionSum: SplitSum = {
+                          gross: b.commission,
+                          personal: b.commissionPersonal,
+                          pool: b.commissionPool,
+                        };
+                        const accAdj = netCommission(accAdjSum);
+                        const accBf = netCommission(accBfSum);
+                        const accTotal = netCommission(accCommissionSum) + accAdj + accBf;
+                        const adjList =
+                          showAdj && firstOfAcc
+                            ? adjustments
+                                .filter((a) =>
+                                  role === "closer"
+                                    ? a.closer_id === r.uid && a.closer_amount !== 0
+                                    : a.video_creator_id === r.uid && a.video_amount !== 0,
+                                )
+                                .filter((a) => a.accommodation_id === b.accId)
+                                .map((a) => ({
+                                  id: a.id,
+                                  adjustment_type: a.adjustment_type,
+                                  order_number: a.order_number,
+                                  reason: a.reason,
+                                  amount: role === "closer" ? a.closer_amount : a.video_amount,
+                                }))
+                            : [];
+                        const backfillList =
+                          hasBackfill && firstOfAcc
+                            ? backfills
+                                .filter((x) =>
+                                  role === "closer"
+                                    ? x.closer_id === r.uid && x.closer_amount !== 0
+                                    : x.video_creator_id === r.uid && x.video_amount !== 0,
+                                )
+                                .filter((x) => x.accommodation_id === b.accId)
+                                .map((x) => ({
+                                  id: x.id,
+                                  snapshot_month: x.snapshot_month,
+                                  order_number: x.order_number,
+                                  amount: role === "closer" ? x.closer_amount : x.video_amount,
+                                }))
+                            : [];
+                        return (
+                          <button
+                            type="button"
+                            key={`m-${r.uid}-${b.accId}-${b.rate}`}
+                            className="flex w-full min-w-0 items-start justify-between gap-2 rounded-md bg-muted/40 px-2.5 py-2 text-left active:bg-muted"
+                            onClick={() =>
+                              setAccSheet({
+                                title: `${r.name} ・ ${b.accName}`,
+                                breakdown: b,
+                                adjList,
+                                backfillList,
+                              })
+                            }
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-xs font-medium">
+                                {b.accName}（{pct(b.rate)}）
+                              </span>
+                              <span className="mt-0.5 block text-[11px] text-muted-foreground tabular-nums">
+                                有效 {b.validCount} 筆・{fmtMoney(b.validAmount)}
+                              </span>
+                            </span>
+                            <span className="shrink-0 text-right">
+                              <span className="block text-xs font-semibold tabular-nums">
+                                {fmtMoney(accTotal)}
+                              </span>
+                              <Eye className="ml-auto mt-1 h-3.5 w-3.5 text-muted-foreground" />
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
+
           <Table className="fixed-table">
             <TableHeader>
               <TableRow>
