@@ -338,6 +338,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       return;
     }
     setReplaceTarget({ accommodation_id: v.accommodation_id, effective_from: v.effective_from });
+    setReplaceSnapshot(Object.values(v.rows).filter(Boolean) as TierRuleRow[]);
     setFormAcc(v.accommodation_id);
     setFormDate(v.effective_from.slice(0, 10));
     setFormNote(v.note ?? "");
