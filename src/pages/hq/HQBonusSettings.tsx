@@ -121,9 +121,17 @@ export default function HQBonusSettings() {
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         <TabsList>
           {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
+          {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
           <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
           {isHQAdmin && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
         </TabsList>
+
+        {canSeeBonus && (
+          <TabsContent value="venue-tiers" className="space-y-4">
+            <VenueBonusTierRulesTab readOnly={!isHQAdmin} />
+          </TabsContent>
+        )}
+
 
         <TabsContent value="bonus" className="space-y-4">
           <Card>
