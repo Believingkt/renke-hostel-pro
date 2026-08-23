@@ -111,6 +111,9 @@ function GateVsAmountBar() {
 
 /* ------------------------------ 共用工具 ------------------------------ */
 
+import { payoutPeriodLabel } from "@/lib/rateEffectivePeriod";
+
+
 
 /** 今天（Asia/Taipei）的 yyyy-MM-dd */
 function taipeiToday(): string {
