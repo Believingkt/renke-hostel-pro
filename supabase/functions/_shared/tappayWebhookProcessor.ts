@@ -1,5 +1,7 @@
 // 共用：TapPay Webhook 事件處理核心（供 tappay-payment-webhook 即時處理與 tappay-webhook-retry 重試共用）
 import { pushOrderEvent } from "./push.ts";
+import { computeRefundAmounts } from "./refundIdempotency.ts";
+
 
 type Json = Record<string, unknown>;
 
@@ -137,13 +139,22 @@ export async function processTapPayEvent(
   if (eventType === "refund") {
     if (ok) {
       const refunded = Math.abs(num(payload.refunded_amount) ?? amount ?? 0);
-      orderPatch.refunded_amount = Math.max(Number(order.refunded_amount || 0), refunded);
-      orderPatch.paid_amount = Math.max(0, Number(order.paid_amount || 0) - refunded);
+      // Q3-A：payload.refunded_amount 為「累計退款額」，以差額扣減 paid_amount，
+      // 同一退款 callback 重送時 delta = 0，不會重複扣減。
+      const { newPaid, newRefundedTotal } = computeRefundAmounts({
+        currentPaid: Number(order.paid_amount || 0),
+        currentRefundedTotal: Number(order.refunded_amount || 0),
+        incomingRefundedTotal: num(payload.refunded_amount),
+        fallbackAmount: amount,
+      });
+      orderPatch.refunded_amount = newRefundedTotal;
+      orderPatch.paid_amount = newPaid;
       orderPatch.payment_status = "refunded";
       orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
     } else {
       orderPatch.notes = appendNote(`TapPay 退款失敗（${errMsg}），需人工處理（交易 ${recTradeId}）`);
     }
+
   } else {
     if (ok) {
       const charged = Math.abs(amount ?? 0);
