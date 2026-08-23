@@ -621,7 +621,8 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
             </div>
           )}
           {isAdmin && isFinalized && canReset && (
-            <div className="flex justify-end">
+            <div className="flex justify-end [&_button]:w-full sm:[&_button]:w-auto">
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
