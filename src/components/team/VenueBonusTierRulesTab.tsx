@@ -720,10 +720,20 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
-              </p>
+              {fieldErrors.types ? (
+                <p
+                  className="text-xs text-destructive"
+                  ref={(el) => (fieldRefs.current["types"] = el)}
+                >
+                  {fieldErrors.types}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
+                </p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
