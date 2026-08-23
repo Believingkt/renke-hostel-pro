@@ -2188,7 +2188,7 @@ export default function TeamHome() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 h-7 text-xs"
+                          className="mt-2 h-9 w-full text-xs sm:h-7 sm:w-auto"
                           onClick={() => setDetailCardKey(c.key)}
                         >
                           各館別明細（{c.lines.length} 館）
@@ -2200,9 +2200,9 @@ export default function TeamHome() {
                             {c.lines.map((ln, i) => (
                               <div
                                 key={i}
-                                className="flex justify-between gap-2 text-xs text-muted-foreground"
+                                className="flex items-start justify-between gap-2 text-[11px] sm:text-xs text-muted-foreground"
                               >
-                                <span className="truncate">{ln.label}</span>
+                                <span className="min-w-0 break-words">{ln.label}</span>
                                 <span className="tabular-nums whitespace-nowrap">
                                   {fmt(ln.amount)}
                                 </span>
@@ -2210,6 +2210,7 @@ export default function TeamHome() {
                             ))}
                           </div>
                         )
+
                         : null
                     : null}
                 </CardContent>
