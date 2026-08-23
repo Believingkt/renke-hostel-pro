@@ -7876,7 +7876,12 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
     fetchRows();
   }, [fetchRows]);
 
-  const latest = rows[0];
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點
+  const salaryAsOf = scoutRateAsOfToday();
+  const latestIdx = rows.findIndex((r) => r.effective_from <= salaryAsOf);
+  const latest = latestIdx >= 0 ? rows[latestIdx] : undefined;
+  const salaryHistory = rows.filter((_, i) => i !== latestIdx);
+  const pendingSalary = rows.filter((r) => r.effective_from > salaryAsOf);
 
   const openEdit = () => {
     setEffectiveFrom(todayStr());
