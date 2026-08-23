@@ -95,6 +95,39 @@ export default function PaymentResult() {
       });
       return;
     }
+
+    // 團購信用卡 3DS 回程：付款成功後才建立正式訂單，
+    // 完成邏輯全在後端（group-buy-complete-paid-order），本頁只轉導結果。
+    if (source === 'group_buy') {
+      const draftId = searchParams.get('draft');
+      setPaymentSource('unknown');
+      setStatus('creating_order');
+      void (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('group-buy-complete-paid-order', {
+            body: { draftId, recTradeId },
+          });
+          const payload: any = data;
+          if (error && !payload) throw error;
+          if (payload?.success && payload.orderNumber) {
+            navigate(`/g/order/${payload.orderNumber}/confirmed`, {
+              state: { fromCreditCard: true, result: payload },
+              replace: true,
+            });
+            return;
+          }
+          setStatus('failed');
+          setErrorMessage(payload?.error || '付款結果確認失敗，請至訂單查詢頁確認或聯繫客服。');
+        } catch (e) {
+          console.error('[group-buy] complete paid order failed', e);
+          setStatus('failed');
+          setErrorMessage('無法確認付款結果，請稍後至訂單查詢頁確認或聯繫客服。');
+        }
+      })();
+      return;
+    }
+
+
     // Determine payment source and load pending data
     let detectedSource: PaymentSource = 'unknown';
     let pending: PendingPayment | null = null;
