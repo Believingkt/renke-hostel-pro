@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,6 +173,8 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   });
   const [formRows, setFormRows] = useState<FormRow[]>([emptyRow()]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
@@ -233,6 +235,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     setFormEnabled({ am_performance: true, am_manager: true, closer_performance: true });
     setFormRows([emptyRow()]);
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -259,6 +262,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     });
     setFormRows(versionToRows(v));
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
@@ -274,48 +278,96 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     });
     setFormRows(versionToRows(v));
     setErrors([]);
+    setFieldErrors({});
     setDialogOpen(true);
   };
 
   const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
 
-  const validate = (): string[] => {
+  /** 逐欄位錯誤：key 為 acc / date / types / rows / min-i / rate-i-type */
+  const validate = (): { list: string[]; fields: Record<string, string>; firstKey?: string } => {
     const errs: string[] = [];
-    if (!formAcc) errs.push("請選擇館別");
-    if (!formDate) errs.push("請選擇生效日");
-    if (enabledTypes.length === 0) errs.push("至少要有一種獎金使用本館級距，否則此版本沒有意義");
-    if (formRows.length === 0) errs.push("請至少填一個級距");
+    const fields: Record<string, string> = {};
+    const order: string[] = [];
+    const put = (key: string, msg: string) => {
+      if (!fields[key]) {
+        fields[key] = msg;
+        order.push(key);
+      }
+      errs.push(msg);
+    };
 
-    const mins: number[] = [];
+    if (!formAcc) put("acc", "請選擇館別");
+    if (!formDate) put("date", "請選擇生效日");
+    if (enabledTypes.length === 0)
+      put("types", "至少要有一種獎金使用本館級距，否則此版本沒有意義");
+    if (formRows.length === 0) put("rows", "請至少填一個級距");
+
+    const mins: Array<number | null> = [];
     formRows.forEach((row, i) => {
       const min = Number(row.min);
-      if (row.min.trim() === "" || !Number.isFinite(min) || min < 0) {
-        errs.push(`第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+      if (row.min.trim() === "") {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必填`);
+        mins.push(null);
+      } else if (!Number.isFinite(min) || min < 0) {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+        mins.push(null);
       } else {
         mins.push(min);
       }
       for (const t of enabledTypes) {
         const raw = row.rates[t];
         const rate = Number(raw);
-        if (raw.trim() === "" || !Number.isFinite(rate) || rate < 0 || rate > 100) {
-          errs.push(`第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字（0 代表不發）`);
+        if (raw.trim() === "") {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必填（不發請填 0）`);
+        } else if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字`);
         }
       }
     });
 
-    const sorted = [...mins].sort((a, b) => a - b);
-    if (new Set(sorted).size !== sorted.length) errs.push("營收門檻不可重複");
+    // 門檻必須由小到大遞增且不重複
+    const seen = new Map<number, number>();
+    mins.forEach((m, i) => {
+      if (m === null) return;
+      const dup = seen.get(m);
+      if (dup !== undefined) {
+        put(`min-${i}`, `第 ${i + 1} 階：門檻 ${m.toLocaleString()} 與第 ${dup + 1} 階重複`);
+        return;
+      }
+      seen.set(m, i);
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = mins[j];
+        if (prev === null) continue;
+        if (m <= prev) {
+          put(
+            `min-${i}`,
+            `第 ${i + 1} 階：門檻必須大於第 ${j + 1} 階（${prev.toLocaleString()}）`,
+          );
+        }
+        break;
+      }
+    });
 
-    return errs;
+    return { list: errs, fields, firstKey: order[0] };
   };
 
   const save = async () => {
-    const errs = validate();
-    setErrors(errs);
-    if (errs.length > 0) {
-      toast({ title: "尚有欄位需修正", description: errs[0], variant: "destructive" });
+    const { list, fields, firstKey } = validate();
+    setErrors(list);
+    setFieldErrors(fields);
+    if (list.length > 0) {
+      toast({ title: "尚有欄位需修正", description: list[0], variant: "destructive" });
+      if (firstKey) {
+        requestAnimationFrame(() => {
+          const el = fieldRefs.current[firstKey];
+          el?.scrollIntoView({ block: "center", behavior: "smooth" });
+          el?.focus?.();
+        });
+      }
       return;
     }
+
 
     const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
     setSaving(true);
@@ -612,7 +664,10 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               <div className="space-y-1.5">
                 <Label>館別</Label>
                 <Select value={formAcc} onValueChange={setFormAcc}>
-                  <SelectTrigger>
+                  <SelectTrigger
+                    ref={(el) => (fieldRefs.current["acc"] = el)}
+                    className={fieldErrors.acc ? "border-destructive" : ""}
+                  >
                     <SelectValue placeholder="選擇館別" />
                   </SelectTrigger>
                   <SelectContent>
@@ -623,14 +678,28 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     ))}
                   </SelectContent>
                 </Select>
+                {fieldErrors.acc && (
+                  <p className="text-xs text-destructive">{fieldErrors.acc}</p>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label>生效日</Label>
-                <Input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} />
-                <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+                <Input
+                  type="date"
+                  ref={(el) => (fieldRefs.current["date"] = el)}
+                  className={fieldErrors.date ? "border-destructive" : ""}
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                />
+                {fieldErrors.date ? (
+                  <p className="text-xs text-destructive">{fieldErrors.date}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+                )}
               </div>
             </div>
+
 
             <div className="space-y-2">
               <Label>哪些獎金使用本館級距？</Label>
@@ -651,10 +720,20 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground">
-                關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
-              </p>
+              {fieldErrors.types ? (
+                <p
+                  className="text-xs text-destructive"
+                  ref={(el) => (fieldRefs.current["types"] = el)}
+                >
+                  {fieldErrors.types}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
+                </p>
+              )}
             </div>
+
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
@@ -683,11 +762,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                         <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
                           第 {i + 1} 階
                         </td>
-                        <td className="py-1 pr-2">
+                        <td className="py-1 pr-2 align-top">
                           <Input
                             inputMode="numeric"
                             placeholder="1000000"
-                            className="tabular-nums"
+                            ref={(el) => (fieldRefs.current[`min-${i}`] = el)}
+                            className={`tabular-nums ${
+                              fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                            }`}
                             value={row.min}
                             onChange={(e) =>
                               setFormRows((prev) =>
@@ -697,13 +779,21 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                               )
                             }
                           />
+                          {fieldErrors[`min-${i}`] && (
+                            <p className="mt-1 text-xs text-destructive">
+                              {fieldErrors[`min-${i}`]}
+                            </p>
+                          )}
                         </td>
                         {BONUS_TYPES.map((b) => (
-                          <td key={b.value} className="py-1 pr-2">
+                          <td key={b.value} className="py-1 pr-2 align-top">
                             <Input
                               inputMode="decimal"
                               placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
-                              className="tabular-nums"
+                              ref={(el) => (fieldRefs.current[`rate-${i}-${b.value}`] = el)}
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
                               disabled={!formEnabled[b.value]}
                               value={row.rates[b.value]}
                               onChange={(e) =>
@@ -716,8 +806,14 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                                 )
                               }
                             />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="mt-1 text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
                           </td>
                         ))}
+
                         <td className="py-1">
                           <Button
                             size="icon"
