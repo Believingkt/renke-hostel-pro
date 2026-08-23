@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
           newPaymentStatus = 'paid';
         } else if (newPaidAmount > 0) {
           newPaymentStatus = order.payment_status === 'unpaid' || order.payment_status === 'pending_payment'
-            ? 'deposit_paid' : 'partial';
+            ? 'deposit_paid' : 'deposit_paid';
         }
 
         const tag = isAtm ? '[ATM Webhook]' : '[3DS Webhook]';

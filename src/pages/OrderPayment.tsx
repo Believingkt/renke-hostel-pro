@@ -488,7 +488,7 @@ export default function OrderPayment() {
 
         if (currentOrder) {
           const newPaid = (currentOrder.paid_amount || 0) + amount;
-          const newStatus = newPaid >= currentOrder.final_price ? "paid" : newPaid > 0 ? "partial" : "unpaid";
+          const newStatus = newPaid >= currentOrder.final_price ? "paid" : newPaid > 0 ? "deposit_paid" : "unpaid";
           await supabase
             .from("orders")
             .update({
