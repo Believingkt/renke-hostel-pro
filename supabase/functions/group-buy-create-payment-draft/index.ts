@@ -74,9 +74,10 @@ Deno.serve(async (req) => {
     // idempotency_key 同時作為 TapPay order_number（<= 50 字元）
     const idempotencyKey = `GB${crypto.randomUUID().replace(/-/g, "").slice(0, 22).toUpperCase()}`;
 
-    const { data: draft, error: dErr } = await admin
-      .from("group_buy_payment_drafts")
-      .insert({
+    // 原子取得房位保留（B2）：DB 內 advisory xact lock → 重驗庫存 → INSERT draft
+    // 庫存不足時不會產生 draft，也不會產生 hold。
+    const { data: holdRaw, error: hErr } = await admin.rpc("acquire_group_buy_payment_hold", {
+      p_payload: {
         idempotency_key: idempotencyKey,
         campaign_id: plan.campaign.id,
         campaign_package_id: plan.pkg.id,
@@ -85,6 +86,7 @@ Deno.serve(async (req) => {
         check_in_date: plan.input.checkInDate,
         check_out_date: plan.input.checkOutDate,
         room_quantity: plan.roomQuantity,
+        dates: plan.dates,
         adult_count: plan.input.adultCount,
         child_count: plan.input.childCount,
         toddler_count: plan.input.toddlerCount,
@@ -93,7 +95,7 @@ Deno.serve(async (req) => {
         guest_name: plan.input.guestName,
         guest_phone: plan.input.guestPhone,
         guest_email: plan.input.guestEmail,
-        guest_note: plan.input.guestNote || null,
+        guest_note: plan.input.guestNote,
         booking_payload: {
           slug: plan.campaign.slug,
           campaign_title: plan.campaign.title,
@@ -109,25 +111,22 @@ Deno.serve(async (req) => {
         amount_to_charge: plan.deposit,
         payment_provider: "tappay",
         payment_type: "credit_card",
-        status: "pending",
         expires_at: expiresAt.toISOString(),
-      })
-      .select("id, idempotency_key, amount_to_charge, expires_at")
-      .single();
-    if (dErr) {
-      console.error(`[${FN}] draft insert failed`, dErr);
+      },
+    });
+    if (hErr) {
+      console.error(`[${FN}] acquire hold failed`, hErr);
       return json({ error: "目前無法開始付款，請稍後再試或聯繫客服。" }, 500);
     }
+    const hold = (holdRaw ?? {}) as any;
+    if (!hold.ok) {
+      return json(
+        { error: hold.error ?? "目前房位已被其他旅客暫時保留，請重新選擇。", code: hold.code ?? "hold_unavailable" },
+        409,
+      );
+    }
+    const draft = hold.draft as any;
 
-    await admin.from("group_buy_payment_events").insert({
-      campaign_id: plan.campaign.id,
-      order_id: null,
-      event_type: "payment_draft_created",
-      amount: plan.deposit,
-      actor_label: plan.input.guestName || "guest",
-      note:
-        `信用卡付款保留建立（draft:${draft.id}／${plan.input.checkInDate} → ${plan.input.checkOutDate}／保留至 ${expiresAt.toISOString()}）`,
-    });
 
     return json({
       success: true,
