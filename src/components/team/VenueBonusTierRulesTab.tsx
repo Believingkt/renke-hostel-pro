@@ -586,6 +586,25 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         </CardHeader>
       </Card>
 
+      {/* 重建後限時撤銷 */}
+      {undoState && !readOnly && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm">
+          <span>
+            已重建「{accs.find((a) => a.id === undoState.accommodation_id)?.name}」生效日{" "}
+            {undoState.effective_from} 的版本。若是誤觸，可在 {undoLeft} 秒內還原成修正前內容。
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={undoRebuild} disabled={undoing}>
+              {undoing ? "還原中…" : "撤銷上一步"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setUndoState(null)}>
+              知道了
+            </Button>
+          </div>
+        </div>
+      )}
+
+
       {/* 館別總覽 */}
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
