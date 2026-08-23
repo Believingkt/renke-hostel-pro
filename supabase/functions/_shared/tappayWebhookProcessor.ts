@@ -95,6 +95,28 @@ export async function processTapPayEvent(
   const eventType = classify(payload);
   const ok = status === 0;
 
+  // Q3-B：同一事件（相同 rec_trade_id + 事件種類 + 狀態 + 金額 + 累計退款額）
+  // 若先前已成功處理完成，直接視為重送，不再執行任何副作用。
+  const signature = eventSignature({
+    eventType,
+    status,
+    amount,
+    refundedTotal: num(payload.refunded_amount),
+  });
+  const dup = await findProcessedDuplicate(supabase, recTradeId, signature, eventType);
+  if (dup) {
+    console.log("[tappay] duplicate event skipped", { recTradeId, signature });
+    return {
+      matched: true,
+      ok,
+      eventType,
+      duplicate: true,
+      orderId: dup.matched_order_id ?? undefined,
+      orderNumber: orderNumber ?? dup.order_number ?? undefined,
+    };
+  }
+
+
   let order: any = null;
   if (recTradeId) {
     const { data, error } = await supabase
