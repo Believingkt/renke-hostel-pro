@@ -688,14 +688,22 @@ serve(async (req) => {
     const supabase = authRes.ctx.admin;
 
     /* ---------- 設定（全部以 asOf 鎖定版本） ---------- */
-    const [rateSettings, sharedSources, kolSources, amManagerId, closerManagerId, kolRecipientId] =
-      await Promise.all([
+    const [
+      rateSettings,
+      sharedSources,
+      kolSources,
+      amManagerId,
+      closerManagerId,
+      kolRecipientId,
+      venueTierRules,
+    ] = await Promise.all([
         getBonusRateSettings(supabase, asOf),
         getRevenueSourceWhitelist(supabase, "teamcommission_shared_revenue_source_whitelist", asOf),
         getRevenueSourceWhitelist(supabase, "teamcommission_kol_revenue_source_whitelist", asOf),
         getRoleBinding(supabase, "am_manager", asOf),
         getRoleBinding(supabase, "closer_manager", asOf),
         getRoleBinding(supabase, "kol_bonus_recipient", asOf),
+        getVenueTierRules(supabase, asOf),
       ]);
 
     /* ---------- 成員與角色 ---------- */
