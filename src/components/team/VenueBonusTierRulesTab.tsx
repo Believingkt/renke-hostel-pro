@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Copy, Plus, Trash2 } from "lucide-react";
 
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
 
 /* ------------------------------ 型別與常數 ------------------------------ */
@@ -162,6 +163,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
 
   // 編輯 Dialog 狀態
+  const keyboardInset = useKeyboardInset();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
@@ -738,33 +740,38 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
-              <div className="hidden overflow-x-auto sm:block">
-                <table className="w-full min-w-[560px] text-sm">
+              <div className="hidden max-h-[46vh] overflow-auto rounded-md border sm:block">
+                <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
 
-                  <thead>
+                  <thead className="sticky top-0 z-20">
                     <tr className="text-xs text-muted-foreground">
-                      <th className="w-14 py-1 text-left font-medium">階層</th>
-                      <th className="py-1 text-left font-medium">營收門檻</th>
+                      <th className="sticky left-0 z-30 w-16 border-b bg-background px-2 py-2 text-left font-medium">
+                        階層
+                      </th>
+                      <th className="sticky left-16 z-30 w-44 border-b bg-background px-2 py-2 text-left font-medium">
+                        營收門檻
+                      </th>
                       {BONUS_TYPES.map((b) => (
                         <th
                           key={b.value}
-                          className={`py-1 text-left font-medium ${
+                          className={`border-b bg-background px-2 py-2 text-left font-medium whitespace-nowrap ${
                             formEnabled[b.value] ? "" : "opacity-40"
                           }`}
                         >
                           {b.label} %
                         </th>
                       ))}
-                      <th className="w-10" />
+                      <th className="w-12 border-b bg-background" />
                     </tr>
                   </thead>
                   <tbody>
                     {formRows.map((row, i) => (
-                      <tr key={i}>
-                        <td className="py-1 pr-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <tr key={i} className="align-top">
+                        <td className="sticky left-0 z-10 border-b bg-background px-2 py-1.5 text-xs text-muted-foreground whitespace-nowrap">
                           第 {i + 1} 階
                         </td>
-                        <td className="py-1 pr-2 align-top">
+                        <td className="sticky left-16 z-10 w-44 border-b bg-background px-2 py-1.5 align-top">
+
                           <Input
                             inputMode="numeric"
                             placeholder="1000000"
@@ -788,7 +795,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           )}
                         </td>
                         {BONUS_TYPES.map((b) => (
-                          <td key={b.value} className="py-1 pr-2 align-top">
+                          <td key={b.value} className="min-w-[7.5rem] border-b px-2 py-1.5 align-top">
                             <Input
                               inputMode="decimal"
                               placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
@@ -816,7 +823,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                           </td>
                         ))}
 
-                        <td className="py-1">
+                        <td className="border-b px-1 py-1.5">
                           <Button
                             size="icon"
                             variant="ghost"
@@ -871,40 +878,53 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                       )}
                     </div>
 
-                    <div className="mt-2 space-y-2">
-                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
-                        <div key={b.value} className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">{b.label} %</Label>
-                          <Input
-                            inputMode="decimal"
-                            placeholder="0.80"
-                            className={`tabular-nums ${
-                              fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
-                            }`}
-                            value={row.rates[b.value]}
-                            onChange={(e) =>
-                              setFormRows((prev) =>
-                                prev.map((x, xi) =>
-                                  xi === i
-                                    ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
-                                    : x,
-                                ),
-                              )
-                            }
-                          />
-                          {fieldErrors[`rate-${i}-${b.value}`] && (
-                            <p className="text-xs text-destructive">
-                              {fieldErrors[`rate-${i}-${b.value}`]}
-                            </p>
-                          )}
-                        </div>
-                      ))}
+                    <div className="-mx-3 mt-2 overflow-x-auto px-3 [scrollbar-width:thin]">
+                      <div className="flex snap-x snap-mandatory gap-3">
+                        {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
+                          <div
+                            key={b.value}
+                            className="w-[9.5rem] shrink-0 snap-start space-y-1.5"
+                          >
+                            <Label className="block truncate text-xs text-muted-foreground">
+                              {b.label} %
+                            </Label>
+                            <Input
+                              inputMode="decimal"
+                              placeholder="0.80"
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
+                              value={row.rates[b.value]}
+                              onChange={(e) =>
+                                setFormRows((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).length > 1 && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          左右滑動可切換其他獎金費率欄位
+                        </p>
+                      )}
                       {BONUS_TYPES.every((b) => !formEnabled[b.value]) && (
                         <p className="text-xs text-muted-foreground">
                           尚未開啟任何獎金類型，請先於上方選擇。
                         </p>
                       )}
                     </div>
+
                   </div>
                 ))}
               </div>
@@ -935,7 +955,10 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6">
+          <DialogFooter
+            className="sticky bottom-0 z-40 shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6"
+            style={keyboardInset ? { paddingBottom: keyboardInset + 12 } : undefined}
+          >
             <Button
               variant="outline"
               className="w-full sm:w-auto"
