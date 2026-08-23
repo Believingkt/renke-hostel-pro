@@ -96,8 +96,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Step 2: Call TapPay Record API
-    const response = await fetch("https://prod.tappaysdk.com/tpc/transaction/query", {
+    // Step 2: Call TapPay Record API（依 TAPPAY_ENV 決定，production 時與原硬編字串相同）
+    const tappayBase = Deno.env.get("TAPPAY_ENV") === "sandbox"
+      ? "https://sandbox.tappaysdk.com"
+      : "https://prod.tappaysdk.com";
+    const response = await fetch(`${tappayBase}/tpc/transaction/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
