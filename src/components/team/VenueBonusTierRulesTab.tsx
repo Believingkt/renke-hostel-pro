@@ -833,14 +833,92 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                   </tbody>
                 </table>
               </div>
+
+              {/* 手機版：每階一張卡片 */}
+              <div className="space-y-3 sm:hidden">
+                {formRows.map((row, i) => (
+                  <div key={i} className="rounded-lg border p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium">第 {i + 1} 階</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="刪除此階"
+                        className="h-9 w-9"
+                        onClick={() => setFormRows((prev) => prev.filter((_, xi) => xi !== i))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">營收門檻</Label>
+                      <Input
+                        inputMode="numeric"
+                        placeholder="1000000"
+                        className={`tabular-nums ${
+                          fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                        }`}
+                        value={row.min}
+                        onChange={(e) =>
+                          setFormRows((prev) =>
+                            prev.map((x, xi) => (xi === i ? { ...x, min: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      {fieldErrors[`min-${i}`] && (
+                        <p className="text-xs text-destructive">{fieldErrors[`min-${i}`]}</p>
+                      )}
+                    </div>
+
+                    <div className="mt-2 space-y-2">
+                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
+                        <div key={b.value} className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">{b.label} %</Label>
+                          <Input
+                            inputMode="decimal"
+                            placeholder="0.80"
+                            className={`tabular-nums ${
+                              fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                            }`}
+                            value={row.rates[b.value]}
+                            onChange={(e) =>
+                              setFormRows((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i
+                                    ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                    : x,
+                                ),
+                              )
+                            }
+                          />
+                          {fieldErrors[`rate-${i}-${b.value}`] && (
+                            <p className="text-xs text-destructive">
+                              {fieldErrors[`rate-${i}-${b.value}`]}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                      {BONUS_TYPES.every((b) => !formEnabled[b.value]) && (
+                        <p className="text-xs text-muted-foreground">
+                          尚未開啟任何獎金類型，請先於上方選擇。
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
               <Button
                 size="sm"
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => setFormRows((prev) => [...prev, emptyRow()])}
               >
                 <Plus className="mr-1 h-4 w-4" />
                 新增一階
               </Button>
+
             </div>
 
             {errors.length > 0 && (
