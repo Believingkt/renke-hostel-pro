@@ -13279,34 +13279,20 @@ export type Database = {
           is_blocked: boolean
         }[]
       }
-      get_adjusted_room_inventory_batch:
-        | {
-            Args: {
-              p_accommodation_id: string
-              p_dates: string[]
-              p_room_type_id: string
-            }
-            Returns: {
-              available_rooms: number
-              blocked_by_room_name: string
-              date_value: string
-              is_blocked: boolean
-            }[]
-          }
-        | {
-            Args: {
-              p_accommodation_id: string
-              p_dates: string[]
-              p_exclude_draft_id?: string
-              p_room_type_id: string
-            }
-            Returns: {
-              available_rooms: number
-              blocked_by_room_name: string
-              date_value: string
-              is_blocked: boolean
-            }[]
-          }
+      get_adjusted_room_inventory_batch: {
+        Args: {
+          p_accommodation_id: string
+          p_dates: string[]
+          p_exclude_draft_id?: string
+          p_room_type_id: string
+        }
+        Returns: {
+          available_rooms: number
+          blocked_by_room_name: string
+          date_value: string
+          is_blocked: boolean
+        }[]
+      }
       get_ai_ops_metrics: {
         Args: { _accommodation_id?: string; _days?: number }
         Returns: Json
