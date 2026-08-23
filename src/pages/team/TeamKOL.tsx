@@ -7892,6 +7892,14 @@ function SalarySettingsBlock({ isManager }: { isManager: boolean }) {
 
   const save = async () => {
     if (!effectiveFrom) return toast.error("請填生效日期");
+    // 防呆：金額與目前版本相同時不需要另存新版本
+    if (
+      latest &&
+      Number(base) === Number(latest.base_salary) &&
+      Number(bonus) === Number(latest.team_bonus)
+    ) {
+      return toast.error("金額與目前生效版本相同，無需新增版本（避免產生重複版本）");
+    }
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
     const { error } = await supabase.from("scout_salary_settings").insert({
