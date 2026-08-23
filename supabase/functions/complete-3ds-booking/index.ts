@@ -78,7 +78,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const tappayQueryResponse = await fetch("https://prod.tappaysdk.com/tpc/transaction/query", {
+    // 依 TAPPAY_ENV 決定查詢網址（production 時與原硬編字串完全相同）
+    const tappayBase = Deno.env.get("TAPPAY_ENV") === "sandbox"
+      ? "https://sandbox.tappaysdk.com"
+      : "https://prod.tappaysdk.com";
+
+    const tappayQueryResponse = await fetch(`${tappayBase}/tpc/transaction/query`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
