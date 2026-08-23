@@ -738,8 +738,9 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
             <div className="space-y-2">
               <Label>級距表（門檻金額／各獎金費率 %）</Label>
-              <div className="overflow-x-auto">
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="w-full min-w-[560px] text-sm">
+
                   <thead>
                     <tr className="text-xs text-muted-foreground">
                       <th className="w-14 py-1 text-left font-medium">階層</th>
