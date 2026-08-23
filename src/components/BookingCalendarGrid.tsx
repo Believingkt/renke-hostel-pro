@@ -741,10 +741,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const goNext = () => setStartDate(prev => addDays(prev, dayCount));
 
   // Column width – responsive: measure container and distribute evenly
-  const LEFT_COL_WIDTH = 200;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const roCleanupRef = useRef<(() => void) | null>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  // 手機窄螢幕縮短左側房型欄，避免日期欄只剩 1～2 格（純版面調整）
+  const LEFT_COL_WIDTH = containerWidth > 0 && containerWidth < 480 ? 140 : 200;
 
   // Callback ref so measurement attaches whenever the grid element mounts
   // (the component may render a spinner first, then the grid — a plain useEffect
