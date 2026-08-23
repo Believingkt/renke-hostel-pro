@@ -33,7 +33,9 @@ import { GroupBuyRichContent } from "@/components/groupbuy/GroupBuyRichContent";
 import { GroupBuyTermsHighlights } from "@/components/groupbuy/GroupBuyTermsHighlights";
 
 import { GroupBuyStepper } from "@/components/groupbuy/GroupBuyStepper";
-import { GroupBuyConfirmDialog } from "@/components/groupbuy/GroupBuyConfirmDialog";
+import { GroupBuyConfirmDialog, type GroupBuyPaymentMethod } from "@/components/groupbuy/GroupBuyConfirmDialog";
+import { GroupBuyCreditCardDialog } from "@/components/groupbuy/GroupBuyCreditCardDialog";
+
 import { GroupBuySummaryCard } from "@/components/groupbuy/GroupBuySummaryCard";
 import { GroupBuyPaymentSteps } from "@/components/groupbuy/GroupBuyPaymentSteps";
 import { fetchGroupBuyVenueIntro } from "@/lib/groupBuyVenueIntro";
