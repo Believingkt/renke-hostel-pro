@@ -279,43 +279,90 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
 
-  const validate = (): string[] => {
+  /** 逐欄位錯誤：key 為 acc / date / types / rows / min-i / rate-i-type */
+  const validate = (): { list: string[]; fields: Record<string, string>; firstKey?: string } => {
     const errs: string[] = [];
-    if (!formAcc) errs.push("請選擇館別");
-    if (!formDate) errs.push("請選擇生效日");
-    if (enabledTypes.length === 0) errs.push("至少要有一種獎金使用本館級距，否則此版本沒有意義");
-    if (formRows.length === 0) errs.push("請至少填一個級距");
+    const fields: Record<string, string> = {};
+    const order: string[] = [];
+    const put = (key: string, msg: string) => {
+      if (!fields[key]) {
+        fields[key] = msg;
+        order.push(key);
+      }
+      errs.push(msg);
+    };
 
-    const mins: number[] = [];
+    if (!formAcc) put("acc", "請選擇館別");
+    if (!formDate) put("date", "請選擇生效日");
+    if (enabledTypes.length === 0)
+      put("types", "至少要有一種獎金使用本館級距，否則此版本沒有意義");
+    if (formRows.length === 0) put("rows", "請至少填一個級距");
+
+    const mins: Array<number | null> = [];
     formRows.forEach((row, i) => {
       const min = Number(row.min);
-      if (row.min.trim() === "" || !Number.isFinite(min) || min < 0) {
-        errs.push(`第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+      if (row.min.trim() === "") {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必填`);
+        mins.push(null);
+      } else if (!Number.isFinite(min) || min < 0) {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+        mins.push(null);
       } else {
         mins.push(min);
       }
       for (const t of enabledTypes) {
         const raw = row.rates[t];
         const rate = Number(raw);
-        if (raw.trim() === "" || !Number.isFinite(rate) || rate < 0 || rate > 100) {
-          errs.push(`第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字（0 代表不發）`);
+        if (raw.trim() === "") {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必填（不發請填 0）`);
+        } else if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字`);
         }
       }
     });
 
-    const sorted = [...mins].sort((a, b) => a - b);
-    if (new Set(sorted).size !== sorted.length) errs.push("營收門檻不可重複");
+    // 門檻必須由小到大遞增且不重複
+    const seen = new Map<number, number>();
+    mins.forEach((m, i) => {
+      if (m === null) return;
+      const dup = seen.get(m);
+      if (dup !== undefined) {
+        put(`min-${i}`, `第 ${i + 1} 階：門檻 ${m.toLocaleString()} 與第 ${dup + 1} 階重複`);
+        return;
+      }
+      seen.set(m, i);
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = mins[j];
+        if (prev === null) continue;
+        if (m <= prev) {
+          put(
+            `min-${i}`,
+            `第 ${i + 1} 階：門檻必須大於第 ${j + 1} 階（${prev.toLocaleString()}）`,
+          );
+        }
+        break;
+      }
+    });
 
-    return errs;
+    return { list: errs, fields, firstKey: order[0] };
   };
 
   const save = async () => {
-    const errs = validate();
-    setErrors(errs);
-    if (errs.length > 0) {
-      toast({ title: "尚有欄位需修正", description: errs[0], variant: "destructive" });
+    const { list, fields, firstKey } = validate();
+    setErrors(list);
+    setFieldErrors(fields);
+    if (list.length > 0) {
+      toast({ title: "尚有欄位需修正", description: list[0], variant: "destructive" });
+      if (firstKey) {
+        requestAnimationFrame(() => {
+          const el = fieldRefs.current[firstKey];
+          el?.scrollIntoView({ block: "center", behavior: "smooth" });
+          el?.focus?.();
+        });
+      }
       return;
     }
+
 
     const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
     setSaving(true);
