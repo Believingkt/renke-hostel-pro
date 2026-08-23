@@ -607,12 +607,12 @@ export function OnlinePaymentDialog({
     return (
       <>
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[92vh]">
-            <DrawerHeader className="text-left">
+          <DrawerContent className="flex max-h-[92dvh] flex-col">
+            <DrawerHeader className="shrink-0 text-left">
               <DrawerTitle>線上收款</DrawerTitle>
               <DrawerDescription>生成付款連結讓客人以 {payVerb} 完成付款</DrawerDescription>
             </DrawerHeader>
-            <div className="px-4 pb-[env(safe-area-inset-bottom)] overflow-y-auto">
+            <div className="safe-bottom min-h-0 flex-1 overflow-y-auto px-4">
               <div className="pb-6">{content}</div>
             </div>
           </DrawerContent>

@@ -472,12 +472,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="!flex max-h-[90dvh] flex-col overflow-hidden sm:max-w-md">
+        <DialogHeader className="shrink-0">
           <DialogTitle>修改訂單金額</DialogTitle>
           <DialogDescription>修改訂單 {order?.order_number} 的價格明細</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
+        <div className="-mx-1 min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
           {isAmountLocked && (
             <Alert>
               <Lock className="h-4 w-4" />
@@ -624,7 +624,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             />
           </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="safe-bottom shrink-0 gap-2 border-t pt-3 [&>button]:min-h-[44px] [&>button]:flex-1 sm:[&>button]:min-h-0 sm:[&>button]:flex-none">
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? "儲存中..." : "確認修改"}
