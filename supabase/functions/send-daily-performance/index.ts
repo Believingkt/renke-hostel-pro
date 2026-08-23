@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
           applyBookingFilters(
             supabase
               .from("orders")
-              .select("final_price, order_status")
+              .select("final_price, order_status, order_source")
               .eq("accommodation_id", accId)
               .neq("order_status", "cancelled"),
           ),
@@ -434,7 +434,7 @@ Deno.serve(async (req) => {
           applyBookingFilters(
             supabase
               .from("orders")
-              .select("final_price")
+              .select("final_price, order_source")
               .eq("accommodation_id", accId)
               .neq("order_status", "cancelled"),
           ),
