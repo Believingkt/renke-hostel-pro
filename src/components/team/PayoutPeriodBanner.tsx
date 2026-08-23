@@ -18,6 +18,8 @@ interface Props {
   onIndexChange: (index: number) => void;
   /** 資料讀取中：鎖住切換並顯示提示，避免重複切換 */
   loading?: boolean;
+  /** 「即將發放」的本期在清單中的位置（清單前方可能有未來期別） */
+  currentIndex?: number;
 }
 
 /**
@@ -30,10 +32,12 @@ export default function PayoutPeriodBanner({
   index,
   onIndexChange,
   loading,
+  currentIndex = 0,
 }: Props) {
   const period = periods[index] ?? periods[0];
   if (!period) return null;
-  const isCurrent = index === 0;
+  const isCurrent = index === currentIndex;
+  const isFuture = index < currentIndex;
   const canOlder = index < periods.length - 1;
   const canNewer = index > 0;
 
@@ -42,7 +46,7 @@ export default function PayoutPeriodBanner({
       <div className="flex items-center gap-2 text-sm">
         <CalendarClock className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="font-medium">
-          {isCurrent ? "即將發放" : "檢視已過期別"}：{period.label}
+          {isCurrent ? "即將發放" : isFuture ? "檢視未來期別" : "檢視已過期別"}：{period.label}
         </span>
         <span className="text-muted-foreground text-xs">
           （資料窗 {period.windowLabel}）
@@ -78,7 +82,7 @@ export default function PayoutPeriodBanner({
             {periods.map((p, i) => (
               <SelectItem key={`${p.payoutMonthKey}-${p.period}`} value={String(i)} className="text-xs">
                 {p.year} 年 {p.label}
-                {i === 0 ? "（即將發放）" : ""}
+                {i === currentIndex ? "（即將發放）" : i < currentIndex ? "（未來期）" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -99,7 +103,7 @@ export default function PayoutPeriodBanner({
             variant="outline"
             className="h-7 text-xs"
             disabled={loading}
-            onClick={() => onIndexChange(0)}
+            onClick={() => onIndexChange(currentIndex)}
           >
             回本期
           </Button>

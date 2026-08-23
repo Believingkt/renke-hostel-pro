@@ -321,8 +321,10 @@ export default function TeamHome() {
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
   // 往前多帶 1 期（可先預覽下下期），預設仍停在即將發放的那一期
-  const periodOptions = useMemo(() => listRecentPayoutPeriods(6, new Date(), 1), []);
-  const [periodIndex, setPeriodIndex] = useState(1);
+  const periodOptions = useMemo(() => listRecentPayoutPeriods(6, new Date(), 4), []);
+  // 前面補了 4 個未來期別，index 4 才是「即將發放」的本期
+  const CURRENT_PERIOD_INDEX = 4;
+  const [periodIndex, setPeriodIndex] = useState(CURRENT_PERIOD_INDEX);
   const activePeriod = periodOptions[periodIndex] ?? periodOptions[0];
   const followingPeriod = useMemo(
     () => resolveFollowingPayoutPeriod(activePeriod),
@@ -2072,6 +2074,7 @@ export default function TeamHome() {
       <PayoutPeriodBanner
         periods={periodOptions}
         index={periodIndex}
+        currentIndex={CURRENT_PERIOD_INDEX}
         onIndexChange={setPeriodIndex}
         loading={loading}
       />
