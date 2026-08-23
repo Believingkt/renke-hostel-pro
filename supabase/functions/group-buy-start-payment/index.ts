@@ -7,7 +7,7 @@
 // 4. 付款狀態 source of truth 永遠是 orders；group_buy_payment_events 僅為 audit。
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { splitDeposit } from "../_shared/groupBuy.ts";
+import { resolveGroupBuyAtmDue } from "../_shared/groupBuyAtmDue.ts";
 
 const FN = "group-buy-start-payment";
 
@@ -102,17 +102,11 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "此活動未開放 ATM 虛擬帳號付款" }, 400);
     }
 
-    // ── 3) 應收金額：只信 orders（前端傳來的 amount 一律忽略） ──
-    const finalPrice = Math.max(0, Math.round(Number(order.final_price ?? order.total_price ?? 0)));
-    const storedDeposit = Math.max(0, Math.round(Number(order.deposit_amount) || 0));
-    const deposit = storedDeposit > 0
-      ? storedDeposit
-      : splitDeposit(finalPrice, campaign.deposit_percentage ?? 30).deposit;
-    const paid = Math.max(0, Math.round(Number(order.paid_amount) || 0));
-    const dueAmount = Math.max(0, deposit - paid);
-    if (dueAmount <= 0) {
-      return json({ success: false, error: "此訂單訂金已收訖，無需重複開立虛擬帳號" }, 400);
-    }
+    // ── 3) 應收金額：唯一 SoT = orders.deposit_amount（不再 fallback 重算） ──
+    const due = resolveGroupBuyAtmDue(order);
+    if (!due.ok) return json({ success: false, error: due.error }, due.status);
+    const dueAmount = due.dueAmount;
+
 
     // ── 4) 共用既有正式 ATM 函式（含既有 reuse／上限／驗價行為） ──
     const resp = await fetch(`${supabaseUrl}/functions/v1/tappay-atm-create`, {
