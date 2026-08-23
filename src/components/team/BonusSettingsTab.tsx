@@ -696,7 +696,11 @@ function RateSection({
                                   <TableRow key={h.id}>
                                     <TableCell className="whitespace-nowrap">
                                       {h.effective_from}
+                                      <div className="text-[11px] text-muted-foreground">
+                                        自 {payoutPeriodLabel(h.effective_from)} 起採用
+                                      </div>
                                     </TableCell>
+
                                     <TableCell className="tabular-nums">
                                       {h.rate != null
                                         ? `${Number((h.rate * 100).toFixed(4))}%`
