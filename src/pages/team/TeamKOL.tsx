@@ -7661,6 +7661,23 @@ function TierSettingsBlock({ isManager }: { isManager: boolean }) {
       toast.error("請填入所有等級名稱");
       return;
     }
+    // 防呆：與目前版本完全相同時不需另存新版本
+    if (
+      latestRows.length === draft.length &&
+      draft.every((d, idx) => {
+        const cur = latestRows[idx];
+        return (
+          cur &&
+          cur.tier_name === d.tier_name &&
+          Number(cur.min_count) === Number(d.min_count) &&
+          (cur.max_count ?? null) === (d.max_count ?? null) &&
+          Number(cur.commission_rate) === Number(d.commission_rate)
+        );
+      })
+    ) {
+      toast.error("內容與目前生效版本相同，無需新增版本（避免產生重複版本）");
+      return;
+    }
     setSaving(true);
     const { data: auth } = await supabase.auth.getUser();
     const payload = draft.map((d, idx) => ({
