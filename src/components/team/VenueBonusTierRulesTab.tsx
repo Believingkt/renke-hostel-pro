@@ -685,6 +685,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     {versions.map((v) => {
                       const isCurrent = v.key === currentKey;
                       const isFuture = v.effective_from > todayTaipei();
+                      const locked = isVersionLocked(v);
                       return (
                         <li
                           key={v.key}
@@ -705,23 +706,36 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                             ) : (
                               <Badge variant="secondary">已過期</Badge>
                             )}
+                            {locked && <Badge variant="secondary">已被快照採用</Badge>}
                             <span className="text-xs text-muted-foreground">
                               {payoutPeriodHint(v.effective_from)}
                             </span>
                           </button>
-                          {!readOnly && (
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeVersion(v)}
-                              aria-label="刪除版本"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          {!readOnly && !locked && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openFix(v)}
+                                className="admin-touch-target"
+                              >
+                                <PencilLine className="mr-1 h-4 w-4" />
+                                修正
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeVersion(v)}
+                                aria-label="刪除版本"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           )}
                         </li>
                       );
                     })}
+
                   </ul>
                 </div>
               </>
