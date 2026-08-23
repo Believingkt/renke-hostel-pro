@@ -365,6 +365,8 @@ export async function completeGroupBuyCreditOrder(
   );
 
   if (!validated.ok) {
+    const failReason = (validated as { error?: string }).error ?? "unavailable";
+
     // 付款成功但無法建單 → 自動全額退款 + 人工處理通知（絕不默默吞掉付款）
     const refund = await refundTapPay(partnerKey, recTradeId, verifiedAmount);
     await admin
