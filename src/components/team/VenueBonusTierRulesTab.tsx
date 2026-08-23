@@ -243,7 +243,12 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   /* ------------------------------ 表單操作 ------------------------------ */
 
+  /** 此版本是否已被獎金快照採用（採用過就不能刪除重建） */
+  const isVersionLocked = (v: VenueVersion) =>
+    Object.values(v.rows).some((r) => r && usedRuleIds.has((r as TierRuleRow).id));
+
   const openCreate = (accId?: string) => {
+    setReplaceTarget(null);
     setFormAcc(accId ?? selectedAcc ?? "");
     setFormDate(todayTaipei());
     setFormNote("");
@@ -265,6 +270,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     }));
 
   const openCopyFrom = (v: VenueVersion) => {
+    setReplaceTarget(null);
     setFormAcc("");
     setFormDate(todayTaipei());
     setFormNote(
@@ -283,6 +289,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   /** 以此版本為基礎新增下一版（同館別） */
   const openBasedOn = (v: VenueVersion) => {
+    setReplaceTarget(null);
     setFormAcc(v.accommodation_id);
     setFormDate(todayTaipei());
     setFormNote("");
@@ -296,6 +303,32 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     setFieldErrors({});
     setDialogOpen(true);
   };
+
+  /** 修正此版本：刪除並以相同生效日重新新增（僅限尚未被快照採用的版本） */
+  const openFix = (v: VenueVersion) => {
+    if (isVersionLocked(v)) {
+      toast({
+        title: "此版本已被快照採用，無法修正",
+        description: "請改用「以此版本為基礎新增」建立較晚生效的新版本。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setReplaceTarget({ accommodation_id: v.accommodation_id, effective_from: v.effective_from });
+    setFormAcc(v.accommodation_id);
+    setFormDate(v.effective_from.slice(0, 10));
+    setFormNote(v.note ?? "");
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
 
   const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
 
