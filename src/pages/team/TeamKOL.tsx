@@ -6588,6 +6588,45 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
               )}
             </>
           )}
+
+          {versions.length > 0 && (
+            <ul className="space-y-1.5 text-sm">
+              {versions.map((v) => {
+                const isCurrent = v.effective_from === current?.effective_from;
+                const isPending = v.effective_from > scoutAsOf;
+                const isSelected = v.effective_from === selectedVersion?.effective_from;
+                return (
+                  <li key={v.effective_from}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEf(v.effective_from)}
+                      className={`flex w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-muted/30 px-2.5 py-1.5 text-left ${
+                        isSelected ? "border-primary ring-1 ring-primary/30" : ""
+                      }`}
+                    >
+                      <span className="font-medium tabular-nums">
+                        {v.effective_from} 起
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        自 {scoutPayoutPeriodLabel(v.effective_from) ?? "—"} 起採用
+                      </span>
+                      {isCurrent && <span className="text-xs text-emerald-600">（目前生效）</span>}
+                      {isPending && <span className="text-xs text-amber-600">（待生效）</span>}
+                      <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                        {RARITY_ORDER.map(
+                          (r) =>
+                            `${r} ${Number(
+                              v.items.find((x) => x.rarity === r)?.bonus_amount ?? 0,
+                            ).toLocaleString()}`,
+                        ).join("／")}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
         </CardContent>
       </Card>
 
