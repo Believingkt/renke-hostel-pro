@@ -4577,6 +4577,7 @@ export type Database = {
           expires_at: string
           guest_count: number
           guest_email: string
+          guest_email_sent_at: string | null
           guest_name: string
           guest_note: string | null
           guest_phone: string
@@ -4589,12 +4590,18 @@ export type Database = {
           payment_type: string
           price_snapshot: Json
           rec_trade_id: string | null
+          refund_checked_at: string | null
+          refund_rec_trade_id: string | null
+          refund_status: string | null
+          refunded_amount: number
           room_quantity: number
           room_type_id: string
           status: string
+          stuck_alerted_at: string | null
           toddler_count: number
           total_price: number
           updated_at: string
+          venue_email_sent_at: string | null
         }
         Insert: {
           accommodation_id: string
@@ -4613,6 +4620,7 @@ export type Database = {
           expires_at: string
           guest_count?: number
           guest_email: string
+          guest_email_sent_at?: string | null
           guest_name: string
           guest_note?: string | null
           guest_phone: string
@@ -4625,12 +4633,18 @@ export type Database = {
           payment_type?: string
           price_snapshot?: Json
           rec_trade_id?: string | null
+          refund_checked_at?: string | null
+          refund_rec_trade_id?: string | null
+          refund_status?: string | null
+          refunded_amount?: number
           room_quantity?: number
           room_type_id: string
           status?: string
+          stuck_alerted_at?: string | null
           toddler_count?: number
           total_price: number
           updated_at?: string
+          venue_email_sent_at?: string | null
         }
         Update: {
           accommodation_id?: string
@@ -4649,6 +4663,7 @@ export type Database = {
           expires_at?: string
           guest_count?: number
           guest_email?: string
+          guest_email_sent_at?: string | null
           guest_name?: string
           guest_note?: string | null
           guest_phone?: string
@@ -4661,12 +4676,18 @@ export type Database = {
           payment_type?: string
           price_snapshot?: Json
           rec_trade_id?: string | null
+          refund_checked_at?: string | null
+          refund_rec_trade_id?: string | null
+          refund_status?: string | null
+          refunded_amount?: number
           room_quantity?: number
           room_type_id?: string
           status?: string
+          stuck_alerted_at?: string | null
           toddler_count?: number
           total_price?: number
           updated_at?: string
+          venue_email_sent_at?: string | null
         }
         Relationships: [
           {
@@ -4703,7 +4724,7 @@ export type Database = {
           event_type: string
           id: string
           note: string | null
-          order_id: string
+          order_id: string | null
           transferred_at: string | null
         }
         Insert: {
@@ -4716,7 +4737,7 @@ export type Database = {
           event_type: string
           id?: string
           note?: string | null
-          order_id: string
+          order_id?: string | null
           transferred_at?: string | null
         }
         Update: {
@@ -4729,7 +4750,7 @@ export type Database = {
           event_type?: string
           id?: string
           note?: string | null
-          order_id?: string
+          order_id?: string | null
           transferred_at?: string | null
         }
         Relationships: [
@@ -13081,6 +13102,10 @@ export type Database = {
       }
       _hotelnabe_should_sync: { Args: { _acc: string }; Returns: boolean }
       _rls_test_list_member_policies: { Args: never; Returns: Json }
+      acquire_group_buy_payment_hold: {
+        Args: { p_payload: Json }
+        Returns: Json
+      }
       admin_delete_order: {
         Args: { _order_id: string; _reason?: string }
         Returns: Json
@@ -13206,6 +13231,15 @@ export type Database = {
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
       consume_trip_product_stock: { Args: { p_items: Json }; Returns: Json }
+      convert_group_buy_payment_draft: {
+        Args: {
+          p_commission: Json
+          p_draft_id: string
+          p_events?: Json
+          p_order: Json
+        }
+        Returns: Json
+      }
       count_kol_reciprocal_orders: {
         Args: {
           _accommodation_id: string
@@ -13492,6 +13526,10 @@ export type Database = {
           id: string
           name: string
         }[]
+      }
+      scan_stuck_group_buy_paid_drafts: {
+        Args: { p_minutes?: number }
+        Returns: number
       }
       search_ai_knowledge: {
         Args: {
