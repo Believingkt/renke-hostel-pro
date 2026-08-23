@@ -651,15 +651,16 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
       {/* 新增／複製版本 Dialog：整張級距表一次編輯 */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>新增級距規則版本</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:w-full sm:max-w-4xl">
+          <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+            <DialogTitle className="text-base sm:text-lg">新增級距規則版本</DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
               門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>館別</Label>
