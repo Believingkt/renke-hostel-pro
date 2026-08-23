@@ -7,7 +7,7 @@
 // 4. 付款狀態 source of truth 永遠是 orders；group_buy_payment_events 僅為 audit。
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { splitDeposit } from "../_shared/groupBuy.ts";
+import { resolveGroupBuyAtmDue } from "../_shared/groupBuyAtmDue.ts";
 
 const FN = "group-buy-start-payment";
 
