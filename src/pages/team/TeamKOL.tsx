@@ -6366,10 +6366,11 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newEffectiveFrom, setNewEffectiveFrom] = useState(todayStr());
   const [draft, setDraft] = useState<Record<string, { fan_range_desc: string; bonus_amount: string }>>(() =>
-  const [selectedEf, setSelectedEf] = useState<string>("");
     Object.fromEntries(RARITY_ORDER.map((r) => [r, { fan_range_desc: "", bonus_amount: "0" }])),
   );
+  const [selectedEf, setSelectedEf] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
 
   const loadVersions = useCallback(async () => {
     setLoading(true);
