@@ -1,20 +1,31 @@
-// 團購信用卡「付款成功 → 建立正式訂單」安全內核（Phase G2）
+// 團購信用卡「付款成功 → 建立正式訂單」安全內核（Phase G2 / G2-C）
 //
 // 同時被兩條路徑呼叫，必須保證同一張 draft 最多只會轉出一張正式 orders：
 //   A. 前端 3DS 回程：group-buy-complete-paid-order
 //   B. TapPay backend callback：tappay-notify（客人關掉瀏覽器的補救）
 //
-// 競態防護：以「條件式 UPDATE 搶佔（claim）」達成互斥 —
-//   claim 只允許 status ∈ (pending, payment_processing, failed) → 'paid'
-//   搶到的那一方才可建單；另一方會拿到 0 rows，改為等待／回報既有結果。
-//   DB 端另有 unique index group_buy_payment_drafts_converted_order_key 作為最後防線。
+// 競態防護（G2-C 後）：
+//   1. 條件式 UPDATE 搶佔（claim）：pending/payment_processing/failed → paid
+//   2. 真正的建單交由 DB RPC convert_group_buy_payment_draft 在單一 transaction 完成
+//      （draft FOR UPDATE + converted_order_id 檢查 + orders + commission + events + converted）
+//      → 即使 claim 之後行程中斷，重試也不可能建出第二張 order。
+//   3. Email 以 draft 的 guest_email_sent_at / venue_email_sent_at 條件式 UPDATE 搶佔，
+//      保證 exactly-once（前端回程與 callback 同時完成也只寄一次）。
 // deno-lint-ignore-file no-explicit-any
 
-import { createGroupBuyOrderCore, validateAndPriceGroupBuyBooking } from "./groupBuyBooking.ts";
+import {
+  convertGroupBuyDraftToOrderAtomic,
+  validateAndPriceGroupBuyBooking,
+} from "./groupBuyBooking.ts";
 import { queryTapPayRecord, refundTapPay } from "./tappay.ts";
+import { buildAdminGroupBuyUrl, buildEmailOrder } from "./groupBuy.ts";
+import { renderDepositReceived, renderVenueNewOrder, sendGroupBuyEmail } from "./groupBuyEmail.ts";
+import { resolveOrderNotifyEmails } from "./notifyRecipients.ts";
 
 /** 搶佔後若超過此時間仍未完成建單，視為前一次處理中斷，允許重新搶佔 */
 const STALE_CLAIM_MS = 3 * 60_000;
+
+const PROVIDER_LABEL = "信用卡（3D 驗證）";
 
 export interface CompleteResult {
   ok: boolean;
@@ -44,6 +55,160 @@ async function orderNumberOf(admin: any, orderId: string): Promise<string | null
   return data?.order_number ?? null;
 }
 
+/** 站內管理員通知（B4：付款成功但流程異常一律要有人看得到） */
+async function notifyAdmins(
+  admin: any,
+  params: { accommodationId: string | null; title: string; description: string },
+) {
+  try {
+    await admin.from("notifications").insert({
+      accommodation_id: params.accommodationId,
+      type: "payment",
+      title: params.title,
+      description: params.description.slice(0, 1000),
+      is_read: false,
+    });
+  } catch (e) {
+    console.error("[groupBuyCreditCompletion] notification insert failed", e);
+  }
+}
+
+/**
+ * 轉單後的副作用：旅客訂單成立信 + 民宿新單通知信。
+ * 一律以 draft 欄位的條件式 UPDATE 搶佔寄信權 → exactly once。
+ * 寄信失敗不 rollback 已完成的付款訂單，只記錄 email_failed 供後續補寄。
+ */
+async function sendConversionEmails(
+  admin: any,
+  draft: any,
+  orderId: string,
+  paidAmount: number,
+): Promise<void> {
+  const nowIso = new Date().toISOString();
+
+  const { data: order } = await admin.from("orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order) return;
+
+  const { data: campaign } = await admin
+    .from("group_buy_campaigns")
+    .select("*")
+    .eq("id", draft.campaign_id)
+    .maybeSingle();
+
+  const { data: acc } = order.accommodation_id
+    ? await admin.from("accommodation_info").select("name").eq("id", order.accommodation_id).maybeSingle()
+    : { data: null as any };
+
+  const packageName = (draft.booking_payload as any)?.package_name ??
+    String(order.notes ?? "").match(/方案：(.+?)\s*×/)?.[1]?.trim() ?? null;
+  const origin = (draft.booking_payload as any)?.origin ?? null;
+
+  const emailOrder = buildEmailOrder({
+    order,
+    campaign: campaign ?? { title: "團購活動", deposit_percentage: 30, payment_deadline_hours: 72 },
+    accommodationName: (acc as any)?.name ?? null,
+    packageName,
+    frontendOrigin: origin,
+  });
+  const balance = Math.max(0, Math.round(Number(order.total_price) - Number(order.paid_amount ?? 0)));
+
+  // ── 旅客：訂單成立 + 信用卡訂金已收 ──
+  const { data: guestClaim } = await admin
+    .from("group_buy_payment_drafts")
+    .update({ guest_email_sent_at: nowIso })
+    .eq("id", draft.id)
+    .is("guest_email_sent_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (guestClaim) {
+    const mail = await sendGroupBuyEmail(
+      order.guest_email,
+      renderDepositReceived(
+        { ...emailOrder, balanceAmount: balance },
+        { providerLabel: PROVIDER_LABEL, paidThisTime: paidAmount },
+      ),
+    );
+    if (!mail.ok) {
+      // 釋放搶佔，讓後續補寄機制可再試
+      await admin.from("group_buy_payment_drafts").update({ guest_email_sent_at: null }).eq("id", draft.id);
+    }
+    await admin.from("group_buy_payment_events").insert({
+      campaign_id: draft.campaign_id,
+      order_id: orderId,
+      event_type: mail.ok ? "email_sent" : "email_failed",
+      actor_label: "system",
+      note: mail.ok
+        ? "recipient_type:guest／template_type:deposit_received／recipient_count:1／provider:tappay／payment_type:credit_card"
+        : `recipient_type:guest／template_type:deposit_received／provider:tappay／payment_type:credit_card／reason:${mail.reason ?? "unknown"}`,
+    });
+  }
+
+  // ── 民宿／管理者：新團購訂單（已收信用卡訂金）──
+  const { data: venueClaim } = await admin
+    .from("group_buy_payment_drafts")
+    .update({ venue_email_sent_at: nowIso })
+    .eq("id", draft.id)
+    .is("venue_email_sent_at", null)
+    .select("id")
+    .maybeSingle();
+
+  if (venueClaim) {
+    try {
+      const { emails: venueEmails, source } = await resolveOrderNotifyEmails(admin, {
+        accommodationId: order.accommodation_id ?? draft.accommodation_id,
+        campaignId: draft.campaign_id,
+      });
+      if (venueEmails.length === 0) {
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: draft.campaign_id,
+          order_id: orderId,
+          event_type: "note",
+          actor_label: "system",
+          note: "venue_email_skipped／recipient_type:venue／template_type:venue_new_order／no_recipients",
+        });
+      } else {
+        const nights = Number((draft.booking_payload as any)?.nights ?? 0) || null;
+        const venueMail = await sendGroupBuyEmail(
+          venueEmails,
+          renderVenueNewOrder({
+            ...emailOrder,
+            balanceAmount: balance,
+            guestPhone: order.guest_phone ?? null,
+            guestEmail: order.guest_email ?? null,
+            nights,
+            adultCount: order.adult_count,
+            childCount: order.child_count,
+            toddlerCount: order.toddler_count,
+            infantCount: order.infant_count,
+            paymentStatusText: `已收訂金 NT$${paidAmount.toLocaleString("en-US")}（信用卡）`,
+            adminUrl: buildAdminGroupBuyUrl({
+              accommodationId: order.accommodation_id ?? draft.accommodation_id ?? null,
+              campaignId: draft.campaign_id,
+              orderNumber: order.order_number,
+            }),
+          }),
+        );
+        if (!venueMail.ok) {
+          await admin.from("group_buy_payment_drafts").update({ venue_email_sent_at: null }).eq("id", draft.id);
+        }
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: draft.campaign_id,
+          order_id: orderId,
+          event_type: venueMail.ok ? "email_sent" : "email_failed",
+          actor_label: "system",
+          note: `recipient_type:venue／template_type:venue_new_order／payment_type:credit_card／recipient_count:${venueEmails.length}／source:${source}${
+            venueMail.ok ? "" : `／reason:${venueMail.reason ?? "unknown"}`
+          }`,
+        });
+      }
+    } catch (e) {
+      console.error("[groupBuyCreditCompletion] venue notify threw", e);
+      await admin.from("group_buy_payment_drafts").update({ venue_email_sent_at: null }).eq("id", draft.id);
+    }
+  }
+}
+
 /**
  * 付款成功後建立正式團購訂單。
  * 呼叫前不需自行驗證 TapPay：本函式一律以 transaction/query 為準重新驗證。
@@ -64,6 +229,9 @@ export async function completeGroupBuyCreditOrder(
 
   // 已轉單 → 直接回既有訂單（PaymentResult 重整／callback 重送皆走此路）
   if (draft.converted_order_id) {
+    // 不重寄信；僅在「首次完成時寄信失敗／中斷」的情況下由 claim 機制補寄一次
+    await sendConversionEmails(admin, draft, draft.converted_order_id, Math.round(Number(draft.amount_to_charge) || 0))
+      .catch((e) => console.error("[groupBuyCreditCompletion] email retry threw", e));
     return {
       ok: true,
       alreadyConverted: true,
@@ -117,6 +285,13 @@ export async function completeGroupBuyCreditOrder(
       actor_label: "system",
       note: `付款金額與應付金額不符，未建單（draft:${draft.id}／實收 ${verifiedAmount}／應收 ${draft.amount_to_charge}）`,
     });
+    await notifyAdmins(admin, {
+      accommodationId: draft.accommodation_id,
+      title: "團購信用卡付款金額不符，未建立訂單",
+      description:
+        `付款保留 ${draft.id}（交易 ${recTradeId}）實收 NT$${verifiedAmount}，應收 NT$${draft.amount_to_charge}，` +
+        `旅客 ${draft.guest_name}／${draft.check_in_date} → ${draft.check_out_date}。TapPay 已付款但未建單，需要人工處理。`,
+    });
     return { ok: false, manualReview: true, error: "付款金額與訂單不符，我們已通知客服為您處理", status: 409 };
   }
 
@@ -135,6 +310,8 @@ export async function completeGroupBuyCreditOrder(
     // 可能是：(a) 另一方正在建單 (b) 上一次建單中斷
     const fresh = await loadDraft(admin, { draftId: draft.id });
     if (fresh?.converted_order_id) {
+      await sendConversionEmails(admin, fresh, fresh.converted_order_id, verifiedAmount)
+        .catch((e) => console.error("[groupBuyCreditCompletion] email retry threw", e));
       return {
         ok: true,
         alreadyConverted: true,
@@ -194,6 +371,9 @@ export async function completeGroupBuyCreditOrder(
       .from("group_buy_payment_drafts")
       .update({
         status: "manual_review",
+        refunded_amount: refund.success ? verifiedAmount : 0,
+        refund_status: refund.success ? "refunded" : "refund_failed",
+        refund_checked_at: new Date().toISOString(),
         last_error: `${expired ? "expired_and_" : ""}unavailable: ${validated.error}${
           refund.success ? "／已自動全額退款" : `／自動退款失敗:${refund.msg ?? "unknown"}`
         }`,
@@ -209,20 +389,14 @@ export async function completeGroupBuyCreditOrder(
       note:
         `付款成功但已無法建單（draft:${claimed.id}／${expired ? "保留已逾時／" : ""}原因:${validated.error}）${refund.success ? "，已自動全額退款" : `，自動退款失敗：${refund.msg ?? "unknown"}，需人工處理`}`,
     });
-    try {
-      await admin.from("notifications").insert({
-        accommodation_id: claimed.accommodation_id,
-        type: "payment",
-        title: refund.success ? "團購信用卡付款已自動退款" : "團購信用卡付款需人工處理",
-        description:
-          `付款保留 ${claimed.id} 於付款成功後已無庫存（${claimed.check_in_date} → ${claimed.check_out_date}，NT$${verifiedAmount}）。${
-            refund.success ? "系統已自動全額退款。" : "自動退款失敗，請立即人工處理。"
-          }`,
-        is_read: false,
-      });
-    } catch (nErr) {
-      console.error("[groupBuyCreditCompletion] notification insert failed", nErr);
-    }
+    await notifyAdmins(admin, {
+      accommodationId: claimed.accommodation_id,
+      title: refund.success ? "團購信用卡付款已自動退款" : "團購信用卡付款需人工處理",
+      description:
+        `付款保留 ${claimed.id}（交易 ${recTradeId}）於付款成功後已無庫存（${claimed.guest_name}／${claimed.check_in_date} → ${claimed.check_out_date}／NT$${verifiedAmount}）。${
+          refund.success ? "系統已自動全額退款。" : "自動退款失敗，請立即人工處理。"
+        }`,
+    });
     return {
       ok: false,
       manualReview: true,
@@ -234,7 +408,7 @@ export async function completeGroupBuyCreditOrder(
     };
   }
 
-  // ── 4) 建立正式訂單（金額一律沿用 draft 落地時的快照）──
+  // ── 4) 原子轉單（金額一律沿用 draft 落地時的快照）──
   const plan = validated.plan;
   plan.total = Math.round(Number(claimed.total_price) || plan.total);
   plan.deposit = Math.round(Number(claimed.deposit_amount) || plan.deposit);
@@ -245,7 +419,7 @@ export async function completeGroupBuyCreditOrder(
     amount_charged: verifiedAmount,
   };
 
-  const created = await createGroupBuyOrderCore(admin, plan, {
+  const created = await convertGroupBuyDraftToOrderAtomic(admin, plan, {
     paymentProvider: "tappay",
     paymentMethod: "credit_card_3ds",
     paid: { amount: verifiedAmount, recTradeId, authCode: params.authCode ?? null },
@@ -258,9 +432,20 @@ export async function completeGroupBuyCreditOrder(
       `[GroupBuy] payment_draft: ${claimed.id}`,
       expired ? "【系統】付款保留逾時後付款成功，已重新確認庫存並建立訂單" : null,
     ].filter(Boolean) as string[],
+    events: [
+      {
+        campaign_id: claimed.campaign_id,
+        event_type: "credit_card_paid",
+        amount: verifiedAmount,
+        actor_label: params.source === "callback" ? "system(callback)" : "system(frontend)",
+        note:
+          `信用卡訂金付款成功並建立正式訂單（draft:${claimed.id}／rec_trade_id:${recTradeId}／NT$${verifiedAmount}）`,
+      },
+    ],
   });
 
   if (!created.ok) {
+    // transaction 已 rollback，不會留下半張 order
     await admin
       .from("group_buy_payment_drafts")
       .update({ status: "manual_review", last_error: created.error })
@@ -274,33 +459,24 @@ export async function completeGroupBuyCreditOrder(
       actor_label: "system",
       note: `付款成功但建單失敗（draft:${claimed.id}）：${created.error}`,
     });
+    // B4：一定要有站內通知，不能只留 console / event
+    await notifyAdmins(admin, {
+      accommodationId: claimed.accommodation_id,
+      title: "TapPay 已付款，但正式訂單建立失敗，需要人工處理",
+      description:
+        `團購活動：${plan.campaign?.title ?? claimed.campaign_id}／Draft ID：${claimed.id}／` +
+        `rec_trade_id：${recTradeId}／已付款金額：NT$${verifiedAmount}／` +
+        `旅客：${claimed.guest_name}（${claimed.guest_phone}）／日期：${claimed.check_in_date} → ${claimed.check_out_date}／` +
+        `錯誤原因：${created.error}。TapPay 已付款，但正式訂單建立失敗，需要人工處理。`,
+    });
     return { ok: false, manualReview: true, error: "付款成功但訂單建立失敗，客服將盡快與您聯繫", status: 500 };
   }
 
   const order = created.order;
 
-  // ── 5) draft → converted（unique index 保證一張 draft 只對應一張 order）──
-  const { error: convErr } = await admin
-    .from("group_buy_payment_drafts")
-    .update({
-      status: "converted",
-      converted_order_id: order.id,
-      converted_at: new Date().toISOString(),
-      last_error: null,
-    })
-    .eq("id", claimed.id)
-    .is("converted_order_id", null);
-  if (convErr) console.error("[groupBuyCreditCompletion] draft convert update failed", convErr);
-
-  await admin.from("group_buy_payment_events").insert({
-    campaign_id: claimed.campaign_id,
-    order_id: order.id,
-    event_type: "credit_card_paid",
-    amount: verifiedAmount,
-    actor_label: params.source === "callback" ? "system(callback)" : "system(frontend)",
-    note:
-      `信用卡訂金付款成功並建立正式訂單（draft:${claimed.id}／rec_trade_id:${recTradeId}／NT$${verifiedAmount}）`,
-  });
+  // ── 5) 非關鍵副作用：通知信（失敗不影響已完成的付款訂單）──
+  await sendConversionEmails(admin, claimed, order.id, verifiedAmount)
+    .catch((e) => console.error("[groupBuyCreditCompletion] email threw", e));
 
   return { ok: true, orderId: order.id, orderNumber: order.order_number };
 }
