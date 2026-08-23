@@ -695,9 +695,12 @@ Deno.serve(async (req) => {
             ? String(tpl.body)
             : fallbackBody;
           const withNotice = !tpl || tpl.include_modified_notice !== false;
-          return applyVars(raw, vars) +
+          // 變數若為空字串（例如當日無來源明細），收斂多餘空行
+          const rendered = applyVars(raw, vars).replace(/\n{3,}/g, "\n\n").trim();
+          return rendered +
             (withNotice ? modifiedNotice + backfillNotice + holdConvertedNotice : "");
         };
+
 
         // Email：固定只寄「完整版」(is_primary)，一館一天一封
         const body = renderTemplate(primaryTpl);
