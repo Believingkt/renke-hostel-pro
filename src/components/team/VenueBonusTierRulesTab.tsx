@@ -257,6 +257,17 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     () => (selectedAcc ? buildVersions(rules, selectedAcc) : []),
     [rules, selectedAcc],
   );
+
+  /** 可作為參考範本的版本：每個已設定館別取「最新生效日」那一版 */
+  const templateVersions = useMemo(() => {
+    const list: { acc: AccOption; version: VenueVersion }[] = [];
+    accs.forEach((a) => {
+      const vs = buildVersions(rules, a.id);
+      if (vs.length > 0) list.push({ acc: a, version: vs[0] });
+    });
+    return list;
+  }, [accs, rules]);
+
   const currentKey = useMemo(() => currentVersionKey(versions), [versions]);
   const shownVersion = useMemo(
     () =>
