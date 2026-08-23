@@ -1061,6 +1061,7 @@ serve(async (req) => {
         lines: revenueLines(companyRevenue, closerPerfRate, {
           splitHeadcount: closerHeadcount,
           prorateRatio: ratio,
+          bonusType: "closer_performance",
         }),
         active_days: activeDays,
         period_days: periodDays,
