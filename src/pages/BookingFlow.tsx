@@ -3611,8 +3611,9 @@ const BookingFlow = () => {
             deposit_payment_method: orderPaymentType === "credit_card" ? "credit_card" : (orderPaymentType === "atm" ? "bank_transfer" : null),
             balance_payment_method: null,
             payment_method: orderPaymentType === "credit_card" ? "信用卡" : (orderPaymentType === "atm" ? "ATM 虛擬帳號" : null),
-            payment_status: paymentTransactionId ? "paid" : (orderPaymentType === "atm" ? "pending_payment" : "unpaid"),
-            paid_amount: paymentTransactionId ? finalPrice : 0,
+            // 前台 public/anon 直接建單只允許未付款狀態；已付款訂單一律由後端 service_role 建立
+            payment_status: orderPaymentType === "atm" ? "pending_payment" : "unpaid",
+            paid_amount: 0,
             order_status: "pending",
             notes: orderNotes || null,
             pet_count: petCount,
