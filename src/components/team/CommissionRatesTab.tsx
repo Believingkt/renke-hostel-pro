@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { rateAsOfForDataMonth, payoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 interface Accommodation {
   id: string;
@@ -73,10 +74,13 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
           .order("effective_from", { ascending: false }),
       ]);
 
+      // 顯示的「目前費率」需與結算口徑一致：以資料月首日為切點，未來生效版本不列為目前
+      const asOf = rateAsOfForDataMonth();
       const latest = new Map<string, CommissionRow>();
       const history = new Map<string, CommissionRow[]>();
       (settings ?? []).forEach((s: any) => {
-        if (!latest.has(s.accommodation_id)) latest.set(s.accommodation_id, s);
+        if (!latest.has(s.accommodation_id) && s.effective_from <= asOf)
+          latest.set(s.accommodation_id, s);
         const arr = history.get(s.accommodation_id) ?? [];
         arr.push(s);
         history.set(s.accommodation_id, arr);
@@ -204,7 +208,15 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                       <TableCell>{r.name}</TableCell>
                       <TableCell>{r.closer_rate != null ? `${Number((r.closer_rate * 100).toFixed(2))}%` : "—"}</TableCell>
 
-                      <TableCell>{r.effective_from ?? "—"}</TableCell>
+                      <TableCell>
+                        {r.effective_from ?? "—"}
+                        {r.effective_from && (
+                          <div className="text-[11px] text-muted-foreground">
+                            自 {payoutPeriodLabel(r.effective_from)} 起採用
+                          </div>
+                        )}
+                      </TableCell>
+
                       {!readOnly && (
                         <TableCell className="text-right">
                           <Button

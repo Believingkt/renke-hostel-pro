@@ -40,3 +40,30 @@ export function payoutPeriodLabel(effectiveFrom: string): string | null {
   const [, mm] = p.split("-");
   return `${Number(mm)}/10 期`;
 }
+
+/** 台北今天 yyyy-MM-dd */
+function taipeiTodayStr(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/**
+ * 顯示用費率切點：以「資料月首日」取版本，與 create-team-bonus-snapshots 的計算口徑一致。
+ * @param dataMonthKey yyyy-MM；省略時取台北當月（＝目前正在累積的資料月）
+ */
+export function rateAsOfForDataMonth(dataMonthKey?: string): string {
+  const key = dataMonthKey ?? taipeiTodayStr().slice(0, 7);
+  return `${key}-01`;
+}
+
+/**
+ * 星探結算費率切點：與 calculate-scout-payout 一致，取「結算年月的 28 日」。
+ */
+export function scoutRateAsOf(year: number, month: number | null): string {
+  if (!month) return `${year}-12-31`;
+  return `${year}-${String(month).padStart(2, "0")}-28`;
+}
