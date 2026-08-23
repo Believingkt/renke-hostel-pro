@@ -98,6 +98,7 @@ interface Campaign {
   booking_notice_keys: string[] | null;
   /** 活動層級線上付款開關（ATM＝Phase G1；信用卡為下一階段，前台目前不讀） */
   enable_atm?: boolean | null;
+  enable_credit_card?: boolean | null;
 }
 
 interface CampaignPackage {
@@ -240,7 +241,8 @@ export default function GroupBuyCampaign() {
   const [result, setResult] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   /** 付款方式：預設銀行匯款（人工對帳），僅活動開啟 ATM 時可切換 */
-  const [paymentMethod, setPaymentMethod] = useState<"bank" | "atm">("bank");
+  const [paymentMethod, setPaymentMethod] = useState<GroupBuyPaymentMethod>("bank");
+  const [creditOpen, setCreditOpen] = useState(false);
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   /** 備註為次要欄位，預設收合（非必填，未變更任何驗證） */
@@ -639,6 +641,13 @@ export default function GroupBuyCampaign() {
     }
     if (guestError) {
       toast({ title: "入住人數不符合規定", description: guestError, variant: "destructive" });
+      return;
+    }
+
+    // 信用卡：不在此建立正式訂單，改走 payment draft + 3DS（付款成功後才建單）
+    if (campaign.enable_credit_card && paymentMethod === "credit_card") {
+      setConfirmOpen(false);
+      setCreditOpen(true);
       return;
     }
 
@@ -1734,8 +1743,32 @@ export default function GroupBuyCampaign() {
           guestPhone={guestPhone}
           guestEmail={guestEmail}
           atmEnabled={!!campaign.enable_atm}
+          creditCardEnabled={!!campaign.enable_credit_card}
           paymentMethod={paymentMethod}
           onPaymentMethodChange={setPaymentMethod}
+        />
+      )}
+
+      {selectedPkg && (
+        <GroupBuyCreditCardDialog
+          open={creditOpen}
+          onOpenChange={setCreditOpen}
+          deposit={deposit}
+          packageName={selectedPkg.display_name}
+          buildRequest={() => ({
+            slug: campaign.slug,
+            campaignPackageId: selectedPkg.id,
+            checkInDate: checkIn,
+            checkOutDate: checkOut,
+            adultCount: guests.adults,
+            childCount: guests.children,
+            toddlerCount: guests.toddlers,
+            infantCount: guests.infants,
+            guestName,
+            guestPhone,
+            guestEmail,
+            guestNote,
+          })}
         />
       )}
 
