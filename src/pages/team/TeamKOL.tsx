@@ -6398,8 +6398,12 @@ function RaritySettingsTab({ isManager }: { isManager: boolean }) {
     loadVersions();
   }, [loadVersions]);
 
-  const current = versions[0];
-  const history = versions.slice(1);
+  // 與 calculate-scout-payout 一致：以「結算年月 28 日」為切點，尚未到切點的版本不算目前生效
+  const scoutAsOf = scoutRateAsOfToday();
+  const currentIdx = versions.findIndex((v) => v.effective_from <= scoutAsOf);
+  const current = currentIdx >= 0 ? versions[currentIdx] : undefined;
+  const history = versions.filter((_, i) => i !== currentIdx);
+  const pendingVersions = versions.filter((v) => v.effective_from > scoutAsOf);
 
   const openCreate = () => {
     // 預填當前版本作為基底
