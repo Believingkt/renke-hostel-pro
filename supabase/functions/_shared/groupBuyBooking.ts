@@ -424,8 +424,74 @@ export type CreateGroupBuyOrderResult =
   | { ok: false; error: string; status: number; oversold?: boolean };
 
 /**
+ * orders payload 建構（匯款／ATM 與信用卡原子轉單共用同一份，避免兩套訂單欄位漂移）。
+ */
+export function buildGroupBuyOrderInsert(plan: GroupBuyBookingPlan, opts: CreateGroupBuyOrderOptions) {
+  const campaign = plan.campaign;
+  const pkg = plan.pkg;
+  const paidAmount = Math.max(0, Math.round(Number(opts.paid?.amount) || 0));
+  const paymentStatus = paidAmount <= 0 ? "unpaid" : paidAmount >= plan.total ? "paid" : "deposit_paid";
+  const noteLines = [...plan.noteLines, ...(opts.extraNoteLines ?? [])];
+
+  return {
+    order_number: "",
+    accommodation_id: campaign.accommodation_id,
+    room_type_id: plan.roomTypeId,
+    package_id: pkg.package_id ?? null,
+    room_quantity: plan.roomQuantity,
+    check_in_date: plan.input.checkInDate,
+    check_out_date: plan.input.checkOutDate,
+    guest_count: plan.input.guestCount,
+    adult_count: plan.input.adultCount,
+    child_count: plan.input.childCount,
+    toddler_count: plan.input.toddlerCount,
+    infant_count: plan.input.infantCount,
+    guest_name: plan.input.guestName,
+    guest_phone: plan.input.guestPhone,
+    guest_email: plan.input.guestEmail,
+    total_price: plan.total,
+    discount_amount: 0,
+    final_price: plan.total,
+    deposit_amount: plan.deposit,
+    discount_code: campaign.discount_code ?? null,
+    order_status: paidAmount > 0 ? "confirmed" : "pending",
+    confirmed_at: paidAmount > 0 ? new Date().toISOString() : null,
+    payment_status: paymentStatus,
+    paid_amount: paidAmount,
+    payment_provider: opts.paymentProvider,
+    payment_method: opts.paymentMethod,
+    deposit_payment_method: opts.paymentMethod,
+    order_source: GROUP_BUY_ORDER_SOURCE,
+    ota_channel: campaign.slug ?? null,
+    notes: noteLines.join("\n"),
+  };
+}
+
+/** group_buy_commissions payload 建構（同上，兩條路徑共用） */
+export function buildGroupBuyCommissionInsert(plan: GroupBuyBookingPlan, opts: CreateGroupBuyOrderOptions) {
+  const campaign = plan.campaign;
+  const rate = Number(campaign.commission_rate) || 0;
+  return {
+    campaign_id: campaign.id,
+    kol_profile_id: campaign.kol_profile_id ?? null,
+    revenue_base: plan.total,
+    commission_rate: rate,
+    commission_amount: Math.round((plan.total * rate) / 100),
+    status: "pending",
+    price_snapshot: {
+      ...plan.priceSnapshot,
+      payment_provider: opts.paymentProvider,
+      campaign_payment_method: campaign.payment_method ?? "manual_bank_transfer",
+      payment_type: opts.paid ? "credit_card" : opts.paymentMethod,
+      payment_draft_id: opts.draftId ?? null,
+      rec_trade_id: opts.paid?.recTradeId ?? null,
+    },
+  };
+}
+
+/**
  * 建立正式團購訂單（orders + 須知快照 + 稽核 + 下訂後複驗 + group_buy_commissions）。
- * 匯款／ATM 與信用卡兩條路徑共用，確保建單規則永遠一致。
+ * 匯款／ATM 專用（先建單後付款）。信用卡改走 convertGroupBuyDraftToOrderAtomic。
  */
 export async function createGroupBuyOrderCore(
   admin: any,
@@ -433,46 +499,10 @@ export async function createGroupBuyOrderCore(
   opts: CreateGroupBuyOrderOptions,
 ): Promise<CreateGroupBuyOrderResult> {
   const campaign = plan.campaign;
-  const pkg = plan.pkg;
-  const paidAmount = Math.max(0, Math.round(Number(opts.paid?.amount) || 0));
-  const paymentStatus = paidAmount <= 0 ? "unpaid" : paidAmount >= plan.total ? "paid" : "deposit_paid";
-
-  const noteLines = [...plan.noteLines, ...(opts.extraNoteLines ?? [])];
 
   const { data: order, error: oErr } = await admin
     .from("orders")
-    .insert({
-      order_number: "",
-      accommodation_id: campaign.accommodation_id,
-      room_type_id: plan.roomTypeId,
-      package_id: pkg.package_id ?? null,
-      room_quantity: plan.roomQuantity,
-      check_in_date: plan.input.checkInDate,
-      check_out_date: plan.input.checkOutDate,
-      guest_count: plan.input.guestCount,
-      adult_count: plan.input.adultCount,
-      child_count: plan.input.childCount,
-      toddler_count: plan.input.toddlerCount,
-      infant_count: plan.input.infantCount,
-      guest_name: plan.input.guestName,
-      guest_phone: plan.input.guestPhone,
-      guest_email: plan.input.guestEmail,
-      total_price: plan.total,
-      discount_amount: 0,
-      final_price: plan.total,
-      deposit_amount: plan.deposit,
-      discount_code: campaign.discount_code ?? null,
-      order_status: paidAmount > 0 ? "confirmed" : "pending",
-      confirmed_at: paidAmount > 0 ? new Date().toISOString() : null,
-      payment_status: paymentStatus,
-      paid_amount: paidAmount,
-      payment_provider: opts.paymentProvider,
-      payment_method: opts.paymentMethod,
-      deposit_payment_method: opts.paymentMethod,
-      order_source: GROUP_BUY_ORDER_SOURCE,
-      ota_channel: campaign.slug ?? null,
-      notes: noteLines.join("\n"),
-    })
+    .insert(buildGroupBuyOrderInsert(plan, opts))
     .select("*")
     .single();
 
@@ -484,6 +514,7 @@ export async function createGroupBuyOrderCore(
     }
     return { ok: false, error: "訂單建立失敗，請稍後再試", status: 500 };
   }
+
 
   // 訂房須知快照（immutable，僅此處寫入一次；失敗不影響訂單成立）
   try {
