@@ -584,24 +584,86 @@ export async function createGroupBuyOrderCore(
   }
 
   // 團購專屬佣金列（不進既有團隊分潤）
-  const rate = Number(campaign.commission_rate) || 0;
   await admin.from("group_buy_commissions").insert({
-    campaign_id: campaign.id,
+    ...buildGroupBuyCommissionInsert(plan, opts),
     order_id: order.id,
-    kol_profile_id: campaign.kol_profile_id ?? null,
-    revenue_base: plan.total,
-    commission_rate: rate,
-    commission_amount: Math.round((plan.total * rate) / 100),
-    status: "pending",
-    price_snapshot: {
-      ...plan.priceSnapshot,
-      payment_provider: opts.paymentProvider,
-      campaign_payment_method: campaign.payment_method ?? "manual_bank_transfer",
-      payment_type: opts.paid ? "credit_card" : opts.paymentMethod,
-      payment_draft_id: opts.draftId ?? null,
-      rec_trade_id: opts.paid?.recTradeId ?? null,
-    },
   });
 
   return { ok: true, order };
 }
+
+/* ─────────────────────────────────────────────────────────────
+ * 信用卡：Draft → 正式 order 原子轉換（Phase G2-C／B3）
+ *
+ * orders + group_buy_commissions + 稽核事件 + draft.converted 全部由單一
+ * SECURITY DEFINER RPC 在同一個 DB transaction 內完成：
+ *   - 任一步失敗 → 整筆 rollback，不留半張 order
+ *   - draft row FOR UPDATE + converted_order_id 檢查 → 同一 draft 最多一張 order
+ *   - 與 acquire_group_buy_payment_hold 共用住宿層級 advisory lock
+ * RPC 完全不重算團購價格，一律使用此處已凍結的 plan 值。
+ * ───────────────────────────────────────────────────────────── */
+export async function convertGroupBuyDraftToOrderAtomic(
+  admin: any,
+  plan: GroupBuyBookingPlan,
+  opts: CreateGroupBuyOrderOptions & { draftId: string; events?: Array<Record<string, unknown>> },
+): Promise<CreateGroupBuyOrderResult & { alreadyConverted?: boolean }> {
+  const campaign = plan.campaign;
+
+  // 訂房須知快照與 orders 同一筆 INSERT 落地（不再事後 UPDATE，避免半套狀態）
+  let noticeSnapshot: unknown = null;
+  try {
+    noticeSnapshot = await buildBookingNoticeSnapshot(admin, {
+      accommodationId: campaign.accommodation_id ?? null,
+      campaignId: campaign.id ?? null,
+      visibleKeys: (campaign as any).booking_notice_keys ?? null,
+    });
+  } catch (snapErr) {
+    console.error("[convertGroupBuyDraftToOrderAtomic] booking_notice_snapshot_failed", snapErr);
+  }
+
+  const orderPayload: Record<string, unknown> = {
+    ...buildGroupBuyOrderInsert(plan, opts),
+    inventory_dates: plan.dates,
+  };
+  if (noticeSnapshot) orderPayload.booking_notice_snapshot = noticeSnapshot;
+
+  const events = [
+    {
+      campaign_id: campaign.id,
+      event_type: "order_created",
+      amount: plan.deposit,
+      actor_label: plan.input.guestName || "guest",
+      note:
+        `信用卡付款成功後建立訂單（${plan.roomQuantity} 間 / ${plan.input.checkInDate} → ${plan.input.checkOutDate}）／draft:${opts.draftId}`,
+    },
+    ...(opts.events ?? []),
+  ];
+
+  const { data, error } = await admin.rpc("convert_group_buy_payment_draft", {
+    p_draft_id: opts.draftId,
+    p_order: orderPayload,
+    p_commission: buildGroupBuyCommissionInsert(plan, opts),
+    p_events: events,
+  });
+
+  if (error) {
+    console.error("[convertGroupBuyDraftToOrderAtomic] rpc failed", error);
+    const msg = String(error.message ?? "");
+    if (/oversold|庫存|inventory|預訂|booked/i.test(msg)) {
+      return { ok: false, error: "此日期房況已變動，無法建立訂單", status: 409, oversold: true };
+    }
+    return { ok: false, error: `訂單建立失敗：${msg.slice(0, 200)}`, status: 500 };
+  }
+
+  const res = (data ?? {}) as any;
+  if (!res.ok) {
+    return { ok: false, error: res.error ?? "訂單建立失敗", status: res.code === "draft_not_found" ? 404 : 409 };
+  }
+
+  return {
+    ok: true,
+    alreadyConverted: Boolean(res.already_converted),
+    order: res.order ?? { id: res.order_id, order_number: res.order_number },
+  };
+}
+
