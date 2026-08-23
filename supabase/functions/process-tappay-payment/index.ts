@@ -236,7 +236,8 @@ serve(async (req) => {
       try {
         const supaUrl = Deno.env.get('SUPABASE_URL');
         const svcKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-        if (supaUrl && svcKey && cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cardholder.email)) {
+        // 團購信用卡此時尚未有正式 orders（付款成功後才建單），不做 email 回寫
+        if (!isGroupBuyFlow && supaUrl && svcKey && cardholder?.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cardholder.email)) {
           const admin = createClient(supaUrl, svcKey);
           const { error: emailUpdateErr } = await admin
             .from('orders')
@@ -253,13 +254,18 @@ serve(async (req) => {
 
       // Check if 3D Secure redirect is required
       if (result.payment_url) {
-        if (supaUrl && svcKey && orderPayload && result.rec_trade_id) {
+        if (supaUrl && svcKey && result.rec_trade_id && (orderPayload || isGroupBuyFlow)) {
           const admin = createClient(supaUrl, svcKey);
-          const { error: linkError } = await admin.from('pending_paid_order_drafts').update({
-            rec_trade_id: result.rec_trade_id,
-          }).eq('idempotency_key', orderId);
+          const { error: linkError } = isGroupBuyFlow
+            ? await admin.from('group_buy_payment_drafts').update({
+              rec_trade_id: result.rec_trade_id,
+            }).eq('idempotency_key', orderId)
+            : await admin.from('pending_paid_order_drafts').update({
+              rec_trade_id: result.rec_trade_id,
+            }).eq('idempotency_key', orderId);
           if (linkError) console.error('[process-tappay-payment] draft trade link failed', linkError);
         }
+
         console.log('3D Secure redirect required:', { 
           recTradeId: result.rec_trade_id,
           paymentUrl: result.payment_url.substring(0, 50) + '...'
