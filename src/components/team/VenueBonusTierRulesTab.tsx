@@ -1202,8 +1202,52 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
                     保留的生效日：<strong>{fixCandidate?.effective_from}</strong>（重建後生效期別不變）
                   </li>
                 </ul>
+
+                {fixCandidate && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium">
+                      將被刪除的級距內容（重建時會先帶入這份資料，供你逐階比對修改）
+                    </p>
+                    <div className="max-h-56 overflow-auto rounded-md border">
+                      <table className="w-full text-xs tabular-nums">
+                        <thead className="sticky top-0 bg-muted/60">
+                          <tr>
+                            <th className="px-2 py-1 text-left">營收門檻</th>
+                            {BONUS_TYPES.map((b) => (
+                              <th key={b.value} className="px-2 py-1 text-right">
+                                {b.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fixCandidate.thresholds.map((min, i) => (
+                            <tr key={min} className={i % 2 ? "bg-muted/20" : ""}>
+                              <td className="px-2 py-1">{twMoney(min)} 起</td>
+                              {BONUS_TYPES.map((b) => (
+                                <td key={b.value} className="px-2 py-1 text-right">
+                                  {displayRate(fixCandidate, b.value, min)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      共 {fixCandidate.thresholds.length} 階；
+                      {BONUS_TYPES.map(
+                        (b) =>
+                          `${b.label}：${fixCandidate.rows[b.value] ? "本館級距" : "沿用系統費率"}`,
+                      ).join("｜")}
+                      {fixCandidate.note ? `｜備註：${fixCandidate.note}` : ""}
+                    </p>
+                  </div>
+                )}
+
                 <p className="text-xs text-muted-foreground">
                   此版本尚未被任何快照採用，因此可安全重建；若只是想調整未來期別，請改用「以此版本為基礎新增」。
+                  重建完成後 2 分鐘內可按「撤銷上一步」還原成現在這份內容。
                 </p>
               </div>
             </AlertDialogDescription>
