@@ -183,6 +183,17 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   } | null>(null);
   /** 修正前的確認視窗對象 */
   const [fixCandidate, setFixCandidate] = useState<VenueVersion | null>(null);
+  /** 修正模式下被刪除前的原始資料列（供「撤銷上一步」還原） */
+  const [replaceSnapshot, setReplaceSnapshot] = useState<TierRuleRow[] | null>(null);
+  /** 重建完成後的可撤銷狀態（限時） */
+  const [undoState, setUndoState] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+    rows: TierRuleRow[];
+    expiresAt: number;
+  } | null>(null);
+  const [undoLeft, setUndoLeft] = useState(0);
+  const [undoing, setUndoing] = useState(false);
   const [formAcc, setFormAcc] = useState<string>("");
   const [formDate, setFormDate] = useState<string>(todayTaipei());
   const [formNote, setFormNote] = useState<string>("");
