@@ -44,6 +44,7 @@ import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderH
 import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
 import type { BonusSettingKey } from "@/lib/bonusSettingImpact";
+import { payoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 /* ------------------------------ 四步流程導引 ------------------------------ */
 
@@ -111,7 +112,6 @@ function GateVsAmountBar() {
 
 /* ------------------------------ 共用工具 ------------------------------ */
 
-import { payoutPeriodLabel } from "@/lib/rateEffectivePeriod";
 
 
 
