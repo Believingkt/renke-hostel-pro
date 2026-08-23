@@ -594,7 +594,10 @@ Deno.serve(async (req) => {
           "加盟訂房月目標": toWan(fBookingTarget),
           "加盟訂房達成率": fmtPct(franchiseBookingMonth, fBookingTarget),
           "加盟訂房年累積": fmtMoney(franchiseBookingYear),
+          "今日來源明細": buildSourceBreakdown(todayOrders as any, "📊 今日來源明細"),
+          "本月來源明細": buildSourceBreakdown(monthOrders as any, "📊 本月來源明細"),
         };
+
 
         // ── 載入該館通報模板（方案 B：多模板）──────────────
         const { data: tplRows } = await supabase
