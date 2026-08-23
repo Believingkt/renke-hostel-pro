@@ -423,6 +423,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
         </Card>
       )}
 
+      <VenueTierRulePreview accs={accs} rules={rules} />
+
+      <VenueTierRuleAuditLog accs={accs} accountFilter={selectedAcc} />
+
+
       {/* 新增／複製版本 Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
