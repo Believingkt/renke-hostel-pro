@@ -2112,15 +2112,16 @@ export default function TeamHome() {
             <CardHeader>
               <CardTitle className="text-base">{monthlySettled ? "本期實付總計" : "本期預估總收入"}</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-4xl font-bold text-primary">
+            <CardContent className="min-w-0">
+              <p className="text-3xl sm:text-4xl font-bold text-primary tabular-nums break-words">
                 {loading ? "—" : fmt(total)}
                 {!loading && salaryAmt > 0 && (
-                  <span className="ml-2 text-base font-medium text-muted-foreground">
+                  <span className="ml-2 inline-block text-sm sm:text-base font-medium text-muted-foreground">
                     + 薪資 {fmt(salaryAmt)}
                   </span>
                 )}
               </p>
+
               {!loading && salaryAmt > 0 && (
                 <p className="mt-1 text-xs text-muted-foreground">
                   （實際領款時，須扣除勞健保相關金額）
