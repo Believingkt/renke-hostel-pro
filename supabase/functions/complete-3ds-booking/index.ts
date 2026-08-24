@@ -2,6 +2,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { finalizeTripOrder } from "../_shared/tripOrder.ts";
+import { refundTapPay } from "../_shared/tappay.ts";
+import { reportBackendError } from "../_shared/errorReporter.ts";
+
 
 interface BookingData {
   accommodationId: string;
@@ -178,6 +181,45 @@ Deno.serve(async (req) => {
     const totalPrice = body.totalPrice || body.finalPrice;
     const totalGuests = body.totalGuests || 2;
 
+    // 付款後才發現不能建單（庫存被搶走）時的補償：自動退款 + 記錄
+    const refundAndFail = async (step: string, detail: unknown) => {
+      let refunded = false;
+      try {
+        const r = await refundTapPay(partnerKey!, body.recTradeId, verifiedAmount);
+        refunded = r.success;
+        console.error("[complete-3ds-booking] auto refund result:", r.success, r.msg);
+      } catch (e) {
+        console.error("[complete-3ds-booking] auto refund threw:", e);
+      }
+      await reportBackendError({
+        functionName: "complete-3ds-booking",
+        category: "inventory_unavailable_after_payment",
+        step,
+        errorMessage: `庫存不足導致付款後無法建單（已${refunded ? "" : "嘗試"}退款）`,
+        accommodationId: body.accommodationId,
+        idempotencyKey: body.idempotencyKey ?? undefined,
+        context: {
+          recTradeId: body.recTradeId,
+          amount: verifiedAmount,
+          refunded,
+          detail,
+        },
+      }).catch(() => {});
+      return new Response(
+        JSON.stringify({
+          success: false,
+          inventoryUnavailable: true,
+          refunded,
+          message: refunded
+            ? "很抱歉，您選擇的房型剛剛被其他旅客訂走，款項已全額退回原信用卡（依發卡行作業約 3–7 個工作天入帳）。請重新選擇日期或房型。"
+            : "很抱歉，您選擇的房型剛剛被其他旅客訂走，我們已通知客服為您處理退款，將盡快與您聯繫。",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    };
+
+
+
     try {
       const validationPayload = {
         accommodationId: body.accommodationId,
@@ -216,6 +258,13 @@ Deno.serve(async (req) => {
         const validationResult = await validateResponse.json();
         if (!validationResult.isValid) {
           console.error("[complete-3ds-booking] Price validation failed:", validationResult.errors);
+          // 庫存不足（含團購 10 分鐘保留）：卡片已扣款，必須自動退款並記錄
+          if (validationResult.inventoryUnavailable) {
+            return await refundAndFail(
+              "inventory_unavailable_pre_insert",
+              validationResult.errors,
+            );
+          }
           return new Response(
             JSON.stringify({
               success: false,
@@ -227,6 +276,7 @@ Deno.serve(async (req) => {
         }
         console.log("[complete-3ds-booking] Price validation passed");
       } else {
+
         // Fail-open：驗證服務暫時不可用時放行建單（因 TapPay 已扣款，避免訂單未建立的客訴）
         const respText = await validateResponse.text();
         console.warn("[complete-3ds-booking] Price validation service unavailable (fail-open):", validateResponse.status, respText);
@@ -277,6 +327,7 @@ Deno.serve(async (req) => {
         notes: orderNotes,
         pet_count: body.petCount || 0,
         pet_plan_price: body.petPlanPrice || 0,
+        room_quantity: (body as any).roomQuantity ?? 1,
         custom_addon_details: (body as any).customAddonDetails ?? null,
         order_source: "website",
       }])
@@ -285,6 +336,10 @@ Deno.serve(async (req) => {
 
     if (orderError) {
       console.error("[complete-3ds-booking] Order creation failed:", orderError);
+      // DB 庫存閘門擋下（跨通路搶單）：卡片已扣款，自動退款
+      if ((orderError.message || "").includes("inventory_unavailable")) {
+        return await refundAndFail("inventory_gate_on_insert", orderError.message);
+      }
       return new Response(
         JSON.stringify({
           success: false,
@@ -294,6 +349,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     console.log("[complete-3ds-booking] Order created:", orderData.order_number);
 

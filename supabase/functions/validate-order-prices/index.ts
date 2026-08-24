@@ -168,6 +168,9 @@ serve(async (req) => {
     });
 
     const errors: string[] = [];
+    // H2：庫存不足需與價格錯誤分流（付款後的呼叫端要走退款補償而非單純 400）
+    let inventoryUnavailable = false;
+
 
     
     // Validate required fields
@@ -384,10 +387,14 @@ serve(async (req) => {
       }
     }
 
-    // 多間預訂：房費 × 間數，並確認每晚實際可訂間數足夠（防超賣）
+    // 多間預訂：房費 × 間數
     if (roomQuantity > 1) {
       calculatedRoomTotal *= roomQuantity;
       discountBaseTotal *= roomQuantity;
+    }
+
+    // 伺服器端庫存複驗（單間也驗；已含團購信用卡 live hold 與包棟互斥規則）
+    if (roomTypeId && roomQuantity >= 1) {
       try {
         const { data: invRows } = await supabase.rpc("get_adjusted_room_inventory_batch", {
           p_room_type_id: roomTypeId,
@@ -397,6 +404,7 @@ serve(async (req) => {
         for (const row of (invRows as any[]) || []) {
           const avail = row?.is_blocked === true ? 0 : Number(row?.available_rooms ?? 0);
           if (avail < roomQuantity) {
+            inventoryUnavailable = true;
             errors.push(
               `Not enough rooms on ${row?.date_value}: requested=${roomQuantity}, available=${avail}`,
             );
@@ -407,6 +415,8 @@ serve(async (req) => {
         errors.push("Inventory check failed");
       }
     }
+
+
 
 
 
@@ -668,9 +678,11 @@ serve(async (req) => {
       errors
     });
 
-    const result: ValidationResult = {
+    const result: ValidationResult & { inventoryUnavailable?: boolean } = {
       isValid: errors.length === 0,
+      inventoryUnavailable,
       errors,
+
       calculatedPrices: {
         totalPrice: calculatedTotalPrice,
         discountAmount: calculatedDiscount,
