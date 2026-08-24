@@ -126,7 +126,7 @@ async function sendConversionEmails(
       order.guest_email,
       renderDepositReceived(
         { ...emailOrder, balanceAmount: balance },
-        { providerLabel: PROVIDER_LABEL, paidThisTime: paidAmount },
+        { providerLabel: PROVIDER_LABEL, paidThisTime: paidAmount, fullPayment: true },
       ),
     );
     if (!mail.ok) {
@@ -181,13 +181,13 @@ async function sendConversionEmails(
             childCount: order.child_count,
             toddlerCount: order.toddler_count,
             infantCount: order.infant_count,
-            paymentStatusText: `已收訂金 NT$${paidAmount.toLocaleString("en-US")}（信用卡）`,
+            paymentStatusText: `已全額收款 NT$${paidAmount.toLocaleString("en-US")}（信用卡）`,
             adminUrl: buildAdminGroupBuyUrl({
               accommodationId: order.accommodation_id ?? draft.accommodation_id ?? null,
               campaignId: draft.campaign_id,
               orderNumber: order.order_number,
             }),
-          }),
+          }, { fullPayment: true }),
         );
         if (!venueMail.ok) {
           await admin.from("group_buy_payment_drafts").update({ venue_email_sent_at: null }).eq("id", draft.id);
@@ -413,8 +413,9 @@ export async function completeGroupBuyCreditOrder(
   // ── 4) 原子轉單（金額一律沿用 draft 落地時的快照）──
   const plan = validated.plan;
   plan.total = Math.round(Number(claimed.total_price) || plan.total);
-  plan.deposit = Math.round(Number(claimed.deposit_amount) || plan.deposit);
-  plan.balance = Math.max(0, plan.total - plan.deposit);
+  // 團購信用卡為全額付款：訂金 0、無尾款
+  plan.deposit = 0;
+  plan.balance = 0;
   plan.priceSnapshot = {
     ...(claimed.price_snapshot ?? plan.priceSnapshot),
     payment_draft_id: claimed.id,
@@ -424,11 +425,12 @@ export async function completeGroupBuyCreditOrder(
   const created = await convertGroupBuyDraftToOrderAtomic(admin, plan, {
     paymentProvider: "tappay",
     paymentMethod: "credit_card_3ds",
+    fullPayment: true,
     paid: { amount: verifiedAmount, recTradeId, authCode: params.authCode ?? null },
     draftId: claimed.id,
     excludeDraftId: claimed.id,
     extraNoteLines: [
-      `[3DS] ${nowIso} - 信用卡訂金付款成功 NT$${verifiedAmount} (rec_trade_id: ${recTradeId}${
+      `[3DS] ${nowIso} - 信用卡全額付款成功 NT$${verifiedAmount} (rec_trade_id: ${recTradeId}${
         params.authCode ? `, auth_code: ${params.authCode}` : ""
       })`,
       `[GroupBuy] payment_draft: ${claimed.id}`,
@@ -441,7 +443,7 @@ export async function completeGroupBuyCreditOrder(
         amount: verifiedAmount,
         actor_label: params.source === "callback" ? "system(callback)" : "system(frontend)",
         note:
-          `信用卡訂金付款成功並建立正式訂單（draft:${claimed.id}／rec_trade_id:${recTradeId}／NT$${verifiedAmount}）`,
+          `信用卡全額付款成功並建立正式訂單（draft:${claimed.id}／rec_trade_id:${recTradeId}／NT$${verifiedAmount}）`,
       },
     ],
   });
