@@ -22,6 +22,7 @@ import {
   remainingRefundable,
 } from "../_shared/paymentAdapter.ts";
 import { isCardPaidOrder, resolveSyncRecTradeId } from "../_shared/orderRefund.ts";
+import { loadManualRefundFee, remainingRefundableWithFee, splitRefundFee } from "../_shared/refundFee.ts";
 import { queryTapPayRecord } from "../_shared/tappay.ts";
 import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
 import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
@@ -88,7 +89,17 @@ Deno.serve(async (req) => {
     const isCardOrder = provider === "tappay" && isCardPaidOrder(order as any);
     const paid = Math.max(0, Math.round(Number(order.paid_amount) || 0));
     const alreadyRefunded = Math.max(0, Math.round(Number(order.refunded_amount) || 0));
-    const refundable = remainingRefundable(order);
+    const alreadyRefundFee = Math.max(0, Math.round(Number((order as any).refund_fee_amount) || 0));
+    /**
+     * 可退餘額＝已收 −（累計實退旅客 ＋ 累計已扣手續費）。
+     * 手續費也算沖銷，避免同一筆錢被重複退。
+     */
+    const refundable = remainingRefundableWithFee(order as any);
+    /**
+     * 人工退款手續費：一律讀該館 booking_settings.manual_refund_fee_amount（可為 0，禁止寫死金額）。
+     * 信用卡原卡退刷不收手續費。
+     */
+    const configuredRefundFee = isCardOrder ? 0 : await loadManualRefundFee(admin, order.accommodation_id);
 
     if (mode === "cancel") {
       const allowedActions = isCardOrder
@@ -155,7 +166,17 @@ Deno.serve(async (req) => {
         mode: "quote",
         paidAmount: paid,
         alreadyRefunded,
+        alreadyRefundFee,
+        settledRefund: alreadyRefunded + alreadyRefundFee,
         remainingRefundable: refundable,
+        /** 手續費設定與本次建議金額的拆分（gross = 自 paid 沖銷；payout = 實際退給旅客） */
+        manualRefundFee: configuredRefundFee,
+        refundFeeApplies: !isCardOrder && configuredRefundFee > 0,
+        suggestedRefundSplit: splitRefundFee({
+          gross: suggestedRefund,
+          configuredFee: configuredRefundFee,
+          isCardRefund: isCardOrder,
+        }),
         quote: policyQuote,
         policy: policyQuote.policy,
         suggestedRefund,
@@ -251,9 +272,19 @@ Deno.serve(async (req) => {
       const reasonError = requireReasonIfOverride(refundAmount);
       if (reasonError) return reasonError;
 
+      /**
+       * refundAmount = 本次自 paid_amount 沖銷的「退款總額」(gross)。
+       * 人工銀行退款會由其中扣除館別設定的手續費，實際匯回旅客為 payout。
+       */
+      const { fee: refundFee, payout: refundPayout } = splitRefundFee({
+        gross: refundAmount,
+        configuredFee: configuredRefundFee,
+        isCardRefund: isCardOrder,
+      });
+
       const settle = await adapter.refundPayment({
         order: { ...order, id: order.id },
-        amount: refundAmount,
+        amount: refundPayout,
         note: reason,
         supabase: admin,
         triggerSource: "group_buy_cancel_refund",
@@ -266,15 +297,17 @@ Deno.serve(async (req) => {
         }, 400);
       }
 
-      const totalRefunded = alreadyRefunded + refundAmount;
-      const refundStatus = refundStatusAfterRefund(paid, totalRefunded);
+      const totalRefunded = alreadyRefunded + refundPayout;
+      const totalRefundFee = alreadyRefundFee + refundFee;
+      const totalSettled = totalRefunded + totalRefundFee;
+      const refundStatus = refundStatusAfterRefund(paid, totalSettled);
       /**
        * 帳務模型：paid_amount 維持原實收，refunded_amount 為累計已退。
        * payment_status 只做狀態同步（全額 refunded／部分 partial_refunded），不歸零 paid_amount。
        */
-      const paymentStatus = totalRefunded <= 0
+      const paymentStatus = totalSettled <= 0
         ? null
-        : totalRefunded >= paid
+        : totalSettled >= paid
         ? "refunded"
         : "partial_refunded";
 
@@ -282,7 +315,9 @@ Deno.serve(async (req) => {
         order.notes ?? "",
         isCardOrder
           ? `【退款】${nowIso} 由 ${actor} 執行原信用卡退刷 ${twd(refundAmount)}（累計 ${twd(totalRefunded)} / 已收 ${twd(paid)}${settle.recTradeId ? `／rec_trade_id: ${settle.recTradeId}` : ""}）`
-          : `【退款】${nowIso} 由 ${actor} 登記人工退款 ${twd(refundAmount)}（累計 ${twd(totalRefunded)} / 已收 ${twd(paid)}）`,
+          : `【退款】${nowIso} 由 ${actor} 登記人工退款 ${twd(refundAmount)}${
+            refundFee > 0 ? `（扣手續費 ${twd(refundFee)}，實退旅客 ${twd(refundPayout)}）` : ""
+          }（累計實退 ${twd(totalRefunded)} / 累計手續費 ${twd(totalRefundFee)} / 已收 ${twd(paid)}）`,
         reason ? `退款備註：${reason}` : null,
       ].filter(Boolean).join("\n");
 
@@ -290,6 +325,7 @@ Deno.serve(async (req) => {
         .from("orders")
         .update({
           refunded_amount: totalRefunded,
+          refund_fee_amount: totalRefundFee,
           refunded_at: nowIso,
           refund_status: refundStatus,
           ...(paymentStatus ? { payment_status: paymentStatus } : {}),
@@ -311,8 +347,11 @@ Deno.serve(async (req) => {
             ? `原信用卡退刷（TapPay${settle.recTradeId ? ` ${settle.recTradeId}` : ""}）`
             : `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
 
-          `本次 ${twd(refundAmount)}`,
-          `累計 ${twd(totalRefunded)}`,
+          `本次沖銷 ${twd(refundAmount)}`,
+          refundFee > 0 ? `手續費 ${twd(refundFee)}` : null,
+          `實退旅客 ${twd(refundPayout)}`,
+          `累計實退 ${twd(totalRefunded)}`,
+          totalRefundFee > 0 ? `累計手續費 ${twd(totalRefundFee)}` : null,
           `已收 ${twd(paid)}`,
           `狀態 ${refundStatus}`,
           reason ? `備註：${reason}` : null,
@@ -332,7 +371,11 @@ Deno.serve(async (req) => {
           source: "group_buy",
           payment_provider: provider,
           refund_amount: refundAmount,
+          refund_fee_amount: refundFee,
+          refund_payout_amount: refundPayout,
           total_refunded_amount: totalRefunded,
+          total_refund_fee_amount: totalRefundFee,
+          manual_refund_fee_setting: configuredRefundFee,
           paid_amount: paid,
           refund_status: refundStatus,
           policy: policyQuote.policy,
@@ -355,7 +398,9 @@ Deno.serve(async (req) => {
       // 退款資料已成功更新後才寄信；寄信失敗不影響退款登記
       await notify(
         renderRefundProcessed(await buildMailOrder(), {
-          refundAmount,
+          refundAmount: refundPayout,
+          refundFee,
+          refundFeeTotal: totalRefundFee,
           refundedTotal: totalRefunded,
           paidAmount: paid,
           refundStatus,
@@ -368,12 +413,15 @@ Deno.serve(async (req) => {
         success: true,
         mode: "refund",
         refundAmount,
+        refundFee,
+        refundPayout,
+        totalRefundFee,
         refundStatus,
         paymentStatus: paymentStatus ?? order.payment_status,
         refundChannel: isCardOrder ? "tappay_card" : "manual_bank",
         recTradeId: settle.recTradeId ?? null,
         totalRefunded,
-        remainingRefundable: Math.max(0, paid - totalRefunded),
+        remainingRefundable: Math.max(0, paid - totalSettled),
       });
 
     }
