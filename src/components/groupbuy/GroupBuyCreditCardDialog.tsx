@@ -417,7 +417,9 @@ export function GroupBuyCreditCardDialog(props: Props) {
 
   const pay = useCallback(async () => {
     setError(null);
+    setBlocked(null);
     setSubmitting(true);
+
     try {
       // 1) 建立付款草稿（10 分鐘保留），金額一律由後端計算
       let draft = draftRef.current;
