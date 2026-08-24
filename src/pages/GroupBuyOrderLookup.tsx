@@ -66,6 +66,33 @@ export default function GroupBuyOrderLookup() {
     }
   };
 
+  const lookupRef = useRef(lookup);
+  lookupRef.current = lookup;
+
+  /**
+   * 待付款訂單（ATM／匯款）短輪詢：TapPay 入帳後 orders 會更新，
+   * 前台不需 reload 即可自動切換為「訂金已付」。
+   * 進入 deposit_paid／paid／cancelled 後立即停止，避免永久輪詢。
+   */
+  useEffect(() => {
+    const o = data?.order;
+    if (!o) return;
+    const settled = o.depositPaid === true || o.orderStatus === "cancelled" ||
+      ["deposit_paid", "paid", "partial", "partial_paid"].includes(String(o.paymentStatus ?? ""));
+    if (settled) return;
+    const id = window.setInterval(() => void lookupRef.current({ silent: true }), 8000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void lookupRef.current({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [data?.order?.paymentStatus, data?.order?.orderStatus, data?.order?.depositPaid, data?.order?.orderNumber]);
+
+
+
   const report = async () => {
     setReporting(true);
     try {
