@@ -12,6 +12,7 @@ import {
   resolveCardRecTradeId,
 } from "../_shared/orderRefund.ts";
 import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
 
 
@@ -22,7 +23,9 @@ interface Body {
   // "mark_manual_refund" = cancel + add audit note (ATM / cash / bank_transfer)
   // "no_refund" = cancel without refund
   refundAction: "auto_refund" | "mark_manual_refund" | "no_refund";
-  refundAmount?: number; // optional override; defaults to paid_amount
+  refundAmount?: number; // optional manual override; defaults to the server-computed policy amount
+  /** mode: "quote" 只回傳建議退款金額，不異動資料 */
+  mode?: "quote" | "apply";
 }
 
 const extractRecTradeId = (notes: string | null) => extractRecTradeIdFromNotes(notes);
@@ -33,7 +36,7 @@ serve(async (req) => {
 
   try {
     const body: Body = await req.json();
-    if (!body?.orderId || !body?.refundAction) {
+    if (!body?.orderId || (body?.mode !== "quote" && !body?.refundAction)) {
       return new Response(
         JSON.stringify({ success: false, message: "缺少必要參數" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -65,7 +68,7 @@ serve(async (req) => {
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, room_charge_rec_trade_id, notes")
+      .select("id, accommodation_id, order_number, order_status, payment_status, paid_amount, refunded_amount, final_price, deposit_amount, check_in_date, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id, room_charge_rec_trade_id, room_charge_status, notes")
       .eq("id", body.orderId)
       .maybeSingle();
     if (orderErr || !order) {
@@ -98,7 +101,29 @@ serve(async (req) => {
     }
 
     const paidAmount = order.paid_amount || 0;
-    const refundAmount = body.refundAmount ?? paidAmount;
+
+    // 建議退款金額：一律由 server 依訂單真實付款制度 + 法規級距計算
+    const policyQuote = quoteCancellation({
+      order: order as any,
+      checkInDate: String(order.check_in_date),
+      cancellationDate: taipeiToday(),
+      alreadyRefunded: Number(order.refunded_amount || 0),
+      guaranteeBase: Number(order.final_price || 0),
+    });
+    const suggestedRefund = Math.max(0, Math.round(policyQuote.refundAmount));
+
+    if (body.mode === "quote") {
+      return new Response(
+        JSON.stringify({ success: true, quote: policyQuote, suggestedRefund, paidAmount }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // 未指定金額 → 採用法規建議金額（不再預設全額退）
+    const refundAmount = Number.isFinite(body.refundAmount as number)
+      ? Math.max(0, Math.round(Number(body.refundAmount)))
+      : suggestedRefund;
+    const isManualOverride = refundAmount !== suggestedRefund;
     const nowIso = new Date().toISOString();
     const auditPrefix = `🔒 [${nowIso}] ${userEmail} 取消訂單`;
 
@@ -108,6 +133,17 @@ serve(async (req) => {
 
     // ===== auto_refund: credit card via TapPay =====
     if (body.refundAction === "auto_refund") {
+      if (policyQuote.requiresManualReview && !Number.isFinite(body.refundAmount as number)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            needsManualReview: true,
+            quote: policyQuote,
+            message: "此訂單無法自動判定取消政策（歷史訂單），請人工確認退款金額後再送出。",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       if (refundAmount <= 0) {
         return new Response(
           JSON.stringify({ success: false, message: "退款金額必須大於 0" }),
@@ -209,7 +245,12 @@ serve(async (req) => {
       refundResultNote = `\n${auditPrefix}${reason}，未退款`;
     }
 
-    const newNotes = (order.notes || "") + refundResultNote;
+    const policyNote =
+      `\n🔒 [${nowIso}] 取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／` +
+      `建議退款 NT$${suggestedRefund.toLocaleString()}／實際處理 NT$${refundAmount.toLocaleString()}` +
+      (isManualOverride ? `／⚠️ 人工調整（操作者 ${userEmail}）` : "") +
+      (policyQuote.requiresManualReview ? "／⚠️ 無法自動判定政策，需人工確認" : "");
+    const newNotes = (order.notes || "") + refundResultNote + policyNote;
 
     // Build update patch
     const patch: Record<string, any> = {
@@ -293,6 +334,9 @@ serve(async (req) => {
               ? "已取消訂單，請手動退款給客人"
               : "已取消訂單",
         refunded: refundSucceeded ? refundAmount : 0,
+        quote: policyQuote,
+        suggestedRefund,
+        manualOverride: isManualOverride,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

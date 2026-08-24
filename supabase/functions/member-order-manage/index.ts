@@ -4,7 +4,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
+import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
 
 import { payByCardToken } from "../_shared/tappay.ts";
@@ -78,7 +78,7 @@ serve(async (req) => {
     const { data: order } = await supabase
       .from("orders")
       .select(
-        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, final_price, total_price, discount_amount, package_id, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id",
+        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, refunded_amount, final_price, deposit_amount, order_source, payment_provider, total_price, discount_amount, package_id, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id",
       )
       .eq("order_number", body.orderNumber)
       .maybeSingle();
@@ -105,17 +105,18 @@ serve(async (req) => {
       .maybeSingle();
     const freeCancelDays = Number(bs?.free_cancel_days ?? 14);
 
-    const quote = calcCancellationFee(
-      Number(order.final_price || 0),
-      order.check_in_date,
-      today,
-      Number(order.paid_amount || 0),
+    const quote = quoteCancellation({
+      order: order as any,
+      checkInDate: order.check_in_date,
+      cancellationDate: today,
+      alreadyRefunded: Number(order.refunded_amount || 0),
+      guaranteeBase: Number(order.final_price || 0),
       freeCancelDays,
-    );
+    });
 
     // 取消政策試算（不異動資料）
     if (body.action === "cancel_quote") {
-      return json({ success: true, quote, freeCancelDays }, 200, corsHeaders);
+      return json({ success: true, quote, policy: quote.policy, freeCancelDays }, 200, corsHeaders);
     }
 
     // 改期／改人數：入住日當天或之後不可線上異動
@@ -144,7 +145,7 @@ serve(async (req) => {
 
       const lines: string[] = [
         `🔒 ${stamp} 會員於前台自行取消訂單（${email}）${body.reason ? `：${body.reason}` : ""}`,
-        `🔒 取消政策：距入住 ${quote.daysBefore} 天，扣款比例 ${quote.percent}%（${quote.label}）`,
+        `🔒 取消政策（${quote.policy}／${quote.policyReason}）：距入住 ${quote.daysBefore} 天，退款比例 ${quote.refundPercent}%（${quote.label}）`,
       ];
 
       let chargedFee = 0;
@@ -207,9 +208,24 @@ serve(async (req) => {
         }
       }
       // 情境 B：已扣款 → 退還（已收金額 - 手續費）；信用卡自動退刷，ATM／現金／轉帳走人工
+      else if (quote.requiresManualReview) {
+        // 無法可靠判定契約政策（多為歷史訂單）→ 一律不自動退款，轉人工確認
+        needManual = true;
+        lines.push(
+          `🔒 ${quote.label}（實收 NT$${Number(order.paid_amount || 0).toLocaleString()}），已轉人工確認，未執行自動退款`,
+        );
+        await createManualReviewTask(supabase, {
+          orderId: order.id,
+          accommodationId: order.accommodation_id,
+          orderNumber: order.order_number,
+          taskType: "cancellation_policy_unknown",
+          reasonCode: "cancellation_policy_unknown",
+          quoteSnapshot: { quote },
+        } as any).catch((e: unknown) => console.error("[member-order-manage] manual review task failed", e));
+      }
       else if (Number(order.paid_amount || 0) > 0) {
         const refundAmount = quote.refundAmount;
-        chargedFee = Math.min(Number(order.paid_amount || 0), quote.feeAmount);
+        chargedFee = Math.min(Number(order.paid_amount || 0), quote.retainedAmount);
         refundOutcome = await refundOrderCard(
           supabase,
           order as any,
@@ -237,7 +253,7 @@ serve(async (req) => {
           order_status: "cancelled",
           cancelled_at: new Date().toISOString(),
           cancellation_fee_amount: chargedFee,
-          cancellation_fee_percent: quote.percent,
+          cancellation_fee_percent: quote.feePercent,
           paid_amount: Math.max(0, Number(order.paid_amount || 0) - refunded) + (chargedFee && Number(order.paid_amount || 0) === 0 ? chargedFee : 0),
           payment_status: refunded > 0 || Number(order.paid_amount || 0) === 0 ? "refunded" : order.payment_status,
           room_charge_status: order.room_charge_status ? "cancelled" : null,

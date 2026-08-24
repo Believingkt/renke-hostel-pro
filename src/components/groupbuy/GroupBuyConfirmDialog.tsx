@@ -1,5 +1,10 @@
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DEPOSIT_POLICY_LINES,
+  FULL_PREPAYMENT_CHARGE_NOTICE,
+  FULL_PREPAYMENT_POLICY_LINES,
+} from "@/lib/cancellation-policy";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -151,6 +156,22 @@ export function GroupBuyConfirmDialog(props: Props) {
         {noPaymentMethod && (
           <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             目前此活動暫無可用付款方式，請聯絡客服。
+          </div>
+        )}
+
+        {!noPaymentMethod && (
+          <div className="rounded-2xl border border-border/70 p-4">
+            <p className="mb-1 text-sm font-semibold text-foreground">
+              {method === "credit_card" ? "取消政策（預收房價總額）" : "取消政策（收取定金）"}
+            </p>
+            {method === "credit_card" && (
+              <p className="mb-1.5 text-xs font-medium text-foreground">{FULL_PREPAYMENT_CHARGE_NOTICE}</p>
+            )}
+            <ul className="space-y-0.5 text-xs leading-relaxed text-muted-foreground">
+              {(method === "credit_card" ? FULL_PREPAYMENT_POLICY_LINES : DEPOSIT_POLICY_LINES).map((line) => (
+                <li key={line}>・{line}</li>
+              ))}
+            </ul>
           </div>
         )}
 

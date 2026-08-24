@@ -299,7 +299,7 @@ export default function PaymentStatus() {
 
               {canCancel && (
                 <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-                  信用卡付款於送出訂單時即完成全額扣款，付款成功即確認訂房；如需取消，將依館別取消政策辦理退款。
+                  信用卡將一次支付訂單全額，付款成功即確認訂房。取消政策（預收房價總額）：入住日前第 3 日以前取消退還 100%、第 1～2 日取消退還 50%、入住當日取消或未通知不予退還。
                 </p>
               )}
 

@@ -13,6 +13,7 @@ import { qualifyReferral } from "@/lib/referral";
 
 import { fetchRoomScopeAmenities } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
+import { FULL_PREPAYMENT_CHARGE_NOTICE, FULL_PREPAYMENT_POLICY_LINES } from "@/lib/cancellation-policy";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { getDepositBreakdown } from "@/lib/bookingDeposit";
 
@@ -5168,7 +5169,7 @@ const BookingFlow = () => {
                             label: chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）",
                             icon: CreditCard,
                             desc: chargeCardImmediately
-                              ? `送出訂單時即以信用卡扣取全額 NT$ ${calculateFinalTotal().toLocaleString()}，付款成功即完成訂房；如需取消依館別取消政策辦理退款`
+                              ? `送出訂單時即以信用卡扣取全額 NT$ ${calculateFinalTotal().toLocaleString()}，付款成功即完成訂房；取消依「預收房價總額」制度退款（前 3 日以前 100%、前 1～2 日 50%、當日 0%）`
                               : "現在只綁定卡片、不扣款；入住當天由系統自動扣取全額，14 天前取消不收費",
                           },
                           {
@@ -5237,12 +5238,23 @@ const BookingFlow = () => {
                                 ・ 入住當天（{checkInDate ? format(checkInDate, "yyyy/MM/dd") : "入住日"}）系統將自動扣取 NT$ {calculateFinalTotal().toLocaleString()}。
                               </p>
                               )}
-                              <p className="text-xs text-muted-foreground">
-                                ・ 入住日前 14 日（含）以前取消：<span className="font-medium text-foreground">免費，不扣任何款項</span>。
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                ・ 14 日內取消：依取消政策級距（13–10 日 30%、9–7 日 50%、6–4 日 60%、3–2 日 70%、前 1 日 80%、當日 100%）自動收取手續費。
-                              </p>
+                              {chargeCardImmediately ? (
+                                <>
+                                  <p className="text-xs font-medium text-foreground">{FULL_PREPAYMENT_CHARGE_NOTICE}</p>
+                                  {FULL_PREPAYMENT_POLICY_LINES.map((line) => (
+                                    <p key={line} className="text-xs text-muted-foreground">・ {line}</p>
+                                  ))}
+                                </>
+                              ) : (
+                                <>
+                                  <p className="text-xs text-muted-foreground">
+                                    ・ 入住日前 14 日（含）以前取消：<span className="font-medium text-foreground">免費，不扣任何款項</span>。
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    ・ 14 日內取消：依取消政策級距（13–10 日 30%、9–7 日 50%、6–4 日 60%、3–2 日 70%、前 1 日 80%、當日 100%）自動收取手續費。
+                                  </p>
+                                </>
+                              )}
                             </div>
 
                             {tappayConfigLoading ? (
@@ -5503,7 +5515,7 @@ const BookingFlow = () => {
                               )}
                               <p className="text-xs text-muted-foreground leading-relaxed pt-1">
                                 {chargeCardImmediately
-                                  ? "送出訂單時即完成全額刷卡付款；取消將依取消政策比例辦理退款。"
+                                  ? "送出訂單時即完成全額刷卡付款；取消時依「預收房價總額」制度辦理退款（入住日前第 3 日以前 100%、第 1～2 日 50%、當日 0%）。"
                                   : "送出訂單後僅完成信用卡綁定，不會立即扣款；入住當天系統自動扣取全額。入住日前 14 日（含）以前取消完全免費，14 日內取消將依取消政策比例自動收取手續費。"}
                               </p>
                             </div>

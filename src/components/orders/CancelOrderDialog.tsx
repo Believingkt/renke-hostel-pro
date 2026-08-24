@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Button } from "@/components/ui/button";
@@ -57,12 +57,31 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const [action, setAction] = useState<RefundAction>(defaultAction);
   const [refundAmount, setRefundAmount] = useState<string>(String(paidAmount));
   const [submitting, setSubmitting] = useState(false);
+  const [quote, setQuote] = useState<any>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+
+  // 建議退款金額一律由 server 依訂單付款制度 + 法規級距計算，前端只顯示與預填
+  useEffect(() => {
+    if (!open || !order.id) return;
+    let cancelled = false;
+    setQuoteLoading(true);
+    setQuote(null);
+    supabase.functions
+      .invoke("cancel-order-with-refund", { body: { orderId: order.id, mode: "quote" } })
+      .then(({ data }) => {
+        if (cancelled || !data?.success) return;
+        setQuote(data);
+        if (Number.isFinite(data.suggestedRefund)) setRefundAmount(String(data.suggestedRefund));
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setQuoteLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, order.id]);
 
   // Reset when dialog opens
   const handleOpenChange = (o: boolean) => {
     if (o) {
       setAction(defaultAction);
-      setRefundAmount(String(paidAmount));
     }
     onOpenChange(o);
   };
@@ -137,6 +156,32 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           </div>
         ) : (
           <div className="space-y-4 py-2">
+            {quote?.quote && (
+              <div className="rounded-lg border bg-muted/40 p-3 text-xs leading-relaxed">
+                <div className="font-medium text-foreground">
+                  取消政策：{quote.quote.policy === "full_prepayment"
+                    ? "預收房價總額制"
+                    : quote.quote.policy === "deposit"
+                      ? "收取定金制"
+                      : quote.quote.policy === "guarantee"
+                        ? "綁卡擔保（尚未收款）"
+                        : "無法判定（需人工確認）"}
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  距入住 {quote.quote.daysBefore} 天｜{quote.quote.label}
+                </div>
+                <div className="mt-1 text-foreground">
+                  建議退款金額：<span className="font-semibold">NT${Number(quote.suggestedRefund || 0).toLocaleString()}</span>
+                </div>
+                {quote.quote.requiresManualReview && (
+                  <div className="mt-1 text-destructive">
+                    ⚠️ 此訂單無法自動判定付款制度，請人工確認後再輸入退款金額。
+                  </div>
+                )}
+              </div>
+            )}
+            {quoteLoading && <div className="text-xs text-muted-foreground">計算建議退款金額中…</div>}
+
             <RadioGroup value={action} onValueChange={(v) => setAction(v as RefundAction)} className="space-y-2">
               {isCard && (
                 <label
@@ -195,7 +240,18 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">最高可退 NT${paidAmount.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">
+                  最高可退 NT${paidAmount.toLocaleString()}
+                  {quote?.suggestedRefund !== undefined && (
+                    <> ｜法規建議 NT${Number(quote.suggestedRefund || 0).toLocaleString()}</>
+                  )}
+                </p>
+                {quote?.suggestedRefund !== undefined &&
+                  parseInt(refundAmount || "0", 10) !== Number(quote.suggestedRefund) && (
+                    <p className="text-xs text-amber-600">
+                      ⚠️ 已人工調整退款金額，系統會於訂單備註與稽核紀錄留存。
+                    </p>
+                  )}
               </div>
             )}
           </div>
