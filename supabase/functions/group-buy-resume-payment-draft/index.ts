@@ -10,17 +10,15 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import {
+  BLOCKING_STATUSES,
+  fingerprintMatches,
+  RESUMABLE_STATUSES,
+  selectCrossDeviceDraft,
+} from "../_shared/resumeDraftIdentity.ts";
 
 const FN = "group-buy-resume-payment-draft";
 
-/** 可續付的 draft 狀態：已成功付款／已轉單／已取消一律不可續付 */
-const RESUMABLE_STATUSES = ["pending", "payment_processing", "failed"];
-
-/**
- * 已經產生扣款事實（或待人工確認）的狀態：一律不可續付，也不可讓前台再建立新 Draft，
- * 否則同一位客人會被重複請款。前台必須改導向訂單查詢／客服。
- */
-const BLOCKING_STATUSES = ["paid", "converted", "manual_review"];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
