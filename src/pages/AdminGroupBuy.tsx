@@ -2002,8 +2002,30 @@ export default function AdminGroupBuy() {
                   </Button>
                 </div>
               )}
+              {/**
+                * 人工銀行退款金額摘要：所有數值皆由 server quote 的手續費設定切分，
+                * 前端不另計算一套退款金額（splitRefundFee 與 Edge Function 同一份實作）。
+                */}
+              {!refundIsCard && (
+                <div className="space-y-1 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">政策應退金額</span>
+                    <span className="tabular-nums">{twd(refundSplit.gross)}</span>
+                  </div>
+                  {refundSplit.fee > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">人工退款手續費</span>
+                      <span className="tabular-nums">-{twd(refundSplit.fee)}</span>
+                    </div>
+                  )}
+                  <div className="mt-1 flex items-center justify-between border-t pt-2">
+                    <span className="font-medium">實際匯回旅客</span>
+                    <span className="text-xl font-bold tabular-nums text-primary">{twd(refundSplit.payout)}</span>
+                  </div>
+                </div>
+              )}
               <div>
-                <Label>{refundIsCard ? "退刷金額" : "退款金額（含匯款手續費）"}</Label>
+                <Label>{refundIsCard ? "退刷金額" : "本次退款認列金額"}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -2011,10 +2033,9 @@ export default function AdminGroupBuy() {
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                 />
-                {!refundIsCard && Number(quote?.manualRefundFee || 0) > 0 && (
+                {!refundIsCard && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    此館匯款手續費 {twd(quote?.manualRefundFee || 0)}，實際匯回旅客{" "}
-                    {twd(Math.max(0, (Math.round(Number(refundAmount) || 0)) - Number(quote?.manualRefundFee || 0)))}。
+                    此金額為本次依取消政策認列的退款總額；實際匯回金額將扣除館別設定的人工退款手續費。
                   </p>
                 )}
               </div>
