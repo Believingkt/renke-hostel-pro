@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
           success: false,
           needs_fee: true,
           quote,
-          message: `距入住 ${quote.daysBefore} 天，依取消政策需收取 ${quote.percent}% 手續費（NT$${quote.feeAmount.toLocaleString()}），請登入會員中心或聯繫客服辦理取消`,
+          message: `距入住 ${quote.daysBefore} 天，依取消政策需收取 ${quote.feePercent}% 手續費（NT$${quote.feeAmount.toLocaleString()}），請登入會員中心或聯繫客服辦理取消`,
         },
         400,
         corsHeaders,
