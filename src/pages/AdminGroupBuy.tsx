@@ -222,8 +222,9 @@ interface RefundQuote {
     policyReason: string;
     daysBefore: number;
     refundPercent: number;
-    tierLabel?: string | null;
+    label: string;
   };
+
 }
 
 interface OrderRow {
