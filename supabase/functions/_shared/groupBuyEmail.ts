@@ -292,7 +292,45 @@ export interface GroupBuyCancelInfo {
   reason?: string | null;
 }
 
-function refundStatusBlock(info: GroupBuyCancelInfo): string {
+/** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
+const CARD_REFUND_NOTE =
+  "退款完成後，款項將退回原付款信用卡，實際入帳時間依發卡銀行作業時間為準（約 3～7 個工作天）。";
+const CARD_REFUND_DONE_NOTE =
+  "退款已送回原付款信用卡，實際入帳時間依發卡銀行作業時間為準（約 3～7 個工作天）。";
+const CARD_REFUND_CHANNEL = "原信用卡退刷（TapPay）";
+
+/** 信用卡版退款說明（絕不輸出銀行排程／NT$30 匯款手續費） */
+function cardRefundStatusBlock(info: GroupBuyCancelInfo): string {
+  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
+  if (info.paidAmount <= 0) return `<p>此訂單尚未付款，無需退款。</p>`;
+  if (info.refundStatus === "refunded") {
+    return `<table class="info" style="margin:0 0 10px">
+        <tr><td class="k">退款方式</td><td>${CARD_REFUND_CHANNEL}</td></tr>
+        <tr><td class="k">累計已退款</td><td><strong>${money(info.refundedTotal)}</strong></td></tr>
+        <tr><td class="k">退款狀態</td><td><strong>退款完成</strong></td></tr>
+      </table><p style="margin:0">${CARD_REFUND_DONE_NOTE}</p>`;
+  }
+  if (info.refundStatus === "partial_refunded") {
+    return `<table class="info" style="margin:0 0 10px">
+        <tr><td class="k">退款方式</td><td>${CARD_REFUND_CHANNEL}</td></tr>
+        <tr><td class="k">累計已退款</td><td><strong>${money(info.refundedTotal)}</strong></td></tr>
+        <tr><td class="k">退款後實收</td><td>${money(remaining)}</td></tr>
+        <tr><td class="k">退款狀態</td><td><strong>部分退款完成</strong></td></tr>
+      </table><p style="margin:0">${CARD_REFUND_DONE_NOTE}</p>`;
+  }
+  if (info.refundStatus === "none") {
+    return `<p>此訂單依取消政策不進行退款，如有疑問請與我們聯繫。</p>`;
+  }
+  // pending_manual 等：退款尚未完成
+  return `<table class="info" style="margin:0 0 10px">
+      <tr><td class="k">退款方式</td><td>${CARD_REFUND_CHANNEL}</td></tr>
+      <tr><td class="k">預計原卡退刷</td><td><strong>${money(remaining)}</strong></td></tr>
+      <tr><td class="k">退款狀態</td><td><strong>原信用卡退刷處理中</strong></td></tr>
+    </table><p style="margin:0">${CARD_REFUND_NOTE}</p>`;
+}
+
+function refundStatusBlock(info: GroupBuyCancelInfo, isCardOrder = false): string {
+  if (isCardOrder) return cardRefundStatusBlock(info);
   const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
   // 尚有款項待退時，附上共用的退款時程規則（與前台 refundPolicy 同一份文案）
   const schedule = `<div style="margin-top:10px">${refundScheduleHtml()}</div>`;
@@ -317,6 +355,7 @@ export function renderOrderCancelled(
   o: GroupBuyEmailOrder,
   info: GroupBuyCancelInfo,
 ): { subject: string; html: string } {
+  const isCard = o.isCardOrder === true;
   return {
     subject: `【訂單已取消】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
@@ -324,13 +363,14 @@ export function renderOrderCancelled(
       `訂單 ${o.orderNumber} 已取消`,
       `<h1>您的訂單已取消</h1>
        <p>${esc(o.guestName)} 您好，您的訂單 <strong>${esc(o.orderNumber)}</strong> 已完成取消。</p>
-       ${orderTable(o)}
+       ${orderTable(o, false, { hideDue: true })}
        <table class="info">
          <tr><td class="k">取消時間</td><td>${esc(info.cancelledAtText)}</td></tr>
          <tr><td class="k">已付款金額</td><td>${money(info.paidAmount)}</td></tr>
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
-       <div class="box"><h2>退款說明</h2>${refundStatusBlock(info)}</div>
+       <div class="box"><h2>退款說明</h2>${refundStatusBlock(info, isCard)}</div>
+       ${cancellationBlock(o)}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`,
     ),
   };
@@ -355,37 +395,55 @@ export function renderRefundProcessed(
 ): { subject: string; html: string } {
   const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
   const done = info.refundStatus === "refunded";
-  const title = done ? "退款完成" : "退款進度通知";
+  const partial = info.refundStatus === "partial_refunded";
+  const isCard = o.isCardOrder === true;
+  const title = done ? "退款完成" : partial ? "部分退款完成" : "退款進度通知";
+  const lead = done
+    ? "此訂單退款已全部完成。"
+    : partial
+    ? `本次退款 <strong>${money(info.refundAmount)}</strong> 已完成，退款後實收 <strong>${
+      money(remaining)
+    }</strong>。`
+    : `本次已登記退款 <strong>${money(info.refundAmount)}</strong>，目前尚有 <strong>${
+      money(remaining)
+    }</strong> 待退款。`;
+
+  const cardRows = isCard
+    ? `<tr><td class="k">付款／退款方式</td><td>信用卡（TapPay 原卡退刷）</td></tr>
+         <tr><td class="k">原信用卡付款</td><td>${money(info.paidAmount)}</td></tr>`
+    : `<tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>`;
+
   return {
     subject: `【${title}】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
       title,
       `訂單 ${o.orderNumber} ${title}`,
-      `<h1>${done ? "退款已全部完成 ✅" : "退款進度通知"}</h1>
-       <p>${esc(o.guestName)} 您好，${
-        done
-          ? "此訂單退款已全部完成。"
-          : `本次已登記退款 <strong>${money(info.refundAmount)}</strong>，目前尚有 <strong>${
-            money(remaining)
-          }</strong> 待退款。`
-      }</p>
+      `<h1>${done ? "退款已全部完成 ✅" : partial ? "部分退款已完成 ✅" : "退款進度通知"}</h1>
+       <p>${esc(o.guestName)} 您好，${lead}</p>
        <table class="info">
          <tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
          <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
          ${o.accommodationName ? `<tr><td class="k">住宿</td><td>${esc(o.accommodationName)}</td></tr>` : ""}
          ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
-         <tr><td class="k">本次退款金額</td><td><strong style="color:${BRAND.primary}">${
+         <tr><td class="k">訂單總額</td><td>${money(o.totalPrice)}</td></tr>
+         ${cardRows}
+         <tr><td class="k">${isCard ? "本次原卡退刷" : "本次退款金額"}</td><td><strong style="color:${BRAND.primary}">${
         money(info.refundAmount)
       }</strong></td></tr>
          <tr><td class="k">累計已退款</td><td>${money(info.refundedTotal)}</td></tr>
-         <tr><td class="k">剩餘待退款</td><td>${money(remaining)}</td></tr>
+         <tr><td class="k">${isCard ? "退款後實收" : "剩餘待退款"}</td><td>${money(remaining)}</td></tr>
+         <tr><td class="k">退款狀態</td><td><strong>${
+        done ? "退款完成" : partial ? "部分退款完成" : "退款處理中"
+      }</strong></td></tr>
          <tr><td class="k">退款時間</td><td>${esc(info.refundedAtText)}</td></tr>
          ${info.note ? `<tr><td class="k">備註</td><td>${esc(info.note)}</td></tr>` : ""}
        </table>
+       ${isCard ? `<p>${CARD_REFUND_DONE_NOTE}</p>` : ""}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`,
     ),
   };
 }
+
 
 
 /** 實際送出（缺 key 或缺信箱時安靜跳過，不影響主流程） */
