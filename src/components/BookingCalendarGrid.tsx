@@ -1386,20 +1386,26 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                 </TooltipProvider>
                               );
           })}
+          {/* 團購信用卡付款保留：直接畫在原本房間列的日期格（非正式訂單，不可點擊操作） */}
+          {slot.holds.map(h => (
+            <PaymentHoldCard key={h.id} event={h} dateStrings={dateStrings} dayColWidth={DAY_COL_MIN_WIDTH} />
+          ))}
           </div>
                         </div>
-                      ));
+                      ))}
+                      {/* Fallback：無法安全放入既有房間列的 Hold（例如多房號房型無 room_unit_id） */}
+                      <PaymentHoldRows
+                        events={leftoverHolds}
+                        dateStrings={dateStrings}
+                        dayColWidth={DAY_COL_MIN_WIDTH}
+                        leftColWidth={LEFT_COL_WIDTH}
+                        daysRowStyle={daysRowStyle}
+                        dayColumnStyle={dayColumnStyle}
+                      />
+                      </>);
                     })()}
 
-                    {/* 團購信用卡付款保留（非正式訂單，僅顯示，不可點擊操作） */}
-                    <PaymentHoldRows
-                      events={holdEvents.filter(h => h.roomTypeId === roomType.id)}
-                      dateStrings={dateStrings}
-                      dayColWidth={DAY_COL_MIN_WIDTH}
-                      leftColWidth={LEFT_COL_WIDTH}
-                      daysRowStyle={daysRowStyle}
-                      dayColumnStyle={dayColumnStyle}
-                    />
+
 
 
                     {/* 包棟內房間組成（依房型分組顯示，僅資訊用，不可預訂） */}
