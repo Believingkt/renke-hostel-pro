@@ -120,10 +120,10 @@ export default function GroupBuyOrderConfirmation() {
               <span className="text-muted-foreground">訂單編號</span>
               <span className="font-semibold">{orderNumber}</span>
             </div>
-            {order && (
+            {checkInDate && checkOutDate && (
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">入住 / 退房</span>
-                <span>{order.checkInDate} → {order.checkOutDate}</span>
+                <span>{checkInDate} → {checkOutDate}</span>
               </div>
             )}
             <div className="flex justify-between py-1">
@@ -157,33 +157,41 @@ export default function GroupBuyOrderConfirmation() {
 
           <div className="rounded-lg border p-4">
             <p className="mb-1 font-semibold text-foreground">通知信狀態</p>
-            <MailRow
-              label={fullPayment ? "訂房通知信" : "訂房通知＋匯款資訊信"}
-              state={fullPayment ? "sent" : bookingMailState}
-              note={
-                bookingMailState === "sent"
-                  ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                  : bookingMailState === "failed"
-                    ? "通知信寄送失敗，請依下方匯款資訊完成匯款"
-                    : "訂單成立後寄出"
-              }
-            />
-            <MailRow
-              label={fullPayment ? "付款完成通知信" : "訂金確認信"}
-              state={fullPayment ? (depositMail?.status ?? "sent") : depositMailState}
-              note={
-                fullPayment
-                  ? `付款完成通知信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                  : depositMailState === "sent"
-                    ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                    : "民宿確認收到訂金後寄出"
-              }
-            />
-
-            {!fullPayment && bookingMailState === "failed" && (
-              <p className="mt-2 text-xs text-destructive">
-                通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
-              </p>
+            {fullPayment ? (
+              /* 信用卡全額付款只有一封旅客信：訂房確認＋付款完成（含完整訂單明細） */
+              <MailRow
+                label="訂房確認＋付款完成通知信"
+                state={depositMail?.status ?? "sent"}
+                note={`已寄至 ${maskedEmail ?? "您留下的電子信箱"}`}
+              />
+            ) : (
+              <>
+                <MailRow
+                  label="訂房通知＋匯款資訊信"
+                  state={bookingMailState}
+                  note={
+                    bookingMailState === "sent"
+                      ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                      : bookingMailState === "failed"
+                        ? "通知信寄送失敗，請依下方匯款資訊完成匯款"
+                        : "訂單成立後寄出"
+                  }
+                />
+                <MailRow
+                  label="訂金確認信"
+                  state={depositMailState}
+                  note={
+                    depositMailState === "sent"
+                      ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                      : "民宿確認收到訂金後寄出"
+                  }
+                />
+                {bookingMailState === "failed" && (
+                  <p className="mt-2 text-xs text-destructive">
+                    通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
+                  </p>
+                )}
+              </>
             )}
           </div>
 
