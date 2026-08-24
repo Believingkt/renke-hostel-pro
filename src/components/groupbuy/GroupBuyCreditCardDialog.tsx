@@ -141,39 +141,75 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setError(null);
       setSubmitting(false);
       setRechecking(false);
-
+      setPreparing(false);
       setHoldSeconds(null);
+      setDraftInfo(null);
       draftRef.current = null;
+      creatingRef.current = null;
     }
   }, [open]);
 
-  /** 建立全新的 payment draft（永不復活舊 draft） */
+  /** 建立全新的 payment draft（永不復活舊 draft；同時只允許一個建立中的請求） */
   const createDraft = useCallback(async () => {
-    const { data, error: dErr } = await supabase.functions.invoke("group-buy-create-payment-draft", {
-      body: { ...buildRequest(), origin: window.location.origin },
-    });
-    const payload: any = data;
-    if (dErr || !payload?.success) {
-      let message: string | null = payload?.error ?? null;
-      const ctx: any = (dErr as any)?.context;
-      if (!message && ctx && typeof ctx.json === "function") {
-        try {
-          message = (await ctx.clone().json())?.error ?? null;
-        } catch {
-          /* ignore */
+    if (creatingRef.current) return creatingRef.current;
+    const run = (async () => {
+      const { data, error: dErr } = await supabase.functions.invoke("group-buy-create-payment-draft", {
+        body: { ...buildRequest(), origin: window.location.origin },
+      });
+      const payload: any = data;
+      if (dErr || !payload?.success) {
+        let message: string | null = payload?.error ?? null;
+        const ctx: any = (dErr as any)?.context;
+        if (!message && ctx && typeof ctx.json === "function") {
+          try {
+            message = (await ctx.clone().json())?.error ?? null;
+          } catch {
+            /* ignore */
+          }
         }
+        throw new Error(toGuestMessage(message, "目前無法開始付款，請稍後再試或聯繫客服。"));
       }
-      throw new Error(toGuestMessage(message, "目前無法開始付款，請稍後再試或聯繫客服。"));
+      const next = {
+        draftId: payload.draftId as string,
+        expiresAt: payload.expiresAt as string,
+        amount: payload.amountToCharge as number,
+      };
+      draftRef.current = next;
+      setDraftInfo({
+        amount: next.amount,
+        total: typeof payload.total === "number" ? payload.total : null,
+        balance: typeof payload.balance === "number" ? payload.balance : null,
+        depositPct: typeof payload.depositPercentage === "number" ? payload.depositPercentage : null,
+      });
+      setHoldSeconds(Math.max(0, Math.floor((new Date(next.expiresAt).getTime() - Date.now()) / 1000)));
+      return next;
+    })();
+    creatingRef.current = run;
+    try {
+      return await run;
+    } finally {
+      creatingRef.current = null;
     }
-    const next = {
-      draftId: payload.draftId as string,
-      expiresAt: payload.expiresAt as string,
-      amount: payload.amountToCharge as number,
-    };
-    draftRef.current = next;
-    setHoldSeconds(Math.max(0, Math.floor((new Date(next.expiresAt).getTime() - Date.now()) / 1000)));
-    return next;
   }, [buildRequest]);
+
+  // 開啟 Dialog 即先取得房位保留（10 分鐘倒數自此開始）
+  useEffect(() => {
+    if (!open) return;
+    if (draftRef.current || creatingRef.current) return;
+    let cancelled = false;
+    setPreparing(true);
+    void createDraft()
+      .catch((e: any) => {
+        if (!cancelled) setError(e?.message || "目前無法保留房況，請稍後再試。");
+      })
+      .finally(() => {
+        if (!cancelled) setPreparing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   /** 倒數歸零後：丟棄舊 draft，重新確認房況並建立新的保留 */
   const recheck = useCallback(async () => {
@@ -181,6 +217,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
     setRechecking(true);
     draftRef.current = null;
     setHoldSeconds(null);
+    setDraftInfo(null);
     try {
       await createDraft();
     } catch (e: any) {
