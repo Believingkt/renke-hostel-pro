@@ -57,13 +57,37 @@ export default function GroupBuyOrderConfirmation() {
       setLoading(false);
       return;
     }
-    (async () => {
+    let stopped = false;
+    const fetchOnce = async () => {
       const { data: res } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "lookup" },
       });
-      if (res && !(res as any).error) setData(res);
+      if (!stopped && res && !(res as any).error) setData(res);
+      return res as any;
+    };
+    (async () => {
+      await fetchOnce();
       setLoading(false);
     })();
+
+    /**
+     * 待付款（ATM／匯款）時短輪詢，TapPay 入帳後不需 reload 即可切換為「訂金已付」；
+     * 一旦 depositPaid／paid／cancelled 立即停止輪詢。
+     */
+    const timer = window.setInterval(async () => {
+      const res = await fetchOnce();
+      const o = res?.order;
+      if (
+        !o || o.depositPaid === true || o.orderStatus === "cancelled" ||
+        ["deposit_paid", "paid", "partial", "partial_paid"].includes(String(o.paymentStatus ?? ""))
+      ) {
+        window.clearInterval(timer);
+      }
+    }, 8000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderNumber]);
 
