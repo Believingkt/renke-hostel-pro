@@ -50,7 +50,7 @@ import {
   REFUND_STATE_VARIANT,
   canProcessRefund,
   depositState,
-  paymentProviderLabel,
+  paymentMethodKind,
   paymentMethodLabel,
   refundChannelLabel,
   refundState,
@@ -1976,7 +1976,7 @@ export default function AdminGroupBuy() {
               {refundIsCard
                 ? "此筆為 TapPay 線上信用卡收款，系統會直接向 TapPay 執行原卡退刷／取消授權，不提供人工登記。"
                 : `原付款方式：${paymentMethodLabel(refundTarget)}；退款方式：${refundChannelLabel(refundTarget)}。${
-                    paymentMethodKindIsAtm(refundTarget)
+                    paymentMethodKind(refundTarget) === "atm"
                       ? "ATM 虛擬帳號退款需由館方人工匯回旅客帳戶，完成實際退款後再進行退款登記。"
                       : "請於銀行端實際完成退匯後再登記。"
                   }`}
