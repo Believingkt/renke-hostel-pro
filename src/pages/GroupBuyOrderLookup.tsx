@@ -474,7 +474,9 @@ export default function GroupBuyOrderLookup() {
                     <p className="text-muted-foreground">
                       {fullPayment
                         ? "退款由民宿審核後處理，款項將退回原信用卡。"
-                        : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
+                        : isAtmOrder
+                          ? "此筆為 ATM 虛擬帳號付款，退款需由民宿人工匯回您的帳戶；申請送出後將由民宿審核。"
+                          : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
                     </p>
                     <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
                     <div>
