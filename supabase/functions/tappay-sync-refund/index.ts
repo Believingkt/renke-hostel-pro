@@ -2,18 +2,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { getTapPayEndpoints } from "../_shared/tappay.ts";
 import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+import { resolveSyncRecTradeId } from "../_shared/orderRefund.ts";
 
 
 /**
- * 管理員手動同步 TapPay 退款狀態
+ * 管理員手動同步 TapPay 退款狀態（只做 Query / reconciliation，永不呼叫 Refund API）。
  * 入口：POST { orderId: string }
  * 流程：
- *  1. 驗證呼叫者為該訂單民宿之 hotel_admin / super_admin
- *  2. 從 orders.notes 抓取 rec_trade_id（最後一個出現的）
+ *  1. 驗證呼叫者為該訂單民宿之 hotel_admin / super_admin（或 orders 模組可編輯）
+ *  2. 以 _shared/orderRefund.ts 的 resolveSyncRecTradeId() 解析原始交易編號
+ *     （refund_rec_trade_id → room_charge_rec_trade_id → deposit_charges → notes）
+ *     ATM／非信用卡一律不進入本流程；找不到編號 → 回 manual review，不猜測
  *  3. 呼叫 TapPay Record API 取得最新 refunded_amount / record_status
- *  4. 與 notes 中既有的 [TAPPAY_SYNC_REFUNDED:N] 比對，計算增量
+ *  4. 與 notes 中既有的 [TAPPAY_SYNC_REFUNDED:N] 比對，計算增量（同一筆可安全重跑）
  *  5. 更新 paid_amount / payment_status / notes / notifications
- *  6. 回傳結果摘要
  */
 
 const SYNC_MARKER_RE = /\[TAPPAY_SYNC_REFUNDED:(\d+)\]/g;
@@ -27,20 +29,12 @@ function extractLatestSyncedRefund(notes: string | null): number {
   return last;
 }
 
-function extractRecTradeId(notes: string | null): string | null {
-  if (!notes) return null;
-  // 常見格式: rec_trade_id: XXXXXX / rec_trade_id=XXXXX / (rec_trade_id: XXXX,
-  const re = /rec_trade_id[:\s=]+([A-Za-z0-9_-]{8,64})/gi;
-  const ids: string[] = [];
-  for (const m of notes.matchAll(re)) ids.push(m[1]);
-  return ids.length ? ids[ids.length - 1] : null;
-}
-
 function paymentStatusFromAmounts(finalPrice: number, paidAmount: number): string {
   if (paidAmount <= 0) return "refunded";
   if (paidAmount < finalPrice) return "partial_refunded";
   return "paid";
 }
+
 
 Deno.serve(async (req) => {
   const corsHeaders = buildCorsHeaders(req);
