@@ -67,6 +67,25 @@ export function cancellationPolicyCopy(policy: CancellationPolicyType): Cancella
   };
 }
 
+/**
+ * 「免費取消截止日」對應的天數（退還 100% 的最低天數門檻）。
+ * 由級距表推導，避免 Email 出現與實際政策衝突的 14 日字樣。
+ * unknown → null（不得顯示任何免費取消承諾）。
+ */
+export function freeCancelDaysFor(policy: CancellationPolicyType): number | null {
+  if (policy === "full_prepayment") {
+    return FULL_PREPAYMENT_REFUND_TIERS.find((t) => t.refundPercent === 100)?.minDaysBefore ?? null;
+  }
+  if (policy === "deposit") {
+    return DEPOSIT_REFUND_TIERS.find((t) => t.refundPercent === 100)?.minDaysBefore ?? null;
+  }
+  if (policy === "guarantee") {
+    return GUARANTEE_FEE_TIERS.find((t) => t.feePercent === 0)?.minDaysBefore ?? null;
+  }
+  return null;
+}
+
+
 /** 依訂單直接取得顯示文案 */
 export function cancellationPolicyCopyForOrder(order: PolicyOrderShape): CancellationPolicyCopy {
   return cancellationPolicyCopy(resolveCancellationPolicy(order).policy);
