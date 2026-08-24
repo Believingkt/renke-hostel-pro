@@ -746,7 +746,16 @@ export default function AdminGroupBuy() {
 
   const cancelWithRefund = async () => {
     if (!cancelTarget) return;
+    if (cancelReasonRequired) {
+      toast({
+        title: "請填寫取消原因",
+        description: `實際退款金額與系統建議（${twd(quote?.suggestedRefund ?? 0)}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
     setCancelling(true);
+
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
         body: {
