@@ -304,8 +304,13 @@ Deno.serve(async (req) => {
         : paid > 0
         ? "退款處理：待退款（尚未退回旅客）"
         : "退款處理：未收款，不需退款",
+      `取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／比例 ${policyQuote.refundPercent}%／` +
+      `已付 ${twd(paid)}／已退 ${twd(alreadyRefunded)}／最高可退 ${twd(refundable)}／建議退款 ${twd(suggestedRefund)}／實際 ${twd(refundAmount)}` +
+      (refundAmount !== suggestedRefund && refundAction !== "pending_refund" ? "／⚠️ 人工調整" : "") +
+      (policyQuote.requiresManualReview ? "／⚠️ 無法自動判定政策，需人工確認" : ""),
       reason ? `原因：${reason}` : null,
     ].filter(Boolean).join("\n");
+
 
     const { error: uErr } = await admin
       .from("orders")
