@@ -85,7 +85,11 @@ Deno.serve(async (req) => {
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
-      .select("id, order_number, final_price, paid_amount, payment_status, notes, accommodation_id")
+      .select(
+        "id, order_number, final_price, paid_amount, payment_status, notes, accommodation_id, " +
+          "payment_method, deposit_payment_method, balance_payment_method, " +
+          "room_charge_rec_trade_id, refund_rec_trade_id, atm_rec_trade_id",
+      )
       .eq("id", orderId)
       .maybeSingle();
     if (orderErr || !order) {
@@ -110,14 +114,24 @@ Deno.serve(async (req) => {
       });
     }
 
-
-    const recTradeId = extractRecTradeId(order.notes);
+    const resolution = await resolveSyncRecTradeId(supabase, order);
+    const recTradeId = resolution.recTradeId;
     if (!recTradeId) {
+      const message = resolution.reason === "not_card"
+        ? "此訂單非信用卡付款，無法向 TapPay 對帳，請人工確認退款狀態。"
+        : "查無此訂單的 TapPay 交易編號（已檢查退款紀錄、房費請款、扣款紀錄與備註），請人工確認。";
       return new Response(
-        JSON.stringify({ error: "此訂單 notes 中找不到 rec_trade_id，無法同步" }),
+        JSON.stringify({
+          error: message,
+          requiresManualReview: true,
+          reason: resolution.reason,
+          rec_trade_id_source: null,
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
+    console.log("[tappay-sync-refund] rec_trade_id source:", resolution.source);
+
 
     const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
     if (!partnerKey) {
