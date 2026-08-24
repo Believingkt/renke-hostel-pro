@@ -290,6 +290,11 @@ export default function AdminGroupBuy() {
   const [refundAmount, setRefundAmount] = useState("");
   const [refundNote, setRefundNote] = useState("");
   const [refunding, setRefunding] = useState(false);
+  /** server 端法規建議退款（mode:"quote"），前端一律顯示 server 值，不自行計算級距 */
+  const [quote, setQuote] = useState<RefundQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
