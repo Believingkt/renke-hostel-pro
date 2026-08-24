@@ -372,17 +372,9 @@ export async function buildOrderConfirmationEmail(
        </tr></table>`,
       "background:#fafafa;",
     )}
-    ${
-      policyLines.length
-        ? divider +
-          block(
-            `<p style="margin:0 0 6px 0;font-size:14px;font-weight:600;">取消政策</p>` +
-              policyLines
-                .map((l) => `<p style="margin:0 0 4px 0;font-size:12px;color:#777;line-height:1.7;">${esc(l)}</p>`)
-                .join(""),
-          )
-        : ""
-    }`);
+    ${divider}
+    ${block(renderCancellationPolicyHtml(policyCopy, policyLines))}`);
+
 
   // 3. ATM 虛擬帳號卡片
   const atmCard = order.atm_vacc_no
