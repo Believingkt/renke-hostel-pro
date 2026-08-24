@@ -37,6 +37,8 @@ interface Props {
   guestName: string;
   guestPhone: string;
   guestEmail: string;
+  /** 活動是否開放銀行匯款（人工對帳，訂金制） */
+  bankTransferEnabled?: boolean;
   /** 活動是否開放 ATM 虛擬帳號；false 時完全維持既有人工匯款流程 */
   atmEnabled?: boolean;
   /** 活動是否開放信用卡（付款成功後才建立訂單） */
