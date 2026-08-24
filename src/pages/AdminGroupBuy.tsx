@@ -54,6 +54,7 @@ import {
   remainingRefundable,
 } from "@/lib/groupBuyPayment";
 import { nextCopyName } from "@/lib/groupBuyPackageCopy";
+import { isTappayCardOrder } from "@/lib/cardPaymentDisplay";
 import GroupBuyPriceSnapshot, { type PriceSnapshot } from "@/components/groupbuy/GroupBuyPriceSnapshot";
 import { GroupBuyBookingNoticeSnapshotView } from "@/components/admin/GroupBuyBookingNoticeSnapshotView";
 import { Link, useSearchParams } from "react-router-dom";
@@ -233,7 +234,23 @@ interface RefundQuote {
     refundPercent: number;
     label: string;
   };
-
+  /** server 依訂單真實付款欄位判定（信用卡 = 原卡退刷） */
+  paymentProvider?: "manual" | "tappay";
+  isCardOrder?: boolean;
+  refundChannel?: "tappay_card" | "manual_bank";
+  /** 信用卡才有：TapPay Query 唯讀對帳資訊 */
+  tappay?: {
+    found: boolean;
+    reason?: string;
+    recTradeId?: string | null;
+    recTradeIdSource?: string | null;
+    recordStatus?: number | null;
+    amount?: number;
+    refundedAmount?: number;
+    remaining?: number;
+    isCaptured?: boolean | null;
+    needsReconciliation?: boolean;
+  } | null;
 }
 
 interface OrderRow {
@@ -261,6 +278,10 @@ interface OrderRow {
   refunded_amount: number | null;
   refunded_at: string | null;
   payment_provider?: string | null;
+  payment_method?: string | null;
+  deposit_payment_method?: string | null;
+  balance_payment_method?: string | null;
+  room_charge_rec_trade_id?: string | null;
   campaign_id?: string | null;
   reported?: boolean;
   cancelRequested?: boolean;
@@ -309,12 +330,13 @@ export default function AdminGroupBuy() {
   const [confirmNote, setConfirmNote] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
-  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "pending_refund" | "no_refund">("pending_refund");
+  const [cancelRefundAction, setCancelRefundAction] = useState<"mark_refunded" | "pending_refund" | "no_refund" | "card_refund">("pending_refund");
   const [cancelRefundAmount, setCancelRefundAmount] = useState("");
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
   /** 人工退款（已取消訂單補登退款） */
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [syncingRefund, setSyncingRefund] = useState(false);
   const [refundAmount, setRefundAmount] = useState("");
   const [refundNote, setRefundNote] = useState("");
   const [refunding, setRefunding] = useState(false);
@@ -327,7 +349,12 @@ export default function AdminGroupBuy() {
    * 人工覆寫退款金額（與 server 建議不同）時，原因必填。
    * 前後端同時檢核（server: group-buy-cancel-refund requireReasonIfOverride）。
    */
-  const cancelActualRefund = cancelRefundAction === "mark_refunded" ? Math.round(Number(cancelRefundAmount) || 0) : 0;
+  /** 目前操作的訂單是否為 TapPay 信用卡（UI 分流；server 端會再次以 orders 欄位驗證） */
+  const cancelIsCard = isTappayCardOrder(cancelTarget) || quote?.isCardOrder === true;
+  const refundIsCard = isTappayCardOrder(refundTarget) || quote?.isCardOrder === true;
+  const cancelActualRefund = (cancelRefundAction === "mark_refunded" || cancelRefundAction === "card_refund")
+    ? Math.round(Number(cancelRefundAmount) || 0)
+    : 0;
   const cancelReasonRequired = !!quote &&
     cancelRefundAction !== "pending_refund" &&
     cancelActualRefund !== quote.suggestedRefund &&
@@ -686,15 +713,79 @@ export default function AdminGroupBuy() {
 
 
 
+  /** 信用卡專用：顯示 server 附帶的 TapPay Query 對帳結果（唯讀） */
+  const renderTappayPanel = () => {
+    const t = quote?.tappay;
+    if (!t) return null;
+    if (!t.found) {
+      return (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">
+          無法向 TapPay 取得交易紀錄（{t.reason ?? "unknown"}），請先確認金流狀態，勿重複操作。
+        </div>
+      );
+    }
+    return (
+      <div className="grid grid-cols-2 gap-1 rounded-lg border bg-background/60 p-2 text-xs">
+        <div className="text-muted-foreground">TapPay 交易編號</div>
+        <div className="text-right font-mono">{t.recTradeId}</div>
+        <div className="text-muted-foreground">TapPay 授權金額</div>
+        <div className="text-right tabular-nums">{twd(t.amount ?? 0)}</div>
+        <div className="text-muted-foreground">TapPay 已退金額</div>
+        <div className="text-right tabular-nums">{twd(t.refundedAmount ?? 0)}</div>
+        <div className="text-muted-foreground">TapPay 可退餘額</div>
+        <div className="text-right font-semibold tabular-nums">{twd(t.remaining ?? 0)}</div>
+        <div className="text-muted-foreground">請款狀態</div>
+        <div className="text-right">{t.isCaptured ? "已請款（退刷）" : "僅授權（取消授權）"}</div>
+        {t.needsReconciliation && (
+          <div className="col-span-2 pt-1 text-[11px] text-destructive">
+            ⚠️ 本地退款金額與 TapPay 不一致，請先「同步 TapPay 退款狀態」。
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /** 唯讀：把 TapPay 端的實際退款狀態同步回本地訂單 */
+  const syncTapPayRefund = async (o: OrderRow) => {
+    setSyncingRefund(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("tappay-sync-refund", { body: { orderId: o.id } });
+      const payload: any = data;
+      if (error || payload?.error || payload?.success === false) {
+        toast({
+          title: "同步失敗",
+          description: payload?.error ?? error?.message ?? "無法取得 TapPay 退款狀態",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: payload?.changed ? "已同步 TapPay 退款狀態" : "已是最新狀態",
+        description: payload?.changed
+          ? `本次同步退款 ${twd(Number(payload.delta) || 0)}，付款狀態：${payload.new_payment_status}`
+          : (payload?.message || "TapPay 無新的退款紀錄"),
+      });
+      await loadDetails();
+      if (refundTarget?.id === o.id) await fetchQuote(o.id);
+    } finally {
+      setSyncingRefund(false);
+    }
+  };
+
   const openCancel = async (o: OrderRow) => {
     const refundable = remainingRefundable(o);
+    const card = isTappayCardOrder(o);
     setCancelTarget(o);
-    setCancelRefundAction(refundable > 0 ? "pending_refund" : "no_refund");
+    // 信用卡一律原卡退刷；銀行／ATM 維持既有人工退款選項
+    setCancelRefundAction(card ? "card_refund" : refundable > 0 ? "pending_refund" : "no_refund");
     setCancelRefundAmount(String(refundable));
     const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
     setCancelReason(req?.note ?? "");
     const q = await fetchQuote(o.id);
-    if (q) setCancelRefundAmount(String(q.suggestedRefund));
+    if (q) {
+      setCancelRefundAmount(String(q.suggestedRefund));
+      if (q.isCardOrder) setCancelRefundAction("card_refund");
+    }
   };
 
   const openRefund = async (o: OrderRow) => {
@@ -735,7 +826,7 @@ export default function AdminGroupBuy() {
         return;
       }
       toast({
-        title: "已登記退款",
+        title: payload?.refundChannel === "tappay_card" ? "已完成原卡退刷" : "已登記退款",
         description: `本次 ${twd(payload.refundAmount)}，累計 ${twd(payload.totalRefunded)}`,
       });
       setRefundTarget(null);
@@ -763,7 +854,9 @@ export default function AdminGroupBuy() {
           orderId: cancelTarget.id,
           mode: "cancel",
           refundAction: cancelRefundAction,
-          refundAmount: cancelRefundAction === "mark_refunded" ? Number(cancelRefundAmount) || 0 : 0,
+          refundAmount: (cancelRefundAction === "mark_refunded" || cancelRefundAction === "card_refund")
+            ? Number(cancelRefundAmount) || 0
+            : 0,
           reason: cancelReason,
         },
       });
@@ -775,7 +868,9 @@ export default function AdminGroupBuy() {
       toast({
         title: "訂單已取消",
         description: payload?.refundAmount > 0
-          ? `已登記退款 ${twd(payload.refundAmount)}`
+          ? payload?.refundChannel === "tappay_card"
+            ? `已完成原信用卡退刷 ${twd(payload.refundAmount)}`
+            : `已登記退款 ${twd(payload.refundAmount)}`
           : payload?.refundStatus === "pending_manual" || payload?.refundStatus === "pending"
             ? "已標記為待退款，請於銀行退匯後按「處理退款」登記"
             : "不需退款，已寫入稽核紀錄",
@@ -1751,34 +1846,60 @@ export default function AdminGroupBuy() {
           {cancelTarget && (
             <div className="space-y-3 text-sm">
               {renderQuotePanel()}
-              <div>
-                <Label>退款方式</Label>
-                <Select value={cancelRefundAction} onValueChange={(v) => setCancelRefundAction(v as any)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending_refund">待退款（稍後於銀行退匯後登記）</SelectItem>
-                    <SelectItem value="mark_refunded">已手動退款（銀行匯回）</SelectItem>
-                    <SelectItem value="no_refund">不需退款（違約金／不可退方案／未收款）</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {cancelRefundAction === "mark_refunded" && (
-                <div>
-                  <Label>退款金額</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={Math.max(0, Number(cancelTarget.paid_amount || 0) - Number(cancelTarget.refunded_amount || 0))}
-                    value={cancelRefundAmount}
-                    onChange={(e) => setCancelRefundAmount(e.target.value)}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    最高可退 {twd(Math.max(0, Number(cancelTarget.paid_amount || 0) - Number(cancelTarget.refunded_amount || 0)))}
-                    （團購為銀行匯款，需自行匯回旅客帳戶）
+              {cancelIsCard ? (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                  <div className="font-medium">退款方式：原信用卡退刷（TapPay）</div>
+                  <p className="text-xs text-muted-foreground">
+                    此筆為線上信用卡收款，系統會先向 TapPay 執行原卡退刷／取消授權，
+                    <strong>退刷成功後才會正式取消訂單</strong>；失敗時訂單維持原狀，不會自動重試。
                   </p>
+                  {renderTappayPanel()}
+                  <div className="pt-2">
+                    <Label>退刷金額</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={remainingRefundable(cancelTarget)}
+                      value={cancelRefundAmount}
+                      onChange={(e) => setCancelRefundAmount(e.target.value)}
+                    />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      最高可退 {twd(remainingRefundable(cancelTarget))}（依取消政策建議 {twd(quote?.suggestedRefund ?? 0)}）
+                    </p>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div>
+                    <Label>退款方式</Label>
+                    <Select value={cancelRefundAction} onValueChange={(v) => setCancelRefundAction(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending_refund">待退款（稍後於銀行退匯後登記）</SelectItem>
+                        <SelectItem value="mark_refunded">已手動退款（銀行匯回）</SelectItem>
+                        <SelectItem value="no_refund">不需退款（違約金／不可退方案／未收款）</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {cancelRefundAction === "mark_refunded" && (
+                    <div>
+                      <Label>退款金額</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={remainingRefundable(cancelTarget)}
+                        value={cancelRefundAmount}
+                        onChange={(e) => setCancelRefundAmount(e.target.value)}
+                      />
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        最高可退 {twd(remainingRefundable(cancelTarget))}
+                        （銀行匯款需自行匯回旅客帳戶）
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
               <div>
                 <Label>
@@ -1799,7 +1920,12 @@ export default function AdminGroupBuy() {
               返回
             </Button>
             <Button variant="destructive" onClick={cancelWithRefund} disabled={cancelling}>
-              {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認取消
+              {cancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {cancelIsCard
+                ? cancelActualRefund > 0
+                  ? `取消訂單並退刷 ${twd(cancelActualRefund)}`
+                  : "取消訂單（依政策不退款）"
+                : "確認取消"}
             </Button>
           </DialogFooter>
         </DialogContent>

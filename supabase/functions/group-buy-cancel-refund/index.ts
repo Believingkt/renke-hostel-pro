@@ -1,10 +1,18 @@
 // 民宿端：團購訂單「取消」與「人工退款登記」。
-// 目前團購 payment_provider = manual（銀行匯款），無法自動退刷，一律由管理員於銀行端完成後登記。
+//
+// 付款方式分流（Source of Truth = orders 該筆的真實付款欄位，不看 campaign 設定）：
+//   payment_provider = manual  → 銀行匯款／ATM：人工退款流程（pending_refund / mark_refunded / no_refund）
+//   payment_provider = tappay 且 isCardPaidOrder() → 信用卡：一律原卡退刷（refundAction = card_refund）
+//     信用卡取消採「refund-first」：TapPay 退刷成功後才會把訂單改為 cancelled / void 分潤 / 寄信。
+//     TapPay 失敗或 timeout → 訂單維持未取消，不 void 分潤，不自動重試。
+//
 // 寫入 orders 退款欄位、group_buy_payment_events 稽核事件與 audit_logs。
 //
 // mode:
 //   "cancel"（預設）取消訂單，並決定退款狀態（none / pending / partial_refunded / refunded）
-//   "refund"        針對已取消且尚有可退金額的訂單，登記一次人工退款
+//   "refund"        針對已取消且尚有可退金額的訂單執行退款
+//                   （manual = 登記人工退匯；tappay = 實際原卡退刷，亦為誤入 pending_manual 的補救路徑）
+//   "quote"         唯讀試算（信用卡另附 TapPay Query 對帳資訊）
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { forbiddenResponse, isAccommodationAdmin, isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import {
@@ -13,6 +21,8 @@ import {
   refundStatusAfterRefund,
   remainingRefundable,
 } from "../_shared/paymentAdapter.ts";
+import { isCardPaidOrder, resolveSyncRecTradeId } from "../_shared/orderRefund.ts";
+import { queryTapPayRecord } from "../_shared/tappay.ts";
 import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
 import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import {
@@ -20,6 +30,7 @@ import {
   renderRefundProcessed,
   sendGroupBuyEmail,
 } from "../_shared/groupBuyEmail.ts";
+
 
 
 const FN = "group-buy-cancel-refund";
@@ -45,15 +56,15 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
     const orderId = String(body.orderId ?? "").trim();
     const mode = String(body.mode ?? "cancel");
-    // cancel 模式：mark_refunded（同時登記退款）/ pending_refund（待退款）/ no_refund（確認不需退款）
+    // cancel 模式：
+    //   manual（銀行／ATM）：mark_refunded / pending_refund / no_refund
+    //   tappay 信用卡      ：card_refund（原卡退刷）/ no_refund（依法規不退款）
     const refundAction = String(body.refundAction ?? "mark_refunded");
     const refundAmountRaw = Number(body.refundAmount ?? 0);
     const reason = String(body.reason ?? "").trim().slice(0, 300);
     if (!orderId) return json({ error: "缺少 orderId" }, 400);
     if (!["cancel", "refund", "quote"].includes(mode)) return json({ error: "mode 不正確" }, 400);
-    if (mode === "cancel" && !["mark_refunded", "pending_refund", "no_refund"].includes(refundAction)) {
-      return json({ error: "退款方式不正確" }, 400);
-    }
+
 
     // 一律重新讀 orders 計算，不信任前端傳入的 paidAmount / remainingRefundable / refundStatus
     const { data: order, error: oErr } = await admin
@@ -70,9 +81,27 @@ Deno.serve(async (req) => {
 
     const provider = getPaymentProvider(order);
     const adapter = getPaymentAdapter(order);
+    /**
+     * 付款方式分流唯一依據：orders 該筆的 payment_provider + 付款方式欄位。
+     * 嚴禁使用 campaign.payment_method / commission snapshot / 前端傳入值回推。
+     */
+    const isCardOrder = provider === "tappay" && isCardPaidOrder(order as any);
     const paid = Math.max(0, Math.round(Number(order.paid_amount) || 0));
     const alreadyRefunded = Math.max(0, Math.round(Number(order.refunded_amount) || 0));
     const refundable = remainingRefundable(order);
+
+    if (mode === "cancel") {
+      const allowedActions = isCardOrder
+        ? ["card_refund", "no_refund"]
+        : ["mark_refunded", "pending_refund", "no_refund"];
+      if (!allowedActions.includes(refundAction)) {
+        return json({
+          error: isCardOrder
+            ? "此訂單為信用卡（TapPay）付款，退款必須走「原信用卡退刷」，不可登記人工銀行退匯。"
+            : "退款方式不正確",
+        }, 400);
+      }
+    }
 
     // 法規建議退款金額：一律由 server 依訂單真實資料計算，前端傳入的金額僅作為人工覆寫並留稽核
     const policyQuote = quoteCancellation({
@@ -84,6 +113,43 @@ Deno.serve(async (req) => {
     const suggestedRefund = Math.min(refundable, Math.max(0, Math.round(policyQuote.refundAmount)));
 
     if (mode === "quote") {
+      /**
+       * 信用卡訂單：附上 TapPay Query 對帳資訊（唯讀，絕不呼叫 Refund API）。
+       * is_captured 保留原值，供後台判讀本次屬於「取消授權」或「已請款後退款」。
+       */
+      let tappay: Record<string, unknown> | null = null;
+      if (isCardOrder) {
+        try {
+          const resolution = await resolveSyncRecTradeId(admin, order as any);
+          if (!resolution.recTradeId) {
+            tappay = { found: false, reason: resolution.reason ?? "no_rec_trade_id" };
+          } else {
+            const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
+            if (!partnerKey) {
+              tappay = { found: false, reason: "no_partner_key", recTradeId: resolution.recTradeId };
+            } else {
+              const record = await queryTapPayRecord({ partnerKey, recTradeId: resolution.recTradeId });
+              const rec = Array.isArray(record.raw?.trade_records) ? record.raw.trade_records[0] : null;
+              const tpAmount = Math.max(0, Math.round(Number(record.amount) || 0));
+              const tpRefunded = Math.max(0, Math.round(Number(record.refundedAmount) || 0));
+              tappay = {
+                found: record.found,
+                recTradeId: resolution.recTradeId,
+                recTradeIdSource: resolution.source,
+                recordStatus: record.recordStatus,
+                amount: tpAmount,
+                refundedAmount: tpRefunded,
+                remaining: Math.max(0, tpAmount - tpRefunded),
+                isCaptured: rec?.is_captured ?? null,
+                /** 金流已退但本地未同步 → 必須先對帳，不得再退一次 */
+                needsReconciliation: tpRefunded > alreadyRefunded,
+              };
+            }
+          }
+        } catch (e) {
+          tappay = { found: false, reason: "query_failed", message: e instanceof Error ? e.message : "unknown" };
+        }
+      }
       return json({
         success: true,
         mode: "quote",
@@ -94,8 +160,13 @@ Deno.serve(async (req) => {
         policy: policyQuote.policy,
         suggestedRefund,
         requiresManualReview: policyQuote.requiresManualReview,
+        paymentProvider: provider,
+        isCardOrder,
+        refundChannel: isCardOrder ? "tappay_card" : "manual_bank",
+        tappay,
       });
     }
+
 
     /**
      * 人工覆寫退款金額（與系統建議不同）時，理由必填。
@@ -197,10 +268,21 @@ Deno.serve(async (req) => {
 
       const totalRefunded = alreadyRefunded + refundAmount;
       const refundStatus = refundStatusAfterRefund(paid, totalRefunded);
+      /**
+       * 帳務模型：paid_amount 維持原實收，refunded_amount 為累計已退。
+       * payment_status 只做狀態同步（全額 refunded／部分 partial_refunded），不歸零 paid_amount。
+       */
+      const paymentStatus = totalRefunded <= 0
+        ? null
+        : totalRefunded >= paid
+        ? "refunded"
+        : "partial_refunded";
 
       const notes = [
         order.notes ?? "",
-        `【退款】${nowIso} 由 ${actor} 登記人工退款 ${twd(refundAmount)}（累計 ${twd(totalRefunded)} / 已收 ${twd(paid)}）`,
+        isCardOrder
+          ? `【退款】${nowIso} 由 ${actor} 執行原信用卡退刷 ${twd(refundAmount)}（累計 ${twd(totalRefunded)} / 已收 ${twd(paid)}${settle.recTradeId ? `／rec_trade_id: ${settle.recTradeId}` : ""}）`
+          : `【退款】${nowIso} 由 ${actor} 登記人工退款 ${twd(refundAmount)}（累計 ${twd(totalRefunded)} / 已收 ${twd(paid)}）`,
         reason ? `退款備註：${reason}` : null,
       ].filter(Boolean).join("\n");
 
@@ -210,10 +292,12 @@ Deno.serve(async (req) => {
           refunded_amount: totalRefunded,
           refunded_at: nowIso,
           refund_status: refundStatus,
+          ...(paymentStatus ? { payment_status: paymentStatus } : {}),
           notes,
         })
         .eq("id", order.id);
       if (uErr) throw uErr;
+
 
       await admin.from("group_buy_payment_events").insert({
         campaign_id: campaignId,
@@ -223,7 +307,10 @@ Deno.serve(async (req) => {
         actor_user_id: ctx.userId,
         actor_label: actor,
         note: [
-          `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+          isCardOrder
+            ? `原信用卡退刷（TapPay${settle.recTradeId ? ` ${settle.recTradeId}` : ""}）`
+            : `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+
           `本次 ${twd(refundAmount)}`,
           `累計 ${twd(totalRefunded)}`,
           `已收 ${twd(paid)}`,
@@ -256,6 +343,9 @@ Deno.serve(async (req) => {
           manual_override: refundAmount !== suggestedRefund,
           override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
           rec_trade_id: settle.recTradeId ?? null,
+          refund_channel: isCardOrder ? "tappay_card" : "manual_bank",
+          payment_status: paymentStatus ?? order.payment_status,
+
           operator: actor,
           timestamp: nowIso,
           note: reason || null,
@@ -279,6 +369,9 @@ Deno.serve(async (req) => {
         mode: "refund",
         refundAmount,
         refundStatus,
+        paymentStatus: paymentStatus ?? order.payment_status,
+        refundChannel: isCardOrder ? "tappay_card" : "manual_bank",
+        recTradeId: settle.recTradeId ?? null,
         totalRefunded,
         remainingRefundable: Math.max(0, paid - totalRefunded),
       });
@@ -286,7 +379,11 @@ Deno.serve(async (req) => {
     }
 
     // ---------------------------------------------------------------- cancel
-    const refundAmount = refundAction === "mark_refunded" ? Math.max(0, Math.round(refundAmountRaw || 0)) : 0;
+    // 信用卡（tappay）：card_refund → refund-first，TapPay 退刷成功後才真正取消訂單。
+    const refundAmount = (refundAction === "mark_refunded" || refundAction === "card_refund")
+      ? Math.max(0, Math.round(refundAmountRaw || 0))
+      : 0;
+
     if (refundAmount > refundable) {
       return json({ error: `退款金額超過可退金額 ${twd(refundable)}` }, 400);
     }
@@ -316,19 +413,34 @@ Deno.serve(async (req) => {
     }
 
     const totalRefunded = alreadyRefunded + refundAmount;
-    const refundStatus = refundAction === "no_refund"
+    /**
+     * 信用卡在依法規建議退款 0 元時仍走 card_refund（不呼叫 TapPay），
+     * 語意等同「不需退款」，不可留下 pending_manual 讓人以為還要退錢。
+     */
+    const noRefundSemantics = refundAction === "no_refund" ||
+      (isCardOrder && refundAction === "card_refund" && refundAmount === 0);
+    const refundStatus = noRefundSemantics
       // 管理員明確決定不需退款（違約金／不可退方案）
       ? (totalRefunded > 0 ? refundStatusAfterRefund(paid, totalRefunded) : "none")
       // 有已收款但尚未退回 → pending（待退款），之後用「處理退款」完成
       : refundStatusAfterRefund(paid, totalRefunded);
 
+    /** 退款成功才同步 payment_status；paid_amount 一律維持原實收 */
+    const cancelPaymentStatus = totalRefunded <= 0
+      ? null
+      : totalRefunded >= paid
+      ? "refunded"
+      : "partial_refunded";
+
     const noteLines = [
       order.notes ?? "",
       `【取消】${nowIso} 由 ${actor} 取消訂單`,
-      refundAction === "no_refund"
-        ? "退款處理：確認不需退款"
+      noRefundSemantics
+        ? "退款處理：確認不需退款（依取消政策不予退款）"
         : refundAmount > 0
-        ? `退款處理：已登記人工退款 ${twd(refundAmount)}（銀行匯回）`
+        ? isCardOrder
+          ? `退款處理：已完成原信用卡退刷 ${twd(refundAmount)}（TapPay${cancelRefundRecTradeId ? ` ${cancelRefundRecTradeId}` : ""}）`
+          : `退款處理：已登記人工退款 ${twd(refundAmount)}（銀行匯回）`
         : paid > 0
         ? "退款處理：待退款（尚未退回旅客）"
         : "退款處理：未收款，不需退款",
@@ -348,10 +460,12 @@ Deno.serve(async (req) => {
         refunded_amount: totalRefunded,
         refunded_at: refundAmount > 0 ? nowIso : order.refunded_at,
         refund_status: refundStatus,
+        ...(cancelPaymentStatus ? { payment_status: cancelPaymentStatus } : {}),
         notes: noteLines,
       })
       .eq("id", order.id);
     if (uErr) throw uErr;
+
 
     if (commission?.id) {
       await admin.from("group_buy_commissions").update({ status: "void" }).eq("id", commission.id);
@@ -378,7 +492,10 @@ Deno.serve(async (req) => {
           actor_user_id: ctx.userId,
           actor_label: actor,
           note: [
-            `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+            isCardOrder
+              ? `原信用卡退刷（TapPay${cancelRefundRecTradeId ? ` ${cancelRefundRecTradeId}` : ""}）`
+              : `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+
             `本次 ${twd(refundAmount)}`,
             `累計 ${twd(totalRefunded)}`,
             `已收 ${twd(paid)}`,
@@ -413,6 +530,9 @@ Deno.serve(async (req) => {
         manual_override: refundAmount !== suggestedRefund,
         override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
         rec_trade_id: cancelRefundRecTradeId,
+        refund_channel: isCardOrder ? "tappay_card" : "manual_bank",
+        payment_status: cancelPaymentStatus ?? order.payment_status,
+
         operator: actor,
         timestamp: nowIso,
         reason: reason || null,
@@ -435,9 +555,13 @@ Deno.serve(async (req) => {
       mode: "cancel",
       refundAmount,
       refundStatus,
+      paymentStatus: cancelPaymentStatus ?? order.payment_status,
+      refundChannel: isCardOrder ? "tappay_card" : "manual_bank",
+      recTradeId: cancelRefundRecTradeId,
       totalRefunded,
       remainingRefundable: Math.max(0, paid - totalRefunded),
     });
+
 
   } catch (e) {
     console.error(`[${FN}] error`, e);
