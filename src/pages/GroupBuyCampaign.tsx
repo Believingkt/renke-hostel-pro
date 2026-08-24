@@ -246,6 +246,15 @@ export default function GroupBuyCampaign() {
   /** 付款方式：完全由活動三個開關決定，不得 fallback 到銀行匯款 */
   const [paymentMethod, setPaymentMethod] = useState<GroupBuyPaymentMethod | null>(null);
   const [creditOpen, setCreditOpen] = useState(false);
+  /** 三個開關各自獨立；全關代表此活動暫無可用付款方式 */
+  const bankEnabled = !!(campaign?.enable_bank_transfer ?? true);
+  const availableMethods: GroupBuyPaymentMethod[] = [
+    ...(bankEnabled ? (["bank"] as const) : []),
+    ...(campaign?.enable_atm ? (["atm"] as const) : []),
+    ...(campaign?.enable_credit_card ? (["credit_card"] as const) : []),
+  ];
+  const activeMethod: GroupBuyPaymentMethod | null =
+    paymentMethod && availableMethods.includes(paymentMethod) ? paymentMethod : (availableMethods[0] ?? null);
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
   /** 備註為次要欄位，預設收合（非必填，未變更任何驗證） */
@@ -676,6 +685,7 @@ export default function GroupBuyCampaign() {
           guestPhone,
           guestEmail,
           guestNote,
+          paymentMethod: activeMethod,
           origin: window.location.origin,
         },
       });
