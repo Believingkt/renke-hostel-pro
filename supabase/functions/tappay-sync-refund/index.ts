@@ -241,7 +241,7 @@ Deno.serve(async (req) => {
         success: true,
         changed: true,
         rec_trade_id: recTradeId,
-          rec_trade_id_source: resolution.source,
+        rec_trade_id_source: resolution.source,
         tx_amount: txAmount,
         refunded_amount_total: refundedAmountTotal,
         delta,
