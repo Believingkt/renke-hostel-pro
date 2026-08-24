@@ -110,9 +110,15 @@ export function GroupBuyCreditCardDialog(props: Props) {
    * 由 group-buy-resume-payment-draft 回傳 alreadyPaid 判定。
    */
   const [blocked, setBlocked] = useState<{ reason: string; orderNumber: string | null } | null>(null);
+  /** 找到有效保留，但與目前畫面選擇的方案／日期不同：必須讓客人二選一，不得直接建立第二張 Draft */
+  const [conflict, setConflict] = useState<any | null>(null);
+  /** 「返回修改」確認層：詢問是否釋放房況（X 關閉不會觸發） */
+  const [askRelease, setAskRelease] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
   /** 防止重複點擊／重複進入造成兩張有效 Draft */
   const creatingRef = useRef<Promise<{ draftId: string; expiresAt: string; amount: number }> | null>(null);
+
 
   // 載入 SDK
   useEffect(() => {
@@ -192,10 +198,14 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setHoldSeconds(null);
       setDraftInfo(null);
       setResumed(false);
+      setConflict(null);
+      setAskRelease(false);
+      setReleasing(false);
       draftRef.current = null;
       creatingRef.current = null;
     }
   }, [open]);
+
 
   /** 建立全新的 payment draft（永不復活舊 draft；同時只允許一個建立中的請求） */
   const createDraft = useCallback(async () => {
@@ -248,14 +258,22 @@ export function GroupBuyCreditCardDialog(props: Props) {
    * 續付：找回同一位客人尚未過期的 Draft。
    * 後端為純唯讀查詢，不會延長 expires_at；找不到時回 null 交由 createDraft 建立新的。
    */
-  const resumeDraft = useCallback(async () => {
+  const resumeDraft = useCallback(async (opts?: { draftId?: string; requireMatch?: boolean }) => {
     const req = buildRequest();
     const stored = readStoredDraft(req.slug);
     const phoneLast4 = String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4);
     if (phoneLast4.length !== 4) return null;
-    const body = stored?.draftId
-      ? { draftId: stored.draftId, phoneLast4 }
+    const targetDraftId = opts?.draftId ?? stored?.draftId;
+    const fingerprint = {
+      campaignPackageId: req.campaignPackageId,
+      checkInDate: req.checkInDate,
+      checkOutDate: req.checkOutDate,
+    };
+    const body: Record<string, unknown> = targetDraftId
+      ? { draftId: targetDraftId, phoneLast4 }
       : { slug: req.slug, phoneLast4, email: req.guestEmail };
+    body.fingerprint = fingerprint;
+    if (opts?.requireMatch === false) body.requireMatch = false;
     const { data, error: rErr } = await supabase.functions.invoke("group-buy-resume-payment-draft", { body });
     const payload: any = data;
     if (payload?.alreadyPaid) {
@@ -263,6 +281,11 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setBlocked({ reason: String(payload.reason ?? "paid_not_converted"), orderNumber: payload.orderNumber ?? null });
       // 回傳非 null 以阻止上層再建立新的 Draft
       return "blocked" as const;
+    }
+    if (payload?.reason === "fingerprint_mismatch" && payload?.conflict) {
+      // 舊保留仍有效，但客人現在選的內容不同 → 由客人決定續付舊的或改用目前選擇
+      setConflict(payload.conflict);
+      return "conflict" as const;
     }
     if (rErr || !payload?.found) {
       clearStoredDraft(req.slug);
@@ -278,8 +301,45 @@ export function GroupBuyCreditCardDialog(props: Props) {
     setDraftInfo({ amount: next.amount, total: typeof payload.total === "number" ? payload.total : null });
     setHoldSeconds(Math.max(0, Number(payload.remainingSeconds) || 0));
     setResumed(true);
+    setConflict(null);
     return next;
   }, [buildRequest]);
+
+  /**
+   * 主動釋放房況（客人明確要修改訂房內容／放棄付款）。
+   * Server 以原子條件式更新判定，只有仍為 pending 且未開始付款的 Draft 會被釋放。
+   */
+  const releaseDraft = useCallback(async (draftId: string, reason: string) => {
+    const req = buildRequest();
+    const phoneLast4 = String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4);
+    const { data, error: relErr } = await supabase.functions.invoke("group-buy-release-payment-draft", {
+      body: { draftId, phoneLast4, reason },
+    });
+    const payload: any = data;
+    if (relErr && !payload) throw new Error("目前無法釋放房況，請稍後再試或聯繫客服。");
+    if (!payload?.released) {
+      const r = String(payload?.reason ?? "");
+      if (r === "converted" || r === "paid" || r === "manual_review" || r === "payment_processing") {
+        setBlocked({ reason: r === "payment_processing" ? "payment_processing" : r, orderNumber: null });
+      }
+      throw new Error(
+        r === "manual_review"
+          ? "這筆付款正在人工確認中，暫時無法重新付款。"
+          : r === "not_found"
+          ? "查無此付款保留，請重新選擇。"
+          : "上一筆付款正在確認中，暫時無法重新付款。請等待付款結果確認完成。",
+      );
+    }
+    clearStoredDraft(req.slug);
+    if (draftRef.current?.draftId === draftId) {
+      draftRef.current = null;
+      setHoldSeconds(null);
+      setDraftInfo(null);
+      setResumed(false);
+    }
+    return true;
+  }, [buildRequest]);
+
 
   // 開啟 Dialog：先嘗試恢復既有保留，沒有才建立新的（10 分鐘倒數自建立當下起算）
   useEffect(() => {
@@ -377,7 +437,70 @@ export function GroupBuyCreditCardDialog(props: Props) {
     }
   }, [createDraft]);
 
+  /** 衝突處理：續付原本的保留（不建立新 Draft、不延長時間） */
+  const keepOldDraft = useCallback(async () => {
+    if (!conflict?.draftId) return;
+    setError(null);
+    setReleasing(true);
+    try {
+      await resumeDraft({ draftId: conflict.draftId, requireMatch: false });
+    } catch (e: any) {
+      setError(e?.message || "無法接續原本的付款保留，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [conflict, resumeDraft]);
+
+  /** 衝突處理：改用目前選擇 → 一定先 release 舊保留成功，才建立新的 Draft */
+  const switchToCurrent = useCallback(async () => {
+    if (!conflict?.draftId) return;
+    setError(null);
+    setReleasing(true);
+    try {
+      await releaseDraft(conflict.draftId, "customer_modify_booking");
+      setConflict(null);
+      setResumed(false);
+      await createDraft();
+    } catch (e: any) {
+      setError(e?.message || "目前無法釋放原本的房況保留，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [conflict, releaseDraft, createDraft]);
+
+  /** 「返回修改」：先詢問是否釋放房況（右上角 X 不會走這條，Draft 會保留給續付） */
+  const handleBackToEdit = useCallback(() => {
+    if (draftRef.current && !blocked && holdSeconds != null && holdSeconds > 0) {
+      setAskRelease(true);
+      return;
+    }
+    onOpenChange(false);
+  }, [blocked, holdSeconds, onOpenChange]);
+
+  const confirmReleaseAndBack = useCallback(async () => {
+    const current = draftRef.current;
+    if (!current) {
+      setAskRelease(false);
+      onOpenChange(false);
+      return;
+    }
+    setError(null);
+    setReleasing(true);
+    try {
+      await releaseDraft(current.draftId, "customer_modify_booking");
+      setAskRelease(false);
+      setConflict(null);
+      onOpenChange(false);
+    } catch (e: any) {
+      setAskRelease(false);
+      setError(e?.message || "目前無法釋放房況，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [releaseDraft, onOpenChange]);
+
   const holdExpired = holdSeconds != null && holdSeconds <= 0;
+
   const holdText = holdSeconds != null && holdSeconds > 0
     ? `${Math.floor(holdSeconds / 60)}:${String(holdSeconds % 60).padStart(2, "0")}`
     : null;
@@ -447,9 +570,83 @@ export function GroupBuyCreditCardDialog(props: Props) {
         </div>
 
 
-        {blocked && (
+        {blocked && blocked.reason === "payment_processing" && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-semibold">付款結果確認中，請勿重新付款。</p>
+            <p className="mt-1 text-destructive/90">
+              上一筆付款正在確認中，暫時無法重新付款或釋放房況，請稍候並等待付款結果。
+            </p>
+          </div>
+        )}
+
+        {conflict && (
+          <div className="rounded-2xl border border-accent/50 bg-accent/10 p-4 text-sm">
+            <p className="font-semibold text-foreground">您目前仍有一筆付款保留中的房況</p>
+            <p className="mt-1 text-muted-foreground">
+              {conflict.checkInDate} → {conflict.checkOutDate}
+              {conflict.packageName ? `｜${conflict.packageName}` : ""}
+              {conflict.roomQuantity ? `｜${conflict.roomQuantity} 間` : ""}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              剩餘 {Math.floor((Number(conflict.remainingSeconds) || 0) / 60)}:
+              {String(Math.max(0, Number(conflict.remainingSeconds) || 0) % 60).padStart(2, "0")}
+              ．若改用目前的新選擇，原房況保留將立即釋放。
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => void keepOldDraft()}
+              >
+                繼續原付款
+              </Button>
+              <Button
+                type="button"
+                className="h-11 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90"
+                disabled={releasing}
+                onClick={() => void switchToCurrent()}
+              >
+                {releasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                改用目前選擇
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {askRelease && (
+          <div className="rounded-2xl border border-border/70 bg-muted/60 p-4 text-sm">
+            <p className="font-semibold text-foreground">返回修改後，目前為您保留的房況將立即釋放。</p>
+            <p className="mt-1 text-muted-foreground">若之後再次付款，系統會重新確認房況與價格。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => setAskRelease(false)}
+              >
+                繼續付款
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => void confirmReleaseAndBack()}
+              >
+                {releasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                釋放房況並返回修改
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {blocked && blocked.reason !== "payment_processing" && (
           <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             <p className="font-semibold">
+
               {blocked.reason === "converted"
                 ? "這筆預訂已經付款成功並完成建立訂單。"
                 : blocked.reason === "manual_review"
@@ -501,8 +698,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
             type="button"
             variant="outline"
             className="h-12 rounded-xl sm:h-11"
-            disabled={submitting}
-            onClick={() => onOpenChange(false)}
+            disabled={submitting || releasing}
+            onClick={handleBackToEdit}
           >
             返回修改
           </Button>
@@ -510,11 +707,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
             disabled={
-              submitting || rechecking || preparing || holdExpired || !!blocked || !chargeAmount || !cardValid ||
-              !sdkReady
+              submitting || rechecking || preparing || holdExpired || !!blocked || !!conflict || releasing ||
+              !chargeAmount || !cardValid || !sdkReady
             }
             onClick={() => void pay()}
           >
+
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {holdExpired ? "保留已逾時" : `確認付款 ${twd(chargeAmount ?? amount)}`}
           </Button>

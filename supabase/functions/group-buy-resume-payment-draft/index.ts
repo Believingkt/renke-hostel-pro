@@ -153,6 +153,36 @@ Deno.serve(async (req) => {
     const remainingMs = new Date(draft.expires_at).getTime() - Date.now();
     if (!(remainingMs > 0)) return json({ found: false, reason: "expired" });
 
+    // ── Booking fingerprint：只有「會影響價格／庫存的核心條件完全一致」才可以續付 ──
+    // 房型由 server 依方案指派，故 fingerprint 以 方案 + 入退房日期 + 間數 判定。
+    const fp = (body.fingerprint ?? null) as any;
+    if (fp && body.requireMatch !== false) {
+      const same = String(fp.campaignPackageId ?? "") === String(draft.campaign_package_id ?? "") &&
+        String(fp.checkInDate ?? "") === String(draft.check_in_date ?? "") &&
+        String(fp.checkOutDate ?? "") === String(draft.check_out_date ?? "") &&
+        (fp.roomQuantity == null || Number(fp.roomQuantity) === Number(draft.room_quantity));
+      if (!same) {
+        return json({
+          found: false,
+          reason: "fingerprint_mismatch",
+          conflict: {
+            draftId: draft.id,
+            status: draft.status,
+            expiresAt: draft.expires_at,
+            remainingSeconds: Math.floor(remainingMs / 1000),
+            checkInDate: draft.check_in_date,
+            checkOutDate: draft.check_out_date,
+            roomQuantity: draft.room_quantity,
+            amountToCharge: Math.round(Number(draft.amount_to_charge) || 0),
+            packageName: (draft.booking_payload as any)?.package_name ?? null,
+            releasable: String(draft.status) === "pending" && !draft.rec_trade_id,
+          },
+        });
+      }
+    }
+
+
+
     // 唯讀回傳：不含 rec_trade_id、不含完整 PII、不延長 expires_at
     return json({
       found: true,

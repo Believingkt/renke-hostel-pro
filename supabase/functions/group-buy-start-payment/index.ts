@@ -94,9 +94,25 @@ Deno.serve(async (req) => {
       const amount = Math.round(Number(draft.amount_to_charge) || 0);
       if (amount <= 0) return json({ success: false, error: "此筆付款金額無效，請聯繫客服" }, 400);
 
+      // ── 原子條件式 claim：pending/failed → payment_processing（必須在呼叫 TapPay 之前）──
+      // 目的：與「客人主動釋放房況」（group-buy-release-payment-draft，條件為 status='pending'）互斥，
+      // 兩者同時發生時只能有一方取得 Draft 的下一個生命週期狀態，避免房況被放掉後又被扣款。
+      const { data: claimed } = await admin
+        .from("group_buy_payment_drafts")
+        .update({ status: "payment_processing", last_error: null })
+        .eq("id", draft.id)
+        .in("status", ["pending", "failed"])
+        .is("converted_order_id", null)
+        .select("id")
+        .maybeSingle();
+      if (!claimed) {
+        return json({ success: false, error: "此筆付款狀態已變更，請重新整理後再試" }, 409);
+      }
+
       const origin = String(body.origin ?? "").trim() || "https://booking.lakeze.com";
       const frontendRedirectUrl =
         `${origin.replace(/\/$/, "")}/payment-result?source=group_buy&draft=${draft.id}`;
+
 
       const resp = await fetch(`${supabaseUrl}/functions/v1/process-tappay-payment`, {
         method: "POST",

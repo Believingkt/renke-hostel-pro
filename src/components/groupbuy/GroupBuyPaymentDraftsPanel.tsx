@@ -17,7 +17,7 @@ const STATUS_META: Record<string, { label: string; variant: "default" | "seconda
   expired: { label: "已逾時釋放", variant: "outline" },
   failed: { label: "付款失敗", variant: "destructive" },
   manual_review: { label: "需人工處理", variant: "destructive" },
-  cancelled: { label: "已取消", variant: "outline" },
+  cancelled: { label: "客人已放棄（已釋放房況）", variant: "outline" },
 };
 
 interface Props {
