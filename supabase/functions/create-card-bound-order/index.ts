@@ -212,8 +212,10 @@ Deno.serve(async (req) => {
         notes: orderNotes,
         pet_count: body.petCount || 0,
         pet_plan_price: body.petPlanPrice || 0,
+        room_quantity: (body as any).roomQuantity ?? 1,
         custom_addon_details: body.customAddonDetails ?? null,
         order_source: "website",
+
       }])
       .select()
       .single();
