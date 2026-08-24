@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { splitRefundFee } from "@/lib/refundFee";
-import { renderRefundProcessed } from "../../supabase/functions/_shared/groupBuyEmail";
+
+// edge function 模組載入時會讀 Deno.env（寄信設定），測試環境提供最小 shim
+(globalThis as unknown as { Deno?: unknown }).Deno ??= { env: { get: () => undefined } };
+const { renderRefundProcessed } = await import("../../supabase/functions/_shared/groupBuyEmail");
+
 
 /** 後台「處理退款」Modal 顯示的三段金額（政策應退／手續費／實際匯回） */
 describe("人工退款 Modal 金額切分", () => {
