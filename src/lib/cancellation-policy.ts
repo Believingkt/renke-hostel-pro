@@ -93,5 +93,35 @@ export function policyTypeForPaymentMethod(
 export function cancellationLinesFor(policy: CancellationPolicyType): string[] {
   if (policy === "full_prepayment") return FULL_PREPAYMENT_POLICY_LINES;
   if (policy === "deposit") return DEPOSIT_POLICY_LINES;
-  return TW_DEFAULT_CANCEL_RULES.slice().reverse().map((r) => r.label);
+  if (policy === "guarantee") return TW_DEFAULT_CANCEL_RULES.slice().reverse().map((r) => r.label);
+  return [];
 }
+
+export const UNKNOWN_POLICY_NOTE =
+  "此訂單之取消退款方式需由住宿方依原付款條件確認，若需取消請聯絡客服。";
+
+export interface CancellationPolicyCopy {
+  policy: CancellationPolicyType;
+  title: string;
+  /** 制度說明（信用卡全額付款時提示「一次支付全額」） */
+  intro: string | null;
+  lines: string[];
+  /** unknown 時的替代說明（此時 lines 為空，不得顯示任何百分比） */
+  fallbackNote: string | null;
+}
+
+/**
+ * 前台顯示層唯一來源。所有團購／一般訂房頁面一律使用本函式，
+ * 不得各自 hardcode 級距文字。後端對應：
+ * supabase/functions/_shared/cancellationPolicyCopy.ts
+ */
+export function cancellationPolicyCopy(policy: CancellationPolicyType): CancellationPolicyCopy {
+  return {
+    policy,
+    title: CANCELLATION_POLICY_TITLE[policy] ?? "取消政策",
+    intro: policy === "full_prepayment" ? FULL_PREPAYMENT_CHARGE_NOTICE : null,
+    lines: cancellationLinesFor(policy),
+    fallbackNote: policy === "unknown" ? UNKNOWN_POLICY_NOTE : null,
+  };
+}
+
