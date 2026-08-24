@@ -370,6 +370,15 @@ export default function AdminGroupBuy() {
   const refundReasonRequired = !!quote &&
     Math.round(Number(refundAmount) || 0) !== quote.suggestedRefund &&
     refundNote.trim().length < 2;
+  /**
+   * 人工退款金額摘要（gross＝政策應退／fee＝館別手續費／payout＝實際匯回旅客）。
+   * 手續費金額一律取 server quote，切分邏輯與 Edge Function 共用同一份 splitRefundFee。
+   */
+  const refundSplit = splitRefundFee({
+    gross: Math.round(Number(refundAmount) || 0),
+    configuredFee: Number(quote?.manualRefundFee || 0),
+    isCardRefund: refundIsCard,
+  });
 
 
 
