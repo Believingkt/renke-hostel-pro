@@ -191,4 +191,42 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
     // 顯示 1:02，而非重新從 10:00 起算
     await screen.findByText(/1:02/);
   });
+
+  it("續付 CASE C: 已扣款未轉單（paid_not_converted）時封鎖再次付款，不得建立新 Draft", async () => {
+    mockInvoke({
+      data: { found: false, alreadyPaid: true, reason: "paid_not_converted", orderNumber: null },
+      error: null,
+    });
+    render(
+      <GroupBuyCreditCardDialog
+        open
+        onOpenChange={vi.fn()}
+        amount={14000}
+        packageName="測試方案"
+        buildRequest={() => req}
+      />,
+    );
+    await screen.findByText(/這筆付款已完成扣款/);
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke.mock.calls[0][0]).toBe("group-buy-resume-payment-draft");
+  });
+
+  it("續付 CASE D: 已轉單（converted）時顯示訂單編號並封鎖付款按鈕", async () => {
+    mockInvoke({
+      data: { found: false, alreadyPaid: true, reason: "converted", orderNumber: "DB3U47P4" },
+      error: null,
+    });
+    render(
+      <GroupBuyCreditCardDialog
+        open
+        onOpenChange={vi.fn()}
+        amount={14000}
+        packageName="測試方案"
+        buildRequest={() => req}
+      />,
+    );
+    await screen.findByText(/DB3U47P4/);
+    const payBtn = screen.getByRole("button", { name: /確認付款/ });
+    expect(payBtn).toBeDisabled();
+  });
 });
