@@ -223,8 +223,15 @@ const POLICY_LABEL: Record<string, string> = {
 interface RefundQuote {
   paidAmount: number;
   alreadyRefunded: number;
+  /** 已累計扣除的退款處理費 */
+  alreadyRefundFee?: number;
   remainingRefundable: number;
   suggestedRefund: number;
+  /** 此館設定的人工退款手續費（信用卡為 0） */
+  manualRefundFee?: number;
+  refundFeeApplies?: boolean;
+  /** 建議金額的拆分：gross = 自已收沖銷、fee = 手續費、payout = 實退旅客 */
+  suggestedRefundSplit?: { gross: number; fee: number; payout: number };
   requiresManualReview: boolean;
   policy: "deposit" | "full_prepayment" | "guarantee" | "unknown";
   quote: {
@@ -276,6 +283,7 @@ interface OrderRow {
   order_date: string;
   refund_status: string | null;
   refunded_amount: number | null;
+  refund_fee_amount?: number | null;
   refunded_at: string | null;
   payment_provider?: string | null;
   payment_method?: string | null;
@@ -429,7 +437,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_rec_trade_id, group_buy_booking_notice_snapshot",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refund_fee_amount, refunded_at, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_rec_trade_id, group_buy_booking_notice_snapshot",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
@@ -697,10 +705,26 @@ export default function AdminGroupBuy() {
           <div className="text-right tabular-nums">{twd(quote.paidAmount)}</div>
           <div className="text-muted-foreground">已退款金額</div>
           <div className="text-right tabular-nums">{twd(quote.alreadyRefunded)}</div>
+          {Number(quote.alreadyRefundFee || 0) > 0 && (
+            <>
+              <div className="text-muted-foreground">已扣手續費</div>
+              <div className="text-right tabular-nums">{twd(quote.alreadyRefundFee || 0)}</div>
+            </>
+          )}
           <div className="text-muted-foreground">最高可退</div>
           <div className="text-right tabular-nums">{twd(quote.remainingRefundable)}</div>
           <div className="text-muted-foreground">建議退款金額</div>
           <div className="text-right font-semibold tabular-nums text-primary">{twd(quote.suggestedRefund)}</div>
+          {quote.refundFeeApplies && (
+            <>
+              <div className="text-muted-foreground">匯款手續費（館別設定）</div>
+              <div className="text-right tabular-nums">-{twd(quote.manualRefundFee || 0)}</div>
+              <div className="text-muted-foreground">實際匯回旅客</div>
+              <div className="text-right font-semibold tabular-nums">
+                {twd(quote.suggestedRefundSplit?.payout ?? Math.max(0, quote.suggestedRefund - (quote.manualRefundFee || 0)))}
+              </div>
+            </>
+          )}
           {quote.quote.label && (
             <div className="col-span-2 pt-1 text-[11px] leading-relaxed text-muted-foreground">
               {quote.quote.label}
@@ -1953,6 +1977,12 @@ export default function AdminGroupBuy() {
                 <div className="text-right tabular-nums">{twd(refundTarget.paid_amount || 0)}</div>
                 <div className="text-muted-foreground">已退款金額</div>
                 <div className="text-right tabular-nums">{twd(refundTarget.refunded_amount || 0)}</div>
+                {Number(refundTarget.refund_fee_amount || 0) > 0 && (
+                  <>
+                    <div className="text-muted-foreground">已扣手續費</div>
+                    <div className="text-right tabular-nums">{twd(refundTarget.refund_fee_amount || 0)}</div>
+                  </>
+                )}
                 <div className="text-muted-foreground">尚可退款金額</div>
                 <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
               </div>
@@ -1973,7 +2003,7 @@ export default function AdminGroupBuy() {
                 </div>
               )}
               <div>
-                <Label>{refundIsCard ? "退刷金額" : "退款金額"}</Label>
+                <Label>{refundIsCard ? "退刷金額" : "退款金額（含匯款手續費）"}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -1981,6 +2011,12 @@ export default function AdminGroupBuy() {
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                 />
+                {!refundIsCard && Number(quote?.manualRefundFee || 0) > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    此館匯款手續費 {twd(quote?.manualRefundFee || 0)}，實際匯回旅客{" "}
+                    {twd(Math.max(0, (Math.round(Number(refundAmount) || 0)) - Number(quote?.manualRefundFee || 0)))}。
+                  </p>
+                )}
               </div>
               <div>
                 <Label>
