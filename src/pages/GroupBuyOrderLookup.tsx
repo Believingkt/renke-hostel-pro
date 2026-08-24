@@ -261,24 +261,35 @@ export default function GroupBuyOrderLookup() {
               ) : (
                 <>
                   <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">應付訂金（{order.depositPercentage}%）</span>
-                    <span className="font-semibold text-primary">{twd(order.deposit)}</span>
+                    <span className="text-muted-foreground">{confirmed ? "已付訂金" : `應付訂金（${order.depositPercentage}%）`}</span>
+                    <span className="font-semibold text-primary">
+                      {twd(confirmed ? (order.paidAmount || order.deposit) : order.deposit)}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-muted-foreground">入住現場付清</span>
                     <span>{twd(order.balance)}</span>
                   </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">付款方式</span>
+                    <span>{isAtmOrder ? "ATM 虛擬帳號（TapPay）" : "銀行匯款"}</span>
+                  </div>
                 </>
               )}
               {!fullPayment && order.orderStatus !== "cancelled" && !confirmed && (
                 <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">匯款期限</span>
-                  <span className="font-semibold">{order.paymentDeadlineText}</span>
+                  <span className="text-muted-foreground">{isAtmOrder ? "ATM 繳費期限" : "匯款期限"}</span>
+                  <span className="font-semibold">
+                    {isAtmOrder && order.atm?.expireAt
+                      ? new Date(order.atm.expireAt).toLocaleString("zh-TW")
+                      : order.paymentDeadlineText}
+                  </span>
                 </div>
               )}
             </div>
 
-            {data.bank && !fullPayment && !confirmed && order.orderStatus !== "cancelled" && (
+            {/* 銀行人工匯款帳戶：僅限 payment_method = bank 的訂單；ATM／信用卡一律不顯示 */}
+            {channel === "bank" && data.bank && !confirmed && order.orderStatus !== "cancelled" && (
               <div className="rounded-lg border p-4">
                 <p className="mb-2 font-semibold text-foreground">匯款資訊</p>
                 <p>
@@ -292,6 +303,31 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
+            {/* ATM 虛擬帳號：付款完成後收合為對帳資訊 */}
+            {isAtmOrder && order.atm && order.orderStatus !== "cancelled" && (
+              confirmed ? (
+                <Accordion type="single" collapsible className="rounded-lg border px-4">
+                  <AccordionItem value="atm" className="border-0">
+                    <AccordionTrigger className="text-sm font-semibold">本次付款資訊（ATM 虛擬帳號）</AccordionTrigger>
+                    <AccordionContent className="space-y-1 text-muted-foreground">
+                      <p>銀行代碼：{order.atm.bankCode ?? "—"}</p>
+                      <p>虛擬帳號：{order.atm.vaccNo}</p>
+                      <p>入帳金額：{twd(order.paidAmount || order.atm.amount)}</p>
+                      <p className="text-primary">ATM 付款已完成，請勿重複匯款。</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              ) : (
+                <div className="rounded-lg border p-4">
+                  <p className="mb-2 font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
+                  <p>銀行代碼：{order.atm.bankCode ?? "—"}</p>
+                  <p className="font-semibold">虛擬帳號：{order.atm.vaccNo}</p>
+                  <p>轉帳金額：{twd(order.atm.amount)}</p>
+                  <p className="text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需回報。</p>
+                </div>
+              )
+            )}
+
             {fullPayment ? (
               <p className="flex items-center gap-2 text-primary">
                 <CheckCircle2 className="h-4 w-4" /> 已完成信用卡全額付款，入住當天不需再付款。
@@ -302,6 +338,8 @@ export default function GroupBuyOrderLookup() {
               </p>
             ) : order.orderStatus === "cancelled" ? (
               <p className="text-muted-foreground">此訂單已取消。若已完成匯款，請直接與我們聯繫。</p>
+            ) : isAtmOrder ? (
+              <p className="text-muted-foreground">請於期限前以 ATM／網銀轉入上方虛擬帳號，入帳後系統會自動更新。</p>
             ) : reported ? (
               <p className="text-muted-foreground">已收到您的匯款回報，我們核對入帳後會再寄出確認信。</p>
             ) : (
