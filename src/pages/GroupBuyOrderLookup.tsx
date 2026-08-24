@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toGuestMessage, isGuestSafeMessage } from "@/lib/guestFacingError";
 import { supabase } from "@/integrations/supabase/client";
