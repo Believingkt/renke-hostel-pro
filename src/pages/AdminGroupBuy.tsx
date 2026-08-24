@@ -1430,15 +1430,17 @@ export default function AdminGroupBuy() {
                     onCheckedChange={(v) => setEditing({ ...editing, enable_atm: v })}
                   />
                 </div>
-                <div className="flex items-start justify-between gap-4 opacity-60">
+                <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-sm font-medium text-foreground">信用卡（TapPay）</p>
+                    <p className="text-sm font-medium text-foreground">信用卡（TapPay 3DS）</p>
                     <p className="text-xs text-muted-foreground">
-                      信用卡 3DS（付款成功後才建立訂單）已完成串接，尚待正式驗收後開放，目前無法自行開啟。
+                      開啟後旅客可線上刷訂金；付款成功後系統才會建立正式訂單，付款期間保留房位 10 分鐘。
                     </p>
-
                   </div>
-                  <Switch checked={!!editing.enable_credit_card} disabled />
+                  <Switch
+                    checked={!!editing.enable_credit_card}
+                    onCheckedChange={(v) => setEditing({ ...editing, enable_credit_card: v })}
+                  />
                 </div>
               </div>
 
