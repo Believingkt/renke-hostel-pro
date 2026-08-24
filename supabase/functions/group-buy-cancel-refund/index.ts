@@ -91,9 +91,26 @@ Deno.serve(async (req) => {
         alreadyRefunded,
         remainingRefundable: refundable,
         quote: policyQuote,
+        policy: policyQuote.policy,
         suggestedRefund,
+        requiresManualReview: policyQuote.requiresManualReview,
       });
     }
+
+    /**
+     * 人工覆寫退款金額（與系統建議不同）時，理由必填。
+     * 與一般訂房 cancel-order-with-refund 規則一致，audit 需可追溯調整原因。
+     */
+    const requireReasonIfOverride = (actual: number) => {
+      if (actual === suggestedRefund) return null;
+      if (reason.length >= 2) return null;
+      return json({
+        error: `實際退款金額與系統建議（${twd(suggestedRefund)}）不同，請填寫調整原因。`,
+        requiresReason: true,
+        suggestedRefund,
+      }, 400);
+    };
+
 
     const { data: commission } = await admin
       .from("group_buy_commissions")
