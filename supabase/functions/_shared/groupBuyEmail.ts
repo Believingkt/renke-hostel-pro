@@ -393,6 +393,12 @@ export function renderOrderCancelled(
        <table class="info">
          <tr><td class="k">取消時間</td><td>${esc(info.cancelledAtText)}</td></tr>
          <tr><td class="k">已付款金額</td><td>${money(info.paidAmount)}</td></tr>
+         ${o.paymentMethodText ? `<tr><td class="k">原付款方式</td><td>${esc(o.paymentMethodText)}</td></tr>` : ""}
+         ${
+        info.paidAmount > 0 && o.refundChannelText
+          ? `<tr><td class="k">退款方式</td><td>${esc(o.refundChannelText)}</td></tr>`
+          : ""
+      }
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <div class="box"><h2>退款說明</h2>${refundStatusBlock(info, isCard)}</div>
@@ -443,7 +449,9 @@ export function renderRefundProcessed(
   const cardRows = isCard
     ? `<tr><td class="k">付款／退款方式</td><td>信用卡（TapPay 原卡退刷）</td></tr>
          <tr><td class="k">原信用卡付款</td><td>${money(info.paidAmount)}</td></tr>`
-    : `<tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>`;
+    : `${o.paymentMethodText ? `<tr><td class="k">原付款方式</td><td>${esc(o.paymentMethodText)}</td></tr>` : ""}
+         <tr><td class="k">退款方式</td><td>${esc(o.refundChannelText ?? "人工匯款退款")}</td></tr>
+         <tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>`;
 
   return {
     subject: `【${title}】${o.campaignTitle} 訂單 ${o.orderNumber}`,
