@@ -3,7 +3,7 @@
 // 取消後訂單 order_status = cancelled，房間即自動釋放（庫存計算一律排除 cancelled）。
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { calcCancellationFee, taipeiToday } from "../_shared/cancellationPolicy.ts";
+import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 
 interface Body {
   order_number?: string;
@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const { data: order } = await supabase
       .from("orders")
       .select(
-        "id, order_number, accommodation_id, guest_email, guest_phone, order_status, payment_status, paid_amount, final_price, check_in_date, notes, room_charge_status",
+        "id, order_number, accommodation_id, guest_email, guest_phone, order_status, payment_status, paid_amount, refunded_amount, final_price, deposit_amount, check_in_date, notes, room_charge_status, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method",
       )
       .eq("order_number", orderNumber)
       .maybeSingle();
@@ -53,13 +53,14 @@ Deno.serve(async (req) => {
       .eq("accommodation_id", order.accommodation_id)
       .maybeSingle();
     const freeCancelDays = Number(bs?.free_cancel_days ?? 14);
-    const quote = calcCancellationFee(
-      Number(order.final_price || 0),
-      order.check_in_date,
-      today,
-      Number(order.paid_amount || 0),
+    const quote = quoteCancellation({
+      order: order as any,
+      checkInDate: order.check_in_date,
+      cancellationDate: today,
+      alreadyRefunded: Number(order.refunded_amount || 0),
+      guaranteeBase: Number(order.final_price || 0),
       freeCancelDays,
-    );
+    });
 
     const alreadyCharged =
       order.room_charge_status === "charged" ||
@@ -68,7 +69,7 @@ Deno.serve(async (req) => {
 
     if (body.quote_only) {
       return json(
-        { success: true, quote, freeCancelDays, alreadyCharged, cancelled: order.order_status === "cancelled" },
+        { success: true, quote, policy: quote.policy, freeCancelDays, alreadyCharged, cancelled: order.order_status === "cancelled" },
         200,
         corsHeaders,
       );
@@ -115,7 +116,7 @@ Deno.serve(async (req) => {
     const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
     const note = [
       `🔒 ${stamp} 客人於付款狀態頁自行取消訂單（未扣款）${body.reason ? `：${body.reason}` : ""}`,
-      `🔒 取消政策：距入住 ${quote.daysBefore} 天，${quote.label}，未產生費用；房間已釋放`,
+      `🔒 取消政策（${quote.policy}／${quote.policyReason}）：距入住 ${quote.daysBefore} 天，${quote.label}，未產生費用；房間已釋放`,
     ].join("\n");
 
     const { error } = await supabase
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
         cancelled_at: new Date().toISOString(),
         payment_status: "cancelled",
         cancellation_fee_amount: 0,
-        cancellation_fee_percent: quote.percent,
+        cancellation_fee_percent: quote.feePercent,
         room_charge_status: order.room_charge_status ? "cancelled" : null,
         notes: `${order.notes ? order.notes + "\n" : ""}${note}`,
       })
