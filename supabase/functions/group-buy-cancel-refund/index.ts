@@ -14,6 +14,7 @@ import {
   remainingRefundable,
 } from "../_shared/paymentAdapter.ts";
 import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
+import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import {
   renderOrderCancelled,
   renderRefundProcessed,
@@ -49,7 +50,7 @@ Deno.serve(async (req) => {
     const refundAmountRaw = Number(body.refundAmount ?? 0);
     const reason = String(body.reason ?? "").trim().slice(0, 300);
     if (!orderId) return json({ error: "缺少 orderId" }, 400);
-    if (!["cancel", "refund"].includes(mode)) return json({ error: "mode 不正確" }, 400);
+    if (!["cancel", "refund", "quote"].includes(mode)) return json({ error: "mode 不正確" }, 400);
     if (mode === "cancel" && !["mark_refunded", "pending_refund", "no_refund"].includes(refundAction)) {
       return json({ error: "退款方式不正確" }, 400);
     }
@@ -72,6 +73,27 @@ Deno.serve(async (req) => {
     const paid = Math.max(0, Math.round(Number(order.paid_amount) || 0));
     const alreadyRefunded = Math.max(0, Math.round(Number(order.refunded_amount) || 0));
     const refundable = remainingRefundable(order);
+
+    // 法規建議退款金額：一律由 server 依訂單真實資料計算，前端傳入的金額僅作為人工覆寫並留稽核
+    const policyQuote = quoteCancellation({
+      order: order as any,
+      checkInDate: String(order.check_in_date),
+      cancellationDate: taipeiToday(),
+      alreadyRefunded: alreadyRefunded,
+    });
+    const suggestedRefund = Math.min(refundable, Math.max(0, Math.round(policyQuote.refundAmount)));
+
+    if (mode === "quote") {
+      return json({
+        success: true,
+        mode: "quote",
+        paidAmount: paid,
+        alreadyRefunded,
+        remainingRefundable: refundable,
+        quote: policyQuote,
+        suggestedRefund,
+      });
+    }
 
     const { data: commission } = await admin
       .from("group_buy_commissions")
@@ -194,6 +216,12 @@ Deno.serve(async (req) => {
           total_refunded_amount: totalRefunded,
           paid_amount: paid,
           refund_status: refundStatus,
+          policy: policyQuote.policy,
+          policy_reason: policyQuote.policyReason,
+          policy_days_before: policyQuote.daysBefore,
+          policy_refund_percent: policyQuote.refundPercent,
+          suggested_refund_amount: suggestedRefund,
+          manual_override: refundAmount !== suggestedRefund,
           operator: actor,
           timestamp: nowIso,
           note: reason || null,
@@ -318,6 +346,12 @@ Deno.serve(async (req) => {
         total_refunded_amount: totalRefunded,
         paid_amount: paid,
         refund_status: refundStatus,
+        policy: policyQuote.policy,
+        policy_reason: policyQuote.policyReason,
+        policy_days_before: policyQuote.daysBefore,
+        policy_refund_percent: policyQuote.refundPercent,
+        suggested_refund_amount: suggestedRefund,
+        manual_override: refundAmount !== suggestedRefund,
         operator: actor,
         timestamp: nowIso,
         reason: reason || null,
