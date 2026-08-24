@@ -222,6 +222,16 @@ export default function GroupBuyOrderConfirmation() {
             )
           )}
 
+          {/* 取消政策：依訂單實際付款制度（後端 lookup 回傳），不可依活動現狀判定 */}
+          {order?.cancellationPolicy && (
+            <CancellationPolicyLines
+              policy={order.cancellationPolicy}
+              className="rounded-lg border p-4"
+            />
+          )}
+
+
+
           <Button asChild className="w-full">
             <Link to={`/g/order/${orderNumber}`}>
               {fullPayment || useAtm ? "前往訂單查詢" : "前往訂單查詢／回報匯款"}
