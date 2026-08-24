@@ -701,11 +701,16 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const assignEntryToUnit = async (entry: CalendarEntry, newUnitId: string | null) => {
     try {
       if (entry.orderRoomId) {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from("order_rooms")
           .update({ room_unit_id: newUnitId })
-          .eq("id", entry.orderRoomId);
+          .eq("id", entry.orderRoomId)
+          .select("id");
         if (error) throw error;
+        // RLS 可能靜默擋下更新（回傳 0 筆），必須視為失敗而非成功
+        if (!data || data.length === 0) {
+          throw new Error("沒有權限變更此訂單的房間指派，請聯繫管理員");
+        }
       } else {
         // Single-room order without order_rooms row → create one to hold the unit assignment
         const { error } = await supabase.from("order_rooms").insert({
