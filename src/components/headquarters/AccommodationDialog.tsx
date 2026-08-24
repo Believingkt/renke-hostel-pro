@@ -124,6 +124,10 @@ export function AccommodationDialog({
   const [securityDeposit, setSecurityDeposit] = useState<number>(5000);
   const [loadingSecurityDeposit, setLoadingSecurityDeposit] = useState(false);
   const savedSecurityDepositRef = useRef<number>(5000);
+  /** 人工退款手續費（每館可設定，可為 0；信用卡原卡退刷不適用） */
+  const [manualRefundFee, setManualRefundFee] = useState<number>(0);
+  const [loadingManualRefundFee, setLoadingManualRefundFee] = useState(false);
+  const savedManualRefundFeeRef = useRef<number>(0);
 
   // Transaction fee percentage state
   const [transactionFeePercentage, setTransactionFeePercentage] = useState<number>(0);
@@ -248,7 +252,7 @@ export function AccommodationDialog({
     try {
       const { data, error } = await supabase
         .from("booking_settings")
-        .select("payment_methods, deposit_percentage, free_cancel_days, security_deposit_amount")
+        .select("payment_methods, deposit_percentage, free_cancel_days, security_deposit_amount, manual_refund_fee_amount")
         .eq("accommodation_id", accommodationId)
         .single();
 
@@ -265,6 +269,9 @@ export function AccommodationDialog({
       const sd = (data as any)?.security_deposit_amount ?? 5000;
       setSecurityDeposit(sd);
       savedSecurityDepositRef.current = sd;
+      const mrf = Number((data as any)?.manual_refund_fee_amount ?? 0) || 0;
+      setManualRefundFee(mrf);
+      savedManualRefundFeeRef.current = mrf;
     } catch (error) {
       console.error("Error loading payment settings:", error);
     }
@@ -291,6 +298,34 @@ export function AccommodationDialog({
       toast.error("更新失敗", { description: error.message });
     } finally {
       setLoadingSecurityDeposit(false);
+    }
+  };
+
+  const handleManualRefundFeeChange = async (value: number) => {
+    if (!initialData?.id) return;
+    if (value < 0 || value > 100000) return;
+
+    setLoadingManualRefundFee(true);
+    try {
+      const { error } = await supabase
+        .from("booking_settings")
+        .update({ manual_refund_fee_amount: value, updated_at: new Date().toISOString() } as any)
+        .eq("accommodation_id", initialData.id);
+
+      if (error) throw error;
+
+      setManualRefundFee(value);
+      savedManualRefundFeeRef.current = value;
+      toast.success(
+        value > 0
+          ? `人工退款手續費已更新為 NT$${value.toLocaleString()}`
+          : "已設定為不收取人工退款手續費",
+      );
+    } catch (error: any) {
+      console.error("Error updating manual refund fee:", error);
+      toast.error("更新失敗", { description: error.message });
+    } finally {
+      setLoadingManualRefundFee(false);
     }
   };
 
@@ -1132,6 +1167,46 @@ export function AccommodationDialog({
                           </div>
 
 
+
+                          {/* 人工退款手續費（銀行匯款／ATM） */}
+                          <div className="border rounded-lg p-4 bg-muted/30">
+                            <div className="flex items-center justify-between">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                  <span className="font-medium text-sm">人工退款手續費</span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  銀行匯款／ATM 退款時扣除的匯款手續費，設定 0 表示不收取；信用卡原卡退刷不適用
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">NT$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={100000}
+                                  value={manualRefundFee}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val >= 0 && val <= 100000) setManualRefundFee(val);
+                                  }}
+                                  onBlur={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    if (val < 0 || val > 100000) return;
+                                    if (val !== savedManualRefundFeeRef.current) {
+                                      handleManualRefundFeeChange(val);
+                                    }
+                                  }}
+                                  disabled={loadingManualRefundFee || isSubmitting}
+                                  className="w-28 h-9 text-center"
+                                />
+                                {loadingManualRefundFee && (
+                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                                )}
+                              </div>
+                            </div>
+                          </div>
 
                           {/* 請款手續費設定 */}
                           <div className="border rounded-lg p-4 bg-muted/30">
