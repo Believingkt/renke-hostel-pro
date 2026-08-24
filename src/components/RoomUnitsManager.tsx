@@ -111,11 +111,15 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
       // 刪除不在當前列表的
       const toDelete = [...existingIds].filter((id) => !currentIds.has(id as string));
       if (toDelete.length > 0) {
-        const { error } = await supabase
+        const { data: deleted, error } = await supabase
           .from("room_units" as any)
           .delete()
-          .in("id", toDelete);
+          .in("id", toDelete)
+          .select("id");
         if (error) throw error;
+        if (!deleted || deleted.length === 0) {
+          throw new Error("沒有權限刪除房間單位，請聯絡管理員調整權限");
+        }
       }
 
       // 檢查 unit_number 重複
@@ -154,7 +158,7 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
       }
 
       for (const u of toUpdate) {
-        const { error } = await supabase
+        const { data: updated, error } = await supabase
           .from("room_units" as any)
           .update({
             unit_number: u.unit_number.trim(),
@@ -163,8 +167,12 @@ export function RoomUnitsManager({ roomTypeId, accommodationId, roomCount, varia
             is_active: u.is_active,
             notes: u.notes,
           })
-          .eq("id", u.id);
+          .eq("id", u.id)
+          .select("id");
         if (error) throw error;
+        if (!updated || updated.length === 0) {
+          throw new Error("沒有權限修改房間單位，請聯絡管理員調整權限");
+        }
       }
 
       toast.success(L.saved);
