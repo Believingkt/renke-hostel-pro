@@ -3,10 +3,12 @@ import { Banknote, ClipboardCheck, ShieldCheck, Timer } from "lucide-react";
 interface Props {
   depositPercentage: number;
   deadlineHours: number;
+  /** 活動是否開放信用卡（信用卡為線上全額付款） */
+  creditCardEnabled?: boolean;
 }
 
 /** 付款流程：4 個小步驟＋短文字，不做大型流程圖 */
-export function GroupBuyPaymentSteps({ depositPercentage, deadlineHours }: Props) {
+export function GroupBuyPaymentSteps({ depositPercentage, deadlineHours, creditCardEnabled = false }: Props) {
   const steps = [
     { Icon: ClipboardCheck, label: "完成訂單" },
     { Icon: Banknote, label: "取得匯款資訊" },
@@ -20,6 +22,11 @@ export function GroupBuyPaymentSteps({ depositPercentage, deadlineHours }: Props
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
         訂房成立後將取得匯款資訊，不會立即扣款；尾款於入住時支付。
       </p>
+      {creditCardEnabled && (
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+          若選擇信用卡：線上一次付清全額，付款成功即訂房完成，入住當天不需再付款。
+        </p>
+      )}
       <ol className="mt-3 space-y-1.5">
         {steps.map(({ Icon, label }, i) => (
           <li key={label} className="flex items-center gap-2.5 rounded-xl bg-muted/60 px-2.5 py-2">

@@ -68,7 +68,7 @@ export function GroupBuyConfirmDialog(props: Props) {
     {
       key: "credit_card" as const,
       title: "信用卡（3D 驗證）",
-      desc: "線上刷訂金，付款成功後才建立訂單，期間為您保留 10 分鐘房位。",
+      desc: "線上全額付款，付款成功後才建立訂單，期間為您保留 10 分鐘房位。",
       on: creditCardEnabled,
     },
   ].filter((o) => o.on);
@@ -93,11 +93,23 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="方案房費" value={twd(baseTotal)} />
           {childExtraTotal > 0 && <Row label="兒童加價" value={twd(childExtraTotal)} />}
           <Row label="方案總額" value={twd(total)} strong />
-          <div className="flex items-baseline justify-between py-1">
-            <span className="text-sm font-semibold text-foreground">本次應付訂金（{depositPct}%）</span>
-            <span className="text-xl font-bold tabular-nums text-accent">{twd(deposit)}</span>
-          </div>
-          <Row label="入住支付尾款" value={twd(balance)} />
+          {method === "credit_card" ? (
+            <>
+              <div className="flex items-baseline justify-between py-1">
+                <span className="text-sm font-semibold text-foreground">本次線上全額付款</span>
+                <span className="text-xl font-bold tabular-nums text-accent">{twd(total)}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">信用卡為全額付款，入住當天不需再支付尾款。</p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between py-1">
+                <span className="text-sm font-semibold text-foreground">本次應付訂金（{depositPct}%）</span>
+                <span className="text-xl font-bold tabular-nums text-accent">{twd(deposit)}</span>
+              </div>
+              <Row label="入住支付尾款" value={twd(balance)} />
+            </>
+          )}
         </div>
 
 
@@ -109,7 +121,7 @@ export function GroupBuyConfirmDialog(props: Props) {
 
         {options.length > 1 && (
           <div className="rounded-2xl border border-border/70 p-4">
-            <p className="mb-2 text-sm font-semibold text-foreground">訂金付款方式</p>
+            <p className="mb-2 text-sm font-semibold text-foreground">付款方式</p>
             <div className="grid gap-2">
               {options.map((opt) => (
                 <button

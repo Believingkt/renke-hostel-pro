@@ -1511,6 +1511,7 @@ export default function GroupBuyCampaign() {
                   <GroupBuyPaymentSteps
                     depositPercentage={depositPct}
                     deadlineHours={campaign.payment_deadline_hours}
+                    creditCardEnabled={!!campaign.enable_credit_card}
                   />
                 </div>
 
