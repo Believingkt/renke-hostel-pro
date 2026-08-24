@@ -1100,6 +1100,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           slots.push({
                             meta: { unitId: u.id, label: u.unit_number, nickname: u.nickname },
                             entries,
+                            holds: [],
                           });
                         }
                         // Unassigned bucket — split with overlap-avoidance like before
@@ -1126,6 +1127,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                             slots.push({
                               meta: { unitId: null, label: idx === 0 ? "未指派" : `未指派 ${idx + 1}` },
                               entries: row,
+                              holds: [],
                             });
                           });
                         }
@@ -1150,6 +1152,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           slots.push({
                             meta: { unitId: null, label: roomCount > 0 ? `${i + 1}` : `#${i + 1}` },
                             entries: roomSlots[i] || [],
+                            holds: [],
                           });
                         }
                       }
