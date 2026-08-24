@@ -462,6 +462,56 @@ export default function TeamHome() {
       if (fresh) return;
     }
 
+
+    // ===== 逐館營收查詢去重快取（per-load，不改任何公式）=====
+    // 同一次載入內，「相同資料月區間 ＋ 相同訂單來源白名單」的逐館營收只查一次；
+    // 之後的請求若館別集合是已查集合的子集，直接投影既有結果。
+    // 逐館營收在演算法上彼此獨立（每館各自加總自己的訂單），
+    // 因此子集投影與重新查詢在數學上完全等價。
+    // 同時快取「含業主自帶／排除業主自帶」雙軌原始值，
+    // 讓試算模式的第二輪 runLoad 不必重查資料庫。
+    const revenueDualCache = new Map<
+      string,
+      { ids: Set<string>; promise: Promise<Record<string, DualRevenue>> }
+    >();
+    const revenueByAccCached = async (
+      client: any,
+      accommodationIds: string[],
+      monthStartDate: string,
+      monthEndDate: string,
+      allowedSources: string[],
+      basisOverride: PayoutBasis | null,
+    ): Promise<Record<string, number>> => {
+      const idList = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+      const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
+      if (idList.length === 0 || sources.length === 0) return {};
+      const key = `${monthStartDate}|${monthEndDate}|${[...sources].sort().join(",")}`;
+      const entry = revenueDualCache.get(key);
+      let target = entry;
+      if (!entry || !idList.every((id) => entry.ids.has(id))) {
+        const union = new Set<string>([...(entry?.ids ?? []), ...idList]);
+        target = {
+          ids: union,
+          promise: getAccommodationRevenueDualByAcc(
+            client,
+            [...union],
+            monthStartDate,
+            monthEndDate,
+            sources,
+          ),
+        };
+        revenueDualCache.set(key, target);
+      }
+      const dual = await target!.promise;
+      const useExcl = basisOverride === "exclude_owner_direct";
+      const out: Record<string, number> = {};
+      for (const id of idList) {
+        const v = dual[id];
+        if (v) out[id] = useExcl ? v.excl : v.incl;
+      }
+      return out;
+    };
+
     const runLoad = async (
       basisOverride: "exclude_owner_direct" | null,
     ): Promise<TeamHomePayload | undefined> => {
