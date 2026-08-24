@@ -115,7 +115,12 @@ export default function GroupBuyOrderLookup() {
 
   const order = data?.order;
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
-  const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
+  /**
+   * 已收款判定 SoT＝orders.payment_status（後端 depositPaid）。
+   * 銀行人工匯款仍相容舊的 admin_confirmed 事件。
+   */
+  const confirmed = order?.depositPaid === true ||
+    (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
   /** 常見問題（與團購活動頁同源，由 Edge Function 依 campaign.faq_item_ids 過濾排序） */
   const faqItems: { id: string; question: string; answer: string }[] = Array.isArray(data?.faqItems)
@@ -126,9 +131,12 @@ export default function GroupBuyOrderLookup() {
   const refundedFully = data?.refund?.status === "refunded";
   /** 信用卡（TapPay）＝全額付款：無匯款／訂金／尾款流程 */
   const fullPayment = order?.fullPayment === true;
+  /** 付款方式分流（依這張訂單的 orders.payment_method，非活動設定） */
+  const channel: "atm" | "credit_card" | "bank" = order?.paymentChannel ?? (fullPayment ? "credit_card" : "bank");
+  const isAtmOrder = channel === "atm";
   /** 退款管道文案：TapPay 原卡退刷 vs 人工匯回，不得混用 */
   const refundVariant: "bank" | "credit_card" =
-    String(order?.paymentProvider ?? "") === "tappay" || fullPayment ? "credit_card" : "bank";
+    channel === "credit_card" ? "credit_card" : "bank";
 
 
   return (
