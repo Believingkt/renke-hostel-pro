@@ -1090,7 +1090,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
-                      const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
+                      const slots: { meta: SlotMeta; entries: CalendarEntry[]; holds: PaymentHoldEvent[] }[] = [];
+
 
                       if (useUnits) {
                         // One row per unit
