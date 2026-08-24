@@ -14,6 +14,8 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useAdjustedAvailability, adjustedKey } from "@/hooks/use-adjusted-availability";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Breadcrumb,
@@ -139,6 +141,21 @@ export default function RoomPriceCalendar() {
     const end = endOfMonth(currentMonth);
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
+
+  // 實際可售（adjusted）：走 RPC get_adjusted_room_inventory_batch，
+  // 已扣正式訂單與有效信用卡付款保留；過期／轉單／取消不計入。
+  const monthDateStrings = useMemo(
+    () => monthDays.map((d) => format(d, 'yyyy-MM-dd')),
+    [monthDays],
+  );
+  const adjustedRoomTypeIds = useMemo(() => roomTypes.map((r) => r.id), [roomTypes]);
+  const { adjusted } = useAdjustedAvailability(
+    adjustedRoomTypeIds,
+    monthDateStrings,
+    currentAccommodationId,
+    inventory,
+  );
+
 
   useEffect(() => {
     if (currentAccommodationId) {
