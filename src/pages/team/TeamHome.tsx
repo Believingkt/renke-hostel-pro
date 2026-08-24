@@ -48,7 +48,8 @@ import {
   getRoleBinding,
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
-  getAccommodationRevenueByAcc,
+  getAccommodationRevenueDualByAcc,
+  type DualRevenue,
   type PayoutBasis,
   getVenueClosingAccommodations,
   getMarketingFeeFlags,
@@ -124,6 +125,40 @@ interface TeamHomePayload {
 
 /** 模組層快取：離開頁面再回來仍命中，避免重新跑整輪獎金試算。 */
 const payloadCache = new Map<string, { at: number; payload: TeamHomePayload }>();
+
+/**
+ * sessionStorage 持久化：換頁／重新整理後仍能立即顯示上次算好的數字，
+ * 並在背景重新計算（stale-while-revalidate，TTL 與記憶體快取相同）。
+ * 只存純 JSON 值；讀寫失敗一律忽略，不影響正常計算流程。
+ */
+const PAYLOAD_STORE_KEY = "teamhome:payloadCache:v1";
+
+function loadPersistedCache() {
+  try {
+    const raw = sessionStorage.getItem(PAYLOAD_STORE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, { at: number; payload: TeamHomePayload }>;
+    for (const [k, v] of Object.entries(parsed ?? {})) {
+      if (v && typeof v.at === "number" && v.payload) payloadCache.set(k, v);
+    }
+  } catch {
+    /* 快取毀損時忽略，改為重新計算 */
+  }
+}
+
+function persistCache() {
+  try {
+    const obj: Record<string, { at: number; payload: TeamHomePayload }> = {};
+    for (const [k, v] of payloadCache) {
+      if (Date.now() - v.at < TEAM_HOME_CACHE_TTL_MS) obj[k] = v;
+    }
+    sessionStorage.setItem(PAYLOAD_STORE_KEY, JSON.stringify(obj));
+  } catch {
+    /* 容量不足或無法寫入時忽略 */
+  }
+}
+
+if (typeof window !== "undefined") loadPersistedCache();
 
 
 
@@ -461,6 +496,56 @@ export default function TeamHome() {
       if (fresh) return;
     }
 
+
+    // ===== 逐館營收查詢去重快取（per-load，不改任何公式）=====
+    // 同一次載入內，「相同資料月區間 ＋ 相同訂單來源白名單」的逐館營收只查一次；
+    // 之後的請求若館別集合是已查集合的子集，直接投影既有結果。
+    // 逐館營收在演算法上彼此獨立（每館各自加總自己的訂單），
+    // 因此子集投影與重新查詢在數學上完全等價。
+    // 同時快取「含業主自帶／排除業主自帶」雙軌原始值，
+    // 讓試算模式的第二輪 runLoad 不必重查資料庫。
+    const revenueDualCache = new Map<
+      string,
+      { ids: Set<string>; promise: Promise<Record<string, DualRevenue>> }
+    >();
+    const revenueByAccCached = async (
+      client: any,
+      accommodationIds: string[],
+      monthStartDate: string,
+      monthEndDate: string,
+      allowedSources: string[],
+      basisOverride: PayoutBasis | null,
+    ): Promise<Record<string, number>> => {
+      const idList = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
+      const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
+      if (idList.length === 0 || sources.length === 0) return {};
+      const key = `${monthStartDate}|${monthEndDate}|${[...sources].sort().join(",")}`;
+      const entry = revenueDualCache.get(key);
+      let target = entry;
+      if (!entry || !idList.every((id) => entry.ids.has(id))) {
+        const union = new Set<string>([...(entry?.ids ?? []), ...idList]);
+        target = {
+          ids: union,
+          promise: getAccommodationRevenueDualByAcc(
+            client,
+            [...union],
+            monthStartDate,
+            monthEndDate,
+            sources,
+          ),
+        };
+        revenueDualCache.set(key, target);
+      }
+      const dual = await target!.promise;
+      const useExcl = basisOverride === "exclude_owner_direct";
+      const out: Record<string, number> = {};
+      for (const id of idList) {
+        const v = dual[id];
+        if (v) out[id] = useExcl ? v.excl : v.incl;
+      }
+      return out;
+    };
+
     const runLoad = async (
       basisOverride: "exclude_owner_direct" | null,
     ): Promise<TeamHomePayload | undefined> => {
@@ -486,6 +571,22 @@ export default function TeamHome() {
           isMonthlyPayout,
         } = monthInfo;
 
+        // 成交組獎金拆分費率與加倍設定：與 profile 查詢同時發出，不佔用後續等待時間。
+        const closerRateResolverP = showCloser
+          ? loadCloserBonusRateResolver(db as any)
+          : Promise.resolve(null);
+        let multRowsData: unknown[] | null = null;
+        const pMultipliers = (async () => {
+          // 加倍活動一律以「發放月」設定；整份取回，由各卡片自行比對。
+          const { data } = await db
+            .from("bonus_multiplier_settings")
+            .select("bonus_type, multiplier, start_month, end_month");
+          multRowsData = (data ?? []) as unknown[];
+        })();
+        // 提前建立的 promise 先掛一個 no-op handler，避免在 Promise.all 接手前
+        // 短暫被視為 unhandled rejection；真正的錯誤仍由下方 await 拋出並被 catch。
+        void closerRateResolverP.catch(() => {});
+        void pMultipliers.catch(() => {});
         // profile id (for scout / franchise external / 團隊獎金角色綁定)
         let profileId: string | null = null;
         let myManagedAccIds: string[] = [];
@@ -533,9 +634,7 @@ export default function TeamHome() {
 
         // 成交組個人獎金一律顯示「個人實發」＝ Gross ×(1 − bonus_rate)，
         // Gross 語意不變（DB 仍存 100%），拆分只在顯示層以共用 helper 進行。
-        const closerRateResolver = showCloser
-          ? await loadCloserBonusRateResolver(db as any)
-          : null;
+        const closerRateResolver = await closerRateResolverP;
         const closerBonusRate = closerRateResolver
           ? closerRateResolver.rateForPayoutMonth(payoutMonthKey)
           : 0;
@@ -546,6 +645,7 @@ export default function TeamHome() {
         // Snapshot 為唯一 Source of Truth；Preview 只補「尚未建立任何 Snapshot」的訂單，
         // 去重以 order_id 為鍵並跨所有 payout_month 檢查，避免舊快照被重複計入。
         let closerPreviewCount = 0;
+        const pCloser = (async () => {
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
@@ -618,8 +718,10 @@ export default function TeamHome() {
 
 
 
+        })();
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
+        const pScoutCloser = (async () => {
         if (showCloser && isMonthlyPayout) {
           const { data: partnerCodes } = await db
             .from("scout_discount_codes")
@@ -669,12 +771,14 @@ export default function TeamHome() {
           }
         }
 
+        })();
         // ===== 成交組團隊獎金 =====
         // 已定案：顯示個人分配金額；未定案：顯示當月累積預估池
         let closerTeamBonusSum = 0;
         let closerTeamBonusRateVal = 0;
         let closerTeamBonusNoSet = false;
         let closerTeamBonusFinalizedFlag = false;
+        const pCloserTeamBonus = (async () => {
         if (showCloser && isMonthlyPayout) {
           const { data: bonusSetting } = await db
             .from("closer_team_bonus_settings")
@@ -726,10 +830,12 @@ export default function TeamHome() {
           }
         }
 
+        })();
         // ===== 成交組分潤補差（含訂單取消扣回）=====
         // 依「發放期別」抓 closer_commission_adjustments，與發放管理口徑一致。
         let closerCancelAdjSum = 0;
         let closerOtherAdjSum = 0;
+        const pCloserAdj = (async () => {
         if (showCloser && isMonthlyPayout) {
           const { data: adjRows } = await db
             .from("closer_commission_adjustments")
@@ -751,6 +857,7 @@ export default function TeamHome() {
 
 
 
+        })();
         // ===== Scout: KOL 分潤 / 稀有度 / 底薪 / 團隊獎金 =====
         let scoutSum = 0;
         let raritySum = 0;
@@ -760,6 +867,7 @@ export default function TeamHome() {
         // 星探系優先讀後端正式試算（calculate-scout-payout 每日 cron 重跑，
         // 未標記已發放前會持續更新），確保與「獎金管理 → 發放管理」完全一致。
         let scoutFromPayoutFlag = false;
+        const pScout = (async () => {
         if (showScout) {
           const { data: payoutRow } = await db
             .from("scout_monthly_payouts")
@@ -1046,9 +1154,11 @@ export default function TeamHome() {
         }
 
 
+        })();
         // ===== Franchise =====
         let franchiseInternalSum = 0;
         let franchiseExternalSum = 0;
+        const pFranchise = (async () => {
         if (showFranchise && isMonthlyPayout) {
           // Widen fetch to ±3 months so we can pick up early_payout_month rows via JS filter
           const wideStart = taipeiDateStr(prevY, prevM, 1);
@@ -1104,8 +1214,10 @@ export default function TeamHome() {
           }
         }
 
+        })();
         // ===== Starlink =====
         let starlinkSum = 0;
+        const pStarlink = (async () => {
         if (showStarlink && isMonthlyPayout) {
           const { data: slOrders } = await db
             .from("starlink_orders")
@@ -1119,6 +1231,7 @@ export default function TeamHome() {
           }
         }
 
+        })();
         // ===== 七種團隊獎金（來源：teamcommission_* 設定表）=====
         let amPerfSum = 0;
         let amVenueSum = 0;
@@ -1145,6 +1258,7 @@ export default function TeamHome() {
         // 試算（排除業主自帶）時，若營收型快照缺 *_excl_owner 值（舊快照），
         // 不能拿實付數字充當試算值，必須回退即時計算。
         let snapExclMissing = false;
+        const pTeamCommission = (async () => {
         if (isMonthlyPayout && profileId) {
           const { data: bonusSnaps } = await db
             .from("teamcommission_bonus_snapshots")
@@ -1262,7 +1376,7 @@ export default function TeamHome() {
 
           const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
-              ? await getAccommodationRevenueByAcc(
+              ? await revenueByAccCached(
                   client,
                   revenueAccIds,
                   monthStartDate,
@@ -1324,7 +1438,7 @@ export default function TeamHome() {
             if (!s || s.rate == null) missing.am_performance = true;
             const myByAcc =
               myManagedAccIdsExcludingTravelDays.length > 0 && sharedSources.length > 0
-                ? await getAccommodationRevenueByAcc(
+                ? await revenueByAccCached(
                     client,
                     myManagedAccIdsExcludingTravelDays,
                     monthStartDate,
@@ -1405,7 +1519,7 @@ export default function TeamHome() {
             );
             const kolByAcc =
               kolSources.length > 0
-                ? await getAccommodationRevenueByAcc(
+                ? await revenueByAccCached(
                     client,
                     revenueAccIds,
                     monthStartDate,
@@ -1533,15 +1647,26 @@ export default function TeamHome() {
             }
           }
         }
+        })();
+
+        // 以上各獎金區塊彼此不共用中間值，改為並行等待（僅改等待順序，公式不變）。
+        await Promise.all([
+          pCloser,
+          pScoutCloser,
+          pCloserTeamBonus,
+          pCloserAdj,
+          pScout,
+          pFranchise,
+          pStarlink,
+          pTeamCommission,
+          pMultipliers,
+        ]);
 
         // ===== Multipliers =====
         // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
         // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
         // 由各卡片自行帶入正確的發放月比對，確保與「獎金管理 → 發放管理」一致。
-        const { data: multRows } = await db
-          .from("bonus_multiplier_settings")
-          .select("bonus_type, multiplier, start_month, end_month");
-        const multMap = (multRows ?? []) as unknown as BonusMultiplierRow[];
+        const multMap = (multRowsData ?? []) as unknown as BonusMultiplierRow[];
 
 
         if (cancelled) return;
@@ -1600,6 +1725,7 @@ export default function TeamHome() {
         const payload = await runLoad(null);
         if (cancelled || !payload) return;
         payloadCache.set(cacheKey, { at: Date.now(), payload });
+        persistCache();
         applyPayload(payload);
 
         if (simEnabled) {
