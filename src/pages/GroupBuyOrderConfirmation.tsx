@@ -158,11 +158,13 @@ export default function GroupBuyOrderConfirmation() {
             />
             <MailRow
               label={fullPayment ? "付款完成通知信" : "訂金確認信"}
-              state={depositMailState}
+              state={fullPayment ? (depositMail?.status ?? "sent") : depositMailState}
               note={
-                depositMailState === "sent"
-                  ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                  : "民宿確認收到訂金後寄出"
+                fullPayment
+                  ? `付款完成通知信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                  : depositMailState === "sent"
+                    ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                    : "民宿確認收到訂金後寄出"
               }
             />
 
