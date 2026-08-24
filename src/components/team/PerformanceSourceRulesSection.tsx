@@ -143,9 +143,18 @@ export default function PerformanceSourceRulesSection({
   const excludedCount = sources.filter((s) => !isIncluded(s.value)).length;
 
   const handleSave = async () => {
-    if (!canEdit) return;
+    if (!canEdit || !accommodationId) return;
+    const accId = accommodationId;
     setSaving(true);
-    const { data: auth } = await supabase.auth.getUser();
+    setSaveError(null);
+    const { data: auth, error: authErr } = await supabase.auth.getUser();
+    if (authErr) {
+      setSaving(false);
+      const msg = describeError(authErr as never);
+      setSaveError(msg);
+      toast.error("儲存失敗：" + msg);
+      return;
+    }
     const user = auth?.user;
     let userName: string | null = null;
     if (user) {
@@ -173,7 +182,7 @@ export default function PerformanceSourceRulesSection({
     }
 
     const payload = sources.map((s) => ({
-      accommodation_id: accommodationId,
+      accommodation_id: accId,
       source: s.value,
       included: isIncluded(s.value),
       updated_by: user?.id ?? null,
@@ -186,14 +195,16 @@ export default function PerformanceSourceRulesSection({
       .upsert(payload, { onConflict: "accommodation_id,source" });
     if (error) {
       setSaving(false);
-      toast.error("儲存失敗：" + error.message);
+      const msg = describeError(error);
+      setSaveError(msg);
+      toast.error("儲存失敗：" + msg, { description: `館別 ${accommodationName ?? accId}` });
       return;
     }
 
     const { error: logErr } = await supabase
       .from("performance_notification_source_rule_logs")
       .insert([{
-        accommodation_id: accommodationId,
+        accommodation_id: accId,
         user_id: user?.id ?? null,
         user_email: user?.email ?? null,
         user_name: userName,
@@ -201,12 +212,19 @@ export default function PerformanceSourceRulesSection({
       }]);
     setSaving(false);
     if (logErr) {
-      toast.warning("設定已儲存，但變更紀錄寫入失敗：" + logErr.message);
+      const msg = describeError(logErr);
+      setSaveError("設定已儲存，但變更紀錄寫入失敗：" + msg);
+      toast.warning("設定已儲存，但變更紀錄寫入失敗：" + msg);
     } else {
-      toast.success("已儲存來源設定");
+      setSaveError(null);
+      toast.success(
+        `已儲存${accommodationName ? `「${accommodationName}」` : ""}來源設定（${changes.length} 項變更）`,
+      );
     }
-    await load();
+    // 只有仍停留在同一館別時才重新載入，避免覆蓋新選館別的資料
+    if (accId === accommodationId) await load();
   };
+
 
   if (!accommodationId) {
     return (
