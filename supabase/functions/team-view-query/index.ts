@@ -60,6 +60,10 @@ const ALLOWED_TABLES = new Set<string>([
   // 導致管理員檢視他人時逐館費率／金額與快照不一致。
   "teamcommission_bonus_snapshot_lines",
   "accommodation_partnership_periods",
+  // 館別專屬獎金級距規則：即時試算（尚無快照的期別）需要逐館費率，
+  // 缺這張表時代看他人會退回系統費率，與本人檢視結果不一致。
+  "venue_team_bonus_tier_rules",
+
   "scout_discount_code_payouts",
   "scout_monthly_payouts",
   "team_base_salaries",

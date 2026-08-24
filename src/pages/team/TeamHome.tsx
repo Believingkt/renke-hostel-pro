@@ -34,6 +34,13 @@ import { fetchCloserTeamPool } from "@/lib/closerTeamPool";
 import { createTeamViewClient } from "@/lib/teamViewClient";
 import type { TeamRole } from "@/components/team/teamConfig";
 import { pickMultiplier, type BonusMultiplierRow } from "@/lib/bonusMultiplier";
+// 館別專屬級距規則：與後端快照共用同一份計算邏輯（避免演算法雙寫）
+import {
+  loadVenueTierRules,
+  resolveVenueRate,
+  type VenueTierRule,
+} from "../../../supabase/functions/_shared/venueBonusTiers";
+
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
 import PayoutPeriodBanner from "@/components/team/PayoutPeriodBanner";
 import {
@@ -1330,8 +1337,14 @@ export default function TeamHome() {
           // 版本切點一律取「資料月當時生效版本」（BONUS_RULES_SPEC §0），
           // 與發放管理快照相同，避免 TeamHome 用「今天」而與快照對不上。
           const versionAsOf = monthStartDate;
-          const [rateSettings, sharedSources, amManagerId, closerManagerId, kolRecipientId] =
-            await Promise.all([
+          const [
+            rateSettings,
+            sharedSources,
+            amManagerId,
+            closerManagerId,
+            kolRecipientId,
+            venueTierRules,
+          ] = await Promise.all([
               getBonusRateSettings(client, versionAsOf),
               getRevenueSourceWhitelist(
                 client,
@@ -1341,7 +1354,11 @@ export default function TeamHome() {
               getRoleBinding(client, "am_manager", versionAsOf),
               getRoleBinding(client, "closer_manager", versionAsOf),
               getRoleBinding(client, "kol_bonus_recipient", versionAsOf),
+              loadVenueTierRules(client, versionAsOf).catch(
+                () => new Map<string, VenueTierRule>(),
+              ),
             ]);
+
 
           amManagerFlag = !!profileId && amManagerId === profileId;
           closerManagerFlag = !!profileId && closerManagerId === profileId;
@@ -1394,25 +1411,49 @@ export default function TeamHome() {
           const rangeNoteOf = (accId: string) =>
             formatCountableRangeNote(noteRanges[accId], monthStartDate, monthEndDate) ?? undefined;
 
-          // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × rate 計）
-          // rate 一律傳「設定值」；均分型再帶 splitHeadcount，金額才除以人數
+          // 逐館費率：有館別級距規則者用級距（整筆套用），否則沿用系統費率。
+          // 與後端 create-team-bonus-snapshots 共用 resolveVenueRate。
+          const rateForAcc = (
+            accId: string,
+            revenue: number,
+            defaultRate: number,
+            bonusType?: string,
+          ) =>
+            bonusType
+              ? resolveVenueRate(venueTierRules, accId, bonusType, defaultRate, revenue).rate
+              : defaultRate;
+
+          /** 逐館「營收 × 該館費率」加總（尚未除人數） */
+          const sumOf = (byAcc: Record<string, number>, rate: number, bonusType?: string) =>
+            Object.entries(byAcc).reduce(
+              (s, [accId, rev]) => s + rev * rateForAcc(accId, rev, rate, bonusType),
+              0,
+            );
+
+          // 依館別營收 → 產生「營收 / 獎金」明細列（獎金以該館營收 × 該館費率計）
+          // rate 傳「系統設定值」；均分型再帶 splitHeadcount，金額才除以人數
           const linesOf = (
             byAcc: Record<string, number>,
             rate: number,
             splitHeadcount?: number,
+            bonusType?: string,
           ) =>
             Object.entries(byAcc)
               .filter(([, rev]) => rev > 0)
               .sort((a, b) => b[1] - a[1])
-              .map(([accId, rev]) => ({
-                name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
-                revenue: rev,
-                amount: (rev * rate) / (splitHeadcount && splitHeadcount > 1 ? splitHeadcount : 1),
-                rate,
-                rateKind: "percent" as const,
-                splitHeadcount: splitHeadcount ?? null,
-                rangeNote: rangeNoteOf(accId),
-              }));
+              .map(([accId, rev]) => {
+                const r = rateForAcc(accId, rev, rate, bonusType);
+                return {
+                  name: allAccNameById.get(accId) ?? accNameFallback.get(accId) ?? "其他",
+                  revenue: rev,
+                  amount: (rev * r) / (splitHeadcount && splitHeadcount > 1 ? splitHeadcount : 1),
+                  rate: r,
+                  rateKind: "percent" as const,
+                  splitHeadcount: splitHeadcount ?? null,
+                  rangeNote: rangeNoteOf(accId),
+                };
+              });
+
 
 
           // (1) AM 績效獎金：管理場館營收 × rate（排除旅行日系列）
@@ -1447,9 +1488,14 @@ export default function TeamHome() {
                     basisOverride,
                   )
                 : {};
-            const myRevenue = Object.values(myByAcc).reduce((sum, v) => sum + v, 0);
-            amPerfSum = myRevenue * Number(s?.rate ?? 0);
-            breakdown.am_performance = linesOf(myByAcc, Number(s?.rate ?? 0));
+            amPerfSum = sumOf(myByAcc, Number(s?.rate ?? 0), "am_performance");
+            breakdown.am_performance = linesOf(
+              myByAcc,
+              Number(s?.rate ?? 0),
+              undefined,
+              "am_performance",
+            );
+
 
             const vs = rateSettings.am_venue_bonus;
             if (!vs || vs.fixed_amount == null) missing.am_venue_bonus = true;
@@ -1484,23 +1530,30 @@ export default function TeamHome() {
             } catch {
               /* 讀不到人數時退回不均分，避免整頁計算中斷 */
             }
-            const perHeadRate = Number(s?.rate ?? 0) / headcount;
-            closerPerfSum = companyRevenue * perHeadRate;
+            closerPerfSum =
+              sumOf(companyByAcc, Number(s?.rate ?? 0), "closer_performance") / headcount;
             breakdown.closer_performance = linesOf(
               companyByAcc,
               Number(s?.rate ?? 0),
               headcount,
+              "closer_performance",
             );
           }
 
 
-          // (3) AM 總管獎金：全公司營收 × rate（抽成制）
+          // (3) AM 總管獎金：全公司營收 × rate（抽成制；有級距者用館別級距）
           if (amManagerFlag && isMonthlyPayout) {
             const s = rateSettings.am_manager;
             if (!s || s.rate == null) missing.am_manager = true;
-            amManagerSum = companyRevenue * Number(s?.rate ?? 0);
-            breakdown.am_manager = linesOf(companyByAcc, Number(s?.rate ?? 0));
+            amManagerSum = sumOf(companyByAcc, Number(s?.rate ?? 0), "am_manager");
+            breakdown.am_manager = linesOf(
+              companyByAcc,
+              Number(s?.rate ?? 0),
+              undefined,
+              "am_manager",
+            );
           }
+
 
           // (4) 成交大師管理獎金：全公司營收 × rate
           if (closerManagerFlag && isMonthlyPayout) {

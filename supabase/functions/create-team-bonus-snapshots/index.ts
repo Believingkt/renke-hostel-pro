@@ -13,6 +13,12 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import {
+  loadVenueTierRules,
+  resolveVenueRate as resolveVenueRateShared,
+} from "../_shared/venueBonusTiers.ts";
+
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -139,58 +145,10 @@ async function getRevenueSourceWhitelist(
 }
 
 /* ==================== 館別專屬獎金級距規則（venue tier rules） ==================== */
+// 計算邏輯已抽到 ../_shared/venueBonusTiers.ts，與 TeamHome 即時試算共用同一份。
 
-export interface BonusTier {
-  /** 門檻營收（含）；達到此門檻即整筆套用該階費率（flat，非超額累進） */
-  min_revenue: number;
-  rate: number;
-}
+const getVenueTierRules = loadVenueTierRules;
 
-interface VenueTierRule {
-  id: string;
-  accommodation_id: string;
-  bonus_type: string;
-  effective_from: string;
-  created_at?: string;
-  tiers: BonusTier[];
-}
-
-/** 依「整筆套用」規則挑出命中的級距；低於最低門檻則回 null（＝不發） */
-export function pickTier(tiers: BonusTier[], revenue: number): BonusTier | null {
-  const sorted = (tiers ?? [])
-    .filter((t) => t && Number.isFinite(Number(t.min_revenue)))
-    .map((t) => ({ min_revenue: Number(t.min_revenue), rate: Number(t.rate ?? 0) }))
-    .sort((a, b) => a.min_revenue - b.min_revenue);
-  let hit: BonusTier | null = null;
-  for (const t of sorted) {
-    if (revenue >= t.min_revenue) hit = t;
-    else break;
-  }
-  return hit;
-}
-
-/** 取各館各獎金類型「資料月當時生效」的級距規則版本 */
-async function getVenueTierRules(client: any, asOf: string): Promise<Map<string, VenueTierRule>> {
-  const { data } = await client
-    .from("venue_team_bonus_tier_rules")
-    .select("id, accommodation_id, bonus_type, effective_from, created_at, tiers")
-    .lte("effective_from", asOf);
-
-  const grouped = new Map<string, VenueTierRule[]>();
-  for (const row of (data ?? []) as any[]) {
-    const key = `${row.accommodation_id}|${row.bonus_type}`;
-    const list = grouped.get(key) ?? [];
-    list.push({ ...row, tiers: Array.isArray(row.tiers) ? row.tiers : [] });
-    grouped.set(key, list);
-  }
-
-  const out = new Map<string, VenueTierRule>();
-  for (const [key, list] of grouped) {
-    const cur = pickCurrent(list, asOf);
-    if (cur) out.set(key, cur);
-  }
-  return out;
-}
 
 const CHUNK = 500;
 
@@ -796,16 +754,8 @@ serve(async (req) => {
       bonusType: string,
       defaultRate: number | null,
       revenue: number,
-    ): { rate: number; tierRuleId: string | null; tierMin: number | null } => {
-      const rule = venueTierRules.get(`${accId}|${bonusType}`);
-      if (!rule) return { rate: Number(defaultRate ?? 0), tierRuleId: null, tierMin: null };
-      const tier = pickTier(rule.tiers, revenue);
-      return {
-        rate: Number(tier?.rate ?? 0),
-        tierRuleId: rule.id,
-        tierMin: tier ? Number(tier.min_revenue) : null,
-      };
-    };
+    ) => resolveVenueRateShared(venueTierRules, accId, bonusType, defaultRate, revenue);
+
 
     /** 抽成類：逐館「營收 × 費率 × factorExtra」，加總必等於主表 amount */
     const revenueLines = (
