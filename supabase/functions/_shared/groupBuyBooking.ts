@@ -152,9 +152,19 @@ export async function validateAndPriceGroupBuyBooking(
   if (cErr) throw cErr;
   if (!campaign || campaign.status !== "active") return fail("團購活動不存在或已結束", 404);
 
-  // 付款方式 gate（信用卡與 ATM／匯款各自獨立開關）
+  // 付款方式 gate：銀行匯款／ATM／信用卡三個開關完全獨立，不得 fallback
+  const bankOn = campaign.enable_bank_transfer !== false;
+  if (!bankOn && !campaign.enable_atm && !campaign.enable_credit_card) {
+    return fail("目前此活動暫無可用付款方式，請聯絡客服。");
+  }
   if (opts.expectProvider === "tappay") {
     if (!campaign.enable_credit_card) return fail("此團購活動未開放信用卡付款");
+  } else {
+    const requested = String((input as any).paymentMethod ?? "").trim();
+    if (requested === "atm" && !campaign.enable_atm) return fail("此團購活動未開放 ATM 虛擬帳號付款");
+    if (requested === "bank" && !bankOn) return fail("此團購活動未開放銀行匯款");
+    if (requested === "credit_card") return fail("信用卡付款請由信用卡流程建立訂單");
+    if (!requested && !bankOn) return fail("此團購活動未開放銀行匯款");
   }
 
   const now = new Date();
