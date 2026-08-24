@@ -437,7 +437,70 @@ export function GroupBuyCreditCardDialog(props: Props) {
     }
   }, [createDraft]);
 
+  /** 衝突處理：續付原本的保留（不建立新 Draft、不延長時間） */
+  const keepOldDraft = useCallback(async () => {
+    if (!conflict?.draftId) return;
+    setError(null);
+    setReleasing(true);
+    try {
+      await resumeDraft({ draftId: conflict.draftId, requireMatch: false });
+    } catch (e: any) {
+      setError(e?.message || "無法接續原本的付款保留，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [conflict, resumeDraft]);
+
+  /** 衝突處理：改用目前選擇 → 一定先 release 舊保留成功，才建立新的 Draft */
+  const switchToCurrent = useCallback(async () => {
+    if (!conflict?.draftId) return;
+    setError(null);
+    setReleasing(true);
+    try {
+      await releaseDraft(conflict.draftId, "customer_modify_booking");
+      setConflict(null);
+      setResumed(false);
+      await createDraft();
+    } catch (e: any) {
+      setError(e?.message || "目前無法釋放原本的房況保留，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [conflict, releaseDraft, createDraft]);
+
+  /** 「返回修改」：先詢問是否釋放房況（右上角 X 不會走這條，Draft 會保留給續付） */
+  const handleBackToEdit = useCallback(() => {
+    if (draftRef.current && !blocked && holdSeconds != null && holdSeconds > 0) {
+      setAskRelease(true);
+      return;
+    }
+    onOpenChange(false);
+  }, [blocked, holdSeconds, onOpenChange]);
+
+  const confirmReleaseAndBack = useCallback(async () => {
+    const current = draftRef.current;
+    if (!current) {
+      setAskRelease(false);
+      onOpenChange(false);
+      return;
+    }
+    setError(null);
+    setReleasing(true);
+    try {
+      await releaseDraft(current.draftId, "customer_modify_booking");
+      setAskRelease(false);
+      setConflict(null);
+      onOpenChange(false);
+    } catch (e: any) {
+      setAskRelease(false);
+      setError(e?.message || "目前無法釋放房況，請稍後再試。");
+    } finally {
+      setReleasing(false);
+    }
+  }, [releaseDraft, onOpenChange]);
+
   const holdExpired = holdSeconds != null && holdSeconds <= 0;
+
   const holdText = holdSeconds != null && holdSeconds > 0
     ? `${Math.floor(holdSeconds / 60)}:${String(holdSeconds % 60).padStart(2, "0")}`
     : null;
