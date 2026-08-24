@@ -101,6 +101,10 @@ Deno.serve(async (req) => {
     if (action === "report_transfer") {
       if (order.order_status === "cancelled") return json({ error: "此訂單已取消，請聯繫客服" }, 400);
       if (order.payment_status !== "unpaid") return json({ error: "此訂單已完成收款，無需重複回報" }, 400);
+      // ATM／信用卡訂單由金流自動入帳，不適用人工匯款回報
+      if (String((order as any).payment_method ?? "") === "atm" || (order as any).atm_vacc_no) {
+        return json({ error: "此訂單為 ATM 虛擬帳號付款，入帳後系統會自動更新，無需回報" }, 400);
+      }
       const already = (events ?? []).some((e: any) => e.event_type === "guest_reported");
       if (already) return json({ error: "您已回報過匯款，我們正在核對中" }, 400);
 
