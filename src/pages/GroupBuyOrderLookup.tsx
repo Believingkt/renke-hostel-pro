@@ -47,21 +47,22 @@ export default function GroupBuyOrderLookup() {
     if (routeOrderNumber) setOrderNumber(routeOrderNumber);
   }, [routeOrderNumber]);
 
-  const lookup = async () => {
-    setLoading(true);
+  const lookup = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "lookup" },
       });
       const payload: any = res;
       if (error || payload?.error) {
+        if (opts?.silent) return;
         if (!isGuestSafeMessage(payload?.error)) console.error("[group-buy-order-lookup] 查詢失敗", error ?? payload);
         toast({ title: "查詢失敗", description: toGuestMessage(payload?.error, "目前無法查詢訂單，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
       setData(payload);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   };
 
