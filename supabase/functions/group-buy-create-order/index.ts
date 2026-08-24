@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
         guestPhone: String(body.guestPhone ?? ""),
         guestEmail: String(body.guestEmail ?? ""),
         guestNote: String(body.guestNote ?? ""),
+        paymentMethod: typeof body.paymentMethod === "string" ? body.paymentMethod : null,
       },
       { expectProvider: "manual" },
     );
@@ -84,10 +85,14 @@ Deno.serve(async (req) => {
     if (campaignPayment.provider !== "manual") {
       return json({ error: "此團購活動的線上付款方式尚未啟用，請聯繫客服" }, 400);
     }
+    // 銀行匯款關閉時（僅 ATM 可用），不得出現任何匯款資訊
+    const bankEnabled = campaign.enable_bank_transfer !== false;
+    const requestedMethod = typeof body.paymentMethod === "string" ? body.paymentMethod : null;
+    const isAtm = requestedMethod === "atm" || !bankEnabled;
 
     const created = await createGroupBuyOrderCore(admin, plan, {
       paymentProvider: campaignPayment.provider,
-      paymentMethod: campaignPayment.paymentMethod,
+      paymentMethod: isAtm ? "atm" : campaignPayment.paymentMethod,
     });
     if (!created.ok) return json({ error: created.error }, created.status);
     const order = created.order;
@@ -98,7 +103,7 @@ Deno.serve(async (req) => {
     const guestEmail = plan.input.guestEmail;
 
     // 匯款帳戶 + 通知信
-    const { data: bankRow } = await admin
+    const { data: bankRow } = isAtm ? { data: null } : await admin
       .from("group_buy_bank_accounts")
       .select("*")
       .eq("campaign_id", campaign.id)
