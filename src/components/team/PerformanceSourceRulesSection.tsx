@@ -238,7 +238,22 @@ export default function PerformanceSourceRulesSection({
 
   return (
     <div className="space-y-4">
+      {(loadError || saveError) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{loadError ? "載入失敗" : "儲存未完成"}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>{loadError || saveError}</p>
+            {loadError && (
+              <Button size="sm" variant="outline" onClick={() => void load()}>
+                重新載入
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       <Card>
+
         <CardContent className="py-4 text-sm space-y-2 text-muted-foreground">
           <p className="font-semibold text-foreground">業績推播來源設定</p>
           <p>
