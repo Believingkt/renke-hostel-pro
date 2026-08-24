@@ -1935,9 +1935,11 @@ export default function AdminGroupBuy() {
       <Dialog open={!!refundTarget} onOpenChange={(o) => { if (!o) { setRefundTarget(null); setQuote(null); setQuoteError(null); } }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>處理退款</DialogTitle>
+            <DialogTitle>{refundIsCard ? "原信用卡退刷" : "處理退款"}</DialogTitle>
             <DialogDescription>
-              團購為銀行匯款（人工對帳），請於銀行端實際完成退匯後再登記。
+              {refundIsCard
+                ? "此筆為 TapPay 線上信用卡收款，系統會直接向 TapPay 執行原卡退刷／取消授權，不提供人工登記。"
+                : "團購為銀行匯款（人工對帳），請於銀行端實際完成退匯後再登記。"}
             </DialogDescription>
           </DialogHeader>
           {refundTarget && (
@@ -1955,8 +1957,23 @@ export default function AdminGroupBuy() {
                 <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
               </div>
               {renderQuotePanel()}
+              {refundIsCard && (
+                <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="font-medium">退款方式：原信用卡退刷（TapPay）</div>
+                  {renderTappayPanel()}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => syncTapPayRefund(refundTarget)}
+                    disabled={syncingRefund}
+                  >
+                    {syncingRefund ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    同步 TapPay 退款狀態
+                  </Button>
+                </div>
+              )}
               <div>
-                <Label>退款金額</Label>
+                <Label>{refundIsCard ? "退刷金額" : "退款金額"}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -1985,7 +2002,8 @@ export default function AdminGroupBuy() {
               返回
             </Button>
             <Button onClick={processRefund} disabled={refunding}>
-              {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}確認已完成退款
+              {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {refundIsCard ? "執行原卡退刷" : "確認已完成退款"}
             </Button>
           </DialogFooter>
         </DialogContent>
