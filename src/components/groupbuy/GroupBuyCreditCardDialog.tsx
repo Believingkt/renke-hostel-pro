@@ -698,8 +698,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
             type="button"
             variant="outline"
             className="h-12 rounded-xl sm:h-11"
-            disabled={submitting}
-            onClick={() => onOpenChange(false)}
+            disabled={submitting || releasing}
+            onClick={handleBackToEdit}
           >
             返回修改
           </Button>
@@ -707,11 +707,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
             disabled={
-              submitting || rechecking || preparing || holdExpired || !!blocked || !chargeAmount || !cardValid ||
-              !sdkReady
+              submitting || rechecking || preparing || holdExpired || !!blocked || !!conflict || releasing ||
+              !chargeAmount || !cardValid || !sdkReady
             }
             onClick={() => void pay()}
           >
+
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {holdExpired ? "保留已逾時" : `確認付款 ${twd(chargeAmount ?? amount)}`}
           </Button>
