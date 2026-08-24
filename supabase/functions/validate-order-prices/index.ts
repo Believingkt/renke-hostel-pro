@@ -384,10 +384,14 @@ serve(async (req) => {
       }
     }
 
-    // 多間預訂：房費 × 間數，並確認每晚實際可訂間數足夠（防超賣）
+    // 多間預訂：房費 × 間數
     if (roomQuantity > 1) {
       calculatedRoomTotal *= roomQuantity;
       discountBaseTotal *= roomQuantity;
+    }
+
+    // 伺服器端庫存複驗（單間也驗；已含團購信用卡 live hold 與包棟互斥規則）
+    if (roomTypeId && roomQuantity >= 1) {
       try {
         const { data: invRows } = await supabase.rpc("get_adjusted_room_inventory_batch", {
           p_room_type_id: roomTypeId,
@@ -407,6 +411,7 @@ serve(async (req) => {
         errors.push("Inventory check failed");
       }
     }
+
 
 
 
