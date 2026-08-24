@@ -212,7 +212,7 @@ interface BankRow {
 }
 
 const POLICY_LABEL: Record<string, string> = {
-  deposit: "收取定金制（14 日級距）",
+  deposit: "收取訂金制（14 日級距）",
   full_prepayment: "預收房價總額制（3 日級距）",
   guarantee: "綁卡擔保（違約金級距）",
   unknown: "無法判定（需人工確認）",

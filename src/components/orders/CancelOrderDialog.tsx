@@ -183,7 +183,7 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                   取消政策：{quote.quote.policy === "full_prepayment"
                     ? "預收房價總額制"
                     : quote.quote.policy === "deposit"
-                      ? "收取定金制"
+                      ? "收取訂金制"
                       : quote.quote.policy === "guarantee"
                         ? "綁卡擔保（尚未收款）"
                         : "無法判定（需人工確認）"}
