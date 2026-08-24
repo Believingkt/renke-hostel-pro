@@ -168,6 +168,9 @@ serve(async (req) => {
     });
 
     const errors: string[] = [];
+    // H2：庫存不足需與價格錯誤分流（付款後的呼叫端要走退款補償而非單純 400）
+    let inventoryUnavailable = false;
+
 
     
     // Validate required fields
