@@ -79,17 +79,9 @@ Deno.serve(async (req) => {
     const fp = (body.fingerprint ?? null) as any;
     const requireMatch = body.requireMatch !== false;
 
-    /**
-     * Booking fingerprint：判斷「這個 draft 是不是目前畫面正在進行的這一次預訂」。
-     * 只比對會影響價格／庫存的核心條件（方案 + 入退房日期 + 間數）。
-     */
-    const matchesFingerprint = (d: any) => {
-      if (!fp || !requireMatch) return true;
-      return String(fp.campaignPackageId ?? "") === String(d.campaign_package_id ?? "") &&
-        String(fp.checkInDate ?? "") === String(d.check_in_date ?? "") &&
-        String(fp.checkOutDate ?? "") === String(d.check_out_date ?? "") &&
-        (fp.roomQuantity == null || Number(fp.roomQuantity) === Number(d.room_quantity));
-    };
+    /** 判斷「這個 draft 是不是目前畫面正在進行的這一次預訂」（共用純函式） */
+    const matchesFingerprint = (d: any) => fingerprintMatches(fp, d, requireMatch);
+
 
     const SELECT_COLS =
       "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id";
