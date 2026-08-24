@@ -1732,7 +1732,7 @@ export default function AdminGroupBuy() {
       </Dialog>
 
       {/* 取消訂單並手動退款 */}
-      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => { if (!o) { setCancelTarget(null); setQuote(null); setQuoteError(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>取消訂單並處理退款</DialogTitle>
@@ -1800,7 +1800,7 @@ export default function AdminGroupBuy() {
       </Dialog>
 
       {/* 人工退款登記（已取消訂單） */}
-      <Dialog open={!!refundTarget} onOpenChange={(o) => !o && setRefundTarget(null)}>
+      <Dialog open={!!refundTarget} onOpenChange={(o) => { if (!o) { setRefundTarget(null); setQuote(null); setQuoteError(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>處理退款</DialogTitle>
