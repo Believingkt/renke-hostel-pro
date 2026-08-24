@@ -180,8 +180,20 @@ Deno.serve(async (req) => {
       const reasonError = requireReasonIfOverride(refundAmount);
       if (reasonError) return reasonError;
 
-      const settle = await adapter.refundPayment({ order: { ...order, id: order.id }, amount: refundAmount, note: reason });
-      if (!settle.ok) return json({ error: settle.error ?? "退款處理失敗" }, 400);
+      const settle = await adapter.refundPayment({
+        order: { ...order, id: order.id },
+        amount: refundAmount,
+        note: reason,
+        supabase: admin,
+        triggerSource: "group_buy_cancel_refund",
+      });
+      if (!settle.ok) {
+        return json({
+          error: settle.message ?? settle.error ?? "退款處理失敗",
+          errorCode: settle.error,
+          needsReconciliation: settle.needsReconciliation ?? false,
+        }, 400);
+      }
 
       const totalRefunded = alreadyRefunded + refundAmount;
       const refundStatus = refundStatusAfterRefund(paid, totalRefunded);
@@ -283,8 +295,20 @@ Deno.serve(async (req) => {
     }
 
     if (refundAmount > 0) {
-      const settle = await adapter.refundPayment({ order: { ...order, id: order.id }, amount: refundAmount, note: reason });
-      if (!settle.ok) return json({ error: settle.error ?? "退款處理失敗" }, 400);
+      const settle = await adapter.refundPayment({
+        order: { ...order, id: order.id },
+        amount: refundAmount,
+        note: reason,
+        supabase: admin,
+        triggerSource: "group_buy_cancel_refund",
+      });
+      if (!settle.ok) {
+        return json({
+          error: settle.message ?? settle.error ?? "退款處理失敗",
+          errorCode: settle.error,
+          needsReconciliation: settle.needsReconciliation ?? false,
+        }, 400);
+      }
     }
 
     const totalRefunded = alreadyRefunded + refundAmount;
