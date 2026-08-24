@@ -285,7 +285,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
   const holdText = holdSeconds != null && holdSeconds > 0
     ? `${Math.floor(holdSeconds / 60)}:${String(holdSeconds % 60).padStart(2, "0")}`
     : null;
-
+  // 付款金額唯一來源＝ server draft.amount_to_charge（尚未取得前僅顯示預估）
+  const chargeAmount = draftInfo?.amount ?? null;
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
@@ -298,14 +299,37 @@ export function GroupBuyCreditCardDialog(props: Props) {
         </DialogHeader>
 
         <div className="rounded-2xl bg-muted/70 p-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted-foreground">{packageName}</span>
-            <span className="text-xl font-bold tabular-nums text-accent">{twd(deposit)}</span>
+          <p className="text-sm text-muted-foreground">{packageName}</p>
+          {draftInfo?.total != null && (
+            <div className="mt-2 flex items-baseline justify-between text-sm">
+              <span className="text-muted-foreground">訂單總額</span>
+              <span className="tabular-nums">{twd(draftInfo.total)}</span>
+            </div>
+          )}
+          <div className="mt-1 flex items-baseline justify-between gap-3">
+            <span className="text-sm font-semibold text-foreground">
+              本次信用卡付款金額{draftInfo?.depositPct != null ? `（訂金 ${draftInfo.depositPct}%）` : ""}
+            </span>
+            <span className="text-xl font-bold tabular-nums text-accent">
+              {chargeAmount != null ? twd(chargeAmount) : `${twd(deposit)}（確認中）`}
+            </span>
           </div>
+          {draftInfo?.balance != null && (
+            <div className="mt-1 flex items-baseline justify-between text-sm">
+              <span className="text-muted-foreground">入住支付尾款</span>
+              <span className="tabular-nums">{twd(draftInfo.balance)}</span>
+            </div>
+          )}
+          {preparing && !holdText && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              正在為您確認並保留房況…
+            </p>
+          )}
           {holdText && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Timer className="h-3.5 w-3.5" />
-              房位保留剩餘 {holdText}，逾時後需重新選擇日期
+              已為您保留房況，房況將為您保留 10 分鐘，請於 {holdText} 內完成信用卡驗證。
             </p>
           )}
           {holdExpired && (
