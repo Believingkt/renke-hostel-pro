@@ -364,6 +364,22 @@ Deno.serve(async (req) => {
     const fullPayment = String((order as any).payment_provider ?? "") === "tappay" &&
       String((order as any).payment_method ?? "").includes("credit_card");
 
+    /**
+     * 付款方式 SoT＝這張訂單的 orders.payment_method（不得依 campaign 現行設定推測）。
+     * atm → ATM 虛擬帳號；credit_card* → 信用卡；其餘 → 銀行人工匯款。
+     */
+    const paymentMethodRaw = String((order as any).payment_method ?? "");
+    const isAtmOrder = paymentMethodRaw === "atm" || !!(order as any).atm_vacc_no;
+    const paymentChannel: "atm" | "credit_card" | "bank" = fullPayment
+      ? "credit_card"
+      : isAtmOrder
+      ? "atm"
+      : "bank";
+    // 已收訂金／已付清：以 orders.payment_status 為準（ATM 不會有 admin_confirmed 事件）
+    const depositPaid = ["deposit_paid", "partial", "partial_paid", "paid"].includes(
+      String((order as any).payment_status ?? ""),
+    ) || paidAmountNow > 0;
+
     return json({
       order: {
         orderNumber: order.order_number,
