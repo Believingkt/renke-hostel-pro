@@ -15,6 +15,15 @@
 //
 // deno-lint-ignore-file no-explicit-any
 
+import {
+  buildRefundPatch,
+  flagRefundNeedsManual,
+  isCardPaidOrder,
+  refundOrderCard,
+  resolveSyncRecTradeId,
+} from "./orderRefund.ts";
+import { queryTapPayRecord } from "./tappay.ts";
+
 export type PaymentProvider = "manual" | "tappay";
 
 /** group_buy_campaigns.payment_method 允許值 */
@@ -86,6 +95,10 @@ export interface RefundRequest {
   order: OrderPaymentShape & { id: string };
   amount: number;
   note?: string | null;
+  /** TapPay 退刷需要 service-role client（解析原交易、寫 deposit_charges 稽核、建人工待辦） */
+  supabase?: any;
+  /** 稽核用來源標記 */
+  triggerSource?: string;
 }
 
 export interface RefundResult {
@@ -95,6 +108,53 @@ export interface RefundResult {
   amount: number;
   message?: string;
   error?: string;
+  /** 實際退刷所指向的原付款交易編號 */
+  recTradeId?: string | null;
+  /** true = 結果未知（timeout／網路錯誤）：禁止重試，須由 tappay-sync-refund 對帳回正 */
+  needsReconciliation?: boolean;
+}
+
+/**
+ * 退款前置檢查（純函式，可測）：比對 TapPay 原交易與本地帳務。
+ * 只判斷「這筆退款能不能送出、可退上限多少」，不決定法規退款比例。
+ */
+export function evaluateTappayRefundGate(input: {
+  requested: number;
+  localRemaining: number;
+  tappayFound: boolean;
+  tappayAmount: number | null;
+  tappayRefunded: number | null;
+  localRefunded: number;
+}): { ok: boolean; error?: string; message?: string; tappayRemaining: number } {
+  const requested = Math.max(0, Math.round(input.requested || 0));
+  const tappayAmount = Math.max(0, Math.round(Number(input.tappayAmount) || 0));
+  const tappayRefunded = Math.max(0, Math.round(Number(input.tappayRefunded) || 0));
+  const tappayRemaining = Math.max(0, tappayAmount - tappayRefunded);
+
+  if (!input.tappayFound) {
+    return { ok: false, error: "tappay_query_failed", message: "無法向金流確認原交易狀態，請稍後再試或改人工處理", tappayRemaining: 0 };
+  }
+  // 金流已有退款但本地尚未同步 → 先對帳，嚴禁再退一次
+  if (tappayRefunded > Math.max(0, Math.round(input.localRefunded || 0))) {
+    return {
+      ok: false,
+      error: "refund_reconciliation_required",
+      message: `金流顯示此交易已退款 NT$${tappayRefunded.toLocaleString("en-US")}，本地尚未同步，請先執行退款對帳（tappay-sync-refund）`,
+      tappayRemaining,
+    };
+  }
+  if (requested > tappayRemaining) {
+    return {
+      ok: false,
+      error: "refund_exceeds_tappay_remaining",
+      message: `退款金額超過金流可退餘額 NT$${tappayRemaining.toLocaleString("en-US")}`,
+      tappayRemaining,
+    };
+  }
+  if (requested > Math.max(0, Math.round(input.localRemaining || 0))) {
+    return { ok: false, error: "refund_exceeds_local_remaining", message: "退款金額超過本地可退金額", tappayRemaining };
+  }
+  return { ok: true, tappayRemaining };
 }
 
 export interface SettleRequest {
@@ -120,12 +180,92 @@ const manualAdapter: PaymentAdapterApi = {
 
 const tappayAdapter: PaymentAdapterApi = {
   provider: "tappay",
-  // 本輪不啟用。未來實作時：settle 需 server 依 orders.deposit_amount 決定金額後呼叫
-  // process-tappay-payment；refund 走 _shared/orderRefund.ts 既有 TapPay 退刷包裝。
+  // settle 尚未啟用（團購信用卡收款走 group-buy-* 3DS 主線，不經 adapter）。
   settlePayment: () =>
     Promise.resolve({ ok: false, handledBy: "tappay", amount: 0, error: "tappay_not_enabled" }),
-  refundPayment: () =>
-    Promise.resolve({ ok: false, handledBy: "tappay", amount: 0, error: "tappay_not_enabled" }),
+
+  /**
+   * TapPay 信用卡退刷。
+   * 共用 _shared/orderRefund.ts（唯一一份 TapPay Refund HTTP 包裝＝_shared/tappay.ts refundTapPay），
+   * 本函式只負責「對指定原交易退指定金額」，退款比例／政策一律由呼叫端（cancellationPolicy）決定。
+   */
+  refundPayment: async (req): Promise<RefundResult> => {
+    const amount = Math.max(0, Math.round(req.amount || 0));
+    const fail = (error: string, message?: string, extra?: Partial<RefundResult>): RefundResult => ({
+      ok: false, handledBy: "tappay", amount: 0, error, message, ...extra,
+    });
+    if (amount <= 0) return fail("zero_amount", "退款金額必須大於 0");
+
+    const supabase = req.supabase;
+    if (!supabase) return fail("tappay_refund_no_client", "退款服務設定缺失（缺少後端連線）");
+
+    const order = req.order as any;
+    const triggerSource = req.triggerSource ?? "payment_adapter_refund";
+
+    // ATM／銀行轉帳／現金絕不進入信用卡退刷
+    if (!isCardPaidOrder(order)) {
+      return fail("refund_not_card", "此訂單非信用卡付款，無法自動退刷，請改人工退款");
+    }
+
+    const partnerKey = Deno.env.get("TAPPAY_PARTNER_KEY");
+    if (!partnerKey) return fail("no_partner_key", "金流設定缺失，無法自動退刷");
+
+    // 1) 解析原付款交易編號（沿用已驗收的 resolver：原付款欄位 → deposit_charges → notes legacy）
+    const resolution = await resolveSyncRecTradeId(supabase, order);
+    if (!resolution.recTradeId) {
+      await flagRefundNeedsManual(supabase, order, amount, {
+        attempted: false, success: false, refunded: 0, recTradeId: null,
+        reason: "no_rec_trade_id", note: "查無可退刷交易編號",
+      });
+      return fail("refund_no_rec_trade_id", "查無可退刷的原交易編號，已轉人工退款");
+    }
+
+    // 2) 退款前必須 Query 原交易，核對金額與已退金額
+    const record = await queryTapPayRecord({ partnerKey, recTradeId: resolution.recTradeId })
+      .catch(() => null);
+    const gate = evaluateTappayRefundGate({
+      requested: amount,
+      localRemaining: remainingRefundable(order),
+      tappayFound: !!record?.found,
+      tappayAmount: record?.amount ?? null,
+      tappayRefunded: record?.refundedAmount ?? null,
+      localRefunded: Math.max(0, Math.round(Number(order.refunded_amount) || 0)),
+    });
+    if (!gate.ok) {
+      return fail(gate.error!, gate.message, { recTradeId: resolution.recTradeId });
+    }
+
+    // 3) 實際退刷（唯一 HTTP 實作在 _shared/tappay.ts）
+    const outcome = await refundOrderCard(supabase, order, amount, triggerSource, {
+      recTradeId: resolution.recTradeId,
+    });
+
+    if (outcome.success) {
+      return {
+        ok: true,
+        handledBy: "tappay",
+        amount: outcome.refunded,
+        recTradeId: outcome.recTradeId,
+        message: outcome.note,
+      };
+    }
+
+    // 4) 失敗／timeout：不重試、不標記退款完成，寫回 refund_status 並建立人工待辦
+    try {
+      await supabase.from("orders").update(buildRefundPatch(outcome, 0)).eq("id", order.id);
+    } catch (e) {
+      console.error("[paymentAdapter] refund patch failed", e);
+    }
+    await flagRefundNeedsManual(supabase, order, amount, outcome);
+
+    return fail(
+      outcome.networkError ? "refund_result_unknown" : "refund_failed",
+      outcome.networkError
+        ? "退款送出後未取得金流回應，系統已標記待對帳，請勿重複退款（將由退款對帳自動回正）"
+        : `自動退刷失敗：${outcome.msg ?? outcome.status ?? "unknown"}`,
+      { recTradeId: outcome.recTradeId, needsReconciliation: !!outcome.networkError },
+    );
+  },
 };
 
 export function getPaymentAdapter(order: OrderPaymentShape): PaymentAdapterApi {
