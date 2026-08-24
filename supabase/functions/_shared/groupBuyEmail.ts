@@ -157,14 +157,19 @@ function orderTable(
     <tr><td class="k">訂單總額</td><td>${money(o.totalPrice)}</td></tr>
     ${
     fullPayment
-      ? `<tr><td class="k">已付金額</td><td><strong style="color:${BRAND.primary}">${
+      ? `<tr><td class="k">已付款金額</td><td><strong style="color:${BRAND.primary}">${
         money(paid || o.totalPrice)
-      }</strong></td></tr>
+      }</strong></td></tr>${
+        opts.hideDue
+          ? ""
+          : `
     <tr><td class="k">尚需支付</td><td>${money(0)}</td></tr>
     <tr><td class="k">付款狀態</td><td><strong style="color:${BRAND.primary}">已全額付清</strong></td></tr>`
+      }`
       : `<tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
     <tr><td class="k">入住現場付清</td><td>${money(o.balanceAmount || due)}</td></tr>`
   }
+
     ${o.paymentMethodText ? `<tr><td class="k">付款方式</td><td>${esc(o.paymentMethodText)}</td></tr>` : ""}
   </table>`;
 }
