@@ -39,8 +39,14 @@ function MailRow({ label, state, note }: { label: string; state: MailState; note
 export default function GroupBuyOrderConfirmation() {
   const { orderNumber = "" } = useParams<{ orderNumber: string }>();
   const location = useLocation();
-  const state = (location.state ?? {}) as { phoneLast4?: string; result?: any; paymentMethod?: "bank" | "atm" };
+  const state = (location.state ?? {}) as {
+    phoneLast4?: string;
+    result?: any;
+    paymentMethod?: "bank" | "atm";
+    fromCreditCard?: boolean;
+  };
   const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
+  const fromCreditCard = state.fromCreditCard === true;
   const useAtm = state.paymentMethod === "atm";
 
   const [loading, setLoading] = useState(true);
