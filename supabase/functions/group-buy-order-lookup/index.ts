@@ -226,10 +226,17 @@ Deno.serve(async (req) => {
         });
         const requestedAtText = formatTaipei(new Date());
         const paidAmount = Math.max(0, Math.round(Number((order as any).paid_amount) || 0));
+        // 手續費一律讀館別設定（信用卡原卡退刷不收）
+        const isCardPay = String((order as any).payment_provider ?? "") === "tappay" &&
+          String((order as any).payment_method ?? "").includes("credit_card");
+        const handlingFee = isCardPay ? 0 : await loadManualRefundFee(
+          admin,
+          (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+        );
 
         const guestMail = await sendGroupBuyEmail(
           order.guest_email,
-          renderGuestCancelRequested(emailOrder, { requestedAtText, reason: reason || null }),
+          renderGuestCancelRequested(emailOrder, { requestedAtText, reason: reason || null, handlingFee }),
         );
         await admin.from("group_buy_payment_events").insert({
           campaign_id: campaign?.id ?? null,
