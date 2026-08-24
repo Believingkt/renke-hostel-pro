@@ -15,3 +15,4 @@
 - [團購銷售分析與分潤](mem://features/admin/group-buy-analytics-commission.md) — 分潤以 group_buy_commissions 快照為準；KPI/明細/匯出同源；比例調整與人工判定規則。
 - [PMS 後台架構地圖](mem://technical/architecture/pms-admin-architecture-map.md) — PMS routing/layout/sidebar/responsive/權限/共用元件與 Mobile Ready 基準，改造前先讀勿重新盤點。
 - [Venue Team Bonus Tier Rules](mem://features/admin/venue-team-bonus-tier-rules.md) — 館別專屬獎金階層級距（整筆套用、逐館算完再除人數、不回溯）。
+- [跨通路庫存閘門](mem://features/platform/cross-channel-inventory-gate.md) — orders BEFORE INSERT 閘門、gb_hold 同鎖、來源豁免與付款後自動退款。
