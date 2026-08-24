@@ -241,11 +241,11 @@ export function renderDepositReceived(
   return {
     subject: full
       ? `【訂房確認・已完成付款】${o.campaignTitle} 訂單 ${o.orderNumber}`
-      : `【已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
+      : `【訂房確認・已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
-      full ? "訂房確認・已完成付款" : "已收到您的訂金",
-      full ? `訂單 ${o.orderNumber} 訂房確認且已全額付清` : `訂單 ${o.orderNumber} 訂金已入帳`,
-      `<h1>${full ? "訂房確認．已完成付款 ✅" : "已收到您的訂金 ✅"}</h1>
+      full ? "訂房確認・已完成付款" : "訂房確認・已收到訂金",
+      full ? `訂單 ${o.orderNumber} 訂房確認且已全額付清` : `訂單 ${o.orderNumber} 訂金已入帳，訂房完成`,
+      `<h1>${full ? "訂房確認．已完成付款 ✅" : "訂房確認．已收到訂金 ✅"}</h1>
        <p>${esc(o.guestName)} 您好，我們已確認收到您的${
       full
         ? `款項 <strong>${money(o.totalPrice)}</strong>，本筆訂單已全額付清`
