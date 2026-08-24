@@ -405,6 +405,18 @@ Deno.serve(async (req) => {
         paymentProvider: (order as any).payment_provider ?? null,
         paidAmount: paidAmountNow,
         fullPayment,
+        /** 付款方式分流（前台顯示 SoT） */
+        paymentChannel,
+        paymentMethod: paymentMethodRaw || null,
+        depositPaid,
+        atm: isAtmOrder && (order as any).atm_vacc_no
+          ? {
+            vaccNo: (order as any).atm_vacc_no,
+            bankCode: (order as any).atm_vacc_bank_code ?? null,
+            expireAt: (order as any).atm_expire_at ?? null,
+            amount: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
+          }
+          : null,
         // 取消政策依「此訂單」實際付款制度判定，不得依活動當下設定判定
         cancellationPolicy: resolveCancellationPolicy({
           order_source: (order as any).order_source ?? "group_buy",
