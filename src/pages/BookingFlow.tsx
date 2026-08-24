@@ -3624,8 +3624,13 @@ const BookingFlow = () => {
           .single();
 
         if (orderError) {
+          // DB 庫存閘門（跨通路搶單保護）
+          if ((orderError.message || "").includes("inventory_unavailable")) {
+            throw new Error("很抱歉，您選擇的房型剛剛被其他旅客訂走了，請重新選擇日期或房型。");
+          }
           throw orderError;
         }
+
         orderData = insertedOrder;
 
         // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
