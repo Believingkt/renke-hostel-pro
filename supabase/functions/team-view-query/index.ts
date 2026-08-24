@@ -56,8 +56,12 @@ const ALLOWED_TABLES = new Set<string>([
   "closer_commission_snapshots",
   "closer_commission_adjustments",
   "teamcommission_bonus_snapshots",
+  // 逐館明細（含館別級距費率）；缺這張表時 TeamHome 會退回系統費率重算＋等比例縮放，
+  // 導致管理員檢視他人時逐館費率／金額與快照不一致。
+  "teamcommission_bonus_snapshot_lines",
   "accommodation_partnership_periods",
   "scout_discount_code_payouts",
+  "scout_monthly_payouts",
   "team_base_salaries",
 ]);
 
