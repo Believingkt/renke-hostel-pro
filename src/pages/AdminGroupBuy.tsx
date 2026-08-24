@@ -563,21 +563,49 @@ export default function AdminGroupBuy() {
     }
   };
 
-  const openCancel = (o: OrderRow) => {
+  /**
+   * 取得 server 端法規建議退款金額（mode:"quote"，唯讀不異動資料）。
+   * 一律以 server 回傳為準，前端不得自行計算級距。
+   */
+  const fetchQuote = async (orderId: string) => {
+    setQuote(null);
+    setQuoteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
+        body: { orderId, mode: "quote" },
+      });
+      const payload = data as RefundQuote & { error?: string } | null;
+      if (error || !payload || payload.error) {
+        setQuoteError(payload?.error ?? error?.message ?? "無法取得取消政策建議");
+        return null;
+      }
+      setQuoteError(null);
+      setQuote(payload);
+      return payload;
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  const openCancel = async (o: OrderRow) => {
     const refundable = remainingRefundable(o);
     setCancelTarget(o);
     setCancelRefundAction(refundable > 0 ? "pending_refund" : "no_refund");
     setCancelRefundAmount(String(refundable));
     const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
     setCancelReason(req?.note ?? "");
-
+    const q = await fetchQuote(o.id);
+    if (q) setCancelRefundAmount(String(q.suggestedRefund));
   };
 
-  const openRefund = (o: OrderRow) => {
+  const openRefund = async (o: OrderRow) => {
     setRefundTarget(o);
     setRefundAmount(String(remainingRefundable(o)));
     setRefundNote("");
+    const q = await fetchQuote(o.id);
+    if (q) setRefundAmount(String(q.suggestedRefund));
   };
+
 
   /** 人工退款登記：管理員於銀行端完成退匯後才按下確認；server 端會重新讀 orders 驗證金額 */
   const processRefund = async () => {
