@@ -107,3 +107,86 @@ describe("Email 人工退款說明（CASE 6-9）", () => {
     expect(manualRefundRequestHtml(null)).toContain(MANUAL_REFUND_NO_CONTACT);
   });
 });
+
+// ── Email 端到端（CASE 6-9）：直接渲染取消／退款完成信 ───────────────────
+(globalThis as unknown as { Deno?: unknown }).Deno ??= { env: { get: () => undefined } };
+const { renderOrderCancelled, renderRefundProcessed } = await import(
+  "../../supabase/functions/_shared/groupBuyEmail.ts"
+);
+
+const baseMail = (isCard: boolean) => ({
+  orderNumber: "TEST1234",
+  guestName: "王小明",
+  campaignTitle: "測試團購",
+  checkInDate: "2026-09-09",
+  checkOutDate: "2026-09-10",
+  guestCount: 2,
+  totalPrice: 100,
+  depositAmount: 30,
+  balanceAmount: 70,
+  paidAmount: 30,
+  paymentMethodText: isCard ? "信用卡（3D 驗證）" : "ATM 虛擬帳號",
+  refundChannelText: isCard ? "原信用卡退刷（TapPay）" : "人工匯款退款",
+  isCardOrder: isCard,
+  deadlineText: "2026/09/01 12:00",
+  orderUrl: "https://booking.lakeze.com/g/order/TEST1234",
+} as any);
+
+describe("取消／退款完成 Email 分流（CASE 6-9）", () => {
+  it("CASE 6/7 ATM・Bank 取消信包含人工退款說明", () => {
+    const { html } = renderOrderCancelled(baseMail(false), {
+      cancelledAtText: "2026/08/25 01:00",
+      paidAmount: 30,
+      refundedTotal: 0,
+      refundStatus: "pending_manual",
+      handlingFee: 10,
+      venueContact: contact,
+    } as any);
+    expect(html).toContain("人工退款說明");
+    expect(html).toContain("存摺封面照片或帳戶證明");
+    expect(html).toContain("https://line.me/R/ti/p/%40lakeze");
+    expect(html).not.toContain("定金");
+  });
+
+  it("CASE 8 退款完成信不再要求提供帳戶資料", () => {
+    const cancelled = renderOrderCancelled(baseMail(false), {
+      cancelledAtText: "2026/08/25 01:00",
+      paidAmount: 30,
+      refundedTotal: 20,
+      refundFeeTotal: 10,
+      refundStatus: "refunded",
+      handlingFee: 10,
+      venueContact: contact,
+    } as any);
+    expect(cancelled.html).not.toContain("人工退款說明");
+    expect(cancelled.html).not.toContain("存摺封面");
+
+    const processed = renderRefundProcessed(baseMail(false), {
+      refundAmount: 20,
+      refundFee: 10,
+      refundFeeTotal: 10,
+      refundedTotal: 20,
+      paidAmount: 30,
+      refundStatus: "refunded",
+      refundedAtText: "2026/08/25 01:05",
+    } as any);
+    expect(processed.html).not.toContain("存摺封面");
+    expect(processed.html).not.toContain("退款帳號");
+    expect(processed.html).toContain("人工匯款退款");
+  });
+
+  it("CASE 9 信用卡取消／退款信維持原卡退刷、無人工退款說明", () => {
+    const cancelled = renderOrderCancelled(baseMail(true), {
+      cancelledAtText: "2026/08/25 01:00",
+      paidAmount: 1000,
+      refundedTotal: 0,
+      refundStatus: "pending_manual",
+      handlingFee: 10,
+      venueContact: contact,
+    } as any);
+    expect(cancelled.html).toContain("原信用卡退刷（TapPay）");
+    for (const bad of ["人工退款說明", "存摺封面", "銀行代碼", "退款帳號"]) {
+      expect(cancelled.html).not.toContain(bad);
+    }
+  });
+});
