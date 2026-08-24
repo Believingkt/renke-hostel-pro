@@ -611,6 +611,58 @@ export default function AdminGroupBuy() {
     }
   };
 
+  /** 法規建議退款資訊面板（取消 / 退款兩個 Modal 共用） */
+  const renderQuotePanel = () => {
+    if (quoteLoading) {
+      return (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          正在取得取消政策建議…
+        </div>
+      );
+    }
+    if (quoteError) {
+      return (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+          無法取得取消政策建議：{quoteError}。請人工確認退款金額。
+        </div>
+      );
+    }
+    if (!quote) return null;
+    return (
+      <div className="space-y-2">
+        {quote.requiresManualReview && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs font-medium text-destructive">
+            ⚠️ 此訂單無法自動判定取消政策（付款方式不明），系統不提供建議金額，請人工確認後填寫實際退款金額與原因。
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-xs">
+          <div className="text-muted-foreground">適用制度</div>
+          <div className="text-right font-medium">{POLICY_LABEL[quote.policy] ?? quote.policy}</div>
+          <div className="text-muted-foreground">距入住天數</div>
+          <div className="text-right tabular-nums">{quote.quote.daysBefore} 天</div>
+          <div className="text-muted-foreground">退還比例</div>
+          <div className="text-right tabular-nums">{quote.quote.refundPercent}%</div>
+          <div className="text-muted-foreground">已付款金額</div>
+          <div className="text-right tabular-nums">{twd(quote.paidAmount)}</div>
+          <div className="text-muted-foreground">已退款金額</div>
+          <div className="text-right tabular-nums">{twd(quote.alreadyRefunded)}</div>
+          <div className="text-muted-foreground">最高可退</div>
+          <div className="text-right tabular-nums">{twd(quote.remainingRefundable)}</div>
+          <div className="text-muted-foreground">建議退款金額</div>
+          <div className="text-right font-semibold tabular-nums text-primary">{twd(quote.suggestedRefund)}</div>
+          {quote.quote.label && (
+            <div className="col-span-2 pt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {quote.quote.label}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+
+
   const openCancel = async (o: OrderRow) => {
     const refundable = remainingRefundable(o);
     setCancelTarget(o);
