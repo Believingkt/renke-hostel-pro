@@ -619,6 +619,8 @@ export interface GroupBuyCancelRequestInfo {
   requestedAtText: string;
   reason?: string | null;
   paidAmount?: number | null;
+  /** 此館人工退款手續費（booking_settings.manual_refund_fee_amount）；0 = 不顯示手續費文案 */
+  handlingFee?: number;
 }
 
 /** 寄給旅客：已收到取消申請 */
@@ -639,7 +641,7 @@ export function renderGuestCancelRequested(
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <p>提醒：取消申請尚未完成，訂單狀態仍為原狀態，實際取消與退款結果將於民宿確認後另行通知。</p>
-       <div class="box"><h2>退款時間</h2>${refundScheduleHtml({ showPendingReview: true })}</div>
+       <div class="box"><h2>退款時間</h2>${refundScheduleHtml({ showPendingReview: true, handlingFee: info.handlingFee ?? 0 })}</div>
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單狀態</a></p>` : ""}`,
     ),
   };
