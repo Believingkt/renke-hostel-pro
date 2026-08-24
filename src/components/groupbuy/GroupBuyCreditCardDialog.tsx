@@ -198,10 +198,14 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setHoldSeconds(null);
       setDraftInfo(null);
       setResumed(false);
+      setConflict(null);
+      setAskRelease(false);
+      setReleasing(false);
       draftRef.current = null;
       creatingRef.current = null;
     }
   }, [open]);
+
 
   /** 建立全新的 payment draft（永不復活舊 draft；同時只允許一個建立中的請求） */
   const createDraft = useCallback(async () => {
