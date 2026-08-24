@@ -29,7 +29,7 @@ describe("團購確認層付款方式（不落 DB、不呼叫 TapPay）", () => 
   it("CASE 1/3: enable_atm=false → 不顯示 ATM 選項，按鈕為匯款資訊", () => {
     render(<GroupBuyConfirmDialog {...base} atmEnabled={false} />);
     expect(screen.queryByText("ATM 虛擬帳號")).toBeNull();
-    expect(screen.queryByText("訂金付款方式")).toBeNull();
+    expect(screen.queryByText("付款方式")).toBeNull();
     expect(screen.getByText("確認訂房並取得匯款資訊")).toBeTruthy();
   });
 
@@ -37,7 +37,7 @@ describe("團購確認層付款方式（不落 DB、不呼叫 TapPay）", () => 
     render(
       <GroupBuyConfirmDialog {...base} atmEnabled paymentMethod="atm" onPaymentMethodChange={vi.fn()} />,
     );
-    expect(screen.getByText("訂金付款方式")).toBeTruthy();
+    expect(screen.getByText("付款方式")).toBeTruthy();
     expect(screen.getByText("銀行匯款（人工對帳）")).toBeTruthy();
     expect(screen.getByText("ATM 虛擬帳號")).toBeTruthy();
     expect(screen.getByText("確認訂房並取得虛擬帳號")).toBeTruthy();
