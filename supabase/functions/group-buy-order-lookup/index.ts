@@ -10,6 +10,7 @@ import {
 } from "../_shared/groupBuyEmail.ts";
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_shared/refundPolicy.ts";
 import { resolveCancellationPolicy } from "../_shared/cancellationPolicy.ts";
+import { loadManualRefundFee, remainingRefundableWithFee } from "../_shared/refundFee.ts";
 
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
@@ -64,7 +65,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refund_fee_amount, refunded_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -226,10 +227,17 @@ Deno.serve(async (req) => {
         });
         const requestedAtText = formatTaipei(new Date());
         const paidAmount = Math.max(0, Math.round(Number((order as any).paid_amount) || 0));
+        // 手續費一律讀館別設定（信用卡原卡退刷不收）
+        const isCardPay = String((order as any).payment_provider ?? "") === "tappay" &&
+          String((order as any).payment_method ?? "").includes("credit_card");
+        const handlingFee = isCardPay ? 0 : await loadManualRefundFee(
+          admin,
+          (order as any).accommodation_id ?? campaign?.accommodation_id ?? null,
+        );
 
         const guestMail = await sendGroupBuyEmail(
           order.guest_email,
-          renderGuestCancelRequested(emailOrder, { requestedAtText, reason: reason || null }),
+          renderGuestCancelRequested(emailOrder, { requestedAtText, reason: reason || null, handlingFee }),
         );
         await admin.from("group_buy_payment_events").insert({
           campaign_id: campaign?.id ?? null,
@@ -429,6 +437,14 @@ Deno.serve(async (req) => {
           paid_amount: paidAmountNow,
           final_price: Number((order as any).final_price ?? (order as any).total_price ?? 0),
         }).policy,
+
+        /** 人工退款手續費（此館設定；信用卡原卡退刷一律 0）——前台文案唯一來源 */
+        manualRefundFee: paymentChannel === "credit_card"
+          ? 0
+          : await loadManualRefundFee(admin, accommodationId),
+        refundFeeAmount: Math.max(0, Math.round(Number((order as any).refund_fee_amount) || 0)),
+        refundedAmount: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
+        remainingRefundable: remainingRefundableWithFee(order as any),
 
         paymentDeadline: deadline.toISOString(),
         paymentDeadlineText: formatTaipei(deadline),

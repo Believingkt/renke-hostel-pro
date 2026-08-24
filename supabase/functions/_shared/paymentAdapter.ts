@@ -34,6 +34,8 @@ export interface OrderPaymentShape {
   order_source?: string | null;
   paid_amount?: number | null;
   refunded_amount?: number | null;
+  /** 已扣除的退款處理費（人工銀行退款用；信用卡一律 0）——同樣屬於已沖銷金額 */
+  refund_fee_amount?: number | null;
   deposit_amount?: number | null;
 }
 
@@ -53,11 +55,15 @@ export function resolveCampaignPayment(
   return { provider: "manual", paymentMethod: "bank_transfer" };
 }
 
-/** 剩餘可退金額（一律由 server 讀 orders 重算，不信任前端） */
+/**
+ * 剩餘可退金額（一律由 server 讀 orders 重算，不信任前端）。
+ * 已沖銷 = 實退旅客金額 + 已扣除的退款處理費。
+ */
 export function remainingRefundable(order: OrderPaymentShape): number {
   const paid = Math.max(0, Math.round(Number(order?.paid_amount) || 0));
   const refunded = Math.max(0, Math.round(Number(order?.refunded_amount) || 0));
-  return Math.max(0, paid - refunded);
+  const fee = Math.max(0, Math.round(Number(order?.refund_fee_amount) || 0));
+  return Math.max(0, paid - refunded - fee);
 }
 
 /**

@@ -10,6 +10,8 @@ export interface OrderPaymentFields {
   deposit_amount?: number | null;
   refund_status?: string | null;
   refunded_amount?: number | null;
+  /** 已扣除的退款處理費（人工銀行退款；信用卡為 0） */
+  refund_fee_amount?: number | null;
   payment_provider?: string | null;
 }
 
@@ -44,7 +46,7 @@ export type RefundState = "none" | "pending" | "partial" | "refunded" | "failed"
 /** 退款狀態：沿用 orders.refund_status / refunded_amount，未取消的訂單不顯示 */
 export function refundState(o: OrderPaymentFields): RefundState {
   const paid = num(o.paid_amount);
-  const refunded = num(o.refunded_amount);
+  const refunded = num(o.refunded_amount) + num(o.refund_fee_amount);
   const status = String(o.refund_status ?? "none");
   if (status === "failed") return "failed";
   if (refunded > 0 && refunded >= paid) return "refunded";
@@ -73,8 +75,13 @@ export const REFUND_STATE_VARIANT: Record<RefundState, "default" | "secondary" |
   failed: "destructive",
 };
 
+/** 已沖銷 = 實退旅客 + 已扣手續費；剩餘可退 = 已收 − 已沖銷 */
+export function settledRefund(o: OrderPaymentFields): number {
+  return num(o.refunded_amount) + num(o.refund_fee_amount);
+}
+
 export function remainingRefundable(o: OrderPaymentFields): number {
-  return Math.max(0, num(o.paid_amount) - num(o.refunded_amount));
+  return Math.max(0, num(o.paid_amount) - settledRefund(o));
 }
 
 /** 是否顯示「處理退款」：已取消、仍有可退金額、且未標記為已全額退款 */

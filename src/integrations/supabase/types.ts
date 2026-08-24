@@ -2106,6 +2106,7 @@ export type Database = {
           id: string
           important_section_subtitle: string | null
           important_section_title: string | null
+          manual_refund_fee_amount: number
           other_notes: string | null
           other_section_subtitle: string | null
           other_section_title: string | null
@@ -2135,6 +2136,7 @@ export type Database = {
           id?: string
           important_section_subtitle?: string | null
           important_section_title?: string | null
+          manual_refund_fee_amount?: number
           other_notes?: string | null
           other_section_subtitle?: string | null
           other_section_title?: string | null
@@ -2164,6 +2166,7 @@ export type Database = {
           id?: string
           important_section_subtitle?: string | null
           important_section_title?: string | null
+          manual_refund_fee_amount?: number
           other_notes?: string | null
           other_section_subtitle?: string | null
           other_section_title?: string | null
@@ -7435,6 +7438,7 @@ export type Database = {
           payment_status: string
           pet_count: number | null
           pet_plan_price: number | null
+          refund_fee_amount: number
           refund_rec_trade_id: string | null
           refund_status: string
           refunded_amount: number
@@ -7530,6 +7534,7 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refund_fee_amount?: number
           refund_rec_trade_id?: string | null
           refund_status?: string
           refunded_amount?: number
@@ -7625,6 +7630,7 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          refund_fee_amount?: number
           refund_rec_trade_id?: string | null
           refund_status?: string
           refunded_amount?: number

@@ -290,6 +290,10 @@ export interface GroupBuyCancelInfo {
   /** 退款狀態：none / pending_manual / partial_refunded / refunded */
   refundStatus: string;
   reason?: string | null;
+  /** 此館人工退款手續費（booking_settings.manual_refund_fee_amount）；0 = 不收 */
+  handlingFee?: number;
+  /** 已累計扣除的退款處理費 */
+  refundFeeTotal?: number;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
@@ -331,14 +335,20 @@ function cardRefundStatusBlock(info: GroupBuyCancelInfo): string {
 
 function refundStatusBlock(info: GroupBuyCancelInfo, isCardOrder = false): string {
   if (isCardOrder) return cardRefundStatusBlock(info);
-  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
-  // 尚有款項待退時，附上共用的退款時程規則（與前台 refundPolicy 同一份文案）
-  const schedule = `<div style="margin-top:10px">${refundScheduleHtml()}</div>`;
+  const feeTotal = Math.max(0, Math.round(Number(info.refundFeeTotal) || 0));
+  // 已沖銷金額＝實退旅客 + 已扣除的退款處理費
+  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal - feeTotal));
+  // 尚有款項待退時，附上共用的退款時程規則（手續費金額由館別設定帶入）
+  const schedule = `<div style="margin-top:10px">${
+    refundScheduleHtml({ handlingFee: info.handlingFee ?? 0 })
+  }</div>`;
   if (info.paidAmount <= 0) {
     return `<p>此訂單尚未付款，無需退款。</p>`;
   }
   if (info.refundStatus === "refunded") {
-    return `<p>此訂單退款已全部完成，累計退款 <strong>${money(info.refundedTotal)}</strong>。</p>`;
+    return `<p>此訂單退款已全部完成，累計退款 <strong>${money(info.refundedTotal)}</strong>。</p>${
+      feeTotal > 0 ? `<p style="margin:6px 0 0">已扣除匯款手續費 <strong>${money(feeTotal)}</strong>。</p>` : ""
+    }`;
   }
   if (info.refundStatus === "partial_refunded") {
     return `<p>目前已退款 <strong>${money(info.refundedTotal)}</strong>，尚有 <strong>${
@@ -387,13 +397,19 @@ export interface GroupBuyRefundInfo {
   /** 退款時間（已格式化為台北時間文字） */
   refundedAtText: string;
   note?: string | null;
+  /** 本次扣除的退款處理費（信用卡一律 0） */
+  refundFee?: number;
+  /** 累計已扣除的退款處理費 */
+  refundFeeTotal?: number;
 }
 
 export function renderRefundProcessed(
   o: GroupBuyEmailOrder,
   info: GroupBuyRefundInfo,
 ): { subject: string; html: string } {
-  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
+  const feeTotal = Math.max(0, Math.round(Number(info.refundFeeTotal) || 0));
+  const feeThisTime = Math.max(0, Math.round(Number(info.refundFee) || 0));
+  const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal - feeTotal));
   const done = info.refundStatus === "refunded";
   const partial = info.refundStatus === "partial_refunded";
   const isCard = o.isCardOrder === true;
@@ -430,7 +446,13 @@ export function renderRefundProcessed(
          <tr><td class="k">${isCard ? "本次原卡退刷" : "本次退款金額"}</td><td><strong style="color:${BRAND.primary}">${
         money(info.refundAmount)
       }</strong></td></tr>
+         ${
+        feeThisTime > 0
+          ? `<tr><td class="k">本次匯款手續費</td><td>-${money(feeThisTime)}</td></tr>`
+          : ""
+      }
          <tr><td class="k">累計已退款</td><td>${money(info.refundedTotal)}</td></tr>
+         ${feeTotal > 0 ? `<tr><td class="k">累計手續費</td><td>${money(feeTotal)}</td></tr>` : ""}
          <tr><td class="k">${isCard ? "退款後實收" : "剩餘待退款"}</td><td>${money(remaining)}</td></tr>
          <tr><td class="k">退款狀態</td><td><strong>${
         done ? "退款完成" : partial ? "部分退款完成" : "退款處理中"
@@ -597,6 +619,8 @@ export interface GroupBuyCancelRequestInfo {
   requestedAtText: string;
   reason?: string | null;
   paidAmount?: number | null;
+  /** 此館人工退款手續費（booking_settings.manual_refund_fee_amount）；0 = 不顯示手續費文案 */
+  handlingFee?: number;
 }
 
 /** 寄給旅客：已收到取消申請 */
@@ -617,7 +641,7 @@ export function renderGuestCancelRequested(
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <p>提醒：取消申請尚未完成，訂單狀態仍為原狀態，實際取消與退款結果將於民宿確認後另行通知。</p>
-       <div class="box"><h2>退款時間</h2>${refundScheduleHtml({ showPendingReview: true })}</div>
+       <div class="box"><h2>退款時間</h2>${refundScheduleHtml({ showPendingReview: true, handlingFee: info.handlingFee ?? 0 })}</div>
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單狀態</a></p>` : ""}`,
     ),
   };
