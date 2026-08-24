@@ -1804,6 +1804,7 @@ export default function AdminGroupBuy() {
                 <div className="text-muted-foreground">尚可退款金額</div>
                 <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
               </div>
+              {renderQuotePanel()}
               <div>
                 <Label>退款金額</Label>
                 <Input
@@ -1815,9 +1816,18 @@ export default function AdminGroupBuy() {
                 />
               </div>
               <div>
-                <Label>退款備註（會寫入稽核紀錄）</Label>
+                <Label>
+                  退款備註（會寫入稽核紀錄）
+                  {refundReasonRequired && <span className="ml-1 text-destructive">＊必填</span>}
+                </Label>
                 <Textarea rows={3} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
+                {refundReasonRequired && (
+                  <p className="mt-1 text-xs text-destructive">
+                    實際退款金額與系統建議（{twd(quote?.suggestedRefund ?? 0)}）不同，請填寫調整原因。
+                  </p>
+                )}
               </div>
+
             </div>
           )}
           <DialogFooter>
