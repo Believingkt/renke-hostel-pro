@@ -44,3 +44,54 @@ export function formatFreeCancelDeadline(deadline: Date | null): string {
   if (!deadline) return "";
   return format(deadline, "M月d日 (EEE) 23:59", { locale: zhTW });
 }
+
+/* ------------------------------------------------------------------ *
+ * 雙軌取消政策（顯示用）
+ * 權威計算一律在 supabase/functions/_shared/cancellationPolicy.ts，
+ * 這裡只負責前台文案，兩邊需同步更新。
+ * ------------------------------------------------------------------ */
+
+export type CancellationPolicyType = "deposit" | "full_prepayment" | "guarantee" | "unknown";
+
+/** 訂金制（銀行匯款 / ATM）：退還「已收定金」比例 */
+export const DEPOSIT_POLICY_LINES: string[] = [
+  "入住日前第 14 日以前取消：退還定金 100%",
+  "入住日前第 10～13 日取消：退還定金 70%",
+  "入住日前第 7～9 日取消：退還定金 50%",
+  "入住日前第 4～6 日取消：退還定金 40%",
+  "入住日前第 2～3 日取消：退還定金 30%",
+  "入住日前第 1 日取消：退還定金 20%",
+  "入住當日取消或未通知：不予退還",
+];
+
+/** 全額預收制（信用卡全額付款）：退還「已預收房價總額」比例 */
+export const FULL_PREPAYMENT_POLICY_LINES: string[] = [
+  "入住日前第 3 日以前取消：退還已預收房價總額 100%",
+  "入住日前第 1～2 日取消：退還 50%",
+  "入住當日取消或未通知：不予退還",
+];
+
+export const FULL_PREPAYMENT_CHARGE_NOTICE = "信用卡將一次支付訂單全額。";
+
+export const CANCELLATION_POLICY_TITLE: Record<CancellationPolicyType, string> = {
+  deposit: "取消政策（收取定金）",
+  full_prepayment: "取消政策（預收房價總額）",
+  guarantee: "取消政策",
+  unknown: "取消政策",
+};
+
+/** 依付款方式取得應顯示的政策類型 */
+export function policyTypeForPaymentMethod(
+  method: "bank" | "atm" | "credit" | string | null | undefined,
+): CancellationPolicyType {
+  if (method === "credit" || method === "credit_card" || method === "card") return "full_prepayment";
+  if (method === "atm" || method === "bank" || method === "bank_transfer") return "deposit";
+  return "unknown";
+}
+
+/** 依政策類型取得前台顯示條列 */
+export function cancellationLinesFor(policy: CancellationPolicyType): string[] {
+  if (policy === "full_prepayment") return FULL_PREPAYMENT_POLICY_LINES;
+  if (policy === "deposit") return DEPOSIT_POLICY_LINES;
+  return TW_DEFAULT_CANCEL_RULES.slice().reverse().map((r) => r.label);
+}
