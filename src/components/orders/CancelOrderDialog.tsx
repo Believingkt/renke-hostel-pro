@@ -56,9 +56,17 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
 
   const [action, setAction] = useState<RefundAction>(defaultAction);
   const [refundAmount, setRefundAmount] = useState<string>(String(paidAmount));
+  const [overrideReason, setOverrideReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [quote, setQuote] = useState<any>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+
+  const suggestedRefund = Number.isFinite(quote?.suggestedRefund) ? Number(quote.suggestedRefund) : null;
+  const actualRefund = action === "no_refund" ? 0 : parseInt(refundAmount || "0", 10) || 0;
+  const isOverride = suggestedRefund !== null && actualRefund !== suggestedRefund;
+  /** 人工覆寫退款金額時原因必填（server 端 cancel-order-with-refund 同步檢核） */
+  const reasonRequired = isOverride && overrideReason.trim().length < 2;
+
 
   // 建議退款金額一律由 server 依訂單付款制度 + 法規級距計算，前端只顯示與預填
   useEffect(() => {
