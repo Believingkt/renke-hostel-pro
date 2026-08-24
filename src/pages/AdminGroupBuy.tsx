@@ -1756,9 +1756,6 @@ export default function AdminGroupBuy() {
               </div>
             </div>
           )}
-
-            </div>
-          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelTarget(null)}>
               返回
