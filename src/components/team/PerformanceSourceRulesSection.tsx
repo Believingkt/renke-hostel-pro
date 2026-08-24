@@ -43,6 +43,31 @@ const fmtTime = (iso: string) =>
     hour12: false,
   }).format(new Date(iso));
 
+/** 將後端錯誤轉成可讀中文訊息（保留原始訊息供除錯）。 */
+const describeError = (
+  error: { message?: string; code?: string; details?: string; hint?: string } | null | undefined,
+): string => {
+  if (!error) return "未知錯誤";
+  const code = error.code || "";
+  const raw = error.message || error.details || "未知錯誤";
+  const map: Record<string, string> = {
+    "42501": "權限不足，無法修改此館別的來源設定，請聯絡管理員。",
+    "23505": "資料重複，可能已有其他人同時儲存，請重新整理後再試。",
+    "23503": "館別或來源資料不存在，請重新選擇館別。",
+    "23514": "資料格式不符合限制條件，請檢查設定內容。",
+    "PGRST301": "登入狀態已過期，請重新登入後再試。",
+    "PGRST116": "找不到對應的設定資料，請重新整理頁面。",
+  };
+  const friendly =
+    map[code] ||
+    (/JWT|not authenticated|401/i.test(raw)
+      ? "登入狀態已過期，請重新登入後再試。"
+      : /Failed to fetch|NetworkError/i.test(raw)
+        ? "網路連線異常，請確認網路後重試。"
+        : raw);
+  return code && friendly !== raw ? `${friendly}（代碼 ${code}）` : friendly;
+};
+
 export default function PerformanceSourceRulesSection({
   accommodationId,
   accommodationName,
@@ -53,36 +78,61 @@ export default function PerformanceSourceRulesSection({
   const [draft, setDraft] = useState<Record<string, boolean>>({});
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // 用來丟棄過期（切換館別後才回來）的請求結果
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    // 切換館別時立即清空草稿，避免把上一個館別的開關值存到新館別
+    setSaved({});
+    setDraft({});
+    setLogs([]);
+    setSaveError(null);
+    setLoadError(null);
+    requestIdRef.current += 1;
     if (!accommodationId) return;
-    void load();
+    void load(requestIdRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accommodationId]);
 
-  const load = async () => {
+  const load = async (reqId = requestIdRef.current) => {
+    const accId = accommodationId;
+    setLoading(true);
     const [ruleRes, logRes] = await Promise.all([
       supabase
         .from("performance_notification_source_rules")
         .select("source, included, updated_at, updated_by_email")
-        .eq("accommodation_id", accommodationId),
+        .eq("accommodation_id", accId),
       supabase
         .from("performance_notification_source_rule_logs")
         .select("id, created_at, user_email, user_name, changes")
-        .eq("accommodation_id", accommodationId)
+        .eq("accommodation_id", accId)
         .order("created_at", { ascending: false })
         .limit(30),
     ]);
+    // 已切換館別 → 丟棄結果
+    if (reqId !== requestIdRef.current || accId !== accommodationId) return;
+    setLoading(false);
+    if (ruleRes.error) {
+      const msg = describeError(ruleRes.error);
+      setLoadError(msg);
+      toast.error("載入來源設定失敗：" + msg);
+      return;
+    }
+    setLoadError(null);
     const map: Record<string, RuleRow> = {};
     ((ruleRes.data || []) as RuleRow[]).forEach((r) => (map[r.source] = r));
     setSaved(map);
     const d: Record<string, boolean> = {};
     Object.entries(map).forEach(([k, v]) => (d[k] = v.included));
     setDraft(d);
-    setLogs((logRes.data || []) as unknown as LogRow[]);
+    setLogs(logRes.error ? [] : ((logRes.data || []) as unknown as LogRow[]));
   };
 
   const isIncluded = (source: string) => draft[source] ?? saved[source]?.included ?? true;
+
 
   const dirty = useMemo(
     () => sources.some((s) => isIncluded(s.value) !== (saved[s.value]?.included ?? true)),
