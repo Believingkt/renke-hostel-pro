@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -357,6 +357,11 @@ Deno.serve(async (req) => {
     );
 
 
+    // 團購信用卡＝全額付款：無訂金／尾款概念
+    const paidAmountNow = Math.max(0, Math.round(Number((order as any).paid_amount) || 0));
+    const fullPayment = String((order as any).payment_provider ?? "") === "tappay" &&
+      String((order as any).payment_method ?? "").includes("credit_card");
+
     return json({
       order: {
         orderNumber: order.order_number,
@@ -376,9 +381,12 @@ Deno.serve(async (req) => {
         orderStatus: order.order_status,
         paymentStatus: order.payment_status,
         total,
-        deposit: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
-        balance,
+        deposit: fullPayment ? 0 : (Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit),
+        balance: fullPayment ? Math.max(0, total - paidAmountNow) : balance,
         depositPercentage: depositPct,
+        paymentProvider: (order as any).payment_provider ?? null,
+        paidAmount: paidAmountNow,
+        fullPayment,
         paymentDeadline: deadline.toISOString(),
         paymentDeadlineText: formatTaipei(deadline),
       },

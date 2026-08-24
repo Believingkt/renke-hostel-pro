@@ -416,6 +416,8 @@ export interface CreateGroupBuyOrderOptions {
   draftId?: string | null;
   /** 建單後複驗庫存時排除自己的 hold */
   excludeDraftId?: string | null;
+  /** 信用卡全額付款：deposit_amount 歸零、無尾款（僅團購信用卡流程） */
+  fullPayment?: boolean;
   extraNoteLines?: string[];
 }
 
@@ -430,8 +432,21 @@ export function buildGroupBuyOrderInsert(plan: GroupBuyBookingPlan, opts: Create
   const campaign = plan.campaign;
   const pkg = plan.pkg;
   const paidAmount = Math.max(0, Math.round(Number(opts.paid?.amount) || 0));
-  const paymentStatus = paidAmount <= 0 ? "unpaid" : paidAmount >= plan.total ? "paid" : "deposit_paid";
-  const noteLines = [...plan.noteLines, ...(opts.extraNoteLines ?? [])];
+  const fullPayment = opts.fullPayment === true;
+  const paymentStatus = fullPayment
+    ? "paid"
+    : paidAmount <= 0
+    ? "unpaid"
+    : paidAmount >= plan.total
+    ? "paid"
+    : "deposit_paid";
+  // 全額付款：移除「訂金／尾款」備註行，改寫入全額付款說明
+  const baseNoteLines = fullPayment
+    ? plan.noteLines.map((l) =>
+      l.startsWith("訂金 ") ? `信用卡全額付款 ${plan.total} 元（無尾款）` : l
+    )
+    : plan.noteLines;
+  const noteLines = [...baseNoteLines, ...(opts.extraNoteLines ?? [])];
 
   return {
     order_number: "",
@@ -452,7 +467,7 @@ export function buildGroupBuyOrderInsert(plan: GroupBuyBookingPlan, opts: Create
     total_price: plan.total,
     discount_amount: 0,
     final_price: plan.total,
-    deposit_amount: plan.deposit,
+    deposit_amount: fullPayment ? 0 : plan.deposit,
     discount_code: campaign.discount_code ?? null,
     order_status: paidAmount > 0 ? "confirmed" : "pending",
     confirmed_at: paidAmount > 0 ? new Date().toISOString() : null,

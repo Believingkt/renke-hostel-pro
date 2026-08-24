@@ -48,7 +48,7 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
       <GroupBuyCreditCardDialog
         open
         onOpenChange={vi.fn()}
-        deposit={3000}
+        amount={14000}
         packageName="測試方案"
         buildRequest={() => req}
       />,
@@ -57,11 +57,11 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
     expect(invoke.mock.calls[0][0]).toBe("group-buy-create-payment-draft");
     // 前台不得呼叫任何建立正式訂單的函式
     expect(invoke.mock.calls.some((c) => String(c[0]).includes("create-order"))).toBe(false);
-    // 顯示金額為 server draft.amount_to_charge，而非前端 deposit prop
+    // 顯示金額為 server draft.amount_to_charge，而非前端 amount prop
     await screen.findByText("NT$ 4,321");
-    expect(screen.queryByText("NT$ 3,000")).toBeNull();
-    expect(screen.getByText("NT$ 14,000")).toBeTruthy();
-    expect(screen.getByText("NT$ 9,679")).toBeTruthy();
+    // 全額付款：不再顯示訂金比例與尾款
+    expect(screen.queryByText("NT$ 9,679")).toBeNull();
+    expect(screen.getByText(/本次信用卡付款金額（全額）/)).toBeTruthy();
   });
 
   it("CASE 8/9: 重新 render 不會重複建立 Draft，且顯示 10 分鐘保留倒數", async () => {
@@ -69,7 +69,7 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
       <GroupBuyCreditCardDialog
         open
         onOpenChange={vi.fn()}
-        deposit={3000}
+        amount={14000}
         packageName="測試方案"
         buildRequest={() => req}
       />,
@@ -79,7 +79,7 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
       <GroupBuyCreditCardDialog
         open
         onOpenChange={vi.fn()}
-        deposit={3000}
+        amount={14000}
         packageName="測試方案"
         buildRequest={() => req}
       />,
@@ -102,7 +102,7 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
       <GroupBuyCreditCardDialog
         open
         onOpenChange={vi.fn()}
-        deposit={3000}
+        amount={14000}
         packageName="測試方案"
         buildRequest={() => req}
       />,

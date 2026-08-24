@@ -1511,6 +1511,7 @@ export default function GroupBuyCampaign() {
                   <GroupBuyPaymentSteps
                     depositPercentage={depositPct}
                     deadlineHours={campaign.payment_deadline_hours}
+                    creditCardEnabled={!!campaign.enable_credit_card}
                   />
                 </div>
 
@@ -1755,7 +1756,7 @@ export default function GroupBuyCampaign() {
         <GroupBuyCreditCardDialog
           open={creditOpen}
           onOpenChange={setCreditOpen}
-          deposit={deposit}
+          amount={total}
           packageName={selectedPkg.display_name}
           buildRequest={() => ({
             slug: campaign.slug,

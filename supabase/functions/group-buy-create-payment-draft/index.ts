@@ -107,8 +107,8 @@ Deno.serve(async (req) => {
         price_snapshot: plan.priceSnapshot,
         total_price: plan.total,
         deposit_amount: plan.deposit,
-        // 本次應付＝訂金；落地後即固定，付款時不再依 campaign 即時計算
-        amount_to_charge: plan.deposit,
+        // 團購信用卡＝全額付款；落地後即固定，付款時不再依 campaign 即時計算
+        amount_to_charge: plan.total,
         payment_provider: "tappay",
         payment_type: "credit_card",
         expires_at: expiresAt.toISOString(),
@@ -135,9 +135,10 @@ Deno.serve(async (req) => {
       amountToCharge: draft.amount_to_charge,
       expiresAt: draft.expires_at,
       holdMinutes: HOLD_MINUTES,
+      chargeMode: "full",
       total: plan.total,
-      deposit: plan.deposit,
-      balance: plan.balance,
+      deposit: 0,
+      balance: 0,
       depositPercentage: plan.campaign.deposit_percentage,
       packageName: plan.pkg.display_name,
       campaignTitle: plan.campaign.title,

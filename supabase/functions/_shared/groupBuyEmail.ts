@@ -81,7 +81,7 @@ function money(n: number): string {
   return `NT$ ${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 }
 
-function orderTable(o: GroupBuyEmailOrder): string {
+function orderTable(o: GroupBuyEmailOrder, fullPayment = false): string {
   return `<table class="info">
     <tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
     <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
@@ -90,8 +90,12 @@ function orderTable(o: GroupBuyEmailOrder): string {
     <tr><td class="k">入住 / 退房</td><td>${esc(o.checkInDate)} → ${esc(o.checkOutDate)}</td></tr>
     ${o.guestCount ? `<tr><td class="k">入住人數</td><td>${esc(o.guestCount)} 人</td></tr>` : ""}
     <tr><td class="k">訂單總額</td><td>${money(o.totalPrice)}</td></tr>
-    <tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
-    <tr><td class="k">入住現場付清</td><td>${money(o.balanceAmount)}</td></tr>
+    ${
+    fullPayment
+      ? `<tr><td class="k">付款狀態</td><td><strong style="color:${BRAND.primary}">已全額付清</strong></td></tr>`
+      : `<tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
+    <tr><td class="k">入住現場付清</td><td>${money(o.balanceAmount)}</td></tr>`
+  }
   </table>`;
 }
 
@@ -134,23 +138,30 @@ export function renderBookingWithBankInfo(
  */
 export function renderDepositReceived(
   o: GroupBuyEmailOrder,
-  opts?: { providerLabel?: string | null; paidThisTime?: number | null },
+  opts?: { providerLabel?: string | null; paidThisTime?: number | null; fullPayment?: boolean },
 ): { subject: string; html: string } {
+  const full = opts?.fullPayment === true;
   const providerLine = opts?.providerLabel
     ? `<p>收款方式：<strong>${esc(opts.providerLabel)}</strong>${
       typeof opts.paidThisTime === "number" ? `，本次收款 <strong>${money(opts.paidThisTime)}</strong>` : ""
     }</p>`
     : "";
   return {
-    subject: `【已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
+    subject: full
+      ? `【已收到付款】${o.campaignTitle} 訂單 ${o.orderNumber}`
+      : `【已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
-      "已收到您的訂金",
-      `訂單 ${o.orderNumber} 訂金已入帳`,
-      `<h1>已收到您的訂金 ✅</h1>
-       <p>${esc(o.guestName)} 您好，我們已確認收到您的訂金 <strong>${money(o.depositAmount)}</strong>，您的訂房已完成確認。</p>
-       ${orderTable(o)}
+      full ? "已收到您的付款" : "已收到您的訂金",
+      full ? `訂單 ${o.orderNumber} 已全額付清` : `訂單 ${o.orderNumber} 訂金已入帳`,
+      `<h1>${full ? "已收到您的付款 ✅" : "已收到您的訂金 ✅"}</h1>
+       <p>${esc(o.guestName)} 您好，我們已確認收到您的${
+      full
+        ? `款項 <strong>${money(o.totalPrice)}</strong>，本筆訂單已全額付清`
+        : `訂金 <strong>${money(o.depositAmount)}</strong>`
+    }，您的訂房已完成確認。</p>
+       ${orderTable(o, full)}
        ${providerLine}
-       <p>尾款 ${money(o.balanceAmount)} 請於入住當天現場付清。期待與您相見！</p>
+       ${full ? "<p>入住當天無需再付款。期待與您相見！</p>" : `<p>尾款 ${money(o.balanceAmount)} 請於入住當天現場付清。期待與您相見！</p>`}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,
     ),
   };
@@ -350,7 +361,11 @@ function venueBaseRows(o: VenueNotifyOrder): string {
     ${o.guestEmail ? `<tr><td class="k">Email</td><td>${esc(o.guestEmail)}</td></tr>` : ""}`;
 }
 
-export function renderVenueNewOrder(o: VenueNotifyOrder): { subject: string; html: string } {
+export function renderVenueNewOrder(
+  o: VenueNotifyOrder,
+  opts?: { fullPayment?: boolean },
+): { subject: string; html: string } {
+  const full = opts?.fullPayment === true;
   const guests = [
     `成人 ${Number(o.adultCount ?? 0)}`,
     `兒童 ${Number(o.childCount ?? 0)}`,
@@ -358,19 +373,29 @@ export function renderVenueNewOrder(o: VenueNotifyOrder): { subject: string; htm
     `嬰兒 ${Number(o.infantCount ?? 0)}`,
   ].join("　");
   return {
-    subject: `【新團購訂單・待匯款】${o.accommodationName ?? o.campaignTitle} 訂單 ${o.orderNumber}`,
+    subject: full
+      ? `【新團購訂單・已付款】${o.accommodationName ?? o.campaignTitle} 訂單 ${o.orderNumber}`
+      : `【新團購訂單・待匯款】${o.accommodationName ?? o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
       "新團購訂單",
-      `訂單 ${o.orderNumber} 已成立，待旅客匯款`,
+      full ? `訂單 ${o.orderNumber} 已成立且全額付清` : `訂單 ${o.orderNumber} 已成立，待旅客匯款`,
       `<h1>新團購訂單</h1>
-       <p>有一筆新的團購訂單成立，目前狀態為「待匯款」，請留意入帳並於後台確認。</p>
+       <p>${
+      full
+        ? "有一筆新的團購訂單成立，旅客已以信用卡全額付款完成。"
+        : "有一筆新的團購訂單成立，目前狀態為「待匯款」，請留意入帳並於後台確認。"
+    }</p>
        <table class="info">
          ${venueBaseRows(o)}
          <tr><td class="k">入住人數</td><td>${esc(guests)}</td></tr>
          <tr><td class="k">訂單金額</td><td>${money(o.totalPrice)}</td></tr>
-         <tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
+         ${
+      full
+        ? `<tr><td class="k">收款狀態</td><td><strong style="color:${BRAND.primary}">已全額收款（信用卡）</strong></td></tr>`
+        : `<tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
          <tr><td class="k">入住支付尾款</td><td>${money(o.balanceAmount)}</td></tr>
-         <tr><td class="k">付款狀態</td><td>待匯款</td></tr>
+         <tr><td class="k">付款狀態</td><td>待匯款</td></tr>`
+    }
        </table>
        ${o.childBreakdownText ? `<div class="box"><h2>兒童加價</h2><p style="white-space:pre-line;margin:0">${esc(o.childBreakdownText)}</p></div>` : ""}
        ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台查看訂單</a></p>` : ""}`,

@@ -121,6 +121,8 @@ export default function GroupBuyOrderLookup() {
 
   /** 已全額退款時，狀態一律優先顯示「已退款」 */
   const refundedFully = data?.refund?.status === "refunded";
+  /** 信用卡（TapPay）＝全額付款：無匯款／訂金／尾款流程 */
+  const fullPayment = order?.fullPayment === true;
 
 
   return (
@@ -166,6 +168,8 @@ export default function GroupBuyOrderLookup() {
                 <Badge variant="destructive">已取消</Badge>
               ) : cancelRequest ? (
                 <Badge variant="destructive">取消申請處理中</Badge>
+              ) : fullPayment ? (
+                <Badge className="bg-primary">已付款</Badge>
               ) : confirmed ? (
                 <Badge className="bg-primary">已收訂金</Badge>
               ) : reported ? (
@@ -204,15 +208,24 @@ export default function GroupBuyOrderLookup() {
                 <span className="text-muted-foreground">訂單總額</span>
                 <span>{twd(order.total)}</span>
               </div>
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">應付訂金（{order.depositPercentage}%）</span>
-                <span className="font-semibold text-primary">{twd(order.deposit)}</span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">入住現場付清</span>
-                <span>{twd(order.balance)}</span>
-              </div>
-              {order.orderStatus !== "cancelled" && !confirmed && (
+              {fullPayment ? (
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">已付金額（全額）</span>
+                  <span className="font-semibold text-primary">{twd(order.paidAmount ?? order.total)}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">應付訂金（{order.depositPercentage}%）</span>
+                    <span className="font-semibold text-primary">{twd(order.deposit)}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">入住現場付清</span>
+                    <span>{twd(order.balance)}</span>
+                  </div>
+                </>
+              )}
+              {!fullPayment && order.orderStatus !== "cancelled" && !confirmed && (
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">匯款期限</span>
                   <span className="font-semibold">{order.paymentDeadlineText}</span>
@@ -220,7 +233,7 @@ export default function GroupBuyOrderLookup() {
               )}
             </div>
 
-            {data.bank && !confirmed && order.orderStatus !== "cancelled" && (
+            {data.bank && !fullPayment && !confirmed && order.orderStatus !== "cancelled" && (
               <div className="rounded-lg border p-4">
                 <p className="mb-2 font-semibold text-foreground">匯款資訊</p>
                 <p>
@@ -234,7 +247,11 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
-            {confirmed ? (
+            {fullPayment ? (
+              <p className="flex items-center gap-2 text-primary">
+                <CheckCircle2 className="h-4 w-4" /> 已完成信用卡全額付款，入住當天不需再付款。
+              </p>
+            ) : confirmed ? (
               <p className="flex items-center gap-2 text-primary">
                 <CheckCircle2 className="h-4 w-4" /> 訂金已確認入帳，訂房完成。
               </p>
@@ -357,7 +374,9 @@ export default function GroupBuyOrderLookup() {
                 ) : cancelOpen ? (
                   <div className="space-y-3">
                     <p className="text-muted-foreground">
-                      團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。
+                      {fullPayment
+                        ? "退款由民宿審核後處理，款項將退回原信用卡。"
+                        : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
                     </p>
                     <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
                     <div>

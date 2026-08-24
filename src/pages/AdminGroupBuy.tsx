@@ -866,6 +866,10 @@ export default function AdminGroupBuy() {
                     {orders.map((o) => {
                       const dState = depositState(o);
                       const rState = refundState(o);
+                      // 信用卡全額付款：訂金 0、已收＝訂單總額
+                      const fullPay = Number(o.deposit_amount || 0) <= 0 &&
+                        Number(o.paid_amount || 0) > 0 &&
+                        Number(o.paid_amount || 0) >= Number(o.final_price || 0);
                       const showRefundBtn = canProcessRefund(o);
                       return (
                       <TableRow
@@ -897,7 +901,9 @@ export default function AdminGroupBuy() {
                         <TableCell className="text-right tabular-nums">{twd(o.final_price)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className="tabular-nums">{twd(o.deposit_amount)}</span>
+                            <span className="tabular-nums">
+                              {fullPay ? `全額 ${twd(o.final_price)}` : twd(o.deposit_amount)}
+                            </span>
                             <Badge variant={DEPOSIT_STATE_VARIANT[dState]}>{DEPOSIT_STATE_LABEL[dState]}</Badge>
                           </div>
                           {Number(o.paid_amount || 0) > 0 && (
@@ -979,6 +985,9 @@ export default function AdminGroupBuy() {
               <CardContent className="flex flex-col gap-3 p-3 md:hidden">
                 {orders.map((o) => {
                   const dState = depositState(o);
+                  const fullPay = Number(o.deposit_amount || 0) <= 0 &&
+                    Number(o.paid_amount || 0) > 0 &&
+                    Number(o.paid_amount || 0) >= Number(o.final_price || 0);
                   const rState = refundState(o);
                   const showRefundBtn = canProcessRefund(o);
                   const highlighted =
@@ -1033,9 +1042,11 @@ export default function AdminGroupBuy() {
 
                       {/* L5 訂金 / 已收 */}
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">應付訂金</span>
+                        <span className="text-xs text-muted-foreground">{fullPay ? "全額付款" : "應付訂金"}</span>
                         <span className="flex items-center gap-2">
-                          <span className="text-sm font-medium tabular-nums">{twd(o.deposit_amount)}</span>
+                          <span className="text-sm font-medium tabular-nums">
+                            {fullPay ? twd(o.final_price) : twd(o.deposit_amount)}
+                          </span>
                           <Badge variant={DEPOSIT_STATE_VARIANT[dState]}>{DEPOSIT_STATE_LABEL[dState]}</Badge>
                         </span>
                       </div>
