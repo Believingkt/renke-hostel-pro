@@ -181,6 +181,45 @@ Deno.serve(async (req) => {
     const totalPrice = body.totalPrice || body.finalPrice;
     const totalGuests = body.totalGuests || 2;
 
+    // 付款後才發現不能建單（庫存被搶走）時的補償：自動退款 + 記錄
+    const refundAndFail = async (step: string, detail: unknown) => {
+      let refunded = false;
+      try {
+        const r = await refundTapPay(partnerKey!, body.recTradeId, verifiedAmount);
+        refunded = r.success;
+        console.error("[complete-3ds-booking] auto refund result:", r.success, r.msg);
+      } catch (e) {
+        console.error("[complete-3ds-booking] auto refund threw:", e);
+      }
+      await reportBackendError({
+        functionName: "complete-3ds-booking",
+        category: "inventory_unavailable_after_payment",
+        step,
+        errorMessage: `庫存不足導致付款後無法建單（已${refunded ? "" : "嘗試"}退款）`,
+        accommodationId: body.accommodationId,
+        idempotencyKey: body.idempotencyKey ?? undefined,
+        context: {
+          recTradeId: body.recTradeId,
+          amount: verifiedAmount,
+          refunded,
+          detail,
+        },
+      }).catch(() => {});
+      return new Response(
+        JSON.stringify({
+          success: false,
+          inventoryUnavailable: true,
+          refunded,
+          message: refunded
+            ? "很抱歉，您選擇的房型剛剛被其他旅客訂走，款項已全額退回原信用卡（依發卡行作業約 3–7 個工作天入帳）。請重新選擇日期或房型。"
+            : "很抱歉，您選擇的房型剛剛被其他旅客訂走，我們已通知客服為您處理退款，將盡快與您聯繫。",
+        }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    };
+
+
+
     try {
       const validationPayload = {
         accommodationId: body.accommodationId,
