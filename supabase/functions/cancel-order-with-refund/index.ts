@@ -115,9 +115,21 @@ serve(async (req) => {
     });
     const suggestedRefund = Math.max(0, Math.round(policyQuote.refundAmount));
 
+    const alreadyRefunded = Math.max(0, Math.round(Number(order.refunded_amount || 0)));
+    const remainingRefundable = Math.max(0, Math.round(paidAmount - alreadyRefunded));
+
     if (body.mode === "quote") {
       return new Response(
-        JSON.stringify({ success: true, quote: policyQuote, suggestedRefund, paidAmount }),
+        JSON.stringify({
+          success: true,
+          quote: policyQuote,
+          policy: policyQuote.policy,
+          suggestedRefund,
+          paidAmount,
+          alreadyRefunded,
+          remainingRefundable,
+          requiresManualReview: policyQuote.requiresManualReview,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -127,12 +139,28 @@ serve(async (req) => {
       ? Math.max(0, Math.round(Number(body.refundAmount)))
       : suggestedRefund;
     const isManualOverride = refundAmount !== suggestedRefund;
+    const overrideReason = String(body.overrideReason ?? "").trim();
+
+    // 人工覆寫退款金額時，理由必填（與團購規則一致）
+    if (isManualOverride && overrideReason.length < 2) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          requiresReason: true,
+          suggestedRefund,
+          message: `實際退款金額與系統建議（NT$${suggestedRefund.toLocaleString()}）不同，請填寫調整原因。`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const nowIso = new Date().toISOString();
     const auditPrefix = `🔒 [${nowIso}] ${userEmail} 取消訂單`;
 
     let refundResultNote = "";
     let refundSucceeded = false;
     let recTradeIdUsed: string | null = null;
+
 
     // ===== auto_refund: credit card via TapPay =====
     if (body.refundAction === "auto_refund") {
