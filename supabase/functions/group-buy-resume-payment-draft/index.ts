@@ -16,6 +16,12 @@ const FN = "group-buy-resume-payment-draft";
 /** 可續付的 draft 狀態：已成功付款／已轉單／已取消一律不可續付 */
 const RESUMABLE_STATUSES = ["pending", "payment_processing", "failed"];
 
+/**
+ * 已經產生扣款事實（或待人工確認）的狀態：一律不可續付，也不可讓前台再建立新 Draft，
+ * 否則同一位客人會被重複請款。前台必須改導向訂單查詢／客服。
+ */
+const BLOCKING_STATUSES = ["paid", "converted", "manual_review"];
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -80,7 +86,7 @@ Deno.serve(async (req) => {
       const { data } = await admin
         .from("group_buy_payment_drafts")
         .select(
-          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload",
+          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id",
         )
         .eq("id", draftId)
         .maybeSingle();
@@ -96,11 +102,10 @@ Deno.serve(async (req) => {
       const { data: rows } = await admin
         .from("group_buy_payment_drafts")
         .select(
-          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload",
+          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id",
         )
         .eq("campaign_id", campaign.id)
-        .in("status", RESUMABLE_STATUSES)
-        .gt("expires_at", nowIso)
+        .in("status", [...RESUMABLE_STATUSES, ...BLOCKING_STATUSES])
         .order("created_at", { ascending: false })
         .limit(20);
       draft = (rows ?? []).find((r: any) =>
@@ -112,8 +117,34 @@ Deno.serve(async (req) => {
     }
 
     if (!draft) return json({ found: false });
-    if (!RESUMABLE_STATUSES.includes(String(draft.status))) {
-      return json({ found: false, reason: "not_resumable", status: draft.status });
+
+    const status = String(draft.status ?? "");
+    // 已扣款／已轉單／待人工確認：回報 alreadyPaid，前台不得再建立新 Draft 或再次請款
+    if (BLOCKING_STATUSES.includes(status) || draft.converted_order_id) {
+      let orderNumber: string | null = null;
+      if (draft.converted_order_id) {
+        const { data: ord } = await admin
+          .from("orders")
+          .select("order_number")
+          .eq("id", draft.converted_order_id)
+          .maybeSingle();
+        orderNumber = ord?.order_number ?? null;
+      }
+      return json({
+        found: false,
+        alreadyPaid: true,
+        reason: draft.converted_order_id || status === "converted"
+          ? "converted"
+          : status === "manual_review"
+          ? "manual_review"
+          : "paid_not_converted",
+        status,
+        orderNumber,
+      });
+    }
+
+    if (!RESUMABLE_STATUSES.includes(status)) {
+      return json({ found: false, reason: "not_resumable", status });
     }
 
     const remainingMs = new Date(draft.expires_at).getTime() - Date.now();
@@ -137,6 +168,8 @@ Deno.serve(async (req) => {
       guestNameMasked: String(draft.guest_name ?? "").slice(0, 1) + "**",
       guestPhoneMasked: maskPhone(draft.guest_phone),
       guestEmailMasked: maskEmail(draft.guest_email),
+      /** 已向 TapPay 發動過扣款（3DS 中斷）：前台需提醒客人先確認是否已成功付款 */
+      hasPaymentAttempt: Boolean(draft.rec_trade_id),
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
