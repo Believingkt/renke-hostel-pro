@@ -433,6 +433,8 @@ Deno.serve(async (req) => {
         ? { title: campaign.title, slug: campaign.slug, contactNote: campaign.contact_note, kol: campaign.kol_display_name }
         : null,
       bank: await (async () => {
+        // 只有「銀行人工匯款」訂單才回傳活動匯款帳戶；ATM／信用卡一律不得出現匯款帳號
+        if (paymentChannel !== "bank") return null;
         if (!campaign?.id) return null;
         const { data } = await admin
           .from("group_buy_bank_accounts")
