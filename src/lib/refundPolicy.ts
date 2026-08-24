@@ -6,8 +6,17 @@
  * 於 supabase/functions/_shared/refundPolicy.ts 維持同一份文字，兩邊需同步更新。
  */
 
-/** 退款匯款手續費（新台幣） */
-export const REFUND_HANDLING_FEE = 30;
+/**
+ * 退款匯款手續費：改為「每館可設定」（booking_settings.manual_refund_fee_amount）。
+ * 任何位置都不得再寫死金額；未取得設定時視為 0（不顯示手續費文案）。
+ */
+export const DEFAULT_REFUND_HANDLING_FEE = 0;
+
+/** 依館別手續費產生文案；fee <= 0 時回傳 null（代表不扣手續費，不顯示此句） */
+export function refundFeeText(fee: number): string | null {
+  const f = Math.max(0, Math.round(Number(fee) || 0));
+  return f > 0 ? `退款將扣除 NT$${f} 匯款手續費。` : null;
+}
 
 /** 退款時程規則（以「審核確認日」為基準） */
 export const REFUND_SCHEDULE_RULES: string[] = [
@@ -17,7 +26,6 @@ export const REFUND_SCHEDULE_RULES: string[] = [
 
 export const REFUND_SCHEDULE_TITLE = "退款時間";
 export const REFUND_SCHEDULE_INTRO = "若符合退款條件，將以「審核確認日」為基準：";
-export const REFUND_FEE_TEXT = `退款將扣除 NT$${REFUND_HANDLING_FEE} 匯款手續費。`;
 export const REFUND_PENDING_REVIEW_TEXT = "在民宿完成審核前，訂單仍維持原訂房狀態。";
 export const CANCEL_REQUEST_RECEIVED_TEXT = "已收到您的取消申請，民宿正在審核。";
 
