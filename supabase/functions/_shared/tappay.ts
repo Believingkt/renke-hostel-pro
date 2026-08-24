@@ -75,7 +75,7 @@ export async function refundTapPay(
   partnerKey: string,
   recTradeId: string,
   amount: number,
-): Promise<{ success: boolean; status?: number; msg?: string }> {
+): Promise<{ success: boolean; status?: number; msg?: string; networkError?: boolean }> {
   try {
     const { refund } = getTapPayEndpoints();
     const resp = await fetch(refund, {
@@ -87,8 +87,10 @@ export async function refundTapPay(
     console.error("[tappay] Refund result:", { status: result.status, msg: result.msg });
     return { success: result.status === 0, status: result.status, msg: result.msg };
   } catch (e) {
+    // 網路層錯誤／timeout：TapPay 可能「已經退款成功」，呼叫端一律不得重試、不得標記退款完成，
+    // 必須改走 tappay-sync-refund（Query 累計 refunded_amount）冪等回正。
     console.error("[tappay] Refund threw:", e);
-    return { success: false, msg: String(e) };
+    return { success: false, msg: String(e), networkError: true };
   }
 }
 
