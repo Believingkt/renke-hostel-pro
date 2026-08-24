@@ -153,6 +153,8 @@ export function buildEmailOrder(params: {
           )
         ? "ATM 虛擬帳號"
         : "銀行匯款",
+    // 退款管道與原付款方式分開輸出，不得反向覆蓋
+    refundChannelText: isCardOrder ? "原信用卡退刷（TapPay）" : "人工匯款退款",
     isCardOrder,
     fullPrepayment,
     deadlineText: formatTaipei(deadline),

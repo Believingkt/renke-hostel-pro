@@ -194,3 +194,56 @@ describe("F3-C4 group buy cancel/refund email copy", () => {
     expect(html).toContain("NT$ 223");
   });
 });
+
+describe("Email 付款方式／退款方式分流（SoT = payment_method）", () => {
+  it("ATM：原付款方式 ATM 虛擬帳號，退款方式人工匯款退款", () => {
+    const o = build(atmOrder);
+    expect(o.paymentMethodText).toBe("ATM 虛擬帳號");
+    expect(o.refundChannelText).toBe("人工匯款退款");
+    const cancelled = renderOrderCancelled(o, {
+      cancelledAtText: "2026/08/24 16:00",
+      paidAmount: 300,
+      refundedTotal: 0,
+      refundStatus: "pending_manual",
+      handlingFee: 10,
+    });
+    expect(cancelled.html).toContain("ATM 虛擬帳號");
+    expect(cancelled.html).toContain("人工匯款退款");
+    const refunded = renderRefundProcessed(o, {
+      refundAmount: 290,
+      refundedTotal: 290,
+      paidAmount: 300,
+      refundStatus: "refunded",
+      refundedAtText: "2026/08/24 17:00",
+      refundFee: 10,
+      refundFeeTotal: 10,
+    });
+    expect(refunded.html).toContain("ATM 虛擬帳號");
+    expect(refunded.html).toContain("人工匯款退款");
+    expect(refunded.html).not.toContain("<td>銀行匯款</td>");
+  });
+
+  it("Bank：原付款方式 銀行匯款，退款方式人工匯款退款", () => {
+    const o = build(bankOrder);
+    expect(o.paymentMethodText).toBe("銀行匯款");
+    expect(o.refundChannelText).toBe("人工匯款退款");
+  });
+
+  it("信用卡：原付款方式 信用卡，退款方式原信用卡退刷（TapPay）", () => {
+    const o = build(cardOrder);
+    expect(o.paymentMethodText).toContain("信用卡");
+    expect(o.refundChannelText).toBe("原信用卡退刷（TapPay）");
+    const { html } = renderRefundProcessed(o, {
+      refundAmount: 1000,
+      refundedTotal: 1000,
+      paidAmount: 1000,
+      refundStatus: "refunded",
+      refundedAtText: "2026/08/24 17:00",
+    });
+    expect(html).not.toContain("人工匯款退款");
+  });
+
+  it("provider=manual 不得直接輸出銀行匯款（ATM 反例）", () => {
+    expect(build({ ...atmOrder, payment_provider: "manual" }).paymentMethodText).toBe("ATM 虛擬帳號");
+  });
+});
