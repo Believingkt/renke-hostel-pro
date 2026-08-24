@@ -570,9 +570,83 @@ export function GroupBuyCreditCardDialog(props: Props) {
         </div>
 
 
-        {blocked && (
+        {blocked && blocked.reason === "payment_processing" && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-semibold">付款結果確認中，請勿重新付款。</p>
+            <p className="mt-1 text-destructive/90">
+              上一筆付款正在確認中，暫時無法重新付款或釋放房況，請稍候並等待付款結果。
+            </p>
+          </div>
+        )}
+
+        {conflict && (
+          <div className="rounded-2xl border border-accent/50 bg-accent/10 p-4 text-sm">
+            <p className="font-semibold text-foreground">您目前仍有一筆付款保留中的房況</p>
+            <p className="mt-1 text-muted-foreground">
+              {conflict.checkInDate} → {conflict.checkOutDate}
+              {conflict.packageName ? `｜${conflict.packageName}` : ""}
+              {conflict.roomQuantity ? `｜${conflict.roomQuantity} 間` : ""}
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              剩餘 {Math.floor((Number(conflict.remainingSeconds) || 0) / 60)}:
+              {String(Math.max(0, Number(conflict.remainingSeconds) || 0) % 60).padStart(2, "0")}
+              ．若改用目前的新選擇，原房況保留將立即釋放。
+            </p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => void keepOldDraft()}
+              >
+                繼續原付款
+              </Button>
+              <Button
+                type="button"
+                className="h-11 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90"
+                disabled={releasing}
+                onClick={() => void switchToCurrent()}
+              >
+                {releasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                改用目前選擇
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {askRelease && (
+          <div className="rounded-2xl border border-border/70 bg-muted/60 p-4 text-sm">
+            <p className="font-semibold text-foreground">返回修改後，目前為您保留的房況將立即釋放。</p>
+            <p className="mt-1 text-muted-foreground">若之後再次付款，系統會重新確認房況與價格。</p>
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => setAskRelease(false)}
+              >
+                繼續付款
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                className="h-11 rounded-xl"
+                disabled={releasing}
+                onClick={() => void confirmReleaseAndBack()}
+              >
+                {releasing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                釋放房況並返回修改
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {blocked && blocked.reason !== "payment_processing" && (
           <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
             <p className="font-semibold">
+
               {blocked.reason === "converted"
                 ? "這筆預訂已經付款成功並完成建立訂單。"
                 : blocked.reason === "manual_review"
