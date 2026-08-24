@@ -583,6 +583,10 @@ export default function TeamHome() {
             .select("bonus_type, multiplier, start_month, end_month");
           multRowsData = (data ?? []) as unknown[];
         })();
+        // 提前建立的 promise 先掛一個 no-op handler，避免在 Promise.all 接手前
+        // 短暫被視為 unhandled rejection；真正的錯誤仍由下方 await 拋出並被 catch。
+        void closerRateResolverP.catch(() => {});
+        void pMultipliers.catch(() => {});
         // profile id (for scout / franchise external / 團隊獎金角色綁定)
         let profileId: string | null = null;
         let myManagedAccIds: string[] = [];
