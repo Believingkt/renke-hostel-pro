@@ -1712,6 +1712,7 @@ export default function AdminGroupBuy() {
           </DialogHeader>
           {cancelTarget && (
             <div className="space-y-3 text-sm">
+              {renderQuotePanel()}
               <div>
                 <Label>退款方式</Label>
                 <Select value={cancelRefundAction} onValueChange={(v) => setCancelRefundAction(v as any)}>
@@ -1742,9 +1743,20 @@ export default function AdminGroupBuy() {
                 </div>
               )}
               <div>
-                <Label>取消原因（會寫入稽核紀錄）</Label>
+                <Label>
+                  取消原因（會寫入稽核紀錄）
+                  {cancelReasonRequired && <span className="ml-1 text-destructive">＊必填</span>}
+                </Label>
                 <Textarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+                {cancelReasonRequired && (
+                  <p className="mt-1 text-xs text-destructive">
+                    實際退款金額與系統建議（{twd(quote?.suggestedRefund ?? 0)}）不同，請填寫調整原因。
+                  </p>
+                )}
               </div>
+            </div>
+          )}
+
             </div>
           )}
           <DialogFooter>
