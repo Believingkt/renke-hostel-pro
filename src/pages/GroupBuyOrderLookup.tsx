@@ -15,6 +15,8 @@ import { CheckCircle2, Loader2, MapPin, Undo2, XCircle } from "lucide-react";
 import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
 import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
+import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolicyLines";
+
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
 
@@ -364,6 +366,13 @@ export default function GroupBuyOrderLookup() {
                 <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
                   <XCircle className="h-4 w-4" /> 取消訂單
                 </p>
+                {order.cancellationPolicy && (
+                  <CancellationPolicyLines
+                    policy={order.cancellationPolicy}
+                    className="mb-3 rounded-md bg-muted/50 p-3"
+                  />
+                )}
+
                 {cancelRequest ? (
                   <div className="space-y-2">
                     <p className="text-muted-foreground">

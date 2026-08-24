@@ -2,6 +2,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import type { GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
+import { resolveCancellationPolicy } from "./cancellationPolicy.ts";
+
 
 export const GROUP_BUY_ORDER_SOURCE = "group_buy";
 
@@ -123,8 +125,20 @@ export function buildEmailOrder(params: {
     balanceAmount: balance,
     deadlineText: formatTaipei(deadline),
     orderUrl: `${origin}/g/order/${encodeURIComponent(order.order_number)}`,
+    // 取消政策依「訂單實際付款制度」判定，不得依活動當下設定或金額反推
+    cancellationPolicy: resolveCancellationPolicy({
+      order_source: order.order_source ?? GROUP_BUY_ORDER_SOURCE,
+      payment_provider: order.payment_provider ?? null,
+      payment_method: order.payment_method ?? null,
+      deposit_payment_method: order.deposit_payment_method ?? null,
+      balance_payment_method: order.balance_payment_method ?? null,
+      room_charge_status: order.room_charge_status ?? null,
+      paid_amount: Number(order.paid_amount ?? 0),
+      final_price: Number(order.final_price ?? order.total_price ?? 0),
+    }).policy,
   };
 }
+
 
 /** 後台 canonical 網域：民宿／管理者 Email 的後台 CTA 一律使用 PMS 網域 */
 export const PMS_ADMIN_ORIGIN = "https://pms.lakeze.com";

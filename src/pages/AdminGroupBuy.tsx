@@ -209,7 +209,34 @@ interface BankRow {
   is_default: boolean;
 }
 
+const POLICY_LABEL: Record<string, string> = {
+  deposit: "收取定金制（14 日級距）",
+  full_prepayment: "預收房價總額制（3 日級距）",
+  guarantee: "綁卡擔保（違約金級距）",
+  unknown: "無法判定（需人工確認）",
+};
+
+/** group-buy-cancel-refund mode:"quote" 回傳（唯讀，不異動訂單） */
+
+interface RefundQuote {
+  paidAmount: number;
+  alreadyRefunded: number;
+  remainingRefundable: number;
+  suggestedRefund: number;
+  requiresManualReview: boolean;
+  policy: "deposit" | "full_prepayment" | "guarantee" | "unknown";
+  quote: {
+    policy: string;
+    policyReason: string;
+    daysBefore: number;
+    refundPercent: number;
+    label: string;
+  };
+
+}
+
 interface OrderRow {
+
   id: string;
   order_number: string;
   guest_name: string;
@@ -290,6 +317,25 @@ export default function AdminGroupBuy() {
   const [refundAmount, setRefundAmount] = useState("");
   const [refundNote, setRefundNote] = useState("");
   const [refunding, setRefunding] = useState(false);
+  /** server 端法規建議退款（mode:"quote"），前端一律顯示 server 值，不自行計算級距 */
+  const [quote, setQuote] = useState<RefundQuote | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(false);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
+
+  /**
+   * 人工覆寫退款金額（與 server 建議不同）時，原因必填。
+   * 前後端同時檢核（server: group-buy-cancel-refund requireReasonIfOverride）。
+   */
+  const cancelActualRefund = cancelRefundAction === "mark_refunded" ? Math.round(Number(cancelRefundAmount) || 0) : 0;
+  const cancelReasonRequired = !!quote &&
+    cancelRefundAction !== "pending_refund" &&
+    cancelActualRefund !== quote.suggestedRefund &&
+    cancelReason.trim().length < 2;
+  const refundReasonRequired = !!quote &&
+    Math.round(Number(refundAmount) || 0) !== quote.suggestedRefund &&
+    refundNote.trim().length < 2;
+
+
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
@@ -563,21 +609,101 @@ export default function AdminGroupBuy() {
     }
   };
 
-  const openCancel = (o: OrderRow) => {
+  /**
+   * 取得 server 端法規建議退款金額（mode:"quote"，唯讀不異動資料）。
+   * 一律以 server 回傳為準，前端不得自行計算級距。
+   */
+  const fetchQuote = async (orderId: string) => {
+    setQuote(null);
+    setQuoteLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
+        body: { orderId, mode: "quote" },
+      });
+      const payload = data as RefundQuote & { error?: string } | null;
+      if (error || !payload || payload.error) {
+        setQuoteError(payload?.error ?? error?.message ?? "無法取得取消政策建議");
+        return null;
+      }
+      setQuoteError(null);
+      setQuote(payload);
+      return payload;
+    } finally {
+      setQuoteLoading(false);
+    }
+  };
+
+  /** 法規建議退款資訊面板（取消 / 退款兩個 Modal 共用） */
+  const renderQuotePanel = () => {
+    if (quoteLoading) {
+      return (
+        <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          正在取得取消政策建議…
+        </div>
+      );
+    }
+    if (quoteError) {
+      return (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+          無法取得取消政策建議：{quoteError}。請人工確認退款金額。
+        </div>
+      );
+    }
+    if (!quote) return null;
+    return (
+      <div className="space-y-2">
+        {quote.requiresManualReview && (
+          <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-xs font-medium text-destructive">
+            ⚠️ 此訂單無法自動判定取消政策（付款方式不明），系統不提供建議金額，請人工確認後填寫實際退款金額與原因。
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-2 rounded-lg border bg-muted/30 p-3 text-xs">
+          <div className="text-muted-foreground">適用制度</div>
+          <div className="text-right font-medium">{POLICY_LABEL[quote.policy] ?? quote.policy}</div>
+          <div className="text-muted-foreground">距入住天數</div>
+          <div className="text-right tabular-nums">{quote.quote.daysBefore} 天</div>
+          <div className="text-muted-foreground">退還比例</div>
+          <div className="text-right tabular-nums">{quote.quote.refundPercent}%</div>
+          <div className="text-muted-foreground">已付款金額</div>
+          <div className="text-right tabular-nums">{twd(quote.paidAmount)}</div>
+          <div className="text-muted-foreground">已退款金額</div>
+          <div className="text-right tabular-nums">{twd(quote.alreadyRefunded)}</div>
+          <div className="text-muted-foreground">最高可退</div>
+          <div className="text-right tabular-nums">{twd(quote.remainingRefundable)}</div>
+          <div className="text-muted-foreground">建議退款金額</div>
+          <div className="text-right font-semibold tabular-nums text-primary">{twd(quote.suggestedRefund)}</div>
+          {quote.quote.label && (
+            <div className="col-span-2 pt-1 text-[11px] leading-relaxed text-muted-foreground">
+              {quote.quote.label}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+
+
+  const openCancel = async (o: OrderRow) => {
     const refundable = remainingRefundable(o);
     setCancelTarget(o);
     setCancelRefundAction(refundable > 0 ? "pending_refund" : "no_refund");
     setCancelRefundAmount(String(refundable));
     const req = events.find((e) => e.order_id === o.id && e.event_type === "cancel_requested");
     setCancelReason(req?.note ?? "");
-
+    const q = await fetchQuote(o.id);
+    if (q) setCancelRefundAmount(String(q.suggestedRefund));
   };
 
-  const openRefund = (o: OrderRow) => {
+  const openRefund = async (o: OrderRow) => {
     setRefundTarget(o);
     setRefundAmount(String(remainingRefundable(o)));
     setRefundNote("");
+    const q = await fetchQuote(o.id);
+    if (q) setRefundAmount(String(q.suggestedRefund));
   };
+
 
   /** 人工退款登記：管理員於銀行端完成退匯後才按下確認；server 端會重新讀 orders 驗證金額 */
   const processRefund = async () => {
@@ -588,6 +714,15 @@ export default function AdminGroupBuy() {
       toast({ title: "退款金額不正確", description: `可退範圍 1 ~ ${twd(max)}`, variant: "destructive" });
       return;
     }
+    if (refundReasonRequired) {
+      toast({
+        title: "請填寫調整原因",
+        description: `實際退款金額與系統建議（${twd(quote?.suggestedRefund ?? 0)}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setRefunding(true);
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
@@ -611,7 +746,16 @@ export default function AdminGroupBuy() {
 
   const cancelWithRefund = async () => {
     if (!cancelTarget) return;
+    if (cancelReasonRequired) {
+      toast({
+        title: "請填寫取消原因",
+        description: `實際退款金額與系統建議（${twd(quote?.suggestedRefund ?? 0)}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
     setCancelling(true);
+
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
         body: {
@@ -1588,7 +1732,7 @@ export default function AdminGroupBuy() {
       </Dialog>
 
       {/* 取消訂單並手動退款 */}
-      <Dialog open={!!cancelTarget} onOpenChange={(o) => !o && setCancelTarget(null)}>
+      <Dialog open={!!cancelTarget} onOpenChange={(o) => { if (!o) { setCancelTarget(null); setQuote(null); setQuoteError(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>取消訂單並處理退款</DialogTitle>
@@ -1600,6 +1744,7 @@ export default function AdminGroupBuy() {
           </DialogHeader>
           {cancelTarget && (
             <div className="space-y-3 text-sm">
+              {renderQuotePanel()}
               <div>
                 <Label>退款方式</Label>
                 <Select value={cancelRefundAction} onValueChange={(v) => setCancelRefundAction(v as any)}>
@@ -1630,8 +1775,16 @@ export default function AdminGroupBuy() {
                 </div>
               )}
               <div>
-                <Label>取消原因（會寫入稽核紀錄）</Label>
+                <Label>
+                  取消原因（會寫入稽核紀錄）
+                  {cancelReasonRequired && <span className="ml-1 text-destructive">＊必填</span>}
+                </Label>
                 <Textarea rows={3} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+                {cancelReasonRequired && (
+                  <p className="mt-1 text-xs text-destructive">
+                    實際退款金額與系統建議（{twd(quote?.suggestedRefund ?? 0)}）不同，請填寫調整原因。
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -1647,7 +1800,7 @@ export default function AdminGroupBuy() {
       </Dialog>
 
       {/* 人工退款登記（已取消訂單） */}
-      <Dialog open={!!refundTarget} onOpenChange={(o) => !o && setRefundTarget(null)}>
+      <Dialog open={!!refundTarget} onOpenChange={(o) => { if (!o) { setRefundTarget(null); setQuote(null); setQuoteError(null); } }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>處理退款</DialogTitle>
@@ -1669,6 +1822,7 @@ export default function AdminGroupBuy() {
                 <div className="text-muted-foreground">尚可退款金額</div>
                 <div className="text-right font-semibold tabular-nums">{twd(remainingRefundable(refundTarget))}</div>
               </div>
+              {renderQuotePanel()}
               <div>
                 <Label>退款金額</Label>
                 <Input
@@ -1680,9 +1834,18 @@ export default function AdminGroupBuy() {
                 />
               </div>
               <div>
-                <Label>退款備註（會寫入稽核紀錄）</Label>
+                <Label>
+                  退款備註（會寫入稽核紀錄）
+                  {refundReasonRequired && <span className="ml-1 text-destructive">＊必填</span>}
+                </Label>
                 <Textarea rows={3} value={refundNote} onChange={(e) => setRefundNote(e.target.value)} />
+                {refundReasonRequired && (
+                  <p className="mt-1 text-xs text-destructive">
+                    實際退款金額與系統建議（{twd(quote?.suggestedRefund ?? 0)}）不同，請填寫調整原因。
+                  </p>
+                )}
               </div>
+
             </div>
           )}
           <DialogFooter>

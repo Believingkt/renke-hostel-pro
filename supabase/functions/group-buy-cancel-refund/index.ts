@@ -91,9 +91,26 @@ Deno.serve(async (req) => {
         alreadyRefunded,
         remainingRefundable: refundable,
         quote: policyQuote,
+        policy: policyQuote.policy,
         suggestedRefund,
+        requiresManualReview: policyQuote.requiresManualReview,
       });
     }
+
+    /**
+     * 人工覆寫退款金額（與系統建議不同）時，理由必填。
+     * 與一般訂房 cancel-order-with-refund 規則一致，audit 需可追溯調整原因。
+     */
+    const requireReasonIfOverride = (actual: number) => {
+      if (actual === suggestedRefund) return null;
+      if (reason.length >= 2) return null;
+      return json({
+        error: `實際退款金額與系統建議（${twd(suggestedRefund)}）不同，請填寫調整原因。`,
+        requiresReason: true,
+        suggestedRefund,
+      }, 400);
+    };
+
 
     const { data: commission } = await admin
       .from("group_buy_commissions")
@@ -160,6 +177,9 @@ Deno.serve(async (req) => {
       if (refundAmount > refundable) {
         return json({ error: `退款金額超過可退金額 ${twd(refundable)}` }, 400);
       }
+      const reasonError = requireReasonIfOverride(refundAmount);
+      if (reasonError) return reasonError;
+
       const settle = await adapter.refundPayment({ order: { ...order, id: order.id }, amount: refundAmount, note: reason });
       if (!settle.ok) return json({ error: settle.error ?? "退款處理失敗" }, 400);
 
@@ -256,6 +276,12 @@ Deno.serve(async (req) => {
     if (refundAmount > refundable) {
       return json({ error: `退款金額超過可退金額 ${twd(refundable)}` }, 400);
     }
+    // pending_refund 為「稍後處理」，不算金額覆寫；其餘與建議金額不同者理由必填
+    if (refundAction !== "pending_refund") {
+      const reasonError = requireReasonIfOverride(refundAmount);
+      if (reasonError) return reasonError;
+    }
+
     if (refundAmount > 0) {
       const settle = await adapter.refundPayment({ order: { ...order, id: order.id }, amount: refundAmount, note: reason });
       if (!settle.ok) return json({ error: settle.error ?? "退款處理失敗" }, 400);
@@ -278,8 +304,13 @@ Deno.serve(async (req) => {
         : paid > 0
         ? "退款處理：待退款（尚未退回旅客）"
         : "退款處理：未收款，不需退款",
+      `取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／比例 ${policyQuote.refundPercent}%／` +
+      `已付 ${twd(paid)}／已退 ${twd(alreadyRefunded)}／最高可退 ${twd(refundable)}／建議退款 ${twd(suggestedRefund)}／實際 ${twd(refundAmount)}` +
+      (refundAmount !== suggestedRefund && refundAction !== "pending_refund" ? "／⚠️ 人工調整" : "") +
+      (policyQuote.requiresManualReview ? "／⚠️ 無法自動判定政策，需人工確認" : ""),
       reason ? `原因：${reason}` : null,
     ].filter(Boolean).join("\n");
+
 
     const { error: uErr } = await admin
       .from("orders")

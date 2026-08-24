@@ -2,6 +2,9 @@
 // 走既有 Resend connector gateway，版型沿用品牌橘色調。
 
 import { refundScheduleHtml } from "./refundPolicy.ts";
+import { cancellationPolicyCopy, renderCancellationPolicyHtml } from "./cancellationPolicyCopy.ts";
+import type { CancellationPolicyType } from "./cancellationPolicy.ts";
+
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
@@ -66,7 +69,18 @@ export interface GroupBuyEmailOrder {
   balanceAmount: number;
   deadlineText?: string | null;
   orderUrl?: string | null;
+  /** 依訂單實際付款制度判定之取消政策（顯示用，與後端計算同源） */
+  cancellationPolicy?: CancellationPolicyType | null;
 }
+
+/** 取消政策區塊（與一般訂房信共用同一份文案來源） */
+function cancellationBlock(o: GroupBuyEmailOrder): string {
+  if (!o.cancellationPolicy) return "";
+  return `<div class="box">${
+    renderCancellationPolicyHtml(cancellationPolicyCopy(o.cancellationPolicy))
+  }</div>`;
+}
+
 
 export interface GroupBuyBankInfo {
   bankName: string;
@@ -122,6 +136,7 @@ export function renderBookingWithBankInfo(
       `<h1>訂房已成立，請完成訂金匯款 🎉</h1>
        <p>${esc(o.guestName)} 您好，感謝您參加團購。以下是您的訂單資訊，請於期限內完成訂金匯款以保留房間。</p>
        ${orderTable(o)}
+       ${cancellationBlock(o)}
        ${bankBlock}
        ${o.deadlineText ? `<p><strong style="color:${BRAND.primary}">匯款期限：${esc(o.deadlineText)}</strong>（逾期系統將自動取消訂單）</p>` : ""}
        <p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
@@ -160,6 +175,7 @@ export function renderDepositReceived(
         : `訂金 <strong>${money(o.depositAmount)}</strong>`
     }，您的訂房已完成確認。</p>
        ${orderTable(o, full)}
+       ${cancellationBlock(o)}
        ${providerLine}
        ${full ? "<p>入住當天無需再付款。期待與您相見！</p>" : `<p>尾款 ${money(o.balanceAmount)} 請於入住當天現場付清。期待與您相見！</p>`}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,

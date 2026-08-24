@@ -1,5 +1,11 @@
 // 訂單確認信：完整複製會員端「訂單詳情頁」(src/pages/MemberOrderDetail.tsx) 的內容與版面。
 // 所有資料一律由 DB 取得（server truth），避免與頁面顯示不一致。
+import {
+  cancellationPolicyCopyForOrder,
+  freeCancelDaysFor,
+  renderCancellationPolicyHtml,
+} from "./cancellationPolicyCopy.ts";
+
 
 const ORANGE = "#ff6a00";
 const TZ = "Asia/Taipei";
@@ -145,7 +151,7 @@ export async function buildOrderConfirmationEmail(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
+      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, deposit_amount, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_status, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
     )
     .eq("order_number", orderNumber)
     .maybeSingle();
@@ -255,8 +261,17 @@ export async function buildOrderConfirmationEmail(
           : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
         : `系統將於 ${fmt(checkIn, { month: "long", day: "numeric" })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`;
 
-  const freeCancelDeadline = new Date(checkIn.getTime() - 14 * 86400000);
-  const freeCancelNow = daysBetween(checkIn, new Date()) >= 14;
+  /**
+   * 取消政策一律依「訂單實際付款制度」判定（cancellationPolicy.ts），
+   * 不得直接沿用館別自訂 HTML，避免信用卡全額預收（3 日）與 14 日訂金級距互相矛盾。
+   */
+  const policyCopy = cancellationPolicyCopyForOrder(order as any);
+  const freeCancelDays = freeCancelDaysFor(policyCopy.policy);
+  const freeCancelDeadline = freeCancelDays === null
+    ? null
+    : new Date(checkIn.getTime() - freeCancelDays * 86400000);
+  const freeCancelNow = freeCancelDays !== null && daysBetween(checkIn, new Date()) >= freeCancelDays;
+
 
   const summary = `
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #ffedd5;border-radius:14px;margin:0 0 12px 0;">
@@ -278,10 +293,18 @@ export async function buildOrderConfirmationEmail(
         </p>
         <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">${esc(payDesc)}</p>
       </div>
-      <div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
+      ${
+            freeCancelDeadline
+              ? `<div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
         <p style="margin:0;font-size:15px;font-weight:700;color:#222;">${freeCancelNow ? "現在可以免費取消" : "取消將依政策收取費用"}</p>
-        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">於 ${dateCN(freeCancelDeadline)} 23:59 前（住宿當地時間）可免費取消。此後，將依取消政策收取費用。</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">於 ${dateCN(freeCancelDeadline)} 23:59 前（住宿當地時間）可免費取消（${esc(policyCopy.title)}）。此後，將依下方取消政策比例計算。</p>
       </div>`
+              : `<div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
+        <p style="margin:0;font-size:15px;font-weight:700;color:#222;">取消政策</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">本訂單之取消與退款條件請見下方說明，或聯繫客服協助確認。</p>
+      </div>`
+          }`
+
           : ""
       }
     </td></tr>
@@ -349,17 +372,9 @@ export async function buildOrderConfirmationEmail(
        </tr></table>`,
       "background:#fafafa;",
     )}
-    ${
-      policyLines.length
-        ? divider +
-          block(
-            `<p style="margin:0 0 6px 0;font-size:14px;font-weight:600;">取消政策</p>` +
-              policyLines
-                .map((l) => `<p style="margin:0 0 4px 0;font-size:12px;color:#777;line-height:1.7;">${esc(l)}</p>`)
-                .join(""),
-          )
-        : ""
-    }`);
+    ${divider}
+    ${block(renderCancellationPolicyHtml(policyCopy, policyLines))}`);
+
 
   // 3. ATM 虛擬帳號卡片
   const atmCard = order.atm_vacc_no

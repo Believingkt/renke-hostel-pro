@@ -4,6 +4,8 @@ import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -56,9 +58,17 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
 
   const [action, setAction] = useState<RefundAction>(defaultAction);
   const [refundAmount, setRefundAmount] = useState<string>(String(paidAmount));
+  const [overrideReason, setOverrideReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [quote, setQuote] = useState<any>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+
+  const suggestedRefund = Number.isFinite(quote?.suggestedRefund) ? Number(quote.suggestedRefund) : null;
+  const actualRefund = action === "no_refund" ? 0 : parseInt(refundAmount || "0", 10) || 0;
+  const isOverride = suggestedRefund !== null && actualRefund !== suggestedRefund;
+  /** 人工覆寫退款金額時原因必填（server 端 cancel-order-with-refund 同步檢核） */
+  const reasonRequired = isOverride && overrideReason.trim().length < 2;
+
 
   // 建議退款金額一律由 server 依訂單付款制度 + 法規級距計算，前端只顯示與預填
   useEffect(() => {
@@ -82,11 +92,20 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const handleOpenChange = (o: boolean) => {
     if (o) {
       setAction(defaultAction);
+      setOverrideReason("");
     }
     onOpenChange(o);
   };
 
   const handleSubmit = async () => {
+    if (reasonRequired) {
+      toast({
+        title: "請填寫調整原因",
+        description: `實際退款金額與系統建議（NT$${(suggestedRefund ?? 0).toLocaleString()}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const amt = parseInt(refundAmount || "0", 10);
@@ -95,8 +114,10 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           orderId: order.id,
           refundAction: action,
           refundAmount: amt,
+          overrideReason: overrideReason.trim() || undefined,
         },
       });
+
       if (error) {
         const parsed = await parseFunctionInvokeError(error);
         toast({ title: "取消失敗", description: parsed.backendError || parsed.message || "請稍後再試", variant: "destructive" });
@@ -170,16 +191,26 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                 <div className="mt-1 text-muted-foreground">
                   距入住 {quote.quote.daysBefore} 天｜{quote.quote.label}
                 </div>
-                <div className="mt-1 text-foreground">
-                  建議退款金額：<span className="font-semibold">NT${Number(quote.suggestedRefund || 0).toLocaleString()}</span>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  <span className="text-muted-foreground">已付款金額</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.paidAmount ?? paidAmount).toLocaleString()}</span>
+                  <span className="text-muted-foreground">已退款金額</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.alreadyRefunded ?? 0).toLocaleString()}</span>
+                  <span className="text-muted-foreground">最高可退</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.remainingRefundable ?? paidAmount).toLocaleString()}</span>
+                  <span className="text-muted-foreground">建議退款金額</span>
+                  <span className="text-right font-semibold tabular-nums text-primary">
+                    NT${Number(quote.suggestedRefund || 0).toLocaleString()}
+                  </span>
                 </div>
-                {quote.quote.requiresManualReview && (
+                {quote.requiresManualReview && (
                   <div className="mt-1 text-destructive">
                     ⚠️ 此訂單無法自動判定付款制度，請人工確認後再輸入退款金額。
                   </div>
                 )}
               </div>
             )}
+
             {quoteLoading && <div className="text-xs text-muted-foreground">計算建議退款金額中…</div>}
 
             <RadioGroup value={action} onValueChange={(v) => setAction(v as RefundAction)} className="space-y-2">
@@ -246,14 +277,34 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                     <> ｜法規建議 NT${Number(quote.suggestedRefund || 0).toLocaleString()}</>
                   )}
                 </p>
-                {quote?.suggestedRefund !== undefined &&
-                  parseInt(refundAmount || "0", 10) !== Number(quote.suggestedRefund) && (
-                    <p className="text-xs text-amber-600">
-                      ⚠️ 已人工調整退款金額，系統會於訂單備註與稽核紀錄留存。
-                    </p>
-                  )}
+                {isOverride && (
+                  <p className="text-xs text-amber-600">
+                    ⚠️ 已人工調整退款金額，系統會於訂單備註與稽核紀錄留存。
+                  </p>
+                )}
               </div>
             )}
+
+            {isOverride && (
+              <div className="space-y-1.5">
+                <Label htmlFor="overrideReason" className="text-sm">
+                  調整原因<span className="ml-1 text-destructive">＊必填</span>
+                </Label>
+                <Textarea
+                  id="overrideReason"
+                  rows={3}
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="請說明為何調整退款金額（會寫入訂單備註與稽核紀錄）"
+                />
+                {reasonRequired && (
+                  <p className="text-xs text-destructive">
+                    實際退款金額與系統建議（NT${(suggestedRefund ?? 0).toLocaleString()}）不同，請填寫調整原因。
+                  </p>
+                )}
+              </div>
+            )}
+
           </div>
         )}
 

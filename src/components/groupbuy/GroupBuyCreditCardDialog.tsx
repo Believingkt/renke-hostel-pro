@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { toGuestMessage } from "@/lib/guestFacingError";
+import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolicyLines";
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
@@ -311,6 +312,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
             </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">信用卡為全額付款，入住當天不需再支付尾款。</p>
+          {/* 信用卡＝預收房價總額制，取消政策一律顯示 3 日級距（與後端計算同源） */}
+          <CancellationPolicyLines policy="full_prepayment" className="mt-3 border-t pt-3" />
           {preparing && !holdText && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

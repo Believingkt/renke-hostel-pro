@@ -24,8 +24,11 @@ interface Body {
   // "no_refund" = cancel without refund
   refundAction: "auto_refund" | "mark_manual_refund" | "no_refund";
   refundAmount?: number; // optional manual override; defaults to the server-computed policy amount
+  /** 人工調整退款金額（refundAmount !== suggestedRefund）時「必填」的理由，會寫入 audit */
+  overrideReason?: string;
   /** mode: "quote" 只回傳建議退款金額，不異動資料 */
   mode?: "quote" | "apply";
+
 }
 
 const extractRecTradeId = (notes: string | null) => extractRecTradeIdFromNotes(notes);
@@ -112,9 +115,21 @@ serve(async (req) => {
     });
     const suggestedRefund = Math.max(0, Math.round(policyQuote.refundAmount));
 
+    const alreadyRefunded = Math.max(0, Math.round(Number(order.refunded_amount || 0)));
+    const remainingRefundable = Math.max(0, Math.round(paidAmount - alreadyRefunded));
+
     if (body.mode === "quote") {
       return new Response(
-        JSON.stringify({ success: true, quote: policyQuote, suggestedRefund, paidAmount }),
+        JSON.stringify({
+          success: true,
+          quote: policyQuote,
+          policy: policyQuote.policy,
+          suggestedRefund,
+          paidAmount,
+          alreadyRefunded,
+          remainingRefundable,
+          requiresManualReview: policyQuote.requiresManualReview,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -124,12 +139,28 @@ serve(async (req) => {
       ? Math.max(0, Math.round(Number(body.refundAmount)))
       : suggestedRefund;
     const isManualOverride = refundAmount !== suggestedRefund;
+    const overrideReason = String(body.overrideReason ?? "").trim();
+
+    // 人工覆寫退款金額時，理由必填（與團購規則一致）
+    if (isManualOverride && overrideReason.length < 2) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          requiresReason: true,
+          suggestedRefund,
+          message: `實際退款金額與系統建議（NT$${suggestedRefund.toLocaleString()}）不同，請填寫調整原因。`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const nowIso = new Date().toISOString();
     const auditPrefix = `🔒 [${nowIso}] ${userEmail} 取消訂單`;
 
     let refundResultNote = "";
     let refundSucceeded = false;
     let recTradeIdUsed: string | null = null;
+
 
     // ===== auto_refund: credit card via TapPay =====
     if (body.refundAction === "auto_refund") {
@@ -247,8 +278,11 @@ serve(async (req) => {
 
     const policyNote =
       `\n🔒 [${nowIso}] 取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／` +
+      `比例 ${policyQuote.refundPercent}%／已付 NT$${paidAmount.toLocaleString()}／已退 NT$${alreadyRefunded.toLocaleString()}／` +
+      `最高可退 NT$${remainingRefundable.toLocaleString()}／` +
       `建議退款 NT$${suggestedRefund.toLocaleString()}／實際處理 NT$${refundAmount.toLocaleString()}` +
-      (isManualOverride ? `／⚠️ 人工調整（操作者 ${userEmail}）` : "") +
+      (isManualOverride ? `／⚠️ 人工調整（操作者 ${userEmail}，原因：${overrideReason}）` : "") +
+
       (policyQuote.requiresManualReview ? "／⚠️ 無法自動判定政策，需人工確認" : "");
     const newNotes = (order.notes || "") + refundResultNote + policyNote;
 
