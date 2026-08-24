@@ -597,7 +597,7 @@ Deno.serve(async (req) => {
         manual_override: refundAmount !== suggestedRefund,
         override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
         rec_trade_id: cancelRefundRecTradeId,
-        refund_channel: isCardOrder ? "tappay_card" : "manual_bank",
+        
         payment_status: cancelPaymentStatus ?? order.payment_status,
 
         operator: actor,
