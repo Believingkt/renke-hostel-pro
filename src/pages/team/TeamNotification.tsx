@@ -568,6 +568,22 @@ export default function TeamNotification() {
             const sourceAccId = enabledAccs.some((a) => a.id === selectedId)
               ? selectedId
               : "";
+            if (enabledAccs.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+                    <p className="font-semibold">目前沒有啟用每日通報的館別</p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      這裡只會列出已在「通報設定」開啟「啟用每日通報」的館別。
+                      請先到通報設定頁開啟至少一個館別的每日通報，再回來調整業績推播的訂單來源。
+                    </p>
+                    <Button variant="outline" onClick={() => setActiveTab("settings")}>
+                      前往通報設定
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            }
             return (
               <>
                 <div className="max-w-xs space-y-1">
