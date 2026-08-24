@@ -1313,7 +1313,7 @@ export default function TeamHome() {
 
           const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
-              ? await getAccommodationRevenueByAcc(
+              ? await revenueByAccCached(
                   client,
                   revenueAccIds,
                   monthStartDate,
@@ -1375,7 +1375,7 @@ export default function TeamHome() {
             if (!s || s.rate == null) missing.am_performance = true;
             const myByAcc =
               myManagedAccIdsExcludingTravelDays.length > 0 && sharedSources.length > 0
-                ? await getAccommodationRevenueByAcc(
+                ? await revenueByAccCached(
                     client,
                     myManagedAccIdsExcludingTravelDays,
                     monthStartDate,
@@ -1456,7 +1456,7 @@ export default function TeamHome() {
             );
             const kolByAcc =
               kolSources.length > 0
-                ? await getAccommodationRevenueByAcc(
+                ? await revenueByAccCached(
                     client,
                     revenueAccIds,
                     monthStartDate,
