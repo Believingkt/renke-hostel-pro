@@ -37,6 +37,8 @@ interface Props {
   guestName: string;
   guestPhone: string;
   guestEmail: string;
+  /** 活動是否開放銀行匯款（人工對帳，訂金制） */
+  bankTransferEnabled?: boolean;
   /** 活動是否開放 ATM 虛擬帳號；false 時完全維持既有人工匯款流程 */
   atmEnabled?: boolean;
   /** 活動是否開放信用卡（付款成功後才建立訂單） */
@@ -60,10 +62,11 @@ export function GroupBuyConfirmDialog(props: Props) {
     open, onOpenChange, submitting, onConfirm, venueName, packageName,
     checkIn, checkOut, nights, roomQuantity, guestSummary, baseTotal, childExtraTotal,
     total, deposit, balance, depositPct, guestName, guestPhone, guestEmail,
-    atmEnabled = false, creditCardEnabled = false, paymentMethod = "bank", onPaymentMethodChange,
+    bankTransferEnabled = true, atmEnabled = false, creditCardEnabled = false,
+    paymentMethod = "bank", onPaymentMethodChange,
   } = props;
   const options = [
-    { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。", on: true },
+    { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。", on: bankTransferEnabled },
     { key: "atm" as const, title: "ATM 虛擬帳號", desc: "系統開立專屬帳號，入帳後自動確認訂單。", on: atmEnabled },
     {
       key: "credit_card" as const,
@@ -72,7 +75,11 @@ export function GroupBuyConfirmDialog(props: Props) {
       on: creditCardEnabled,
     },
   ].filter((o) => o.on);
-  const method: GroupBuyPaymentMethod = options.some((o) => o.key === paymentMethod) ? paymentMethod : "bank";
+  // 不得 fallback 到 bank：唯一可用付款方式即為 options[0]
+  const noPaymentMethod = options.length === 0;
+  const method: GroupBuyPaymentMethod = options.some((o) => o.key === paymentMethod)
+    ? paymentMethod
+    : (options[0]?.key ?? "bank");
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
@@ -141,7 +148,13 @@ export function GroupBuyConfirmDialog(props: Props) {
           </div>
         )}
 
-        <FraudPreventionNotice variant="bank_transfer" />
+        {noPaymentMethod && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            目前此活動暫無可用付款方式，請聯絡客服。
+          </div>
+        )}
+
+        {method === "bank" && <FraudPreventionNotice variant="bank_transfer" />}
 
         <TermsConsentText variant="group_buy" />
 
@@ -158,7 +171,7 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Button
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
-            disabled={submitting}
+            disabled={submitting || noPaymentMethod}
             onClick={onConfirm}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
