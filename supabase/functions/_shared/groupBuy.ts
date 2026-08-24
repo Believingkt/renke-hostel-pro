@@ -3,6 +3,7 @@
 
 import type { GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
 import { resolveCancellationPolicy } from "./cancellationPolicy.ts";
+import { isCardPaidOrder } from "./orderRefund.ts";
 
 
 export const GROUP_BUY_ORDER_SOURCE = "group_buy";
@@ -111,6 +112,26 @@ export function buildEmailOrder(params: {
     campaign?.payment_deadline_hours ?? 72,
   );
   const origin = params.frontendOrigin || "https://booking.lakeze.com";
+  // 取消政策依「訂單實際付款制度」判定，不得依活動當下設定或金額反推
+  const policy = resolveCancellationPolicy({
+    order_source: order.order_source ?? GROUP_BUY_ORDER_SOURCE,
+    payment_provider: order.payment_provider ?? null,
+    payment_method: order.payment_method ?? null,
+    deposit_payment_method: order.deposit_payment_method ?? null,
+    balance_payment_method: order.balance_payment_method ?? null,
+    room_charge_status: order.room_charge_status ?? null,
+    paid_amount: Number(order.paid_amount ?? 0),
+    final_price: Number(order.final_price ?? order.total_price ?? 0),
+  }).policy;
+
+  /**
+   * Email 付款方式 SoT：與 server 退款分流同一份規則
+   * （payment_provider = tappay 且 isCardPaidOrder）。ATM 不會被判為信用卡。
+   */
+  const isCardOrder = order.payment_provider === "tappay" && isCardPaidOrder(order);
+  const paidAmount = Math.max(0, Math.round(Number(order.paid_amount ?? 0)));
+  const fullPrepayment = isCardOrder && policy === "full_prepayment";
+
   return {
     orderNumber: order.order_number,
     guestName: order.guest_name,
@@ -123,21 +144,16 @@ export function buildEmailOrder(params: {
     totalPrice: total,
     depositAmount: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
     balanceAmount: balance,
+    paidAmount,
+    paymentMethodText: isCardOrder ? "信用卡（3D 驗證）" : undefined,
+    isCardOrder,
+    fullPrepayment,
     deadlineText: formatTaipei(deadline),
     orderUrl: `${origin}/g/order/${encodeURIComponent(order.order_number)}`,
-    // 取消政策依「訂單實際付款制度」判定，不得依活動當下設定或金額反推
-    cancellationPolicy: resolveCancellationPolicy({
-      order_source: order.order_source ?? GROUP_BUY_ORDER_SOURCE,
-      payment_provider: order.payment_provider ?? null,
-      payment_method: order.payment_method ?? null,
-      deposit_payment_method: order.deposit_payment_method ?? null,
-      balance_payment_method: order.balance_payment_method ?? null,
-      room_charge_status: order.room_charge_status ?? null,
-      paid_amount: Number(order.paid_amount ?? 0),
-      final_price: Number(order.final_price ?? order.total_price ?? 0),
-    }).policy,
+    cancellationPolicy: policy,
   };
 }
+
 
 
 /** 後台 canonical 網域：民宿／管理者 Email 的後台 CTA 一律使用 PMS 網域 */
