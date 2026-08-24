@@ -170,6 +170,7 @@ export default function TeamNotification() {
   const [flags, setFlags] = useState<Record<string, FlagsRow>>({});
   const [settingsMap, setSettingsMap] = useState<Record<string, SettingsRow>>({});
   const [selectedId, setSelectedId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("settings");
   const [saving, setSaving] = useState(false);
   
 
@@ -292,7 +293,7 @@ export default function TeamNotification() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">業績通報設定</h2>
 
-      <Tabs defaultValue="settings" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="settings">通報設定</TabsTrigger>
           <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
@@ -567,6 +568,22 @@ export default function TeamNotification() {
             const sourceAccId = enabledAccs.some((a) => a.id === selectedId)
               ? selectedId
               : "";
+            if (enabledAccs.length === 0) {
+              return (
+                <Card>
+                  <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+                    <p className="font-semibold">目前沒有啟用每日通報的館別</p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      這裡只會列出已在「通報設定」開啟「啟用每日通報」的館別。
+                      請先到通報設定頁開啟至少一個館別的每日通報，再回來調整業績推播的訂單來源。
+                    </p>
+                    <Button variant="outline" onClick={() => setActiveTab("settings")}>
+                      前往通報設定
+                    </Button>
+                  </CardContent>
+                </Card>
+              );
+            }
             return (
               <>
                 <div className="max-w-xs space-y-1">
