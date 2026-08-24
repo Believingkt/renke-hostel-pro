@@ -1364,6 +1364,17 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                       ));
                     })()}
 
+                    {/* 團購信用卡付款保留（非正式訂單，僅顯示，不可點擊操作） */}
+                    <PaymentHoldRows
+                      events={holdEvents.filter(h => h.roomTypeId === roomType.id)}
+                      dateStrings={dateStrings}
+                      dayColWidth={DAY_COL_MIN_WIDTH}
+                      leftColWidth={LEFT_COL_WIDTH}
+                      daysRowStyle={daysRowStyle}
+                      dayColumnStyle={dayColumnStyle}
+                    />
+
+
                     {/* 包棟內房間組成（依房型分組顯示，僅資訊用，不可預訂） */}
                     {(packageRowsByRt.get(roomType.id) || []).map(pr => (
                       <div key={`pkgrow_${roomType.id}_${pr.id}`} className="flex border-b last:border-b-0 hover:bg-muted/20">
