@@ -254,6 +254,8 @@ Deno.serve(async (req) => {
           policy_refund_percent: policyQuote.refundPercent,
           suggested_refund_amount: suggestedRefund,
           manual_override: refundAmount !== suggestedRefund,
+          override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
+          rec_trade_id: settle.recTradeId ?? null,
           operator: actor,
           timestamp: nowIso,
           note: reason || null,
@@ -294,6 +296,7 @@ Deno.serve(async (req) => {
       if (reasonError) return reasonError;
     }
 
+    let cancelRefundRecTradeId: string | null = null;
     if (refundAmount > 0) {
       const settle = await adapter.refundPayment({
         order: { ...order, id: order.id },
@@ -309,6 +312,7 @@ Deno.serve(async (req) => {
           needsReconciliation: settle.needsReconciliation ?? false,
         }, 400);
       }
+      cancelRefundRecTradeId = settle.recTradeId ?? null;
     }
 
     const totalRefunded = alreadyRefunded + refundAmount;
@@ -407,6 +411,8 @@ Deno.serve(async (req) => {
         policy_refund_percent: policyQuote.refundPercent,
         suggested_refund_amount: suggestedRefund,
         manual_override: refundAmount !== suggestedRefund,
+        override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
+        rec_trade_id: cancelRefundRecTradeId,
         operator: actor,
         timestamp: nowIso,
         reason: reason || null,
