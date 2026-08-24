@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.orders_website_inventory_gate() FROM PUBLIC, anon, authenticated;
