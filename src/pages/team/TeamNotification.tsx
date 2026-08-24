@@ -292,7 +292,7 @@ export default function TeamNotification() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">業績通報設定</h2>
 
-      <Tabs defaultValue="settings" className="space-y-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="settings">通報設定</TabsTrigger>
           <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
