@@ -311,8 +311,10 @@ describe("[integration] Draft 生命週期", () => {
     await completeGroupBuyCreditOrder(admin, { draftId: DRAFT_ID, source: "frontend" });
     const passedPlan = booking.convertGroupBuyDraftToOrderAtomic.mock.calls[0][1];
     expect(passedPlan.total).toBe(8888);
-    expect(passedPlan.deposit).toBe(2222);
-    expect(passedPlan.balance).toBe(6666);
+    // 信用卡＝全額付款：訂金 0、無尾款
+    expect(passedPlan.deposit).toBe(0);
+    expect(passedPlan.balance).toBe(0);
+    expect(booking.convertGroupBuyDraftToOrderAtomic.mock.calls[0][2].fullPayment).toBe(true);
   });
 
   it("CASE 8: 重複完成（PaymentResult 重整 / callback 重送）只會有一張 order", async () => {
