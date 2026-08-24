@@ -278,8 +278,11 @@ serve(async (req) => {
 
     const policyNote =
       `\n🔒 [${nowIso}] 取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／` +
+      `比例 ${policyQuote.refundPercent}%／已付 NT$${paidAmount.toLocaleString()}／已退 NT$${alreadyRefunded.toLocaleString()}／` +
+      `最高可退 NT$${remainingRefundable.toLocaleString()}／` +
       `建議退款 NT$${suggestedRefund.toLocaleString()}／實際處理 NT$${refundAmount.toLocaleString()}` +
-      (isManualOverride ? `／⚠️ 人工調整（操作者 ${userEmail}）` : "") +
+      (isManualOverride ? `／⚠️ 人工調整（操作者 ${userEmail}，原因：${overrideReason}）` : "") +
+
       (policyQuote.requiresManualReview ? "／⚠️ 無法自動判定政策，需人工確認" : "");
     const newNotes = (order.notes || "") + refundResultNote + policyNote;
 
