@@ -148,7 +148,13 @@ export function GroupBuyConfirmDialog(props: Props) {
           </div>
         )}
 
-        <FraudPreventionNotice variant="bank_transfer" />
+        {noPaymentMethod && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            目前此活動暫無可用付款方式，請聯絡客服。
+          </div>
+        )}
+
+        {method === "bank" && <FraudPreventionNotice variant="bank_transfer" />}
 
         <TermsConsentText variant="group_buy" />
 
