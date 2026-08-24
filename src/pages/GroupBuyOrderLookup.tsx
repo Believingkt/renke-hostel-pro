@@ -16,6 +16,7 @@ import { DateField } from "@/components/admin/DateFields";
 import { taipeiToday } from "@/lib/taipeiToday";
 import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
 import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolicyLines";
+import { RefundSummaryPanel } from "@/components/groupbuy/RefundSummaryPanel";
 
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
@@ -517,36 +518,7 @@ export default function GroupBuyOrderLookup() {
             )}
 
             {data.refund && (data.refund.amount > 0 || (data.refund.status && data.refund.status !== "none")) && (
-
-              <div className="rounded-lg border p-4">
-                <p className="mb-1 flex items-center gap-2 font-semibold text-foreground">
-                  <Undo2 className="h-4 w-4" /> 退款狀態
-                </p>
-                <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">處理狀態</span>
-                  <span>
-                    {data.refund.status === "refunded"
-                      ? "已全額退款"
-                      : data.refund.status === "partial_refunded"
-                        ? "已部分退款"
-                        : data.refund.status === "pending_manual"
-                          ? "退款處理中"
-                          : "不退款"}
-                  </span>
-                </div>
-                {data.refund.amount > 0 && (
-                  <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">退款金額</span>
-                    <span className="font-semibold">{twd(data.refund.amount)}</span>
-                  </div>
-                )}
-                {data.refund.refundedAt && (
-                  <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">退款時間</span>
-                    <span>{new Date(data.refund.refundedAt).toLocaleString("zh-TW")}</span>
-                  </div>
-                )}
-              </div>
+              <RefundSummaryPanel refund={data.refund} />
             )}
 
             {data.campaign?.contactNote && (

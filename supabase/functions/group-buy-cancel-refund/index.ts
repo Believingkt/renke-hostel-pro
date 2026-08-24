@@ -22,6 +22,7 @@ import {
 } from "../_shared/paymentAdapter.ts";
 import { isCardPaidOrder, resolveSyncRecTradeId } from "../_shared/orderRefund.ts";
 import { loadManualRefundFee, remainingRefundableWithFee, splitRefundFee } from "../_shared/refundFee.ts";
+import { auditPaymentFields, refundedEventSourceNote } from "../_shared/paymentMethodKind.ts";
 import { queryTapPayRecord } from "../_shared/tappay.ts";
 import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
 import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
@@ -342,9 +343,8 @@ Deno.serve(async (req) => {
         actor_user_id: ctx.userId,
         actor_label: actor,
         note: [
-          isCardOrder
-            ? `原信用卡退刷（TapPay${settle.recTradeId ? ` ${settle.recTradeId}` : ""}）`
-            : `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+          // 原付款方式（ATM／銀行匯款／信用卡）－退款方式，兩者分開表述
+          refundedEventSourceNote(order as any, isCardOrder, settle.recTradeId),
 
           `本次沖銷 ${twd(refundAmount)}`,
           refundFee > 0 ? `手續費 ${twd(refundFee)}` : null,
@@ -368,7 +368,8 @@ Deno.serve(async (req) => {
         entity_name: order.order_number,
         details: {
           source: "group_buy",
-          payment_provider: provider,
+          // 原付款方式（含原始 enum）與退款通道分開記錄：ATM 與銀行匯款必須可區分
+          ...auditPaymentFields(order as any, isCardOrder),
           refund_amount: refundAmount,
           refund_fee_amount: refundFee,
           refund_payout_amount: refundPayout,
@@ -385,7 +386,6 @@ Deno.serve(async (req) => {
           manual_override: refundAmount !== suggestedRefund,
           override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
           rec_trade_id: settle.recTradeId ?? null,
-          refund_channel: isCardOrder ? "tappay_card" : "manual_bank",
           payment_status: paymentStatus ?? order.payment_status,
 
           operator: actor,
@@ -553,9 +553,8 @@ Deno.serve(async (req) => {
           actor_user_id: ctx.userId,
           actor_label: actor,
           note: [
-            isCardOrder
-              ? `原信用卡退刷（TapPay${cancelRefundRecTradeId ? ` ${cancelRefundRecTradeId}` : ""}）`
-              : `人工退款（${provider === "manual" ? "銀行匯回" : provider}）`,
+            // 原付款方式（ATM／銀行匯款／信用卡）－退款方式，兩者分開表述
+            refundedEventSourceNote(order as any, isCardOrder, cancelRefundRecTradeId),
 
             `本次沖銷 ${twd(refundAmount)}`,
             cancelRefundFee > 0 ? `手續費 ${twd(cancelRefundFee)}` : null,
@@ -580,7 +579,7 @@ Deno.serve(async (req) => {
       entity_name: order.order_number,
       details: {
         source: "group_buy",
-        payment_provider: provider,
+        ...auditPaymentFields(order as any, isCardOrder),
         refund_action: refundAction,
         refund_amount: refundAmount,
         refund_fee_amount: cancelRefundFee,
@@ -598,7 +597,7 @@ Deno.serve(async (req) => {
         manual_override: refundAmount !== suggestedRefund,
         override_reason: refundAmount !== suggestedRefund ? (reason || null) : null,
         rec_trade_id: cancelRefundRecTradeId,
-        refund_channel: isCardOrder ? "tappay_card" : "manual_bank",
+        
         payment_status: cancelPaymentStatus ?? order.payment_status,
 
         operator: actor,
