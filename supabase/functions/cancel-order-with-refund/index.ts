@@ -133,6 +133,17 @@ serve(async (req) => {
 
     // ===== auto_refund: credit card via TapPay =====
     if (body.refundAction === "auto_refund") {
+      if (policyQuote.requiresManualReview && !Number.isFinite(body.refundAmount as number)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            needsManualReview: true,
+            quote: policyQuote,
+            message: "此訂單無法自動判定取消政策（歷史訂單），請人工確認退款金額後再送出。",
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       if (refundAmount <= 0) {
         return new Response(
           JSON.stringify({ success: false, message: "退款金額必須大於 0" }),
