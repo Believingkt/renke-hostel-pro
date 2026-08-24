@@ -17,6 +17,8 @@ import { taipeiToday } from "@/lib/taipeiToday";
 import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
 import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolicyLines";
 import { RefundSummaryPanel } from "@/components/groupbuy/RefundSummaryPanel";
+import { ManualRefundRequestNotice } from "@/components/groupbuy/ManualRefundRequestNotice";
+
 
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
