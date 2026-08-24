@@ -276,6 +276,12 @@ Deno.serve(async (req) => {
     if (refundAmount > refundable) {
       return json({ error: `退款金額超過可退金額 ${twd(refundable)}` }, 400);
     }
+    // pending_refund 為「稍後處理」，不算金額覆寫；其餘與建議金額不同者理由必填
+    if (refundAction !== "pending_refund") {
+      const reasonError = requireReasonIfOverride(refundAmount);
+      if (reasonError) return reasonError;
+    }
+
     if (refundAmount > 0) {
       const settle = await adapter.refundPayment({ order: { ...order, id: order.id }, amount: refundAmount, note: reason });
       if (!settle.ok) return json({ error: settle.error ?? "退款處理失敗" }, 400);
