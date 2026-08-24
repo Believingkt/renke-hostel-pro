@@ -146,10 +146,9 @@ Deno.serve(async (req) => {
         String(r.guest_email ?? "").trim().toLowerCase() === email
       );
       // 必須仍在有效期內，且 fingerprint 與目前預訂一致
-      draft = mine.find((r: any) =>
-        new Date(r.expires_at).getTime() > Date.now() && matchesFingerprint(r)
-      ) ?? null;
+      draft = selectCrossDeviceDraft(mine, { phoneLast4, email, fingerprint: fp, requireMatch });
       if (!draft) return json({ found: false });
+
     } else {
       return json({ error: "缺少查詢條件" }, 400);
     }
