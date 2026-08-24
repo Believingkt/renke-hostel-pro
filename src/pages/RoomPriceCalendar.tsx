@@ -689,8 +689,8 @@ export default function RoomPriceCalendar() {
                             monthDays={monthDays}
                             holidays={holidays}
                             getCellData={getCellData}
-                        adjusted={adjusted}
                             adjusted={adjusted}
+
                             getDayType={getDayType}
                             onCellClick={handleCellClick}
                           />
