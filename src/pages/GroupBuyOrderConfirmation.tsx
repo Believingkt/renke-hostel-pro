@@ -81,17 +81,22 @@ export default function GroupBuyOrderConfirmation() {
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const depositMail = guestEmails.find((e) => e.templateType === "deposit_received") ?? null;
   const depositMailState: MailState = confirmed ? (depositMail?.status ?? "sent") : "pending";
-  const maskedEmail: string | null = order?.guestEmailMasked ?? null;
+  const maskedEmail: string | null = order?.guestEmailMasked ?? result?.guestEmailMasked ?? null;
 
 
-  /** 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款 */
-  const fullPayment = order?.fullPayment === true;
-  const paidAmount = Number(order?.paidAmount ?? 0);
+  /**
+   * 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款。
+   * 3DS 回程沒有電話後四碼可查詢，因此以導頁 state 與 complete-paid-order 回傳為準。
+   */
+  const fullPayment = order?.fullPayment === true || result?.fullPayment === true || fromCreditCard;
+  const paidAmount = Number(order?.paidAmount ?? result?.paidAmount ?? 0);
   const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
-  const total = order?.total ?? result?.total ?? 0;
-  const deposit = order?.deposit ?? result?.deposit ?? 0;
-  const balance = order?.balance ?? result?.balance ?? 0;
-  const deadlineText = order?.paymentDeadlineText ?? result?.paymentDeadlineText ?? null;
+  const total = Number(order?.total ?? result?.total ?? result?.order?.total_price ?? 0);
+  const deposit = fullPayment ? 0 : (order?.deposit ?? result?.deposit ?? 0);
+  const balance = fullPayment ? 0 : (order?.balance ?? result?.balance ?? 0);
+  const deadlineText = fullPayment ? null : (order?.paymentDeadlineText ?? result?.paymentDeadlineText ?? null);
+  const checkInDate = order?.checkInDate ?? result?.checkInDate ?? result?.order?.check_in_date ?? null;
+  const checkOutDate = order?.checkOutDate ?? result?.checkOutDate ?? result?.order?.check_out_date ?? null;
 
   if (loading) {
     return (
