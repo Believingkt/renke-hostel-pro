@@ -219,6 +219,13 @@ Deno.serve(async (req) => {
         const validationResult = await validateResponse.json();
         if (!validationResult.isValid) {
           console.error("[complete-3ds-booking] Price validation failed:", validationResult.errors);
+          // 庫存不足（含團購 10 分鐘保留）：卡片已扣款，必須自動退款並記錄
+          if (validationResult.inventoryUnavailable) {
+            return await refundAndFail(
+              "inventory_unavailable_pre_insert",
+              validationResult.errors,
+            );
+          }
           return new Response(
             JSON.stringify({
               success: false,
@@ -230,6 +237,7 @@ Deno.serve(async (req) => {
         }
         console.log("[complete-3ds-booking] Price validation passed");
       } else {
+
         // Fail-open：驗證服務暫時不可用時放行建單（因 TapPay 已扣款，避免訂單未建立的客訴）
         const respText = await validateResponse.text();
         console.warn("[complete-3ds-booking] Price validation service unavailable (fail-open):", validateResponse.status, respText);
