@@ -2,6 +2,9 @@
 // 走既有 Resend connector gateway，版型沿用品牌橘色調。
 
 import { refundScheduleHtml } from "./refundPolicy.ts";
+import { cancellationPolicyCopy, renderCancellationPolicyHtml } from "./cancellationPolicyCopy.ts";
+import type { CancellationPolicyType } from "./cancellationPolicy.ts";
+
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
