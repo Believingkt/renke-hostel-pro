@@ -1545,12 +1545,22 @@ export default function GroupBuyCampaign() {
                     !guestEmail.trim() ||
                     !!emailError ||
                     guestCount < 1 ||
-                    !!guestError
+                    !!guestError ||
+                    !activeMethod
                   }
                   onClick={() => setConfirmOpen(true)}
                 >
-                  確認訂房並取得匯款資訊
+                  {activeMethod === "credit_card"
+                    ? "確認訂房並前往付款"
+                    : activeMethod === "atm"
+                    ? "確認訂房並取得虛擬帳號"
+                    : "確認訂房並取得匯款資訊"}
                 </Button>
+                {!activeMethod && (
+                  <p className="mt-2 text-center text-xs text-destructive">
+                    目前此活動暫無可用付款方式，請聯絡客服。
+                  </p>
+                )}
                 <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">
                   送出前會再顯示一次確認畫面，確認後才會建立訂單。
                 </p>
