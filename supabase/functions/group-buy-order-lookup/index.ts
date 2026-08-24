@@ -9,7 +9,8 @@ import {
   sendGroupBuyEmail,
 } from "../_shared/groupBuyEmail.ts";
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_shared/refundPolicy.ts";
-import { resolveCancellationPolicy } from "../_shared/cancellationPolicy.ts";
+import { quoteCancellation, resolveCancellationPolicy, taipeiToday } from "../_shared/cancellationPolicy.ts";
+import { paymentMethodKind, paymentMethodLabel, refundChannelLabel } from "../_shared/paymentMethodKind.ts";
 import { loadManualRefundFee, remainingRefundableWithFee } from "../_shared/refundFee.ts";
 
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refund_fee_amount, refunded_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refund_fee_amount, refunded_at, cancelled_at, deposit_payment_method, balance_payment_method, room_charge_rec_trade_id, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -392,6 +393,11 @@ Deno.serve(async (req) => {
       String((order as any).payment_status ?? ""),
     ) || paidAmountNow > 0;
 
+    /** 人工退款手續費（此館設定；信用卡原卡退刷一律 0）——前台文案唯一來源 */
+    const manualRefundFeeSetting = paymentChannel === "credit_card"
+      ? 0
+      : await loadManualRefundFee(admin, accommodationId);
+
     return json({
       order: {
         orderNumber: order.order_number,
@@ -439,9 +445,7 @@ Deno.serve(async (req) => {
         }).policy,
 
         /** 人工退款手續費（此館設定；信用卡原卡退刷一律 0）——前台文案唯一來源 */
-        manualRefundFee: paymentChannel === "credit_card"
-          ? 0
-          : await loadManualRefundFee(admin, accommodationId),
+        manualRefundFee: manualRefundFeeSetting,
         refundFeeAmount: Math.max(0, Math.round(Number((order as any).refund_fee_amount) || 0)),
         refundedAmount: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
         remainingRefundable: remainingRefundableWithFee(order as any),
@@ -507,11 +511,62 @@ Deno.serve(async (req) => {
           price: Number(pkg.group_buy_price) || 0,
         }
         : null,
-      refund: {
-        status: (order as any).refund_status ?? null,
-        amount: Number((order as any).refunded_amount) || 0,
-        refundedAt: (order as any).refunded_at ?? null,
-      },
+      refund: (() => {
+        const o = order as any;
+        const paid = paidAmountNow;
+        const refundedAmount = Math.max(0, Math.round(Number(o.refunded_amount) || 0));
+        const feeAmount = Math.max(0, Math.round(Number(o.refund_fee_amount) || 0));
+        const settled = refundedAmount + feeAmount;
+        const isCard = paymentChannel === "credit_card";
+        /**
+         * 「政策應退」一律沿用 server 既有 quoteCancellation（不另建一套算法）：
+         *  - 已有沖銷紀錄 → 直接用實際沖銷總額（實退 + 手續費），與帳務一致。
+         *  - 尚未退款 → 以取消日（cancelled_at 的台北日期，無則今日）試算。
+         */
+        const cancelDate = o.cancelled_at
+          ? new Date(o.cancelled_at).toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" })
+          : taipeiToday();
+        const quote = quoteCancellation({
+          order: {
+            order_source: o.order_source ?? "group_buy",
+            payment_provider: o.payment_provider ?? null,
+            payment_method: o.payment_method ?? null,
+            deposit_payment_method: o.deposit_payment_method ?? null,
+            balance_payment_method: o.balance_payment_method ?? null,
+            paid_amount: paid,
+            final_price: Number(o.final_price ?? o.total_price ?? 0),
+          },
+          checkInDate: String(o.check_in_date),
+          cancellationDate: cancelDate,
+          alreadyRefunded: 0,
+        });
+        const policyRefundAmount = settled > 0
+          ? settled
+          : Math.min(paid, Math.max(0, Math.round(quote.refundAmount)));
+        const feeApplies = !isCard && policyRefundAmount > 0;
+        const expectedFee = feeAmount > 0
+          ? feeAmount
+          : feeApplies
+          ? Math.min(manualRefundFeeSetting, policyRefundAmount)
+          : 0;
+        return {
+          status: o.refund_status ?? null,
+          amount: refundedAmount,
+          refundedAt: o.refunded_at ?? null,
+          paidAmount: paid,
+          policyRefundAmount,
+          feeAmount,
+          /** 尚未退款時的預估手續費（已退款則等於實際 feeAmount） */
+          expectedFeeAmount: expectedFee,
+          expectedPayoutAmount: Math.max(0, policyRefundAmount - expectedFee),
+          refundedAmount,
+          remainingRefundable: Math.max(0, paid - settled),
+          paymentMethodKind: paymentMethodKind(o),
+          paymentMethodLabel: paymentMethodLabel(o),
+          refundChannelLabel: refundChannelLabel(isCard),
+          isCardOrder: isCard,
+        };
+      })(),
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
