@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+
 
 interface Props {
   accommodationId: string;
@@ -40,6 +43,31 @@ const fmtTime = (iso: string) =>
     hour12: false,
   }).format(new Date(iso));
 
+/** 將後端錯誤轉成可讀中文訊息（保留原始訊息供除錯）。 */
+const describeError = (
+  error: { message?: string; code?: string; details?: string; hint?: string } | null | undefined,
+): string => {
+  if (!error) return "未知錯誤";
+  const code = error.code || "";
+  const raw = error.message || error.details || "未知錯誤";
+  const map: Record<string, string> = {
+    "42501": "權限不足，無法修改此館別的來源設定，請聯絡管理員。",
+    "23505": "資料重複，可能已有其他人同時儲存，請重新整理後再試。",
+    "23503": "館別或來源資料不存在，請重新選擇館別。",
+    "23514": "資料格式不符合限制條件，請檢查設定內容。",
+    "PGRST301": "登入狀態已過期，請重新登入後再試。",
+    "PGRST116": "找不到對應的設定資料，請重新整理頁面。",
+  };
+  const friendly =
+    map[code] ||
+    (/JWT|not authenticated|401/i.test(raw)
+      ? "登入狀態已過期，請重新登入後再試。"
+      : /Failed to fetch|NetworkError/i.test(raw)
+        ? "網路連線異常，請確認網路後重試。"
+        : raw);
+  return code && friendly !== raw ? `${friendly}（代碼 ${code}）` : friendly;
+};
+
 export default function PerformanceSourceRulesSection({
   accommodationId,
   accommodationName,
@@ -50,36 +78,61 @@ export default function PerformanceSourceRulesSection({
   const [draft, setDraft] = useState<Record<string, boolean>>({});
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  // 用來丟棄過期（切換館別後才回來）的請求結果
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
+    // 切換館別時立即清空草稿，避免把上一個館別的開關值存到新館別
+    setSaved({});
+    setDraft({});
+    setLogs([]);
+    setSaveError(null);
+    setLoadError(null);
+    requestIdRef.current += 1;
     if (!accommodationId) return;
-    void load();
+    void load(requestIdRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accommodationId]);
 
-  const load = async () => {
+  const load = async (reqId = requestIdRef.current) => {
+    const accId = accommodationId;
+    setLoading(true);
     const [ruleRes, logRes] = await Promise.all([
       supabase
         .from("performance_notification_source_rules")
         .select("source, included, updated_at, updated_by_email")
-        .eq("accommodation_id", accommodationId),
+        .eq("accommodation_id", accId),
       supabase
         .from("performance_notification_source_rule_logs")
         .select("id, created_at, user_email, user_name, changes")
-        .eq("accommodation_id", accommodationId)
+        .eq("accommodation_id", accId)
         .order("created_at", { ascending: false })
         .limit(30),
     ]);
+    // 已切換館別 → 丟棄結果
+    if (reqId !== requestIdRef.current || accId !== accommodationId) return;
+    setLoading(false);
+    if (ruleRes.error) {
+      const msg = describeError(ruleRes.error);
+      setLoadError(msg);
+      toast.error("載入來源設定失敗：" + msg);
+      return;
+    }
+    setLoadError(null);
     const map: Record<string, RuleRow> = {};
     ((ruleRes.data || []) as RuleRow[]).forEach((r) => (map[r.source] = r));
     setSaved(map);
     const d: Record<string, boolean> = {};
     Object.entries(map).forEach(([k, v]) => (d[k] = v.included));
     setDraft(d);
-    setLogs((logRes.data || []) as unknown as LogRow[]);
+    setLogs(logRes.error ? [] : ((logRes.data || []) as unknown as LogRow[]));
   };
 
   const isIncluded = (source: string) => draft[source] ?? saved[source]?.included ?? true;
+
 
   const dirty = useMemo(
     () => sources.some((s) => isIncluded(s.value) !== (saved[s.value]?.included ?? true)),
@@ -90,9 +143,18 @@ export default function PerformanceSourceRulesSection({
   const excludedCount = sources.filter((s) => !isIncluded(s.value)).length;
 
   const handleSave = async () => {
-    if (!canEdit) return;
+    if (!canEdit || !accommodationId) return;
+    const accId = accommodationId;
     setSaving(true);
-    const { data: auth } = await supabase.auth.getUser();
+    setSaveError(null);
+    const { data: auth, error: authErr } = await supabase.auth.getUser();
+    if (authErr) {
+      setSaving(false);
+      const msg = describeError(authErr as never);
+      setSaveError(msg);
+      toast.error("儲存失敗：" + msg);
+      return;
+    }
     const user = auth?.user;
     let userName: string | null = null;
     if (user) {
@@ -120,7 +182,7 @@ export default function PerformanceSourceRulesSection({
     }
 
     const payload = sources.map((s) => ({
-      accommodation_id: accommodationId,
+      accommodation_id: accId,
       source: s.value,
       included: isIncluded(s.value),
       updated_by: user?.id ?? null,
@@ -133,14 +195,16 @@ export default function PerformanceSourceRulesSection({
       .upsert(payload, { onConflict: "accommodation_id,source" });
     if (error) {
       setSaving(false);
-      toast.error("儲存失敗：" + error.message);
+      const msg = describeError(error);
+      setSaveError(msg);
+      toast.error("儲存失敗：" + msg, { description: `館別 ${accommodationName ?? accId}` });
       return;
     }
 
     const { error: logErr } = await supabase
       .from("performance_notification_source_rule_logs")
       .insert([{
-        accommodation_id: accommodationId,
+        accommodation_id: accId,
         user_id: user?.id ?? null,
         user_email: user?.email ?? null,
         user_name: userName,
@@ -148,12 +212,19 @@ export default function PerformanceSourceRulesSection({
       }]);
     setSaving(false);
     if (logErr) {
-      toast.warning("設定已儲存，但變更紀錄寫入失敗：" + logErr.message);
+      const msg = describeError(logErr);
+      setSaveError("設定已儲存，但變更紀錄寫入失敗：" + msg);
+      toast.warning("設定已儲存，但變更紀錄寫入失敗：" + msg);
     } else {
-      toast.success("已儲存來源設定");
+      setSaveError(null);
+      toast.success(
+        `已儲存${accommodationName ? `「${accommodationName}」` : ""}來源設定（${changes.length} 項變更）`,
+      );
     }
-    await load();
+    // 只有仍停留在同一館別時才重新載入，避免覆蓋新選館別的資料
+    if (accId === accommodationId) await load();
   };
+
 
   if (!accommodationId) {
     return (
@@ -167,7 +238,22 @@ export default function PerformanceSourceRulesSection({
 
   return (
     <div className="space-y-4">
+      {(loadError || saveError) && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>{loadError ? "載入失敗" : "儲存未完成"}</AlertTitle>
+          <AlertDescription className="space-y-2">
+            <p>{loadError || saveError}</p>
+            {loadError && (
+              <Button size="sm" variant="outline" onClick={() => void load()}>
+                重新載入
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       <Card>
+
         <CardContent className="py-4 text-sm space-y-2 text-muted-foreground">
           <p className="font-semibold text-foreground">業績推播來源設定</p>
           <p>
@@ -230,7 +316,7 @@ export default function PerformanceSourceRulesSection({
 
           {canEdit && (
             <div className="flex justify-end pt-2">
-              <Button onClick={handleSave} disabled={saving || !dirty}>
+              <Button onClick={handleSave} disabled={saving || loading || !dirty || !!loadError}>
                 {saving ? "儲存中..." : "儲存來源設定"}
               </Button>
             </div>
