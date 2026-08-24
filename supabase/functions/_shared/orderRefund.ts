@@ -77,6 +77,64 @@ export async function resolveCardRecTradeId(
   return null;
 }
 
+export type SyncRecTradeSource =
+  | "refund_rec_trade_id"
+  | "room_charge_rec_trade_id"
+  | "deposit_charges"
+  | "notes";
+
+export interface SyncRecTradeResolution {
+  recTradeId: string | null;
+  source: SyncRecTradeSource | null;
+  /** 找不到（或非信用卡）時的原因碼；呼叫端必須改走人工確認 */
+  reason?: "not_card" | "no_rec_trade_id";
+}
+
+/**
+ * TapPay 對帳（Query / reconciliation）用的原始交易編號解析。
+ * 優先序：orders.refund_rec_trade_id → orders.room_charge_rec_trade_id
+ *        → deposit_charges 最新成功扣款 → orders.notes（legacy fallback）
+ *
+ * 注意：
+ *  - ATM／銀行轉帳／現金一律回 not_card，不得進入信用卡對帳流程。
+ *  - 找不到時回 null，呼叫端必須標記人工確認，嚴禁猜測交易編號。
+ *  - 本函式只做「查詢」用途，不會觸發任何 Refund API。
+ */
+export async function resolveSyncRecTradeId(
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  order: RefundableOrder,
+): Promise<SyncRecTradeResolution> {
+  if (!isCardPaidOrder(order)) return { recTradeId: null, source: null, reason: "not_card" };
+
+  // refund_rec_trade_id 記錄的是退款時使用的「原始」交易編號，可直接供 Query 使用
+  if (order.refund_rec_trade_id && order.refund_rec_trade_id !== order.atm_rec_trade_id) {
+    return { recTradeId: order.refund_rec_trade_id, source: "refund_rec_trade_id" };
+  }
+  if (order.room_charge_rec_trade_id) {
+    return { recTradeId: order.room_charge_rec_trade_id, source: "room_charge_rec_trade_id" };
+  }
+
+  const { data: charge } = await supabase
+    .from("deposit_charges")
+    .select("rec_trade_id")
+    .eq("order_id", order.id)
+    .in("action", ["charge", "deposit", "room_charge", "balance"])
+    .eq("status", "success")
+    .not("rec_trade_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (charge?.rec_trade_id) return { recTradeId: charge.rec_trade_id, source: "deposit_charges" };
+
+  const fromNotes = extractRecTradeIdFromNotes(order.notes);
+  if (fromNotes && fromNotes !== order.atm_rec_trade_id) {
+    return { recTradeId: fromNotes, source: "notes" };
+  }
+  return { recTradeId: null, source: null, reason: "no_rec_trade_id" };
+}
+
+
 export interface RefundOutcome {
   /** 是否實際呼叫了 TapPay */
   attempted: boolean;
