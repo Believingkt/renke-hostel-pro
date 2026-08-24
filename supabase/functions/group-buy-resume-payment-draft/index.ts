@@ -75,7 +75,6 @@ Deno.serve(async (req) => {
     const slug = String(body.slug ?? "").trim();
     const phoneLast4 = digits(body.phoneLast4).slice(-4);
     const email = String(body.email ?? "").trim().toLowerCase();
-    const nowIso = new Date().toISOString();
 
     if (phoneLast4.length !== 4) return json({ error: "請提供聯絡電話後四碼" }, 400);
 
