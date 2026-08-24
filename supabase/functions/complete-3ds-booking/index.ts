@@ -327,6 +327,7 @@ Deno.serve(async (req) => {
         notes: orderNotes,
         pet_count: body.petCount || 0,
         pet_plan_price: body.petPlanPrice || 0,
+        room_quantity: (body as any).roomQuantity ?? 1,
         custom_addon_details: (body as any).customAddonDetails ?? null,
         order_source: "website",
       }])
@@ -335,6 +336,10 @@ Deno.serve(async (req) => {
 
     if (orderError) {
       console.error("[complete-3ds-booking] Order creation failed:", orderError);
+      // DB 庫存閘門擋下（跨通路搶單）：卡片已扣款，自動退款
+      if ((orderError.message || "").includes("inventory_unavailable")) {
+        return await refundAndFail("inventory_gate_on_insert", orderError.message);
+      }
       return new Response(
         JSON.stringify({
           success: false,
@@ -344,6 +349,7 @@ Deno.serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     console.log("[complete-3ds-booking] Order created:", orderData.order_number);
 
