@@ -229,4 +229,145 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
     const payBtn = screen.getByRole("button", { name: /確認付款/ });
     expect(payBtn).toBeDisabled();
   });
+
+  // ── 主動放棄／修改訂房內容的生命週期（Phase F2-D 補強）──
+
+  const RESUMED = {
+    data: {
+      found: true,
+      draftId: "draft-resumed",
+      expiresAt: new Date(Date.now() + 300_000).toISOString(),
+      remainingSeconds: 300,
+      amountToCharge: 4321,
+      total: 14000,
+    },
+    error: null,
+  };
+
+  function renderDialog(onOpenChange = vi.fn()) {
+    render(
+      <GroupBuyCreditCardDialog
+        open
+        onOpenChange={onOpenChange}
+        amount={14000}
+        packageName="測試方案"
+        buildRequest={() => req}
+      />,
+    );
+    return onOpenChange;
+  }
+
+  it("CASE 3: 返回修改選「繼續付款」→ 不 release、不建立第二張 Draft", async () => {
+    mockInvoke(RESUMED);
+    const onOpenChange = renderDialog();
+    await screen.findByText(/已為您接續原本的付款保留/);
+    screen.getByRole("button", { name: "返回修改" }).click();
+    await screen.findByText(/返回修改後，目前為您保留的房況將立即釋放/);
+    screen.getByRole("button", { name: "繼續付款" }).click();
+    await waitFor(() => expect(screen.queryByText(/將立即釋放/)).toBeNull());
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-release-payment-draft")).toBe(false);
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-create-payment-draft")).toBe(false);
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it("CASE 4: 選「釋放房況並返回修改」→ 呼叫 release、清除 session、關閉且不自動建立新 Draft", async () => {
+    invoke.mockImplementation((name: string) => {
+      if (name === "group-buy-resume-payment-draft") return Promise.resolve(RESUMED);
+      if (name === "group-buy-release-payment-draft") {
+        return Promise.resolve({ data: { released: true, status: "cancelled" }, error: null });
+      }
+      return Promise.resolve(DEFAULT_CREATE);
+    });
+    const onOpenChange = renderDialog();
+    await screen.findByText(/已為您接續原本的付款保留/);
+    screen.getByRole("button", { name: "返回修改" }).click();
+    (await screen.findByRole("button", { name: "釋放房況並返回修改" })).click();
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+    const rel = invoke.mock.calls.find((c) => c[0] === "group-buy-release-payment-draft");
+    expect(rel?.[1]?.body?.draftId).toBe("draft-resumed");
+    expect(rel?.[1]?.body?.reason).toBe("customer_modify_booking");
+    expect(sessionStorage.getItem("gb_payment_draft_ma")).toBeNull();
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-create-payment-draft")).toBe(false);
+  });
+
+  it("CASE 6: 找到有效 Draft 但 fingerprint 不同 → 顯示二選一，不得直接建立新 Draft", async () => {
+    mockInvoke({
+      data: {
+        found: false,
+        reason: "fingerprint_mismatch",
+        conflict: {
+          draftId: "draft-old",
+          status: "pending",
+          remainingSeconds: 392,
+          checkInDate: "2026-09-09",
+          checkOutDate: "2026-09-10",
+          roomQuantity: 1,
+          packageName: "方案 A",
+          releasable: true,
+        },
+      },
+      error: null,
+    });
+    renderDialog();
+    await screen.findByText(/您目前仍有一筆付款保留中的房況/);
+    expect(screen.getByText(/6:32/)).toBeTruthy();
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-create-payment-draft")).toBe(false);
+    expect(screen.getByRole("button", { name: /確認付款/ })).toBeDisabled();
+  });
+
+  it("CASE 7: 選「改用目前選擇」→ 先 release 舊 Draft 成功，才 create 新 Draft", async () => {
+    const order: string[] = [];
+    invoke.mockImplementation((name: string) => {
+      order.push(name);
+      if (name === "group-buy-resume-payment-draft") {
+        return Promise.resolve({
+          data: {
+            found: false,
+            reason: "fingerprint_mismatch",
+            conflict: { draftId: "draft-old", status: "pending", remainingSeconds: 300, releasable: true },
+          },
+          error: null,
+        });
+      }
+      if (name === "group-buy-release-payment-draft") {
+        return Promise.resolve({ data: { released: true, status: "cancelled" }, error: null });
+      }
+      return Promise.resolve(DEFAULT_CREATE);
+    });
+    renderDialog();
+    (await screen.findByRole("button", { name: "改用目前選擇" })).click();
+    await waitFor(() => expect(order).toContain("group-buy-create-payment-draft"));
+    expect(order.indexOf("group-buy-release-payment-draft"))
+      .toBeLessThan(order.indexOf("group-buy-create-payment-draft"));
+  });
+
+  it("CASE 8: release 被 server 以 payment_processing 拒絕 → 顯示付款確認中，不建立新 Draft", async () => {
+    invoke.mockImplementation((name: string) => {
+      if (name === "group-buy-resume-payment-draft") return Promise.resolve(RESUMED);
+      if (name === "group-buy-release-payment-draft") {
+        return Promise.resolve({ data: { released: false, reason: "payment_processing" }, error: null });
+      }
+      return Promise.resolve(DEFAULT_CREATE);
+    });
+    renderDialog();
+    await screen.findByText(/已為您接續原本的付款保留/);
+    screen.getByRole("button", { name: "返回修改" }).click();
+    (await screen.findByRole("button", { name: "釋放房況並返回修改" })).click();
+    await screen.findByText(/付款結果確認中，請勿重新付款/);
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-create-payment-draft")).toBe(false);
+  });
+
+  it("CASE 12: Draft 已 expired → 不復活、清 session、正常建立新 Draft", async () => {
+    sessionStorage.setItem(
+      "gb_payment_draft_ma",
+      JSON.stringify({ draftId: "old", expiresAt: new Date(Date.now() + 60_000).toISOString(), phoneLast4: "5678" }),
+    );
+    mockInvoke({ data: { found: false, reason: "expired" }, error: null });
+    renderDialog();
+    await waitFor(() =>
+      expect(invoke.mock.calls.some((c) => c[0] === "group-buy-create-payment-draft")).toBe(true)
+    );
+    expect(invoke.mock.calls.some((c) => c[0] === "group-buy-release-payment-draft")).toBe(false);
+  });
 });
+
