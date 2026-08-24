@@ -85,15 +85,35 @@ Deno.serve(async (req) => {
       ? paymentDeadline(order.created_at ?? new Date().toISOString(), campaign?.payment_deadline_hours ?? 72)
       : null;
 
+    const paidAmount = Math.max(0, Math.round(Number(order?.paid_amount) || 0));
+    const total = Math.max(0, Math.round(Number(order?.total_price) || 0));
+    const maskedEmail = (() => {
+      const em = String(order?.guest_email ?? "");
+      const [local, domain] = em.split("@");
+      if (!domain || !local) return null;
+      return `${local.slice(0, 1)}${"*".repeat(Math.max(local.length - 1, 1))}@${domain}`;
+    })();
+
     return json({
       success: true,
       alreadyConverted: Boolean(result.alreadyConverted),
       orderNumber: result.orderNumber,
       order: order ?? null,
       campaignTitle: campaign?.title ?? null,
-      balance: order ? Math.max(0, Number(order.total_price) - Number(order.paid_amount ?? 0)) : null,
-      bank: bankToInfo(bankRow),
-      paymentDeadlineText: deadline ? formatTaipei(deadline) : null,
+      // 信用卡＝全額預收：無訂金／尾款／匯款資訊
+      fullPayment: true,
+      total,
+      paidAmount,
+      deposit: 0,
+      balance: 0,
+      checkInDate: order?.check_in_date ?? null,
+      checkOutDate: order?.check_out_date ?? null,
+      guestEmailMasked: maskedEmail,
+      bank: null,
+      paymentDeadlineText: null,
+      // 保留原始資料供後續非信用卡情境（目前一律 null）
+      _bankUnused: bankToInfo(bankRow) ? true : false,
+      _deadlineUnused: deadline ? formatTaipei(deadline) : null,
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
