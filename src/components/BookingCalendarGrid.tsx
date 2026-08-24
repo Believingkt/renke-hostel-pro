@@ -209,6 +209,13 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const rangeReady = loadedRangeKey === currentRangeKey;
   const visibleEntries = useMemo(() => (rangeReady ? calendarEntries : []), [rangeReady, calendarEntries]);
 
+  // 團購信用卡「付款保留」（唯讀顯示；不參與庫存計算、不是正式訂單）
+  const { holdEvents } = useActivePaymentHolds(
+    accommodationId,
+    dateStrings[0],
+    dateStrings[dateStrings.length - 1],
+  );
+
 
   // Load data
   useEffect(() => {
