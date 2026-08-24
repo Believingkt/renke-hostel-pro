@@ -401,6 +401,7 @@ serve(async (req) => {
         for (const row of (invRows as any[]) || []) {
           const avail = row?.is_blocked === true ? 0 : Number(row?.available_rooms ?? 0);
           if (avail < roomQuantity) {
+            inventoryUnavailable = true;
             errors.push(
               `Not enough rooms on ${row?.date_value}: requested=${roomQuantity}, available=${avail}`,
             );
@@ -411,6 +412,7 @@ serve(async (req) => {
         errors.push("Inventory check failed");
       }
     }
+
 
 
 
