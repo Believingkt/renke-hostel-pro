@@ -39,8 +39,14 @@ function MailRow({ label, state, note }: { label: string; state: MailState; note
 export default function GroupBuyOrderConfirmation() {
   const { orderNumber = "" } = useParams<{ orderNumber: string }>();
   const location = useLocation();
-  const state = (location.state ?? {}) as { phoneLast4?: string; result?: any; paymentMethod?: "bank" | "atm" };
+  const state = (location.state ?? {}) as {
+    phoneLast4?: string;
+    result?: any;
+    paymentMethod?: "bank" | "atm";
+    fromCreditCard?: boolean;
+  };
   const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
+  const fromCreditCard = state.fromCreditCard === true;
   const useAtm = state.paymentMethod === "atm";
 
   const [loading, setLoading] = useState(true);
@@ -75,17 +81,22 @@ export default function GroupBuyOrderConfirmation() {
   const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const depositMail = guestEmails.find((e) => e.templateType === "deposit_received") ?? null;
   const depositMailState: MailState = confirmed ? (depositMail?.status ?? "sent") : "pending";
-  const maskedEmail: string | null = order?.guestEmailMasked ?? null;
+  const maskedEmail: string | null = order?.guestEmailMasked ?? result?.guestEmailMasked ?? null;
 
 
-  /** 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款 */
-  const fullPayment = order?.fullPayment === true;
-  const paidAmount = Number(order?.paidAmount ?? 0);
+  /**
+   * 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款。
+   * 3DS 回程沒有電話後四碼可查詢，因此以導頁 state 與 complete-paid-order 回傳為準。
+   */
+  const fullPayment = order?.fullPayment === true || result?.fullPayment === true || fromCreditCard;
+  const paidAmount = Number(order?.paidAmount ?? result?.paidAmount ?? 0);
   const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
-  const total = order?.total ?? result?.total ?? 0;
-  const deposit = order?.deposit ?? result?.deposit ?? 0;
-  const balance = order?.balance ?? result?.balance ?? 0;
-  const deadlineText = order?.paymentDeadlineText ?? result?.paymentDeadlineText ?? null;
+  const total = Number(order?.total ?? result?.total ?? result?.order?.total_price ?? 0);
+  const deposit = fullPayment ? 0 : (order?.deposit ?? result?.deposit ?? 0);
+  const balance = fullPayment ? 0 : (order?.balance ?? result?.balance ?? 0);
+  const deadlineText = fullPayment ? null : (order?.paymentDeadlineText ?? result?.paymentDeadlineText ?? null);
+  const checkInDate = order?.checkInDate ?? result?.checkInDate ?? result?.order?.check_in_date ?? null;
+  const checkOutDate = order?.checkOutDate ?? result?.checkOutDate ?? result?.order?.check_out_date ?? null;
 
   if (loading) {
     return (
@@ -109,10 +120,10 @@ export default function GroupBuyOrderConfirmation() {
               <span className="text-muted-foreground">訂單編號</span>
               <span className="font-semibold">{orderNumber}</span>
             </div>
-            {order && (
+            {checkInDate && checkOutDate && (
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">入住 / 退房</span>
-                <span>{order.checkInDate} → {order.checkOutDate}</span>
+                <span>{checkInDate} → {checkOutDate}</span>
               </div>
             )}
             <div className="flex justify-between py-1">
@@ -146,33 +157,41 @@ export default function GroupBuyOrderConfirmation() {
 
           <div className="rounded-lg border p-4">
             <p className="mb-1 font-semibold text-foreground">通知信狀態</p>
-            <MailRow
-              label={fullPayment ? "訂房通知信" : "訂房通知＋匯款資訊信"}
-              state={fullPayment ? "sent" : bookingMailState}
-              note={
-                bookingMailState === "sent"
-                  ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                  : bookingMailState === "failed"
-                    ? "通知信寄送失敗，請依下方匯款資訊完成匯款"
-                    : "訂單成立後寄出"
-              }
-            />
-            <MailRow
-              label={fullPayment ? "付款完成通知信" : "訂金確認信"}
-              state={fullPayment ? (depositMail?.status ?? "sent") : depositMailState}
-              note={
-                fullPayment
-                  ? `付款完成通知信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                  : depositMailState === "sent"
-                    ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
-                    : "民宿確認收到訂金後寄出"
-              }
-            />
-
-            {!fullPayment && bookingMailState === "failed" && (
-              <p className="mt-2 text-xs text-destructive">
-                通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
-              </p>
+            {fullPayment ? (
+              /* 信用卡全額付款只有一封旅客信：訂房確認＋付款完成（含完整訂單明細） */
+              <MailRow
+                label="訂房確認＋付款完成通知信"
+                state={depositMail?.status ?? "sent"}
+                note={`已寄至 ${maskedEmail ?? "您留下的電子信箱"}`}
+              />
+            ) : (
+              <>
+                <MailRow
+                  label="訂房通知＋匯款資訊信"
+                  state={bookingMailState}
+                  note={
+                    bookingMailState === "sent"
+                      ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                      : bookingMailState === "failed"
+                        ? "通知信寄送失敗，請依下方匯款資訊完成匯款"
+                        : "訂單成立後寄出"
+                  }
+                />
+                <MailRow
+                  label="訂金確認信"
+                  state={depositMailState}
+                  note={
+                    depositMailState === "sent"
+                      ? `訂金確認信已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
+                      : "民宿確認收到訂金後寄出"
+                  }
+                />
+                {bookingMailState === "failed" && (
+                  <p className="mt-2 text-xs text-destructive">
+                    通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
+                  </p>
+                )}
+              </>
             )}
           </div>
 
