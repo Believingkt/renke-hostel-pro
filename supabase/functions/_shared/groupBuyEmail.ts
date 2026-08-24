@@ -350,15 +350,29 @@ function refundStatusBlock(info: GroupBuyCancelInfo, isCardOrder = false): strin
       feeTotal > 0 ? `<p style="margin:6px 0 0">已扣除匯款手續費 <strong>${money(feeTotal)}</strong>。</p>` : ""
     }`;
   }
+  /**
+   * 待退款金額三段呈現：政策應退（gross）／匯款手續費／預計實際退款（payout）。
+   * 手續費一律取 info.handlingFee（館別 booking_settings.manual_refund_fee_amount），
+   * 不得寫死金額；fee = 0 時不輸出手續費列。
+   */
+  const pendingRows = (gross: number) => {
+    const fee = Math.min(Math.max(0, Math.round(Number(info.handlingFee) || 0)), gross);
+    const payout = Math.max(0, gross - fee);
+    return `<table class="info" style="margin:0 0 10px">
+        <tr><td class="k">政策應退金額</td><td>${money(gross)}</td></tr>
+        ${fee > 0 ? `<tr><td class="k">匯款手續費</td><td>-${money(fee)}</td></tr>` : ""}
+        <tr><td class="k">預計實際退款</td><td><strong>${money(payout)}</strong></td></tr>
+      </table>`;
+  };
   if (info.refundStatus === "partial_refunded") {
-    return `<p>目前已退款 <strong>${money(info.refundedTotal)}</strong>，尚有 <strong>${
-      money(remaining)
-    }</strong> 待退款，我們會盡快處理完成。</p>${schedule}`;
+    return `<p>目前已退款 <strong>${money(info.refundedTotal)}</strong>，尚有款項待退款，我們會盡快處理完成。</p>${
+      pendingRows(remaining)
+    }${schedule}`;
   }
   if (info.refundStatus === "none") {
     return `<p>此訂單依取消條件不進行退款，如有疑問請與我們聯繫。</p>`;
   }
-  return `<p>此訂單已有付款紀錄，目前退款處理中（待退款 <strong>${money(remaining)}</strong>）。</p>${schedule}`;
+  return `<p>此訂單已有付款紀錄，目前退款處理中。</p>${pendingRows(remaining)}${schedule}`;
 }
 
 export function renderOrderCancelled(
@@ -443,15 +457,16 @@ export function renderRefundProcessed(
          ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
          <tr><td class="k">訂單總額</td><td>${money(o.totalPrice)}</td></tr>
          ${cardRows}
-         <tr><td class="k">${isCard ? "本次原卡退刷" : "本次退款金額"}</td><td><strong style="color:${BRAND.primary}">${
-        money(info.refundAmount)
-      }</strong></td></tr>
          ${
-        feeThisTime > 0
-          ? `<tr><td class="k">本次匯款手續費</td><td>-${money(feeThisTime)}</td></tr>`
+        !isCard && feeThisTime > 0
+          ? `<tr><td class="k">政策應退金額</td><td>${money(info.refundAmount + feeThisTime)}</td></tr>
+         <tr><td class="k">匯款手續費</td><td>-${money(feeThisTime)}</td></tr>`
           : ""
       }
-         <tr><td class="k">累計已退款</td><td>${money(info.refundedTotal)}</td></tr>
+         <tr><td class="k">${isCard ? "本次原卡退刷" : "本次實際退款"}</td><td><strong style="color:${BRAND.primary}">${
+        money(info.refundAmount)
+      }</strong></td></tr>
+         <tr><td class="k">${isCard ? "累計已退款" : "累計實際退款"}</td><td>${money(info.refundedTotal)}</td></tr>
          ${feeTotal > 0 ? `<tr><td class="k">累計手續費</td><td>${money(feeTotal)}</td></tr>` : ""}
          <tr><td class="k">${isCard ? "退款後實收" : "剩餘待退款"}</td><td>${money(remaining)}</td></tr>
          <tr><td class="k">退款狀態</td><td><strong>${
