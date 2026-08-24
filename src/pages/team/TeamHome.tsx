@@ -1685,6 +1685,7 @@ export default function TeamHome() {
         const payload = await runLoad(null);
         if (cancelled || !payload) return;
         payloadCache.set(cacheKey, { at: Date.now(), payload });
+        persistCache();
         applyPayload(payload);
 
         if (simEnabled) {
