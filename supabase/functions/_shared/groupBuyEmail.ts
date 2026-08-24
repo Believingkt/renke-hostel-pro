@@ -66,7 +66,18 @@ export interface GroupBuyEmailOrder {
   balanceAmount: number;
   deadlineText?: string | null;
   orderUrl?: string | null;
+  /** 依訂單實際付款制度判定之取消政策（顯示用，與後端計算同源） */
+  cancellationPolicy?: CancellationPolicyType | null;
 }
+
+/** 取消政策區塊（與一般訂房信共用同一份文案來源） */
+function cancellationBlock(o: GroupBuyEmailOrder): string {
+  if (!o.cancellationPolicy) return "";
+  return `<div class="box">${
+    renderCancellationPolicyHtml(cancellationPolicyCopy(o.cancellationPolicy))
+  }</div>`;
+}
+
 
 export interface GroupBuyBankInfo {
   bankName: string;
