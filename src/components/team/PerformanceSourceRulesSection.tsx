@@ -316,7 +316,7 @@ export default function PerformanceSourceRulesSection({
 
           {canEdit && (
             <div className="flex justify-end pt-2">
-              <Button onClick={handleSave} disabled={saving || !dirty}>
+              <Button onClick={handleSave} disabled={saving || loading || !dirty || !!loadError}>
                 {saving ? "儲存中..." : "儲存來源設定"}
               </Button>
             </div>
