@@ -297,7 +297,11 @@ export default function GroupBuyOrderConfirmation() {
             <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
               已完成信用卡全額付款，入住當天不需再支付尾款。
             </p>
-          ) : useAtm && !fullPayment ? (
+          ) : useAtm && depositPaid ? (
+            <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
+              ATM 訂金 {twd(paidAmount || deposit)} 已入帳，訂房完成；尾款 {twd(balance)} 入住現場付清。
+            </p>
+          ) : useAtm ? (
             <div className="space-y-2">
               <p className="font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
               <AtmPaymentPanel
