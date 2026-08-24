@@ -678,9 +678,11 @@ serve(async (req) => {
       errors
     });
 
-    const result: ValidationResult = {
+    const result: ValidationResult & { inventoryUnavailable?: boolean } = {
       isValid: errors.length === 0,
+      inventoryUnavailable,
       errors,
+
       calculatedPrices: {
         totalPrice: calculatedTotalPrice,
         discountAmount: calculatedDiscount,
