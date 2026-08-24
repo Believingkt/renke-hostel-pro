@@ -857,12 +857,21 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                     const isCurrentMonth = isSameMonth(day, currentMonth);
                     const isTodayDate = isToday(day);
                     const isSelected = selectedDates.has(dateStr);
+                    const adj = selectedRoomType
+                      ? adjusted.get(adjustedKey(selectedRoomType, dateStr))
+                      : undefined;
+                    const baseRooms = dayInventory?.availableRooms ?? 0;
+                    const hasOccupancy = adj !== undefined && adj.available < baseRooms;
+                    const cellTitle = hasOccupancy
+                      ? '實際可售已扣除訂單與付款保留'
+                      : undefined;
 
                     return (
                       <div
                         key={dateStr}
                         onClick={() => toggleDateSelection(dateStr)}
                         onDoubleClick={() => handleDoubleClick(dateStr)}
+                        title={cellTitle}
                         className={cn(
                           "relative min-h-[80px] sm:min-h-[90px] md:min-h-[100px] border rounded-lg p-1.5 sm:p-2 flex flex-col items-center justify-center transition-all",
                           isTodayDate && "border-blue-600 border-2",
@@ -884,13 +893,19 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
                           {format(day, 'd')}
                         </div>
                         {hasData ? (
-                          <div className="flex items-center gap-0.5 sm:gap-1 text-[10px] sm:text-xs text-muted-foreground">
-                            <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            <span className="font-medium">{dayInventory.availableRooms}</span>
+                          <div className="flex flex-col items-center gap-0.5 text-[10px] sm:text-xs text-muted-foreground">
+                            <div className="flex items-center gap-0.5 sm:gap-1">
+                              <Package className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                              <span className={cn("font-medium", hasOccupancy && "text-amber-600")}>
+                                可售 {adj ? adj.available : baseRooms}
+                              </span>
+                            </div>
+                            <span className="opacity-70">基礎 {baseRooms}</span>
                           </div>
                         ) : (
                           <div className="text-[10px] sm:text-xs text-muted-foreground">未設定</div>
                         )}
+
                         {isSelected && (
                           <div className="absolute top-1 right-1 sm:top-1.5 sm:right-1.5">
                             <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600" />
