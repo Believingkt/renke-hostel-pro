@@ -689,6 +689,8 @@ export default function RoomPriceCalendar() {
                             monthDays={monthDays}
                             holidays={holidays}
                             getCellData={getCellData}
+                        adjusted={adjusted}
+                            adjusted={adjusted}
                             getDayType={getDayType}
                             onCellClick={handleCellClick}
                           />
@@ -721,6 +723,7 @@ export default function RoomPriceCalendar() {
                         monthDays={monthDays}
                         holidays={holidays}
                         getCellData={getCellData}
+                        adjusted={adjusted}
                         getDayType={getDayType}
                         onCellClick={handleCellClick}
                         showCategoryHeader={true}
@@ -787,6 +790,7 @@ interface RoomTypeRowsProps {
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
+  adjusted: Map<string, { available: number; blocked: boolean }>;
   getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'peak' | 'weekday';
   onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number) => void;
   showCategoryHeader?: boolean;
@@ -800,6 +804,7 @@ function RoomTypeRows({
   monthDays,
   holidays,
   getCellData,
+  adjusted,
   getDayType,
   onCellClick,
   showCategoryHeader = false,
