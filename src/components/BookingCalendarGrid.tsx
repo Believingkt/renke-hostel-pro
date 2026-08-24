@@ -13,7 +13,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
-import { PaymentHoldRows } from "@/components/booking-calendar/PaymentHoldRows";
+import { PaymentHoldRows, PaymentHoldCard } from "@/components/booking-calendar/PaymentHoldRows";
+import type { PaymentHoldEvent } from "@/lib/paymentHoldEvents";
+
 
 interface BookingCalendarGridProps {
   accommodationId: string;
@@ -1090,7 +1092,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
 
                       type SlotMeta = { unitId: string | null; label: string; nickname?: string | null };
-                      const slots: { meta: SlotMeta; entries: CalendarEntry[] }[] = [];
+                      const slots: { meta: SlotMeta; entries: CalendarEntry[]; holds: PaymentHoldEvent[] }[] = [];
+
 
                       if (useUnits) {
                         // One row per unit
@@ -1099,6 +1102,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           slots.push({
                             meta: { unitId: u.id, label: u.unit_number, nickname: u.nickname },
                             entries,
+                            holds: [],
                           });
                         }
                         // Unassigned bucket — split with overlap-avoidance like before
@@ -1125,6 +1129,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                             slots.push({
                               meta: { unitId: null, label: idx === 0 ? "未指派" : `未指派 ${idx + 1}` },
                               entries: row,
+                              holds: [],
                             });
                           });
                         }
@@ -1149,11 +1154,33 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           slots.push({
                             meta: { unitId: null, label: roomCount > 0 ? `${i + 1}` : `#${i + 1}` },
                             entries: roomSlots[i] || [],
+                            holds: [],
                           });
                         }
                       }
 
-                      return slots.map((slot, slotIdx) => (
+                      // 團購信用卡付款保留：直接放進「原本的房間／房型列」，不另開一列。
+                      // 房型依據唯一 SoT = draft.room_type_id（不重新分配房型、不指派 room_unit）。
+                      const rtHolds = holdEvents.filter(h => h.roomTypeId === roomType.id);
+                      const leftoverHolds: PaymentHoldEvent[] = [];
+                      if (rtHolds.length > 0) {
+                        for (const h of [...rtHolds].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date) || a.index - b.index)) {
+                          // 具實體房號的房型（room_unit）：draft 沒有 room_unit_id，不得假造分房 → 放未指派列
+                          const candidates = useUnits ? slots.filter(s => s.meta.unitId === null) : slots;
+                          const free = candidates.find(s =>
+                            !s.entries.some(e => e.check_in_date < h.check_out_date && e.check_out_date > h.check_in_date) &&
+                            !s.holds.some(x => x.check_in_date < h.check_out_date && x.check_out_date > h.check_in_date)
+                          );
+                          if (free) free.holds.push(h);
+                          else leftoverHolds.push(h);
+                        }
+                      }
+
+
+
+                      return (<>
+                      {slots.map((slot, slotIdx) => (
+
                         <div key={`${slot.meta.unitId ?? 'na'}-${slotIdx}`} className="flex border-b last:border-b-0">
                           <div
                             className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
@@ -1359,20 +1386,26 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                 </TooltipProvider>
                               );
           })}
+          {/* 團購信用卡付款保留：直接畫在原本房間列的日期格（非正式訂單，不可點擊操作） */}
+          {slot.holds.map(h => (
+            <PaymentHoldCard key={h.id} event={h} dateStrings={dateStrings} dayColWidth={DAY_COL_MIN_WIDTH} />
+          ))}
           </div>
                         </div>
-                      ));
+                      ))}
+                      {/* Fallback：無法安全放入既有房間列的 Hold（例如多房號房型無 room_unit_id） */}
+                      <PaymentHoldRows
+                        events={leftoverHolds}
+                        dateStrings={dateStrings}
+                        dayColWidth={DAY_COL_MIN_WIDTH}
+                        leftColWidth={LEFT_COL_WIDTH}
+                        daysRowStyle={daysRowStyle}
+                        dayColumnStyle={dayColumnStyle}
+                      />
+                      </>);
                     })()}
 
-                    {/* 團購信用卡付款保留（非正式訂單，僅顯示，不可點擊操作） */}
-                    <PaymentHoldRows
-                      events={holdEvents.filter(h => h.roomTypeId === roomType.id)}
-                      dateStrings={dateStrings}
-                      dayColWidth={DAY_COL_MIN_WIDTH}
-                      leftColWidth={LEFT_COL_WIDTH}
-                      daysRowStyle={daysRowStyle}
-                      dayColumnStyle={dayColumnStyle}
-                    />
+
 
 
                     {/* 包棟內房間組成（依房型分組顯示，僅資訊用，不可預訂） */}
