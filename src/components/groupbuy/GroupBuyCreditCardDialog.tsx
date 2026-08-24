@@ -258,14 +258,22 @@ export function GroupBuyCreditCardDialog(props: Props) {
    * 續付：找回同一位客人尚未過期的 Draft。
    * 後端為純唯讀查詢，不會延長 expires_at；找不到時回 null 交由 createDraft 建立新的。
    */
-  const resumeDraft = useCallback(async () => {
+  const resumeDraft = useCallback(async (opts?: { draftId?: string; requireMatch?: boolean }) => {
     const req = buildRequest();
     const stored = readStoredDraft(req.slug);
     const phoneLast4 = String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4);
     if (phoneLast4.length !== 4) return null;
-    const body = stored?.draftId
-      ? { draftId: stored.draftId, phoneLast4 }
+    const targetDraftId = opts?.draftId ?? stored?.draftId;
+    const fingerprint = {
+      campaignPackageId: req.campaignPackageId,
+      checkInDate: req.checkInDate,
+      checkOutDate: req.checkOutDate,
+    };
+    const body: Record<string, unknown> = targetDraftId
+      ? { draftId: targetDraftId, phoneLast4 }
       : { slug: req.slug, phoneLast4, email: req.guestEmail };
+    body.fingerprint = fingerprint;
+    if (opts?.requireMatch === false) body.requireMatch = false;
     const { data, error: rErr } = await supabase.functions.invoke("group-buy-resume-payment-draft", { body });
     const payload: any = data;
     if (payload?.alreadyPaid) {
@@ -273,6 +281,11 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setBlocked({ reason: String(payload.reason ?? "paid_not_converted"), orderNumber: payload.orderNumber ?? null });
       // 回傳非 null 以阻止上層再建立新的 Draft
       return "blocked" as const;
+    }
+    if (payload?.reason === "fingerprint_mismatch" && payload?.conflict) {
+      // 舊保留仍有效，但客人現在選的內容不同 → 由客人決定續付舊的或改用目前選擇
+      setConflict(payload.conflict);
+      return "conflict" as const;
     }
     if (rErr || !payload?.found) {
       clearStoredDraft(req.slug);
@@ -288,8 +301,45 @@ export function GroupBuyCreditCardDialog(props: Props) {
     setDraftInfo({ amount: next.amount, total: typeof payload.total === "number" ? payload.total : null });
     setHoldSeconds(Math.max(0, Number(payload.remainingSeconds) || 0));
     setResumed(true);
+    setConflict(null);
     return next;
   }, [buildRequest]);
+
+  /**
+   * 主動釋放房況（客人明確要修改訂房內容／放棄付款）。
+   * Server 以原子條件式更新判定，只有仍為 pending 且未開始付款的 Draft 會被釋放。
+   */
+  const releaseDraft = useCallback(async (draftId: string, reason: string) => {
+    const req = buildRequest();
+    const phoneLast4 = String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4);
+    const { data, error: relErr } = await supabase.functions.invoke("group-buy-release-payment-draft", {
+      body: { draftId, phoneLast4, reason },
+    });
+    const payload: any = data;
+    if (relErr && !payload) throw new Error("目前無法釋放房況，請稍後再試或聯繫客服。");
+    if (!payload?.released) {
+      const r = String(payload?.reason ?? "");
+      if (r === "converted" || r === "paid" || r === "manual_review" || r === "payment_processing") {
+        setBlocked({ reason: r === "payment_processing" ? "payment_processing" : r, orderNumber: null });
+      }
+      throw new Error(
+        r === "manual_review"
+          ? "這筆付款正在人工確認中，暫時無法重新付款。"
+          : r === "not_found"
+          ? "查無此付款保留，請重新選擇。"
+          : "上一筆付款正在確認中，暫時無法重新付款。請等待付款結果確認完成。",
+      );
+    }
+    clearStoredDraft(req.slug);
+    if (draftRef.current?.draftId === draftId) {
+      draftRef.current = null;
+      setHoldSeconds(null);
+      setDraftInfo(null);
+      setResumed(false);
+    }
+    return true;
+  }, [buildRequest]);
+
 
   // 開啟 Dialog：先嘗試恢復既有保留，沒有才建立新的（10 分鐘倒數自建立當下起算）
   useEffect(() => {
