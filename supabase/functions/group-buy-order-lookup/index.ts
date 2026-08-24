@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at",
+        "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, room_quantity, total_price, final_price, deposit_amount, paid_amount, order_status, payment_status, payment_provider, payment_method, order_source, order_date, notes, group_buy_booking_notice_snapshot, accommodation_id, package_id, room_type_id, refund_status, refunded_amount, refunded_at, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, atm_rec_trade_id",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -101,6 +101,10 @@ Deno.serve(async (req) => {
     if (action === "report_transfer") {
       if (order.order_status === "cancelled") return json({ error: "此訂單已取消，請聯繫客服" }, 400);
       if (order.payment_status !== "unpaid") return json({ error: "此訂單已完成收款，無需重複回報" }, 400);
+      // ATM／信用卡訂單由金流自動入帳，不適用人工匯款回報
+      if (String((order as any).payment_method ?? "") === "atm" || (order as any).atm_vacc_no) {
+        return json({ error: "此訂單為 ATM 虛擬帳號付款，入帳後系統會自動更新，無需回報" }, 400);
+      }
       const already = (events ?? []).some((e: any) => e.event_type === "guest_reported");
       if (already) return json({ error: "您已回報過匯款，我們正在核對中" }, 400);
 
@@ -364,6 +368,22 @@ Deno.serve(async (req) => {
     const fullPayment = String((order as any).payment_provider ?? "") === "tappay" &&
       String((order as any).payment_method ?? "").includes("credit_card");
 
+    /**
+     * 付款方式 SoT＝這張訂單的 orders.payment_method（不得依 campaign 現行設定推測）。
+     * atm → ATM 虛擬帳號；credit_card* → 信用卡；其餘 → 銀行人工匯款。
+     */
+    const paymentMethodRaw = String((order as any).payment_method ?? "");
+    const isAtmOrder = paymentMethodRaw === "atm" || !!(order as any).atm_vacc_no;
+    const paymentChannel: "atm" | "credit_card" | "bank" = fullPayment
+      ? "credit_card"
+      : isAtmOrder
+      ? "atm"
+      : "bank";
+    // 已收訂金／已付清：以 orders.payment_status 為準（ATM 不會有 admin_confirmed 事件）
+    const depositPaid = ["deposit_paid", "partial", "partial_paid", "paid"].includes(
+      String((order as any).payment_status ?? ""),
+    ) || paidAmountNow > 0;
+
     return json({
       order: {
         orderNumber: order.order_number,
@@ -389,6 +409,18 @@ Deno.serve(async (req) => {
         paymentProvider: (order as any).payment_provider ?? null,
         paidAmount: paidAmountNow,
         fullPayment,
+        /** 付款方式分流（前台顯示 SoT） */
+        paymentChannel,
+        paymentMethod: paymentMethodRaw || null,
+        depositPaid,
+        atm: isAtmOrder && (order as any).atm_vacc_no
+          ? {
+            vaccNo: (order as any).atm_vacc_no,
+            bankCode: (order as any).atm_vacc_bank_code ?? null,
+            expireAt: (order as any).atm_expire_at ?? null,
+            amount: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
+          }
+          : null,
         // 取消政策依「此訂單」實際付款制度判定，不得依活動當下設定判定
         cancellationPolicy: resolveCancellationPolicy({
           order_source: (order as any).order_source ?? "group_buy",
@@ -405,6 +437,8 @@ Deno.serve(async (req) => {
         ? { title: campaign.title, slug: campaign.slug, contactNote: campaign.contact_note, kol: campaign.kol_display_name }
         : null,
       bank: await (async () => {
+        // 只有「銀行人工匯款」訂單才回傳活動匯款帳戶；ATM／信用卡一律不得出現匯款帳號
+        if (paymentChannel !== "bank") return null;
         if (!campaign?.id) return null;
         const { data } = await admin
           .from("group_buy_bank_accounts")

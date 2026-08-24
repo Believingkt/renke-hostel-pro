@@ -47,7 +47,8 @@ export default function GroupBuyOrderConfirmation() {
   };
   const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
   const fromCreditCard = state.fromCreditCard === true;
-  const useAtm = state.paymentMethod === "atm";
+  /** ATM 判定 SoT：訂單實際 payment_method（lookup 回傳），導頁 state 僅作為尚未查到訂單時的 fallback */
+  const useAtmFallback = state.paymentMethod === "atm";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -57,13 +58,37 @@ export default function GroupBuyOrderConfirmation() {
       setLoading(false);
       return;
     }
-    (async () => {
+    let stopped = false;
+    const fetchOnce = async () => {
       const { data: res } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "lookup" },
       });
-      if (res && !(res as any).error) setData(res);
+      if (!stopped && res && !(res as any).error) setData(res);
+      return res as any;
+    };
+    (async () => {
+      await fetchOnce();
       setLoading(false);
     })();
+
+    /**
+     * 待付款（ATM／匯款）時短輪詢，TapPay 入帳後不需 reload 即可切換為「訂金已付」；
+     * 一旦 depositPaid／paid／cancelled 立即停止輪詢。
+     */
+    const timer = window.setInterval(async () => {
+      const res = await fetchOnce();
+      const o = res?.order;
+      if (
+        !o || o.depositPaid === true || o.orderStatus === "cancelled" ||
+        ["deposit_paid", "paid", "partial", "partial_paid"].includes(String(o.paymentStatus ?? ""))
+      ) {
+        window.clearInterval(timer);
+      }
+    }, 8000);
+    return () => {
+      stopped = true;
+      window.clearInterval(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderNumber]);
 
@@ -93,7 +118,12 @@ export default function GroupBuyOrderConfirmation() {
     String(order?.paymentProvider ?? result?.paymentProvider ?? "") === "tappay" ||
     fromCreditCard;
   const paidAmount = Number(order?.paidAmount ?? result?.paidAmount ?? 0);
-  const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
+  const channel: "atm" | "credit_card" | "bank" = order?.paymentChannel ??
+    (fullPayment ? "credit_card" : useAtmFallback ? "atm" : "bank");
+  const useAtm = channel === "atm";
+  /** ATM 是否已入帳（orders.payment_status） */
+  const depositPaid = order?.depositPaid === true;
+  const bank = fullPayment || useAtm ? null : (data?.bank ?? result?.bank ?? null);
   const total = Number(order?.total ?? result?.total ?? result?.order?.total_price ?? 0);
   const deposit = fullPayment ? 0 : (order?.deposit ?? result?.deposit ?? 0);
   const balance = fullPayment ? 0 : (order?.balance ?? result?.balance ?? 0);
@@ -267,7 +297,11 @@ export default function GroupBuyOrderConfirmation() {
             <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
               已完成信用卡全額付款，入住當天不需再支付尾款。
             </p>
-          ) : useAtm && !fullPayment ? (
+          ) : useAtm && depositPaid ? (
+            <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
+              ATM 訂金 {twd(paidAmount || deposit)} 已入帳，訂房完成；尾款 {twd(balance)} 入住現場付清。
+            </p>
+          ) : useAtm ? (
             <div className="space-y-2">
               <p className="font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
               <AtmPaymentPanel

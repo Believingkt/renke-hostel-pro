@@ -1,5 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { toGuestMessage, isGuestSafeMessage } from "@/lib/guestFacingError";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,23 +47,51 @@ export default function GroupBuyOrderLookup() {
     if (routeOrderNumber) setOrderNumber(routeOrderNumber);
   }, [routeOrderNumber]);
 
-  const lookup = async () => {
-    setLoading(true);
+  const lookup = async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const { data: res, error } = await supabase.functions.invoke("group-buy-order-lookup", {
         body: { orderNumber, phoneLast4, action: "lookup" },
       });
       const payload: any = res;
       if (error || payload?.error) {
+        if (opts?.silent) return;
         if (!isGuestSafeMessage(payload?.error)) console.error("[group-buy-order-lookup] 查詢失敗", error ?? payload);
         toast({ title: "查詢失敗", description: toGuestMessage(payload?.error, "目前無法查詢訂單，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
       setData(payload);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   };
+
+  const lookupRef = useRef(lookup);
+  lookupRef.current = lookup;
+
+  /**
+   * 待付款訂單（ATM／匯款）短輪詢：TapPay 入帳後 orders 會更新，
+   * 前台不需 reload 即可自動切換為「訂金已付」。
+   * 進入 deposit_paid／paid／cancelled 後立即停止，避免永久輪詢。
+   */
+  useEffect(() => {
+    const o = data?.order;
+    if (!o) return;
+    const settled = o.depositPaid === true || o.orderStatus === "cancelled" ||
+      ["deposit_paid", "paid", "partial", "partial_paid"].includes(String(o.paymentStatus ?? ""));
+    if (settled) return;
+    const id = window.setInterval(() => void lookupRef.current({ silent: true }), 8000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void lookupRef.current({ silent: true });
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [data?.order?.paymentStatus, data?.order?.orderStatus, data?.order?.depositPaid, data?.order?.orderNumber]);
+
+
 
   const report = async () => {
     setReporting(true);
@@ -114,7 +142,12 @@ export default function GroupBuyOrderLookup() {
 
   const order = data?.order;
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
-  const confirmed = (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
+  /**
+   * 已收款判定 SoT＝orders.payment_status（後端 depositPaid）。
+   * 銀行人工匯款仍相容舊的 admin_confirmed 事件。
+   */
+  const confirmed = order?.depositPaid === true ||
+    (data?.events ?? []).some((e: any) => e.event_type === "admin_confirmed");
   const cancelRequest = data?.cancelRequest ?? null;
   /** 常見問題（與團購活動頁同源，由 Edge Function 依 campaign.faq_item_ids 過濾排序） */
   const faqItems: { id: string; question: string; answer: string }[] = Array.isArray(data?.faqItems)
@@ -125,9 +158,12 @@ export default function GroupBuyOrderLookup() {
   const refundedFully = data?.refund?.status === "refunded";
   /** 信用卡（TapPay）＝全額付款：無匯款／訂金／尾款流程 */
   const fullPayment = order?.fullPayment === true;
+  /** 付款方式分流（依這張訂單的 orders.payment_method，非活動設定） */
+  const channel: "atm" | "credit_card" | "bank" = order?.paymentChannel ?? (fullPayment ? "credit_card" : "bank");
+  const isAtmOrder = channel === "atm";
   /** 退款管道文案：TapPay 原卡退刷 vs 人工匯回，不得混用 */
   const refundVariant: "bank" | "credit_card" =
-    String(order?.paymentProvider ?? "") === "tappay" || fullPayment ? "credit_card" : "bank";
+    channel === "credit_card" ? "credit_card" : "bank";
 
 
   return (
@@ -155,7 +191,7 @@ export default function GroupBuyOrderLookup() {
               onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
             />
           </div>
-          <Button className="w-full" onClick={lookup} disabled={loading || !orderNumber || phoneLast4.length !== 4}>
+          <Button className="w-full" onClick={() => lookup()} disabled={loading || !orderNumber || phoneLast4.length !== 4}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             查詢訂單
           </Button>
@@ -225,24 +261,35 @@ export default function GroupBuyOrderLookup() {
               ) : (
                 <>
                   <div className="flex justify-between py-1">
-                    <span className="text-muted-foreground">應付訂金（{order.depositPercentage}%）</span>
-                    <span className="font-semibold text-primary">{twd(order.deposit)}</span>
+                    <span className="text-muted-foreground">{confirmed ? "已付訂金" : `應付訂金（${order.depositPercentage}%）`}</span>
+                    <span className="font-semibold text-primary">
+                      {twd(confirmed ? (order.paidAmount || order.deposit) : order.deposit)}
+                    </span>
                   </div>
                   <div className="flex justify-between py-1">
                     <span className="text-muted-foreground">入住現場付清</span>
                     <span>{twd(order.balance)}</span>
                   </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">付款方式</span>
+                    <span>{isAtmOrder ? "ATM 虛擬帳號（TapPay）" : "銀行匯款"}</span>
+                  </div>
                 </>
               )}
               {!fullPayment && order.orderStatus !== "cancelled" && !confirmed && (
                 <div className="flex justify-between py-1">
-                  <span className="text-muted-foreground">匯款期限</span>
-                  <span className="font-semibold">{order.paymentDeadlineText}</span>
+                  <span className="text-muted-foreground">{isAtmOrder ? "ATM 繳費期限" : "匯款期限"}</span>
+                  <span className="font-semibold">
+                    {isAtmOrder && order.atm?.expireAt
+                      ? new Date(order.atm.expireAt).toLocaleString("zh-TW")
+                      : order.paymentDeadlineText}
+                  </span>
                 </div>
               )}
             </div>
 
-            {data.bank && !fullPayment && !confirmed && order.orderStatus !== "cancelled" && (
+            {/* 銀行人工匯款帳戶：僅限 payment_method = bank 的訂單；ATM／信用卡一律不顯示 */}
+            {channel === "bank" && data.bank && !confirmed && order.orderStatus !== "cancelled" && (
               <div className="rounded-lg border p-4">
                 <p className="mb-2 font-semibold text-foreground">匯款資訊</p>
                 <p>
@@ -256,6 +303,31 @@ export default function GroupBuyOrderLookup() {
               </div>
             )}
 
+            {/* ATM 虛擬帳號：付款完成後收合為對帳資訊 */}
+            {isAtmOrder && order.atm && order.orderStatus !== "cancelled" && (
+              confirmed ? (
+                <Accordion type="single" collapsible className="rounded-lg border px-4">
+                  <AccordionItem value="atm" className="border-0">
+                    <AccordionTrigger className="text-sm font-semibold">本次付款資訊（ATM 虛擬帳號）</AccordionTrigger>
+                    <AccordionContent className="space-y-1 text-muted-foreground">
+                      <p>銀行代碼：{order.atm.bankCode ?? "—"}</p>
+                      <p>虛擬帳號：{order.atm.vaccNo}</p>
+                      <p>入帳金額：{twd(order.paidAmount || order.atm.amount)}</p>
+                      <p className="text-primary">ATM 付款已完成，請勿重複匯款。</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              ) : (
+                <div className="rounded-lg border p-4">
+                  <p className="mb-2 font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
+                  <p>銀行代碼：{order.atm.bankCode ?? "—"}</p>
+                  <p className="font-semibold">虛擬帳號：{order.atm.vaccNo}</p>
+                  <p>轉帳金額：{twd(order.atm.amount)}</p>
+                  <p className="text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需回報。</p>
+                </div>
+              )
+            )}
+
             {fullPayment ? (
               <p className="flex items-center gap-2 text-primary">
                 <CheckCircle2 className="h-4 w-4" /> 已完成信用卡全額付款，入住當天不需再付款。
@@ -266,6 +338,8 @@ export default function GroupBuyOrderLookup() {
               </p>
             ) : order.orderStatus === "cancelled" ? (
               <p className="text-muted-foreground">此訂單已取消。若已完成匯款，請直接與我們聯繫。</p>
+            ) : isAtmOrder ? (
+              <p className="text-muted-foreground">請於期限前以 ATM／網銀轉入上方虛擬帳號，入帳後系統會自動更新。</p>
             ) : reported ? (
               <p className="text-muted-foreground">已收到您的匯款回報，我們核對入帳後會再寄出確認信。</p>
             ) : (
