@@ -387,6 +387,15 @@ Deno.serve(async (req) => {
         paymentProvider: (order as any).payment_provider ?? null,
         paidAmount: paidAmountNow,
         fullPayment,
+        // 取消政策依「此訂單」實際付款制度判定，不得依活動當下設定判定
+        cancellationPolicy: resolveCancellationPolicy({
+          order_source: (order as any).order_source ?? "group_buy",
+          payment_provider: (order as any).payment_provider ?? null,
+          payment_method: (order as any).payment_method ?? null,
+          paid_amount: paidAmountNow,
+          final_price: Number((order as any).final_price ?? (order as any).total_price ?? 0),
+        }).policy,
+
         paymentDeadline: deadline.toISOString(),
         paymentDeadlineText: formatTaipei(deadline),
       },
