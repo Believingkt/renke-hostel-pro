@@ -99,6 +99,7 @@ interface Campaign {
   /** 後台指定要在團購頁顯示的訂房須知 panel key（依陣列順序）；null＝顯示全部 */
   booking_notice_keys: string[] | null;
   /** 活動層級線上付款開關（ATM＝Phase G1；信用卡為下一階段，前台目前不讀） */
+  enable_bank_transfer?: boolean | null;
   enable_atm?: boolean | null;
   enable_credit_card?: boolean | null;
 }
@@ -242,8 +243,8 @@ export default function GroupBuyCampaign() {
 
   const [result, setResult] = useState<any>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  /** 付款方式：預設銀行匯款（人工對帳），僅活動開啟 ATM 時可切換 */
-  const [paymentMethod, setPaymentMethod] = useState<GroupBuyPaymentMethod>("bank");
+  /** 付款方式：完全由活動三個開關決定，不得 fallback 到銀行匯款 */
+  const [paymentMethod, setPaymentMethod] = useState<GroupBuyPaymentMethod | null>(null);
   const [creditOpen, setCreditOpen] = useState(false);
   const [expandedPkgs, setExpandedPkgs] = useState<Record<string, boolean>>({});
   const [touched, setTouched] = useState<{ name?: boolean; phone?: boolean; email?: boolean }>({});
@@ -647,7 +648,11 @@ export default function GroupBuyCampaign() {
     }
 
     // 信用卡：不在此建立正式訂單，改走 payment draft + 3DS（付款成功後才建單）
-    if (campaign.enable_credit_card && paymentMethod === "credit_card") {
+    if (!activeMethod) {
+      toast({ title: "目前此活動暫無可用付款方式，請聯絡客服。", variant: "destructive" });
+      return;
+    }
+    if (campaign.enable_credit_card && activeMethod === "credit_card") {
       setConfirmOpen(false);
       setCreditOpen(true);
       return;
@@ -705,7 +710,7 @@ export default function GroupBuyCampaign() {
         state: {
           phoneLast4: guestPhone.replace(/\D/g, "").slice(-4),
           result: payload,
-          paymentMethod: campaign.enable_atm ? paymentMethod : "bank",
+          paymentMethod: activeMethod,
         },
       });
     } catch (e) {
@@ -1745,9 +1750,10 @@ export default function GroupBuyCampaign() {
           guestName={guestName}
           guestPhone={guestPhone}
           guestEmail={guestEmail}
+          bankTransferEnabled={bankEnabled}
           atmEnabled={!!campaign.enable_atm}
           creditCardEnabled={!!campaign.enable_credit_card}
-          paymentMethod={paymentMethod}
+          paymentMethod={activeMethod ?? undefined}
           onPaymentMethodChange={setPaymentMethod}
         />
       )}
