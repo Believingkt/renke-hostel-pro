@@ -90,11 +90,20 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const handleOpenChange = (o: boolean) => {
     if (o) {
       setAction(defaultAction);
+      setOverrideReason("");
     }
     onOpenChange(o);
   };
 
   const handleSubmit = async () => {
+    if (reasonRequired) {
+      toast({
+        title: "請填寫調整原因",
+        description: `實際退款金額與系統建議（NT$${(suggestedRefund ?? 0).toLocaleString()}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       const amt = parseInt(refundAmount || "0", 10);
@@ -103,8 +112,10 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           orderId: order.id,
           refundAction: action,
           refundAmount: amt,
+          overrideReason: overrideReason.trim() || undefined,
         },
       });
+
       if (error) {
         const parsed = await parseFunctionInvokeError(error);
         toast({ title: "取消失敗", description: parsed.backendError || parsed.message || "請稍後再試", variant: "destructive" });
