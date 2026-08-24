@@ -1178,7 +1178,9 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
 
 
-                      return slots.map((slot, slotIdx) => (
+                      return (<>
+                      {slots.map((slot, slotIdx) => (
+
                         <div key={`${slot.meta.unitId ?? 'na'}-${slotIdx}`} className="flex border-b last:border-b-0">
                           <div
                             className="shrink-0 border-r p-2 pl-8 text-sm flex items-center gap-1 sticky left-0 bg-card z-20"
