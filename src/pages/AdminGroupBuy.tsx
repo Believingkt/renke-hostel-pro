@@ -50,7 +50,9 @@ import {
   REFUND_STATE_VARIANT,
   canProcessRefund,
   depositState,
-  paymentProviderLabel,
+  paymentMethodKind,
+  paymentMethodLabel,
+  refundChannelLabel,
   refundState,
   remainingRefundable,
 } from "@/lib/groupBuyPayment";
@@ -1173,7 +1175,7 @@ export default function AdminGroupBuy() {
                             {o.order_number}
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Link>
-                          <div className="text-xs text-muted-foreground">{paymentProviderLabel(o)}</div>
+                          <div className="text-xs text-muted-foreground">{paymentMethodLabel(o)}</div>
                         </TableCell>
 
                         <TableCell className="whitespace-nowrap">
@@ -1344,7 +1346,7 @@ export default function AdminGroupBuy() {
 
                       {/* L6 退款 / 付款方式 */}
                       <div className="mt-1 flex items-center justify-between gap-2">
-                        <span className="text-xs text-muted-foreground">{paymentProviderLabel(o)}</span>
+                        <span className="text-xs text-muted-foreground">{paymentMethodLabel(o)}</span>
                         <span className="flex items-center gap-2">
                           {Number(o.refunded_amount || 0) > 0 && (
                             <span className="text-xs text-muted-foreground tabular-nums">
@@ -1929,7 +1931,7 @@ export default function AdminGroupBuy() {
                       />
                       <p className="mt-1 text-xs text-muted-foreground">
                         最高可退 {twd(remainingRefundable(cancelTarget))}
-                        （銀行匯款需自行匯回旅客帳戶）
+                        （{paymentMethodLabel(cancelTarget)} 訂單需由館方人工匯回旅客帳戶）
                       </p>
                     </div>
                   )}
@@ -1973,7 +1975,11 @@ export default function AdminGroupBuy() {
             <DialogDescription>
               {refundIsCard
                 ? "此筆為 TapPay 線上信用卡收款，系統會直接向 TapPay 執行原卡退刷／取消授權，不提供人工登記。"
-                : "團購為銀行匯款（人工對帳），請於銀行端實際完成退匯後再登記。"}
+                : `原付款方式：${paymentMethodLabel(refundTarget)}；退款方式：${refundChannelLabel(refundTarget)}。${
+                    paymentMethodKind(refundTarget) === "atm"
+                      ? "ATM 虛擬帳號退款需由館方人工匯回旅客帳戶，完成實際退款後再進行退款登記。"
+                      : "請於銀行端實際完成退匯後再登記。"
+                  }`}
             </DialogDescription>
           </DialogHeader>
           {refundTarget && (

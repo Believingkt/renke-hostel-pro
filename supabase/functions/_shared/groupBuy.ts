@@ -145,7 +145,14 @@ export function buildEmailOrder(params: {
     depositAmount: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
     balanceAmount: balance,
     paidAmount,
-    paymentMethodText: isCardOrder ? "信用卡（3D 驗證）" : undefined,
+    // 原付款方式（非退款方式）：ATM 與銀行匯款皆為 manual provider，必須依 payment_method 分流
+    paymentMethodText: isCardOrder
+      ? "信用卡（3D 驗證）"
+      : [order.balance_payment_method, order.payment_method, order.deposit_payment_method].some(
+            (m) => typeof m === "string" && ["atm", "ATM", "atm_transfer", "atm_vacc"].includes(m),
+          )
+        ? "ATM 虛擬帳號"
+        : "銀行匯款",
     isCardOrder,
     fullPrepayment,
     deadlineText: formatTaipei(deadline),

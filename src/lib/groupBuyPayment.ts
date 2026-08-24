@@ -13,7 +13,12 @@ export interface OrderPaymentFields {
   /** 已扣除的退款處理費（人工銀行退款；信用卡為 0） */
   refund_fee_amount?: number | null;
   payment_provider?: string | null;
+  payment_method?: string | null;
+  deposit_payment_method?: string | null;
+  balance_payment_method?: string | null;
+  room_charge_rec_trade_id?: string | null;
 }
+
 
 export type DepositState = "unpaid" | "partial" | "paid";
 
@@ -102,3 +107,47 @@ export const PAYMENT_PROVIDER_LABEL: Record<string, string> = {
 export function paymentProviderLabel(o: OrderPaymentFields): string {
   return PAYMENT_PROVIDER_LABEL[String(o.payment_provider ?? "manual")] ?? String(o.payment_provider);
 }
+
+// ── 原付款方式 vs 退款方式（兩者不可混用）────────────────────────────
+// SoT = orders.payment_method（含 deposit_/balance_payment_method），
+// 不得只看 payment_provider：ATM 與銀行匯款同為 manual，只看 provider 會把 ATM 誤顯示為銀行匯款。
+
+const ATM_METHODS = new Set(["atm", "ATM", "atm_transfer", "atm_vacc"]);
+const CARD_METHODS = new Set(["credit_card", "credit_card_3ds", "card", "信用卡"]);
+const BANK_METHODS = new Set(["bank", "bank_transfer", "transfer", "manual_transfer", "匯款"]);
+
+export type PaymentMethodKind = "atm" | "bank" | "card" | "unknown";
+
+function methodsOf(o: OrderPaymentFields): string[] {
+  return [o.balance_payment_method, o.payment_method, o.deposit_payment_method].filter(Boolean) as string[];
+}
+
+/** 判定「旅客原本如何付款」 */
+export function paymentMethodKind(o: OrderPaymentFields | null | undefined): PaymentMethodKind {
+  if (!o) return "unknown";
+  const methods = methodsOf(o);
+  if (methods.some((m) => ATM_METHODS.has(m))) return "atm";
+  if (methods.some((m) => CARD_METHODS.has(m))) return "card";
+  if (methods.some((m) => BANK_METHODS.has(m))) return "bank";
+  if (o.room_charge_rec_trade_id || o.payment_provider === "tappay") return "card";
+  if (o.payment_provider === "manual") return "bank";
+  return "unknown";
+}
+
+export const PAYMENT_METHOD_KIND_LABEL: Record<PaymentMethodKind, string> = {
+  atm: "ATM 虛擬帳號",
+  bank: "銀行匯款",
+  card: "信用卡",
+  unknown: "未指定付款方式",
+};
+
+/** 原付款方式顯示文字 */
+export function paymentMethodLabel(o: OrderPaymentFields | null | undefined): string {
+  return PAYMENT_METHOD_KIND_LABEL[paymentMethodKind(o)];
+}
+
+/** 退款管道顯示文字（與原付款方式分開，不得反向覆蓋） */
+export function refundChannelLabel(o: OrderPaymentFields | null | undefined): string {
+  return paymentMethodKind(o) === "card" ? "原信用卡退刷（TapPay）" : "人工匯款退款";
+}
+
