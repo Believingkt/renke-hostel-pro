@@ -24,7 +24,7 @@ export interface CancellationPolicyCopy {
 }
 
 export const FULL_PREPAYMENT_INTRO = "本訂單採預收約定房價總金額方式，信用卡已一次支付訂單全額。";
-export const DEPOSIT_INTRO = "本訂單採收取定金方式，以下比例以「實際收取之定金」為基準。";
+export const DEPOSIT_INTRO = "本訂單採收取訂金方式，以下比例以「實際收取之訂金」為基準。";
 export const GUARANTEE_INTRO = "本訂單為信用卡綁卡擔保，尚未扣款；取消時依下列比例收取違約金。";
 export const UNKNOWN_NOTE =
   "此訂單之取消退款方式需由住宿方依原付款條件確認，若需取消請聯絡客服。";
@@ -43,7 +43,7 @@ export function cancellationPolicyCopy(policy: CancellationPolicyType): Cancella
   if (policy === "deposit") {
     return {
       policy,
-      title: "取消政策（收取定金）",
+      title: "取消政策（收取訂金）",
       intro: DEPOSIT_INTRO,
       lines: DEPOSIT_REFUND_TIERS.map((t) => t.label),
       fallbackNote: null,

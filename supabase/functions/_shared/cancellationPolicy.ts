@@ -2,7 +2,7 @@
 // 前端 src/lib/cancellation-policy.ts 僅供顯示，實際退款金額一律以本檔為準。
 //
 // 兩套制度（不可互相混用）：
-//   deposit          收取「定金」制度 → 退還「已收定金」的比例
+//   deposit          收取「訂金」制度 → 退還「已收訂金」的比例
 //   full_prepayment  預收「約定房價總金額」制度 → 退還「已預收總額」的比例
 //   guarantee        僅綁卡擔保、入住日才請款（尚未收款）→ 沿用既有違約金級距（本次不變更）
 //   unknown          無法可靠判定 → 一律 manual_review，禁止自動退款
@@ -23,14 +23,14 @@ export interface RefundTier {
   label: string;
 }
 
-/** 訂金制：退還「已收定金」比例（由寬到嚴） */
+/** 訂金制：退還「已收訂金」比例（由寬到嚴） */
 export const DEPOSIT_REFUND_TIERS: RefundTier[] = [
-  { minDaysBefore: 14, refundPercent: 100, label: "入住日前第 14 日以前取消，退還定金 100%" },
-  { minDaysBefore: 10, refundPercent: 70, label: "入住日前第 10～13 日取消，退還定金 70%" },
-  { minDaysBefore: 7, refundPercent: 50, label: "入住日前第 7～9 日取消，退還定金 50%" },
-  { minDaysBefore: 4, refundPercent: 40, label: "入住日前第 4～6 日取消，退還定金 40%" },
-  { minDaysBefore: 2, refundPercent: 30, label: "入住日前第 2～3 日取消，退還定金 30%" },
-  { minDaysBefore: 1, refundPercent: 20, label: "入住日前第 1 日取消，退還定金 20%" },
+  { minDaysBefore: 14, refundPercent: 100, label: "入住日前第 14 日以前取消，退還訂金 100%" },
+  { minDaysBefore: 10, refundPercent: 70, label: "入住日前第 10～13 日取消，退還訂金 70%" },
+  { minDaysBefore: 7, refundPercent: 50, label: "入住日前第 7～9 日取消，退還訂金 50%" },
+  { minDaysBefore: 4, refundPercent: 40, label: "入住日前第 4～6 日取消，退還訂金 40%" },
+  { minDaysBefore: 2, refundPercent: 30, label: "入住日前第 2～3 日取消，退還訂金 30%" },
+  { minDaysBefore: 1, refundPercent: 20, label: "入住日前第 1 日取消，退還訂金 20%" },
   { minDaysBefore: 0, refundPercent: 0, label: "入住當日取消或未通知，不予退還" },
 ];
 
@@ -296,7 +296,7 @@ export function quoteCancellation(input: QuoteInput): CancellationQuote {
 
   const tiers = policy === "full_prepayment" ? FULL_PREPAYMENT_REFUND_TIERS : DEPOSIT_REFUND_TIERS;
   const tier = tiers.find((t) => days >= t.minDaysBefore) ?? tiers[tiers.length - 1];
-  // 訂金制基準 = 實際收取的定金；全額預收制基準 = 已預收總額。兩者皆等於「實收金額」。
+  // 訂金制基準 = 實際收取的訂金；全額預收制基準 = 已預收總額。兩者皆等於「實收金額」。
   const base = refundable;
   const refundAmount = Math.min(refundable, Math.round((base * tier.refundPercent) / 100));
 

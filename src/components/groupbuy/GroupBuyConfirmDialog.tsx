@@ -162,7 +162,7 @@ export function GroupBuyConfirmDialog(props: Props) {
         {!noPaymentMethod && (
           <div className="rounded-2xl border border-border/70 p-4">
             <p className="mb-1 text-sm font-semibold text-foreground">
-              {method === "credit_card" ? "取消政策（預收房價總額）" : "取消政策（收取定金）"}
+              {method === "credit_card" ? "取消政策（預收房價總額）" : "取消政策（收取訂金）"}
             </p>
             {method === "credit_card" && (
               <p className="mb-1.5 text-xs font-medium text-foreground">{FULL_PREPAYMENT_CHARGE_NOTICE}</p>

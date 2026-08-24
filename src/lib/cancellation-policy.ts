@@ -53,14 +53,14 @@ export function formatFreeCancelDeadline(deadline: Date | null): string {
 
 export type CancellationPolicyType = "deposit" | "full_prepayment" | "guarantee" | "unknown";
 
-/** 訂金制（銀行匯款 / ATM）：退還「已收定金」比例 */
+/** 訂金制（銀行匯款 / ATM）：退還「已收訂金」比例 */
 export const DEPOSIT_POLICY_LINES: string[] = [
-  "入住日前第 14 日以前取消：退還定金 100%",
-  "入住日前第 10～13 日取消：退還定金 70%",
-  "入住日前第 7～9 日取消：退還定金 50%",
-  "入住日前第 4～6 日取消：退還定金 40%",
-  "入住日前第 2～3 日取消：退還定金 30%",
-  "入住日前第 1 日取消：退還定金 20%",
+  "入住日前第 14 日以前取消：退還訂金 100%",
+  "入住日前第 10～13 日取消：退還訂金 70%",
+  "入住日前第 7～9 日取消：退還訂金 50%",
+  "入住日前第 4～6 日取消：退還訂金 40%",
+  "入住日前第 2～3 日取消：退還訂金 30%",
+  "入住日前第 1 日取消：退還訂金 20%",
   "入住當日取消或未通知：不予退還",
 ];
 
@@ -74,7 +74,7 @@ export const FULL_PREPAYMENT_POLICY_LINES: string[] = [
 export const FULL_PREPAYMENT_CHARGE_NOTICE = "信用卡將一次支付訂單全額。";
 
 export const CANCELLATION_POLICY_TITLE: Record<CancellationPolicyType, string> = {
-  deposit: "取消政策（收取定金）",
+  deposit: "取消政策（收取訂金）",
   full_prepayment: "取消政策（預收房價總額）",
   guarantee: "取消政策",
   unknown: "取消政策",
