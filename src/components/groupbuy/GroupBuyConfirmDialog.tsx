@@ -171,7 +171,7 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Button
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
-            disabled={submitting}
+            disabled={submitting || noPaymentMethod}
             onClick={onConfirm}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
