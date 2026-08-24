@@ -126,6 +126,40 @@ interface TeamHomePayload {
 /** 模組層快取：離開頁面再回來仍命中，避免重新跑整輪獎金試算。 */
 const payloadCache = new Map<string, { at: number; payload: TeamHomePayload }>();
 
+/**
+ * sessionStorage 持久化：換頁／重新整理後仍能立即顯示上次算好的數字，
+ * 並在背景重新計算（stale-while-revalidate，TTL 與記憶體快取相同）。
+ * 只存純 JSON 值；讀寫失敗一律忽略，不影響正常計算流程。
+ */
+const PAYLOAD_STORE_KEY = "teamhome:payloadCache:v1";
+
+function loadPersistedCache() {
+  try {
+    const raw = sessionStorage.getItem(PAYLOAD_STORE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, { at: number; payload: TeamHomePayload }>;
+    for (const [k, v] of Object.entries(parsed ?? {})) {
+      if (v && typeof v.at === "number" && v.payload) payloadCache.set(k, v);
+    }
+  } catch {
+    /* 快取毀損時忽略，改為重新計算 */
+  }
+}
+
+function persistCache() {
+  try {
+    const obj: Record<string, { at: number; payload: TeamHomePayload }> = {};
+    for (const [k, v] of payloadCache) {
+      if (Date.now() - v.at < TEAM_HOME_CACHE_TTL_MS) obj[k] = v;
+    }
+    sessionStorage.setItem(PAYLOAD_STORE_KEY, JSON.stringify(obj));
+  } catch {
+    /* 容量不足或無法寫入時忽略 */
+  }
+}
+
+if (typeof window !== "undefined") loadPersistedCache();
+
 
 
 
