@@ -170,6 +170,7 @@ export default function TeamNotification() {
   const [flags, setFlags] = useState<Record<string, FlagsRow>>({});
   const [settingsMap, setSettingsMap] = useState<Record<string, SettingsRow>>({});
   const [selectedId, setSelectedId] = useState<string>("");
+  const [activeTab, setActiveTab] = useState<string>("settings");
   const [saving, setSaving] = useState(false);
   
 
