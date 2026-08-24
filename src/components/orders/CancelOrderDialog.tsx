@@ -4,6 +4,8 @@ import { parseFunctionInvokeError } from "@/utils/parseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
@@ -275,14 +277,34 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                     <> ｜法規建議 NT${Number(quote.suggestedRefund || 0).toLocaleString()}</>
                   )}
                 </p>
-                {quote?.suggestedRefund !== undefined &&
-                  parseInt(refundAmount || "0", 10) !== Number(quote.suggestedRefund) && (
-                    <p className="text-xs text-amber-600">
-                      ⚠️ 已人工調整退款金額，系統會於訂單備註與稽核紀錄留存。
-                    </p>
-                  )}
+                {isOverride && (
+                  <p className="text-xs text-amber-600">
+                    ⚠️ 已人工調整退款金額，系統會於訂單備註與稽核紀錄留存。
+                  </p>
+                )}
               </div>
             )}
+
+            {isOverride && (
+              <div className="space-y-1.5">
+                <Label htmlFor="overrideReason" className="text-sm">
+                  調整原因<span className="ml-1 text-destructive">＊必填</span>
+                </Label>
+                <Textarea
+                  id="overrideReason"
+                  rows={3}
+                  value={overrideReason}
+                  onChange={(e) => setOverrideReason(e.target.value)}
+                  placeholder="請說明為何調整退款金額（會寫入訂單備註與稽核紀錄）"
+                />
+                {reasonRequired && (
+                  <p className="text-xs text-destructive">
+                    實際退款金額與系統建議（NT${(suggestedRefund ?? 0).toLocaleString()}）不同，請填寫調整原因。
+                  </p>
+                )}
+              </div>
+            )}
+
           </div>
         )}
 
