@@ -125,6 +125,9 @@ export default function GroupBuyOrderLookup() {
   const refundedFully = data?.refund?.status === "refunded";
   /** 信用卡（TapPay）＝全額付款：無匯款／訂金／尾款流程 */
   const fullPayment = order?.fullPayment === true;
+  /** 退款管道文案：TapPay 原卡退刷 vs 人工匯回，不得混用 */
+  const refundVariant: "bank" | "credit_card" =
+    String(order?.paymentProvider ?? "") === "tappay" || fullPayment ? "credit_card" : "bank";
 
 
   return (
@@ -190,7 +193,11 @@ export default function GroupBuyOrderLookup() {
                   <p>
                     已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
                   </p>
-                  <CancellationRefundNotice showPendingReview className="mt-2" />
+                  <CancellationRefundNotice
+                    showPendingReview
+                    variant={refundVariant}
+                    className="mt-2"
+                  />
                 </AlertDescription>
               </Alert>
             )}
@@ -378,7 +385,11 @@ export default function GroupBuyOrderLookup() {
                     <p className="text-muted-foreground">
                       已於 {new Date(cancelRequest.requestedAt).toLocaleString("zh-TW")} 收到您的取消申請，民宿審核中。
                     </p>
-                    <CancellationRefundNotice showPendingReview className="rounded-lg bg-muted/60 p-3" />
+                    <CancellationRefundNotice
+                      showPendingReview
+                      variant={refundVariant}
+                      className="rounded-lg bg-muted/60 p-3"
+                    />
                   </div>
                 ) : cancelOpen ? (
                   <div className="space-y-3">
@@ -387,7 +398,7 @@ export default function GroupBuyOrderLookup() {
                         ? "退款由民宿審核後處理，款項將退回原信用卡。"
                         : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
                     </p>
-                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
+                    <CancellationRefundNotice variant={refundVariant} className="rounded-lg bg-muted/60 p-3" />
                     <div>
                       <Label htmlFor="cancel-reason">取消原因（選填）</Label>
                       <Textarea
@@ -416,7 +427,7 @@ export default function GroupBuyOrderLookup() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-muted-foreground">需要取消這筆訂房嗎？送出申請後由民宿審核。</p>
-                    <CancellationRefundNotice className="rounded-lg bg-muted/60 p-3" />
+                    <CancellationRefundNotice variant={refundVariant} className="rounded-lg bg-muted/60 p-3" />
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
                       我要申請取消訂單
                     </Button>

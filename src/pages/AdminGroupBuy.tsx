@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GroupBuyPaymentDraftsPanel } from "@/components/groupbuy/GroupBuyPaymentDraftsPanel";
 import { GroupBuyPageContentTab } from "@/components/admin/GroupBuyPageContentTab";
 import { GroupBuyNotificationSettings } from "@/components/admin/GroupBuyNotificationSettings";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -983,6 +984,7 @@ export default function AdminGroupBuy() {
 
           <TabsList className="flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto md:w-auto [&::-webkit-scrollbar]:hidden">
             <TabsTrigger value="orders" className="shrink-0">訂單對帳</TabsTrigger>
+            <TabsTrigger value="drafts" className="shrink-0">付款保留</TabsTrigger>
             <TabsTrigger value="packages" className="shrink-0">方案設定</TabsTrigger>
             <TabsTrigger value="bank" className="shrink-0">匯款帳戶</TabsTrigger>
             <TabsTrigger value="analytics" className="shrink-0">銷售分析</TabsTrigger>
@@ -991,6 +993,10 @@ export default function AdminGroupBuy() {
             <TabsTrigger value="notify" className="shrink-0">通知設定</TabsTrigger>
           </TabsList>
 
+
+          <TabsContent value="drafts" className="space-y-3">
+            <GroupBuyPaymentDraftsPanel campaignId={activeId || null} accommodationId={accommodationId} />
+          </TabsContent>
 
           <TabsContent value="notify" className="space-y-3">
             <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />

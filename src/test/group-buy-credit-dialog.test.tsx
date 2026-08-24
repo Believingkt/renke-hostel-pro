@@ -26,9 +26,35 @@ const req = {
   guestNote: "",
 };
 
+/** resume 回傳「找不到可續付的保留」時的預設行為 */
+const NO_RESUME = { data: { found: false }, error: null };
+
+/** 依 function 名稱分派 mock：resume 先跑，找不到才會 createDraft */
+function mockInvoke(resume: unknown = NO_RESUME, create?: unknown) {
+  invoke.mockImplementation((name: string) => {
+    if (name === "group-buy-resume-payment-draft") return Promise.resolve(resume);
+    return Promise.resolve(create ?? DEFAULT_CREATE);
+  });
+}
+
+const DEFAULT_CREATE = {
+  data: {
+    success: true,
+    draftId: "draft-1",
+    expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    amountToCharge: 4321,
+    total: 14000,
+    balance: 9679,
+    depositPercentage: 31,
+  },
+  error: null,
+};
+
 describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
   beforeEach(() => {
     invoke.mockReset();
+    sessionStorage.clear();
+    mockInvoke();
     invoke.mockResolvedValue({
       data: {
         success: true,
@@ -53,8 +79,10 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
         buildRequest={() => req}
       />,
     );
-    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
-    expect(invoke.mock.calls[0][0]).toBe("group-buy-create-payment-draft");
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
+    // 先嘗試續付既有保留，找不到才建立新的 draft
+    expect(invoke.mock.calls[0][0]).toBe("group-buy-resume-payment-draft");
+    expect(invoke.mock.calls[1][0]).toBe("group-buy-create-payment-draft");
     // 前台不得呼叫任何建立正式訂單的函式
     expect(invoke.mock.calls.some((c) => String(c[0]).includes("create-order"))).toBe(false);
     // 顯示金額為 server draft.amount_to_charge，而非前端 amount prop
@@ -74,7 +102,7 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
         buildRequest={() => req}
       />,
     );
-    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
     rerender(
       <GroupBuyCreditCardDialog
         open
@@ -85,11 +113,11 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
       />,
     );
     await waitFor(() => expect(screen.getByText(/已為您保留房況/)).toBeTruthy());
-    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke).toHaveBeenCalledTimes(2);
   });
 
   it("CASE 7: draft 已逾時 → 付款按鈕停用並提供重新確認房況", async () => {
-    invoke.mockResolvedValueOnce({
+    mockInvoke(NO_RESUME, {
       data: {
         success: true,
         draftId: "draft-expired",
@@ -110,5 +138,57 @@ describe("團購信用卡 Dialog（不實刷、不落 DB）", () => {
     const btn = await screen.findByRole("button", { name: "保留已逾時" });
     expect((btn as HTMLButtonElement).disabled).toBe(true);
     expect(screen.getByText("重新確認房況")).toBeTruthy();
+  });
+
+  it("續付 CASE A: 有未過期 Draft 時直接接續，不得建立第二張 Draft", async () => {
+    mockInvoke({
+      data: {
+        found: true,
+        draftId: "draft-resumed",
+        expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        remainingSeconds: 300,
+        amountToCharge: 4321,
+        total: 14000,
+      },
+      error: null,
+    });
+    render(
+      <GroupBuyCreditCardDialog
+        open
+        onOpenChange={vi.fn()}
+        amount={14000}
+        packageName="測試方案"
+        buildRequest={() => req}
+      />,
+    );
+    await screen.findByText(/已為您接續原本的付款保留/);
+    // 只呼叫 resume，不得再建立新的 draft
+    expect(invoke).toHaveBeenCalledTimes(1);
+    expect(invoke.mock.calls[0][0]).toBe("group-buy-resume-payment-draft");
+  });
+
+  it("續付 CASE B: 續付不得延長保留時間（沿用後端回傳的剩餘秒數）", async () => {
+    mockInvoke({
+      data: {
+        found: true,
+        draftId: "draft-resumed",
+        expiresAt: new Date(Date.now() + 62_000).toISOString(),
+        remainingSeconds: 62,
+        amountToCharge: 4321,
+        total: 14000,
+      },
+      error: null,
+    });
+    render(
+      <GroupBuyCreditCardDialog
+        open
+        onOpenChange={vi.fn()}
+        amount={14000}
+        packageName="測試方案"
+        buildRequest={() => req}
+      />,
+    );
+    // 顯示 1:02，而非重新從 10:00 起算
+    await screen.findByText(/1:02/);
   });
 });

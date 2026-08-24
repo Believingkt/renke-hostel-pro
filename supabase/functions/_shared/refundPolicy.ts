@@ -22,3 +22,11 @@ export function refundScheduleHtml(opts: { showPendingReview?: boolean } = {}): 
    <p style="margin:0">${REFUND_FEE_TEXT}</p>
    ${opts.showPendingReview ? `<p style="margin:6px 0 0">${REFUND_PENDING_REVIEW_TEXT}</p>` : ""}`;
 }
+
+/** 信用卡（TapPay）退款文案：原卡退刷、無匯款手續費（與 src/lib/refundPolicy.ts 同步） */
+export const CREDIT_REFUND_SCHEDULE_INTRO = "信用卡付款一律退回原付款卡片：";
+export const CREDIT_REFUND_SCHEDULE_RULES = [
+  "民宿完成審核後，系統即向金流送出退刷，不需人工匯款",
+  "實際入帳時間依發卡銀行作業，約 3～7 個工作天",
+];
+export const CREDIT_REFUND_NO_FEE_TEXT = "信用卡退款不收取匯款手續費。";

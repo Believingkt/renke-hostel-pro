@@ -96,7 +96,24 @@ async function sendConversionEmails(
     .maybeSingle();
 
   const { data: acc } = order.accommodation_id
-    ? await admin.from("accommodation_info").select("name").eq("id", order.accommodation_id).maybeSingle()
+    ? await admin
+      .from("accommodation_info")
+      .select("name, address, phone")
+      .eq("id", order.accommodation_id)
+      .maybeSingle()
+    : { data: null as any };
+
+  // 民宿聯絡資訊／入住前提醒：團購介紹優先，缺項時回退 accommodation_info
+  const { data: intro } = order.accommodation_id
+    ? await admin
+      .from("group_buy_venue_intros")
+      .select("address, phone, check_in_notice")
+      .eq("accommodation_id", order.accommodation_id)
+      .maybeSingle()
+    : { data: null as any };
+
+  const { data: roomType } = order.room_type_id
+    ? await admin.from("room_types").select("name").eq("id", order.room_type_id).maybeSingle()
     : { data: null as any };
 
   const packageName = (draft.booking_payload as any)?.package_name ??
@@ -112,6 +129,27 @@ async function sendConversionEmails(
   });
   const balance = Math.max(0, Math.round(Number(order.total_price) - Number(order.paid_amount ?? 0)));
 
+  /** 旅客信明細補充（信用卡＝合併一封「訂房確認＋付款完成」，內容必須完整） */
+  const guestDetails = {
+    nights: Number((draft.booking_payload as any)?.nights ?? 0) || null,
+    roomQuantity: Number(order.room_quantity ?? draft.room_quantity ?? 0) || null,
+    roomTypeName: (roomType as any)?.name ?? null,
+    guestCompositionText: [
+      `成人 ${Number(order.adult_count ?? 0)}`,
+      `兒童 ${Number(order.child_count ?? 0)}`,
+      `幼兒 ${Number(order.toddler_count ?? 0)}`,
+      `嬰兒 ${Number(order.infant_count ?? 0)}`,
+    ].join("　"),
+    contactPhone: order.guest_phone ?? null,
+    contactEmail: order.guest_email ?? null,
+    paidAmount: Math.round(Number(order.paid_amount ?? 0)),
+    paymentMethodText: PROVIDER_LABEL,
+    venueAddress: (intro as any)?.address || (acc as any)?.address || null,
+    venuePhone: (intro as any)?.phone || (acc as any)?.phone || null,
+    arrivalNotice: (order as any).group_buy_booking_notice_snapshot?.post_booking_notice ??
+      (intro as any)?.check_in_notice ?? null,
+  };
+
   // ── 旅客：訂單成立 + 信用卡訂金已收 ──
   const { data: guestClaim } = await admin
     .from("group_buy_payment_drafts")
@@ -125,7 +163,7 @@ async function sendConversionEmails(
     const mail = await sendGroupBuyEmail(
       order.guest_email,
       renderDepositReceived(
-        { ...emailOrder, balanceAmount: balance },
+        { ...emailOrder, ...guestDetails, balanceAmount: balance },
         { providerLabel: PROVIDER_LABEL, paidThisTime: paidAmount, fullPayment: true },
       ),
     );

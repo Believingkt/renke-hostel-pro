@@ -71,6 +71,30 @@ export interface GroupBuyEmailOrder {
   orderUrl?: string | null;
   /** 依訂單實際付款制度判定之取消政策（顯示用，與後端計算同源） */
   cancellationPolicy?: CancellationPolicyType | null;
+
+  /* ── 明細補充欄位（選填；不帶時版型與既有信件完全相同） ── */
+  /** 住宿晚數 */
+  nights?: number | null;
+  /** 訂購間數 */
+  roomQuantity?: number | null;
+  /** 房型名稱 */
+  roomTypeName?: string | null;
+  /** 人數組成文字（成人 X　兒童 Y…） */
+  guestCompositionText?: string | null;
+  /** 訂房人聯絡電話 */
+  contactPhone?: string | null;
+  /** 訂房人 Email */
+  contactEmail?: string | null;
+  /** 實際已付金額 */
+  paidAmount?: number | null;
+  /** 付款方式顯示文字 */
+  paymentMethodText?: string | null;
+  /** 民宿地址 */
+  venueAddress?: string | null;
+  /** 民宿聯絡電話 */
+  venuePhone?: string | null;
+  /** 入住須知／入住前提醒 */
+  arrivalNotice?: string | null;
 }
 
 /** 取消政策區塊（與一般訂房信共用同一份文案來源） */
@@ -96,21 +120,55 @@ function money(n: number): string {
 }
 
 function orderTable(o: GroupBuyEmailOrder, fullPayment = false): string {
+  const paid = Number(o.paidAmount ?? 0);
+  const due = fullPayment ? 0 : Math.max(0, Math.round(Number(o.totalPrice) - paid));
   return `<table class="info">
     <tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
     <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
     ${o.accommodationName ? `<tr><td class="k">住宿</td><td>${esc(o.accommodationName)}</td></tr>` : ""}
     ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
+    ${o.roomTypeName ? `<tr><td class="k">房型</td><td>${esc(o.roomTypeName)}</td></tr>` : ""}
     <tr><td class="k">入住 / 退房</td><td>${esc(o.checkInDate)} → ${esc(o.checkOutDate)}</td></tr>
-    ${o.guestCount ? `<tr><td class="k">入住人數</td><td>${esc(o.guestCount)} 人</td></tr>` : ""}
+    ${o.nights ? `<tr><td class="k">住宿晚數</td><td>${esc(o.nights)} 晚${o.roomQuantity ? ` × ${esc(o.roomQuantity)} 間` : ""}</td></tr>` : ""}
+    ${
+    o.guestCompositionText
+      ? `<tr><td class="k">入住人數</td><td>${esc(o.guestCompositionText)}</td></tr>`
+      : o.guestCount
+      ? `<tr><td class="k">入住人數</td><td>${esc(o.guestCount)} 人</td></tr>`
+      : ""
+  }
+    <tr><td class="k">訂房人</td><td>${esc(o.guestName)}</td></tr>
+    ${o.contactPhone ? `<tr><td class="k">聯絡電話</td><td>${esc(o.contactPhone)}</td></tr>` : ""}
+    ${o.contactEmail ? `<tr><td class="k">Email</td><td>${esc(o.contactEmail)}</td></tr>` : ""}
     <tr><td class="k">訂單總額</td><td>${money(o.totalPrice)}</td></tr>
     ${
     fullPayment
-      ? `<tr><td class="k">付款狀態</td><td><strong style="color:${BRAND.primary}">已全額付清</strong></td></tr>`
+      ? `<tr><td class="k">已付金額</td><td><strong style="color:${BRAND.primary}">${
+        money(paid || o.totalPrice)
+      }</strong></td></tr>
+    <tr><td class="k">尚需支付</td><td>${money(0)}</td></tr>
+    <tr><td class="k">付款狀態</td><td><strong style="color:${BRAND.primary}">已全額付清</strong></td></tr>`
       : `<tr><td class="k">應付訂金</td><td><strong style="color:${BRAND.primary}">${money(o.depositAmount)}</strong></td></tr>
-    <tr><td class="k">入住現場付清</td><td>${money(o.balanceAmount)}</td></tr>`
+    <tr><td class="k">入住現場付清</td><td>${money(o.balanceAmount || due)}</td></tr>`
   }
+    ${o.paymentMethodText ? `<tr><td class="k">付款方式</td><td>${esc(o.paymentMethodText)}</td></tr>` : ""}
   </table>`;
+}
+
+/** 民宿聯絡資訊 + 入住須知（有資料才輸出） */
+function venueContactBlock(o: GroupBuyEmailOrder): string {
+  const rows = [
+    o.accommodationName ? `<tr><td class="k">住宿名稱</td><td>${esc(o.accommodationName)}</td></tr>` : "",
+    o.venueAddress ? `<tr><td class="k">地址</td><td>${esc(o.venueAddress)}</td></tr>` : "",
+    o.venuePhone ? `<tr><td class="k">聯絡電話</td><td>${esc(o.venuePhone)}</td></tr>` : "",
+  ].filter(Boolean).join("");
+  const notice = o.arrivalNotice && o.arrivalNotice.trim() !== ""
+    ? `<p style="white-space:pre-line;margin:10px 0 0">${esc(o.arrivalNotice)}</p>`
+    : "";
+  if (!rows && !notice) return "";
+  return `<div class="box"><h2>入住資訊</h2>${
+    rows ? `<table class="info" style="margin:0">${rows}</table>` : ""
+  }${notice}</div>`;
 }
 
 export function renderBookingWithBankInfo(
@@ -163,12 +221,12 @@ export function renderDepositReceived(
     : "";
   return {
     subject: full
-      ? `【已收到付款】${o.campaignTitle} 訂單 ${o.orderNumber}`
+      ? `【訂房確認・已完成付款】${o.campaignTitle} 訂單 ${o.orderNumber}`
       : `【已收到訂金】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
-      full ? "已收到您的付款" : "已收到您的訂金",
-      full ? `訂單 ${o.orderNumber} 已全額付清` : `訂單 ${o.orderNumber} 訂金已入帳`,
-      `<h1>${full ? "已收到您的付款 ✅" : "已收到您的訂金 ✅"}</h1>
+      full ? "訂房確認・已完成付款" : "已收到您的訂金",
+      full ? `訂單 ${o.orderNumber} 訂房確認且已全額付清` : `訂單 ${o.orderNumber} 訂金已入帳`,
+      `<h1>${full ? "訂房確認．已完成付款 ✅" : "已收到您的訂金 ✅"}</h1>
        <p>${esc(o.guestName)} 您好，我們已確認收到您的${
       full
         ? `款項 <strong>${money(o.totalPrice)}</strong>，本筆訂單已全額付清`
@@ -177,6 +235,7 @@ export function renderDepositReceived(
        ${orderTable(o, full)}
        ${cancellationBlock(o)}
        ${providerLine}
+       ${venueContactBlock(o)}
        ${full ? "<p>入住當天無需再付款。期待與您相見！</p>" : `<p>尾款 ${money(o.balanceAmount)} 請於入住當天現場付清。期待與您相見！</p>`}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢我的訂單</a></p>` : ""}`,
     ),
