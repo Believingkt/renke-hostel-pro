@@ -293,10 +293,18 @@ export async function buildOrderConfirmationEmail(
         </p>
         <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">${esc(payDesc)}</p>
       </div>
-      <div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
+      ${
+            freeCancelDeadline
+              ? `<div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
         <p style="margin:0;font-size:15px;font-weight:700;color:#222;">${freeCancelNow ? "現在可以免費取消" : "取消將依政策收取費用"}</p>
-        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">於 ${dateCN(freeCancelDeadline)} 23:59 前（住宿當地時間）可免費取消。此後，將依取消政策收取費用。</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">於 ${dateCN(freeCancelDeadline)} 23:59 前（住宿當地時間）可免費取消（${esc(policyCopy.title)}）。此後，將依下方取消政策比例計算。</p>
       </div>`
+              : `<div style="border-top:1px solid #ffedd5;margin-top:14px;padding-top:12px;">
+        <p style="margin:0;font-size:15px;font-weight:700;color:#222;">取消政策</p>
+        <p style="margin:6px 0 0 0;font-size:14px;color:#666;line-height:1.6;">本訂單之取消與退款條件請見下方說明，或聯繫客服協助確認。</p>
+      </div>`
+          }`
+
           : ""
       }
     </td></tr>
