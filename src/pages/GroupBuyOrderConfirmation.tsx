@@ -77,7 +77,10 @@ export default function GroupBuyOrderConfirmation() {
   const maskedEmail: string | null = order?.guestEmailMasked ?? null;
 
 
-  const bank = data?.bank ?? result?.bank ?? null;
+  /** 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款 */
+  const fullPayment = order?.fullPayment === true;
+  const paidAmount = Number(order?.paidAmount ?? 0);
+  const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
   const total = order?.total ?? result?.total ?? 0;
   const deposit = order?.deposit ?? result?.deposit ?? 0;
   const balance = order?.balance ?? result?.balance ?? 0;
@@ -96,7 +99,7 @@ export default function GroupBuyOrderConfirmation() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <CheckCircle2 className="h-5 w-5" /> 訂房已成立，請完成訂金匯款
+            <CheckCircle2 className="h-5 w-5" /> {fullPayment ? "付款完成，訂房成功" : "訂房已成立，請完成訂金匯款"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
@@ -115,15 +118,24 @@ export default function GroupBuyOrderConfirmation() {
               <span className="text-muted-foreground">訂單總額</span>
               <span>{twd(total)}</span>
             </div>
-            <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">應付訂金</span>
-              <span className="font-semibold text-primary">{twd(deposit)}</span>
-            </div>
-            <div className="flex justify-between py-1">
-              <span className="text-muted-foreground">入住現場付清</span>
-              <span>{twd(balance)}</span>
-            </div>
-            {deadlineText && (
+            {fullPayment ? (
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">已付金額（全額）</span>
+                <span className="font-semibold text-primary">{twd(paidAmount || total)}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">應付訂金</span>
+                  <span className="font-semibold text-primary">{twd(deposit)}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">入住現場付清</span>
+                  <span>{twd(balance)}</span>
+                </div>
+              </>
+            )}
+            {!fullPayment && deadlineText && (
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">匯款期限</span>
                 <span className="font-semibold">{deadlineText}</span>
@@ -134,8 +146,8 @@ export default function GroupBuyOrderConfirmation() {
           <div className="rounded-lg border p-4">
             <p className="mb-1 font-semibold text-foreground">通知信狀態</p>
             <MailRow
-              label="訂房通知＋匯款資訊信"
-              state={bookingMailState}
+              label={fullPayment ? "訂房通知信" : "訂房通知＋匯款資訊信"}
+              state={fullPayment ? "sent" : bookingMailState}
               note={
                 bookingMailState === "sent"
                   ? `訂房通知與匯款資訊已寄至 ${maskedEmail ?? "您留下的電子信箱"}`
@@ -145,7 +157,7 @@ export default function GroupBuyOrderConfirmation() {
               }
             />
             <MailRow
-              label="訂金確認信"
+              label={fullPayment ? "付款完成通知信" : "訂金確認信"}
               state={depositMailState}
               note={
                 depositMailState === "sent"
@@ -154,7 +166,7 @@ export default function GroupBuyOrderConfirmation() {
               }
             />
 
-            {bookingMailState === "failed" && (
+            {!fullPayment && bookingMailState === "failed" && (
               <p className="mt-2 text-xs text-destructive">
                 通知信寄送失敗，請直接依下方匯款資訊完成匯款，或與我們聯繫。
               </p>
@@ -174,7 +186,11 @@ export default function GroupBuyOrderConfirmation() {
             </div>
           )}
 
-          {useAtm ? (
+          {fullPayment ? (
+            <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
+              已完成信用卡全額付款，入住當天不需再支付尾款。
+            </p>
+          ) : useAtm ? (
             <div className="space-y-2">
               <p className="font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
               <AtmPaymentPanel
@@ -206,7 +222,7 @@ export default function GroupBuyOrderConfirmation() {
 
           <Button asChild className="w-full">
             <Link to={`/g/order/${orderNumber}`}>
-              {useAtm ? "前往訂單查詢" : "前往訂單查詢／回報匯款"}
+              {fullPayment || useAtm ? "前往訂單查詢" : "前往訂單查詢／回報匯款"}
             </Link>
           </Button>
         </CardContent>
