@@ -13,7 +13,12 @@ export interface OrderPaymentFields {
   /** 已扣除的退款處理費（人工銀行退款；信用卡為 0） */
   refund_fee_amount?: number | null;
   payment_provider?: string | null;
+  payment_method?: string | null;
+  deposit_payment_method?: string | null;
+  balance_payment_method?: string | null;
+  room_charge_rec_trade_id?: string | null;
 }
+
 
 export type DepositState = "unpaid" | "partial" | "paid";
 
