@@ -510,7 +510,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
             type="button"
             className="h-12 rounded-xl bg-accent px-5 text-base font-semibold text-accent-foreground hover:bg-accent/90 sm:h-11"
             disabled={
-              submitting || rechecking || preparing || holdExpired || !chargeAmount || !cardValid || !sdkReady
+              submitting || rechecking || preparing || holdExpired || !!blocked || !chargeAmount || !cardValid ||
+              !sdkReady
             }
             onClick={() => void pay()}
           >
