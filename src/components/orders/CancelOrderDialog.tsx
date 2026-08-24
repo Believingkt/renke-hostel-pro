@@ -189,16 +189,26 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                 <div className="mt-1 text-muted-foreground">
                   距入住 {quote.quote.daysBefore} 天｜{quote.quote.label}
                 </div>
-                <div className="mt-1 text-foreground">
-                  建議退款金額：<span className="font-semibold">NT${Number(quote.suggestedRefund || 0).toLocaleString()}</span>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-0.5">
+                  <span className="text-muted-foreground">已付款金額</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.paidAmount ?? paidAmount).toLocaleString()}</span>
+                  <span className="text-muted-foreground">已退款金額</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.alreadyRefunded ?? 0).toLocaleString()}</span>
+                  <span className="text-muted-foreground">最高可退</span>
+                  <span className="text-right tabular-nums">NT${Number(quote.remainingRefundable ?? paidAmount).toLocaleString()}</span>
+                  <span className="text-muted-foreground">建議退款金額</span>
+                  <span className="text-right font-semibold tabular-nums text-primary">
+                    NT${Number(quote.suggestedRefund || 0).toLocaleString()}
+                  </span>
                 </div>
-                {quote.quote.requiresManualReview && (
+                {quote.requiresManualReview && (
                   <div className="mt-1 text-destructive">
                     ⚠️ 此訂單無法自動判定付款制度，請人工確認後再輸入退款金額。
                   </div>
                 )}
               </div>
             )}
+
             {quoteLoading && <div className="text-xs text-muted-foreground">計算建議退款金額中…</div>}
 
             <RadioGroup value={action} onValueChange={(v) => setAction(v as RefundAction)} className="space-y-2">
