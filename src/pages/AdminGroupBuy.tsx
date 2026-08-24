@@ -429,7 +429,7 @@ export default function AdminGroupBuy() {
       supabase
         .from("orders")
         .select(
-          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider, group_buy_booking_notice_snapshot",
+          "id, order_number, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, guest_count, adult_count, child_count, toddler_count, infant_count, final_price, deposit_amount, paid_amount, order_status, payment_status, order_date, refund_status, refunded_amount, refunded_at, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_rec_trade_id, group_buy_booking_notice_snapshot",
         )
         .in("id", orderIds)
         .order("order_date", { ascending: false }),
