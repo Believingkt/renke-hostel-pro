@@ -62,10 +62,11 @@ export function GroupBuyConfirmDialog(props: Props) {
     open, onOpenChange, submitting, onConfirm, venueName, packageName,
     checkIn, checkOut, nights, roomQuantity, guestSummary, baseTotal, childExtraTotal,
     total, deposit, balance, depositPct, guestName, guestPhone, guestEmail,
-    atmEnabled = false, creditCardEnabled = false, paymentMethod = "bank", onPaymentMethodChange,
+    bankTransferEnabled = true, atmEnabled = false, creditCardEnabled = false,
+    paymentMethod = "bank", onPaymentMethodChange,
   } = props;
   const options = [
-    { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。", on: true },
+    { key: "bank" as const, title: "銀行匯款（人工對帳）", desc: "匯款後於訂單頁回報，由民宿確認入帳。", on: bankTransferEnabled },
     { key: "atm" as const, title: "ATM 虛擬帳號", desc: "系統開立專屬帳號，入帳後自動確認訂單。", on: atmEnabled },
     {
       key: "credit_card" as const,
