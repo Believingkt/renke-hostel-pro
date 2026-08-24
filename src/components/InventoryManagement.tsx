@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useAdjustedAvailability, adjustedKey } from "@/hooks/use-adjusted-availability";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -528,7 +530,25 @@ export function InventoryManagement({ accommodationId }: InventoryManagementProp
   const firstDayOfMonth = startOfMonth(currentMonth).getDay();
   const paddingDays = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
 
+  // 實際可售（adjusted）：一律取自 RPC，已扣正式訂單與有效付款保留
+  const monthDateStrings = useMemo(
+    () => daysInMonth.map((d) => format(d, 'yyyy-MM-dd')),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentMonth],
+  );
+  const roomTypeIdsForAdjusted = useMemo(
+    () => (selectedRoomType ? [selectedRoomType] : []),
+    [selectedRoomType],
+  );
+  const { adjusted } = useAdjustedAvailability(
+    roomTypeIdsForAdjusted,
+    monthDateStrings,
+    accommodationId,
+    inventory,
+  );
+
   const selectedRoomTypeData = roomTypes.find(rt => rt.id === selectedRoomType);
+
 
   return (
     <div className="space-y-4 sm:space-y-6">
