@@ -521,6 +521,14 @@ export default function GroupBuyOrderLookup() {
               <RefundSummaryPanel refund={data.refund} />
             )}
 
+            {/* 人工退款申請引導：僅 ATM／銀行匯款且退款尚未完成時顯示；信用卡走原卡退刷不適用 */}
+            {channel !== "credit_card" &&
+              data.refund &&
+              (data.refund.status === "pending_manual" || data.refund.status === "pending") && (
+              <ManualRefundRequestNotice contact={data.venue?.contact ?? null} />
+            )}
+
+
             {data.campaign?.contactNote && (
               <p className="text-center text-muted-foreground">{data.campaign.contactNote}</p>
             )}
