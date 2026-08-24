@@ -24,11 +24,65 @@ function Countdown({ expiresAt }: { expiresAt: string }) {
 }
 
 /**
- * 預定管理月曆的「團購付款保留」列（唯讀顯示）。
+ * 單張「團購付款保留」卡片（唯讀顯示，可放進既有房間／房型列的日期格）。
  *
  * 付款保留不是正式訂單：不可點擊開啟訂單、不可取消／退款／改期。
- * 詳細資訊請至團購後台的「付款保留」分頁查看。
  */
+export function PaymentHoldCard({
+  event: e,
+  dateStrings,
+  dayColWidth,
+}: {
+  event: PaymentHoldEvent;
+  dateStrings: string[];
+  dayColWidth: number;
+}) {
+  const lastDate = dateStrings[dateStrings.length - 1];
+  const visibleStart = e.check_in_date < dateStrings[0] ? dateStrings[0] : e.check_in_date;
+  const startIdx = dateStrings.indexOf(visibleStart);
+  if (startIdx === -1) return null;
+  // [check_in, check_out)：退房日不占用
+  const endIdx = dateStrings.indexOf(e.check_out_date);
+  const span = endIdx === -1
+    ? (e.check_out_date > lastDate ? dateStrings.length - startIdx : 0)
+    : endIdx - startIdx;
+  if (span <= 0) return null;
+
+  return (
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "absolute top-1 bottom-1 z-[5] rounded-md border-2 border-dashed cursor-default",
+              "border-amber-500 bg-amber-100/80 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200",
+              "flex items-center gap-1 px-2 text-xs overflow-hidden",
+            )}
+            style={{ left: startIdx * dayColWidth, width: span * dayColWidth }}
+          >
+            <Clock className="h-3 w-3 shrink-0" />
+            <span className="font-medium truncate">{e.guestName}</span>
+            {e.total > 1 && (
+              <span className="shrink-0 tabular-nums">{e.index}/{e.total} 間</span>
+            )}
+            <span className="ml-auto shrink-0 hidden sm:inline">
+              <Countdown expiresAt={e.expiresAt} />
+            </span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="text-sm whitespace-pre-line max-w-xs">
+          {`⏱ 團購付款保留（非正式訂單）\n${e.guestName}\n${e.check_in_date} → ${e.check_out_date}\n占用 ${e.total} 間（此列為第 ${e.index} 間）\n詳細資訊請至團購後台「付款保留」分頁`}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+/**
+ * Fallback：無法安全放進既有房間列時（例如多房號房型且無 room_unit_id）才使用的獨立列。
+ * 一般情況（包棟房型）Hold 會直接顯示在原本房間列，不會渲染這裡。
+ */
+
 export function PaymentHoldRows({ events, dateStrings, dayColWidth, leftColWidth, daysRowStyle, dayColumnStyle }: Props) {
   if (events.length === 0) return null;
   const rows = packHoldRows(events);
