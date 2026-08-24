@@ -145,7 +145,7 @@ export async function buildOrderConfirmationEmail(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
+      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, deposit_amount, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_status, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
     )
     .eq("order_number", orderNumber)
     .maybeSingle();
