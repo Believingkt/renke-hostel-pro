@@ -2,6 +2,8 @@
 // deno-lint-ignore-file no-explicit-any
 
 import type { GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
+import { resolveCancellationPolicy } from "./cancellationPolicy.ts";
+
 
 export const GROUP_BUY_ORDER_SOURCE = "group_buy";
 
