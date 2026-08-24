@@ -162,6 +162,8 @@ export default function GroupBuyOrderLookup() {
   const channel: "atm" | "credit_card" | "bank" = order?.paymentChannel ?? (fullPayment ? "credit_card" : "bank");
   const isAtmOrder = channel === "atm";
   /** 退款管道文案：TapPay 原卡退刷 vs 人工匯回，不得混用 */
+  /** 人工退款手續費：一律取後端回傳的館別設定（禁止前端寫死金額） */
+  const manualRefundFee = Math.max(0, Math.round(Number((order as any)?.manualRefundFee) || 0));
   const refundVariant: "bank" | "credit_card" =
     channel === "credit_card" ? "credit_card" : "bank";
 
@@ -232,6 +234,7 @@ export default function GroupBuyOrderLookup() {
                   <CancellationRefundNotice
                     showPendingReview
                     variant={refundVariant}
+                    handlingFee={manualRefundFee}
                     className="mt-2"
                   />
                 </AlertDescription>
@@ -462,6 +465,7 @@ export default function GroupBuyOrderLookup() {
                     <CancellationRefundNotice
                       showPendingReview
                       variant={refundVariant}
+                      handlingFee={manualRefundFee}
                       className="rounded-lg bg-muted/60 p-3"
                     />
                   </div>
@@ -472,7 +476,7 @@ export default function GroupBuyOrderLookup() {
                         ? "退款由民宿審核後處理，款項將退回原信用卡。"
                         : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
                     </p>
-                    <CancellationRefundNotice variant={refundVariant} className="rounded-lg bg-muted/60 p-3" />
+                    <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
                     <div>
                       <Label htmlFor="cancel-reason">取消原因（選填）</Label>
                       <Textarea
@@ -501,7 +505,7 @@ export default function GroupBuyOrderLookup() {
                 ) : (
                   <div className="space-y-2">
                     <p className="text-muted-foreground">需要取消這筆訂房嗎？送出申請後由民宿審核。</p>
-                    <CancellationRefundNotice variant={refundVariant} className="rounded-lg bg-muted/60 p-3" />
+                    <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
                       我要申請取消訂單
                     </Button>
