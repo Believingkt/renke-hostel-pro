@@ -1157,6 +1157,25 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                         }
                       }
 
+                      // 團購信用卡付款保留：直接放進「原本的房間／房型列」，不另開一列。
+                      // 房型依據唯一 SoT = draft.room_type_id（不重新分配房型、不指派 room_unit）。
+                      const rtHolds = holdEvents.filter(h => h.roomTypeId === roomType.id);
+                      const leftoverHolds: PaymentHoldEvent[] = [];
+                      if (rtHolds.length > 0) {
+                        for (const h of [...rtHolds].sort((a, b) => a.check_in_date.localeCompare(b.check_in_date) || a.index - b.index)) {
+                          // 具實體房號的房型（room_unit）：draft 沒有 room_unit_id，不得假造分房 → 放未指派列
+                          const candidates = useUnits ? slots.filter(s => s.meta.unitId === null) : slots;
+                          const free = candidates.find(s =>
+                            !s.entries.some(e => e.check_in_date < h.check_out_date && e.check_out_date > h.check_in_date) &&
+                            !s.holds.some(x => x.check_in_date < h.check_out_date && x.check_out_date > h.check_in_date)
+                          );
+                          if (free) free.holds.push(h);
+                          else leftoverHolds.push(h);
+                        }
+                      }
+
+
+
                       return slots.map((slot, slotIdx) => (
                         <div key={`${slot.meta.unitId ?? 'na'}-${slotIdx}`} className="flex border-b last:border-b-0">
                           <div
