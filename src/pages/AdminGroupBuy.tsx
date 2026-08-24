@@ -35,6 +35,7 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
+import { splitRefundFee } from "@/lib/refundFee";
 import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, MoreHorizontal, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -2060,7 +2061,11 @@ export default function AdminGroupBuy() {
                   </p>
                 )}
               </div>
-
+              {!refundIsCard && (
+                <p className="rounded-md bg-muted/50 p-2 text-xs font-medium">
+                  請確認已實際匯回旅客 {twd(refundSplit.payout)} 後，再完成退款登記。
+                </p>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -2069,7 +2074,7 @@ export default function AdminGroupBuy() {
             </Button>
             <Button onClick={processRefund} disabled={refunding}>
               {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {refundIsCard ? "執行原卡退刷" : "確認已完成退款"}
+              {refundIsCard ? "執行原卡退刷" : `確認已匯回 ${twd(refundSplit.payout)}`}
             </Button>
           </DialogFooter>
         </DialogContent>
