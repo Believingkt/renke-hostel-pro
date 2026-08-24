@@ -209,7 +209,25 @@ interface BankRow {
   is_default: boolean;
 }
 
+/** group-buy-cancel-refund mode:"quote" 回傳（唯讀，不異動訂單） */
+interface RefundQuote {
+  paidAmount: number;
+  alreadyRefunded: number;
+  remainingRefundable: number;
+  suggestedRefund: number;
+  requiresManualReview: boolean;
+  policy: "deposit" | "full_prepayment" | "guarantee" | "unknown";
+  quote: {
+    policy: string;
+    policyReason: string;
+    daysBefore: number;
+    refundPercent: number;
+    tierLabel?: string | null;
+  };
+}
+
 interface OrderRow {
+
   id: string;
   order_number: string;
   guest_name: string;
