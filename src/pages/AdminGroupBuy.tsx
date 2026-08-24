@@ -35,6 +35,7 @@ import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
 import { Checkbox } from "@/components/ui/checkbox";
+import { splitRefundFee } from "@/lib/refundFee";
 import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, MoreHorizontal, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -370,6 +371,15 @@ export default function AdminGroupBuy() {
   const refundReasonRequired = !!quote &&
     Math.round(Number(refundAmount) || 0) !== quote.suggestedRefund &&
     refundNote.trim().length < 2;
+  /**
+   * 人工退款金額摘要（gross＝政策應退／fee＝館別手續費／payout＝實際匯回旅客）。
+   * 手續費金額一律取 server quote，切分邏輯與 Edge Function 共用同一份 splitRefundFee。
+   */
+  const refundSplit = splitRefundFee({
+    gross: Math.round(Number(refundAmount) || 0),
+    configuredFee: Number(quote?.manualRefundFee || 0),
+    isCardRefund: refundIsCard,
+  });
 
 
 
@@ -2002,8 +2012,30 @@ export default function AdminGroupBuy() {
                   </Button>
                 </div>
               )}
+              {/**
+                * 人工銀行退款金額摘要：所有數值皆由 server quote 的手續費設定切分，
+                * 前端不另計算一套退款金額（splitRefundFee 與 Edge Function 同一份實作）。
+                */}
+              {!refundIsCard && (
+                <div className="space-y-1 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">政策應退金額</span>
+                    <span className="tabular-nums">{twd(refundSplit.gross)}</span>
+                  </div>
+                  {refundSplit.fee > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">人工退款手續費</span>
+                      <span className="tabular-nums">-{twd(refundSplit.fee)}</span>
+                    </div>
+                  )}
+                  <div className="mt-1 flex items-center justify-between border-t pt-2">
+                    <span className="font-medium">實際匯回旅客</span>
+                    <span className="text-xl font-bold tabular-nums text-primary">{twd(refundSplit.payout)}</span>
+                  </div>
+                </div>
+              )}
               <div>
-                <Label>{refundIsCard ? "退刷金額" : "退款金額（含匯款手續費）"}</Label>
+                <Label>{refundIsCard ? "退刷金額" : "本次退款認列金額"}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -2011,10 +2043,9 @@ export default function AdminGroupBuy() {
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                 />
-                {!refundIsCard && Number(quote?.manualRefundFee || 0) > 0 && (
+                {!refundIsCard && (
                   <p className="mt-1 text-xs text-muted-foreground">
-                    此館匯款手續費 {twd(quote?.manualRefundFee || 0)}，實際匯回旅客{" "}
-                    {twd(Math.max(0, (Math.round(Number(refundAmount) || 0)) - Number(quote?.manualRefundFee || 0)))}。
+                    此金額為本次依取消政策認列的退款總額；實際匯回金額將扣除館別設定的人工退款手續費。
                   </p>
                 )}
               </div>
@@ -2030,7 +2061,11 @@ export default function AdminGroupBuy() {
                   </p>
                 )}
               </div>
-
+              {!refundIsCard && (
+                <p className="rounded-md bg-muted/50 p-2 text-xs font-medium">
+                  請確認已實際匯回旅客 {twd(refundSplit.payout)} 後，再完成退款登記。
+                </p>
+              )}
             </div>
           )}
           <DialogFooter>
@@ -2039,7 +2074,7 @@ export default function AdminGroupBuy() {
             </Button>
             <Button onClick={processRefund} disabled={refunding}>
               {refunding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {refundIsCard ? "執行原卡退刷" : "確認已完成退款"}
+              {refundIsCard ? "執行原卡退刷" : `確認已匯回 ${twd(refundSplit.payout)}`}
             </Button>
           </DialogFooter>
         </DialogContent>
