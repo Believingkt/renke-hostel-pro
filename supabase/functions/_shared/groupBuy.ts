@@ -3,6 +3,7 @@
 
 import type { GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
 import { resolveCancellationPolicy } from "./cancellationPolicy.ts";
+import { isCardPaidOrder } from "./orderRefund.ts";
 
 
 export const GROUP_BUY_ORDER_SOURCE = "group_buy";
