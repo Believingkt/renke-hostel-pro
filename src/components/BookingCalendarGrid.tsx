@@ -12,6 +12,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
+import { PaymentHoldRows } from "@/components/booking-calendar/PaymentHoldRows";
 
 interface BookingCalendarGridProps {
   accommodationId: string;
@@ -206,6 +208,13 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
   const currentRangeKey = `${accommodationId}_${dateStrings[0]}_${dateStrings[dateStrings.length - 1]}`;
   const rangeReady = loadedRangeKey === currentRangeKey;
   const visibleEntries = useMemo(() => (rangeReady ? calendarEntries : []), [rangeReady, calendarEntries]);
+
+  // 團購信用卡「付款保留」（唯讀顯示；不參與庫存計算、不是正式訂單）
+  const { holdEvents } = useActivePaymentHolds(
+    accommodationId,
+    dateStrings[0],
+    dateStrings[dateStrings.length - 1],
+  );
 
 
   // Load data
@@ -1355,6 +1364,17 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                       ));
                     })()}
 
+                    {/* 團購信用卡付款保留（非正式訂單，僅顯示，不可點擊操作） */}
+                    <PaymentHoldRows
+                      events={holdEvents.filter(h => h.roomTypeId === roomType.id)}
+                      dateStrings={dateStrings}
+                      dayColWidth={DAY_COL_MIN_WIDTH}
+                      leftColWidth={LEFT_COL_WIDTH}
+                      daysRowStyle={daysRowStyle}
+                      dayColumnStyle={dayColumnStyle}
+                    />
+
+
                     {/* 包棟內房間組成（依房型分組顯示，僅資訊用，不可預訂） */}
                     {(packageRowsByRt.get(roomType.id) || []).map(pr => (
                       <div key={`pkgrow_${roomType.id}_${pr.id}`} className="flex border-b last:border-b-0 hover:bg-muted/20">
@@ -1503,6 +1523,10 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block w-5 h-3 rounded border border-violet-300 bg-violet-100" />
           <span>已入住</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border-2 border-dashed border-amber-500 bg-amber-100" />
+          <span>付款保留（信用卡付款中，非正式訂單）</span>
         </span>
       </div>
       {/* 庫存數字顏色說明 */}
