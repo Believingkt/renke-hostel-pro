@@ -24,8 +24,11 @@ interface Body {
   // "no_refund" = cancel without refund
   refundAction: "auto_refund" | "mark_manual_refund" | "no_refund";
   refundAmount?: number; // optional manual override; defaults to the server-computed policy amount
+  /** 人工調整退款金額（refundAmount !== suggestedRefund）時「必填」的理由，會寫入 audit */
+  overrideReason?: string;
   /** mode: "quote" 只回傳建議退款金額，不異動資料 */
   mode?: "quote" | "apply";
+
 }
 
 const extractRecTradeId = (notes: string | null) => extractRecTradeIdFromNotes(notes);
