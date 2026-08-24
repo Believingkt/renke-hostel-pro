@@ -75,7 +75,11 @@ export function GroupBuyConfirmDialog(props: Props) {
       on: creditCardEnabled,
     },
   ].filter((o) => o.on);
-  const method: GroupBuyPaymentMethod = options.some((o) => o.key === paymentMethod) ? paymentMethod : "bank";
+  // 不得 fallback 到 bank：唯一可用付款方式即為 options[0]
+  const noPaymentMethod = options.length === 0;
+  const method: GroupBuyPaymentMethod = options.some((o) => o.key === paymentMethod)
+    ? paymentMethod
+    : (options[0]?.key ?? "bank");
 
   return (
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
