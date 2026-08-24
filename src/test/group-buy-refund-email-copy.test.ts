@@ -8,11 +8,15 @@
  *  - 金額一律來自呼叫端（server/DB），template 不自算比例
  */
 import { describe, expect, it } from "vitest";
-import { buildEmailOrder } from "../../supabase/functions/_shared/groupBuy.ts";
-import {
-  renderOrderCancelled,
-  renderRefundProcessed,
-} from "../../supabase/functions/_shared/groupBuyEmail.ts";
+
+// edge function 模組在載入時會讀 Deno.env（寄信設定），測試環境提供最小 shim
+(globalThis as unknown as { Deno?: unknown }).Deno ??= { env: { get: () => undefined } };
+
+const { buildEmailOrder } = await import("../../supabase/functions/_shared/groupBuy.ts");
+const { renderOrderCancelled, renderRefundProcessed } = await import(
+  "../../supabase/functions/_shared/groupBuyEmail.ts"
+);
+
 
 const campaign = { title: "10人包棟烤肉專案（測試）", deposit_percentage: 30, payment_deadline_hours: 72 };
 
