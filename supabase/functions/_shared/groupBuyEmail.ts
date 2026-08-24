@@ -87,8 +87,10 @@ export interface GroupBuyEmailOrder {
   contactEmail?: string | null;
   /** 實際已付金額 */
   paidAmount?: number | null;
-  /** 付款方式顯示文字 */
+  /** 原付款方式顯示文字（SoT = orders.payment_method，provider 僅 fallback） */
   paymentMethodText?: string | null;
+  /** 退款管道顯示文字（與原付款方式分開，不可反向覆蓋） */
+  refundChannelText?: string | null;
   /** 民宿地址 */
   venueAddress?: string | null;
   /** 民宿聯絡電話 */
