@@ -118,7 +118,12 @@ export default function GroupBuyOrderConfirmation() {
     String(order?.paymentProvider ?? result?.paymentProvider ?? "") === "tappay" ||
     fromCreditCard;
   const paidAmount = Number(order?.paidAmount ?? result?.paidAmount ?? 0);
-  const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
+  const channel: "atm" | "credit_card" | "bank" = order?.paymentChannel ??
+    (fullPayment ? "credit_card" : useAtmFallback ? "atm" : "bank");
+  const useAtm = channel === "atm";
+  /** ATM 是否已入帳（orders.payment_status） */
+  const depositPaid = order?.depositPaid === true;
+  const bank = fullPayment || useAtm ? null : (data?.bank ?? result?.bank ?? null);
   const total = Number(order?.total ?? result?.total ?? result?.order?.total_price ?? 0);
   const deposit = fullPayment ? 0 : (order?.deposit ?? result?.deposit ?? 0);
   const balance = fullPayment ? 0 : (order?.balance ?? result?.balance ?? 0);
