@@ -105,6 +105,11 @@ export function GroupBuyCreditCardDialog(props: Props) {
   const [preparing, setPreparing] = useState(false);
   /** 本次是接續既有保留（非全新建立），用於提示文案 */
   const [resumed, setResumed] = useState(false);
+  /**
+   * 已扣款／已轉單／待人工確認的 Draft：一律封鎖再次付款，避免重複請款。
+   * 由 group-buy-resume-payment-draft 回傳 alreadyPaid 判定。
+   */
+  const [blocked, setBlocked] = useState<{ reason: string; orderNumber: string | null } | null>(null);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
   /** 防止重複點擊／重複進入造成兩張有效 Draft */
   const creatingRef = useRef<Promise<{ draftId: string; expiresAt: string; amount: number }> | null>(null);
@@ -253,6 +258,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
       : { slug: req.slug, phoneLast4, email: req.guestEmail };
     const { data, error: rErr } = await supabase.functions.invoke("group-buy-resume-payment-draft", { body });
     const payload: any = data;
+    if (payload?.alreadyPaid) {
+      clearStoredDraft(req.slug);
+      setBlocked({ reason: String(payload.reason ?? "paid_not_converted"), orderNumber: payload.orderNumber ?? null });
+      // 回傳非 null 以阻止上層再建立新的 Draft
+      return "blocked" as const;
+    }
     if (rErr || !payload?.found) {
       clearStoredDraft(req.slug);
       return null;
@@ -299,6 +310,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
     setRechecking(true);
     clearStoredDraft(buildRequest().slug);
     setResumed(false);
+    setBlocked(null);
     draftRef.current = null;
     setHoldSeconds(null);
     setDraftInfo(null);
@@ -434,6 +446,23 @@ export function GroupBuyCreditCardDialog(props: Props) {
           )}
         </div>
 
+
+        {blocked && (
+          <div className="rounded-2xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-semibold">
+              {blocked.reason === "converted"
+                ? "這筆預訂已經付款成功並完成建立訂單。"
+                : blocked.reason === "manual_review"
+                ? "這筆付款已送出，正在人工確認中。"
+                : "這筆付款已完成扣款，訂單正在建立中。"}
+            </p>
+            <p className="mt-1 text-destructive/90">
+              為避免重複扣款，請勿再次付款。
+              {blocked.orderNumber ? `訂單編號：${blocked.orderNumber}，` : ""}
+              可至「訂單查詢」以電話後四碼查看，或聯繫客服協助。
+            </p>
+          </div>
+        )}
 
         <div className="space-y-3 rounded-2xl border border-border/70 p-4">
           <div>
