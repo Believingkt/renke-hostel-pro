@@ -322,6 +322,20 @@ export default function AdminGroupBuy() {
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
 
+  /**
+   * 人工覆寫退款金額（與 server 建議不同）時，原因必填。
+   * 前後端同時檢核（server: group-buy-cancel-refund requireReasonIfOverride）。
+   */
+  const cancelActualRefund = cancelRefundAction === "mark_refunded" ? Math.round(Number(cancelRefundAmount) || 0) : 0;
+  const cancelReasonRequired = !!quote &&
+    cancelRefundAction !== "pending_refund" &&
+    cancelActualRefund !== quote.suggestedRefund &&
+    cancelReason.trim().length < 2;
+  const refundReasonRequired = !!quote &&
+    Math.round(Number(refundAmount) || 0) !== quote.suggestedRefund &&
+    refundNote.trim().length < 2;
+
+
 
   const activeCampaign = useMemo(
     () => campaigns.find((c) => c.id === activeId) ?? null,
