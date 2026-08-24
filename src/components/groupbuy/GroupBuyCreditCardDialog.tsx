@@ -110,9 +110,15 @@ export function GroupBuyCreditCardDialog(props: Props) {
    * 由 group-buy-resume-payment-draft 回傳 alreadyPaid 判定。
    */
   const [blocked, setBlocked] = useState<{ reason: string; orderNumber: string | null } | null>(null);
+  /** 找到有效保留，但與目前畫面選擇的方案／日期不同：必須讓客人二選一，不得直接建立第二張 Draft */
+  const [conflict, setConflict] = useState<any | null>(null);
+  /** 「返回修改」確認層：詢問是否釋放房況（X 關閉不會觸發） */
+  const [askRelease, setAskRelease] = useState(false);
+  const [releasing, setReleasing] = useState(false);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
   /** 防止重複點擊／重複進入造成兩張有效 Draft */
   const creatingRef = useRef<Promise<{ draftId: string; expiresAt: string; amount: number }> | null>(null);
+
 
   // 載入 SDK
   useEffect(() => {
