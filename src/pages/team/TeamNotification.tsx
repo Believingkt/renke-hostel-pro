@@ -562,25 +562,36 @@ export default function TeamNotification() {
         </TabsContent>
 
         <TabsContent value="sources" className="space-y-4">
-          <div className="max-w-xs space-y-1">
-            <Label className="text-xs">館別</Label>
-            <Select value={selectedId} onValueChange={setSelectedId}>
-              <SelectTrigger>
-                <SelectValue placeholder="選擇館別" />
-              </SelectTrigger>
-              <SelectContent className="max-h-72">
-                {accommodations.map((a) => (
-                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <PerformanceSourceRulesSection
-            accommodationId={selectedId}
-            accommodationName={accommodations.find((a) => a.id === selectedId)?.name}
-            canEdit={canAccess}
-          />
+          {(() => {
+            const enabledAccs = accommodations.filter((a) => settingsMap[a.id]?.enabled);
+            const sourceAccId = enabledAccs.some((a) => a.id === selectedId)
+              ? selectedId
+              : "";
+            return (
+              <>
+                <div className="max-w-xs space-y-1">
+                  <Label className="text-xs">館別（僅顯示已啟用每日通報）</Label>
+                  <Select value={sourceAccId} onValueChange={setSelectedId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="選擇館別" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72">
+                      {enabledAccs.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <PerformanceSourceRulesSection
+                  accommodationId={sourceAccId}
+                  accommodationName={enabledAccs.find((a) => a.id === sourceAccId)?.name}
+                  canEdit={canAccess}
+                />
+              </>
+            );
+          })()}
         </TabsContent>
+
       </Tabs>
     </div>
   );
