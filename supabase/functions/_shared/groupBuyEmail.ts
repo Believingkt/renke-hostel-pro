@@ -95,7 +95,14 @@ export interface GroupBuyEmailOrder {
   venuePhone?: string | null;
   /** 入住須知／入住前提醒 */
   arrivalNotice?: string | null;
+
+  /* ── 付款方式分流（Email 顯示 SoT，由 buildEmailOrder 依 orders 真實欄位計算） ── */
+  /** 是否為 TapPay 信用卡收款訂單（與 server isCardPaidOrder 同一份規則） */
+  isCardOrder?: boolean;
+  /** 是否一次全額預收（信用卡全額付款）→ 不得顯示應付訂金／尾款 */
+  fullPrepayment?: boolean;
 }
+
 
 /** 取消政策區塊（與一般訂房信共用同一份文案來源） */
 function cancellationBlock(o: GroupBuyEmailOrder): string {
