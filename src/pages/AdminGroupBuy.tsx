@@ -160,6 +160,7 @@ interface Campaign {
   deposit_percentage: number;
   payment_deadline_hours: number;
   payment_method: string | null;
+  enable_bank_transfer?: boolean | null;
   enable_atm?: boolean | null;
   enable_credit_card?: boolean | null;
   commission_rate: number;
@@ -418,6 +419,11 @@ export default function AdminGroupBuy() {
     if (!editing || !accommodationId) return;
     if (!editing.title || !editing.slug) {
       toast({ title: "請填寫活動名稱與網址代稱", variant: "destructive" });
+      return;
+    }
+    const bankOn = editing.enable_bank_transfer ?? true;
+    if (!bankOn && !editing.enable_atm && !editing.enable_credit_card) {
+      toast({ title: "請至少開啟一種付款方式", variant: "destructive" });
       return;
     }
     const dateErrors = validateCampaignWindow(editing);
@@ -1425,9 +1431,14 @@ export default function AdminGroupBuy() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-medium text-foreground">銀行匯款（人工對帳）</p>
-                    <p className="text-xs text-muted-foreground">預設付款方式，一律開啟。</p>
+                    <p className="text-xs text-muted-foreground">
+                      旅客匯款訂金後於訂單頁回報，由民宿人工確認入帳。
+                    </p>
                   </div>
-                  <Switch checked disabled />
+                  <Switch
+                    checked={editing.enable_bank_transfer ?? true}
+                    onCheckedChange={(v) => setEditing({ ...editing, enable_bank_transfer: v })}
+                  />
                 </div>
                 <div className="flex items-start justify-between gap-4">
                   <div>
