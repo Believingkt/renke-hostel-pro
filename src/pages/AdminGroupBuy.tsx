@@ -714,6 +714,15 @@ export default function AdminGroupBuy() {
       toast({ title: "退款金額不正確", description: `可退範圍 1 ~ ${twd(max)}`, variant: "destructive" });
       return;
     }
+    if (refundReasonRequired) {
+      toast({
+        title: "請填寫調整原因",
+        description: `實際退款金額與系統建議（${twd(quote?.suggestedRefund ?? 0)}）不同，原因為必填。`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setRefunding(true);
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-cancel-refund", {
