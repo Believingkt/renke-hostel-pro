@@ -198,6 +198,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setHoldSeconds(null);
       setDraftInfo(null);
       setResumed(false);
+      setBlocked(null);
       setConflict(null);
       setAskRelease(false);
       setReleasing(false);
@@ -205,6 +206,37 @@ export function GroupBuyCreditCardDialog(props: Props) {
       creatingRef.current = null;
     }
   }, [open]);
+
+  /**
+   * 目前這一次 booking attempt 的識別鍵。
+   * 方案／日期／人數任一改變即代表「換成另一筆預訂」，
+   * 上一筆的 blocked／alreadyPaid／舊訂單編號一律不得沿用。
+   */
+  const attemptKey = (() => {
+    if (!open) return "";
+    try {
+      const r = buildRequest();
+      return [
+        r.slug,
+        r.campaignPackageId,
+        r.checkInDate,
+        r.checkOutDate,
+        r.adultCount,
+        r.childCount,
+        r.toddlerCount,
+        r.infantCount,
+      ].join("|");
+    } catch {
+      return "";
+    }
+  })();
+
+  useEffect(() => {
+    setBlocked(null);
+    setConflict(null);
+    setResumed(false);
+  }, [attemptKey]);
+
 
 
   /** 建立全新的 payment draft（永不復活舊 draft；同時只允許一個建立中的請求） */
@@ -385,7 +417,9 @@ export function GroupBuyCreditCardDialog(props: Props) {
 
   const pay = useCallback(async () => {
     setError(null);
+    setBlocked(null);
     setSubmitting(true);
+
     try {
       // 1) 建立付款草稿（10 分鐘保留），金額一律由後端計算
       let draft = draftRef.current;
