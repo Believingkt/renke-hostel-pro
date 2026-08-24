@@ -1524,6 +1524,10 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
           <span className="inline-block w-5 h-3 rounded border border-violet-300 bg-violet-100" />
           <span>已入住</span>
         </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block w-5 h-3 rounded border-2 border-dashed border-amber-500 bg-amber-100" />
+          <span>付款保留（信用卡付款中，非正式訂單）</span>
+        </span>
       </div>
       {/* 庫存數字顏色說明 */}
       <div className="px-3 py-2.5 border rounded-lg bg-muted/30 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
