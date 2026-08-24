@@ -53,7 +53,9 @@ Deno.serve(async (req) => {
     // 回傳訂單摘要供結果頁顯示
     const { data: order } = await admin
       .from("orders")
-      .select("id, order_number, check_in_date, check_out_date, total_price, deposit_amount, paid_amount, guest_email, accommodation_id, created_at")
+      .select(
+        "id, order_number, check_in_date, check_out_date, total_price, final_price, deposit_amount, paid_amount, guest_name, guest_email, guest_count, adult_count, child_count, toddler_count, infant_count, room_quantity, room_type_id, accommodation_id, order_status, payment_status, payment_provider, payment_method, order_source, created_at",
+      )
       .eq("id", result.orderId!)
       .maybeSingle();
 
@@ -68,6 +70,24 @@ Deno.serve(async (req) => {
         .select("id, title, deposit_percentage, payment_deadline_hours")
         .eq("id", commission.campaign_id)
         .maybeSingle()
+      : { data: null as any };
+
+    const { data: acc } = order?.accommodation_id
+      ? await admin
+        .from("accommodation_info")
+        .select("name, address, phone")
+        .eq("id", order.accommodation_id)
+        .maybeSingle()
+      : { data: null as any };
+    const { data: intro } = order?.accommodation_id
+      ? await admin
+        .from("group_buy_venue_intros")
+        .select("address, phone")
+        .eq("accommodation_id", order.accommodation_id)
+        .maybeSingle()
+      : { data: null as any };
+    const { data: roomType } = order?.room_type_id
+      ? await admin.from("room_types").select("name").eq("id", order.room_type_id).maybeSingle()
       : { data: null as any };
 
     const { data: bankRow } = campaign?.id
@@ -109,6 +129,38 @@ Deno.serve(async (req) => {
       checkInDate: order?.check_in_date ?? null,
       checkOutDate: order?.check_out_date ?? null,
       guestEmailMasked: maskedEmail,
+      // 訂單明細（結果頁直接顯示，不需再帶電話後四碼查詢）
+      guestName: order?.guest_name ?? null,
+      packageName: null,
+      campaign: campaign ? { title: campaign.title } : null,
+      roomTypeName: (roomType as any)?.name ?? null,
+      roomQuantity: order?.room_quantity ?? null,
+      nights: order
+        ? Math.max(
+          1,
+          Math.round(
+            (new Date(`${order.check_out_date}T00:00:00Z`).getTime() -
+              new Date(`${order.check_in_date}T00:00:00Z`).getTime()) / 86400000,
+          ),
+        )
+        : null,
+      guestCount: order?.guest_count ?? null,
+      adultCount: order?.adult_count ?? null,
+      childCount: order?.child_count ?? null,
+      toddlerCount: order?.toddler_count ?? null,
+      infantCount: order?.infant_count ?? null,
+      paymentProvider: order?.payment_provider ?? null,
+      paymentMethod: order?.payment_method ?? null,
+      paymentMethodText: "信用卡（3D 驗證）",
+      cancellationPolicy: "full_prepayment",
+      venue: acc
+        ? {
+          name: (acc as any).name ?? null,
+          address: (intro as any)?.address || (acc as any).address || null,
+          phone: (intro as any)?.phone || (acc as any).phone || null,
+        }
+        : null,
+      // 信用卡全額付款一律不得回傳匯款資訊
       bank: null,
       paymentDeadlineText: null,
       // 保留原始資料供後續非信用卡情境（目前一律 null）

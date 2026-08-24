@@ -88,7 +88,10 @@ export default function GroupBuyOrderConfirmation() {
    * 信用卡（TapPay）＝全額付款：不顯示匯款／ATM／訂金尾款。
    * 3DS 回程沒有電話後四碼可查詢，因此以導頁 state 與 complete-paid-order 回傳為準。
    */
-  const fullPayment = order?.fullPayment === true || result?.fullPayment === true || fromCreditCard;
+  const fullPayment = order?.fullPayment === true ||
+    result?.fullPayment === true ||
+    String(order?.paymentProvider ?? result?.paymentProvider ?? "") === "tappay" ||
+    fromCreditCard;
   const paidAmount = Number(order?.paidAmount ?? result?.paidAmount ?? 0);
   const bank = fullPayment ? null : (data?.bank ?? result?.bank ?? null);
   const total = Number(order?.total ?? result?.total ?? result?.order?.total_price ?? 0);
@@ -97,6 +100,22 @@ export default function GroupBuyOrderConfirmation() {
   const deadlineText = fullPayment ? null : (order?.paymentDeadlineText ?? result?.paymentDeadlineText ?? null);
   const checkInDate = order?.checkInDate ?? result?.checkInDate ?? result?.order?.check_in_date ?? null;
   const checkOutDate = order?.checkOutDate ?? result?.checkOutDate ?? result?.order?.check_out_date ?? null;
+
+  /* 明細（信用卡回程由 complete-paid-order 直接帶回，不需電話後四碼） */
+  const venue = data?.venue ?? result?.venue ?? null;
+  const roomTypeName = result?.roomTypeName ?? null;
+  const nights = result?.nights ?? null;
+  const roomQuantity = order?.roomQuantity ?? result?.roomQuantity ?? null;
+  const guestName = order?.guestName ?? result?.guestName ?? null;
+  const paymentMethodText = result?.paymentMethodText ?? (fullPayment ? "信用卡（3D 驗證）" : null);
+  const guestCompositionText = result?.adultCount != null
+    ? `成人 ${result.adultCount}　兒童 ${result.childCount ?? 0}　幼兒 ${result.toddlerCount ?? 0}　嬰兒 ${
+      result.infantCount ?? 0
+    }`
+    : null;
+  const cancellationPolicy = order?.cancellationPolicy ??
+    result?.cancellationPolicy ??
+    (fullPayment ? "full_prepayment" : null);
 
   if (loading) {
     return (
@@ -120,10 +139,34 @@ export default function GroupBuyOrderConfirmation() {
               <span className="text-muted-foreground">訂單編號</span>
               <span className="font-semibold">{orderNumber}</span>
             </div>
+            {guestName && (
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">訂房人</span>
+                <span>{guestName}</span>
+              </div>
+            )}
             {checkInDate && checkOutDate && (
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">入住 / 退房</span>
                 <span>{checkInDate} → {checkOutDate}</span>
+              </div>
+            )}
+            {roomTypeName && (
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">房型</span>
+                <span>{roomTypeName}</span>
+              </div>
+            )}
+            {nights && (
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">住宿</span>
+                <span>{nights} 晚{roomQuantity ? ` × ${roomQuantity} 間` : ""}</span>
+              </div>
+            )}
+            {guestCompositionText && (
+              <div className="flex justify-between py-1">
+                <span className="text-muted-foreground">入住人數</span>
+                <span>{guestCompositionText}</span>
               </div>
             )}
             <div className="flex justify-between py-1">
@@ -131,10 +174,22 @@ export default function GroupBuyOrderConfirmation() {
               <span>{twd(total)}</span>
             </div>
             {fullPayment ? (
-              <div className="flex justify-between py-1">
-                <span className="text-muted-foreground">已付金額（全額）</span>
-                <span className="font-semibold text-primary">{twd(paidAmount || total)}</span>
-              </div>
+              <>
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">已付金額（全額）</span>
+                  <span className="font-semibold text-primary">{twd(paidAmount || total)}</span>
+                </div>
+                <div className="flex justify-between py-1">
+                  <span className="text-muted-foreground">尚需支付</span>
+                  <span>{twd(0)}</span>
+                </div>
+                {paymentMethodText && (
+                  <div className="flex justify-between py-1">
+                    <span className="text-muted-foreground">付款方式</span>
+                    <span>{paymentMethodText}</span>
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 <div className="flex justify-between py-1">
@@ -195,16 +250,16 @@ export default function GroupBuyOrderConfirmation() {
             )}
           </div>
 
-          {data?.venue && (
+          {venue && (
             <div className="rounded-lg border p-4">
               <p className="mb-1 font-semibold text-foreground">住宿資訊</p>
-              <p>{data.venue.name}</p>
-              {data.venue.address && (
+              <p>{venue.name}</p>
+              {venue.address && (
                 <p className="flex items-center gap-1 text-muted-foreground">
-                  <MapPin className="h-3.5 w-3.5" /> {data.venue.address}
+                  <MapPin className="h-3.5 w-3.5" /> {venue.address}
                 </p>
               )}
-              {data.venue.phone && <p className="text-muted-foreground">電話：{data.venue.phone}</p>}
+              {venue.phone && <p className="text-muted-foreground">電話：{venue.phone}</p>}
             </div>
           )}
 
@@ -212,7 +267,7 @@ export default function GroupBuyOrderConfirmation() {
             <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-primary">
               已完成信用卡全額付款，入住當天不需再支付尾款。
             </p>
-          ) : useAtm ? (
+          ) : useAtm && !fullPayment ? (
             <div className="space-y-2">
               <p className="font-semibold text-foreground">ATM 虛擬帳號（訂金）</p>
               <AtmPaymentPanel
@@ -243,9 +298,9 @@ export default function GroupBuyOrderConfirmation() {
           )}
 
           {/* 取消政策：依訂單實際付款制度（後端 lookup 回傳），不可依活動現狀判定 */}
-          {order?.cancellationPolicy && (
+          {cancellationPolicy && (
             <CancellationPolicyLines
-              policy={order.cancellationPolicy}
+              policy={cancellationPolicy}
               className="rounded-lg border p-4"
             />
           )}

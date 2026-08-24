@@ -16,6 +16,45 @@ import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolic
 
 const twd = (n: number) => `NT$ ${Math.round(n || 0).toLocaleString("en-US")}`;
 
+/**
+ * 付款保留（Draft）在同一分頁／同一裝置的落地位置。
+ * 只存 draftId 與到期時間；金額一律以後端回傳為準，不信任本地值。
+ * 關掉 Dialog 或 reload 後可用它找回原本的 Draft，避免重複建立造成雙重庫存保留。
+ */
+const draftStorageKey = (slug: string) => `gb_payment_draft_${slug}`;
+
+function readStoredDraft(slug: string): { draftId: string; expiresAt: string; phoneLast4: string } | null {
+  try {
+    const raw = sessionStorage.getItem(draftStorageKey(slug));
+    if (!raw) return null;
+    const v = JSON.parse(raw);
+    if (!v?.draftId || !v?.expiresAt) return null;
+    if (new Date(v.expiresAt).getTime() <= Date.now()) {
+      sessionStorage.removeItem(draftStorageKey(slug));
+      return null;
+    }
+    return v;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredDraft(slug: string, v: { draftId: string; expiresAt: string; phoneLast4: string }) {
+  try {
+    sessionStorage.setItem(draftStorageKey(slug), JSON.stringify(v));
+  } catch {
+    /* 隱私模式等情境無法寫入時，僅失去續付能力，不影響付款 */
+  }
+}
+
+function clearStoredDraft(slug: string) {
+  try {
+    sessionStorage.removeItem(draftStorageKey(slug));
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface GroupBuyDraftRequest {
   slug: string;
   campaignPackageId: string;
@@ -64,6 +103,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
     { amount: number; total: number | null } | null
   >(null);
   const [preparing, setPreparing] = useState(false);
+  /** 本次是接續既有保留（非全新建立），用於提示文案 */
+  const [resumed, setResumed] = useState(false);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
   /** 防止重複點擊／重複進入造成兩張有效 Draft */
   const creatingRef = useRef<Promise<{ draftId: string; expiresAt: string; amount: number }> | null>(null);
@@ -145,6 +186,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setPreparing(false);
       setHoldSeconds(null);
       setDraftInfo(null);
+      setResumed(false);
       draftRef.current = null;
       creatingRef.current = null;
     }
@@ -176,6 +218,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
         amount: payload.amountToCharge as number,
       };
       draftRef.current = next;
+      const req = buildRequest();
+      writeStoredDraft(req.slug, {
+        draftId: next.draftId,
+        expiresAt: next.expiresAt,
+        phoneLast4: String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4),
+      });
       setDraftInfo({
         amount: next.amount,
         total: typeof payload.total === "number" ? payload.total : null,
@@ -191,13 +239,48 @@ export function GroupBuyCreditCardDialog(props: Props) {
     }
   }, [buildRequest]);
 
-  // 開啟 Dialog 即先取得房位保留（10 分鐘倒數自此開始）
+  /**
+   * 續付：找回同一位客人尚未過期的 Draft。
+   * 後端為純唯讀查詢，不會延長 expires_at；找不到時回 null 交由 createDraft 建立新的。
+   */
+  const resumeDraft = useCallback(async () => {
+    const req = buildRequest();
+    const stored = readStoredDraft(req.slug);
+    const phoneLast4 = String(req.guestPhone ?? "").replace(/\D/g, "").slice(-4);
+    if (phoneLast4.length !== 4) return null;
+    const body = stored?.draftId
+      ? { draftId: stored.draftId, phoneLast4 }
+      : { slug: req.slug, phoneLast4, email: req.guestEmail };
+    const { data, error: rErr } = await supabase.functions.invoke("group-buy-resume-payment-draft", { body });
+    const payload: any = data;
+    if (rErr || !payload?.found) {
+      clearStoredDraft(req.slug);
+      return null;
+    }
+    const next = {
+      draftId: payload.draftId as string,
+      expiresAt: payload.expiresAt as string,
+      amount: payload.amountToCharge as number,
+    };
+    draftRef.current = next;
+    writeStoredDraft(req.slug, { draftId: next.draftId, expiresAt: next.expiresAt, phoneLast4 });
+    setDraftInfo({ amount: next.amount, total: typeof payload.total === "number" ? payload.total : null });
+    setHoldSeconds(Math.max(0, Number(payload.remainingSeconds) || 0));
+    setResumed(true);
+    return next;
+  }, [buildRequest]);
+
+  // 開啟 Dialog：先嘗試恢復既有保留，沒有才建立新的（10 分鐘倒數自建立當下起算）
   useEffect(() => {
     if (!open) return;
     if (draftRef.current || creatingRef.current) return;
     let cancelled = false;
     setPreparing(true);
-    void createDraft()
+    void (async () => {
+      const resumedDraft = await resumeDraft().catch(() => null);
+      if (cancelled || resumedDraft) return;
+      await createDraft();
+    })()
       .catch((e: any) => {
         if (!cancelled) setError(e?.message || "目前無法保留房況，請稍後再試。");
       })
@@ -214,6 +297,8 @@ export function GroupBuyCreditCardDialog(props: Props) {
   const recheck = useCallback(async () => {
     setError(null);
     setRechecking(true);
+    clearStoredDraft(buildRequest().slug);
+    setResumed(false);
     draftRef.current = null;
     setHoldSeconds(null);
     setDraftInfo(null);
@@ -224,7 +309,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
     } finally {
       setRechecking(false);
     }
-  }, [createDraft]);
+  }, [createDraft, buildRequest]);
 
   const pay = useCallback(async () => {
     setError(null);
@@ -323,7 +408,9 @@ export function GroupBuyCreditCardDialog(props: Props) {
           {holdText && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Timer className="h-3.5 w-3.5" />
-              已為您保留房況，房況將為您保留 10 分鐘，請於 {holdText} 內完成信用卡驗證。
+              {resumed
+                ? `已為您接續原本的付款保留，請於 ${holdText} 內完成信用卡驗證。`
+                : `已為您保留房況，房況將為您保留 10 分鐘，請於 ${holdText} 內完成信用卡驗證。`}
             </p>
           )}
           {holdExpired && (
