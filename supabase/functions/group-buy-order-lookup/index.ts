@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     const accommodationId = (order as any).accommodation_id ?? campaign?.accommodation_id ?? null;
     const [{ data: acc }, { data: intro }, { data: bookingSettings }, { data: customSections }] = await Promise.all([
       accommodationId
-        ? admin.from("accommodation_info").select("name, address, phone, check_in_notice").eq("id", accommodationId).maybeSingle()
+        ? admin.from("accommodation_info").select("name, address, phone, check_in_notice, line_id, website_url, email").eq("id", accommodationId).maybeSingle()
         : Promise.resolve({ data: null as any }),
       accommodationId
         ? admin
@@ -492,6 +492,13 @@ Deno.serve(async (req) => {
           name: (acc as any).name ?? null,
           address: (intro as any)?.address || (acc as any).address || null,
           phone: (intro as any)?.phone || (acc as any).phone || null,
+          /** 人工退款申請引導用的客服管道（沿用館別 contact 設定，前台不得寫死） */
+          contact: {
+            phone: (intro as any)?.phone || (acc as any).phone || null,
+            lineId: (acc as any).line_id || null,
+            websiteUrl: (acc as any).website_url || null,
+            email: (acc as any).email || null,
+          },
         }
         : null,
       // 入住前提醒（訂單成立後才顯示的補充資訊），非正式住宿規則。

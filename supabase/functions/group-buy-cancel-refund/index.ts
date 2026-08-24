@@ -218,13 +218,23 @@ Deno.serve(async (req) => {
      * 組出通知信所需的訂單資訊（活動／住宿／方案名稱）。
      * 取不到資料時仍會以既有訂單欄位寄出，不影響取消／退款主流程。
      */
+    let venueContact: { phone: string | null; lineId: string | null; websiteUrl: string | null; email: string | null } | null = null;
+
     const buildMailOrder = async () => {
       const [{ data: campaignRow }, { data: acc }] = await Promise.all([
         campaignId
           ? admin.from("group_buy_campaigns").select("*").eq("id", campaignId).maybeSingle()
           : Promise.resolve({ data: null } as any),
-        admin.from("accommodation_info").select("name").eq("id", order.accommodation_id).maybeSingle(),
+        admin.from("accommodation_info").select("name, phone, line_id, website_url, email").eq("id", order.accommodation_id).maybeSingle(),
       ]);
+      venueContact = acc
+        ? {
+          phone: (acc as any).phone ?? null,
+          lineId: (acc as any).line_id ?? null,
+          websiteUrl: (acc as any).website_url ?? null,
+          email: (acc as any).email ?? null,
+        }
+        : null;
       const packageName = String(order.notes ?? "").match(/方案：(.+?)\s*×/)?.[1]?.trim() ?? null;
       return buildEmailOrder({
         order,
@@ -616,6 +626,7 @@ Deno.serve(async (req) => {
         handlingFee: configuredRefundFee,
         refundStatus,
         reason: reason || null,
+        venueContact,
       }),
     );
 

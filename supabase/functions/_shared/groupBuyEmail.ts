@@ -2,6 +2,7 @@
 // 走既有 Resend connector gateway，版型沿用品牌橘色調。
 
 import { refundScheduleHtml } from "./refundPolicy.ts";
+import { manualRefundRequestHtml, type VenueContact } from "./manualRefundRequest.ts";
 import { cancellationPolicyCopy, renderCancellationPolicyHtml } from "./cancellationPolicyCopy.ts";
 import type { CancellationPolicyType } from "./cancellationPolicy.ts";
 
@@ -296,6 +297,8 @@ export interface GroupBuyCancelInfo {
   handlingFee?: number;
   /** 已累計扣除的退款處理費 */
   refundFeeTotal?: number;
+  /** 館別客服／官方 LINE（人工退款申請引導用；信用卡不適用） */
+  venueContact?: VenueContact | null;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
@@ -402,6 +405,13 @@ export function renderOrderCancelled(
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <div class="box"><h2>退款說明</h2>${refundStatusBlock(info, isCard)}</div>
+       ${
+      // 人工退款申請說明：僅 ATM／銀行匯款且尚有款項待退時顯示；信用卡原卡退刷不適用
+      !isCard && info.paidAmount > 0 &&
+        info.refundStatus !== "refunded" && info.refundStatus !== "none"
+        ? manualRefundRequestHtml(info.venueContact)
+        : ""
+    }
        ${cancellationBlock(o)}
        ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`,
     ),
