@@ -255,8 +255,17 @@ export async function buildOrderConfirmationEmail(
           : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
         : `系統將於 ${fmt(checkIn, { month: "long", day: "numeric" })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`;
 
-  const freeCancelDeadline = new Date(checkIn.getTime() - 14 * 86400000);
-  const freeCancelNow = daysBetween(checkIn, new Date()) >= 14;
+  /**
+   * 取消政策一律依「訂單實際付款制度」判定（cancellationPolicy.ts），
+   * 不得直接沿用館別自訂 HTML，避免信用卡全額預收（3 日）與 14 日訂金級距互相矛盾。
+   */
+  const policyCopy = cancellationPolicyCopyForOrder(order as any);
+  const freeCancelDays = freeCancelDaysFor(policyCopy.policy);
+  const freeCancelDeadline = freeCancelDays === null
+    ? null
+    : new Date(checkIn.getTime() - freeCancelDays * 86400000);
+  const freeCancelNow = freeCancelDays !== null && daysBetween(checkIn, new Date()) >= freeCancelDays;
+
 
   const summary = `
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border:1px solid #ffedd5;border-radius:14px;margin:0 0 12px 0;">
