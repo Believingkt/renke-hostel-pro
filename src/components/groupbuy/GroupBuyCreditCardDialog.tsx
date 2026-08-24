@@ -59,7 +59,13 @@ export function GroupBuyCreditCardDialog(props: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const [holdSeconds, setHoldSeconds] = useState<number | null>(null);
+  const [draftInfo, setDraftInfo] = useState<
+    { amount: number; total: number | null; balance: number | null; depositPct: number | null } | null
+  >(null);
+  const [preparing, setPreparing] = useState(false);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
+  /** 防止重複點擊／重複進入造成兩張有效 Draft */
+  const creatingRef = useRef<Promise<{ draftId: string; expiresAt: string; amount: number }> | null>(null);
 
   // 載入 SDK
   useEffect(() => {
