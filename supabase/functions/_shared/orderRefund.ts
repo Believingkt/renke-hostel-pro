@@ -145,6 +145,8 @@ export interface RefundOutcome {
   msg?: string;
   /** 未能自動退款的原因 */
   reason?: "not_card" | "no_rec_trade_id" | "no_partner_key" | "zero_amount" | "tappay_error";
+  /** true = 網路／timeout 等未知結果：禁止重試，必須以 tappay-sync-refund 對帳回正 */
+  networkError?: boolean;
   note: string;
 }
 
@@ -157,6 +159,8 @@ export async function refundOrderCard(
   order: RefundableOrder,
   amount: number,
   triggerSource: string,
+  /** 呼叫端已先行解析／驗證過的原付款交易編號（例如團購退款前置 Query），避免重複解析出不同結果 */
+  opts?: { recTradeId?: string | null },
 ): Promise<RefundOutcome> {
   const refundAmount = Math.max(0, Math.round(amount || 0));
   if (refundAmount <= 0) {
@@ -193,7 +197,7 @@ export async function refundOrderCard(
     };
   }
 
-  const recTradeId = await resolveCardRecTradeId(supabase, order);
+  const recTradeId = opts?.recTradeId ?? (await resolveCardRecTradeId(supabase, order));
   if (!recTradeId) {
     await supabase.from("deposit_charges").insert({
       order_id: order.id,
@@ -249,6 +253,7 @@ export async function refundOrderCard(
     status: r.status,
     msg: r.msg,
     reason: "tappay_error",
+    networkError: r.networkError,
     note:
       `自動退刷失敗（${r.msg || r.status}），應退 NT$${refundAmount.toLocaleString()}（rec_trade_id: ${recTradeId}），待人工處理`,
   };
