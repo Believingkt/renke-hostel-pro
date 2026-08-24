@@ -14,6 +14,8 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { useAdjustedAvailability, adjustedKey } from "@/hooks/use-adjusted-availability";
+
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Breadcrumb,
@@ -139,6 +141,21 @@ export default function RoomPriceCalendar() {
     const end = endOfMonth(currentMonth);
     return eachDayOfInterval({ start, end });
   }, [currentMonth]);
+
+  // 實際可售（adjusted）：走 RPC get_adjusted_room_inventory_batch，
+  // 已扣正式訂單與有效信用卡付款保留；過期／轉單／取消不計入。
+  const monthDateStrings = useMemo(
+    () => monthDays.map((d) => format(d, 'yyyy-MM-dd')),
+    [monthDays],
+  );
+  const adjustedRoomTypeIds = useMemo(() => roomTypes.map((r) => r.id), [roomTypes]);
+  const { adjusted } = useAdjustedAvailability(
+    adjustedRoomTypeIds,
+    monthDateStrings,
+    currentAccommodationId,
+    inventory,
+  );
+
 
   useEffect(() => {
     if (currentAccommodationId) {
@@ -672,6 +689,8 @@ export default function RoomPriceCalendar() {
                             monthDays={monthDays}
                             holidays={holidays}
                             getCellData={getCellData}
+                            adjusted={adjusted}
+
                             getDayType={getDayType}
                             onCellClick={handleCellClick}
                           />
@@ -704,6 +723,7 @@ export default function RoomPriceCalendar() {
                         monthDays={monthDays}
                         holidays={holidays}
                         getCellData={getCellData}
+                        adjusted={adjusted}
                         getDayType={getDayType}
                         onCellClick={handleCellClick}
                         showCategoryHeader={true}
@@ -770,6 +790,7 @@ interface RoomTypeRowsProps {
   monthDays: Date[];
   holidays: Map<string, PublicHoliday>;
   getCellData: (roomTypeId: string, dateStr: string) => InventoryData | undefined;
+  adjusted: Map<string, { available: number; blocked: boolean }>;
   getDayType: (date: Date, dateStr: string) => 'weekend' | 'holiday' | 'peak' | 'weekday';
   onCellClick: (roomType: RoomType, template: PricingTemplate | null, dateStr: string, currentPrice?: number, currentAvailableRooms?: number) => void;
   showCategoryHeader?: boolean;
@@ -783,6 +804,7 @@ function RoomTypeRows({
   monthDays,
   holidays,
   getCellData,
+  adjusted,
   getDayType,
   onCellClick,
   showCategoryHeader = false,
@@ -856,8 +878,18 @@ function RoomTypeRows({
           // 當日被「關閉販售」時，前台視為不可預定，因此表格庫存顯示為 0
           const isUnavailable = cellData?.is_available === false;
           const bookedCount = cellData?.booked_count || 0;
-          const remainingRooms = isUnavailable ? 0 : Math.max(0, effectiveRooms - bookedCount);
+          const fallbackRemaining = isUnavailable ? 0 : Math.max(0, effectiveRooms - bookedCount);
+          // 實際可售一律優先採用 RPC（含正式訂單與有效付款保留），避免前後端公式漂移
+          const adj = adjusted.get(adjustedKey(roomType.id, dateStr));
+          const remainingRooms = adj ? (isUnavailable ? 0 : adj.available) : fallbackRemaining;
           const isZeroRooms = remainingRooms === 0;
+          const baseRooms = effectiveRooms;
+          const hasOccupancy = remainingRooms < baseRooms;
+          const cellTitle = isUnavailable
+            ? '無法預定'
+            : hasOccupancy
+              ? `基礎庫存 ${baseRooms}／實際可售 ${remainingRooms}（已扣除訂單與付款保留）`
+              : `基礎庫存 ${baseRooms}／實際可售 ${remainingRooms}`;
 
           return (
             <td
@@ -870,10 +902,11 @@ function RoomTypeRows({
                 !isWeekend && !isPeak && "hover:bg-muted/50",
               )}
               onClick={() => onCellClick(roomType, null, dateStr, cellData?.price || undefined, cellData?.available_rooms)}
+              title={cellTitle}
             >
               <span
                 className={cn(
-                  "inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium leading-none",
+                  "inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full text-xs font-medium leading-none tabular-nums",
                   // 無法預定 / 售完
                   (isUnavailable || isZeroRooms) && "bg-destructive/10 text-destructive",
                   // 有庫存（含僅來自專案 override 的情形）
@@ -881,13 +914,14 @@ function RoomTypeRows({
                   // 完全沒設定且 effective 也為 0：維持中性顯示
                   !cellData && effectiveRooms === 0 && "bg-muted text-muted-foreground",
                 )}
-                aria-label={isUnavailable ? '無法預定' : undefined}
-                title={isUnavailable ? '無法預定' : undefined}
+                aria-label={cellTitle}
               >
-                {remainingRooms ?? '-'}
+                {remainingRooms}
+                <span className="opacity-60">/{baseRooms}</span>
               </span>
             </td>
           );
+
         })}
       </tr>
 
