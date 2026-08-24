@@ -156,7 +156,7 @@ export default function GroupBuyOrderLookup() {
               onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
             />
           </div>
-          <Button className="w-full" onClick={lookup} disabled={loading || !orderNumber || phoneLast4.length !== 4}>
+          <Button className="w-full" onClick={() => lookup()} disabled={loading || !orderNumber || phoneLast4.length !== 4}>
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             查詢訂單
           </Button>
