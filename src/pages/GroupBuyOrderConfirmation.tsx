@@ -47,7 +47,8 @@ export default function GroupBuyOrderConfirmation() {
   };
   const phoneLast4 = (state.phoneLast4 ?? "").replace(/\D/g, "").slice(-4);
   const fromCreditCard = state.fromCreditCard === true;
-  const useAtm = state.paymentMethod === "atm";
+  /** ATM 判定 SoT：訂單實際 payment_method（lookup 回傳），導頁 state 僅作為尚未查到訂單時的 fallback */
+  const useAtmFallback = state.paymentMethod === "atm";
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
