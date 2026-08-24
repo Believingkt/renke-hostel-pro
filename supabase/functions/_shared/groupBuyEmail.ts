@@ -126,9 +126,16 @@ function money(n: number): string {
   return `NT$ ${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 }
 
-function orderTable(o: GroupBuyEmailOrder, fullPayment = false): string {
+function orderTable(
+  o: GroupBuyEmailOrder,
+  fullPaymentArg = false,
+  opts: { hideDue?: boolean } = {},
+): string {
+  // 信用卡全額預收訂單一律走全額版型（不得出現應付訂金／入住現場付清）
+  const fullPayment = fullPaymentArg || o.fullPrepayment === true;
   const paid = Number(o.paidAmount ?? 0);
   const due = fullPayment ? 0 : Math.max(0, Math.round(Number(o.totalPrice) - paid));
+
   return `<table class="info">
     <tr><td class="k">訂單編號</td><td><strong>${esc(o.orderNumber)}</strong></td></tr>
     <tr><td class="k">團購活動</td><td>${esc(o.campaignTitle)}</td></tr>
