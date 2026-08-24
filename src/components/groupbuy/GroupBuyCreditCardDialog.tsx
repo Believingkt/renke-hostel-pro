@@ -33,8 +33,8 @@ export interface GroupBuyDraftRequest {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  /** 顯示用金額（實際請款金額一律由後端 draft 決定） */
-  deposit: number;
+  /** 顯示用金額＝訂單總額（實際請款金額一律由後端 draft 決定） */
+  amount: number;
   packageName: string;
   buildRequest: () => GroupBuyDraftRequest;
 }
@@ -49,7 +49,7 @@ interface Props {
  * 使用者中途放棄或逾時 → 保留自動釋放，不會產生任何訂單。
  */
 export function GroupBuyCreditCardDialog(props: Props) {
-  const { open, onOpenChange, deposit, packageName, buildRequest } = props;
+  const { open, onOpenChange, amount, packageName, buildRequest } = props;
   const { config, loading: configLoading, error: configError } = useTapPayConfig(open);
   const [sdkReady, setSdkReady] = useState(false);
   const [cardValid, setCardValid] = useState(false);
@@ -60,7 +60,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
 
   const [holdSeconds, setHoldSeconds] = useState<number | null>(null);
   const [draftInfo, setDraftInfo] = useState<
-    { amount: number; total: number | null; balance: number | null; depositPct: number | null } | null
+    { amount: number; total: number | null } | null
   >(null);
   const [preparing, setPreparing] = useState(false);
   const draftRef = useRef<{ draftId: string; expiresAt: string; amount: number } | null>(null);
@@ -178,8 +178,6 @@ export function GroupBuyCreditCardDialog(props: Props) {
       setDraftInfo({
         amount: next.amount,
         total: typeof payload.total === "number" ? payload.total : null,
-        balance: typeof payload.balance === "number" ? payload.balance : null,
-        depositPct: typeof payload.depositPercentage === "number" ? payload.depositPercentage : null,
       });
       setHoldSeconds(Math.max(0, Math.floor((new Date(next.expiresAt).getTime() - Date.now()) / 1000)));
       return next;
@@ -292,7 +290,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
     <Dialog open={open} onOpenChange={(v) => (!submitting ? onOpenChange(v) : null)}>
       <DialogContent className="gb-theme max-h-[88vh] w-[calc(100vw-2rem)] max-w-lg overflow-y-auto rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="text-lg">信用卡付款訂金</DialogTitle>
+          <DialogTitle className="text-lg">信用卡全額付款</DialogTitle>
           <DialogDescription>
             付款成功後才會建立正式訂單；期間我們會為您保留 10 分鐘的房位。
           </DialogDescription>
@@ -307,19 +305,12 @@ export function GroupBuyCreditCardDialog(props: Props) {
             </div>
           )}
           <div className="mt-1 flex items-baseline justify-between gap-3">
-            <span className="text-sm font-semibold text-foreground">
-              本次信用卡付款金額{draftInfo?.depositPct != null ? `（訂金 ${draftInfo.depositPct}%）` : ""}
-            </span>
+            <span className="text-sm font-semibold text-foreground">本次信用卡付款金額（全額）</span>
             <span className="text-xl font-bold tabular-nums text-accent">
-              {chargeAmount != null ? twd(chargeAmount) : `${twd(deposit)}（確認中）`}
+              {chargeAmount != null ? twd(chargeAmount) : `${twd(amount)}（確認中）`}
             </span>
           </div>
-          {draftInfo?.balance != null && (
-            <div className="mt-1 flex items-baseline justify-between text-sm">
-              <span className="text-muted-foreground">入住支付尾款</span>
-              <span className="tabular-nums">{twd(draftInfo.balance)}</span>
-            </div>
-          )}
+          <p className="mt-1 text-xs text-muted-foreground">信用卡為全額付款，入住當天不需再支付尾款。</p>
           {preparing && !holdText && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -405,7 +396,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
             onClick={() => void pay()}
           >
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {holdExpired ? "保留已逾時" : `確認付款 ${twd(chargeAmount ?? deposit)}`}
+            {holdExpired ? "保留已逾時" : `確認付款 ${twd(chargeAmount ?? amount)}`}
           </Button>
         </div>
       </DialogContent>

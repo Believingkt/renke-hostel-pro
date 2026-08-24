@@ -1755,7 +1755,7 @@ export default function GroupBuyCampaign() {
         <GroupBuyCreditCardDialog
           open={creditOpen}
           onOpenChange={setCreditOpen}
-          deposit={deposit}
+          amount={total}
           packageName={selectedPkg.display_name}
           buildRequest={() => ({
             slug: campaign.slug,
