@@ -17,6 +17,8 @@ import { taipeiToday } from "@/lib/taipeiToday";
 import { CancellationRefundNotice } from "@/components/groupbuy/CancellationRefundNotice";
 import { CancellationPolicyLines } from "@/components/groupbuy/CancellationPolicyLines";
 import { RefundSummaryPanel } from "@/components/groupbuy/RefundSummaryPanel";
+import { ManualRefundRequestNotice } from "@/components/groupbuy/ManualRefundRequestNotice";
+
 
 import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "@/lib/refundPolicy";
 
@@ -520,6 +522,14 @@ export default function GroupBuyOrderLookup() {
             {data.refund && (data.refund.amount > 0 || (data.refund.status && data.refund.status !== "none")) && (
               <RefundSummaryPanel refund={data.refund} />
             )}
+
+            {/* 人工退款申請引導：僅 ATM／銀行匯款且退款尚未完成時顯示；信用卡走原卡退刷不適用 */}
+            {channel !== "credit_card" &&
+              data.refund &&
+              (data.refund.status === "pending_manual" || data.refund.status === "pending") && (
+              <ManualRefundRequestNotice contact={data.venue?.contact ?? null} />
+            )}
+
 
             {data.campaign?.contactNote && (
               <p className="text-center text-muted-foreground">{data.campaign.contactNote}</p>
