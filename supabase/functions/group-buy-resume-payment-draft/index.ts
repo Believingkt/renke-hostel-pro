@@ -78,20 +78,65 @@ Deno.serve(async (req) => {
 
     if (phoneLast4.length !== 4) return json({ error: "請提供聯絡電話後四碼" }, 400);
 
+    const fp = (body.fingerprint ?? null) as any;
+    const requireMatch = body.requireMatch !== false;
+
+    /**
+     * Booking fingerprint：判斷「這個 draft 是不是目前畫面正在進行的這一次預訂」。
+     * 只比對會影響價格／庫存的核心條件（方案 + 入退房日期 + 間數）。
+     */
+    const matchesFingerprint = (d: any) => {
+      if (!fp || !requireMatch) return true;
+      return String(fp.campaignPackageId ?? "") === String(d.campaign_package_id ?? "") &&
+        String(fp.checkInDate ?? "") === String(d.check_in_date ?? "") &&
+        String(fp.checkOutDate ?? "") === String(d.check_out_date ?? "") &&
+        (fp.roomQuantity == null || Number(fp.roomQuantity) === Number(d.room_quantity));
+    };
+
+    const SELECT_COLS =
+      "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id";
+
     let draft: any = null;
 
     if (draftId) {
-      // 同裝置：sessionStorage 保存的 draftId + 電話後四碼
+      // ── 同裝置：sessionStorage 保存的 draftId + 電話後四碼 ──
       const { data } = await admin
         .from("group_buy_payment_drafts")
-        .select(
-          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id",
-        )
+        .select(SELECT_COLS)
         .eq("id", draftId)
         .maybeSingle();
       if (data && digits(data.guest_phone).slice(-4) === phoneLast4) draft = data;
+      if (!draft) return json({ found: false });
+
+      // 身分驗證通過後，先確認「是不是同一次 booking attempt」，之後才允許 alreadyPaid 判定。
+      // 歷史 draft（不同方案／日期）絕不可宣告目前這一次已付款。
+      if (!matchesFingerprint(draft)) {
+        const isBlocking = BLOCKING_STATUSES.includes(String(draft.status)) || draft.converted_order_id;
+        const remaining = new Date(draft.expires_at).getTime() - Date.now();
+        if (isBlocking || !(remaining > 0) || !RESUMABLE_STATUSES.includes(String(draft.status))) {
+          // 舊的、已完成或已失效的 booking attempt：完全不影響目前這一次
+          return json({ found: false, reason: "fingerprint_mismatch_historical" });
+        }
+        return json({
+          found: false,
+          reason: "fingerprint_mismatch",
+          conflict: {
+            draftId: draft.id,
+            status: draft.status,
+            expiresAt: draft.expires_at,
+            remainingSeconds: Math.floor(remaining / 1000),
+            checkInDate: draft.check_in_date,
+            checkOutDate: draft.check_out_date,
+            roomQuantity: draft.room_quantity,
+            amountToCharge: Math.round(Number(draft.amount_to_charge) || 0),
+            packageName: (draft.booking_payload as any)?.package_name ?? null,
+            releasable: String(draft.status) === "pending" && !draft.rec_trade_id,
+          },
+        });
+      }
     } else if (slug && email) {
-      // 跨裝置：活動 slug + 電話後四碼 + Email
+      // ── 跨裝置：活動 slug + 電話後四碼 + Email ──
+      // 只負責「找回目前仍可繼續付款的有效 draft」，絕不搜尋歷史已付款訂單。
       const { data: campaign } = await admin
         .from("group_buy_campaigns")
         .select("id")
@@ -100,29 +145,27 @@ Deno.serve(async (req) => {
       if (!campaign?.id) return json({ found: false });
       const { data: rows } = await admin
         .from("group_buy_payment_drafts")
-        .select(
-          "id, campaign_id, campaign_package_id, status, expires_at, amount_to_charge, total_price, guest_name, guest_phone, guest_email, check_in_date, check_out_date, room_quantity, booking_payload, rec_trade_id, converted_order_id",
-        )
+        .select(SELECT_COLS)
         .eq("campaign_id", campaign.id)
-        .in("status", [...RESUMABLE_STATUSES, ...BLOCKING_STATUSES])
+        .is("converted_order_id", null)
+        .in("status", RESUMABLE_STATUSES)
         .order("created_at", { ascending: false })
         .limit(20);
       const mine = (rows ?? []).filter((r: any) =>
         digits(r.guest_phone).slice(-4) === phoneLast4 &&
         String(r.guest_email ?? "").trim().toLowerCase() === email
       );
-      // 優先回已扣款／待人工確認者（避免重複請款），其次才是尚未過期的保留
-      draft = mine.find((r: any) => BLOCKING_STATUSES.includes(String(r.status)) || r.converted_order_id) ??
-        mine.find((r: any) => new Date(r.expires_at).getTime() > Date.now()) ??
-        null;
+      // 必須仍在有效期內，且 fingerprint 與目前預訂一致
+      draft = mine.find((r: any) =>
+        new Date(r.expires_at).getTime() > Date.now() && matchesFingerprint(r)
+      ) ?? null;
+      if (!draft) return json({ found: false });
     } else {
       return json({ error: "缺少查詢條件" }, 400);
     }
 
-    if (!draft) return json({ found: false });
-
     const status = String(draft.status ?? "");
-    // 已扣款／已轉單／待人工確認：回報 alreadyPaid，前台不得再建立新 Draft 或再次請款
+    // 已扣款／已轉單／待人工確認：只在「同一次 booking attempt」成立時才回報（僅 draftId 路徑會走到這）
     if (BLOCKING_STATUSES.includes(status) || draft.converted_order_id) {
       let orderNumber: string | null = null;
       if (draft.converted_order_id) {
@@ -153,33 +196,6 @@ Deno.serve(async (req) => {
     const remainingMs = new Date(draft.expires_at).getTime() - Date.now();
     if (!(remainingMs > 0)) return json({ found: false, reason: "expired" });
 
-    // ── Booking fingerprint：只有「會影響價格／庫存的核心條件完全一致」才可以續付 ──
-    // 房型由 server 依方案指派，故 fingerprint 以 方案 + 入退房日期 + 間數 判定。
-    const fp = (body.fingerprint ?? null) as any;
-    if (fp && body.requireMatch !== false) {
-      const same = String(fp.campaignPackageId ?? "") === String(draft.campaign_package_id ?? "") &&
-        String(fp.checkInDate ?? "") === String(draft.check_in_date ?? "") &&
-        String(fp.checkOutDate ?? "") === String(draft.check_out_date ?? "") &&
-        (fp.roomQuantity == null || Number(fp.roomQuantity) === Number(draft.room_quantity));
-      if (!same) {
-        return json({
-          found: false,
-          reason: "fingerprint_mismatch",
-          conflict: {
-            draftId: draft.id,
-            status: draft.status,
-            expiresAt: draft.expires_at,
-            remainingSeconds: Math.floor(remainingMs / 1000),
-            checkInDate: draft.check_in_date,
-            checkOutDate: draft.check_out_date,
-            roomQuantity: draft.room_quantity,
-            amountToCharge: Math.round(Number(draft.amount_to_charge) || 0),
-            packageName: (draft.booking_payload as any)?.package_name ?? null,
-            releasable: String(draft.status) === "pending" && !draft.rec_trade_id,
-          },
-        });
-      }
-    }
 
 
 
