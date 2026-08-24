@@ -108,10 +108,14 @@ Deno.serve(async (req) => {
         .in("status", [...RESUMABLE_STATUSES, ...BLOCKING_STATUSES])
         .order("created_at", { ascending: false })
         .limit(20);
-      draft = (rows ?? []).find((r: any) =>
+      const mine = (rows ?? []).filter((r: any) =>
         digits(r.guest_phone).slice(-4) === phoneLast4 &&
         String(r.guest_email ?? "").trim().toLowerCase() === email
-      ) ?? null;
+      );
+      // 優先回已扣款／待人工確認者（避免重複請款），其次才是尚未過期的保留
+      draft = mine.find((r: any) => BLOCKING_STATUSES.includes(String(r.status)) || r.converted_order_id) ??
+        mine.find((r: any) => new Date(r.expires_at).getTime() > Date.now()) ??
+        null;
     } else {
       return json({ error: "缺少查詢條件" }, 400);
     }
