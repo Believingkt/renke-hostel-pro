@@ -73,3 +73,57 @@ describe("團購確認層付款方式（不落 DB、不呼叫 TapPay）", () => 
     expect(screen.getByText("信用卡（3D 驗證）")).toBeTruthy();
   });
 });
+
+describe("Phase F2：三種付款方式各自獨立開關", () => {
+  it("CASE 1 bank only：不顯示付款方式選擇，按鈕為匯款資訊", () => {
+    render(<GroupBuyConfirmDialog {...base} bankTransferEnabled atmEnabled={false} creditCardEnabled={false} />);
+    expect(screen.queryByText("付款方式")).toBeNull();
+    expect(screen.getByText("確認訂房並取得匯款資訊")).toBeTruthy();
+  });
+
+  it("CASE 2 ATM only：完全沒有銀行匯款選項與匯款按鈕", () => {
+    render(
+      <GroupBuyConfirmDialog {...base} bankTransferEnabled={false} atmEnabled creditCardEnabled={false} />,
+    );
+    expect(screen.queryByText("銀行匯款（人工對帳）")).toBeNull();
+    expect(screen.queryByText("確認訂房並取得匯款資訊")).toBeNull();
+    expect(screen.getByText("確認訂房並取得虛擬帳號")).toBeTruthy();
+  });
+
+  it("CASE 3 credit only：直接進信用卡流程，無 fallback 到 bank", () => {
+    render(
+      <GroupBuyConfirmDialog {...base} bankTransferEnabled={false} atmEnabled={false} creditCardEnabled />,
+    );
+    expect(screen.queryByText("銀行匯款（人工對帳）")).toBeNull();
+    expect(screen.getByText("前往信用卡付款")).toBeTruthy();
+  });
+
+  it("CASE 6 ATM + credit：兩種選項且不含銀行匯款", () => {
+    render(<GroupBuyConfirmDialog {...base} bankTransferEnabled={false} atmEnabled creditCardEnabled />);
+    expect(screen.getByText("付款方式")).toBeTruthy();
+    expect(screen.queryByText("銀行匯款（人工對帳）")).toBeNull();
+    expect(screen.getByText("ATM 虛擬帳號")).toBeTruthy();
+    expect(screen.getByText("信用卡（3D 驗證）")).toBeTruthy();
+  });
+
+  it("CASE 7 all three：三種付款方式皆顯示", () => {
+    render(<GroupBuyConfirmDialog {...base} bankTransferEnabled atmEnabled creditCardEnabled />);
+    expect(screen.getByText("銀行匯款（人工對帳）")).toBeTruthy();
+    expect(screen.getByText("ATM 虛擬帳號")).toBeTruthy();
+    expect(screen.getByText("信用卡（3D 驗證）")).toBeTruthy();
+  });
+
+  it("CASE 10 三種全關：顯示無可用付款方式且不可送出", () => {
+    render(
+      <GroupBuyConfirmDialog
+        {...base}
+        bankTransferEnabled={false}
+        atmEnabled={false}
+        creditCardEnabled={false}
+      />,
+    );
+    expect(screen.getByText("目前此活動暫無可用付款方式，請聯絡客服。")).toBeTruthy();
+    const btn = screen.getByRole("button", { name: /確認訂房並取得匯款資訊/ }) as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+  });
+});
