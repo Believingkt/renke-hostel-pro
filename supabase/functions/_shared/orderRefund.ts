@@ -14,8 +14,11 @@ export interface RefundableOrder {
   deposit_payment_method?: string | null;
   balance_payment_method?: string | null;
   room_charge_rec_trade_id?: string | null;
+  /** 上一次退款時記錄的「原始」交易編號（buildRefundPatch 寫入），可供 TapPay Query 對帳 */
+  refund_rec_trade_id?: string | null;
   atm_rec_trade_id?: string | null;
 }
+
 
 const CARD_METHODS = new Set(["credit_card", "credit_card_3ds", "card", "信用卡"]);
 const ATM_METHODS = new Set(["atm", "ATM", "atm_transfer"]);
