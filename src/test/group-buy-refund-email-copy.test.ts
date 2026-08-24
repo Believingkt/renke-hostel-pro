@@ -124,12 +124,13 @@ describe("F3-C4 group buy cancel/refund email copy", () => {
     expect(html).not.toContain("退款已全部完成");
   });
 
-  it("CASE 6：銀行匯款取消信維持人工退款排程文案", () => {
+  it("CASE 6：銀行匯款取消信維持人工退款排程文案（手續費由館別設定帶入）", () => {
     const { html } = renderOrderCancelled(build(bankOrder), {
       cancelledAtText: "2026/08/24 16:00",
       paidAmount: 300,
       refundedTotal: 0,
       refundStatus: "pending_manual",
+      handlingFee: 30,
     });
     expect(html).toContain("應付訂金");
     expect(html).toContain("匯款手續費");
@@ -142,9 +143,32 @@ describe("F3-C4 group buy cancel/refund email copy", () => {
       paidAmount: 300,
       refundedTotal: 0,
       refundStatus: "pending_manual",
+      handlingFee: 50,
     });
-    expect(html).toContain("匯款手續費");
+    expect(html).toContain("NT$50 匯款手續費");
     expect(html).not.toContain("原信用卡退刷（TapPay）");
+  });
+
+  it("館別設定手續費 0 → 取消信不得出現手續費文案", () => {
+    const { html } = renderOrderCancelled(build(atmOrder), {
+      cancelledAtText: "2026/08/24 16:00",
+      paidAmount: 300,
+      refundedTotal: 0,
+      refundStatus: "pending_manual",
+      handlingFee: 0,
+    });
+    expect(html).not.toContain("匯款手續費");
+  });
+
+  it("信用卡取消信永遠不帶手續費（即使誤傳館別設定）", () => {
+    const { html } = renderOrderCancelled(build(cardOrder), {
+      cancelledAtText: "2026/08/24 16:00",
+      paidAmount: 1000,
+      refundedTotal: 0,
+      refundStatus: "pending_manual",
+      handlingFee: 30,
+    });
+    expect(html).not.toContain("匯款手續費");
   });
 
   it("C：信用卡取消信使用 full_prepayment 政策級距（不自算比例）", () => {
