@@ -111,6 +111,8 @@ export function KolPublishProgressCard() {
   const [scoutMap, setScoutMap] = useState<Record<string, string>>({});
   const [venueMap, setVenueMap] = useState<Record<string, string>>({});
   const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
+  // 非住宿型館別（農場／餐廳／其他）：屬包套行程的一部分，不列入上片進度計算
+  const [nonLodgingVenueIds, setNonLodgingVenueIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
   const [venueFilter, setVenueFilter] = useState<string>("all");
@@ -118,14 +120,21 @@ export function KolPublishProgressCard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("discount_codes").select("code");
+      const [codesRes, venuesRes] = await Promise.all([
+        supabase.from("discount_codes").select("code"),
+        supabase.from("kol_venues").select("id, type").neq("type", "民宿"),
+      ]);
       if (cancelled) return;
-      setPmsCodes(new Set((data ?? []).map((d: any) => String(d.code ?? "").trim().toUpperCase()).filter(Boolean)));
+      setPmsCodes(
+        new Set((codesRes.data ?? []).map((d: any) => String(d.code ?? "").trim().toUpperCase()).filter(Boolean)),
+      );
+      setNonLodgingVenueIds(new Set((venuesRes.data ?? []).map((v: any) => v.id as string)));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
 
   useEffect(() => {
     if (!range.from || !range.to) return;
