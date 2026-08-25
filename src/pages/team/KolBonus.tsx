@@ -139,6 +139,8 @@ export default function KolBonus() {
   const defaultPayoutYear =
     currentDay > 10 && currentMonthNum === 12 ? currentYear + 1 : currentYear;
 
+  const navigate = useNavigate();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
