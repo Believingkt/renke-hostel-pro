@@ -127,11 +127,15 @@ const isTokenValid = (row: KolRow) =>
 export default function KolBonus() {
   const { roles } = useTeam();
   const roleSet = roles as string[];
-  const allowed =
+  const canEdit =
     roleSet.includes("super_admin") ||
     roleSet.includes("hotel_admin") ||
     roleSet.includes("scout_manager") ||
     roleSet.includes("scout");
+  // AM／AM 主管：唯讀，只能看儀表板
+  const readOnlyViewer =
+    !canEdit && (roleSet.includes("am") || roleSet.includes("am_manager"));
+  const allowed = canEdit || readOnlyViewer;
 
   const twNow = (() => {
     const now = new Date();
