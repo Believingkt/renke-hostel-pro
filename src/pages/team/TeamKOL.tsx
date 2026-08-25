@@ -983,8 +983,12 @@ function InvitationsTab({
       const os = orderStatusMap.get(key);
       if (os === "confirmed") return "成功訂房";
       if (os === "cancelled") return "已取消";
+      // PMS 查無此單：非 PMS 館別（農場／餐廳／外部館）本來就不會有訂單，
+      // 不可一律改寫成「訂房確認中」，改為保留 DB 原值。
+      if (os === undefined) return fallback;
       return "訂房確認中";
     };
+
 
     const venueById = new Map(venues.map((v) => [v.id, v]));
     const resolveVenueDisplay = (r: any): string => {
