@@ -266,6 +266,31 @@ export default function KolBonusDashboardTab({
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="sm"
+                variant={isAllPeriod ? "default" : "outline"}
+                onClick={() => {
+                  setYear(0);
+                  setMonth("all");
+                }}
+              >
+                全部
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={isThisMonth ? "default" : "outline"}
+                onClick={() => {
+                  setYear(nowTpe.year);
+                  setMonth(nowTpe.month);
+                }}
+              >
+                當月
+              </Button>
+            </div>
+
           </div>
         </CardContent>
       </Card>
