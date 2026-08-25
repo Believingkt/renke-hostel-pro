@@ -39,7 +39,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
@@ -1327,6 +1327,7 @@ function VenueClosingAssignmentSection({
   const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
   const [pNote, setPNote] = useState("");
   const [pSaving, setPSaving] = useState(false);
+  const [searchParams] = useSearchParams();
 
 
   const load = useCallback(async () => {
