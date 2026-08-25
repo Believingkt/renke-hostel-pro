@@ -87,20 +87,34 @@ export function AdminDateRangeField({
   const commitTyped = (which: 1 | 2, raw: string) => {
     const next = parseTyped(raw);
     setDraft(null);
-    if (next === null) return; // 格式錯誤：還原原值
+    if (next === null) {
+      toast({
+        title: "日期格式不正確",
+        description: "請輸入 2026/03/01、2026-03-01 或 20260301，已還原原本的日期。",
+        variant: "destructive",
+      });
+      return;
+    }
     if (which === 1) {
-      const nextTo = to && next && next > to ? "" : to;
-      onChange(next, nextTo);
-      setPhase(next && !nextTo ? 2 : 1);
+      if (next && to && next > to) {
+        // 開始日晚於結束日 → 自動對調並提示
+        onChange(to, next);
+        toast({ title: "已自動調整日期區間", description: `開始日晚於結束日，已對調為 ${label(to)} ～ ${label(next)}。` });
+        setPhase(1);
+        return;
+      }
+      onChange(next, to);
+      setPhase(next && !to ? 2 : 1);
     } else {
       if (next && from && next < from) {
-        onChange(next, "");
-        setPhase(2);
+        onChange(next, from);
+        toast({ title: "已自動調整日期區間", description: `結束日早於開始日，已對調為 ${label(next)} ～ ${label(from)}。` });
         return;
       }
       onChange(from, next);
     }
   };
+
 
   const editableTrigger = (which: 1 | 2, value: string, placeholder: string) => (
     <div
