@@ -300,7 +300,7 @@ export default function KolBonusDashboardTab({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-1">
-              總業績
+              KOL總業績
               <HelpTip title="總業績怎麼算">
                 <p>
                   篩選條件下，所有使用 KOL 折扣代碼（CID）之訂單的
@@ -319,7 +319,7 @@ export default function KolBonusDashboardTab({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-1">
-              使用折扣代碼總訂單數
+              使用折扣碼 總訂單數
               <HelpTip title="總訂單數怎麼算">
                 <p>篩選條件下，帶有 KOL 折扣代碼的訂單筆數。</p>
                 <p>已排除「已取消」訂單；期間以成交日（order_date）判定。</p>
