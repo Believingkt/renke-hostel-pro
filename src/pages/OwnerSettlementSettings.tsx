@@ -848,6 +848,23 @@ export default function OwnerSettlementSettings({
               </span>
             </span>
           </label>
+
+          {!config.charges_marketing_fee && !showMarketingAmounts && (
+            <div className="rounded-md border border-dashed bg-muted/30 px-3 py-3 text-sm text-muted-foreground max-w-xl">
+              本館合約未約定收取行銷推廣費，以下金額欄位已收合（既有數值保留不變）。
+              <Button
+                type="button"
+                variant="link"
+                className="h-auto px-1 py-0 text-sm"
+                onClick={() => setShowMarketingAmounts(true)}
+              >
+                仍要檢視／編輯金額欄位
+              </Button>
+            </div>
+          )}
+
+          {(config.charges_marketing_fee || showMarketingAmounts) && (
+          <>
           <div className="space-y-2 max-w-sm">
             <Label htmlFor="marketing_fee_base">基本服務費（NT$）</Label>
             <Input
