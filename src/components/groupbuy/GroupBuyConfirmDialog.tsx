@@ -99,7 +99,7 @@ export function GroupBuyConfirmDialog(props: Props) {
           <Row label="方案" value={packageName} />
           <Row label="入住" value={checkIn} />
           <Row label="退房" value={checkOut} />
-          <Row label="住宿" value={`${nights} 晚 × ${roomQuantity} 間`} />
+          <Row label="住宿" value={`${nights} 晚 × ${roomQuantity} 棟`} />
           <Row label="入住人數" value={guestSummary} />
           <Separator className="my-2.5 bg-border/70" />
           <Row label="方案房費" value={twd(baseTotal)} />

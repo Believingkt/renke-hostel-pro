@@ -619,7 +619,7 @@ export function GroupBuyCreditCardDialog(props: Props) {
             <p className="mt-1 text-muted-foreground">
               {conflict.checkInDate} → {conflict.checkOutDate}
               {conflict.packageName ? `｜${conflict.packageName}` : ""}
-              {conflict.roomQuantity ? `｜${conflict.roomQuantity} 間` : ""}
+              {conflict.roomQuantity ? `｜${conflict.roomQuantity} 棟` : ""}
             </p>
             <p className="mt-1 text-muted-foreground">
               剩餘 {Math.floor((Number(conflict.remainingSeconds) || 0) / 60)}:

@@ -116,7 +116,7 @@ export function GroupBuyPaymentDraftsPanel({ campaignId, accommodationId }: Prop
                     <th className="w-28 whitespace-nowrap py-2">狀態</th>
                     <th className="w-32 whitespace-nowrap py-2">訂房人</th>
                     <th className="w-44 whitespace-nowrap py-2">入住 / 退房</th>
-                    <th className="w-24 whitespace-nowrap py-2 text-right">間數</th>
+                    <th className="w-24 whitespace-nowrap py-2 text-right">棟數</th>
                     <th className="w-32 whitespace-nowrap py-2 text-right">應收金額</th>
                     <th className="w-28 whitespace-nowrap py-2 text-right">剩餘保留</th>
                     <th className="w-40 whitespace-nowrap py-2">建立時間</th>

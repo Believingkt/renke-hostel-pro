@@ -1382,16 +1382,16 @@ export default function GroupBuyCampaign() {
                     rules={childRules}
                     blockReason={guestError}
                   />
-                  <p className="mt-1.5 text-xs text-muted-foreground">
-                    團購方案每筆訂單固定 1 間房。
-                    {childEval.extraFeePerNight > 0 && (
-                      <>
-                        {" "}
-                        兒童加價每晚 NT$
-                        {childEval.extraFeePerNight.toLocaleString("en-US")}。
-                      </>
-                    )}
+                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                    每筆訂單固定下訂 1 棟包棟（如需多棟請另外再下一單）。
                   </p>
+                  {childEval.extraFeePerNight > 0 && (
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
+                      兒童加價每晚 NT$
+                      {childEval.extraFeePerNight.toLocaleString("en-US")}。
+                    </p>
+                  )}
+
                 </div>
 
 
