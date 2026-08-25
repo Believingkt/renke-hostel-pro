@@ -604,12 +604,37 @@ export default function KolBonus() {
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/team/kol">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回 KOL 星探管理
-          </Link>
-        </Button>
+        {hasUnsavedChanges ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                返回 KOL 星探管理
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>尚有未儲存的變更</AlertDialogTitle>
+                <AlertDialogDescription>
+                  你在分潤設定中有尚未儲存的內容，離開後這些變更將會遺失。確定要返回 KOL 星探管理嗎？
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>繼續編輯</AlertDialogCancel>
+                <AlertDialogAction onClick={() => navigate("/team/kol")}>
+                  捨棄變更並返回
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/team/kol">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回 KOL 星探管理
+            </Link>
+          </Button>
+        )}
       </div>
       <Tabs defaultValue="bonus" className="space-y-4">
         <div className="overflow-x-auto">
