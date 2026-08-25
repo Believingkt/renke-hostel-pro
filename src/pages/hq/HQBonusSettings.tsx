@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import RateConsistencyCheckTab from "@/components/team/RateConsistencyCheckTab";
+import { pmsHref } from "@/lib/appMode";
 import VenueBonusTierRulesTab from "@/components/team/VenueBonusTierRulesTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
 import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
