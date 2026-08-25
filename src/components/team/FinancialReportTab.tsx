@@ -1,13 +1,10 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
 import { differenceInDays } from "date-fns";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -24,15 +21,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ChevronDown, ChevronRight, Loader2, Pencil, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -515,21 +504,28 @@ export default function FinancialReportTab() {
         row3Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
 
-        /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）---- */
+        /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）
+               費率來源已收斂為業主月結費率 owner_settlement_pricing_rules ---- */
         const { data: feeRowsAll } = await supabase
-          .from("consulting_fee_settings")
-          .select("rate, revenue_threshold, accommodation_id, effective_from")
+          .from("owner_settlement_pricing_rules")
+          .select("commission_rate, commission_threshold, accommodation_id, effective_from")
           .lte("effective_from", monthStart)
           .order("effective_from", { ascending: false });
-        const fees = (feeRowsAll ?? []) as any[];
+        const fees = ((feeRowsAll ?? []) as any[]).map((f) => ({
+          accommodation_id: f.accommodation_id as string,
+          rate: Number(f.commission_rate) || 0,
+          revenue_threshold: Number(f.commission_threshold) || 0,
+          effective_from: f.effective_from as string,
+        }));
         const consultingAccIds = Array.from(
           new Set(fees.map((f) => f.accommodation_id).filter(Boolean) as string[])
         );
 
-        // Row 4/5 適用館別 = 有管顧費率設定「且」為特許加盟的館別
+        // Row 4/5 適用館別 = 有費率設定「且」為特許加盟的館別
         const franchiseIdSet = new Set(franchiseAccIds);
         const stayAccIdSet = new Set<string>(consultingAccIds.filter((id) => franchiseIdSet.has(id)));
         const stayAccIds = Array.from(stayAccIdSet);
+
 
 
         // 補齊名稱對照
@@ -926,25 +922,17 @@ export default function FinancialReportTab() {
   );
 }
 
-/* ---------- 管顧費率設定區塊 ---------- */
+/* ---------- 管顧費率檢視區塊（唯讀，來源已收斂至業主月結費率） ---------- */
 
-interface FeeRow {
-  id: string;
-  rate: number;
-  revenue_threshold: number | null;
-  accommodation_id: string | null;
-  effective_from: string;
-  note: string | null;
-}
-
-interface CompareRow {
+interface RateViewRow {
   accId: string;
   accName: string;
-  consultingRate: number | null;
-  consultingThreshold: number;
-  consultingIsFallback: boolean;
-  ownerRate: number | null;
+  rate: number | null;
+  threshold: number;
+  effectiveFrom: string | null;
 }
+
+const HQ_RATE_SETTINGS_URL = "/hq/bonus-settings?tab=owner-settlement";
 
 function ConsultingFeeSettingsBlock({
   canManage,
@@ -956,37 +944,19 @@ function ConsultingFeeSettingsBlock({
   month: number;
 }) {
   const [open, setOpen] = useState(false);
-  const [rows, setRows] = useState<FeeRow[]>([]);
-  const [accs, setAccs] = useState<AccOption[]>([]);
-  const [compareRows, setCompareRows] = useState<CompareRow[]>([]);
+  const [rows, setRows] = useState<RateViewRow[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    effective_from: new Date().toISOString().slice(0, 10),
-    ratePercent: "",
-    revenueThreshold: "0",
-    accommodation_id: "",
-    note: "",
-  });
-  const [editRow, setEditRow] = useState<CompareRow | null>(null);
-  const [editSaving, setEditSaving] = useState(false);
-  const [editForm, setEditForm] = useState({
-    effective_from: "",
-    ratePercent: "",
-    revenueThreshold: "0",
-    note: "",
-  });
 
   const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [{ data: feeData }, { data: accData }, { data: settingsData }] = await Promise.all([
+      const [{ data: ruleData }, { data: accData }] = await Promise.all([
         supabase
-          .from("consulting_fee_settings")
-          .select("id, rate, revenue_threshold, accommodation_id, effective_from, note")
+          .from("owner_settlement_pricing_rules")
+          .select("accommodation_id, commission_rate, commission_threshold, effective_from")
+          .lte("effective_from", monthStart)
           .order("effective_from", { ascending: false }),
         supabase
           .from("accommodation_info")
@@ -994,70 +964,21 @@ function ConsultingFeeSettingsBlock({
           .eq("is_active", true)
           .neq("name", "奧丁丁測試")
           .order("name"),
-        supabase
-          .from("system_settings")
-          .select("setting_key, setting_value")
-          .like("setting_key", "owner_settlement_config%"),
       ]);
-      const feeRows = (feeData ?? []) as FeeRow[];
-      setRows(feeRows);
-      const accList = ((accData ?? []) as any[]).map((a) => ({ id: a.id, name: a.name }));
-      setAccs(accList);
-
-      // Build owner_settlement rate map
-      const perAccOwner = new Map<string, number>();
-      let globalOwner: number | null = null;
-      for (const r of (settingsData ?? []) as any[]) {
-        const key: string = r.setting_key;
-        const rate = Number(r.setting_value?.commission_rate);
-        if (!Number.isFinite(rate)) continue;
-        if (key === "owner_settlement_config") {
-          globalOwner = rate;
-        } else if (key.startsWith("owner_settlement_config:")) {
-          perAccOwner.set(key.slice("owner_settlement_config:".length), rate);
-        }
-      }
-
-      // Pick consulting fee for each acc as of monthStart
-      const pickConsulting = (
-        accId: string,
-      ): { rate: number | null; threshold: number; fallback: boolean } => {
-        const specific = feeRows.find(
-          (f) => f.accommodation_id === accId && f.effective_from <= monthStart,
-        );
-        if (specific)
+      const rules = (ruleData ?? []) as any[];
+      const accList = ((accData ?? []) as any[]).map((a) => ({ id: a.id as string, name: a.name as string }));
+      setRows(
+        accList.map((a) => {
+          const hit = rules.find((r) => r.accommodation_id === a.id);
           return {
-            rate: Number(specific.rate),
-            threshold: Number(specific.revenue_threshold ?? 0) || 0,
-            fallback: false,
+            accId: a.id,
+            accName: a.name,
+            rate: hit ? Number(hit.commission_rate) : null,
+            threshold: hit ? Number(hit.commission_threshold ?? 0) || 0 : 0,
+            effectiveFrom: hit ? String(hit.effective_from).slice(0, 10) : null,
           };
-        const fallback = feeRows.find(
-          (f) => f.accommodation_id == null && f.effective_from <= monthStart,
-        );
-        if (fallback)
-          return {
-            rate: Number(fallback.rate),
-            threshold: Number(fallback.revenue_threshold ?? 0) || 0,
-            fallback: true,
-          };
-        return { rate: null, threshold: 0, fallback: false };
-      };
-
-      const compare: CompareRow[] = accList.map((a) => {
-        const { rate, threshold, fallback } = pickConsulting(a.id);
-        const owner = perAccOwner.has(a.id)
-          ? perAccOwner.get(a.id)!
-          : globalOwner;
-        return {
-          accId: a.id,
-          accName: a.name,
-          consultingRate: rate,
-          consultingThreshold: threshold,
-          consultingIsFallback: fallback,
-          ownerRate: owner,
-        };
-      });
-      setCompareRows(compare);
+        }),
+      );
     } finally {
       setLoading(false);
     }
@@ -1067,101 +988,6 @@ function ConsultingFeeSettingsBlock({
     load();
   }, [load]);
 
-  const accMap = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const a of accs) m.set(a.id, a.name);
-    return m;
-  }, [accs]);
-
-  const handleSubmit = async () => {
-    const pct = Number(form.ratePercent);
-    if (!form.effective_from || !Number.isFinite(pct) || pct < 0) {
-      toast.error("請輸入有效的生效日期與費率");
-      return;
-    }
-    if (!form.accommodation_id) {
-      toast.error("請選擇適用館別");
-      return;
-    }
-    const threshold = Math.max(0, Math.round(Number(form.revenueThreshold) || 0));
-    const rate = pct / 100;
-    setSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("consulting_fee_settings").insert({
-        rate,
-        revenue_threshold: threshold,
-        accommodation_id: form.accommodation_id,
-        effective_from: form.effective_from,
-        note: form.note.trim() || null,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success("已新增費率版本");
-      setDialogOpen(false);
-      setForm({
-        effective_from: new Date().toISOString().slice(0, 10),
-        ratePercent: "",
-        revenueThreshold: "0",
-        accommodation_id: "",
-        note: "",
-      });
-      await load();
-    } catch (e: any) {
-      toast.error(e.message ?? "新增失敗");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const openEdit = (r: CompareRow) => {
-    setEditRow(r);
-    setEditForm({
-      effective_from: monthStart,
-      ratePercent:
-        r.consultingRate != null ? (r.consultingRate * 100).toString() : "",
-      revenueThreshold: String(r.consultingThreshold ?? 0),
-      note: "",
-    });
-  };
-
-  const handleEditSubmit = async () => {
-    if (!editRow) return;
-    const pct = Number(editForm.ratePercent);
-    if (!editForm.effective_from || !Number.isFinite(pct) || pct < 0) {
-      toast.error("請輸入有效的生效日期與費率");
-      return;
-    }
-    const threshold = Math.max(
-      0,
-      Math.round(Number(editForm.revenueThreshold) || 0),
-    );
-    const rate = pct / 100;
-    setEditSaving(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from("consulting_fee_settings").insert({
-        rate,
-        revenue_threshold: threshold,
-        accommodation_id: editRow.accId,
-        effective_from: editForm.effective_from,
-        note: editForm.note.trim() || null,
-        created_by: user?.id ?? null,
-      });
-      if (error) throw error;
-      toast.success(`已新增 ${editRow.accName} 費率設定`);
-      if (editForm.effective_from > monthStart) {
-        toast.info("注意：生效日晚於當月起始日，本月報表將沿用舊費率");
-      }
-      setEditRow(null);
-      await load();
-    } catch (e: any) {
-      toast.error(e.message ?? "新增失敗");
-    } finally {
-      setEditSaving(false);
-    }
-  };
-
   return (
     <div className="pt-4 border-t mt-4">
       <button
@@ -1170,343 +996,75 @@ function ConsultingFeeSettingsBlock({
         onClick={() => setOpen((o) => !o)}
       >
         {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        管顧費率設定
+        管顧費率（唯讀）
       </button>
       {open && (
         <div className="mt-3 space-y-3">
-          {canManage && (
-            <div className="flex justify-end">
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    新增費率版本
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="overflow-x-hidden">
-                  <DialogHeader>
-                    <DialogTitle>新增費率版本</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label>生效日期</Label>
-                      <Input
-                        type="date"
-                        value={form.effective_from}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, effective_from: e.target.value }))
-                        }
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        設定於當月 1 日（含）之前 → 費率歸屬當月；2 日（含）之後 → 費率從下個月開始生效
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <Label>費率 (%)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="例如 10 表示 10%"
-                        value={form.ratePercent}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, ratePercent: e.target.value }))
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>業績門檻（元）</Label>
-                      <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        placeholder="0"
-                        value={form.revenueThreshold}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, revenueThreshold: e.target.value }))
-                        }
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        填 0 = 不設門檻，直接套用費率；填金額（例如 150000）= 當月住房營收需達此金額才開始計費
-                      </p>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>適用館別</Label>
-                      <Select
-                        value={form.accommodation_id}
-                        onValueChange={(v) =>
-                          setForm((f) => ({ ...f, accommodation_id: v }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="請選擇館別" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {accs.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {a.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1">
-                      <Label>備註</Label>
-                      <Textarea
-                        value={form.note}
-                        onChange={(e) =>
-                          setForm((f) => ({ ...f, note: e.target.value }))
-                        }
-                        rows={2}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button
-                      variant="outline"
-                      onClick={() => setDialogOpen(false)}
-                      disabled={saving}
-                    >
-                      取消
-                    </Button>
-                    <Button onClick={handleSubmit} disabled={saving}>
-                      {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                      新增
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="text-xs text-muted-foreground">
+              費率已統一由「業主月結服務費」設定，本頁僅供檢視。
             </div>
-          )}
-          <div className="rounded-md border p-3 space-y-2">
-            <div className="space-y-1">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="text-sm font-medium">
-                  各館費率比對（{year}/{String(month).padStart(2, "0")}）
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  比對「管顧費率」與業主月結「服務費」是否一致
-                </div>
-              </div>
-              <div className="text-[11px] text-muted-foreground">
-                若管顧費率與業主月結服務費不一致，請至 /admin/owner-settlement-settings 或財務報表費率設定調整
-              </div>
+            {canManage && (
+              <Button
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+                onClick={() => window.open(HQ_RATE_SETTINGS_URL, "_blank")}
+              >
+                前往總部設定頁 →
+              </Button>
+            )}
+          </div>
+          <div className="rounded-md border p-3">
+            <div className="text-sm font-medium mb-2">
+              各館適用費率（{year}/{String(month).padStart(2, "0")}）
             </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">館別</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">管顧費率</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">業主月結服務費</TableHead>
-                    <TableHead className="whitespace-nowrap">狀態</TableHead>
-                    {canManage && (
-                      <TableHead className="w-10 whitespace-nowrap"></TableHead>
-                    )}
+                    <TableHead className="text-right whitespace-nowrap">費率</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">業績門檻</TableHead>
+                    <TableHead className="whitespace-nowrap">生效日</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={canManage ? 5 : 4} className="text-center py-6">
+                      <TableCell colSpan={4} className="text-center py-6">
                         <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
                         載入中…
                       </TableCell>
                     </TableRow>
-                  ) : compareRows.length === 0 ? (
+                  ) : rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={canManage ? 5 : 4} className="text-center py-6 text-muted-foreground">
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
                         尚無館別資料
                       </TableCell>
                     </TableRow>
                   ) : (
-                    compareRows.map((r) => {
-                      const cHas = r.consultingRate != null;
-                      const oHas = r.ownerRate != null;
-                      const thresholdSuffix =
-                        cHas && r.consultingThreshold > 0
-                          ? `（門檻 ${fmtMoney(r.consultingThreshold)}）`
-                          : "";
-                      const cStr = cHas
-                        ? `${(r.consultingRate! * 100).toFixed(2)}%${r.consultingIsFallback ? "（全館通用）" : ""}${thresholdSuffix}`
-                        : "未設定";
-                      const oStr = oHas ? `${r.ownerRate!.toFixed(2)}%` : "未設定";
-                      let status: JSX.Element;
-                      if (!cHas || !oHas) {
-                        status = (
-                          <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">
-                            ？ 未設定
-                          </Badge>
-                        );
-                      } else if (Math.abs(r.consultingRate! * 100 - r.ownerRate!) < 1e-6) {
-                        status = (
-                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">
-                            ✓ 一致
-                          </Badge>
-                        );
-                      } else {
-                        status = (
-                          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">
-                            ⚠ 不一致
-                          </Badge>
-                        );
-                      }
-                      return (
-                        <TableRow key={r.accId}>
-                          <TableCell className="whitespace-nowrap">{r.accName}</TableCell>
-                          <TableCell className="text-right tabular-nums whitespace-nowrap">{cStr}</TableCell>
-                          <TableCell className="text-right tabular-nums whitespace-nowrap">{oStr}</TableCell>
-                          <TableCell className="whitespace-nowrap">{status}</TableCell>
-                          {canManage && (
-                            <TableCell className="whitespace-nowrap">
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                onClick={() => openEdit(r)}
-                                aria-label={`編輯 ${r.accName} 費率`}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
+                    rows.map((r) => (
+                      <TableRow key={r.accId}>
+                        <TableCell className="whitespace-nowrap">{r.accName}</TableCell>
+                        <TableCell className="text-right tabular-nums whitespace-nowrap">
+                          {r.rate != null ? `${(r.rate * 100).toFixed(2)}%` : (
+                            <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">
+                              未設定
+                            </Badge>
                           )}
-                        </TableRow>
-                      );
-                    })
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums whitespace-nowrap">
+                          {r.threshold > 0 ? fmtMoney(r.threshold) : "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {r.effectiveFrom ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
                 </TableBody>
               </Table>
             </div>
-          </div>
-          {canManage && (
-            <Dialog open={!!editRow} onOpenChange={(o) => !o && setEditRow(null)}>
-              <DialogContent className="overflow-x-hidden">
-                <DialogHeader>
-                  <DialogTitle>設定 {editRow?.accName} 費率</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label>生效日期</Label>
-                    <Input
-                      type="date"
-                      value={editForm.effective_from}
-                      onChange={(e) =>
-                        setEditForm((f) => ({ ...f, effective_from: e.target.value }))
-                      }
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      設定於當月 1 日(含)之前 → 費率歸屬當月;2 日(含)之後 → 費率從下個月開始生效
-                    </p>
-                  </div>
-
-                  <div className="space-y-1">
-                    <Label>費率 (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="例如 10 表示 10%"
-                      value={editForm.ratePercent}
-                      onChange={(e) =>
-                        setEditForm((f) => ({ ...f, ratePercent: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>業績門檻（元）</Label>
-                    <Input
-                      type="number"
-                      step="1"
-                      min="0"
-                      placeholder="0"
-                      value={editForm.revenueThreshold}
-                      onChange={(e) =>
-                        setEditForm((f) => ({ ...f, revenueThreshold: e.target.value }))
-                      }
-                    />
-                    <p className="text-[11px] text-muted-foreground">
-                      填 0 = 不設門檻；填金額（例如 150000）= 當月住房營收需達此金額才開始計費
-                    </p>
-                  </div>
-                  <div className="space-y-1">
-                    <Label>備註</Label>
-                    <Textarea
-                      value={editForm.note}
-                      onChange={(e) =>
-                        setEditForm((f) => ({ ...f, note: e.target.value }))
-                      }
-                      rows={2}
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">
-                    將新增一筆費率版本記錄，不影響歷史資料
-                  </p>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => setEditRow(null)}
-                    disabled={editSaving}
-                  >
-                    取消
-                  </Button>
-                  <Button onClick={handleEditSubmit} disabled={editSaving}>
-                    {editSaving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                    儲存
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">生效日期</TableHead>
-                  <TableHead className="text-right whitespace-nowrap">費率</TableHead>
-                  <TableHead className="whitespace-nowrap">適用館別</TableHead>
-                  <TableHead>備註</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
-                      <Loader2 className="inline h-4 w-4 animate-spin mr-2" />
-                      載入中…
-                    </TableCell>
-                  </TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
-                      尚無費率設定
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="whitespace-nowrap">{r.effective_from}</TableCell>
-                      <TableCell className="text-right tabular-nums whitespace-nowrap">
-                        {(Number(r.rate) * 100).toFixed(2)}%
-                        {Number(r.revenue_threshold ?? 0) > 0 && (
-                          <div className="text-[11px] text-muted-foreground">
-                            門檻 {fmtMoney(Number(r.revenue_threshold))}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {r.accommodation_id
-                          ? accMap.get(r.accommodation_id) ?? "（已刪除）"
-                          : <span className="text-muted-foreground">全館通用</span>}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {r.note ?? ""}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
           </div>
         </div>
       )}
