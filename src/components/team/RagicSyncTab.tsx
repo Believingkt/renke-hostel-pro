@@ -159,6 +159,9 @@ export default function RagicSyncTab() {
   const [writing, setWriting] = useState(false);
   const [rows, setRows] = useState<RagicRow[] | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [skipped, setSkipped] = useState<SkipEntry[] | null>(null);
+  const [showSkipped, setShowSkipped] = useState(true);
+
 
   const years = useMemo(() => {
     const y = new Date().getFullYear();
