@@ -335,35 +335,50 @@ export function KolPublishProgressCard() {
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {tiles.map((t) => (
-                <button
+                <div
                   key={String(t.key)}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setDrawer(t.key)}
-                  className="rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDrawer(t.key);
+                    }
+                  }}
+                  className="cursor-pointer rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <span>{t.label}</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`${t.label} 說明`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex shrink-0 text-muted-foreground/70 hover:text-foreground"
-                          >
-                            <HelpCircle className="h-3.5 w-3.5" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
-                          {t.hint}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`${t.label} 計算方式說明`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex shrink-0 text-muted-foreground/70 transition-colors hover:text-foreground"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        className="w-[300px] space-y-2 text-xs leading-relaxed"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="text-sm font-semibold">{t.label}｜計算方式</div>
+                        <p className="text-muted-foreground">{t.hint}</p>
+                        <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                          {t.bullets.map((b) => (
+                            <li key={b}>{b}</li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className={`text-2xl font-bold tabular-nums ${t.cls}`}>{t.value}</div>
-                </button>
+                </div>
               ))}
             </div>
 
