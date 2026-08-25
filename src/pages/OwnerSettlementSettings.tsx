@@ -586,23 +586,6 @@ export default function OwnerSettlementSettings({
 
       )}
 
-      {currentAccommodationId && (
-        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 space-y-1">
-          <p className="font-semibold">填錯了怎麼辦？直接改好後再儲存一次即可</p>
-          <p>
-            本設定為「版本制（只新增、不修改）」。若剛剛的數值 key 錯，
-            <span className="font-medium">不需要也無法刪除舊版本</span>
-            ：只要在本頁改成正確數值後再按一次「儲存設定」，系統會在同一個生效月份（
-            {currentMonthStartTaipei().slice(0, 7)}）建立新版本，並
-            <span className="font-medium">以最新一筆為準</span>
-            ，等同更正。打錯的那筆仍會保留在下方「歷史生效版本」供稽核。
-          </p>
-          <p className="text-blue-800/80">
-            注意：內容只能以「新增版本」更正；唯一可回頭修改的是<span className="font-medium">生效月份</span>
-            （首版由 AM 自行校正，其餘版本由總部角色校正）。
-          </p>
-        </div>
-      )}
 
       {currentAccommodationId && ruleCount === 0 && (
         <Card>
