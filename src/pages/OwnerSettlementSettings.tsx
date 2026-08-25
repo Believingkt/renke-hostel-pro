@@ -107,15 +107,21 @@ function monthOptions(minMonth: string | null, maxMonth: string): string[] {
 export default function OwnerSettlementSettings({
   accommodationIdOverride,
   hideBackButton,
+  readOnly: readOnlyProp,
 }: {
   /** HQ 整合頁使用：由外層選擇館別，不吃 admin 的 AccommodationContext */
   accommodationIdOverride?: string | null;
   hideBackButton?: boolean;
+  /** 唯讀模式（館別端預設唯讀；HQ 端可由角色決定） */
+  readOnly?: boolean;
 } = {}) {
   const navigate = useNavigate();
   const { currentAccommodationId: ctxAccommodationId } = useAccommodation();
   const currentAccommodationId =
     accommodationIdOverride !== undefined ? accommodationIdOverride : ctxAccommodationId;
+  /** 館別端（未由 HQ 傳入館別）一律唯讀：設定已集中於總部 */
+  const readOnly = readOnlyProp ?? accommodationIdOverride === undefined;
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
@@ -416,6 +422,11 @@ export default function OwnerSettlementSettings({
 
 
   const handleSave = async () => {
+    if (readOnly) {
+      toast.error("此頁為唯讀檢視", { description: "請至總部「獎金與月結設定 → 業主月結設定」調整。" });
+      return;
+    }
+
     if (config.commission_rate < 0 || config.commission_rate > 100) {
       toast.error("服務費率需介於 0-100 之間");
       return;
@@ -505,6 +516,8 @@ export default function OwnerSettlementSettings({
 
   /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
   const fixEffectiveMonth = async (id: string, month: string) => {
+    if (readOnly) return;
+
     const cur = currentMonthStartTaipei();
     if (month < cur) {
       const ok = window.confirm(
@@ -534,10 +547,10 @@ export default function OwnerSettlementSettings({
   return (
     <AdminPageShell maxWidth="7xl" hasStickyActionBar>
       <AdminPageHeader
-        title="業主月結設定"
+        title={readOnly ? "業主月結設定（唯讀檢視）" : "業主月結設定"}
         description={
           currentAccommodationId
-            ? `目前編輯：${accName || "此民宿"}（每間民宿獨立設定，不影響其他民宿）`
+            ? `${readOnly ? "目前檢視" : "目前編輯"}：${accName || "此民宿"}（每間民宿獨立設定，不影響其他民宿）`
             : "請先選擇民宿；本設定已改為純各館獨立，不再提供全站預設值"
         }
         icon={Settings}
@@ -550,21 +563,27 @@ export default function OwnerSettlementSettings({
           )
         }
       />
-      {!hideBackButton && (
+      {readOnly && (
         <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-          此設定已搬遷至總部集中管理頁，本頁未來將移除。
-          <a
-            className="ml-2 underline font-medium"
-            href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
-          >
-            前往總部設定頁 →
-          </a>
+          <span className="font-medium">此頁為唯讀檢視。</span>
+          業主月結設定已集中由總部管理，本頁僅供查看目前生效的設定內容，無法修改或儲存。
+          需要調整請至總部「獎金與月結設定 → 業主月結設定」，或聯絡總部 AM／管理者。
+          {!hideBackButton && (
+            <a
+              className="ml-2 underline font-medium"
+              href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
+            >
+              前往總部設定頁 →
+            </a>
+          )}
         </div>
       )}
+      <fieldset disabled={readOnly} className="contents">
       {currentAccommodationId && usingFallback && (
         <div className="rounded-md border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-900">
           此民宿尚未建立設定，目前顯示系統初始值（未套用任何全站預設）。儲存後將建立「{accName || "此民宿"}」的專屬設定。
         </div>
+
       )}
 
       {currentAccommodationId && (
@@ -1026,20 +1045,23 @@ export default function OwnerSettlementSettings({
           </CollapsibleContent>
         </Card>
       </Collapsible>
+      </fieldset>
 
+      {!readOnly && (
+        <AdminStickyActionBar
+          info={
+            <>
+              儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
+              」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
+            </>
+          }
+        >
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? "儲存中..." : "儲存設定"}
+          </Button>
+        </AdminStickyActionBar>
+      )}
 
-      <AdminStickyActionBar
-        info={
-          <>
-            儲存後會建立一筆「{(ruleCount === 0 ? effectiveMonth : currentMonthStartTaipei()).slice(0, 7)}
-            」生效的版本；已建立版本的內容不可修改（僅生效月份可校正），歷史月結報表金額不受影響。
-          </>
-        }
-      >
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? "儲存中..." : "儲存設定"}
-        </Button>
-      </AdminStickyActionBar>
     </AdminPageShell>
   );
 }

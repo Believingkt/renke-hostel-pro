@@ -48,7 +48,12 @@ export default function HQBonusSettings() {
   }, []);
 
   const isHQAdmin = !!roles?.some((r) => r === "super_admin" || r === "admin");
-  const canSeeBonus = !!roles?.some((r) => ["super_admin", "admin", "finance"].includes(r));
+  /** finance：可看全部分頁，但一律唯讀 */
+  const isFinanceViewer = !isHQAdmin && !!roles?.some((r) => r === "finance");
+  /** 只能看到「業主月結設定」分頁的角色 */
+  const ownerSettlementOnly = !isHQAdmin && !isFinanceViewer;
+  const canSeeBonus = isHQAdmin || isFinanceViewer;
+  const ownerSettlementReadOnly = isFinanceViewer;
 
   const tabParam = searchParams.get("tab");
   const rawTab: SettingsTab =
@@ -59,14 +64,10 @@ export default function HQBonusSettings() {
         : tabParam === "venue-tiers"
           ? "venue-tiers"
           : "bonus";
-  const tab: SettingsTab =
-    rawTab === "base-salary" && !isHQAdmin
-      ? "owner-settlement"
-      : rawTab === "venue-tiers" && !canSeeBonus
-        ? "owner-settlement"
-        : canSeeBonus
-          ? rawTab
-          : "owner-settlement";
+  const tab: SettingsTab = ownerSettlementOnly
+    ? "owner-settlement"
+    : rawTab;
+
   const accId = searchParams.get("acc") ?? "global";
   const override = useMemo(() => (accId === "global" ? null : accId), [accId]);
 
@@ -119,12 +120,21 @@ export default function HQBonusSettings() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
-        <TabsList>
-          {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
-          {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
-          <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
-          {isHQAdmin && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
-        </TabsList>
+        {!ownerSettlementOnly && (
+          <TabsList>
+            {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
+            {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
+            <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
+            {canSeeBonus && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
+          </TabsList>
+        )}
+
+        {isFinanceViewer && (
+          <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
+            <span className="font-medium">財務角色為唯讀檢視。</span>
+            可查看所有獎金與月結設定內容，但無法新增、修改或刪除；需調整請聯絡總部管理者。
+          </div>
+        )}
 
         {canSeeBonus && (
           <TabsContent value="venue-tiers" className="space-y-4">
@@ -160,7 +170,7 @@ export default function HQBonusSettings() {
               <CardDescription>
                 這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務，
                 就是獎金四步流程中「② 用多少金額當基準」的來源，會直接影響成交大師獎金與團隊獎金的基準金額。
-                每間民宿獨立設定，沒有全站預設值：請先選擇館別再編輯。
+                每間民宿獨立設定，沒有全站預設值：請先選擇館別再{ownerSettlementReadOnly ? "檢視" : "編輯"}。
               </CardDescription>
             </CardHeader>
             <CardContent className="max-w-sm space-y-3">
@@ -180,7 +190,12 @@ export default function HQBonusSettings() {
           </Card>
 
           {override ? (
-            <OwnerSettlementSettings key={accId} accommodationIdOverride={override} hideBackButton />
+            <OwnerSettlementSettings
+              key={accId}
+              accommodationIdOverride={override}
+              hideBackButton
+              readOnly={ownerSettlementReadOnly}
+            />
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
@@ -189,11 +204,12 @@ export default function HQBonusSettings() {
             </Card>
           )}
         </TabsContent>
-        {isHQAdmin && (
+        {canSeeBonus && (
           <TabsContent value="base-salary" className="space-y-4">
-            <TeamBaseSalaryTab />
+            <TeamBaseSalaryTab readOnly={!isHQAdmin} />
           </TabsContent>
         )}
+
       </Tabs>
 
     </div>
