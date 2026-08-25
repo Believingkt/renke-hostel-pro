@@ -52,6 +52,7 @@ export function useSettingsCompleteness() {
       kolRes,
       closerTeamRes,
       multiplierRes,
+      roleRes,
     ] = await Promise.all([
       supabase
         .from("accommodation_info")
@@ -114,6 +115,10 @@ export function useSettingsCompleteness() {
         .order("effective_from", { ascending: false })
         .limit(1),
       supabase.from("bonus_multiplier_settings").select("bonus_type, multiplier, start_month, end_month"),
+      supabase
+        .from("teamcommission_role_bindings")
+        .select("role_type, effective_from")
+        .lte("effective_from", today),
     ]);
 
     const accs = ((accRes.data ?? []) as AccRow[]).filter((a) => a.id && a.name);
@@ -157,7 +162,9 @@ export function useSettingsCompleteness() {
       ),
       sharedSources: ((sharedRes.data ?? [])[0] as any)?.included_order_sources ?? null,
       kolSources: ((kolRes.data ?? [])[0] as any)?.included_order_sources ?? null,
-      boundRoleTypes: [],
+      boundRoleTypes: Array.from(
+        new Set(((roleRes.data ?? []) as any[]).map((r) => r.role_type as string)),
+      ),
       hasCloserTeamBonus: (closerTeamRes.data ?? []).length > 0,
       activeMultipliers,
     });
