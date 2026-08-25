@@ -315,7 +315,27 @@ export function KolPublishProgressCard() {
                   onClick={() => setDrawer(t.key)}
                   className="rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
                 >
-                  <div className="text-sm text-muted-foreground">{t.label}</div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <span>{t.label}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${t.label} 說明`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex shrink-0 text-muted-foreground/70 hover:text-foreground"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
+                          {t.hint}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className={`text-2xl font-bold tabular-nums ${t.cls}`}>{t.value}</div>
                 </button>
               ))}
