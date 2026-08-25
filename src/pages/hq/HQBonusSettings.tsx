@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BonusSettingsTab from "@/components/team/BonusSettingsTab";
+import RateConsistencyCheckTab from "@/components/team/RateConsistencyCheckTab";
+import { pmsHref } from "@/lib/appMode";
 import VenueBonusTierRulesTab from "@/components/team/VenueBonusTierRulesTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
 import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
@@ -16,7 +18,7 @@ interface AccOption {
   name: string;
 }
 
-type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers";
+type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers" | "rate-check";
 
 /**
  * HQ 整合頁：獎金設定 ＋ 業主月結設定（總部唯一可編輯入口）。
@@ -63,7 +65,9 @@ export default function HQBonusSettings() {
         ? "base-salary"
         : tabParam === "venue-tiers"
           ? "venue-tiers"
-          : "bonus";
+          : tabParam === "rate-check"
+            ? "rate-check"
+            : "bonus";
   const tab: SettingsTab = ownerSettlementOnly
     ? "owner-settlement"
     : rawTab;
@@ -91,11 +95,33 @@ export default function HQBonusSettings() {
     } else if (value === "venue-tiers") {
       next.set("tab", "venue-tiers");
       next.delete("acc");
+    } else if (value === "rate-check") {
+      next.set("tab", "rate-check");
+      next.delete("acc");
     } else {
       next.delete("tab");
       next.delete("acc");
     }
     setSearchParams(next, { replace: true });
+  };
+
+  /** 依目前選到的館別（?acc=）導向該館 PMS 業主月結頁；未選館別則退回總表 */
+  const goOwnerSettlement = async () => {
+    if (!override) {
+      navigate("/admin/owner-settlement");
+      return;
+    }
+    const { data } = await supabase
+      .from("accommodation_info")
+      .select("short_url_alias")
+      .eq("id", override)
+      .maybeSingle();
+    const alias = (data as { short_url_alias?: string } | null)?.short_url_alias;
+    if (!alias) {
+      navigate("/admin/owner-settlement");
+      return;
+    }
+    window.location.href = pmsHref(`/${alias}/admin/owner-settlement`);
   };
 
   const setAcc = (value: string) => {
@@ -113,7 +139,7 @@ export default function HQBonusSettings() {
           <ArrowLeft className="mr-1 h-4 w-4" />
           回團隊獎金頁
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
+        <Button variant="outline" size="sm" onClick={goOwnerSettlement}>
           <ArrowLeft className="mr-1 h-4 w-4" />
           回業主月結
         </Button>
@@ -121,12 +147,15 @@ export default function HQBonusSettings() {
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         {!ownerSettlementOnly && (
-          <TabsList>
-            {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
-            {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
-            <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
-            {canSeeBonus && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
-          </TabsList>
+          <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="w-max flex-nowrap justify-start">
+              {canSeeBonus && <TabsTrigger value="bonus" className="whitespace-nowrap">獎金發放規則（4 步流程）</TabsTrigger>}
+              {canSeeBonus && <TabsTrigger value="venue-tiers" className="whitespace-nowrap">館別獎金級距規則</TabsTrigger>}
+              <TabsTrigger value="owner-settlement" className="whitespace-nowrap">基準金額規則（業主月結）</TabsTrigger>
+              {canSeeBonus && <TabsTrigger value="base-salary" className="whitespace-nowrap">成員底薪</TabsTrigger>}
+              {canSeeBonus && <TabsTrigger value="rate-check" className="whitespace-nowrap">費率一致性檢查</TabsTrigger>}
+            </TabsList>
+          </div>
         )}
 
         {isFinanceViewer && (
@@ -207,6 +236,12 @@ export default function HQBonusSettings() {
         {canSeeBonus && (
           <TabsContent value="base-salary" className="space-y-4">
             <TeamBaseSalaryTab readOnly={!isHQAdmin} />
+          </TabsContent>
+        )}
+
+        {canSeeBonus && (
+          <TabsContent value="rate-check" className="space-y-4">
+            <RateConsistencyCheckTab />
           </TabsContent>
         )}
 

@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -943,6 +944,7 @@ function ConsultingFeeSettingsBlock({
   year: number;
   month: number;
 }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<RateViewRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -1008,7 +1010,7 @@ function ConsultingFeeSettingsBlock({
               <Button
                 size="sm"
                 className="bg-amber-600 hover:bg-amber-700 text-white"
-                onClick={() => window.open(HQ_RATE_SETTINGS_URL, "_blank")}
+                onClick={() => navigate(HQ_RATE_SETTINGS_URL)}
               >
                 前往總部設定頁 →
               </Button>
