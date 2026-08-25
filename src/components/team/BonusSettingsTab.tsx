@@ -1368,6 +1368,26 @@ function VenueClosingAssignmentSection({
     load();
   }, [load]);
 
+  /** 支援外部以 ?acc=<id> 導向：自動展開並捲動到該館列，短暫高亮 */
+  const [highlightAcc, setHighlightAcc] = useState<string | null>(null);
+  useEffect(() => {
+    if (loading || accs.length === 0) return;
+    const target = searchParams.get("acc");
+    if (!target || !accs.some((a) => a.id === target)) return;
+    setExpanded((prev) => new Set(prev).add(target));
+    setHighlightAcc(target);
+    const t = window.setTimeout(() => {
+      document
+        .querySelector(`[data-partnership-acc="${target}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    const t2 = window.setTimeout(() => setHighlightAcc(null), 4000);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [loading, accs, searchParams]);
+
   const byAcc = useMemo(() => {
     const m = new Map<string, VenueAssignmentRow[]>();
     for (const r of rows) {
