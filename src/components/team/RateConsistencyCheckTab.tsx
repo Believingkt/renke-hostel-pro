@@ -240,7 +240,7 @@ export default function RateConsistencyCheckTab() {
             <Label htmlFor="show-all-acc" className="text-sm">顯示全部館別（預設只顯示有缺漏）</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            提示：有 <span className="underline decoration-dotted">底線與 <ArrowUpRight className="inline h-3 w-3" /> 箭頭</span> 的格子可直接點擊，會帶你到對應設定頁修補。
+            提示：點擊任一 <span className="underline decoration-dotted">紅／黃格子 <ArrowUpRight className="inline h-3 w-3" /></span> 會開啟修補指引，說明原因、要去哪個頁面、需補哪些欄位。
           </p>
         </div>
 
