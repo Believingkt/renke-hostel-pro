@@ -1547,7 +1547,10 @@ function VenueClosingAssignmentSection({
                 const upcoming = accPeriods.find((p) => p.start_date > today);
                 return (
                   <Fragment key={a.id}>
-                    <TableRow>
+                    <TableRow
+                      data-partnership-acc={a.id}
+                      className={highlightAcc === a.id ? "bg-primary/10 ring-2 ring-primary/50" : undefined}
+                    >
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => toggle(a.id)}>
                           {isOpen ? (
