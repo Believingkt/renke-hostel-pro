@@ -175,6 +175,45 @@ Deno.serve(async (req) => {
     const results: any[] = [];
     const skipped: any[] = [];
 
+    // 3. 批次撈取（優化 A/B）：只針對通過 Gate A 的館別，一次撈完所有訂單與日幣訂單，
+    //    取代原本「逐館 2 次查詢」的 N+1 串行往返。
+    const activeAccIds = (accommodations || [])
+      .map((a: any) => a.id)
+      .filter((id: string) => partneredIds.has(id));
+
+    const jpyIdSet = new Set<string>();
+    const ordersByAcc = new Map<string, any[]>();
+
+    if (activeAccIds.length > 0) {
+      const [jpyRes, ordRes] = await Promise.all([
+        supabase
+          .from("order_meta")
+          .select("order_id, orders!inner(accommodation_id)")
+          .eq("display_currency", "JPY")
+          .in("orders.accommodation_id", activeAccIds),
+        supabase
+          .from("orders")
+          .select(
+            "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, owner_direct, accommodation_id",
+          )
+          .in("accommodation_id", activeAccIds)
+          .lt("check_in_date", monthEndStr)
+          .gt("check_out_date", monthStartStr),
+      ]);
+      if (jpyRes.error) throw jpyRes.error;
+      if (ordRes.error) throw ordRes.error;
+
+      for (const m of jpyRes.data || []) {
+        if (m.order_id) jpyIdSet.add(m.order_id as string);
+      }
+      for (const o of ordRes.data || []) {
+        if (jpyIdSet.has(o.id)) continue; // 排除日幣訂單（記憶體過濾，取代 not-in 長字串）
+        const list = ordersByAcc.get(o.accommodation_id);
+        if (list) list.push(o);
+        else ordersByAcc.set(o.accommodation_id, [o]);
+      }
+    }
+
     for (const acc of accommodations || []) {
       // Gate A：非合作期間（含從未合作、已終止）→ 整館不產生任何列
       if (!partneredIds.has(acc.id)) {
@@ -194,30 +233,8 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      const orders = ordersByAcc.get(acc.id) ?? [];
 
-      // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
-      const { data: jpyMeta, error: jpyErr } = await supabase
-        .from("order_meta")
-        .select("order_id, orders!inner(accommodation_id)")
-        .eq("display_currency", "JPY")
-        .eq("orders.accommodation_id", acc.id);
-      if (jpyErr) throw jpyErr;
-      const jpyIds = (jpyMeta || []).map((m: any) => m.order_id).filter(Boolean);
-
-      // 3b. Fetch orders overlapping the month (排除日幣訂單)
-      let ordQuery = supabase
-        .from("orders")
-        .select(
-          "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, owner_direct, accommodation_id",
-        )
-        .eq("accommodation_id", acc.id)
-        .lt("check_in_date", monthEndStr)
-        .gt("check_out_date", monthStartStr);
-      if (jpyIds.length > 0) {
-        ordQuery = ordQuery.not("id", "in", `(${jpyIds.join(",")})`);
-      }
-      const { data: orders, error: ordErr } = await ordQuery;
-      if (ordErr) throw ordErr;
 
       // 4. Aggregate revenue (TWD only)
       let revenueTwd = 0;
