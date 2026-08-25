@@ -307,6 +307,71 @@ export default function RateConsistencyCheckTab() {
             </Table>
           </div>
         </TooltipProvider>
+
+        <Dialog open={!!fix} onOpenChange={(o) => !o && setFix(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {fix && <LevelIcon level={fix.res.level} />}
+                {fix?.accName}：{fix?.checkLabel}
+              </DialogTitle>
+              <DialogDescription>依下列指引補齊設定，完成後回來按「已完成，重新檢查」。</DialogDescription>
+            </DialogHeader>
+
+            {fix && (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">缺漏原因</div>
+                  <p className="mt-1 leading-relaxed">
+                    <Badge variant={fix.res.level === "error" ? "destructive" : "secondary"} className="mr-2">
+                      {fix.res.level === "error" ? "嚴重（會被 Ragic 排除）" : "建議補齊"}
+                    </Badge>
+                    {fix.res.hint ?? "此項目尚未設定完成。"}
+                  </p>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">要到哪個頁面</div>
+                  <p className="mt-1">{fix.res.target ?? "對應設定頁"}</p>
+                </div>
+                {fix.res.fields?.length ? (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground">需要補的欄位</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5">
+                      {fix.res.fields.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFix(null);
+                  load();
+                }}
+              >
+                <CheckCircle2 className="mr-1 h-4 w-4" />
+                已完成，重新檢查
+              </Button>
+              {fix?.res.href && (
+                <Button
+                  onClick={() => {
+                    const href = fix.res.href!;
+                    setFix(null);
+                    navigate(href);
+                  }}
+                >
+                  前往設定頁
+                  <ArrowUpRight className="ml-1 h-4 w-4" />
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
