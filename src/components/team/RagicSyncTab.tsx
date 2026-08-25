@@ -54,6 +54,37 @@ interface AccomResult {
   ragic_responses?: Array<any>;
 }
 
+interface SkipEntry {
+  accommodation_id: string;
+  accommodation_name: string;
+  scope?: "venue" | "row";
+  gate?: string;
+  income_type?: string;
+  skip_reason: string;
+  detail?: string;
+  has_commission_setting?: boolean;
+  charges_marketing_fee?: boolean;
+  revenue_twd?: number;
+  gross_revenue_twd?: number;
+}
+
+const SKIP_REASON_LABEL: Record<string, string> = {
+  no_active_partnership: "無合作期間紀錄",
+  partnership_ended: "不在合作期間內",
+  no_commission_no_marketing: "無抽成設定且未收月費",
+  no_commission_setting: "無管顧抽成設定",
+  under_threshold: "未達抽成門檻",
+  no_revenue: "當月無可計營收",
+  marketing_fee_not_contracted: "合約未約定行銷推廣費",
+};
+
+const GATE_LABEL: Record<string, string> = {
+  A: "合作期間",
+  B: "抽成設定",
+  C: "月費勾選",
+  "B+C": "抽成設定 + 月費勾選",
+};
+
 // Field IDs must stay in sync with the edge function
 const F = {
   BUSINESS_UNIT: "1001017",
