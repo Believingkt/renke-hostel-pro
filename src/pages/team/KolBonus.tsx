@@ -2,7 +2,14 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight, RotateCcw, History } from "lucide-react";
+import {
+  logKolRateChange,
+  fetchKolRateAuditLogs,
+  describeRateRange,
+  RATE_ACTION_LABEL,
+  type RateAuditLogRow,
+} from "@/lib/kolRateAudit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1367,14 +1374,39 @@ function KolRateSettingsTab({
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [auditMap, setAuditMap] = useState<Record<string, RateAuditLogRow[]>>({});
+  const [auditLoading, setAuditLoading] = useState<Set<string>>(new Set());
+
+  const loadAudit = async (accId: string) => {
+    setAuditLoading((prev) => new Set(prev).add(accId));
+    try {
+      const rows = await fetchKolRateAuditLogs(accId, 50);
+      setAuditMap((prev) => ({ ...prev, [accId]: rows }));
+    } catch (e: any) {
+      setAuditMap((prev) => ({ ...prev, [accId]: [] }));
+      console.error("[KolRateAudit] 讀取失敗", e?.message);
+    } finally {
+      setAuditLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(accId);
+        return next;
+      });
+    }
+  };
+
   const toggleExpand = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        next.add(id);
+        if (!auditMap[id]) loadAudit(id);
+      }
       return next;
     });
+
 
   const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
   useEffect(() => {
@@ -1454,12 +1486,22 @@ function KolRateSettingsTab({
       toast.error("儲存失敗：" + error.message);
       return;
     }
+    await logKolRateChange({
+      actionType: "create",
+      accommodationId: formAccId,
+      accommodationName: groups.find((g) => g.id === formAccId)?.name ?? null,
+      rate,
+      effectiveFrom: formDate,
+      appliesRange: `${formDate} 起（目前生效中）`,
+    });
     toast.success("已新增費率");
     setDialogOpen(false);
     await load();
+    if (expanded.has(formAccId)) loadAudit(formAccId);
+
   };
 
-  const handleDelete = async (row: RateRow) => {
+  const handleDelete = async (row: RateRow, g: AccGroup, rangeLabel: string) => {
     setDeletingId(row.id);
     const { error, count } = await supabase
       .from("kol_commission_settings")
@@ -1474,9 +1516,48 @@ function KolRateSettingsTab({
       toast.error("刪除失敗：沒有權限或紀錄不存在");
       return;
     }
-    toast.success("已刪除");
+    await logKolRateChange({
+      actionType: "delete",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: row.effective_from,
+      appliesRange: rangeLabel,
+      settingId: row.id,
+    });
+    toast.success("已刪除，並記錄異動");
     await load();
+    if (expanded.has(g.id)) loadAudit(g.id);
   };
+
+  const handleRestore = async (row: RateRow, g: AccGroup) => {
+    const today = new Date().toISOString().slice(0, 10);
+    setRestoringId(row.id);
+    const { error } = await supabase.from("kol_commission_settings").insert({
+      accommodation_id: g.id,
+      kol_id: null,
+      rate: row.rate,
+      effective_from: today,
+    });
+    setRestoringId(null);
+    if (error) {
+      toast.error("還原失敗：" + error.message);
+      return;
+    }
+    await logKolRateChange({
+      actionType: "restore",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: today,
+      appliesRange: `${today} 起（目前生效中）`,
+      note: `還原自 ${row.effective_from} 的 ${row.rate}% 版本`,
+    });
+    toast.success(`已還原 ${row.rate}%，自 ${today} 起生效`);
+    await load();
+    loadAudit(g.id);
+  };
+
 
   if (loading) {
     return (
@@ -1550,6 +1631,9 @@ function KolRateSettingsTab({
                           <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
                             目前生效
                           </Badge>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            適用區間：{current.effective_from} 起至今
+                          </div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{current.rate}%</TableCell>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
@@ -1563,65 +1647,164 @@ function KolRateSettingsTab({
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell></TableCell>
                           <TableCell colSpan={4} className="p-0">
-                            <div className="px-4 py-3">
-                              <div className="text-xs text-muted-foreground mb-2">歷史版本</div>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="whitespace-nowrap">生效日期</TableHead>
-                                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
-                                    <TableHead className="whitespace-nowrap">建立時間</TableHead>
-                                    <TableHead className="whitespace-nowrap text-right">操作</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {history.map((r) => (
-                                    <TableRow key={r.id}>
-                                      <TableCell className="whitespace-nowrap">
-                                        {r.effective_from}
-                                      </TableCell>
-                                      <TableCell className="text-right tabular-nums">
-                                        {r.rate}%
-                                      </TableCell>
-                                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                                        {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              disabled={deletingId === r.id}
-                                              title="刪除"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>確定刪除？</AlertDialogTitle>
-                                              <AlertDialogDescription>
-                                                將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
-                                              </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>取消</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => handleDelete(r)}>
-                                                確認刪除
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </TableCell>
+                            <div className="px-4 py-3 space-y-4">
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2">歷史版本（僅供查閱，刪除後不可復原）</div>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                                      <TableHead className="whitespace-nowrap">適用區間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                                      <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">操作</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {history.map((r, i) => {
+                                      const range = describeRateRange(g.rows, i + 1);
+                                      const isOldest = i === history.length - 1;
+                                      return (
+                                        <TableRow key={r.id}>
+                                          <TableCell className="whitespace-nowrap">
+                                            {r.effective_from}
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {range.label}
+                                          </TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            {r.rate}%
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                                          </TableCell>
+                                          <TableCell className="text-right whitespace-nowrap">
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={restoringId === r.id}
+                                                  title="還原此費率（以今日為生效日新增一筆）"
+                                                >
+                                                  <RotateCcw className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>還原此費率版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        將以 <b>{r.rate}%</b> 新增一筆費率，生效日為
+                                                        <b> {new Date().toISOString().slice(0, 10)}</b>。
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>{g.name} 自今日（含）起的新結算將採用 {r.rate}%。</li>
+                                                        <li>目前生效版本（{current.rate}%）不會被刪除，會轉為歷史版本。</li>
+                                                        <li>今日之前已計算的分潤不受影響。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleRestore(r, g)}>
+                                                    確認還原
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={deletingId === r.id}
+                                                  title="刪除"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>確定刪除此歷史版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        館別 <b>{g.name}</b>｜生效日 <b>{r.effective_from}</b>｜費率 <b>{r.rate}%</b>
+                                                        <br />
+                                                        適用區間：<b>{range.label}</b>
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>
+                                                          {isOldest
+                                                            ? `此為最舊版本，刪除後 ${range.start} ~ ${range.end || "—"} 期間將查無費率設定，該區間退房的訂單會以 0%／預設值計算。`
+                                                            : `刪除後 ${range.start} ~ ${range.end || "—"} 期間會改由更早的版本（${g.rows[i + 2]?.rate ?? 0}%）接手計算。`}
+                                                        </li>
+                                                        <li>目前生效版本（{current.rate}%）不受影響。</li>
+                                                        <li>已重新計算或尚未鎖定的分潤金額可能因此變動。</li>
+                                                        <li>此操作無法復原，僅會留下審計紀錄。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleDelete(r, g, range.label)}>
+                                                    確認刪除
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                                  <History className="h-3.5 w-3.5" />
+                                  異動紀錄（刪除／還原／新增）
+                                </div>
+                                {auditLoading.has(g.id) ? (
+                                  <div className="text-xs text-muted-foreground">載入中...</div>
+                                ) : (auditMap[g.id]?.length ?? 0) === 0 ? (
+                                  <div className="text-xs text-muted-foreground">尚無異動紀錄</div>
+                                ) : (
+                                  <ul className="space-y-1 text-xs">
+                                    {auditMap[g.id].map((log) => (
+                                      <li key={log.id} className="flex flex-wrap gap-x-2 text-muted-foreground">
+                                        <span className="tabular-nums">
+                                          {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false })}
+                                        </span>
+                                        <Badge variant="outline" className="h-5">
+                                          {RATE_ACTION_LABEL[log.action_type] ?? log.action_type}
+                                        </Badge>
+                                        <span className="text-foreground">
+                                          {log.details?.operator_name ?? log.user_email ?? "未知使用者"}
+                                        </span>
+                                        <span>
+                                          {log.details?.rate}%｜生效 {log.details?.effective_from}
+                                          {log.details?.applies_range ? `｜區間 ${log.details.applies_range}` : ""}
+                                          {log.details?.note ? `｜${log.details.note}` : ""}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
                       )}
+
                     </Fragment>
                   );
                 })

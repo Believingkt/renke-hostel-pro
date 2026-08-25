@@ -13464,6 +13464,17 @@ export type Database = {
           user_email: string
         }[]
       }
+      list_kol_rate_audit_logs: {
+        Args: { _accommodation_id: string; _limit?: number }
+        Returns: {
+          action_type: string
+          created_at: string
+          details: Json
+          entity_name: string
+          id: string
+          user_email: string
+        }[]
+      }
       list_kol_reciprocal_orders: {
         Args: { _accommodation_id: string; _end: string; _start: string }
         Returns: {
