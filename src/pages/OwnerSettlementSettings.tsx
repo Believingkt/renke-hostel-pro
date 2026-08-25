@@ -131,6 +131,8 @@ export default function OwnerSettlementSettings({
   const [usingFallback, setUsingFallback] = useState(false);
   const [currentRuleId, setCurrentRuleId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  /** 未勾選「合約有約定收取行銷推廣費」時，金額欄位預設收合（值不變動，仍會照原邏輯儲存） */
+  const [showMarketingAmounts, setShowMarketingAmounts] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
