@@ -138,9 +138,54 @@ Deno.serve(async (req) => {
     // 2c. 行銷推廣費規則（與前端 resolveMarketingFee 同一套邏輯）
     const marketingRuleFor = await buildMarketingFeeResolver(supabase, accIds, monthStartStr);
 
+    // 2d. Gate A：合作期間。資料月只要與任一合作期間有交集就列入
+    //     （例：6/26 終止 → 6 月資料月照算，7 月起不列入）
+    const { data: periodRows, error: periodErr } = await supabase
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, end_date")
+      .in("accommodation_id", accIds);
+    if (periodErr) throw periodErr;
+    const lastDayStr = new Date(monthEnd.getTime() - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const partneredIds = new Set<string>();
+    for (const p of periodRows || []) {
+      const start = String(p.start_date ?? "").slice(0, 10);
+      const end = p.end_date ? String(p.end_date).slice(0, 10) : null;
+      if (start && start > lastDayStr) continue;
+      if (end && end < monthStartStr) continue;
+      partneredIds.add(p.accommodation_id);
+    }
+
+    // 2e. Gate C：是否約定收取行銷推廣費（owner_settlement_pricing_rules.charges_marketing_fee）
+    const { data: chargeRows, error: chargeErr } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("accommodation_id, charges_marketing_fee, effective_from")
+      .in("accommodation_id", accIds)
+      .lte("effective_from", monthStartStr)
+      .order("effective_from", { ascending: false });
+    if (chargeErr) throw chargeErr;
+    const chargesMarketing = new Map<string, boolean>();
+    for (const r of chargeRows || []) {
+      if (!chargesMarketing.has(r.accommodation_id)) {
+        chargesMarketing.set(r.accommodation_id, r.charges_marketing_fee === true);
+      }
+    }
+
     const results: any[] = [];
+    const skipped: any[] = [];
 
     for (const acc of accommodations || []) {
+      // Gate A：非合作期間（含從未合作、已終止）→ 整館不產生任何列
+      if (!partneredIds.has(acc.id)) {
+        skipped.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          skip_reason: "no_active_partnership",
+        });
+        continue;
+      }
+
       // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
       const { data: jpyMeta, error: jpyErr } = await supabase
         .from("order_meta")
