@@ -536,8 +536,8 @@ export default function TeamKOL() {
         {canSeeWeeklyReport && (
           <TabsContent value="weekly_report" className="mt-4">
             <div className="space-y-4">
-              <KolPublishProgressCard />
               <WeeklyReportTab canCopy={isManager} />
+              <KolPublishProgressCard />
             </div>
           </TabsContent>
         )}
