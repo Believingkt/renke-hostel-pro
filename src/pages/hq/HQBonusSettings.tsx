@@ -239,6 +239,12 @@ export default function HQBonusSettings() {
           </TabsContent>
         )}
 
+        {canSeeBonus && (
+          <TabsContent value="rate-check" className="space-y-4">
+            <RateConsistencyCheckTab />
+          </TabsContent>
+        )}
+
       </Tabs>
 
     </div>
