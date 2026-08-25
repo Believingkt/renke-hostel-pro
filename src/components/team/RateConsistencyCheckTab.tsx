@@ -225,9 +225,14 @@ export default function RateConsistencyCheckTab() {
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <Switch id="show-all-acc" checked={showAll} onCheckedChange={setShowAll} />
-          <Label htmlFor="show-all-acc" className="text-sm">顯示全部館別（預設只顯示有缺漏）</Label>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Switch id="show-all-acc" checked={showAll} onCheckedChange={setShowAll} />
+            <Label htmlFor="show-all-acc" className="text-sm">顯示全部館別（預設只顯示有缺漏）</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            提示：有 <span className="underline decoration-dotted">底線與 <ArrowUpRight className="inline h-3 w-3" /> 箭頭</span> 的格子可直接點擊，會帶你到對應設定頁修補。
+          </p>
         </div>
 
         <TooltipProvider>
@@ -247,35 +252,48 @@ export default function RateConsistencyCheckTab() {
                     <TableCell className="whitespace-nowrap font-medium">{row.accName}</TableCell>
                     {CHECKS.map((c) => {
                       const res = row[c.key];
+                      const clickable = Boolean(res.href) && res.level !== "ok";
                       const content = (
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm">
                           <LevelIcon level={res.level} />
                           <span className={res.level === "ok" ? "text-muted-foreground" : ""}>{res.label}</span>
+                          {clickable && <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />}
                         </span>
                       );
+                      if (res.level === "ok") {
+                        return <TableCell key={c.key}>{content}</TableCell>;
+                      }
                       return (
                         <TableCell key={c.key}>
-                          {res.href && res.level !== "ok" ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {clickable ? (
                                 <button
                                   type="button"
                                   onClick={() => navigate(res.href!)}
-                                  className="text-primary underline-offset-2 hover:underline"
+                                  className="rounded text-primary underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                   {content}
                                 </button>
-                              </TooltipTrigger>
-                              <TooltipContent>前往此館的總部設定頁補齊</TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            content
-                          )}
+                              ) : (
+                                <span className="cursor-help underline decoration-dotted underline-offset-4">{content}</span>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-[260px]">
+                              <p className="text-xs leading-relaxed">
+                                {res.hint ?? "此項目尚未設定完成。"}
+                              </p>
+                              {clickable && (
+                                <p className="mt-1 text-xs font-medium">點擊前往設定頁 →</p>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       );
                     })}
                   </TableRow>
                 ))}
+
                 {visibleRows.length === 0 && !loading && (
                   <TableRow>
                     <TableCell colSpan={CHECKS.length + 1} className="py-8 text-center text-sm text-muted-foreground">
