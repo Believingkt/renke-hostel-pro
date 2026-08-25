@@ -1367,14 +1367,39 @@ function KolRateSettingsTab({
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [auditMap, setAuditMap] = useState<Record<string, RateAuditLogRow[]>>({});
+  const [auditLoading, setAuditLoading] = useState<Set<string>>(new Set());
+
+  const loadAudit = async (accId: string) => {
+    setAuditLoading((prev) => new Set(prev).add(accId));
+    try {
+      const rows = await fetchKolRateAuditLogs(accId, 50);
+      setAuditMap((prev) => ({ ...prev, [accId]: rows }));
+    } catch (e: any) {
+      setAuditMap((prev) => ({ ...prev, [accId]: [] }));
+      console.error("[KolRateAudit] 讀取失敗", e?.message);
+    } finally {
+      setAuditLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(accId);
+        return next;
+      });
+    }
+  };
+
   const toggleExpand = (id: string) =>
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
-      else next.add(id);
+      else {
+        next.add(id);
+        if (!auditMap[id]) loadAudit(id);
+      }
       return next;
     });
+
 
   const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
   useEffect(() => {
