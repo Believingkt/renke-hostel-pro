@@ -1621,6 +1621,9 @@ function KolRateSettingsTab({
                           <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
                             目前生效
                           </Badge>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            適用區間：{current.effective_from} 起至今
+                          </div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{current.rate}%</TableCell>
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
@@ -1634,65 +1637,164 @@ function KolRateSettingsTab({
                         <TableRow className="bg-muted/30 hover:bg-muted/30">
                           <TableCell></TableCell>
                           <TableCell colSpan={4} className="p-0">
-                            <div className="px-4 py-3">
-                              <div className="text-xs text-muted-foreground mb-2">歷史版本</div>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="whitespace-nowrap">生效日期</TableHead>
-                                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
-                                    <TableHead className="whitespace-nowrap">建立時間</TableHead>
-                                    <TableHead className="whitespace-nowrap text-right">操作</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {history.map((r) => (
-                                    <TableRow key={r.id}>
-                                      <TableCell className="whitespace-nowrap">
-                                        {r.effective_from}
-                                      </TableCell>
-                                      <TableCell className="text-right tabular-nums">
-                                        {r.rate}%
-                                      </TableCell>
-                                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                                        {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        <AlertDialog>
-                                          <AlertDialogTrigger asChild>
-                                            <Button
-                                              size="icon"
-                                              variant="ghost"
-                                              disabled={deletingId === r.id}
-                                              title="刪除"
-                                            >
-                                              <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                          </AlertDialogTrigger>
-                                          <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                              <AlertDialogTitle>確定刪除？</AlertDialogTitle>
-                                              <AlertDialogDescription>
-                                                將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
-                                              </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                              <AlertDialogCancel>取消</AlertDialogCancel>
-                                              <AlertDialogAction onClick={() => handleDelete(r)}>
-                                                確認刪除
-                                              </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                          </AlertDialogContent>
-                                        </AlertDialog>
-                                      </TableCell>
+                            <div className="px-4 py-3 space-y-4">
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2">歷史版本（僅供查閱，刪除後不可復原）</div>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                                      <TableHead className="whitespace-nowrap">適用區間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                                      <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">操作</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {history.map((r, i) => {
+                                      const range = describeRateRange(g.rows, i + 1);
+                                      const isOldest = i === history.length - 1;
+                                      return (
+                                        <TableRow key={r.id}>
+                                          <TableCell className="whitespace-nowrap">
+                                            {r.effective_from}
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {range.label}
+                                          </TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            {r.rate}%
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                                          </TableCell>
+                                          <TableCell className="text-right whitespace-nowrap">
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={restoringId === r.id}
+                                                  title="還原此費率（以今日為生效日新增一筆）"
+                                                >
+                                                  <RotateCcw className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>還原此費率版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        將以 <b>{r.rate}%</b> 新增一筆費率，生效日為
+                                                        <b> {new Date().toISOString().slice(0, 10)}</b>。
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>{g.name} 自今日（含）起的新結算將採用 {r.rate}%。</li>
+                                                        <li>目前生效版本（{current.rate}%）不會被刪除，會轉為歷史版本。</li>
+                                                        <li>今日之前已計算的分潤不受影響。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleRestore(r, g)}>
+                                                    確認還原
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={deletingId === r.id}
+                                                  title="刪除"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>確定刪除此歷史版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        館別 <b>{g.name}</b>｜生效日 <b>{r.effective_from}</b>｜費率 <b>{r.rate}%</b>
+                                                        <br />
+                                                        適用區間：<b>{range.label}</b>
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>
+                                                          {isOldest
+                                                            ? `此為最舊版本，刪除後 ${range.start} ~ ${range.end || "—"} 期間將查無費率設定，該區間退房的訂單會以 0%／預設值計算。`
+                                                            : `刪除後 ${range.start} ~ ${range.end || "—"} 期間會改由更早的版本（${g.rows[i + 2]?.rate ?? 0}%）接手計算。`}
+                                                        </li>
+                                                        <li>目前生效版本（{current.rate}%）不受影響。</li>
+                                                        <li>已重新計算或尚未鎖定的分潤金額可能因此變動。</li>
+                                                        <li>此操作無法復原，僅會留下審計紀錄。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleDelete(r, g, range.label)}>
+                                                    確認刪除
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                                  <History className="h-3.5 w-3.5" />
+                                  異動紀錄（刪除／還原／新增）
+                                </div>
+                                {auditLoading.has(g.id) ? (
+                                  <div className="text-xs text-muted-foreground">載入中...</div>
+                                ) : (auditMap[g.id]?.length ?? 0) === 0 ? (
+                                  <div className="text-xs text-muted-foreground">尚無異動紀錄</div>
+                                ) : (
+                                  <ul className="space-y-1 text-xs">
+                                    {auditMap[g.id].map((log) => (
+                                      <li key={log.id} className="flex flex-wrap gap-x-2 text-muted-foreground">
+                                        <span className="tabular-nums">
+                                          {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false })}
+                                        </span>
+                                        <Badge variant="outline" className="h-5">
+                                          {RATE_ACTION_LABEL[log.action_type] ?? log.action_type}
+                                        </Badge>
+                                        <span className="text-foreground">
+                                          {log.details?.operator_name ?? log.user_email ?? "未知使用者"}
+                                        </span>
+                                        <span>
+                                          {log.details?.rate}%｜生效 {log.details?.effective_from}
+                                          {log.details?.applies_range ? `｜區間 ${log.details.applies_range}` : ""}
+                                          {log.details?.note ? `｜${log.details.note}` : ""}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
                       )}
+
                     </Fragment>
                   );
                 })
