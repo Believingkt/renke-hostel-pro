@@ -4,7 +4,7 @@
  * 口徑與 LINE 推播事件 `kol_publish_reminder`
  * （supabase/functions/send-kol-publish-reminder）一致：
  *   預計上片日 = 入住日 + 14 天（= 正常情況下最晚上片日 / 上片期限）
- * 採計對象：booking_status = '成功訂房' 且 is_error = false（含同住合拍附屬記錄）。
+ * 採計對象：實際訂房成立者（以 PMS orders 派生，查無訂單時回退 kol_profiles.booking_status = '成功訂房'）且 is_error = false。
  */
 
 export const PUBLISH_DEADLINE_DAYS = 14;
@@ -24,6 +24,8 @@ export interface KolPublishRecord {
   cid_code?: string | null;
   short_url?: string | null;
   cid_configured?: boolean | null;
+  order_number?: string | null;
+  booking_status?: string | null;
 }
 
 export type PublishStatus = "completed" | "overdue" | "due_soon" | "upcoming";
