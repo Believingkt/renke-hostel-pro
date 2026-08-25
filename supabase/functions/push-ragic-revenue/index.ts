@@ -178,13 +178,22 @@ Deno.serve(async (req) => {
     for (const acc of accommodations || []) {
       // Gate A：非合作期間（含從未合作、已終止）→ 整館不產生任何列
       if (!partneredIds.has(acc.id)) {
+        const hadPeriod = (periodRows || []).some((p: any) => p.accommodation_id === acc.id);
         skipped.push({
           accommodation_id: acc.id,
           accommodation_name: acc.name,
-          skip_reason: "no_active_partnership",
+          scope: "venue",
+          gate: "A",
+          skip_reason: hadPeriod ? "partnership_ended" : "no_active_partnership",
+          has_commission_setting: feeMap.has(acc.id),
+          charges_marketing_fee: chargesMarketing.get(acc.id) === true,
+          detail: hadPeriod
+            ? "合作期間與此資料月無交集（已終止或尚未開始）"
+            : "查無任何合作期間紀錄",
         });
         continue;
       }
+
 
       // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
       const { data: jpyMeta, error: jpyErr } = await supabase
