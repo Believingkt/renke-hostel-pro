@@ -54,6 +54,37 @@ interface AccomResult {
   ragic_responses?: Array<any>;
 }
 
+interface SkipEntry {
+  accommodation_id: string;
+  accommodation_name: string;
+  scope?: "venue" | "row";
+  gate?: string;
+  income_type?: string;
+  skip_reason: string;
+  detail?: string;
+  has_commission_setting?: boolean;
+  charges_marketing_fee?: boolean;
+  revenue_twd?: number;
+  gross_revenue_twd?: number;
+}
+
+const SKIP_REASON_LABEL: Record<string, string> = {
+  no_active_partnership: "無合作期間紀錄",
+  partnership_ended: "不在合作期間內",
+  no_commission_no_marketing: "無抽成設定且未收月費",
+  no_commission_setting: "無管顧抽成設定",
+  under_threshold: "未達抽成門檻",
+  no_revenue: "當月無可計營收",
+  marketing_fee_not_contracted: "合約未約定行銷推廣費",
+};
+
+const GATE_LABEL: Record<string, string> = {
+  A: "合作期間",
+  B: "抽成設定",
+  C: "月費勾選",
+  "B+C": "抽成設定 + 月費勾選",
+};
+
 // Field IDs must stay in sync with the edge function
 const F = {
   BUSINESS_UNIT: "1001017",
@@ -128,6 +159,9 @@ export default function RagicSyncTab() {
   const [writing, setWriting] = useState(false);
   const [rows, setRows] = useState<RagicRow[] | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [skipped, setSkipped] = useState<SkipEntry[] | null>(null);
+  const [showSkipped, setShowSkipped] = useState(true);
+
 
   const years = useMemo(() => {
     const y = new Date().getFullYear();
@@ -140,7 +174,7 @@ export default function RagicSyncTab() {
     });
     if (error) throw new Error(error.message ?? "呼叫失敗");
     if ((data as any)?.error) throw new Error((data as any).error);
-    return data as { results: AccomResult[] };
+    return data as { results: AccomResult[]; skipped?: SkipEntry[] };
   };
 
   const handlePreview = async () => {
@@ -148,6 +182,7 @@ export default function RagicSyncTab() {
     try {
       const data = await call(true);
       setRows(flatten(data.results));
+      setSkipped(data.skipped ?? []);
       toast.success("預覽完成");
     } catch (e: any) {
       toast.error(e.message || "預覽失敗");
@@ -162,6 +197,8 @@ export default function RagicSyncTab() {
       const data = await call(false);
       const flat = flatten(data.results);
       setRows(flat);
+      setSkipped(data.skipped ?? []);
+
       const posted = flat.filter((r) => r.post_result);
       const ok = posted.filter((r) => r.post_result?.ok).length;
       const fail = posted.length - ok;
@@ -313,7 +350,74 @@ export default function RagicSyncTab() {
             </TableBody>
           </Table>
         </div>
+
+        {skipped && skipped.length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5">
+            <button
+              type="button"
+              onClick={() => setShowSkipped((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                被排除的館別／列（{skipped.length}）
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {showSkipped ? "收合" : "展開"}
+              </span>
+            </button>
+            {showSkipped && (
+              <div className="overflow-x-auto border-t border-amber-500/30">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>館別</TableHead>
+                      <TableHead>範圍</TableHead>
+                      <TableHead>收入類型</TableHead>
+                      <TableHead>排除原因</TableHead>
+                      <TableHead>判定閘門</TableHead>
+                      <TableHead className="text-right">當月營收</TableHead>
+                      <TableHead>說明</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {skipped.map((s, i) => (
+                      <TableRow key={`${s.accommodation_id}-${i}`}>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {s.accommodation_name}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={s.scope === "row" ? "outline" : "secondary"}>
+                            {s.scope === "row" ? "單列" : "整館"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {s.income_type ?? "全部"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-amber-700 dark:text-amber-400">
+                          {SKIP_REASON_LABEL[s.skip_reason] ?? s.skip_reason}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {s.gate ? (GATE_LABEL[s.gate] ?? s.gate) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {typeof s.revenue_twd === "number"
+                            ? s.revenue_twd.toLocaleString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {s.detail ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
+
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
