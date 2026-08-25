@@ -264,12 +264,12 @@ export default function RagicSyncTab() {
           </div>
           <Button
             onClick={handlePreview}
-            disabled={loading || writing}
-            className={isStale ? "animate-pulse ring-2 ring-amber-500/60" : undefined}
+            disabled={loading || writing || hasPreview}
           >
             {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
             {isStale ? "重新預覽" : "預覽"}
           </Button>
+
           <Button
             variant="default"
             onClick={() => setConfirmOpen(true)}
