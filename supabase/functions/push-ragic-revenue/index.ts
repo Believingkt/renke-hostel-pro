@@ -350,6 +350,8 @@ Deno.serve(async (req) => {
         dry_run,
         count: results.length,
         results,
+        skipped,
+
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
