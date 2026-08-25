@@ -111,6 +111,8 @@ export function KolPublishProgressCard() {
   const [scoutMap, setScoutMap] = useState<Record<string, string>>({});
   const [venueMap, setVenueMap] = useState<Record<string, string>>({});
   const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
+  // 非住宿型館別（農場／餐廳／其他）：屬包套行程的一部分，不列入上片進度計算
+  const [nonLodgingVenueIds, setNonLodgingVenueIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
   const [venueFilter, setVenueFilter] = useState<string>("all");
@@ -118,14 +120,21 @@ export function KolPublishProgressCard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data } = await supabase.from("discount_codes").select("code");
+      const [codesRes, venuesRes] = await Promise.all([
+        supabase.from("discount_codes").select("code"),
+        supabase.from("kol_venues").select("id, type").neq("type", "民宿"),
+      ]);
       if (cancelled) return;
-      setPmsCodes(new Set((data ?? []).map((d: any) => String(d.code ?? "").trim().toUpperCase()).filter(Boolean)));
+      setPmsCodes(
+        new Set((codesRes.data ?? []).map((d: any) => String(d.code ?? "").trim().toUpperCase()).filter(Boolean)),
+      );
+      setNonLodgingVenueIds(new Set((venuesRes.data ?? []).map((v: any) => v.id as string)));
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
 
   useEffect(() => {
     if (!range.from || !range.to) return;
@@ -204,9 +213,21 @@ export function KolPublishProgressCard() {
   const venueKeyOf = (r: KolPublishRecord) =>
     r.venue_id || r.accommodation_id || (hasVal(r.venue_name) ? `name:${r.venue_name}` : "unknown");
 
+  // 只計入住宿型館別；農場／餐廳／其他屬包套行程的一部分，不列入上片進度
+  const isLodging = (r: KolPublishRecord) => !(r.venue_id && nonLodgingVenueIds.has(r.venue_id));
+
+  const lodgingExpectedRows = useMemo(
+    () => rawExpectedRows.filter(isLodging),
+    [rawExpectedRows, nonLodgingVenueIds],
+  );
+  const lodgingPublishedRows = useMemo(
+    () => rawPublishedRows.filter(isLodging),
+    [rawPublishedRows, nonLodgingVenueIds],
+  );
+
   const venueOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of [...rawExpectedRows, ...rawPublishedRows]) {
+    for (const r of [...lodgingExpectedRows, ...lodgingPublishedRows]) {
       const key = venueKeyOf(r);
       const name = venueOf(r);
       if (!map.has(key)) map.set(key, name === "—" ? "未指定館別" : name);
@@ -214,7 +235,7 @@ export function KolPublishProgressCard() {
     return Array.from(map.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
-  }, [rawExpectedRows, rawPublishedRows, venueMap]);
+  }, [lodgingExpectedRows, lodgingPublishedRows, venueMap]);
 
   // 區間變更後若原本選的館別不在清單中，自動回到「全部館別」
   useEffect(() => {
@@ -226,13 +247,14 @@ export function KolPublishProgressCard() {
   const matchVenue = (r: KolPublishRecord) => venueFilter === "all" || venueKeyOf(r) === venueFilter;
 
   const expectedRows = useMemo(
-    () => rawExpectedRows.filter(matchVenue),
-    [rawExpectedRows, venueFilter],
+    () => lodgingExpectedRows.filter(matchVenue),
+    [lodgingExpectedRows, venueFilter],
   );
   const publishedRows = useMemo(
-    () => rawPublishedRows.filter(matchVenue),
-    [rawPublishedRows, venueFilter],
+    () => lodgingPublishedRows.filter(matchVenue),
+    [lodgingPublishedRows, venueFilter],
   );
+
 
   const stats = useMemo(() => {
     let completed = 0;
