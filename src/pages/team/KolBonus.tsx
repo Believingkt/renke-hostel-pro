@@ -618,6 +618,7 @@ export default function KolBonus() {
 
   return (
     <div className="space-y-6">
+      {!readOnlyViewer && (
       <div>
         {hasUnsavedChanges ? (
           <AlertDialog>
@@ -651,13 +652,14 @@ export default function KolBonus() {
           </Button>
         )}
       </div>
+      )}
       <Tabs defaultValue="dashboard" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="dashboard">儀表板</TabsTrigger>
-            <TabsTrigger value="bonus">進單管理</TabsTrigger>
-            <TabsTrigger value="settlement">分潤結算</TabsTrigger>
-            <TabsTrigger value="rates">分潤設定</TabsTrigger>
+            {!readOnlyViewer && <TabsTrigger value="bonus">進單管理</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="settlement">分潤結算</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="rates">分潤設定</TabsTrigger>}
           </TabsList>
         </div>
 
