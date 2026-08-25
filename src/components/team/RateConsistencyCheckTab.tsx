@@ -259,12 +259,11 @@ export default function RateConsistencyCheckTab() {
                     <TableCell className="whitespace-nowrap font-medium">{row.accName}</TableCell>
                     {CHECKS.map((c) => {
                       const res = row[c.key];
-                      const clickable = Boolean(res.href) && res.level !== "ok";
                       const content = (
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm">
                           <LevelIcon level={res.level} />
                           <span className={res.level === "ok" ? "text-muted-foreground" : ""}>{res.label}</span>
-                          {clickable && <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />}
+                          {res.level !== "ok" && <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />}
                         </span>
                       );
                       if (res.level === "ok") {
@@ -274,25 +273,19 @@ export default function RateConsistencyCheckTab() {
                         <TableCell key={c.key}>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {clickable ? (
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(res.href!)}
-                                  className="rounded text-primary underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  {content}
-                                </button>
-                              ) : (
-                                <span className="cursor-help underline decoration-dotted underline-offset-4">{content}</span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setFix({ accName: row.accName, checkLabel: c.label, res })}
+                                className="rounded text-primary underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                {content}
+                              </button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-[260px]">
                               <p className="text-xs leading-relaxed">
                                 {res.hint ?? "此項目尚未設定完成。"}
                               </p>
-                              {clickable && (
-                                <p className="mt-1 text-xs font-medium">點擊前往設定頁 →</p>
-                              )}
+                              <p className="mt-1 text-xs font-medium">點擊查看修補指引 →</p>
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
