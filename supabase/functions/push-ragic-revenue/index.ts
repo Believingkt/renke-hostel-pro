@@ -158,20 +158,16 @@ Deno.serve(async (req) => {
       partneredIds.add(p.accommodation_id);
     }
 
-    // 2e. Gate C：是否約定收取行銷推廣費（owner_settlement_pricing_rules.charges_marketing_fee）
-    const { data: chargeRows, error: chargeErr } = await supabase
-      .from("owner_settlement_pricing_rules")
-      .select("accommodation_id, charges_marketing_fee, effective_from")
-      .in("accommodation_id", accIds)
-      .lte("effective_from", monthStartStr)
-      .order("effective_from", { ascending: false });
-    if (chargeErr) throw chargeErr;
+    // 2e. Gate C：是否約定收取行銷推廣費（同一份 owner_settlement_pricing_rules，取生效日 <= 當月 1 日的最新版本）
     const chargesMarketing = new Map<string, boolean>();
-    for (const r of chargeRows || []) {
+    for (const r of pricingRuleRows || []) {
+      const eff = String(r.effective_from ?? "").slice(0, 10);
+      if (eff > monthStartStr) continue;
       if (!chargesMarketing.has(r.accommodation_id)) {
         chargesMarketing.set(r.accommodation_id, r.charges_marketing_fee === true);
       }
     }
+
 
     const results: any[] = [];
     const skipped: any[] = [];
