@@ -310,19 +310,67 @@ Deno.serve(async (req) => {
 
       if (marketingRow) rows.push(marketingRow);
 
+      const commonSkipInfo = {
+        accommodation_id: acc.id,
+        accommodation_name: acc.name,
+        has_commission_setting: hasFee,
+        charges_marketing_fee: chargesMkt,
+        revenue_twd: revenueTwd,
+        gross_revenue_twd: grossRevenueTwd,
+      };
+
       // 整館都沒有任何列（不收抽成也不收月費）→ 不列入預覽／推送
       if (rows.length === 0) {
         skipped.push({
-          accommodation_id: acc.id,
-          accommodation_name: acc.name,
+          ...commonSkipInfo,
+          scope: "venue",
+          gate: !hasFee && !chargesMkt ? "B+C" : "B",
           skip_reason: !hasFee && !chargesMkt
             ? "no_commission_no_marketing"
             : skipUnderThreshold
               ? "under_threshold"
               : "no_revenue",
+          detail: !hasFee && !chargesMkt
+            ? "無管顧抽成設定，且合約未勾選行銷推廣費 → 整館無任何列"
+            : skipUnderThreshold
+              ? `當月營收 ${revenueTwd.toLocaleString()} 未達抽成門檻，抽成為 0`
+              : "當月無可計營收",
         });
         continue;
       }
+
+      // 該館有列送出，但「平台抽成／門市運營」被排除 → 列級差異報告
+      if (skipCommissionRows) {
+        skipped.push({
+          ...commonSkipInfo,
+          scope: "row",
+          gate: "B",
+          income_type: "平台抽成",
+          skip_reason: !hasFee
+            ? "no_commission_setting"
+            : skipUnderThreshold
+              ? "under_threshold"
+              : "no_revenue",
+          detail: !hasFee
+            ? "查無管顧費率設定（該館不收抽成）"
+            : skipUnderThreshold
+              ? `當月營收 ${revenueTwd.toLocaleString()} 未達門檻 ${feeCfg?.threshold?.toLocaleString() ?? 0}`
+              : "當月無可計營收",
+        });
+      }
+
+      // 有抽成列但未勾選月費 → 列級差異報告
+      if (!chargesMkt) {
+        skipped.push({
+          ...commonSkipInfo,
+          scope: "row",
+          gate: "C",
+          income_type: "行銷推廣費",
+          skip_reason: "marketing_fee_not_contracted",
+          detail: "合約未勾選「收取行銷推廣費（月費）」",
+        });
+      }
+
 
       const posts = dry_run ? [] : await pushRows(rows, yyyyMm, mode);
 
