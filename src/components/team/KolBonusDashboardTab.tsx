@@ -94,8 +94,20 @@ export default function KolBonusDashboardTab({
   loading,
 }: Props) {
   const [venue, setVenue] = useState<string>("all");
-  const [year, setYear] = useState<number>(0);
-  const [month, setMonth] = useState<string>("all");
+  const nowTpe = useMemo(() => {
+    const s = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    return { year: Number(s.slice(0, 4)), month: String(Number(s.slice(5, 7))) };
+  }, []);
+  const [year, setYear] = useState<number>(nowTpe.year);
+  const [month, setMonth] = useState<string>(nowTpe.month);
+  const isAllPeriod = year === 0 && month === "all";
+  const isThisMonth = year === nowTpe.year && month === nowTpe.month;
+
   const [sortBy, setSortBy] = useState<"revenue" | "orders">("revenue");
   const [showAll, setShowAll] = useState(false);
 
