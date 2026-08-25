@@ -29,6 +29,7 @@ interface StagingData {
   remaining_amount: number | null;
   currency: string | null;
   payment_status: string | null;
+  special_requests: string | null;
   pii_due_at: string | null;
 }
 
@@ -83,6 +84,13 @@ export default function OwlTingFillup() {
       }
     })();
   }, [token]);
+
+  const specialRequests = String(staging?.special_requests ?? "").trim();
+  const roomCount = Number(staging?.room_quantity ?? 1);
+  const notesPreview = [
+    specialRequests ? `[特殊需求] ${specialRequests}` : null,
+    `奧丁丁訂單由業主補單 (OBE: ${staging?.obe_number ?? ""}, ${staging?.room_type_name ?? ""}${roomCount > 1 ? `, ${roomCount} 間` : ""}, 付款: ${staging?.payment_status === "paid" ? "已付清" : "待結清"})`,
+  ].filter(Boolean).join("\n");
 
   const copyObe = () => {
     if (!staging?.obe_number) return;
@@ -301,6 +309,23 @@ export default function OwlTingFillup() {
                   onChange={(e) => setTotalAmountOverride(e.target.value)} placeholder="如不確定可留 0" />
               </div>
             </div>
+
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+              <div className="text-sm font-medium">訂單備註預覽</div>
+              <p className="text-[11px] text-muted-foreground">以下內容會原樣寫入訂單備註欄位</p>
+              <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed font-mono">
+{notesPreview}
+              </pre>
+              {String(staging?.special_requests ?? "").trim() ? (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  ✓ 已偵測到信件特殊需求（含早餐等），將以 [特殊需求] 開頭寫入
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">此信件未解析到特殊需求</p>
+              )}
+            </div>
+
+
 
             <Button onClick={handleSubmit} disabled={submitting} className="w-full">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
