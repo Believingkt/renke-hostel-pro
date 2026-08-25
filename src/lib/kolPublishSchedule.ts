@@ -104,6 +104,22 @@ export function nextDaysRangeYmd(days: number, today: string = taipeiToday()): {
   return { from: today, to: addDaysYmd(today, days - 1) };
 }
 
+/** 過去 N 天（含今日） */
+export function pastDaysRangeYmd(days: number, today: string = taipeiToday()): { from: string; to: string } {
+  return { from: addDaysYmd(today, -(days - 1)), to: today };
+}
+
+/** 月份區間，offsetMonths=0 本月、1 下月、-1 上月 */
+export function monthRangeYmd(offsetMonths = 0, today: string = taipeiToday()): { from: string; to: string } {
+  const [y, m] = today.split("-").map((v) => parseInt(v, 10));
+  const start = new Date(Date.UTC(y, m - 1 + offsetMonths, 1));
+  const end = new Date(Date.UTC(y, m + offsetMonths, 0));
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  return { from: fmt(start), to: fmt(end) };
+}
+
+
 /** 依預計上片日彙總每日筆數（回傳依日期排序） */
 export function groupByExpectedDate(
   rows: KolPublishRecord[],
