@@ -957,6 +957,8 @@ export default function OwnerSettlementSettings({
               </p>
             )}
           </div>
+          </>
+          )}
         </CardContent>
       </Card>
 
