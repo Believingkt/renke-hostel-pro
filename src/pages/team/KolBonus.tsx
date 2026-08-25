@@ -2,7 +2,14 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight, RotateCcw, History } from "lucide-react";
+import {
+  logKolRateChange,
+  fetchKolRateAuditLogs,
+  describeRateRange,
+  RATE_ACTION_LABEL,
+  type RateAuditLogRow,
+} from "@/lib/kolRateAudit";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
