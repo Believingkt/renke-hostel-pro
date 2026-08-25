@@ -23,12 +23,24 @@ import {
   weekRangeYmd,
 } from "@/lib/kolPublishSchedule";
 
-type Preset = "this_week" | "next_week" | "next_30" | "custom";
+type Preset = "this_week" | "next_week" | "next_30" | "past_30" | "this_month" | "next_month" | "custom";
+
+const PRESET_RANGE: Record<Exclude<Preset, "custom">, (today: string) => { from: string; to: string }> = {
+  this_week: () => weekRangeYmd(0),
+  next_week: () => weekRangeYmd(1),
+  next_30: (t) => nextDaysRangeYmd(30, t),
+  past_30: (t) => pastDaysRangeYmd(30, t),
+  this_month: (t) => monthRangeYmd(0, t),
+  next_month: (t) => monthRangeYmd(1, t),
+};
 
 const PRESETS: { key: Exclude<Preset, "custom">; label: string }[] = [
   { key: "this_week", label: "本週" },
   { key: "next_week", label: "下週" },
   { key: "next_30", label: "未來 30 天" },
+  { key: "past_30", label: "過去 30 天" },
+  { key: "this_month", label: "這個月" },
+  { key: "next_month", label: "下個月" },
 ];
 
 const SELECT_FIELDS =
@@ -42,18 +54,55 @@ function fmtDate(ymd: string | null | undefined) {
   return `${m}/${d}`;
 }
 
+const storageKey = (userId: string) => `kol-publish-range:${userId || "anon"}`;
+
 export function KolPublishProgressCard() {
   const today = useMemo(() => taipeiToday(), []);
-  const [preset, setPreset] = useState<Preset>("this_week");
-  const [customFrom, setCustomFrom] = useState("");
-  const [customTo, setCustomTo] = useState("");
+  const { userId } = useTeam();
 
-  const range = useMemo(() => {
-    if (preset === "this_week") return weekRangeYmd(0);
-    if (preset === "next_week") return weekRangeYmd(1);
-    if (preset === "next_30") return nextDaysRangeYmd(30, today);
-    return { from: customFrom, to: customTo };
-  }, [preset, customFrom, customTo, today]);
+  // 讀取上次使用的區間偏好（依登入者），preset 以當下日期重算
+  const initial = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(storageKey(userId));
+      if (raw) {
+        const saved = JSON.parse(raw) as { preset?: Preset; from?: string; to?: string };
+        if (saved.preset === "custom" && saved.from && saved.to) {
+          return { preset: "custom" as Preset, from: saved.from, to: saved.to };
+        }
+        if (saved.preset && saved.preset !== "custom" && PRESET_RANGE[saved.preset]) {
+          return { preset: saved.preset, ...PRESET_RANGE[saved.preset](today) };
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return { preset: "this_week" as Preset, ...PRESET_RANGE.this_week(today) };
+  }, [userId, today]);
+
+  const [preset, setPreset] = useState<Preset>(initial.preset);
+  const [customFrom, setCustomFrom] = useState(initial.from);
+  const [customTo, setCustomTo] = useState(initial.to);
+
+  const range = useMemo(() => ({ from: customFrom, to: customTo }), [customFrom, customTo]);
+
+  const applyPreset = (key: Exclude<Preset, "custom">) => {
+    const r = PRESET_RANGE[key](today);
+    setPreset(key);
+    setCustomFrom(r.from);
+    setCustomTo(r.to);
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        storageKey(userId),
+        JSON.stringify({ preset, from: customFrom, to: customTo }),
+      );
+    } catch {
+      /* ignore */
+    }
+  }, [userId, preset, customFrom, customTo]);
+
 
   const [expectedRows, setExpectedRows] = useState<KolPublishRecord[]>([]);
   const [publishedRows, setPublishedRows] = useState<KolPublishRecord[]>([]);
