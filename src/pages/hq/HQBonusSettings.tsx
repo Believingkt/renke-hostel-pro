@@ -105,6 +105,25 @@ export default function HQBonusSettings() {
     setSearchParams(next, { replace: true });
   };
 
+  /** 依目前選到的館別（?acc=）導向該館 PMS 業主月結頁；未選館別則退回總表 */
+  const goOwnerSettlement = async () => {
+    if (!override) {
+      navigate("/admin/owner-settlement");
+      return;
+    }
+    const { data } = await supabase
+      .from("accommodation_info")
+      .select("short_url_alias")
+      .eq("id", override)
+      .maybeSingle();
+    const alias = (data as { short_url_alias?: string } | null)?.short_url_alias;
+    if (!alias) {
+      navigate("/admin/owner-settlement");
+      return;
+    }
+    window.location.href = pmsHref(`/${alias}/admin/owner-settlement`);
+  };
+
   const setAcc = (value: string) => {
     const next = new URLSearchParams(searchParams);
     next.set("tab", "owner-settlement");
