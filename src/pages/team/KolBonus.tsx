@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft } from "lucide-react";
@@ -139,6 +139,8 @@ export default function KolBonus() {
   const defaultPayoutYear =
     currentDay > 10 && currentMonthNum === 12 ? currentYear + 1 : currentYear;
 
+  const navigate = useNavigate();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<KolRow[]>([]);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -604,12 +606,37 @@ export default function KolBonus() {
   return (
     <div className="space-y-6">
       <div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/team/kol">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            返回 KOL 星探管理
-          </Link>
-        </Button>
+        {hasUnsavedChanges ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                返回 KOL 星探管理
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>尚有未儲存的變更</AlertDialogTitle>
+                <AlertDialogDescription>
+                  你在分潤設定中有尚未儲存的內容，離開後這些變更將會遺失。確定要返回 KOL 星探管理嗎？
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>繼續編輯</AlertDialogCancel>
+                <AlertDialogAction onClick={() => navigate("/team/kol")}>
+                  捨棄變更並返回
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/team/kol">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回 KOL 星探管理
+            </Link>
+          </Button>
+        )}
       </div>
       <Tabs defaultValue="bonus" className="space-y-4">
         <div className="overflow-x-auto">
@@ -925,7 +952,7 @@ export default function KolBonus() {
         </TabsContent>
 
         <TabsContent value="rates" className="mt-0">
-          <KolRateSettingsTab />
+          <KolRateSettingsTab onDirtyChange={setHasUnsavedChanges} />
         </TabsContent>
       </Tabs>
 
@@ -1327,7 +1354,11 @@ interface AccGroup {
   rows: RateRow[];
 }
 
-function KolRateSettingsTab() {
+function KolRateSettingsTab({
+  onDirtyChange,
+}: {
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<AccGroup[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1336,6 +1367,14 @@ function KolRateSettingsTab() {
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
+
+
 
   const load = async () => {
     setLoading(true);
