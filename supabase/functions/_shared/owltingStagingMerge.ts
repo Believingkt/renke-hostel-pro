@@ -18,6 +18,7 @@ const MERGE_FIELDS = [
   "child_count",
   "nights",
   "addons",
+  "special_requests",
 ] as const;
 
 const SELECT_COLS =
