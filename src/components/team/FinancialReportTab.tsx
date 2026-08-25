@@ -515,21 +515,28 @@ export default function FinancialReportTab() {
         row3Children.sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
 
 
-        /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）---- */
+        /* ---- 收集有管顧費率設定的館別（Row 4/5 使用）
+               費率來源已收斂為業主月結費率 owner_settlement_pricing_rules ---- */
         const { data: feeRowsAll } = await supabase
-          .from("consulting_fee_settings")
-          .select("rate, revenue_threshold, accommodation_id, effective_from")
+          .from("owner_settlement_pricing_rules")
+          .select("commission_rate, commission_threshold, accommodation_id, effective_from")
           .lte("effective_from", monthStart)
           .order("effective_from", { ascending: false });
-        const fees = (feeRowsAll ?? []) as any[];
+        const fees = ((feeRowsAll ?? []) as any[]).map((f) => ({
+          accommodation_id: f.accommodation_id as string,
+          rate: Number(f.commission_rate) || 0,
+          revenue_threshold: Number(f.commission_threshold) || 0,
+          effective_from: f.effective_from as string,
+        }));
         const consultingAccIds = Array.from(
           new Set(fees.map((f) => f.accommodation_id).filter(Boolean) as string[])
         );
 
-        // Row 4/5 適用館別 = 有管顧費率設定「且」為特許加盟的館別
+        // Row 4/5 適用館別 = 有費率設定「且」為特許加盟的館別
         const franchiseIdSet = new Set(franchiseAccIds);
         const stayAccIdSet = new Set<string>(consultingAccIds.filter((id) => franchiseIdSet.has(id)));
         const stayAccIds = Array.from(stayAccIdSet);
+
 
 
         // 補齊名稱對照
