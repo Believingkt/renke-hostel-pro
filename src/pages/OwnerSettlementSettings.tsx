@@ -136,6 +136,19 @@ export default function OwnerSettlementSettings({
   const focusSection = parseOwnerSettlementFocus(searchParams.get("focus"));
   /** 未勾選「合約有約定收取行銷推廣費」時，金額欄位預設收合（值不變動，仍會照原邏輯儲存） */
   const [showMarketingAmounts, setShowMarketingAmounts] = useState(false);
+  /** 依 ?focus= 捲動到對應卡片並短暫高亮（資料載入完成後才執行） */
+  useEffect(() => {
+    if (!focusSection || loading) return;
+    if (focusSection === "history") setHistoryOpen(true);
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-focus-section="${focusSection}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+      window.setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 4000);
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [focusSection, loading]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
