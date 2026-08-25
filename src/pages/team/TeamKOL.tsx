@@ -530,7 +530,9 @@ export default function TeamKOL() {
             canEditTicketLink={canEditTicketLink}
             prefill={prefill}
             onPrefillConsumed={() => setPrefill(null)}
+            onGoToVenues={() => setTab("venues")}
           />
+
         </TabsContent>
 
         {canSeeWeeklyReport && (
