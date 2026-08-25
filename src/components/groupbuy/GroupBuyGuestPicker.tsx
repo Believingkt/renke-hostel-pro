@@ -131,7 +131,10 @@ export function GroupBuyGuestPicker({ value, onChange, rules, blockReason }: Pro
               入住總人數上限 {rules.max_total_guests} 位（依民宿設定，嬰兒是否計入以民宿規則為準）。
             </p>
           )}
-          {rules.note && <p className="pb-2 text-xs leading-relaxed text-muted-foreground">{rules.note}</p>}
+          {rules.note && (
+            <p className="whitespace-pre-line pb-2 text-xs leading-relaxed text-muted-foreground">{rules.note}</p>
+          )}
+
         </div>
       )}
 
