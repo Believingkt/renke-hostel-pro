@@ -299,7 +299,21 @@ Deno.serve(async (req) => {
         }
       }
 
-      rows.push(marketingRow);
+      if (marketingRow) rows.push(marketingRow);
+
+      // 整館都沒有任何列（不收抽成也不收月費）→ 不列入預覽／推送
+      if (rows.length === 0) {
+        skipped.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          skip_reason: !hasFee && !chargesMkt
+            ? "no_commission_no_marketing"
+            : skipUnderThreshold
+              ? "under_threshold"
+              : "no_revenue",
+        });
+        continue;
+      }
 
       const posts = dry_run ? [] : await pushRows(rows, yyyyMm, mode);
 
@@ -311,18 +325,24 @@ Deno.serve(async (req) => {
         gross_revenue_twd: grossRevenueTwd,
         management_fee_twd: skipCommissionRows ? 0 : managementFeeRounded,
         marketing_fee_twd: marketingFee,
+        charges_marketing_fee: chargesMkt,
         marketing_rule: mRule,
         fee_config: feeCfg,
         ...(skipCommissionRows
           ? {
               commission_rows_skipped: true,
-              skip_reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
+              skip_reason: !hasFee
+                ? "no_commission_setting"
+                : skipUnderThreshold
+                  ? "under_threshold"
+                  : "no_revenue",
             }
           : {}),
         payloads: rows,
         ...(dry_run ? {} : { ragic_responses: posts }),
       });
     }
+
 
     return new Response(
       JSON.stringify({
