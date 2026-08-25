@@ -46,7 +46,9 @@ const PRESETS: { key: Exclude<Preset, "custom">; label: string }[] = [
 
 
 const SELECT_FIELDS =
-  "id, name, ig_handle, ig_url, venue_name, venue_id, accommodation_id, check_in_date, publish_date, publish_url, scout_id, cid_code, short_url, cid_configured";
+  "id, name, ig_handle, ig_url, venue_name, venue_id, accommodation_id, check_in_date, publish_date, publish_url, scout_id, cid_code, short_url, cid_configured, order_number, booking_status";
+
+const BOOKING_STATUS_CANDIDATES = ["成功訂房", "訂房確認中"];
 
 type DrawerFilter = "all" | PublishStatus | "published_in_range" | { date: string };
 
@@ -146,7 +148,7 @@ export function KolPublishProgressCard() {
         supabase
           .from("kol_profiles")
           .select(SELECT_FIELDS)
-          .eq("booking_status", "成功訂房")
+          .in("booking_status", BOOKING_STATUS_CANDIDATES)
           .eq("is_error", false)
           .gte("check_in_date", ci.from)
           .lte("check_in_date", ci.to)
@@ -154,15 +156,49 @@ export function KolPublishProgressCard() {
         supabase
           .from("kol_profiles")
           .select(SELECT_FIELDS)
-          .eq("booking_status", "成功訂房")
+          .in("booking_status", BOOKING_STATUS_CANDIDATES)
           .eq("is_error", false)
           .gte("publish_date", range.from)
           .lte("publish_date", range.to)
           .order("publish_date", { ascending: true }),
       ]);
       if (cancelled) return;
-      const exp = (expectedRes.data ?? []) as unknown as KolPublishRecord[];
-      const pub = ((publishedRes.data ?? []) as unknown as KolPublishRecord[]).filter((r) => hasVal(r.publish_url));
+      const rawExp = (expectedRes.data ?? []) as unknown as KolPublishRecord[];
+      const rawPub = ((publishedRes.data ?? []) as unknown as KolPublishRecord[]).filter((r) =>
+        hasVal(r.publish_url),
+      );
+
+      // 與「正式邀約」Tab 一致：以 PMS orders 派生實際訂房狀態，
+      // 查無訂單（非 PMS 館別）則保留 DB 原值。
+      const orderNumbers = Array.from(
+        new Set(
+          [...rawExp, ...rawPub]
+            .map((r) => (r.order_number ?? "").trim())
+            .filter((v) => v.length > 0),
+        ),
+      );
+      let orderStatusMap = new Map<string, string>();
+      if (orderNumbers.length > 0) {
+        const { data: ordRows } = await supabase
+          .from("orders")
+          .select("order_number, order_status")
+          .in("order_number", orderNumbers);
+        if (cancelled) return;
+        orderStatusMap = new Map(
+          (ordRows ?? []).map((o: any) => [o.order_number as string, o.order_status as string]),
+        );
+      }
+      const isBooked = (r: KolPublishRecord) => {
+        const key = (r.order_number ?? "").trim();
+        const os = key ? orderStatusMap.get(key) : undefined;
+        if (os === "confirmed") return true;
+        if (os === "cancelled") return false;
+        if (os !== undefined) return false; // PMS 顯示訂房確認中
+        return r.booking_status === "成功訂房"; // 查無訂單：保留 DB 原值
+      };
+
+      const exp = rawExp.filter(isBooked);
+      const pub = rawPub.filter(isBooked);
       setExpectedRows(exp);
       setPublishedRows(pub);
       setLoading(false);
