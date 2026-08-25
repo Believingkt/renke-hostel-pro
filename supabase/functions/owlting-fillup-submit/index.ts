@@ -156,6 +156,12 @@ Deno.serve(async (req) => {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // 信件中的特殊需求（含早餐等備註）一併帶入訂單備註
+    const specialRequestsText = String(staging.special_requests ?? "").trim();
+    const specialRequestsPrefix = specialRequestsText
+      ? `[特殊需求] ${specialRequestsText}\n`
+      : "";
+
     if (staging.pii_status === "self_pushed") {
       return new Response(JSON.stringify({ error: "此為本站已推送的訂單，無需補單" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -292,7 +298,7 @@ Deno.serve(async (req) => {
             payment_status: effectivePaymentStatus,
             paid_amount: effectivePaidAmount,
             is_pii_pending: false,
-            notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"}) — 補齊自動鎖房訂單`,
+            notes: `${specialRequestsPrefix}奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"}) — 補齊自動鎖房訂單`,
           })
           .eq("id", pendingOrder.id)
           .select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price")
@@ -332,7 +338,7 @@ Deno.serve(async (req) => {
         requires_owner_review: true,
         owlting_reservation_id: staging.obe_number,
         deposit_required_amount: 0,
-        notes: `奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
+        notes: `${specialRequestsPrefix}奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"})`,
       }).select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price").single();
 
       if (insErr || !insertedRow) {
