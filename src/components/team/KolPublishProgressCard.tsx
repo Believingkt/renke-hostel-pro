@@ -290,30 +290,55 @@ export function KolPublishProgressCard() {
             </div>
 
             <div>
-              <div className="mb-2 text-sm font-medium">每日預計上片量</div>
+              <div className="mb-2 flex flex-wrap items-center gap-3">
+                <span className="text-sm font-medium">每日預計上片量 + 已發布數量</span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <i className="inline-block h-2.5 w-2.5 rounded-sm bg-green-500" />已完成
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <i className="inline-block h-2.5 w-2.5 rounded-sm bg-primary/70" />待上片
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <i className="inline-block h-2.5 w-2.5 rounded-sm bg-red-400" />逾期
+                </span>
+              </div>
               {daily.length === 0 ? (
                 <div className="text-sm text-muted-foreground">此區間沒有預計上片的邀約</div>
               ) : (
                 <div className="flex items-end gap-1 overflow-x-auto pb-1">
-                  {daily.map((d) => (
-                    <button
-                      key={d.date}
-                      type="button"
-                      onClick={() => setDrawer({ date: d.date })}
-                      className="flex min-w-[38px] flex-col items-center gap-1 rounded-md px-1 py-1 hover:bg-muted/50"
-                      title={`${d.date}｜共 ${d.total}（已完成 ${d.completed}／逾期 ${d.overdue}）`}
-                    >
-                      <span className="text-xs tabular-nums text-muted-foreground">{d.total}</span>
-                      <span
-                        className={`w-6 rounded-sm ${d.overdue > 0 ? "bg-red-400" : "bg-primary/70"}`}
-                        style={{ height: `${Math.max(6, (d.total / maxDaily) * 56)}px` }}
-                      />
-                      <span className="text-xs text-muted-foreground">{fmtDate(d.date)}</span>
-                    </button>
-                  ))}
+                  {daily.map((d) => {
+                    const h = (n: number) => (n > 0 ? Math.max(4, (n / maxDaily) * 56) : 0);
+                    return (
+                      <button
+                        key={d.date}
+                        type="button"
+                        onClick={() => setDrawer({ date: d.date })}
+                        className="flex min-w-[38px] flex-col items-center gap-1 rounded-md px-1 py-1 hover:bg-muted/50"
+                        title={`${d.date}｜共 ${d.total}（已完成 ${d.completed}／待上片 ${d.pending}／逾期 ${d.overdue}）`}
+                      >
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {d.total}
+                          {d.completed > 0 && <span className="text-green-600">／{d.completed}</span>}
+                        </span>
+                        <span className="flex w-6 flex-col justify-end overflow-hidden rounded-sm">
+                          {d.pending > 0 && (
+                            <span className="w-full bg-primary/70" style={{ height: `${h(d.pending)}px` }} />
+                          )}
+                          {d.overdue > 0 && (
+                            <span className="w-full bg-red-400" style={{ height: `${h(d.overdue)}px` }} />
+                          )}
+                          {d.completed > 0 && (
+                            <span className="w-full bg-green-500" style={{ height: `${h(d.completed)}px` }} />
+                          )}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{fmtDate(d.date)}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
             </div>
+
           </>
         )}
       </CardContent>
