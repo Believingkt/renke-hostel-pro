@@ -45,7 +45,7 @@ const PRESETS: { key: Exclude<Preset, "custom">; label: string }[] = [
 
 
 const SELECT_FIELDS =
-  "id, name, ig_handle, ig_url, venue_name, venue_id, accommodation_id, check_in_date, publish_date, publish_url, scout_id";
+  "id, name, ig_handle, ig_url, venue_name, venue_id, accommodation_id, check_in_date, publish_date, publish_url, scout_id, cid_code, short_url, cid_configured";
 
 type DrawerFilter = "all" | PublishStatus | "published_in_range" | { date: string };
 
@@ -109,8 +109,21 @@ export function KolPublishProgressCard() {
   const [publishedRows, setPublishedRows] = useState<KolPublishRecord[]>([]);
   const [scoutMap, setScoutMap] = useState<Record<string, string>>({});
   const [venueMap, setVenueMap] = useState<Record<string, string>>({});
+  const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("discount_codes").select("code");
+      if (cancelled) return;
+      setPmsCodes(new Set((data ?? []).map((d: any) => String(d.code ?? "").trim().toUpperCase()).filter(Boolean)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!range.from || !range.to) return;
@@ -172,6 +185,13 @@ export function KolPublishProgressCard() {
       cancelled = true;
     };
   }, [range.from, range.to]);
+
+  const cidOf = (r: KolPublishRecord) => {
+    const value = (hasVal(r.cid_code) && r.cid_code) || (hasVal(r.short_url) && r.short_url) || null;
+    if (!value) return { value: null as string | null, configured: false };
+    const configured = !!r.cid_configured || pmsCodes.has(value.trim().toUpperCase());
+    return { value, configured };
+  };
 
   const venueOf = (r: KolPublishRecord) =>
     (hasVal(r.venue_name) && r.venue_name) ||
@@ -457,6 +477,37 @@ export function KolPublishProgressCard() {
                     <TableHead className="whitespace-nowrap">入住日</TableHead>
                     <TableHead className="whitespace-nowrap">預計上片</TableHead>
                     <TableHead className="whitespace-nowrap">實際發布</TableHead>
+                    <TableHead className="whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        折扣碼 / CID
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-label="折扣碼顏色說明"
+                              className="inline-flex cursor-pointer text-muted-foreground hover:text-foreground"
+                            >
+                              <HelpCircle className="h-3.5 w-3.5" />
+                            </span>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" className="w-72 text-xs">
+                            <div className="mb-1 text-sm font-medium">折扣碼 / CID 顏色說明</div>
+                            <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                              <li>
+                                <span className="font-medium text-green-600">綠色</span>
+                                ：折扣碼已在後台建立完成（已標記設定完成，或該碼已存在於折扣碼管理），AM 可直接使用。
+                              </li>
+                              <li>
+                                <span className="font-medium text-foreground">黑色</span>
+                                ：僅登記了代碼字串，後台尚未建立此折扣碼，需要補設定。
+                              </li>
+                              <li>「—」表示此筆尚未填寫折扣碼 / CID。</li>
+                            </ul>
+                          </PopoverContent>
+                        </Popover>
+                      </span>
+                    </TableHead>
                     <TableHead>狀態</TableHead>
                     <TableHead>星探</TableHead>
                   </TableRow>
@@ -495,6 +546,15 @@ export function KolPublishProgressCard() {
                           ) : (
                             "—"
                           )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {(() => {
+                            const cid = cidOf(r);
+                            if (!cid.value) return <span className="text-muted-foreground">—</span>;
+                            return (
+                              <span className={cid.configured ? "font-medium text-green-600" : ""}>{cid.value}</span>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={PUBLISH_STATUS_CLASS[st]}>
