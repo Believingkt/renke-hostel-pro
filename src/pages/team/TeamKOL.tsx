@@ -3586,6 +3586,43 @@ function InvitationsTab({
               </Field>
             </div>
 
+            {(() => {
+              const accId = form.accommodation_id;
+              if (!accId) return null;
+              const venueId =
+                form.venue_id ||
+                venues.find((x) => x.accommodation_id === accId && !x.room_type_id)?.id ||
+                null;
+              const missingVenue = !venueId;
+              const missingSettings = form.inventory_status === "⚠️ 缺設定";
+              if (!missingVenue && !missingSettings) return null;
+              const accName = accommodations.find((a) => a.id === accId)?.name ?? "此館別";
+              return (
+                <div className="flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      {missingVenue
+                        ? `${accName} 尚未在「場域邀約管理」建立場域資料，庫存狀態無法自動判定。`
+                        : `${accName} 尚未設定場域邀約規則（庫存判定將無效），請通知星探主管／AM 前往「場域邀約管理」補齊設定。`}
+                    </span>
+                  </div>
+                  {onGoToVenues && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      onClick={onGoToVenues}
+                    >
+                      前往場域邀約管理
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
+
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Field label="訂單編號" anchorId="kolf-order">
                 <Input value={form.order_number} onChange={(e) => setForm({ ...form, order_number: e.target.value })} />
