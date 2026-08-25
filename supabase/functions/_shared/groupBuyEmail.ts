@@ -146,7 +146,7 @@ function orderTable(
     ${o.packageName ? `<tr><td class="k">方案</td><td>${esc(o.packageName)}</td></tr>` : ""}
     ${o.roomTypeName ? `<tr><td class="k">房型</td><td>${esc(o.roomTypeName)}</td></tr>` : ""}
     <tr><td class="k">入住 / 退房</td><td>${esc(o.checkInDate)} → ${esc(o.checkOutDate)}</td></tr>
-    ${o.nights ? `<tr><td class="k">住宿晚數</td><td>${esc(o.nights)} 晚${o.roomQuantity ? ` × ${esc(o.roomQuantity)} 間` : ""}</td></tr>` : ""}
+    ${o.nights ? `<tr><td class="k">住宿晚數</td><td>${esc(o.nights)} 晚${o.roomQuantity ? ` × ${esc(o.roomQuantity)} 棟` : ""}</td></tr>` : ""}
     ${
     o.guestCompositionText
       ? `<tr><td class="k">入住人數</td><td>${esc(o.guestCompositionText)}</td></tr>`
