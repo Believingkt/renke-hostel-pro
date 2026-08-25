@@ -68,6 +68,12 @@ export const TEAM_MENU: TeamMenuItem[] = [
     allowedRoles: ["scout", "scout_manager", "hotel_admin", "super_admin"] as TeamRole[],
   },
   {
+    title: "KOL 分潤儀表板",
+    url: "/team/kol/bonus",
+    icon: Star,
+    allowedRoles: ["am", "am_manager"] as TeamRole[],
+  },
+  {
     title: "成交大師",
     url: "/team/orders",
     icon: ClipboardList,
