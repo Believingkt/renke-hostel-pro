@@ -570,7 +570,7 @@ export default function OwnerSettlementSettings({
           需要調整請至總部「獎金與月結設定 → 業主月結設定」，或聯絡總部 AM／管理者。
           {!hideBackButton && (
             <a
-              className="ml-2 underline font-medium"
+              className="ml-2 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
               href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
             >
               前往總部設定頁 →
