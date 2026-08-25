@@ -944,6 +944,7 @@ function ConsultingFeeSettingsBlock({
   year: number;
   month: number;
 }) {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [rows, setRows] = useState<RateViewRow[]>([]);
   const [loading, setLoading] = useState(false);
