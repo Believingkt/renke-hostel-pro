@@ -603,13 +603,16 @@ function InvitationsTab({
   canEditTicketLink,
   prefill,
   onPrefillConsumed,
+  onGoToVenues,
 }: {
   currentUserId: string;
   isManager: boolean;
   canEditTicketLink: boolean;
   prefill?: InvitationPrefill | null;
   onPrefillConsumed?: () => void;
+  onGoToVenues?: () => void;
 }) {
+
 
   const [prospectLink, setProspectLink] = useState<string | null>(null);
   const [rows, setRows] = useState<KolRow[]>([]);
