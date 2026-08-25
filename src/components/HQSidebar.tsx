@@ -29,6 +29,8 @@ import {
   Share2,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { PreloadLink } from "@/components/PreloadLink";
 import {
   Sidebar,
@@ -147,13 +149,59 @@ const menuItems = [
   },
 ];
 
+/** 只能看業主月結設定的角色 */
+const OWNER_SETTLEMENT_ONLY_ROLES = ["am", "am_manager", "hotel_admin"];
+/** 可看整組「獎金與月結設定」（唯讀）的角色 */
+const BONUS_READONLY_ROLES = ["finance"];
+const FULL_ACCESS_ROLES = ["super_admin", "admin"];
+
+const OWNER_SETTLEMENT_ONLY_MENU: typeof menuItems = [
+  {
+    title: "業主月結設定",
+    url: "/hq/bonus-settings?tab=owner-settlement",
+    icon: FileText,
+    tab: "bonus-settings",
+  },
+];
+
 export function HQSidebar() {
   const { setOpenMobile, isMobile, state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const [roles, setRoles] = useState<string[] | null>(null);
   const searchParams = new URLSearchParams(location.search);
   const currentTab = searchParams.get('tab') || 'overview';
   const currentSection = searchParams.get('section');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      if (!uid) {
+        if (!cancelled) setRoles([]);
+        return;
+      }
+      const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      if (!cancelled) setRoles((data ?? []).map((r: { role: string }) => r.role));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleMenuItems = useMemo(() => {
+    if (roles === null) return [];
+    if (roles.some((r) => FULL_ACCESS_ROLES.includes(r))) return menuItems;
+    if (roles.some((r) => BONUS_READONLY_ROLES.includes(r))) {
+      return menuItems.filter((i) => i.tab === "bonus-settings");
+    }
+    if (roles.some((r) => OWNER_SETTLEMENT_ONLY_ROLES.includes(r))) {
+      return OWNER_SETTLEMENT_ONLY_MENU;
+    }
+    return menuItems;
+  }, [roles]);
+
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -219,7 +267,7 @@ export function HQSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2.5">
-              {menuItems.map((item) => (
+              {visibleMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   {item.subItems ? (
                     <Collapsible defaultOpen={isActiveRoute(item.tab)} className="group/collapsible">

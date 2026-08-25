@@ -90,7 +90,7 @@ function primaryRole(roles: string[]) {
  * 未生效的版本才能刪除。每筆版本都記錄建立者與建立時間。
  * 名單排除財務與已離職／停用成員，並依角色分組排序。
  */
-export default function TeamBaseSalaryTab() {
+export default function TeamBaseSalaryTab({ readOnly = false }: { readOnly?: boolean } = {}) {
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [versions, setVersions] = useState<SalaryVersion[]>([]);
   const [loading, setLoading] = useState(true);
@@ -288,6 +288,7 @@ export default function TeamBaseSalaryTab() {
                   </div>
 
 
+                  {!readOnly && (
                   <div className="mt-2 flex flex-wrap items-center gap-2">
                     <Input
                       type="number"
@@ -324,6 +325,8 @@ export default function TeamBaseSalaryTab() {
                       新增版本
                     </Button>
                   </div>
+                  )}
+
 
                   {list.length > 0 && (
                     <ul className="mt-3 space-y-1.5 text-sm">
@@ -344,7 +347,7 @@ export default function TeamBaseSalaryTab() {
                             <span className="text-xs text-muted-foreground">
                               （由 {v.created_by_email ?? "未知"} 於 {fmtTime(v.created_at)} 設定）
                             </span>
-                            {future && (
+                            {future && !readOnly && (
                               <Button
                                 variant="ghost"
                                 size="sm"
