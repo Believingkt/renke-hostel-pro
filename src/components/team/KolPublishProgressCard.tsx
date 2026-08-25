@@ -20,8 +20,6 @@ import {
   groupByExpectedDate,
   hasVal,
   monthRangeYmd,
-  nextDaysRangeYmd,
-  pastDaysRangeYmd,
   taipeiToday,
   weekRangeYmd,
 } from "@/lib/kolPublishSchedule";
