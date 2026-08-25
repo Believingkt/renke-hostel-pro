@@ -1486,9 +1486,19 @@ function KolRateSettingsTab({
       toast.error("儲存失敗：" + error.message);
       return;
     }
+    await logKolRateChange({
+      actionType: "create",
+      accommodationId: formAccId,
+      accommodationName: groups.find((g) => g.id === formAccId)?.name ?? null,
+      rate,
+      effectiveFrom: formDate,
+      appliesRange: `${formDate} 起（目前生效中）`,
+    });
     toast.success("已新增費率");
     setDialogOpen(false);
     await load();
+    if (expanded.has(formAccId)) loadAudit(formAccId);
+
   };
 
   const handleDelete = async (row: RateRow, g: AccGroup, rangeLabel: string) => {
