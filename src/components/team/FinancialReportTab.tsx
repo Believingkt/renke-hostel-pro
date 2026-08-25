@@ -1010,7 +1010,7 @@ function ConsultingFeeSettingsBlock({
               <Button
                 size="sm"
                 className="bg-amber-600 hover:bg-amber-700 text-white"
-                onClick={() => window.open(HQ_RATE_SETTINGS_URL, "_blank")}
+                onClick={() => navigate(HQ_RATE_SETTINGS_URL)}
               >
                 前往總部設定頁 →
               </Button>
