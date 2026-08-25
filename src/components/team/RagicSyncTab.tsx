@@ -151,17 +151,59 @@ function flatten(results: AccomResult[]): RagicRow[] {
   return rows;
 }
 
+const STORAGE_KEY = "ragic-sync-preview-v1";
+
+type PersistedPreview = {
+  year: number;
+  month: number;
+  rows: RagicRow[];
+  skipped: SkipEntry[];
+  previewedAt: { year: number; month: number } | null;
+};
+
+function loadPersisted(): PersistedPreview | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedPreview;
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export default function RagicSyncTab() {
   const init = nowLastMonth();
-  const [year, setYear] = useState<number>(init.year);
-  const [month, setMonth] = useState<number>(init.month);
+  const persisted = useMemo(() => loadPersisted(), []);
+  const [year, setYear] = useState<number>(persisted?.year ?? init.year);
+  const [month, setMonth] = useState<number>(persisted?.month ?? init.month);
   const [loading, setLoading] = useState(false);
   const [writing, setWriting] = useState(false);
-  const [rows, setRows] = useState<RagicRow[] | null>(null);
+  const [rows, setRows] = useState<RagicRow[] | null>(persisted?.rows ?? null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [skipped, setSkipped] = useState<SkipEntry[] | null>(null);
+  const [skipped, setSkipped] = useState<SkipEntry[] | null>(persisted?.skipped ?? null);
   const [showSkipped, setShowSkipped] = useState(false);
-  const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(null);
+  const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(
+    persisted?.previewedAt ?? null,
+  );
+
+  useEffect(() => {
+    try {
+      if (!rows || !previewedAt) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ year, month, rows, skipped: skipped ?? [], previewedAt }),
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [year, month, rows, skipped, previewedAt]);
+
+
 
 
 
