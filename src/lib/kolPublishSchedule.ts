@@ -21,6 +21,9 @@ export interface KolPublishRecord {
   publish_date?: string | null;
   publish_url?: string | null;
   scout_id?: string | null;
+  cid_code?: string | null;
+  short_url?: string | null;
+  cid_configured?: boolean | null;
 }
 
 export type PublishStatus = "completed" | "overdue" | "due_soon" | "upcoming";
