@@ -149,11 +149,11 @@ export default function HQBonusSettings() {
         {!ownerSettlementOnly && (
           <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <TabsList className="w-max flex-nowrap justify-start">
+              {canSeeBonus && <TabsTrigger value="rate-check" className="whitespace-nowrap">館別設定完整性</TabsTrigger>}
               {canSeeBonus && <TabsTrigger value="bonus" className="whitespace-nowrap">獎金發放規則（4 步流程）</TabsTrigger>}
               {canSeeBonus && <TabsTrigger value="venue-tiers" className="whitespace-nowrap">館別獎金級距規則</TabsTrigger>}
               <TabsTrigger value="owner-settlement" className="whitespace-nowrap">基準金額規則（業主月結）</TabsTrigger>
               {canSeeBonus && <TabsTrigger value="base-salary" className="whitespace-nowrap">成員底薪</TabsTrigger>}
-              {canSeeBonus && <TabsTrigger value="rate-check" className="whitespace-nowrap">館別設定完整性</TabsTrigger>}
             </TabsList>
           </div>
         )}
