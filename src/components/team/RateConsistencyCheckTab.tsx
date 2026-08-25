@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { buildGapHref } from "@/lib/settingsGapLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,9 +112,11 @@ export default function RateConsistencyCheckTab() {
         const ps = periods.filter((x) => x.accommodation_id === a.id);
         const b = bookings.find((x) => x.accommodation_id === a.id);
 
-        const hqHref = `/hq/bonus-settings?tab=owner-settlement&acc=${a.id}`;
+        const hqHref = buildGapHref("settlementRule", a.id)!;
+        const marketingHref = buildGapHref("marketingFee", a.id)!;
+        const legacyHref = buildGapHref("legacyRate", a.id)!;
         // 合作期間的維護 UI 在「獎金發放規則（4 步流程）」第 ① 步，不在業主月結頁
-        const bonusHref = `/hq/bonus-settings?tab=bonus&acc=${a.id}`;
+        const bonusHref = buildGapHref("partnership", a.id)!;
         const BONUS_TARGET = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ① 步 合作期間卡片";
 
         const activePeriod = ps.some((p) => {
@@ -136,10 +139,10 @@ export default function RateConsistencyCheckTab() {
             : { level: "ok", label: `${rate.toFixed(2)}%` };
 
         const marketingFee: CheckResult = !r
-          ? { level: "error", label: "未設定", href: hqHref, target: HQ_TARGET, fields: ["先新增一筆月結費率規則", "勾選是否收取行銷推廣費"], hint: "沒有月結費率規則就無法判斷是否收行銷推廣費，請先新增費率規則。" }
+          ? { level: "error", label: "未設定", href: marketingHref, target: HQ_TARGET, fields: ["先新增一筆月結費率規則", "勾選是否收取行銷推廣費"], hint: "沒有月結費率規則就無法判斷是否收行銷推廣費，請先新增費率規則。" }
           : r.charges_marketing_fee === true
             ? { level: "ok", label: "有收取" }
-            : { level: "warn", label: "未約定收取", href: hqHref, target: HQ_TARGET, fields: ["收取行銷推廣費（勾選）"], hint: "若此館合約有收行銷推廣費，請到總部設定頁勾選「收取行銷推廣費」。" };
+            : { level: "warn", label: "未約定收取", href: marketingHref, target: HQ_TARGET, fields: ["收取行銷推廣費（勾選）"], hint: "若此館合約有收行銷推廣費，請到總部設定頁勾選「收取行銷推廣費」。" };
 
         const bookingSetting: CheckResult = !b
           ? { level: "warn", label: "無訂房設定", target: "該館後台 →「訂房設定」", fields: ["建立訂房設定基本資料", "人工退款手續費金額"], hint: "此館尚未建立訂房設定，請到該館後台「訂房設定」建立基本設定。" }
@@ -159,7 +162,7 @@ export default function RateConsistencyCheckTab() {
               hint: "歷史管顧費率表殘留舊數值，僅供查詢不影響計算；可到總部設定頁確認後刪除舊版本。",
               target: HQ_TARGET,
               fields: ["確認最新費率／門檻正確", "刪除歷史管顧費率表的舊版本"],
-              href: hqHref,
+              href: legacyHref,
             };
         }
 

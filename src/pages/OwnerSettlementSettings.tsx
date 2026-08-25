@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { parseOwnerSettlementFocus } from "@/lib/settingsGapLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
 import { AdminPageShell, AdminStickyActionBar } from "@/components/admin";
@@ -131,8 +132,24 @@ export default function OwnerSettlementSettings({
   const [usingFallback, setUsingFallback] = useState(false);
   const [currentRuleId, setCurrentRuleId] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  /** ?focus=service-fee | marketing-fee | history：跳轉後自動捲到對應卡片並短暫高亮 */
+  const focusSection = parseOwnerSettlementFocus(searchParams.get("focus"));
   /** 未勾選「合約有約定收取行銷推廣費」時，金額欄位預設收合（值不變動，仍會照原邏輯儲存） */
   const [showMarketingAmounts, setShowMarketingAmounts] = useState(false);
+  /** 依 ?focus= 捲動到對應卡片並短暫高亮（資料載入完成後才執行） */
+  useEffect(() => {
+    if (!focusSection || loading) return;
+    if (focusSection === "history") setHistoryOpen(true);
+    const timer = window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(`[data-focus-section="${focusSection}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary", "ring-offset-2");
+      window.setTimeout(() => el.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 4000);
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [focusSection, loading]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyRows, setHistoryRows] = useState<any[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
@@ -654,7 +671,7 @@ export default function OwnerSettlementSettings({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-focus-section="service-fee">
         <CardHeader>
           <CardTitle>服務費</CardTitle>
           <CardDescription>
@@ -820,7 +837,7 @@ export default function OwnerSettlementSettings({
 
 
 
-      <Card>
+      <Card data-focus-section="marketing-fee">
         <CardHeader>
           <CardTitle>行銷費</CardTitle>
           <CardDescription>
@@ -969,7 +986,7 @@ export default function OwnerSettlementSettings({
           if (open && !historyLoaded && !historyLoading) loadHistory();
         }}
       >
-        <Card>
+        <Card data-focus-section="history">
           <CollapsibleTrigger className="w-full text-left">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div className="space-y-1.5">
