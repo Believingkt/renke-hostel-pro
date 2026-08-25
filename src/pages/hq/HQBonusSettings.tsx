@@ -120,7 +120,7 @@ export default function HQBonusSettings() {
           <ArrowLeft className="mr-1 h-4 w-4" />
           回團隊獎金頁
         </Button>
-        <Button variant="outline" size="sm" onClick={() => navigate("/admin/owner-settlement")}>
+        <Button variant="outline" size="sm" onClick={goOwnerSettlement}>
           <ArrowLeft className="mr-1 h-4 w-4" />
           回業主月結
         </Button>
@@ -128,12 +128,15 @@ export default function HQBonusSettings() {
 
       <Tabs value={tab} onValueChange={setTab} className="space-y-4">
         {!ownerSettlementOnly && (
-          <TabsList>
-            {canSeeBonus && <TabsTrigger value="bonus">獎金發放規則（4 步流程）</TabsTrigger>}
-            {canSeeBonus && <TabsTrigger value="venue-tiers">館別獎金級距規則</TabsTrigger>}
-            <TabsTrigger value="owner-settlement">基準金額規則（業主月結）</TabsTrigger>
-            {canSeeBonus && <TabsTrigger value="base-salary">成員底薪</TabsTrigger>}
-          </TabsList>
+          <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <TabsList className="w-max flex-nowrap justify-start">
+              {canSeeBonus && <TabsTrigger value="bonus" className="whitespace-nowrap">獎金發放規則（4 步流程）</TabsTrigger>}
+              {canSeeBonus && <TabsTrigger value="venue-tiers" className="whitespace-nowrap">館別獎金級距規則</TabsTrigger>}
+              <TabsTrigger value="owner-settlement" className="whitespace-nowrap">基準金額規則（業主月結）</TabsTrigger>
+              {canSeeBonus && <TabsTrigger value="base-salary" className="whitespace-nowrap">成員底薪</TabsTrigger>}
+              {canSeeBonus && <TabsTrigger value="rate-check" className="whitespace-nowrap">費率一致性檢查</TabsTrigger>}
+            </TabsList>
+          </div>
         )}
 
         {isFinanceViewer && (
