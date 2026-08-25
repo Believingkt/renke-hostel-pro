@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1367,6 +1367,14 @@ function KolRateSettingsTab({
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
   useEffect(() => {
@@ -1497,11 +1505,11 @@ function KolRateSettingsTab({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10"></TableHead>
                 <TableHead className="whitespace-nowrap">館別</TableHead>
                 <TableHead className="whitespace-nowrap">生效日期</TableHead>
                 <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
                 <TableHead className="whitespace-nowrap">建立時間</TableHead>
-                <TableHead className="whitespace-nowrap text-right">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -1512,57 +1520,111 @@ function KolRateSettingsTab({
                   </TableCell>
                 </TableRow>
               ) : (
-                groupsWithRows.flatMap((g) =>
-                  g.rows.map((r, idx) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="whitespace-nowrap font-medium">
-                        {idx === 0 ? g.name : ""}
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {r.effective_from}
-                        {idx === 0 && (
+                groupsWithRows.map((g) => {
+                  const current = g.rows[0];
+                  const history = g.rows.slice(1);
+                  const isOpen = expanded.has(g.id);
+                  return (
+                    <Fragment key={g.id}>
+                      <TableRow>
+                        <TableCell>
+                          {history.length > 0 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => toggleExpand(g.id)}
+                              aria-label="展開歷史版本"
+                            >
+                              {isOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">{g.name}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {current.effective_from}
                           <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
                             目前生效
                           </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{r.rate}%</TableCell>
-                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                        {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {idx !== 0 && g.rows.length > 1 && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                disabled={deletingId === r.id}
-                                title="刪除"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>確定刪除？</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>取消</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(r)}>
-                                  確認刪除
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  )),
-                )
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{current.rate}%</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {current.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                          {history.length > 0 && (
+                            <span className="ml-2">（{history.length} 筆歷史版本）</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && history.length > 0 && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell></TableCell>
+                          <TableCell colSpan={4} className="p-0">
+                            <div className="px-4 py-3">
+                              <div className="text-xs text-muted-foreground mb-2">歷史版本</div>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                                    <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                                    <TableHead className="whitespace-nowrap text-right">操作</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {history.map((r) => (
+                                    <TableRow key={r.id}>
+                                      <TableCell className="whitespace-nowrap">
+                                        {r.effective_from}
+                                      </TableCell>
+                                      <TableCell className="text-right tabular-nums">
+                                        {r.rate}%
+                                      </TableCell>
+                                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                        {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                                      </TableCell>
+                                      <TableCell className="text-right">
+                                        <AlertDialog>
+                                          <AlertDialogTrigger asChild>
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              disabled={deletingId === r.id}
+                                              title="刪除"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </AlertDialogTrigger>
+                                          <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                              <AlertDialogTitle>確定刪除？</AlertDialogTitle>
+                                              <AlertDialogDescription>
+                                                將刪除 {g.name} 生效日期 {r.effective_from} 的 {r.rate}% 費率，此操作無法復原。
+                                              </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                              <AlertDialogCancel>取消</AlertDialogCancel>
+                                              <AlertDialogAction onClick={() => handleDelete(r)}>
+                                                確認刪除
+                                              </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                          </AlertDialogContent>
+                                        </AlertDialog>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </Fragment>
+                  );
+                })
               )}
             </TableBody>
           </Table>
