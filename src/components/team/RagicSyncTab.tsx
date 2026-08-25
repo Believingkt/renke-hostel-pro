@@ -276,13 +276,35 @@ export default function RagicSyncTab() {
           </Button>
         </div>
 
+        {isStale && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+            <div className="flex items-start gap-2 text-sm">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <span>
+                <strong className="text-amber-700 dark:text-amber-400">篩選已變更，請重新預覽</strong>
+                <br />
+                <span className="text-xs text-muted-foreground">
+                  下方仍是 {previewedAt?.year} 年 {previewedAt?.month} 月的結果，並非目前選取的{year} 年 {month} 月；重新預覽前無法寫入 Ragic。
+                </span>
+              </span>
+            </div>
+            <Button size="sm" onClick={handlePreview} disabled={loading || writing}>
+              {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              重新預覽
+            </Button>
+          </div>
+        )}
+
         {rows && (
           <div className="text-sm text-muted-foreground">
             共 {rows.length} 筆
             {postedCount > 0 && `（已送出 ${postedCount} 筆）`}
-            ・計算範圍是{year}年{month}月1日～{month}月{new Date(year, month, 0).getDate()}日
+            ・計算範圍是{previewedAt?.year ?? year}年{previewedAt?.month ?? month}月1日～
+            {previewedAt?.month ?? month}月
+            {new Date(previewedAt?.year ?? year, previewedAt?.month ?? month, 0).getDate()}日
           </div>
         )}
+
 
         <div className="overflow-x-auto">
           <Table>
