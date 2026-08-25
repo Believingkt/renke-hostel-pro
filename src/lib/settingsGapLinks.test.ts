@@ -35,19 +35,21 @@ describe("buildGapHref", () => {
     expect(buildGapHref("bookingSetting", ACC)).toBeNull();
   });
 
-  it("所有 HQ 連結都同時帶 tab 與 acc", () => {
+  it("所有 HQ 連結都帶 tab；館別維度的連結另帶 acc", () => {
     (Object.keys(GAP_TARGETS) as GapKey[]).forEach((key) => {
       const href = buildGapHref(key, ACC);
       if (!href) return;
       const qs = new URLSearchParams(href.split("?")[1]);
-      expect(qs.get("acc")).toBe(ACC);
-      expect(["bonus", "owner-settlement"]).toContain(qs.get("tab"));
+      expect(["bonus", "owner-settlement", "venue-tiers"]).toContain(qs.get("tab"));
+      // 全站設定（noAcc）不帶 acc，其餘一定要帶
+      expect(qs.get("acc")).toBe(GAP_TARGETS[key].noAcc ? null : ACC);
       // 業主月結頁的缺漏一定要有 focus，才會捲到正確卡片
       if (qs.get("tab") === "owner-settlement") {
         expect(parseOwnerSettlementFocus(qs.get("focus"))).not.toBeNull();
       }
     });
   });
+
 });
 
 describe("parseOwnerSettlementFocus", () => {
