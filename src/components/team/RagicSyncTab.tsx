@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { AlertTriangle, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -151,17 +153,59 @@ function flatten(results: AccomResult[]): RagicRow[] {
   return rows;
 }
 
+const STORAGE_KEY = "ragic-sync-preview-v1";
+
+type PersistedPreview = {
+  year: number;
+  month: number;
+  rows: RagicRow[];
+  skipped: SkipEntry[];
+  previewedAt: { year: number; month: number } | null;
+};
+
+function loadPersisted(): PersistedPreview | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedPreview;
+    if (!parsed || !Array.isArray(parsed.rows)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export default function RagicSyncTab() {
   const init = nowLastMonth();
-  const [year, setYear] = useState<number>(init.year);
-  const [month, setMonth] = useState<number>(init.month);
+  const persisted = useMemo(() => loadPersisted(), []);
+  const [year, setYear] = useState<number>(persisted?.year ?? init.year);
+  const [month, setMonth] = useState<number>(persisted?.month ?? init.month);
   const [loading, setLoading] = useState(false);
   const [writing, setWriting] = useState(false);
-  const [rows, setRows] = useState<RagicRow[] | null>(null);
+  const [rows, setRows] = useState<RagicRow[] | null>(persisted?.rows ?? null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [skipped, setSkipped] = useState<SkipEntry[] | null>(null);
+  const [skipped, setSkipped] = useState<SkipEntry[] | null>(persisted?.skipped ?? null);
   const [showSkipped, setShowSkipped] = useState(false);
-  const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(null);
+  const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(
+    persisted?.previewedAt ?? null,
+  );
+
+  useEffect(() => {
+    try {
+      if (!rows || !previewedAt) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ year, month, rows, skipped: skipped ?? [], previewedAt }),
+      );
+    } catch {
+      /* ignore quota errors */
+    }
+  }, [year, month, rows, skipped, previewedAt]);
+
+
 
 
 
@@ -262,13 +306,34 @@ export default function RagicSyncTab() {
               </SelectContent>
             </Select>
           </div>
-          <Button
-            onClick={handlePreview}
-            disabled={loading || writing || hasPreview}
-          >
-            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {isStale ? "重新預覽" : "預覽"}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    onClick={handlePreview}
+                    disabled={loading || writing || !!hasPreview}
+                  >
+                    {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    {isStale ? "重新預覽" : "預覽"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="bg-popover z-50">
+                {hasPreview
+                  ? `${previewedAt?.year} 年 ${previewedAt?.month} 月已完成預覽，切換年／月後才能再次預覽`
+                  : isStale
+                    ? "篩選已變更，請重新預覽"
+                    : "預覽指定月份的計算結果"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {hasPreview && (
+            <span className="text-xs text-muted-foreground">
+              此月份已完成預覽
+            </span>
+          )}
+
 
           <Button
             variant="default"
