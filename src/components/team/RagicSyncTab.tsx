@@ -304,13 +304,34 @@ export default function RagicSyncTab() {
               </SelectContent>
             </Select>
           </div>
-          <Button
-            onClick={handlePreview}
-            disabled={loading || writing || hasPreview}
-          >
-            {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            {isStale ? "重新預覽" : "預覽"}
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button
+                    onClick={handlePreview}
+                    disabled={loading || writing || !!hasPreview}
+                  >
+                    {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    {isStale ? "重新預覽" : "預覽"}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="bg-popover z-50">
+                {hasPreview
+                  ? `${previewedAt?.year} 年 ${previewedAt?.month} 月已完成預覽，切換年／月後才能再次預覽`
+                  : isStale
+                    ? "篩選已變更，請重新預覽"
+                    : "預覽指定月份的計算結果"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {hasPreview && (
+            <span className="text-xs text-muted-foreground">
+              此月份已完成預覽
+            </span>
+          )}
+
 
           <Button
             variant="default"
