@@ -190,7 +190,7 @@ export default function GroupBuyOrderConfirmation() {
             {nights && (
               <div className="flex justify-between py-1">
                 <span className="text-muted-foreground">住宿</span>
-                <span>{nights} 晚{roomQuantity ? ` × ${roomQuantity} 間` : ""}</span>
+                <span>{nights} 晚{roomQuantity ? ` × ${roomQuantity} 棟` : ""}</span>
               </div>
             )}
             {guestCompositionText && (
