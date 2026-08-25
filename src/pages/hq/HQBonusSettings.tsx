@@ -95,6 +95,9 @@ export default function HQBonusSettings() {
     } else if (value === "venue-tiers") {
       next.set("tab", "venue-tiers");
       next.delete("acc");
+    } else if (value === "rate-check") {
+      next.set("tab", "rate-check");
+      next.delete("acc");
     } else {
       next.delete("tab");
       next.delete("acc");
