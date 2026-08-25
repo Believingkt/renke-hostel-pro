@@ -161,6 +161,8 @@ export default function RagicSyncTab() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [skipped, setSkipped] = useState<SkipEntry[] | null>(null);
   const [showSkipped, setShowSkipped] = useState(true);
+  const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(null);
+
 
 
   const years = useMemo(() => {
