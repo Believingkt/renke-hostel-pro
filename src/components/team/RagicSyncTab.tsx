@@ -183,6 +183,7 @@ export default function RagicSyncTab() {
       const data = await call(true);
       setRows(flatten(data.results));
       setSkipped(data.skipped ?? []);
+      setPreviewedAt({ year, month });
       toast.success("預覽完成");
     } catch (e: any) {
       toast.error(e.message || "預覽失敗");
@@ -198,6 +199,7 @@ export default function RagicSyncTab() {
       const flat = flatten(data.results);
       setRows(flat);
       setSkipped(data.skipped ?? []);
+      setPreviewedAt({ year, month });
 
       const posted = flat.filter((r) => r.post_result);
       const ok = posted.filter((r) => r.post_result?.ok).length;
@@ -212,8 +214,13 @@ export default function RagicSyncTab() {
     }
   };
 
-  const hasPreview = rows && rows.length > 0;
+  const isStale =
+    !!rows &&
+    !!previewedAt &&
+    (previewedAt.year !== year || previewedAt.month !== month);
+  const hasPreview = rows && rows.length > 0 && !isStale;
   const postedCount = rows?.filter((r) => r.post_result).length ?? 0;
+
 
   return (
     <Card>
