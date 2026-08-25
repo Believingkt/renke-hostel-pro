@@ -152,9 +152,14 @@ export default function KolBonusDashboardTab({
   const ranking = useMemo(() => {
     const list = rows
       .filter((r) => venue === "all" || r.accommodation_id === venue)
+      // 排除無名稱（未建檔／通路測試碼）之列
+      .filter((r) => !!(r.name ?? "").trim())
       .map((r) => {
         const orders = (ordersByKey.get(r.rowKey) ?? []).filter(
-          (o) => o.order_status !== "cancelled" && matchPeriod(o.order_date),
+          (o) =>
+            o.order_status !== "cancelled" &&
+            grossOf(o) > 0 && // 排除 0 元（互惠／換宿／測試）訂單
+            matchPeriod(o.order_date),
         );
         const revenue = orders.reduce((s, o) => s + grossOf(o), 0);
         return {
@@ -186,9 +191,11 @@ export default function KolBonusDashboardTab({
     const byMonth = new Map<string, Map<string, number>>();
     for (const r of rows) {
       if (venue !== "all" && r.accommodation_id !== venue) continue;
+      if (!(r.name ?? "").trim()) continue;
       const vName = r.accommodation_name || "未指定館別";
       for (const o of ordersByKey.get(r.rowKey) ?? []) {
         if (o.order_status === "cancelled") continue;
+        if (grossOf(o) <= 0) continue;
         if (!o.order_date) continue;
         if (!matchPeriod(o.order_date)) continue;
         const m = o.order_date.slice(0, 7);
@@ -330,7 +337,7 @@ export default function KolBonusDashboardTab({
                   <b>原始總額</b>加總。
                 </p>
                 <p>取數欄位優先序：gross_revenue → final_price → total_price。</p>
-                <p>已排除狀態為「已取消」的訂單。</p>
+                <p>已排除「已取消」訂單、<b>0 元訂單</b>（互惠／換宿／測試）與<b>無 KOL 名稱</b>的折扣代碼。</p>
                 <p>期間以訂單的<b>成交日（order_date）</b>判定。</p>
               </HelpTip>
             </CardTitle>
@@ -345,7 +352,7 @@ export default function KolBonusDashboardTab({
               使用折扣碼 總訂單數
               <HelpTip title="總訂單數怎麼算">
                 <p>篩選條件下，帶有 KOL 折扣代碼的訂單筆數。</p>
-                <p>已排除「已取消」訂單；期間以成交日（order_date）判定。</p>
+                <p>已排除「已取消」訂單、0 元訂單與無名稱折扣代碼；期間以成交日（order_date）判定。</p>
               </HelpTip>
             </CardTitle>
           </CardHeader>
@@ -500,10 +507,16 @@ export default function KolBonusDashboardTab({
               KOL 業績排名
               <HelpTip title="排名表怎麼算">
                 <p>每一列為「折扣代碼（CID）× 館別」的組合。</p>
-                <p>訂單數／業績皆已排除取消訂單，並以成交日落在篩選期間為準。</p>
+                <p>訂單數／業績已排除取消訂單、0 元訂單與無名稱折扣代碼，並以成交日落在篩選期間為準。</p>
                 <p>可切換依業績或依訂單數排序。</p>
               </HelpTip>
             </CardTitle>
+            <div className="flex items-center gap-2">
+              {ranking.length > 10 && (
+                <Button variant="outline" size="sm" onClick={() => setShowAll((v) => !v)}>
+                  {showAll ? "只顯示前 10 名" : `顯示全部 KOL（${ranking.length}）`}
+                </Button>
+              )}
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as "revenue" | "orders")}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue />
@@ -513,6 +526,7 @@ export default function KolBonusDashboardTab({
                 <SelectItem value="orders">依訂單數排序</SelectItem>
               </SelectContent>
             </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -558,13 +572,6 @@ export default function KolBonusDashboardTab({
               </TableBody>
             </Table>
           </div>
-          {ranking.length > 10 && (
-            <div className="pt-3 text-center">
-              <Button variant="outline" size="sm" onClick={() => setShowAll((v) => !v)}>
-                {showAll ? "只顯示前 10 名" : `顯示全部 KOL（${ranking.length}）`}
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
