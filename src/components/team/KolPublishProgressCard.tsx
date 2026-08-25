@@ -27,13 +27,11 @@ import {
 } from "@/lib/kolPublishSchedule";
 
 
-type Preset = "this_week" | "next_week" | "next_30" | "past_30" | "this_month" | "next_month" | "custom";
+type Preset = "this_week" | "next_week" | "this_month" | "next_month" | "custom";
 
 const PRESET_RANGE: Record<Exclude<Preset, "custom">, (today: string) => { from: string; to: string }> = {
   this_week: () => weekRangeYmd(0),
   next_week: () => weekRangeYmd(1),
-  next_30: (t) => nextDaysRangeYmd(30, t),
-  past_30: (t) => pastDaysRangeYmd(30, t),
   this_month: (t) => monthRangeYmd(0, t),
   next_month: (t) => monthRangeYmd(1, t),
 };
@@ -41,11 +39,10 @@ const PRESET_RANGE: Record<Exclude<Preset, "custom">, (today: string) => { from:
 const PRESETS: { key: Exclude<Preset, "custom">; label: string }[] = [
   { key: "this_week", label: "本週" },
   { key: "next_week", label: "下週" },
-  { key: "next_30", label: "未來 30 天" },
-  { key: "past_30", label: "過去 30 天" },
   { key: "this_month", label: "這個月" },
   { key: "next_month", label: "下個月" },
 ];
+
 
 const SELECT_FIELDS =
   "id, name, ig_handle, ig_url, venue_name, venue_id, accommodation_id, check_in_date, publish_date, publish_url, scout_id";
