@@ -112,6 +112,9 @@ export default function RateConsistencyCheckTab() {
         const b = bookings.find((x) => x.accommodation_id === a.id);
 
         const hqHref = `/hq/bonus-settings?tab=owner-settlement&acc=${a.id}`;
+        // 合作期間的維護 UI 在「獎金發放規則（4 步流程）」第 ① 步，不在業主月結頁
+        const bonusHref = `/hq/bonus-settings?tab=bonus&acc=${a.id}`;
+        const BONUS_TARGET = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ① 步 合作期間卡片";
 
         const activePeriod = ps.some((p) => {
           const s = String(p.start_date ?? "").slice(0, 10);
@@ -120,10 +123,10 @@ export default function RateConsistencyCheckTab() {
         });
         const HQ_TARGET = "總部設定頁 →「基準金額規則（業主月結）」";
         const partnership: CheckResult = ps.length === 0
-          ? { level: "error", label: "未設定合作期間", href: hqHref, target: HQ_TARGET, fields: ["合作起始日", "合作結束日（未定可留空）"], hint: "到總部設定頁 →「合作期間」新增起訖日，否則此館營收不會送出 Ragic。" }
+          ? { level: "error", label: "未設定合作期間", href: bonusHref, target: BONUS_TARGET, fields: ["合作起始日", "合作結束日（未定可留空）"], hint: "到「獎金發放規則（4 步流程）」第 ① 步的合作期間卡片，按「＋ 合作期間」新增起訖日，否則此館營收不會送出 Ragic。" }
           : activePeriod
             ? { level: "ok", label: "合作中" }
-            : { level: "warn", label: "目前無生效期間", href: hqHref, target: HQ_TARGET, fields: ["合作結束日（是否需延長）", "新的合作期間起訖日"], hint: "合作期間已結束或尚未開始，請確認起訖日是否需要延長。" };
+            : { level: "warn", label: "目前無生效期間", href: bonusHref, target: BONUS_TARGET, fields: ["合作結束日（是否需延長）", "新的合作期間起訖日"], hint: "合作期間已結束或尚未開始，請到「獎金發放規則（4 步流程）」第 ① 步的合作期間卡片確認起訖日是否需要延長。" };
 
         const rate = r ? num(r.commission_rate) : null;
         const settlementRule: CheckResult = !r

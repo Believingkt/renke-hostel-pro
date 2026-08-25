@@ -39,7 +39,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@/utils/orderHelpers";
 import BonusOrderInspector from "@/components/team/BonusOrderInspector";
 import SettingImpactHint from "@/components/team/SettingImpactHint";
@@ -1327,6 +1327,7 @@ function VenueClosingAssignmentSection({
   const [pPolicy, setPPolicy] = useState<"full" | "none">("full");
   const [pNote, setPNote] = useState("");
   const [pSaving, setPSaving] = useState(false);
+  const [searchParams] = useSearchParams();
 
 
   const load = useCallback(async () => {
@@ -1367,6 +1368,26 @@ function VenueClosingAssignmentSection({
   useEffect(() => {
     load();
   }, [load]);
+
+  /** 支援外部以 ?acc=<id> 導向：自動展開並捲動到該館列，短暫高亮 */
+  const [highlightAcc, setHighlightAcc] = useState<string | null>(null);
+  useEffect(() => {
+    if (loading || accs.length === 0) return;
+    const target = searchParams.get("acc");
+    if (!target || !accs.some((a) => a.id === target)) return;
+    setExpanded((prev) => new Set(prev).add(target));
+    setHighlightAcc(target);
+    const t = window.setTimeout(() => {
+      document
+        .querySelector(`[data-partnership-acc="${target}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    const t2 = window.setTimeout(() => setHighlightAcc(null), 4000);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(t2);
+    };
+  }, [loading, accs, searchParams]);
 
   const byAcc = useMemo(() => {
     const m = new Map<string, VenueAssignmentRow[]>();
@@ -1526,7 +1547,10 @@ function VenueClosingAssignmentSection({
                 const upcoming = accPeriods.find((p) => p.start_date > today);
                 return (
                   <Fragment key={a.id}>
-                    <TableRow>
+                    <TableRow
+                      data-partnership-acc={a.id}
+                      className={highlightAcc === a.id ? "bg-primary/10 ring-2 ring-primary/50" : undefined}
+                    >
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => toggle(a.id)}>
                           {isOpen ? (
