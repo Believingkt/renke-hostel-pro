@@ -302,6 +302,23 @@ export default function OwlTingFillup() {
               </div>
             </div>
 
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+              <div className="text-sm font-medium">訂單備註預覽</div>
+              <p className="text-[11px] text-muted-foreground">以下內容會原樣寫入訂單備註欄位</p>
+              <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed font-mono">
+{notesPreview}
+              </pre>
+              {String(staging?.special_requests ?? "").trim() ? (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  ✓ 已偵測到信件特殊需求（含早餐等），將以 [特殊需求] 開頭寫入
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">此信件未解析到特殊需求</p>
+              )}
+            </div>
+
+
+
             <Button onClick={handleSubmit} disabled={submitting} className="w-full">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               送出並建立訂單
