@@ -246,14 +246,14 @@ export function KolPublishProgressCard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-md border p-0.5">
+          <div className="inline-flex flex-wrap rounded-md border p-0.5">
             {PRESETS.map((p) => (
               <Button
                 key={p.key}
                 size="sm"
                 variant={preset === p.key ? "default" : "ghost"}
                 className="h-8"
-                onClick={() => setPreset(p.key)}
+                onClick={() => applyPreset(p.key)}
               >
                 {p.label}
               </Button>
@@ -263,15 +263,16 @@ export function KolPublishProgressCard() {
             editable
             from={customFrom}
             to={customTo}
-            fromPlaceholder="自訂起日"
-            toPlaceholder="自訂迄日"
+            fromPlaceholder="開始日期"
+            toPlaceholder="結束日期"
             onChange={(f, t) => {
               setCustomFrom(f);
               setCustomTo(t);
-              if (f && t) setPreset("custom");
+              setPreset("custom");
             }}
           />
         </div>
+
       </CardHeader>
 
       <CardContent className="space-y-5">
