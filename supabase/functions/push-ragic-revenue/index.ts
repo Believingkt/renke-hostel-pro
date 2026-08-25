@@ -110,11 +110,11 @@ Deno.serve(async (req) => {
     const { data: accommodations, error: accErr } = await accQuery;
     if (accErr) throw accErr;
 
-    // 2. Fetch consulting_fee_settings for those accommodations
+    // 2. Gate B 費率來源已收斂：一律讀 owner_settlement_pricing_rules（單一真實來源）
     const accIds = (accommodations || []).map((a: any) => a.id);
-    const { data: feeRows, error: feeErr } = await supabase
-      .from("consulting_fee_settings")
-      .select("accommodation_id, rate, revenue_threshold, effective_from")
+    const { data: pricingRuleRows, error: feeErr } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("accommodation_id, commission_rate, commission_threshold, charges_marketing_fee, effective_from")
       .in("accommodation_id", accIds)
       .lte("effective_from", monthEndStr)
       .order("effective_from", { ascending: false });
@@ -124,14 +124,15 @@ Deno.serve(async (req) => {
       string,
       { rate: number; threshold: number } | null
     >();
-    for (const row of feeRows || []) {
+    for (const row of pricingRuleRows || []) {
       if (!feeMap.has(row.accommodation_id)) {
         feeMap.set(row.accommodation_id, {
-          rate: Number(row.rate) || 0,
-          threshold: Number(row.revenue_threshold) || 0,
+          rate: Number(row.commission_rate) || 0,
+          threshold: Number(row.commission_threshold) || 0,
         });
       }
     }
+
 
     // 2b. 排除規則：沿用正式試算共用邏輯（DB 驅動 owner_settlement_pricing_rules + legacy fallback）
     const isExempt = await buildExemptResolver(supabase, accIds);
