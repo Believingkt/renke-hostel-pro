@@ -213,9 +213,21 @@ export function KolPublishProgressCard() {
   const venueKeyOf = (r: KolPublishRecord) =>
     r.venue_id || r.accommodation_id || (hasVal(r.venue_name) ? `name:${r.venue_name}` : "unknown");
 
+  // 只計入住宿型館別；農場／餐廳／其他屬包套行程的一部分，不列入上片進度
+  const isLodging = (r: KolPublishRecord) => !(r.venue_id && nonLodgingVenueIds.has(r.venue_id));
+
+  const lodgingExpectedRows = useMemo(
+    () => rawExpectedRows.filter(isLodging),
+    [rawExpectedRows, nonLodgingVenueIds],
+  );
+  const lodgingPublishedRows = useMemo(
+    () => rawPublishedRows.filter(isLodging),
+    [rawPublishedRows, nonLodgingVenueIds],
+  );
+
   const venueOptions = useMemo(() => {
     const map = new Map<string, string>();
-    for (const r of [...rawExpectedRows, ...rawPublishedRows]) {
+    for (const r of [...lodgingExpectedRows, ...lodgingPublishedRows]) {
       const key = venueKeyOf(r);
       const name = venueOf(r);
       if (!map.has(key)) map.set(key, name === "—" ? "未指定館別" : name);
@@ -223,7 +235,7 @@ export function KolPublishProgressCard() {
     return Array.from(map.entries())
       .map(([value, label]) => ({ value, label }))
       .sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
-  }, [rawExpectedRows, rawPublishedRows, venueMap]);
+  }, [lodgingExpectedRows, lodgingPublishedRows, venueMap]);
 
   // 區間變更後若原本選的館別不在清單中，自動回到「全部館別」
   useEffect(() => {
@@ -235,13 +247,14 @@ export function KolPublishProgressCard() {
   const matchVenue = (r: KolPublishRecord) => venueFilter === "all" || venueKeyOf(r) === venueFilter;
 
   const expectedRows = useMemo(
-    () => rawExpectedRows.filter(matchVenue),
-    [rawExpectedRows, venueFilter],
+    () => lodgingExpectedRows.filter(matchVenue),
+    [lodgingExpectedRows, venueFilter],
   );
   const publishedRows = useMemo(
-    () => rawPublishedRows.filter(matchVenue),
-    [rawPublishedRows, venueFilter],
+    () => lodgingPublishedRows.filter(matchVenue),
+    [lodgingPublishedRows, venueFilter],
   );
+
 
   const stats = useMemo(() => {
     let completed = 0;
