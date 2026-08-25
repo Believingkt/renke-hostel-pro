@@ -1459,7 +1459,7 @@ function KolRateSettingsTab({
     await load();
   };
 
-  const handleDelete = async (row: RateRow) => {
+  const handleDelete = async (row: RateRow, g: AccGroup, rangeLabel: string) => {
     setDeletingId(row.id);
     const { error, count } = await supabase
       .from("kol_commission_settings")
@@ -1474,9 +1474,48 @@ function KolRateSettingsTab({
       toast.error("刪除失敗：沒有權限或紀錄不存在");
       return;
     }
-    toast.success("已刪除");
+    await logKolRateChange({
+      actionType: "delete",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: row.effective_from,
+      appliesRange: rangeLabel,
+      settingId: row.id,
+    });
+    toast.success("已刪除，並記錄異動");
     await load();
+    if (expanded.has(g.id)) loadAudit(g.id);
   };
+
+  const handleRestore = async (row: RateRow, g: AccGroup) => {
+    const today = new Date().toISOString().slice(0, 10);
+    setRestoringId(row.id);
+    const { error } = await supabase.from("kol_commission_settings").insert({
+      accommodation_id: g.id,
+      kol_id: null,
+      rate: row.rate,
+      effective_from: today,
+    });
+    setRestoringId(null);
+    if (error) {
+      toast.error("還原失敗：" + error.message);
+      return;
+    }
+    await logKolRateChange({
+      actionType: "restore",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: today,
+      appliesRange: `${today} 起（目前生效中）`,
+      note: `還原自 ${row.effective_from} 的 ${row.rate}% 版本`,
+    });
+    toast.success(`已還原 ${row.rate}%，自 ${today} 起生效`);
+    await load();
+    loadAudit(g.id);
+  };
+
 
   if (loading) {
     return (
