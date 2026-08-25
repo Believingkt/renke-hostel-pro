@@ -262,9 +262,13 @@ export default function RagicSyncTab() {
               </SelectContent>
             </Select>
           </div>
-          <Button onClick={handlePreview} disabled={loading || writing}>
+          <Button
+            onClick={handlePreview}
+            disabled={loading || writing}
+            className={isStale ? "animate-pulse ring-2 ring-amber-500/60" : undefined}
+          >
             {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            預覽
+            {isStale ? "重新預覽" : "預覽"}
           </Button>
           <Button
             variant="default"
@@ -277,23 +281,18 @@ export default function RagicSyncTab() {
         </div>
 
         {isStale && (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3">
-            <div className="flex items-start gap-2 text-sm">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <span>
-                <strong className="text-amber-700 dark:text-amber-400">篩選已變更，請重新預覽</strong>
-                <br />
-                <span className="text-xs text-muted-foreground">
-                  下方仍是 {previewedAt?.year} 年 {previewedAt?.month} 月的結果，並非目前選取的{year} 年 {month} 月；重新預覽前無法寫入 Ragic。
-                </span>
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <span>
+              <strong className="text-amber-700 dark:text-amber-400">篩選已變更，請按上方「重新預覽」</strong>
+              <br />
+              <span className="text-xs text-muted-foreground">
+                下方仍是 {previewedAt?.year} 年 {previewedAt?.month} 月的結果，並非目前選取的{year} 年 {month} 月；重新預覽前無法寫入 Ragic。
               </span>
-            </div>
-            <Button size="sm" onClick={handlePreview} disabled={loading || writing}>
-              {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              重新預覽
-            </Button>
+            </span>
           </div>
         )}
+
 
         {rows && (
           <div className="text-sm text-muted-foreground">
