@@ -3,6 +3,7 @@
 // Rate limit: per (IP, token-hash) — 5 fails locks the token for 1 hour.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
+import { extractSpecialRequests } from "../_shared/owltingSpecialRequests.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
 
     const { data: stagingRow } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, project_name, room_quantity, check_in_date, check_out_date, guest_count, adult_count, child_count, nights, total_amount, remaining_amount, currency, payment_status, addons, special_requests, pii_status, pii_due_at, created_at")
+      .select("id, obe_number, accommodation_name, accommodation_id, room_type_name, project_name, room_quantity, check_in_date, check_out_date, guest_count, adult_count, child_count, nights, total_amount, remaining_amount, currency, payment_status, addons, extracted_fields, pii_status, pii_due_at, created_at")
       .eq("id", tok.staging_id)
       .maybeSingle();
 
@@ -120,7 +121,7 @@ Deno.serve(async (req) => {
         currency: staging.currency,
         payment_status: staging.payment_status,
         addons: staging.addons,
-        special_requests: staging.special_requests,
+        special_requests: extractSpecialRequests(staging),
         pii_due_at: staging.pii_due_at,
       },
       modifications: mergeRes.changes,
