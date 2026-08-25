@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AdminDateRangeField } from "@/components/admin/AdminDateRangeField";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExternalLink, HelpCircle } from "lucide-react";
 import { useTeam } from "@/components/team/TeamContext";
 import {
@@ -105,13 +106,14 @@ export function KolPublishProgressCard() {
   }, [userId, preset, customFrom, customTo]);
 
 
-  const [expectedRows, setExpectedRows] = useState<KolPublishRecord[]>([]);
-  const [publishedRows, setPublishedRows] = useState<KolPublishRecord[]>([]);
+  const [rawExpectedRows, setExpectedRows] = useState<KolPublishRecord[]>([]);
+  const [rawPublishedRows, setPublishedRows] = useState<KolPublishRecord[]>([]);
   const [scoutMap, setScoutMap] = useState<Record<string, string>>({});
   const [venueMap, setVenueMap] = useState<Record<string, string>>({});
   const [pmsCodes, setPmsCodes] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [drawer, setDrawer] = useState<DrawerFilter | null>(null);
+  const [venueFilter, setVenueFilter] = useState<string>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -198,6 +200,39 @@ export function KolPublishProgressCard() {
     (r.venue_id && venueMap[r.venue_id]) ||
     (r.accommodation_id && venueMap[r.accommodation_id]) ||
     "—";
+
+  const venueKeyOf = (r: KolPublishRecord) =>
+    r.venue_id || r.accommodation_id || (hasVal(r.venue_name) ? `name:${r.venue_name}` : "unknown");
+
+  const venueOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of [...rawExpectedRows, ...rawPublishedRows]) {
+      const key = venueKeyOf(r);
+      const name = venueOf(r);
+      if (!map.has(key)) map.set(key, name === "—" ? "未指定館別" : name);
+    }
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, "zh-Hant"));
+  }, [rawExpectedRows, rawPublishedRows, venueMap]);
+
+  // 區間變更後若原本選的館別不在清單中，自動回到「全部館別」
+  useEffect(() => {
+    if (venueFilter !== "all" && venueOptions.length > 0 && !venueOptions.some((o) => o.value === venueFilter)) {
+      setVenueFilter("all");
+    }
+  }, [venueOptions, venueFilter]);
+
+  const matchVenue = (r: KolPublishRecord) => venueFilter === "all" || venueKeyOf(r) === venueFilter;
+
+  const expectedRows = useMemo(
+    () => rawExpectedRows.filter(matchVenue),
+    [rawExpectedRows, venueFilter],
+  );
+  const publishedRows = useMemo(
+    () => rawPublishedRows.filter(matchVenue),
+    [rawPublishedRows, venueFilter],
+  );
 
   const stats = useMemo(() => {
     let completed = 0;
@@ -333,6 +368,19 @@ export function KolPublishProgressCard() {
               </Button>
             ))}
           </div>
+          <Select value={venueFilter} onValueChange={setVenueFilter}>
+            <SelectTrigger className="h-9 w-[180px]">
+              <SelectValue placeholder="全部館別" />
+            </SelectTrigger>
+            <SelectContent className="z-50 bg-popover">
+              <SelectItem value="all">全部館別</SelectItem>
+              {venueOptions.map((o) => (
+                <SelectItem key={o.value} value={o.value}>
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <AdminDateRangeField
             editable
             from={customFrom}
