@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, RefreshCw, XCircle, MinusCircle } from "lucide-react";
 
 type CheckLevel = "ok" | "warn" | "error";
@@ -19,6 +20,10 @@ interface CheckResult {
   href?: string;
   /** 修補指引：告訴使用者要去哪裡、做什麼 */
   hint?: string;
+  /** 目標頁面名稱（彈窗顯示） */
+  target?: string;
+  /** 需要補齊的欄位清單（彈窗顯示） */
+  fields?: string[];
 }
 
 
@@ -58,6 +63,7 @@ export default function RateConsistencyCheckTab() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [fix, setFix] = useState<{ accName: string; checkLabel: string; res: CheckResult } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,29 +118,30 @@ export default function RateConsistencyCheckTab() {
           const e = p.end_date ? String(p.end_date).slice(0, 10) : null;
           return s && today >= s && (e === null || today <= e);
         });
+        const HQ_TARGET = "總部設定頁 →「基準金額規則（業主月結）」";
         const partnership: CheckResult = ps.length === 0
-          ? { level: "error", label: "未設定合作期間", href: hqHref, hint: "到總部設定頁 →「合作期間」新增起訖日，否則此館營收不會送出 Ragic。" }
+          ? { level: "error", label: "未設定合作期間", href: hqHref, target: HQ_TARGET, fields: ["合作起始日", "合作結束日（未定可留空）"], hint: "到總部設定頁 →「合作期間」新增起訖日，否則此館營收不會送出 Ragic。" }
           : activePeriod
             ? { level: "ok", label: "合作中" }
-            : { level: "warn", label: "目前無生效期間", href: hqHref, hint: "合作期間已結束或尚未開始，請確認起訖日是否需要延長。" };
+            : { level: "warn", label: "目前無生效期間", href: hqHref, target: HQ_TARGET, fields: ["合作結束日（是否需延長）", "新的合作期間起訖日"], hint: "合作期間已結束或尚未開始，請確認起訖日是否需要延長。" };
 
         const rate = r ? num(r.commission_rate) : null;
         const settlementRule: CheckResult = !r
-          ? { level: "error", label: "無生效費率規則", href: hqHref, hint: "到總部設定頁 →「業主月結設定」新增一筆生效中的費率規則（生效日需 ≤ 今天）。" }
+          ? { level: "error", label: "無生效費率規則", href: hqHref, target: HQ_TARGET, fields: ["生效日（需 ≤ 今天）", "管顧費率 %", "營收門檻"], hint: "到總部設定頁 →「業主月結設定」新增一筆生效中的費率規則（生效日需 ≤ 今天）。" }
           : !rate || rate <= 0
-            ? { level: "warn", label: "費率為 0%", href: hqHref, hint: "目前費率為 0%，若非刻意設定請到總部設定頁修正管顧費率。" }
+            ? { level: "warn", label: "費率為 0%", href: hqHref, target: HQ_TARGET, fields: ["管顧費率 %"], hint: "目前費率為 0%，若非刻意設定請到總部設定頁修正管顧費率。" }
             : { level: "ok", label: `${rate.toFixed(2)}%` };
 
         const marketingFee: CheckResult = !r
-          ? { level: "error", label: "未設定", href: hqHref, hint: "沒有月結費率規則就無法判斷是否收行銷推廣費，請先新增費率規則。" }
+          ? { level: "error", label: "未設定", href: hqHref, target: HQ_TARGET, fields: ["先新增一筆月結費率規則", "勾選是否收取行銷推廣費"], hint: "沒有月結費率規則就無法判斷是否收行銷推廣費，請先新增費率規則。" }
           : r.charges_marketing_fee === true
             ? { level: "ok", label: "有收取" }
-            : { level: "warn", label: "未約定收取", href: hqHref, hint: "若此館合約有收行銷推廣費，請到總部設定頁勾選「收取行銷推廣費」。" };
+            : { level: "warn", label: "未約定收取", href: hqHref, target: HQ_TARGET, fields: ["收取行銷推廣費（勾選）"], hint: "若此館合約有收行銷推廣費，請到總部設定頁勾選「收取行銷推廣費」。" };
 
         const bookingSetting: CheckResult = !b
-          ? { level: "warn", label: "無訂房設定", hint: "此館尚未建立訂房設定，請到該館後台「訂房設定」建立基本設定。" }
+          ? { level: "warn", label: "無訂房設定", target: "該館後台 →「訂房設定」", fields: ["建立訂房設定基本資料", "人工退款手續費金額"], hint: "此館尚未建立訂房設定，請到該館後台「訂房設定」建立基本設定。" }
           : b.manual_refund_fee_amount === null || b.manual_refund_fee_amount === undefined
-            ? { level: "warn", label: "未設人工退款手續費", hint: "到該館後台「訂房設定」填寫人工退款手續費金額，退款時才能正確扣除。" }
+            ? { level: "warn", label: "未設人工退款手續費", target: "該館後台 →「訂房設定」", fields: ["人工退款手續費金額"], hint: "到該館後台「訂房設定」填寫人工退款手續費金額，退款時才能正確扣除。" }
             : { level: "ok", label: "已設定" };
 
         let legacyRate: CheckResult = { level: "ok", label: "無殘留" };
@@ -147,6 +154,8 @@ export default function RateConsistencyCheckTab() {
               level: "warn",
               label: "舊表數值不同",
               hint: "歷史管顧費率表殘留舊數值，僅供查詢不影響計算；可到總部設定頁確認後刪除舊版本。",
+              target: HQ_TARGET,
+              fields: ["確認最新費率／門檻正確", "刪除歷史管顧費率表的舊版本"],
               href: hqHref,
             };
         }
@@ -231,7 +240,7 @@ export default function RateConsistencyCheckTab() {
             <Label htmlFor="show-all-acc" className="text-sm">顯示全部館別（預設只顯示有缺漏）</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            提示：有 <span className="underline decoration-dotted">底線與 <ArrowUpRight className="inline h-3 w-3" /> 箭頭</span> 的格子可直接點擊，會帶你到對應設定頁修補。
+            提示：點擊任一 <span className="underline decoration-dotted">紅／黃格子 <ArrowUpRight className="inline h-3 w-3" /></span> 會開啟修補指引，說明原因、要去哪個頁面、需補哪些欄位。
           </p>
         </div>
 
@@ -252,12 +261,11 @@ export default function RateConsistencyCheckTab() {
                     <TableCell className="whitespace-nowrap font-medium">{row.accName}</TableCell>
                     {CHECKS.map((c) => {
                       const res = row[c.key];
-                      const clickable = Boolean(res.href) && res.level !== "ok";
                       const content = (
                         <span className="inline-flex items-center gap-1 whitespace-nowrap text-sm">
                           <LevelIcon level={res.level} />
                           <span className={res.level === "ok" ? "text-muted-foreground" : ""}>{res.label}</span>
-                          {clickable && <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />}
+                          {res.level !== "ok" && <ArrowUpRight className="h-3.5 w-3.5 shrink-0" />}
                         </span>
                       );
                       if (res.level === "ok") {
@@ -267,25 +275,19 @@ export default function RateConsistencyCheckTab() {
                         <TableCell key={c.key}>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              {clickable ? (
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(res.href!)}
-                                  className="rounded text-primary underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                >
-                                  {content}
-                                </button>
-                              ) : (
-                                <span className="cursor-help underline decoration-dotted underline-offset-4">{content}</span>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setFix({ accName: row.accName, checkLabel: c.label, res })}
+                                className="rounded text-primary underline decoration-dotted underline-offset-4 hover:decoration-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                {content}
+                              </button>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-[260px]">
                               <p className="text-xs leading-relaxed">
                                 {res.hint ?? "此項目尚未設定完成。"}
                               </p>
-                              {clickable && (
-                                <p className="mt-1 text-xs font-medium">點擊前往設定頁 →</p>
-                              )}
+                              <p className="mt-1 text-xs font-medium">點擊查看修補指引 →</p>
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
@@ -306,6 +308,71 @@ export default function RateConsistencyCheckTab() {
             </Table>
           </div>
         </TooltipProvider>
+
+        <Dialog open={!!fix} onOpenChange={(o) => !o && setFix(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {fix && <LevelIcon level={fix.res.level} />}
+                {fix?.accName}：{fix?.checkLabel}
+              </DialogTitle>
+              <DialogDescription>依下列指引補齊設定，完成後回來按「已完成，重新檢查」。</DialogDescription>
+            </DialogHeader>
+
+            {fix && (
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">缺漏原因</div>
+                  <p className="mt-1 leading-relaxed">
+                    <Badge variant={fix.res.level === "error" ? "destructive" : "secondary"} className="mr-2">
+                      {fix.res.level === "error" ? "嚴重（會被 Ragic 排除）" : "建議補齊"}
+                    </Badge>
+                    {fix.res.hint ?? "此項目尚未設定完成。"}
+                  </p>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">要到哪個頁面</div>
+                  <p className="mt-1">{fix.res.target ?? "對應設定頁"}</p>
+                </div>
+                {fix.res.fields?.length ? (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground">需要補的欄位</div>
+                    <ul className="mt-1 list-disc space-y-1 pl-5">
+                      {fix.res.fields.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            <DialogFooter className="flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setFix(null);
+                  load();
+                }}
+              >
+                <CheckCircle2 className="mr-1 h-4 w-4" />
+                已完成，重新檢查
+              </Button>
+              {fix?.res.href && (
+                <Button
+                  onClick={() => {
+                    const href = fix.res.href!;
+                    setFix(null);
+                    navigate(href);
+                  }}
+                >
+                  前往設定頁
+                  <ArrowUpRight className="ml-1 h-4 w-4" />
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
