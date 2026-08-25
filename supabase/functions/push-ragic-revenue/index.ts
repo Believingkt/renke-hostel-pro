@@ -138,9 +138,54 @@ Deno.serve(async (req) => {
     // 2c. 行銷推廣費規則（與前端 resolveMarketingFee 同一套邏輯）
     const marketingRuleFor = await buildMarketingFeeResolver(supabase, accIds, monthStartStr);
 
+    // 2d. Gate A：合作期間。資料月只要與任一合作期間有交集就列入
+    //     （例：6/26 終止 → 6 月資料月照算，7 月起不列入）
+    const { data: periodRows, error: periodErr } = await supabase
+      .from("accommodation_partnership_periods")
+      .select("accommodation_id, start_date, end_date")
+      .in("accommodation_id", accIds);
+    if (periodErr) throw periodErr;
+    const lastDayStr = new Date(monthEnd.getTime() - 86_400_000)
+      .toISOString()
+      .slice(0, 10);
+    const partneredIds = new Set<string>();
+    for (const p of periodRows || []) {
+      const start = String(p.start_date ?? "").slice(0, 10);
+      const end = p.end_date ? String(p.end_date).slice(0, 10) : null;
+      if (start && start > lastDayStr) continue;
+      if (end && end < monthStartStr) continue;
+      partneredIds.add(p.accommodation_id);
+    }
+
+    // 2e. Gate C：是否約定收取行銷推廣費（owner_settlement_pricing_rules.charges_marketing_fee）
+    const { data: chargeRows, error: chargeErr } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("accommodation_id, charges_marketing_fee, effective_from")
+      .in("accommodation_id", accIds)
+      .lte("effective_from", monthStartStr)
+      .order("effective_from", { ascending: false });
+    if (chargeErr) throw chargeErr;
+    const chargesMarketing = new Map<string, boolean>();
+    for (const r of chargeRows || []) {
+      if (!chargesMarketing.has(r.accommodation_id)) {
+        chargesMarketing.set(r.accommodation_id, r.charges_marketing_fee === true);
+      }
+    }
+
     const results: any[] = [];
+    const skipped: any[] = [];
 
     for (const acc of accommodations || []) {
+      // Gate A：非合作期間（含從未合作、已終止）→ 整館不產生任何列
+      if (!partneredIds.has(acc.id)) {
+        skipped.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          skip_reason: "no_active_partnership",
+        });
+        continue;
+      }
+
       // 3a. 先在查詢層取得該館「日幣訂單」的 id，後續直接排除，不撈進計算
       const { data: jpyMeta, error: jpyErr } = await supabase
         .from("order_meta")
@@ -188,29 +233,36 @@ Deno.serve(async (req) => {
       const isFranchise = FRANCHISE_IDS.has(acc.id);
       const noteText = hasFee ? "" : NO_FEE_NOTE;
 
-      // 行銷推廣費：每館每月一筆，0 元館別也照推
+      // Gate C：行銷推廣費：僅在合約有約定（charges_marketing_fee = true）時才產生列
+      const chargesMkt = chargesMarketing.get(acc.id) === true;
       const mRule = marketingRuleFor(acc.id);
-      const marketingFee = Math.round(
-        resolveMarketingFee(mRule, grossRevenueTwd, Number(acc.building_count) || 1),
-      );
-      const marketingRow: Record<string, string> = {
-        [FIELD.DATA_SOURCE]: "PMS",
-        [FIELD.YEAR_MONTH]: yyyyMm,
-        [FIELD.BUSINESS_UNIT]: "人客多總部",
-        [FIELD.INCOME_TYPE]: "行銷推廣費",
-        [FIELD.AMOUNT]: String(marketingFee),
-        [FIELD.VENUE]: acc.name,
-        [FIELD.COMMISSION_RATE]: "",
-        [FIELD.COMMISSION_FEE]: "",
-        [FIELD.NOTE]: "",
-      };
+      const marketingFee = chargesMkt
+        ? Math.round(
+            resolveMarketingFee(mRule, grossRevenueTwd, Number(acc.building_count) || 1),
+          )
+        : 0;
+      const marketingRow: Record<string, string> | null = chargesMkt
+        ? {
+            [FIELD.DATA_SOURCE]: "PMS",
+            [FIELD.YEAR_MONTH]: yyyyMm,
+            [FIELD.BUSINESS_UNIT]: "人客多總部",
+            [FIELD.INCOME_TYPE]: "行銷推廣費",
+            [FIELD.AMOUNT]: String(marketingFee),
+            [FIELD.VENUE]: acc.name,
+            [FIELD.COMMISSION_RATE]: "",
+            [FIELD.COMMISSION_FEE]: "",
+            [FIELD.NOTE]: "",
+          }
+        : null;
 
-      // Skip venues with no revenue AND no management fee for the month,
-      // OR venues that have a fee config but revenue is below threshold (fee = 0).
-      // 註：此 skip 僅適用於「平台抽成／門市運營」，行銷推廣費仍照推。
+      // Gate B：沒有管顧費率設定（該館不收抽成）→ 不產生平台抽成／門市運營列
+      // 另：有設定但當月抽成為 0（未達門檻或無營收）亦不推。
       const skipUnderThreshold = hasFee && managementFeeRounded === 0;
       const skipCommissionRows =
-        (revenueTwd === 0 && managementFeeRounded === 0) || skipUnderThreshold;
+        !hasFee ||
+        (revenueTwd === 0 && managementFeeRounded === 0) ||
+        skipUnderThreshold;
+
 
       const rows: Record<string, string>[] = [];
 
@@ -247,7 +299,21 @@ Deno.serve(async (req) => {
         }
       }
 
-      rows.push(marketingRow);
+      if (marketingRow) rows.push(marketingRow);
+
+      // 整館都沒有任何列（不收抽成也不收月費）→ 不列入預覽／推送
+      if (rows.length === 0) {
+        skipped.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          skip_reason: !hasFee && !chargesMkt
+            ? "no_commission_no_marketing"
+            : skipUnderThreshold
+              ? "under_threshold"
+              : "no_revenue",
+        });
+        continue;
+      }
 
       const posts = dry_run ? [] : await pushRows(rows, yyyyMm, mode);
 
@@ -259,12 +325,17 @@ Deno.serve(async (req) => {
         gross_revenue_twd: grossRevenueTwd,
         management_fee_twd: skipCommissionRows ? 0 : managementFeeRounded,
         marketing_fee_twd: marketingFee,
+        charges_marketing_fee: chargesMkt,
         marketing_rule: mRule,
         fee_config: feeCfg,
         ...(skipCommissionRows
           ? {
               commission_rows_skipped: true,
-              skip_reason: skipUnderThreshold ? "under_threshold" : "no_revenue",
+              skip_reason: !hasFee
+                ? "no_commission_setting"
+                : skipUnderThreshold
+                  ? "under_threshold"
+                  : "no_revenue",
             }
           : {}),
         payloads: rows,
@@ -272,12 +343,15 @@ Deno.serve(async (req) => {
       });
     }
 
+
     return new Response(
       JSON.stringify({
         year_month: yyyyMm,
         dry_run,
         count: results.length,
         results,
+        skipped,
+
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
