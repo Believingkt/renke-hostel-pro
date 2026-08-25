@@ -17,7 +17,10 @@ interface CheckResult {
   label: string;
   /** 點擊後導向的設定頁（相對路徑）；沒有就不掛連結 */
   href?: string;
+  /** 修補指引：告訴使用者要去哪裡、做什麼 */
+  hint?: string;
 }
+
 
 interface Row {
   accId: string;
