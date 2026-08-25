@@ -65,7 +65,9 @@ export default function HQBonusSettings() {
         ? "base-salary"
         : tabParam === "venue-tiers"
           ? "venue-tiers"
-          : "bonus";
+          : tabParam === "rate-check"
+            ? "rate-check"
+            : "bonus";
   const tab: SettingsTab = ownerSettlementOnly
     ? "owner-settlement"
     : rawTab;
