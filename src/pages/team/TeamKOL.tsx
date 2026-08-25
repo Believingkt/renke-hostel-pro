@@ -32,6 +32,7 @@ import { Plus, AlertTriangle, Check, X, Pencil, ExternalLink, Trash2, ArrowUpDow
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
+import { KolPublishProgressCard } from "@/components/team/KolPublishProgressCard";
 import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link } from "react-router-dom";
@@ -482,6 +483,9 @@ export default function TeamKOL() {
   const canSeeFulltimeTargets = isFulltime || isManager;
   const canSeeParttimeTargets = isParttime || isFulltime || isManager;
 
+  // 週報 Tab：管理員 / scout 體系（canSeeStats）之外，AM 與 AM 主管亦可唯讀檢視
+  const canSeeWeeklyReport = canSeeStats || isAmTeam;
+
   const handleConvertFromProspect = (p: InvitationPrefill) => {
     setPrefill(p);
     setTab("invitations");
@@ -508,7 +512,7 @@ export default function TeamKOL() {
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="invitations">正式邀約</TabsTrigger>
-            {canSeeStats && <TabsTrigger value="weekly_report">入住週報</TabsTrigger>}
+            {canSeeWeeklyReport && <TabsTrigger value="weekly_report">週報</TabsTrigger>}
             <TabsTrigger value="prospects">潛在名單</TabsTrigger>
             {canSeeFulltimeTargets && <TabsTrigger value="fulltime_targets">邀約目標（正職個人）</TabsTrigger>}
             {canSeeParttimeTargets && <TabsTrigger value="targets">邀約目標</TabsTrigger>}
@@ -529,9 +533,12 @@ export default function TeamKOL() {
           />
         </TabsContent>
 
-        {canSeeStats && (
+        {canSeeWeeklyReport && (
           <TabsContent value="weekly_report" className="mt-4">
-            <WeeklyReportTab canCopy={isManager} />
+            <div className="space-y-4">
+              <KolPublishProgressCard />
+              <WeeklyReportTab canCopy={isManager} />
+            </div>
           </TabsContent>
         )}
 
