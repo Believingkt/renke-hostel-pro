@@ -1354,7 +1354,11 @@ interface AccGroup {
   rows: RateRow[];
 }
 
-function KolRateSettingsTab() {
+function KolRateSettingsTab({
+  onDirtyChange,
+}: {
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<AccGroup[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1363,6 +1367,14 @@ function KolRateSettingsTab() {
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
+
+
 
   const load = async () => {
     setLoading(true);
