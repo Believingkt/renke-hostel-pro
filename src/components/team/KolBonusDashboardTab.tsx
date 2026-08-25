@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { HelpCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,9 +107,21 @@ export default function KolBonusDashboardTab({
   const [month, setMonth] = useState<string>(nowTpe.month);
   const isAllPeriod = year === 0 && month === "all";
   const isThisMonth = year === nowTpe.year && month === nowTpe.month;
+  const isThisYear = year === nowTpe.year && month === "all";
 
   const [sortBy, setSortBy] = useState<"revenue" | "orders">("revenue");
   const [showAll, setShowAll] = useState(false);
+  const rankingRef = useRef<HTMLDivElement | null>(null);
+  const [highlightRanking, setHighlightRanking] = useState(false);
+
+  const goToRanking = () => {
+    setShowAll(true);
+    setHighlightRanking(true);
+    window.setTimeout(() => {
+      rankingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+    window.setTimeout(() => setHighlightRanking(false), 2000);
+  };
 
   const venueOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -281,6 +293,17 @@ export default function KolBonusDashboardTab({
               <Button
                 type="button"
                 size="sm"
+                variant={isThisYear ? "default" : "outline"}
+                onClick={() => {
+                  setYear(nowTpe.year);
+                  setMonth("all");
+                }}
+              >
+                今年
+              </Button>
+              <Button
+                type="button"
+                size="sm"
                 variant={isThisMonth ? "default" : "outline"}
                 onClick={() => {
                   setYear(nowTpe.year);
@@ -330,18 +353,34 @@ export default function KolBonusDashboardTab({
             <div className="text-2xl font-bold tabular-nums">{kpi.orderCount}</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={goToRanking}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              goToRanking();
+            }
+          }}
+          className="cursor-pointer transition-colors hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-1">
               有貢獻的 KOL 數
               <HelpTip title="有貢獻的 KOL 數怎麼算">
                 <p>篩選條件下，至少帶進 1 筆有效訂單的<b>不重複折扣代碼（CID）</b>數量。</p>
                 <p>同一 KOL 若跨多個館別出單，仍以 CID 計為 1 位。</p>
+                <p><b>點擊本卡片</b>可展開下方「KOL 業績排名」完整名單。</p>
+                <p>排名表為「CID × 館別」明細，故列數可能多於此數字。</p>
               </HelpTip>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold tabular-nums">{kpi.kolCount}</div>
+            <div className="flex items-end justify-between gap-2">
+              <div className="text-2xl font-bold tabular-nums">{kpi.kolCount}</div>
+              <span className="text-xs text-primary">查看名單 ↓</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -449,7 +488,12 @@ export default function KolBonusDashboardTab({
       </Card>
 
       {/* 排名表 */}
-      <Card>
+      <Card
+        ref={rankingRef}
+        className={
+          highlightRanking ? "ring-2 ring-primary transition-shadow" : "transition-shadow"
+        }
+      >
         <CardHeader className="pb-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-base flex items-center gap-1">
@@ -517,7 +561,7 @@ export default function KolBonusDashboardTab({
           {ranking.length > 10 && (
             <div className="pt-3 text-center">
               <Button variant="outline" size="sm" onClick={() => setShowAll((v) => !v)}>
-                {showAll ? "只顯示前 10 名" : `顯示全部（${ranking.length}）`}
+                {showAll ? "只顯示前 10 名" : `顯示全部 KOL（${ranking.length}）`}
               </Button>
             </div>
           )}
