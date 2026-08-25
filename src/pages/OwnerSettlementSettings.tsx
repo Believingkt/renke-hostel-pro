@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Settings, ArrowLeft, ChevronDown, History } from "lucide-react";
+import { Settings, ArrowLeft, ChevronDown, History, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
@@ -564,17 +564,19 @@ export default function OwnerSettlementSettings({
         }
       />
       {readOnly && (
-        <div className="rounded-md border border-primary/30 bg-primary/5 px-4 py-3 text-sm">
-          <span className="font-medium">此頁為唯讀檢視。</span>
-          業主月結設定已集中由總部管理，本頁僅供查看目前生效的設定內容，無法修改或儲存。
-          需要調整請至總部「獎金與月結設定 → 業主月結設定」，或聯絡總部 AM／管理者。
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+          <span>
+            此頁為<strong>唯讀鏡像</strong>，業主月結設定已集中至總部（HQ）管理，請前往 HQ 編輯。
+          </span>
           {!hideBackButton && (
-            <a
-              className="ml-2 inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-              href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
-            >
-              前往總部設定頁 →
-            </a>
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={`/hq/bonus-settings?tab=owner-settlement${currentAccommodationId ? `&acc=${currentAccommodationId}` : ""}`}
+              >
+                前往 HQ 業主月結設定
+                <ExternalLink className="ml-1 h-4 w-4" />
+              </a>
+            </Button>
           )}
         </div>
       )}
