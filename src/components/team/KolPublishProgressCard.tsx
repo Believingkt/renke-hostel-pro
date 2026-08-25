@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminDateRangeField } from "@/components/admin/AdminDateRangeField";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ExternalLink, HelpCircle } from "lucide-react";
 import { useTeam } from "@/components/team/TeamContext";
 import {
@@ -217,35 +218,61 @@ export function KolPublishProgressCard() {
       label: "預計上片",
       value: stats.total,
       cls: "",
-      hint: `以「預計上片日（入住日 + ${PUBLISH_DEADLINE_DAYS} 天）」落在此區間的邀約計算，包含已完成、待上片與逾期。`,
+      hint: `以「預計上片日（入住日 + ${PUBLISH_DEADLINE_DAYS} 天）」落在此區間的邀約計算。`,
+      bullets: [
+        `計算基準：預計上片日 = 入住日 + ${PUBLISH_DEADLINE_DAYS} 天（與 LINE 上片期限提醒同口徑）。`,
+        "採計對象：成功訂房且非錯誤資料的邀約（含同住合拍）。",
+        "包含範圍：已完成 + 待上片 + 逾期。",
+      ],
     },
     {
       key: "completed" as DrawerFilter,
       label: "已完成",
       value: stats.completed,
       cls: "text-green-600",
-      hint: "預計上片日在此區間，且已同時填寫發布日期與發布連結者。含延遲上片（實際發布日晚於預計上片日）的數量。",
+      hint: "預計上片日在此區間，且已填寫發布日期與發布連結。",
+      bullets: [
+        "篩選基準：以「預計上片日」落在此區間。",
+        "完成定義：發布日期與發布連結兩者皆有值。",
+        "延遲上片：只要已完成就會計入，即使實際發布日晚於預計上片日。",
+      ],
     },
     {
       key: "upcoming" as DrawerFilter,
       label: "待上片",
       value: stats.pending,
       cls: "text-amber-600",
-      hint: "預計上片日在此區間、尚未完成上片，且期限還沒過（預計上片日 ≥ 今天）。",
+      hint: "預計上片日在此區間、尚未完成，且期限未到。",
+      bullets: [
+        "篩選基準：以「預計上片日」落在此區間。",
+        "狀態條件：尚未同時具備發布日期與連結，且預計上片日 ≥ 今天（台北時區）。",
+        "距離期限 3 天內會以「即將到期」提醒，但仍算在待上片。",
+      ],
     },
     {
       key: "overdue" as DrawerFilter,
       label: "逾期",
       value: stats.overdue,
       cls: "text-red-600",
-      hint: "預計上片日已早於今天但仍未完成上片（缺發布日期或發布連結）。",
+      hint: "預計上片日已過但仍未完成上片。",
+      bullets: [
+        "篩選基準：以「預計上片日」落在此區間。",
+        "狀態條件：預計上片日 < 今天（台北時區）且仍缺發布日期或發布連結。",
+        "補上發布日期＋連結後會即時轉為「已完成」。",
+      ],
     },
     {
       key: "published_in_range" as DrawerFilter,
       label: "此區間實際發佈",
       value: stats.published,
       cls: "text-sky-600",
-      hint: "以「實際發布日」落在此區間計算，與預計上片日無關。因此會包含延遲上片（預計日在區間之前才補發布）的數量，也可能不含預計在此區間但尚未發布者，數字通常與「已完成」不同。",
+      hint: "以「實際發布日」落在此區間計算，與預計上片日無關。",
+      bullets: [
+        "計算基準：實際發布日（publish_date）落在所選區間，且必須有發布連結。",
+        "包含延遲上片：預計上片日在此區間之前、但於此區間內才補發布者，一律計入。",
+        "不含：預計上片日在此區間但尚未發布者（那些會落在待上片／逾期）。",
+        "因此本數字與「已完成」常會不同，兩者的分母基準不一樣。",
+      ],
     },
   ];
 
@@ -309,35 +336,50 @@ export function KolPublishProgressCard() {
           <>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {tiles.map((t) => (
-                <button
+                <div
                   key={String(t.key)}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setDrawer(t.key)}
-                  className="rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setDrawer(t.key);
+                    }
+                  }}
+                  className="cursor-pointer rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
                 >
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <span>{t.label}</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`${t.label} 說明`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex shrink-0 text-muted-foreground/70 hover:text-foreground"
-                          >
-                            <HelpCircle className="h-3.5 w-3.5" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
-                          {t.hint}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label={`${t.label} 計算方式說明`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex shrink-0 text-muted-foreground/70 transition-colors hover:text-foreground"
+                        >
+                          <HelpCircle className="h-3.5 w-3.5" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        side="bottom"
+                        align="start"
+                        className="w-[300px] space-y-2 text-xs leading-relaxed"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="text-sm font-semibold">{t.label}｜計算方式</div>
+                        <p className="text-muted-foreground">{t.hint}</p>
+                        <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                          {t.bullets.map((b) => (
+                            <li key={b}>{b}</li>
+                          ))}
+                        </ul>
+                      </PopoverContent>
+                    </Popover>
                   </div>
                   <div className={`text-2xl font-bold tabular-nums ${t.cls}`}>{t.value}</div>
-                </button>
+                </div>
               ))}
             </div>
 
