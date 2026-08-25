@@ -952,7 +952,7 @@ export default function KolBonus() {
         </TabsContent>
 
         <TabsContent value="rates" className="mt-0">
-          <KolRateSettingsTab />
+          <KolRateSettingsTab onDirtyChange={setHasUnsavedChanges} />
         </TabsContent>
       </Tabs>
 
