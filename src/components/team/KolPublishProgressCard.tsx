@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminDateRangeField } from "@/components/admin/AdminDateRangeField";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, HelpCircle } from "lucide-react";
 import { useTeam } from "@/components/team/TeamContext";
 import {
   PUBLISH_DEADLINE_DAYS,
@@ -212,12 +212,43 @@ export function KolPublishProgressCard() {
   }, [drawer]);
 
   const tiles = [
-    { key: "all" as DrawerFilter, label: "預計上片", value: stats.total, cls: "" },
-    { key: "completed" as DrawerFilter, label: "已完成", value: stats.completed, cls: "text-green-600" },
-    { key: "upcoming" as DrawerFilter, label: "待上片", value: stats.pending, cls: "text-amber-600" },
-    { key: "overdue" as DrawerFilter, label: "逾期", value: stats.overdue, cls: "text-red-600" },
-    { key: "published_in_range" as DrawerFilter, label: "此區間實際發佈", value: stats.published, cls: "text-sky-600" },
+    {
+      key: "all" as DrawerFilter,
+      label: "預計上片",
+      value: stats.total,
+      cls: "",
+      hint: `以「預計上片日（入住日 + ${PUBLISH_DEADLINE_DAYS} 天）」落在此區間的邀約計算，包含已完成、待上片與逾期。`,
+    },
+    {
+      key: "completed" as DrawerFilter,
+      label: "已完成",
+      value: stats.completed,
+      cls: "text-green-600",
+      hint: "預計上片日在此區間，且已同時填寫發布日期與發布連結者。含延遲上片（實際發布日晚於預計上片日）的數量。",
+    },
+    {
+      key: "upcoming" as DrawerFilter,
+      label: "待上片",
+      value: stats.pending,
+      cls: "text-amber-600",
+      hint: "預計上片日在此區間、尚未完成上片，且期限還沒過（預計上片日 ≥ 今天）。",
+    },
+    {
+      key: "overdue" as DrawerFilter,
+      label: "逾期",
+      value: stats.overdue,
+      cls: "text-red-600",
+      hint: "預計上片日已早於今天但仍未完成上片（缺發布日期或發布連結）。",
+    },
+    {
+      key: "published_in_range" as DrawerFilter,
+      label: "此區間實際發佈",
+      value: stats.published,
+      cls: "text-sky-600",
+      hint: "以「實際發布日」落在此區間計算，與預計上片日無關。因此會包含延遲上片（預計日在區間之前才補發布）的數量，也可能不含預計在此區間但尚未發布者，數字通常與「已完成」不同。",
+    },
   ];
+
 
   return (
     <Card>
@@ -284,7 +315,27 @@ export function KolPublishProgressCard() {
                   onClick={() => setDrawer(t.key)}
                   className="rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
                 >
-                  <div className="text-sm text-muted-foreground">{t.label}</div>
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <span>{t.label}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`${t.label} 說明`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex shrink-0 text-muted-foreground/70 hover:text-foreground"
+                          >
+                            <HelpCircle className="h-3.5 w-3.5" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom" className="max-w-[260px] text-xs leading-relaxed">
+                          {t.hint}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <div className={`text-2xl font-bold tabular-nums ${t.cls}`}>{t.value}</div>
                 </button>
               ))}
