@@ -17,3 +17,4 @@
 - [Venue Team Bonus Tier Rules](mem://features/admin/venue-team-bonus-tier-rules.md) — 館別專屬獎金階層級距（整筆套用、逐館算完再除人數、不回溯）。
 - [跨通路庫存閘門](mem://features/platform/cross-channel-inventory-gate.md) — orders BEFORE INSERT 閘門、gb_hold 同鎖、來源豁免與付款後自動退款。
 - [人工退款手續費模型](mem://finance/manual-refund-fee-model.md) — 每館可設定 booking_settings.manual_refund_fee_amount；refunded_amount=實退旅客、refund_fee_amount=手續費，禁止寫死 30。
+- [Settings Completeness Dashboard](mem://features/hq/settings-completeness-dashboard.md) — HQ 設定完整性檢查：單一 Tab 三個檢查群組，不新增 Tab。
