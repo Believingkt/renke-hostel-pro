@@ -29,6 +29,7 @@ interface StagingData {
   remaining_amount: number | null;
   currency: string | null;
   payment_status: string | null;
+  special_requests: string | null;
   pii_due_at: string | null;
 }
 
@@ -83,6 +84,13 @@ export default function OwlTingFillup() {
       }
     })();
   }, [token]);
+
+  const specialRequests = String(staging?.special_requests ?? "").trim();
+  const roomCount = Number(staging?.room_quantity ?? 1);
+  const notesPreview = [
+    specialRequests ? `[特殊需求] ${specialRequests}` : null,
+    `奧丁丁訂單由業主補單 (OBE: ${staging?.obe_number ?? ""}, ${staging?.room_type_name ?? ""}${roomCount > 1 ? `, ${roomCount} 間` : ""}, 付款: ${staging?.payment_status === "paid" ? "已付清" : "待結清"})`,
+  ].filter(Boolean).join("\n");
 
   const copyObe = () => {
     if (!staging?.obe_number) return;
