@@ -65,7 +65,7 @@ export function GroupBuySummaryCard({
         <div className="flex justify-between gap-4">
           <span className="text-muted-foreground">住宿</span>
           <span className="tabular-nums">
-            {nights} 晚 × {roomQuantity} 間
+            {nights} 晚 × {roomQuantity} 棟
           </span>
         </div>
         <div className="flex justify-between gap-4">
