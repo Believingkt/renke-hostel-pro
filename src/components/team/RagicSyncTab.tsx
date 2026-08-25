@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 import { AlertTriangle, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
