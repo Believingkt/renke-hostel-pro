@@ -207,6 +207,7 @@ export function KolPublishProgressCard() {
             ))}
           </div>
           <AdminDateRangeField
+            editable
             from={customFrom}
             to={customTo}
             fromPlaceholder="自訂起日"

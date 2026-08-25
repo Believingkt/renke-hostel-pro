@@ -17,6 +17,8 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 interface Props {
   from: string;
   to: string;
+  /** 允許直接鍵入日期（yyyy/MM/dd、yyyy-MM-dd、yyyyMMdd 皆可） */
+  editable?: boolean;
   onChange: (from: string, to: string) => void;
   className?: string;
   fromPlaceholder?: string;
@@ -41,9 +43,11 @@ export function AdminDateRangeField({
   className,
   fromPlaceholder = "開始日期",
   toPlaceholder = "結束日期",
+  editable = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<1 | 2>(1);
+  const [draft, setDraft] = useState<{ which: 1 | 2; text: string } | null>(null);
 
   const fromDate = toDate(from);
   const toDateValue = toDate(to);
@@ -69,6 +73,71 @@ export function AdminDateRangeField({
     setOpen(false);
   };
 
+  /** 解析手動輸入：yyyy/MM/dd、yyyy-MM-dd、yyyy.MM.dd、yyyyMMdd */
+  const parseTyped = (raw: string): string | null => {
+    const t = raw.trim();
+    if (!t) return "";
+    const digits = t.replace(/\D/g, "");
+    if (digits.length !== 8) return null;
+    const candidate = `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+    const d = parse(candidate, "yyyy-MM-dd", new Date());
+    return isValid(d) ? iso(d) : null;
+  };
+
+  const commitTyped = (which: 1 | 2, raw: string) => {
+    const next = parseTyped(raw);
+    setDraft(null);
+    if (next === null) return; // 格式錯誤：還原原值
+    if (which === 1) {
+      const nextTo = to && next && next > to ? "" : to;
+      onChange(next, nextTo);
+      setPhase(next && !nextTo ? 2 : 1);
+    } else {
+      if (next && from && next < from) {
+        onChange(next, "");
+        setPhase(2);
+        return;
+      }
+      onChange(from, next);
+    }
+  };
+
+  const editableTrigger = (which: 1 | 2, value: string, placeholder: string) => (
+    <div
+      className={cn(
+        "flex h-9 w-[150px] items-center gap-1 rounded-md border border-input bg-background px-2",
+        open && phase === which && "border-primary ring-2 ring-primary/25",
+      )}
+    >
+      <input
+        type="text"
+        inputMode="numeric"
+        value={draft?.which === which ? draft.text : label(value)}
+        placeholder={placeholder}
+        onChange={(e) => setDraft({ which, text: e.target.value })}
+        onFocus={() => setPhase(which)}
+        onBlur={(e) => draft?.which === which && commitTyped(which, e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            commitTyped(which, (e.target as HTMLInputElement).value);
+          } else if (e.key === "Escape") {
+            setDraft(null);
+          }
+        }}
+        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+      />
+      <button
+        type="button"
+        aria-label="開啟日曆"
+        onClick={() => openAt(which)}
+        className="shrink-0 text-muted-foreground hover:text-foreground"
+      >
+        <CalendarIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+
   const trigger = (active: boolean, filled: boolean, text: string, placeholder: string, onClick: () => void) => (
     <Button
       type="button"
@@ -89,9 +158,13 @@ export function AdminDateRangeField({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverAnchor asChild>
         <div className={cn("flex items-center gap-2", className)}>
-          {trigger(open && phase === 1, !!fromDate, label(from), fromPlaceholder, () => openAt(1))}
+          {editable
+            ? editableTrigger(1, from, fromPlaceholder)
+            : trigger(open && phase === 1, !!fromDate, label(from), fromPlaceholder, () => openAt(1))}
           <span className="text-muted-foreground">～</span>
-          {trigger(open && phase === 2, !!toDateValue, label(to), toPlaceholder, () => openAt(2))}
+          {editable
+            ? editableTrigger(2, to, toPlaceholder)
+            : trigger(open && phase === 2, !!toDateValue, label(to), toPlaceholder, () => openAt(2))}
         </div>
       </PopoverAnchor>
 
