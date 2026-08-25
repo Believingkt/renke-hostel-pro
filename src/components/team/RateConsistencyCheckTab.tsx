@@ -19,6 +19,10 @@ interface CheckResult {
   href?: string;
   /** 修補指引：告訴使用者要去哪裡、做什麼 */
   hint?: string;
+  /** 目標頁面名稱（彈窗顯示） */
+  target?: string;
+  /** 需要補齊的欄位清單（彈窗顯示） */
+  fields?: string[];
 }
 
 
