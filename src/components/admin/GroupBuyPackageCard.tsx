@@ -210,12 +210,14 @@ export function GroupBuyPackageCard({
             )}
           </div>
           <div>
-            <Label>單筆最多間數（可留空）</Label>
+            <Label>單筆可下訂最多棟數（可留空）</Label>
             <Input
               type="number"
               value={p.max_quantity ?? ""}
               onChange={(e) => onPatch({ max_quantity: e.target.value === "" ? null : Number(e.target.value) })}
             />
+            <p className="mt-1 text-xs text-muted-foreground">限制單筆訂單最多可下訂的包棟數量。</p>
+
           </div>
           <div>
             <Label>最多入住人數（可留空）</Label>
