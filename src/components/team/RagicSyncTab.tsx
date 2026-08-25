@@ -174,7 +174,7 @@ export default function RagicSyncTab() {
     });
     if (error) throw new Error(error.message ?? "呼叫失敗");
     if ((data as any)?.error) throw new Error((data as any).error);
-    return data as { results: AccomResult[] };
+    return data as { results: AccomResult[]; skipped?: SkipEntry[] };
   };
 
   const handlePreview = async () => {
@@ -182,6 +182,7 @@ export default function RagicSyncTab() {
     try {
       const data = await call(true);
       setRows(flatten(data.results));
+      setSkipped(data.skipped ?? []);
       toast.success("預覽完成");
     } catch (e: any) {
       toast.error(e.message || "預覽失敗");
@@ -196,6 +197,8 @@ export default function RagicSyncTab() {
       const data = await call(false);
       const flat = flatten(data.results);
       setRows(flat);
+      setSkipped(data.skipped ?? []);
+
       const posted = flat.filter((r) => r.post_result);
       const ok = posted.filter((r) => r.post_result?.ok).length;
       const fail = posted.length - ok;
