@@ -7,6 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AdminDateRangeField } from "@/components/admin/AdminDateRangeField";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ExternalLink } from "lucide-react";
 import { useTeam } from "@/components/team/TeamContext";
 import {
   PUBLISH_DEADLINE_DAYS,
@@ -384,7 +385,23 @@ export function KolPublishProgressCard() {
                           {getExpectedPublishDate(r) || "—"}
                         </TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">
-                          {hasVal(r.publish_date) ? r.publish_date : "—"}
+                          {hasVal(r.publish_date) ? (
+                            hasVal(r.publish_url) ? (
+                              <a
+                                href={r.publish_url as string}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-primary hover:underline"
+                              >
+                                {r.publish_date}
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            ) : (
+                              r.publish_date
+                            )
+                          ) : (
+                            "—"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Badge variant="outline" className={PUBLISH_STATUS_CLASS[st]}>
