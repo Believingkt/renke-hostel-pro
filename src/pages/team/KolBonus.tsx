@@ -127,11 +127,15 @@ const isTokenValid = (row: KolRow) =>
 export default function KolBonus() {
   const { roles } = useTeam();
   const roleSet = roles as string[];
-  const allowed =
+  const canEdit =
     roleSet.includes("super_admin") ||
     roleSet.includes("hotel_admin") ||
     roleSet.includes("scout_manager") ||
     roleSet.includes("scout");
+  // AM／AM 主管：唯讀，只能看儀表板
+  const readOnlyViewer =
+    !canEdit && (roleSet.includes("am") || roleSet.includes("am_manager"));
+  const allowed = canEdit || readOnlyViewer;
 
   const twNow = (() => {
     const now = new Date();
@@ -614,6 +618,7 @@ export default function KolBonus() {
 
   return (
     <div className="space-y-6">
+      {!readOnlyViewer && (
       <div>
         {hasUnsavedChanges ? (
           <AlertDialog>
@@ -647,13 +652,14 @@ export default function KolBonus() {
           </Button>
         )}
       </div>
+      )}
       <Tabs defaultValue="dashboard" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList>
             <TabsTrigger value="dashboard">儀表板</TabsTrigger>
-            <TabsTrigger value="bonus">進單管理</TabsTrigger>
-            <TabsTrigger value="settlement">分潤結算</TabsTrigger>
-            <TabsTrigger value="rates">分潤設定</TabsTrigger>
+            {!readOnlyViewer && <TabsTrigger value="bonus">進單管理</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="settlement">分潤結算</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="rates">分潤設定</TabsTrigger>}
           </TabsList>
         </div>
 

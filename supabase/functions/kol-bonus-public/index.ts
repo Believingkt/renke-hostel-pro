@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const INTERNAL_ROLES = ["super_admin", "hotel_admin", "scout_manager", "scout"];
+const INTERNAL_ROLES = ["super_admin", "hotel_admin", "scout_manager", "scout", "am", "am_manager"];
 
 /** 唯一真相：單筆訂單的分潤基準金額
  *  1) order_meta.team_commission_price 有值 → 優先採用（人工覆蓋）
