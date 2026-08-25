@@ -350,7 +350,74 @@ export default function RagicSyncTab() {
             </TableBody>
           </Table>
         </div>
+
+        {skipped && skipped.length > 0 && (
+          <div className="rounded-md border border-amber-500/40 bg-amber-500/5">
+            <button
+              type="button"
+              onClick={() => setShowSkipped((v) => !v)}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                被排除的館別／列（{skipped.length}）
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {showSkipped ? "收合" : "展開"}
+              </span>
+            </button>
+            {showSkipped && (
+              <div className="overflow-x-auto border-t border-amber-500/30">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>館別</TableHead>
+                      <TableHead>範圍</TableHead>
+                      <TableHead>收入類型</TableHead>
+                      <TableHead>排除原因</TableHead>
+                      <TableHead>判定閘門</TableHead>
+                      <TableHead className="text-right">當月營收</TableHead>
+                      <TableHead>說明</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {skipped.map((s, i) => (
+                      <TableRow key={`${s.accommodation_id}-${i}`}>
+                        <TableCell className="font-medium whitespace-nowrap">
+                          {s.accommodation_name}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <Badge variant={s.scope === "row" ? "outline" : "secondary"}>
+                            {s.scope === "row" ? "單列" : "整館"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {s.income_type ?? "全部"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-amber-700 dark:text-amber-400">
+                          {SKIP_REASON_LABEL[s.skip_reason] ?? s.skip_reason}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {s.gate ? (GATE_LABEL[s.gate] ?? s.gate) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {typeof s.revenue_twd === "number"
+                            ? s.revenue_twd.toLocaleString()
+                            : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {s.detail ?? "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
+
 
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
