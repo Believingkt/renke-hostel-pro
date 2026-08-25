@@ -233,29 +233,36 @@ Deno.serve(async (req) => {
       const isFranchise = FRANCHISE_IDS.has(acc.id);
       const noteText = hasFee ? "" : NO_FEE_NOTE;
 
-      // 行銷推廣費：每館每月一筆，0 元館別也照推
+      // Gate C：行銷推廣費：僅在合約有約定（charges_marketing_fee = true）時才產生列
+      const chargesMkt = chargesMarketing.get(acc.id) === true;
       const mRule = marketingRuleFor(acc.id);
-      const marketingFee = Math.round(
-        resolveMarketingFee(mRule, grossRevenueTwd, Number(acc.building_count) || 1),
-      );
-      const marketingRow: Record<string, string> = {
-        [FIELD.DATA_SOURCE]: "PMS",
-        [FIELD.YEAR_MONTH]: yyyyMm,
-        [FIELD.BUSINESS_UNIT]: "人客多總部",
-        [FIELD.INCOME_TYPE]: "行銷推廣費",
-        [FIELD.AMOUNT]: String(marketingFee),
-        [FIELD.VENUE]: acc.name,
-        [FIELD.COMMISSION_RATE]: "",
-        [FIELD.COMMISSION_FEE]: "",
-        [FIELD.NOTE]: "",
-      };
+      const marketingFee = chargesMkt
+        ? Math.round(
+            resolveMarketingFee(mRule, grossRevenueTwd, Number(acc.building_count) || 1),
+          )
+        : 0;
+      const marketingRow: Record<string, string> | null = chargesMkt
+        ? {
+            [FIELD.DATA_SOURCE]: "PMS",
+            [FIELD.YEAR_MONTH]: yyyyMm,
+            [FIELD.BUSINESS_UNIT]: "人客多總部",
+            [FIELD.INCOME_TYPE]: "行銷推廣費",
+            [FIELD.AMOUNT]: String(marketingFee),
+            [FIELD.VENUE]: acc.name,
+            [FIELD.COMMISSION_RATE]: "",
+            [FIELD.COMMISSION_FEE]: "",
+            [FIELD.NOTE]: "",
+          }
+        : null;
 
-      // Skip venues with no revenue AND no management fee for the month,
-      // OR venues that have a fee config but revenue is below threshold (fee = 0).
-      // 註：此 skip 僅適用於「平台抽成／門市運營」，行銷推廣費仍照推。
+      // Gate B：沒有管顧費率設定（該館不收抽成）→ 不產生平台抽成／門市運營列
+      // 另：有設定但當月抽成為 0（未達門檻或無營收）亦不推。
       const skipUnderThreshold = hasFee && managementFeeRounded === 0;
       const skipCommissionRows =
-        (revenueTwd === 0 && managementFeeRounded === 0) || skipUnderThreshold;
+        !hasFee ||
+        (revenueTwd === 0 && managementFeeRounded === 0) ||
+        skipUnderThreshold;
+
 
       const rows: Record<string, string>[] = [];
 
