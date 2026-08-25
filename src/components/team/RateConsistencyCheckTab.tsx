@@ -113,28 +113,28 @@ export default function RateConsistencyCheckTab() {
           return s && today >= s && (e === null || today <= e);
         });
         const partnership: CheckResult = ps.length === 0
-          ? { level: "error", label: "未設定合作期間", href: hqHref }
+          ? { level: "error", label: "未設定合作期間", href: hqHref, hint: "到總部設定頁 →「合作期間」新增起訖日，否則此館營收不會送出 Ragic。" }
           : activePeriod
             ? { level: "ok", label: "合作中" }
-            : { level: "warn", label: "目前無生效期間", href: hqHref };
+            : { level: "warn", label: "目前無生效期間", href: hqHref, hint: "合作期間已結束或尚未開始，請確認起訖日是否需要延長。" };
 
         const rate = r ? num(r.commission_rate) : null;
         const settlementRule: CheckResult = !r
-          ? { level: "error", label: "無生效費率規則", href: hqHref }
+          ? { level: "error", label: "無生效費率規則", href: hqHref, hint: "到總部設定頁 →「業主月結設定」新增一筆生效中的費率規則（生效日需 ≤ 今天）。" }
           : !rate || rate <= 0
-            ? { level: "warn", label: "費率為 0%", href: hqHref }
+            ? { level: "warn", label: "費率為 0%", href: hqHref, hint: "目前費率為 0%，若非刻意設定請到總部設定頁修正管顧費率。" }
             : { level: "ok", label: `${rate.toFixed(2)}%` };
 
         const marketingFee: CheckResult = !r
-          ? { level: "error", label: "未設定", href: hqHref }
+          ? { level: "error", label: "未設定", href: hqHref, hint: "沒有月結費率規則就無法判斷是否收行銷推廣費，請先新增費率規則。" }
           : r.charges_marketing_fee === true
             ? { level: "ok", label: "有收取" }
-            : { level: "warn", label: "未約定收取", href: hqHref };
+            : { level: "warn", label: "未約定收取", href: hqHref, hint: "若此館合約有收行銷推廣費，請到總部設定頁勾選「收取行銷推廣費」。" };
 
         const bookingSetting: CheckResult = !b
-          ? { level: "warn", label: "無訂房設定" }
+          ? { level: "warn", label: "無訂房設定", hint: "此館尚未建立訂房設定，請到該館後台「訂房設定」建立基本設定。" }
           : b.manual_refund_fee_amount === null || b.manual_refund_fee_amount === undefined
-            ? { level: "warn", label: "未設人工退款手續費" }
+            ? { level: "warn", label: "未設人工退款手續費", hint: "到該館後台「訂房設定」填寫人工退款手續費金額，退款時才能正確扣除。" }
             : { level: "ok", label: "已設定" };
 
         let legacyRate: CheckResult = { level: "ok", label: "無殘留" };
@@ -142,8 +142,15 @@ export default function RateConsistencyCheckTab() {
           const diffRate = Math.abs((num(r.commission_rate) ?? 0) - (num(c.rate) ?? 0)) > 0.001;
           const diffThreshold =
             Math.abs((num(r.commission_threshold) ?? 0) - (num(c.revenue_threshold) ?? 0)) > 0.5;
-          if (diffRate || diffThreshold) legacyRate = { level: "warn", label: "舊表數值不同" };
+          if (diffRate || diffThreshold)
+            legacyRate = {
+              level: "warn",
+              label: "舊表數值不同",
+              hint: "歷史管顧費率表殘留舊數值，僅供查詢不影響計算；可到總部設定頁確認後刪除舊版本。",
+              href: hqHref,
+            };
         }
+
 
         return { accId: a.id, accName: a.name, partnership, settlementRule, marketingFee, bookingSetting, legacyRate };
       });
