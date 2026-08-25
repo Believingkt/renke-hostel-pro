@@ -62,6 +62,7 @@ export default function RateConsistencyCheckTab() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [fix, setFix] = useState<{ accName: string; checkLabel: string; res: CheckResult } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
