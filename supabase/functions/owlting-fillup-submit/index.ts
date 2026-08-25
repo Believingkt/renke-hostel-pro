@@ -156,6 +156,12 @@ Deno.serve(async (req) => {
         status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // 信件中的特殊需求（含早餐等備註）一併帶入訂單備註
+    const specialRequestsText = String(staging.special_requests ?? "").trim();
+    const specialRequestsPrefix = specialRequestsText
+      ? `[特殊需求] ${specialRequestsText}\n`
+      : "";
+
     if (staging.pii_status === "self_pushed") {
       return new Response(JSON.stringify({ error: "此為本站已推送的訂單，無需補單" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
