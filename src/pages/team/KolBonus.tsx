@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye, Plus, Trash2 } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -603,6 +603,14 @@ export default function KolBonus() {
 
   return (
     <div className="space-y-6">
+      <div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/team/kol">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            返回 KOL 星探管理
+          </Link>
+        </Button>
+      </div>
       <Tabs defaultValue="bonus" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList>
