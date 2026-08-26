@@ -3718,14 +3718,29 @@ function InvitationsTab({
                     : levels.includes("warning")
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
-                  // 跨館同 CID 才提供主檔候選（同住夥伴分屬不同館別時歸戶同一份合約）；
-                  // 同館別同 CID 一律視為重複建檔，直接阻擋、不提供設為主檔。
+                  // 同住主檔候選：
+                  //  - 跨館同 CID（同一份合約歸戶）
+                  //  - 同館同 CID 但「不同人」＝真正的同住夥伴，允許掛在主檔底下
+                  // 只有「同館 + 判定為同一人」才視為重複建檔，直接阻擋、不提供設為主檔。
+                  const isSamePersonHit = (c: typeof kolHits[number]) =>
+                    isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
                   const needsPrimary = kolHits.filter((c) => {
                     if (levelOf(c) !== "block" || isLinked(c)) return false;
-                    return !!c.accommodation_id && c.accommodation_id !== form.accommodation_id;
+                    if (!c.accommodation_id) return false;
+                    if (c.accommodation_id !== form.accommodation_id) return true;
+                    return !isSamePersonHit(c);
                   });
                   const sameVenueDuplicate = kolHits.some(
-                    (c) => levelOf(c) === "block" && !isLinked(c) && c.accommodation_id === form.accommodation_id,
+                    (c) =>
+                      levelOf(c) === "block" &&
+                      !isLinked(c) &&
+                      c.accommodation_id === form.accommodation_id &&
+                      isSamePersonHit(c),
                   );
 
                   if (visibleConflicts.length === 0 && !linked && needsPrimary.length === 0) return null;
