@@ -222,6 +222,23 @@ export function TeamSettingsBell() {
     useNotificationReadState(userId, activeIds);
 
   const [confirmAllRead, setConfirmAllRead] = useState(false);
+  /** 分組「本組已讀」二次確認（避免誤按整組消失） */
+  const [confirmGroup, setConfirmGroup] = useState<{
+    kind: string;
+    label: string;
+    ids: string[];
+  } | null>(null);
+  /** 點擊通知後開啟的完整明細視窗 */
+  const [detailItem, setDetailItem] = useState<TeamNotification | null>(null);
+  /** 全部已讀後的短暫復原提示（10 秒） */
+  const [undoLeft, setUndoLeft] = useState(0);
+
+  useEffect(() => {
+    if (undoLeft <= 0) return;
+    const t = window.setTimeout(() => setUndoLeft((n) => n - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [undoLeft]);
+
 
   const unread = items.filter((i) => !isRead(i.id));
   const unreadErrors = unread.filter((i) => i.severity === "error").length;
