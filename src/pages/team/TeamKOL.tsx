@@ -3727,6 +3727,7 @@ function InvitationsTab({
                     (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId);
                   const kolHits = cidConflicts.filter((c) => c.source === "kol_profiles");
                   const linked = kolHits.some(isLinked);
+                  const identityInputComplete = !!kolNameKey(form.name) && !!normalizeIgHandle(form.ig_handle);
 
                   type Lv = "block" | "warning" | "info";
                   const levelOf = (c: CodeConflict): Lv => {
@@ -3735,7 +3736,6 @@ function InvitationsTab({
                     if (isLinked(c)) return "warning";
                     const currentNameKey = kolNameKey(form.name);
                     const existingNameKey = kolNameKey(c.owner_name ?? "");
-                    const identityInputComplete = !!currentNameKey && !!normalizeIgHandle(form.ig_handle);
                     if (!identityInputComplete) return "info";
                     const samePerson = isSameKolIdentity({
                       formName: form.name,
@@ -3756,7 +3756,28 @@ function InvitationsTab({
                       : "info";
                   };
                   const marks: Record<Lv, string> = { block: "⛔", warning: "⚠️", info: "ℹ️" };
-                  const levels = cidConflicts.map(levelOf);
+                  const visibleConflicts = cidConflicts.filter((c) => {
+                    if (c.source === "scout_discount_codes") return true;
+                    if (c.source === "discount_codes") return false;
+                    if (c.source !== "kol_profiles") return true;
+                    if (isLinked(c)) return true;
+                    if (!identityInputComplete) return c.accommodation_id === form.accommodation_id;
+                    const sameIdentity = isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    if (!sameIdentity) return true;
+                    if (c.accommodation_id === form.accommodation_id) return true;
+                    return isSameContractScope({
+                      selfAccName,
+                      otherAccName: c.accommodation_name,
+                      selfVenueType,
+                      otherVenueType: venueTypeOfAcc(c.accommodation_id),
+                    });
+                  });
+                  const levels = visibleConflicts.map(levelOf);
                   const tone = levels.includes("block")
                     ? "border-destructive bg-destructive/10 text-destructive"
                     : levels.includes("warning")
@@ -3767,9 +3788,10 @@ function InvitationsTab({
                     if (levelOf(c) !== "block" || isLinked(c)) return false;
                     return c.accommodation_id === form.accommodation_id;
                   });
+                  if (visibleConflicts.length === 0 && !linked && needsPrimary.length === 0) return null;
                   return (
                     <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
-                      {cidConflicts.map((c, i) => {
+                      {visibleConflicts.map((c, i) => {
                         const lv = levels[i];
                         const sameIdentity = c.source === "kol_profiles" && isSameKolIdentity({
                           formName: form.name,
@@ -3790,8 +3812,8 @@ function InvitationsTab({
                                   ? lv === "warning"
                                     ? `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}已用同一支 CID；依規則屬同一份合約，只計 1 個資格。`
                                     : `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格，無需處理。`
-                                  : !form.name.trim() || !form.ig_handle.trim()
-                                    ? `此 CID 已有「${c.owner_name ?? "-"}」的紀錄${c.accommodation_name ? `（${c.accommodation_name}）` : ""}；請先填完 KOL 名稱與 IG，系統會再判斷是否需要處理。`
+                                  : !identityInputComplete
+                                    ? `此館別已有相同 CID 的邀約；填完 KOL 名稱與 IG 後，系統會確認是否為重複建檔。`
                                     : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
                                 : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
                             {namesDiffer && (
