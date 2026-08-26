@@ -7,6 +7,7 @@ import {
   LEGACY_MODULE_ALIASES,
   ModulePermissionLevel,
 } from "@/constants/staffPermissions";
+import { GLOBAL_VIEWER_ROLES, GLOBAL_VIEWER_MODULES } from "@/lib/globalViewerRoles";
 
 interface UseStaffPermissionsResult {
   permissions: Record<string, ModulePermissionLevel>;
@@ -22,6 +23,8 @@ interface StaffPermissionData {
   isStaff: boolean;
   isAdmin: boolean;
   hasAccommodationRole: boolean;
+  /** 全域唯讀角色（finance / am / am_manager）：僅指定模組可唯讀檢視 */
+  isGlobalViewer: boolean;
 }
 
 const EMPTY_PERMISSIONS: StaffPermissionData = {
@@ -29,6 +32,7 @@ const EMPTY_PERMISSIONS: StaffPermissionData = {
   isStaff: false,
   isAdmin: false,
   hasAccommodationRole: false,
+  isGlobalViewer: false,
 };
 
 const STAFF_PERMISSIONS_STALE_TIME = 5 * 60 * 1000;
@@ -83,7 +87,8 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
 
       // 重新讀取完整角色，避免 AccommodationContext 只保留「有館別」角色時漏掉全域 super_admin。
       let roles = rolesForAccommodation;
-      let globalRoles = userAccommodations.map((row) => row.role);
+      let globalRoles: string[] = [];
+      let globalOnlyRoles: string[] = [];
       const { data: roleRows } = await supabase
         .from("user_roles")
         .select("role, accommodation_id")
@@ -91,6 +96,9 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         .limit(1000);
       if (roleRows) {
         globalRoles = roleRows.map((r: any) => r.role);
+        globalOnlyRoles = roleRows
+          .filter((r: any) => !r.accommodation_id)
+          .map((r: any) => r.role);
         roles = (roleRows ?? [])
           .filter((r: any) => r.accommodation_id === currentAccommodationId)
           .map((r: any) => r.role);
@@ -109,7 +117,25 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         return { ...EMPTY_PERMISSIONS, isAdmin: true, hasAccommodationRole: true };
       }
 
+      const isGlobalViewer = globalOnlyRoles.some((role) =>
+        (GLOBAL_VIEWER_ROLES as readonly string[]).includes(role)
+      );
+
       if (!isStaffOnly) {
+        if (isGlobalViewer) {
+          // 全域唯讀角色：跨館查詢報表用，只開放白名單模組且一律 readonly
+          const map: Record<string, ModulePermissionLevel> = {};
+          GLOBAL_VIEWER_MODULES.forEach((key) => {
+            map[key] = "readonly";
+          });
+          return {
+            permissions: map,
+            isStaff: false,
+            isAdmin: false,
+            hasAccommodationRole: false,
+            isGlobalViewer: true,
+          };
+        }
         // 沒有目前館別角色不能預設放行，否則前端會顯示可用、後端/RLS 再擋掉。
         return EMPTY_PERMISSIONS;
       }
@@ -131,6 +157,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         isStaff: true,
         isAdmin: false,
         hasAccommodationRole: true,
+        isGlobalViewer: false,
       };
     },
   });
@@ -139,9 +166,11 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   const isStaff = data.isStaff;
   const isAdmin = data.isAdmin;
   const hasAccommodationRole = data.hasAccommodationRole;
+  const isGlobalViewer = data.isGlobalViewer;
 
   const getLevel = (moduleKey: string): ModulePermissionLevel => {
     if (isAdmin) return "editable";
+    if (isGlobalViewer) return permissions[moduleKey] ?? "hidden";
     if (!hasAccommodationRole) return "hidden";
     if (!isStaff) return "hidden";
     // 舊 key 沿用改版後的對應模組，避免升級後既有設定失效

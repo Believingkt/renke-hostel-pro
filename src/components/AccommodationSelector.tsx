@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { openFrontendBooking } from "@/lib/frontendUrl";
 import { isPmsMode, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+import { GLOBAL_VIEWER_ROLES } from "@/lib/globalViewerRoles";
 
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader2 } from "lucide-react";
@@ -72,7 +73,7 @@ export function AccommodationSelector() {
             .select('role')
             .eq('user_id', session.user.id)
             .is('accommodation_id', null)
-            .in('role', ['finance', 'super_admin']);
+            .in('role', GLOBAL_VIEWER_ROLES as unknown as string[]);
           isGlobalViewer = (globalRoles?.length ?? 0) > 0;
         }
       } catch {
