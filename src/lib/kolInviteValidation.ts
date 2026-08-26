@@ -231,6 +231,26 @@ export type CodeConflict = {
   venue_type?: string | null;
 };
 
+/**
+ * 同一位 KOL 的多訊號判定：名稱、IG 或既有合約歸戶任一相符即視為同一人。
+ * 此判定只用來辨識身分；名稱寫法仍必須統一，不能用確認勾選略過。
+ */
+export function isSameKolIdentity(input: {
+  formName: string;
+  formIg?: string | null;
+  formContractGroupId?: string | null;
+  conflict: CodeConflict;
+}): boolean {
+  const otherName = input.conflict.owner_name ?? "";
+  const nameMatches = !!kolNameKey(input.formName) && kolNameKey(input.formName) === kolNameKey(otherName);
+  const selfIg = normalizeIgHandle(input.formIg ?? "").toLowerCase();
+  const otherIg = normalizeIgHandle(input.conflict.detail?.ig_handle ?? "").toLowerCase();
+  const igMatches = !!selfIg && !!otherIg && selfIg === otherIg;
+  const otherGroup = input.conflict.detail?.contract_group_id ?? null;
+  const groupMatches = !!input.formContractGroupId && input.formContractGroupId === otherGroup;
+  return nameMatches || igMatches || groupMatches;
+}
+
 
 export type InviteFormSnapshot = {
   name: string;
@@ -396,8 +416,26 @@ export function validateInvite(
         suggestion: `請換一組，例如在原碼後加上識別字尾（${normalizeCode(f.cid_code)}KOL）。`,
       });
     } else if (c.source === "kol_profiles") {
-      const sameName = (c.owner_name ?? "").trim() === (f.name ?? "").trim();
-      if (sameName && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
+      const samePerson = isSameKolIdentity({
+        formName: f.name,
+        formIg: f.ig_handle,
+        formContractGroupId: f.contract_group_id,
+        conflict: c,
+      });
+      const existingName = (c.owner_name ?? "").trim();
+      const currentName = (f.name ?? "").trim();
+      const nameDiffers = samePerson && !!existingName && !!currentName && kolNameKey(existingName) !== kolNameKey(currentName);
+      if (nameDiffers) {
+        add({
+          level: "block",
+          rule: "name.same_identity_different_name",
+          field: "name",
+          message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」是同一位 KOL，但名稱寫法不一致。`,
+          expected: `所有邀約統一使用同一個 KOL 名稱`,
+          actual: `${existingName} / ${currentName}`,
+          suggestion: `若確為不同人或二次合作，請勾選「確認為不同人／二次合作」後再儲存。請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
+        });
+      } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
           level: "block",
           rule: "cid.duplicate_same_person",
@@ -407,7 +445,7 @@ export function validateInvite(
           actual: `${normalizeCode(f.cid_code)} / ${c.owner_name}`,
           suggestion: "請改為編輯既有那筆邀約，而不是新增一筆。",
         });
-      } else if (sameName) {
+      } else if (samePerson) {
         // 同一位 KOL、不同館別：預設各自獨立算資格；僅旅行日系列或非民宿場域才視為同一份合約。
         const sameContract = isSameContractScope({
           selfAccName: f.accommodation_label,
@@ -434,7 +472,7 @@ export function validateInvite(
             suggestion: "無需處理；若兩筆其實是同一份合約，才需要合併或設為附屬。",
           });
         }
-      } else if (!sameName) {
+      } else {
 
         // 同住合拍必須有「實際的主檔關聯」才算數：
         // 本筆掛在對方底下，或對方掛在本筆底下（或以 companion_cid 互指）。

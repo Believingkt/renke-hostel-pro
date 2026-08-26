@@ -12,3 +12,7 @@ type: feature
 「旅行日系列」判定沿用全站獎金口徑：`accommodation_info.name` 以「旅行日」開頭（TeamHome / TeamCommission / create-team-bonus-snapshots 同口徑）。
 
 實作：`src/lib/kolInviteValidation.ts` 的 `isTravelSeriesAccommodation` / `isSameContractScope`，規則代碼 `cid.same_person_same_contract`（warning）與 `cid.same_person_other_accommodation`（info）；UI 於 `src/pages/team/TeamKOL.tsx` 依每筆衝突分色。
+
+同一人改採多訊號辨識：KOL 名稱正規化、IG 帳號、`contract_group_id` 任一相符即視為同一人。但若辨識為同一人而名稱不同，仍須硬擋儲存並要求統一名稱；提示需同時列出兩個名稱（例如「請統一 KOL 名稱是餓犬Dicky或是Dicky」），不可用「不同人／二次合作」勾選略過。
+
+`primary_profile_id` 僅用於同館、同一位 KOL、入住日相差 1 天內的同住主檔／附屬；跨館同合約應各自保留主要記錄，以 `contract_group_id` 歸戶。

@@ -227,6 +227,37 @@ describe("折扣碼衝突回傳邏輯", () => {
     expect(rules(r)).toContain("cid.duplicate_same_person");
   });
 
+  it("uses IG as an identity signal but still blocks until KOL names are unified", () => {
+    const r = run(
+      { cid_code: "DICKYLEMON22", name: "餓犬Dicky", ig_handle: "dickydoggy22" },
+      {
+        conflicts: [
+          conflict({
+            code: "DICKYLEMON22",
+            owner_name: "Dicky",
+            accommodation_id: ACC_B,
+            detail: { ig_handle: "dickydoggy22", profile_id: "dicky-old" },
+          }),
+        ],
+      },
+    );
+    const issue = r.issues.find((i) => i.rule === "name.same_identity_different_name");
+    expect(issue?.level).toBe("block");
+    expect(issue?.suggestion).toContain("請統一 KOL 名稱是「Dicky」或是「餓犬Dicky」");
+  });
+
+  it("uses contract group as an identity signal and requires one name", () => {
+    const r = run(
+      { cid_code: "SELFE", name: "新寫法", contract_group_id: "group-1" },
+      {
+        conflicts: [
+          conflict({ owner_name: "既有寫法", accommodation_id: ACC_B, detail: { contract_group_id: "group-1" } }),
+        ],
+      },
+    );
+    expect(rules(r)).toContain("name.same_identity_different_name");
+  });
+
   it("only warns when a PMS discount code belongs to another accommodation", () => {
     const r = run(
       { cid_code: "SELFE" },
