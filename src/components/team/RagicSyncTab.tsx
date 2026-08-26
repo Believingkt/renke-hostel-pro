@@ -479,13 +479,39 @@ export default function RagicSyncTab() {
 
 
         <div className="overflow-x-auto">
+         <TooltipProvider delayDuration={100}>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>館別</TableHead>
                 <TableHead>事業單位</TableHead>
-                <TableHead>收入類型</TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    收入類型
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="收入類型計算公式說明">
+                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent className="z-50 max-w-sm bg-popover text-left">
+                        <div className="space-y-2 text-xs">
+                          {["平台抽成", "行銷推廣費", "門市運營"].map((t) => {
+                            const h = incomeTypeHelp(t)!;
+                            return (
+                              <div key={t}>
+                                <div className="font-medium">{t}</div>
+                                <div className="text-muted-foreground">{h.formula}</div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                </TableHead>
                 <TableHead className="text-right">金額 (TWD)</TableHead>
+
                 <TableHead>原始幣別</TableHead>
                 <TableHead>匯率</TableHead>
                 <TableHead className="text-right">抽成%</TableHead>
