@@ -1492,10 +1492,11 @@ function InvitationsTab({
 
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
-  // 折扣碼即時衝突檢查
+  // 折扣碼即時衝突檢查（以 query key 標記結果，避免切換 KOL／CID／館別時顯示到上一筆的提示）
   useEffect(() => {
     if (!sheetOpen) {
       setCidConflicts([]);
+      setCidConflictKey(null);
       setCollabConfirmed(false);
       setIgDupConfirmed(false);
       setNameVariantConfirmed(false);
@@ -1503,19 +1504,27 @@ function InvitationsTab({
       return;
     }
     const code = normalizeCode(form.cid_code);
+    const key = `${code}|${form.accommodation_id || ""}|${editingId ?? ""}`;
     if (!code) {
       setCidConflicts([]);
+      setCidConflictKey(key);
       return;
     }
+    let cancelled = false;
     const t = setTimeout(async () => {
       const { data } = await supabase.rpc("check_discount_code_conflict", {
         _code: code,
         _accommodation_id: form.accommodation_id || null,
         _exclude_profile_id: editingId,
       });
+      if (cancelled) return;
       setCidConflicts(((data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info"));
+      setCidConflictKey(key);
     }, 350);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
 
   // 名稱「僅全半形／大小寫／空白不同」即時偵測
