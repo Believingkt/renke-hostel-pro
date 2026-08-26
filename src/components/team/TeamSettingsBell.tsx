@@ -9,7 +9,19 @@ import {
   Lock,
   ChevronDown,
   CheckCheck,
+  Undo2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -157,7 +169,10 @@ export function TeamSettingsBell() {
   );
 
   const activeIds = useMemo(() => items.map((i) => i.id), [items]);
-  const { isRead, markRead, markAllRead } = useNotificationReadState(userId, activeIds);
+  const { isRead, markRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
+    useNotificationReadState(userId, activeIds);
+  const [confirmAllRead, setConfirmAllRead] = useState(false);
+
 
   const unread = items.filter((i) => !isRead(i.id));
   const unreadErrors = unread.filter((i) => i.level === "error").length;
@@ -203,8 +218,18 @@ export function TeamSettingsBell() {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {badge > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} title="全部標為已讀">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmAllRead(true)}
+                title="全部標為已讀"
+              >
                 <CheckCheck className="h-4 w-4" />
+              </Button>
+            )}
+            {canUndoMarkAllRead && (
+              <Button variant="ghost" size="sm" onClick={undoMarkAllRead} title="復原全部已讀">
+                <Undo2 className="h-4 w-4" />
               </Button>
             )}
             <Button
@@ -213,6 +238,7 @@ export function TeamSettingsBell() {
               onClick={() => setShowPrefs((v) => !v)}
               title="通知偏好"
             >
+
               <Settings2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={reload} disabled={loading} title="重新檢查">
@@ -406,6 +432,23 @@ export function TeamSettingsBell() {
           </div>
         )}
       </PopoverContent>
+
+      <AlertDialog open={confirmAllRead} onOpenChange={setConfirmAllRead}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
+            <AlertDialogDescription>
+              目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（設定缺口本身不會被修正）。
+              標記後可按鈴鐺內的「復原」按鈕還原未讀狀態。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={markAllRead}>確認全部已讀</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
+
 }

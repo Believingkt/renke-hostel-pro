@@ -61,19 +61,42 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
     [key],
   );
 
+  // 「全部已讀」前的快照，可供還原（undo）
+  const [undoSnapshot, setUndoSnapshot] = useState<string[] | null>(null);
+
   const markAllRead = useCallback(() => {
-    setReadIds(() => {
+    setReadIds((prev) => {
+      setUndoSnapshot(prev);
       persist(key, activeIds);
       return [...activeIds];
     });
   }, [key, activeIds]);
 
+  const undoMarkAllRead = useCallback(() => {
+    setUndoSnapshot((snap) => {
+      if (!snap) return null;
+      persist(key, snap);
+      setReadIds(snap);
+      return null;
+    });
+  }, [key]);
+
   const resetRead = useCallback(() => {
     setReadIds([]);
     persist(key, []);
+    setUndoSnapshot(null);
   }, [key]);
 
   const isRead = useCallback((id: string) => readIds.includes(id), [readIds]);
 
-  return { readIds, isRead, markRead, markAllRead, resetRead };
+  return {
+    readIds,
+    isRead,
+    markRead,
+    markAllRead,
+    undoMarkAllRead,
+    canUndoMarkAllRead: undoSnapshot !== null,
+    resetRead,
+  };
 }
+
