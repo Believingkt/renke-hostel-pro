@@ -181,6 +181,62 @@ function flatten(results: AccomResult[]): RagicRow[] {
 
 const STORAGE_KEY = "ragic-sync-preview-v1";
 
+const RAGIC_FORM_URL = "https://ap15.ragic.com/lakeze/income-source/2?PAGEID=yj4";
+
+const n = (v: number) => Math.round(v).toLocaleString();
+const pct = (rate: number) => `${(rate * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+/** 各收入類型的計算公式說明（與 push-ragic-revenue 實際邏輯一致） */
+function incomeTypeHelp(type: string): { formula: string; desc: string } | null {
+  switch (type) {
+    case "平台抽成":
+      return {
+        formula: "平台抽成 = max(0, 當月入住營收 − 抽成門檻) × 抽成%",
+        desc: "入住營收採「夜次均攤」：每張訂單的成交金額除以住宿晚數，只計入落在該月的晚數；跨月訂單自動拆分。已排除取消單、保留單，以及後台設定的排除來源（如業主自訂、互惠等）。抽成門檻與抽成% 取自總部設定頁的業主月結費率規則（生效日 ≤ 當月）。",
+      };
+    case "行銷推廣費":
+      return {
+        formula:
+          "有門檻制：毛營收 ≥ 門檻 → 高階月費，否則低階月費；未設門檻（＝0）：基本服務費 + (棟數 − 1) × 每多一棟加收",
+        desc: "毛營收＝當月入住營收但「含」排除來源訂單，與業主月結的門檻判定基礎一致。僅在合約勾選「收取行銷推廣費」時才會產生此列。",
+      };
+    case "門市運營":
+      return {
+        formula: "門市運營 = 當月入住營收（夜次均攤）",
+        desc: "加盟／直營門市館別專用，將該館當月入住營收全額列入，不乘抽成。",
+      };
+    default:
+      return null;
+  }
+}
+
+/** 金額欄要顯示的實際代入數字 */
+function amountFormula(r: RagicRow): string | null {
+  if (r.skipped || !r.calc) return null;
+  const c = r.calc;
+  if (r.income_type === "平台抽成") {
+    return `${n(r.amount_twd)} = max(0, ${n(c.revenue_twd)} − ${n(c.threshold)}) × ${pct(c.rate)}`;
+  }
+  if (r.income_type === "門市運營") {
+    return `${n(r.amount_twd)} = 當月入住營收 ${n(c.revenue_twd)}`;
+  }
+  if (r.income_type === "行銷推廣費") {
+    const m = c.marketing_rule;
+    if (!m) return `${n(r.amount_twd)} = 合約約定月費`;
+    if (m.marketing_fee_threshold > 0) {
+      const hit = c.gross_revenue_twd >= m.marketing_fee_threshold;
+      return `${n(r.amount_twd)} ← 毛營收 ${n(c.gross_revenue_twd)} ${hit ? "≥" : "<"} 門檻 ${n(
+        m.marketing_fee_threshold,
+      )} → 採${hit ? "高階" : "低階"}月費`;
+    }
+    return `${n(r.amount_twd)} = 基本 ${n(m.marketing_fee_low)} + (棟數 − 1) × ${n(
+      m.marketing_fee_per_extra_property,
+    )}`;
+  }
+  return null;
+}
+
+
 type PersistedPreview = {
   year: number;
   month: number;
