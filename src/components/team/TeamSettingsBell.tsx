@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -10,6 +10,8 @@ import {
   ChevronDown,
   CheckCheck,
   Undo2,
+  Search,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -24,6 +26,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -91,7 +94,13 @@ export function TeamSettingsBell() {
     useSettingsCompleteness();
   const [open, setOpen] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState<"all" | "error" | "warn">("all");
+  const [gapFilter, setGapFilter] = useState<string>("all");
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const [renderedCount, setRenderedCount] = useState(0);
+
   const { prefs, update } = useNotificationPrefs(userId, roles);
 
   const allItems = useMemo<Item[]>(() => {
@@ -179,11 +188,57 @@ export function TeamSettingsBell() {
   const count = items.length;
   const badge = unread.length;
 
+  // 缺口類型選單（依目前可見範圍動態產生）
+  const gapOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    items.forEach((i) => map.set(i.gap, i.title));
+    return Array.from(map, ([gap, label]) => ({ gap, label }));
+  }, [items]);
+
+  // 搜尋 / 篩選後真正要渲染的清單
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((i) => {
+      if (levelFilter !== "all" && i.level !== levelFilter) return false;
+      if (gapFilter !== "all" && i.gap !== gapFilter) return false;
+      if (!q) return true;
+      return `${i.scope} ${i.title} ${i.detail}`.toLowerCase().includes(q);
+    });
+  }, [items, query, levelFilter, gapFilter]);
+
+  const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
+
   useEffect(() => {
-    if (!open) setExpanded(null);
+    if (!open) {
+      setExpandedIds([]);
+      setQuery("");
+      setLevelFilter("all");
+      setGapFilter("all");
+    }
   }, [open]);
 
+  // 一致性檢查：實際渲染的 <li> 數量必須等於 visibleItems 長度
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => {
+      setRenderedCount(listRef.current?.querySelectorAll(":scope > li").length ?? 0);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [open, visibleItems, expandedIds]);
+
+  const renderMismatch =
+    open && visibleItems.length > 0 && renderedCount > 0 && renderedCount !== visibleItems.length;
+
+  useEffect(() => {
+    if (renderMismatch) {
+      console.warn(
+        `[TeamSettingsBell] 通知渲染不一致：應顯示 ${visibleItems.length} 則，實際渲染 ${renderedCount} 則`,
+      );
+    }
+  }, [renderMismatch, visibleItems.length, renderedCount]);
+
   if (loading && count === 0) return null;
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -308,18 +363,92 @@ export function TeamSettingsBell() {
           </div>
         )}
 
-        {count === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            你負責範圍內的設定都已完成。
+        {/* 搜尋 / 篩選 */}
+        {count > 0 && (
+          <div className="space-y-2 border-b px-3 py-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜尋館別、項目或說明"
+                className="h-8 pl-7 text-xs"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { v: "all" as const, label: `全部 ${count}` },
+                { v: "error" as const, label: `嚴重 ${items.filter((i) => i.level === "error").length}` },
+                { v: "warn" as const, label: `建議 ${items.filter((i) => i.level !== "error").length}` },
+              ].map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => setLevelFilter(o.v)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    levelFilter === o.v ? "border-primary bg-primary/10 font-medium" : "hover:bg-muted"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+              <select
+                value={gapFilter}
+                onChange={(e) => setGapFilter(e.target.value)}
+                className="ml-auto h-7 rounded-md border bg-background px-1.5 text-[11px]"
+                aria-label="依缺口類型篩選"
+              >
+                <option value="all">所有缺口類型</option>
+                {gapOptions.map((o) => (
+                  <option key={o.gap} value={o.gap}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {renderMismatch && (
+          <div className="border-b bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+            通知渲染不一致：應顯示 {visibleItems.length} 則，實際只列出 {renderedCount} 則，請按重新檢查。
+          </div>
+        )}
+
+        {visibleItems.length === 0 ? (
+          <div className="space-y-2 px-3 py-6 text-sm text-muted-foreground">
+            {count === 0 ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                你負責範圍內的設定都已完成。
+              </div>
+            ) : (
+              <>
+                <p>沒有符合條件的通知（共 {count} 則被搜尋或篩選隱藏）。</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setQuery("");
+                    setLevelFilter("all");
+                    setGapFilter("all");
+                  }}
+                >
+                  清除搜尋與篩選
+                </Button>
+              </>
+            )}
+            <p className="text-[11px]">
+              想看歷史／已解決紀錄，請到「設定完整性檢查」頁的缺口明細列表查詢。
+            </p>
           </div>
         ) : (
           <ScrollArea className="h-[min(60vh,420px)]">
-            <ul className="divide-y">
-              {items.map((item) => {
+            <ul ref={listRef} className="divide-y">
+              {visibleItems.map((item) => {
                 const detail = GAP_DETAILS[item.gap];
                 const read = isRead(item.id);
-                const isOpen = expanded === item.id;
+                const isOpen = expandedIds.includes(item.id);
                 return (
                   <li key={item.id} className={read ? "opacity-70" : ""}>
                     <div className="px-3 py-2.5">
@@ -327,10 +456,13 @@ export function TeamSettingsBell() {
                         type="button"
                         onClick={() => {
                           markRead(item.id);
-                          setExpanded(isOpen ? null : item.id);
+                          setExpandedIds((prev) =>
+                            isOpen ? prev.filter((x) => x !== item.id) : [...prev, item.id],
+                          );
                         }}
                         className="w-full text-left"
                       >
+
                         <div className="flex items-center gap-2">
                           {!read && (
                             <span
@@ -414,6 +546,22 @@ export function TeamSettingsBell() {
               })}
             </ul>
           </ScrollArea>
+        )}
+
+        {visibleItems.length > 0 && (
+          <div className="border-t px-3 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() =>
+                setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))
+              }
+            >
+              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
+              {allExpanded ? "全部收合" : `全部展開（${visibleItems.length} 則）`}
+            </Button>
+          </div>
         )}
 
         {isHqRole(roles) && (
