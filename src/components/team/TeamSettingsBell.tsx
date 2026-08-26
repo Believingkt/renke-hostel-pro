@@ -314,7 +314,7 @@ export function TeamSettingsBell() {
             你負責範圍內的設定都已完成。
           </div>
         ) : (
-          <ScrollArea className="max-h-[60vh]">
+          <ScrollArea className="h-[min(60vh,420px)]">
             <ul className="divide-y">
               {items.map((item) => {
                 const detail = GAP_DETAILS[item.gap];
