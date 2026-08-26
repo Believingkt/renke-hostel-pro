@@ -320,12 +320,11 @@ export function TeamSettingsBell() {
     if (!open) {
       setExpandedIds([]);
       setQuery("");
-      // 關閉時回到「預設檢視」，而不是硬性重設為全部
-      setLevelFilter(defaultView.level);
-      setCategoryFilter(defaultView.category);
-      setKindFilter(defaultView.kind);
+      setLevelFilter("all");
+      setCategoryFilter("all");
+      setKindFilter("all");
       setGroupLimits({});
-      setViewSaved(false);
+
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
