@@ -531,10 +531,45 @@ export default function RagicSyncTab() {
                 <TableRow key={i} className={r.no_fee_warning ? "bg-yellow-50 dark:bg-yellow-950/20" : r.skipped ? "opacity-60" : ""}>
                   <TableCell className="font-medium">{r.venue}</TableCell>
                   <TableCell>{r.business_unit}</TableCell>
-                  <TableCell>{r.income_type}</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {r.skipped ? "—" : r.amount_twd.toLocaleString()}
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1">
+                      {r.income_type}
+                      {incomeTypeHelp(r.income_type) && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button type="button" aria-label={`${r.income_type} 計算公式`}>
+                              <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="z-50 max-w-sm bg-popover text-left">
+                            <div className="space-y-1 text-xs">
+                              <div className="font-medium">
+                                {incomeTypeHelp(r.income_type)!.formula}
+                              </div>
+                              <p className="text-muted-foreground">
+                                {incomeTypeHelp(r.income_type)!.desc}
+                              </p>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </span>
                   </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {r.skipped ? (
+                      "—"
+                    ) : (
+                      <>
+                        <div>{r.amount_twd.toLocaleString()}</div>
+                        {amountFormula(r) && (
+                          <div className="text-[11px] font-normal text-muted-foreground">
+                            {amountFormula(r)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </TableCell>
+
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">
