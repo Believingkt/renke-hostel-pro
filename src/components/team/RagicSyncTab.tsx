@@ -685,7 +685,73 @@ export default function RagicSyncTab() {
       </CardContent>
 
 
+      <Dialog open={guideOpen} onOpenChange={setGuideOpen}>
+        <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>操作引導教學｜上傳至 Ragic 收入總表</DialogTitle>
+            <DialogDescription>
+              本 Tab 會把 PMS 當月營收換算成 Ragic「收入來源」表單的資料列。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <section className="space-y-1">
+              <h4 className="font-medium">① 操作步驟</h4>
+              <ol className="list-decimal space-y-1 pl-5 text-muted-foreground">
+                <li>選擇要結算的「年份 / 月份」（通常是上個月）。</li>
+                <li>按「預覽」，系統只計算不寫入，可先核對每一列金額與公式。</li>
+                <li>確認無誤後按「確認寫入 Ragic」，同月份重複寫入會以「年月份 + 場域館別 + 收入類型」比對更新，不會產生重複列。</li>
+                <li>寫入後每列會顯示「新增／更新」或錯誤訊息；可再到 Ragic 表單覆核。</li>
+              </ol>
+            </section>
+            <section className="space-y-1">
+              <h4 className="font-medium">② 月份口徑</h4>
+              <p className="text-muted-foreground">
+                月份＝該月內實際入住晚數所對應的營收（夜次均攤，跨月訂單自動拆分），不是以訂單成立日或退房日歸屬。
+              </p>
+            </section>
+            <section className="space-y-2">
+              <h4 className="font-medium">③ 各收入類型計算公式</h4>
+              {["平台抽成", "行銷推廣費", "門市運營"].map((t) => {
+                const h = incomeTypeHelp(t)!;
+                return (
+                  <div key={t} className="rounded-md border p-3">
+                    <div className="font-medium">{t}</div>
+                    <div className="text-xs">{h.formula}</div>
+                    <p className="mt-1 text-xs text-muted-foreground">{h.desc}</p>
+                  </div>
+                );
+              })}
+            </section>
+            <section className="space-y-1">
+              <h4 className="font-medium">④ 為什麼有館別沒出現？</h4>
+              <p className="text-muted-foreground">
+                三道閘門：A 合作期間（資料月需與合作期間有交集）、B 管顧抽成設定（無設定或未達門檻不推抽成列）、C
+                合約是否勾選收取行銷推廣費。被排除的館別／列會列在下方「被排除的館別／列」區塊，含原因與判定閘門。
+              </p>
+            </section>
+            <section className="space-y-1">
+              <h4 className="font-medium">⑤ 常見情況</h4>
+              <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
+                <li>切換年／月後預覽結果會標示「已變更，請重新預覽」，重新預覽前無法寫入。</li>
+                <li>黃底列代表該館尚未設定管顧費率，請先到總部設定頁補齊。</li>
+                <li>日幣訂單不列入本表計算。</li>
+              </ul>
+            </section>
+            <a
+              href={RAGIC_FORM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-primary underline underline-offset-4"
+            >
+              <ExternalLink className="h-4 w-4" />
+              開啟 Ragic 收入來源表單
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確認寫入 Ragic？</AlertDialogTitle>
