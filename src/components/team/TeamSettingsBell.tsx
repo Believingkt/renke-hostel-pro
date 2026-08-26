@@ -86,7 +86,7 @@ export function TeamSettingsBell() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
-  const [levelFilter, setLevelFilter] = useState<"all" | "error" | "warn">("all");
+  const [levelFilter, setLevelFilter] = useState<"all" | Severity>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>("all");
   const [kindFilter, setKindFilter] = useState<string>("all");
   const listRef = useRef<HTMLUListElement | null>(null);
