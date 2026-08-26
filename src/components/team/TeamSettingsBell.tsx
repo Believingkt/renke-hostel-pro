@@ -234,6 +234,39 @@ export function TeamSettingsBell() {
 
   const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
 
+  /** 依「事件類型」分組，數量多時可折疊，避免管理員一次看到上百則 */
+  const groups = useMemo(() => {
+    const map = new Map<string, { kind: string; label: string; items: TeamNotification[] }>();
+    for (const i of visibleItems) {
+      const known = NOTIFICATION_KINDS.find((k) => k.kind === i.kind);
+      const label = known?.label ?? i.kind;
+      if (!map.has(i.kind)) map.set(i.kind, { kind: i.kind, label, items: [] });
+      map.get(i.kind)!.items.push(i);
+    }
+    return Array.from(map.values()).sort((a, b) => b.items.length - a.items.length);
+  }, [visibleItems]);
+
+  const GROUP_PAGE = 20;
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
+  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
+  const groupCollapsed = (kind: string) => collapsedGroups.includes(kind);
+  const toggleGroup = (kind: string) =>
+    setCollapsedGroups((prev) =>
+      prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind],
+    );
+
+  // 通知量大時預設收合，只留最大的一組展開
+  useEffect(() => {
+    if (!open) return;
+    if (visibleItems.length > 30 && groups.length > 1) {
+      setCollapsedGroups(groups.slice(1).map((g) => g.kind));
+    } else {
+      setCollapsedGroups([]);
+    }
+    setGroupLimits({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, categoryFilter, levelFilter, kindFilter, query]);
+
   useEffect(() => {
     if (!open) {
       setExpandedIds([]);
@@ -241,6 +274,8 @@ export function TeamSettingsBell() {
       setLevelFilter("all");
       setCategoryFilter("all");
       setKindFilter("all");
+      setCollapsedGroups([]);
+      setGroupLimits({});
     }
   }, [open]);
 
@@ -248,6 +283,7 @@ export function TeamSettingsBell() {
   useEffect(() => {
     setKindFilter("all");
   }, [categoryFilter]);
+
 
   // 一致性檢查：實際渲染的 <li> 數量必須等於 visibleItems 長度
   useEffect(() => {
