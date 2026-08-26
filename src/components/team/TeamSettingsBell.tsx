@@ -826,6 +826,24 @@ export function TeamSettingsBell() {
 
         )}
 
+        {undoLeft > 0 && canUndoMarkAllRead && (
+          <div className="flex items-center gap-2 border-t bg-amber-50 px-3 py-2 text-[11px] text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <span className="min-w-0 flex-1">已將全部通知標為已讀，可在 {undoLeft} 秒內復原。</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0 text-[11px]"
+              onClick={() => {
+                undoMarkAllRead();
+                setUndoLeft(0);
+              }}
+            >
+              <Undo2 className="mr-1 h-3.5 w-3.5" />
+              復原
+            </Button>
+          </div>
+        )}
+
         {visibleItems.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
             <Button
@@ -854,22 +872,100 @@ export function TeamSettingsBell() {
                 {allExpanded ? "收合所有明細" : "展開所有明細"}
               </Button>
             )}
-            {badge > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1 text-xs"
-                onClick={() => setConfirmAllRead(true)}
-              >
-                <CheckCheck className="mr-1 h-3.5 w-3.5" />
-                標記全部為已讀
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs"
+              title="把目前的嚴重度／分類／事件類型篩選設為下次開啟的預設"
+              onClick={() => {
+                const next = {
+                  level: levelFilter,
+                  category: categoryFilter,
+                  kind: kindFilter,
+                };
+                setDefaultView(next);
+                try {
+                  localStorage.setItem(defaultViewKey, JSON.stringify(next));
+                } catch {
+                  /* 私密瀏覽模式忽略 */
+                }
+                setViewSaved(true);
+                window.setTimeout(() => setViewSaved(false), 2000);
+              }}
+            >
+              {viewSaved ? "已設為預設檢視" : "設為預設檢視"}
+            </Button>
           </div>
         )}
-
-
       </PopoverContent>
+
+      {/* 通知完整明細 */}
+      <Dialog open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}>
+        <DialogContent className="max-w-md">
+          {detailItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base">
+                  {detailItem.scope}｜{detailItem.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs leading-relaxed">
+                  {detailItem.detail}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge
+                  variant={detailItem.severity === "error" ? "destructive" : "secondary"}
+                  className="text-[11px] font-normal"
+                >
+                  {detailItem.severity === "error"
+                    ? "嚴重"
+                    : detailItem.severity === "warn"
+                      ? "建議"
+                      : "提示"}
+                </Badge>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {CATEGORY_LABEL[detailItem.category]}
+                </span>
+                {!detailItem.editable && (
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Lock className="h-3 w-3" />
+                    唯讀
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5 rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed">
+                {(detailItem.meta ?? []).map((m) => (
+                  <p key={m.label}>
+                    <span className="text-muted-foreground">{m.label}：</span>
+                    {m.value}
+                  </p>
+                ))}
+                {detailItem.reason && (
+                  <p className="text-amber-700 dark:text-amber-400">{detailItem.reason}</p>
+                )}
+              </div>
+              {detailItem.href ? (
+                <Button
+                  className="w-full"
+                  variant={detailItem.editable ? "default" : "outline"}
+                  onClick={() => {
+                    const target = detailItem;
+                    setDetailItem(null);
+                    go(target);
+                  }}
+                >
+                  {detailItem.editable ? "前往設定頁" : "前往查看（唯讀）"}
+                  <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  此帳號無法直接編輯，請聯絡可編輯的負責角色。
+                </p>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmAllRead} onOpenChange={setConfirmAllRead}>
         <AlertDialogContent>
@@ -877,15 +973,45 @@ export function TeamSettingsBell() {
             <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
               目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（事件本身不會被處理）。
-              標記後可按鈴鐺內的「復原」按鈕還原未讀狀態。
+              標記後 10 秒內可在鈴鐺內按「復原」還原未讀狀態。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={markAllRead}>確認全部已讀</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                markAllRead();
+                setUndoLeft(10);
+              }}
+            >
+              確認全部已讀
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmGroup} onOpenChange={(v) => !v && setConfirmGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>將「{confirmGroup?.label}」整組標為已讀？</AlertDialogTitle>
+            <AlertDialogDescription>
+              這組有 {confirmGroup?.ids.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmGroup) markManyRead(confirmGroup.ids);
+                setConfirmGroup(null);
+              }}
+            >
+              確認本組已讀
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Popover>
   );
 }
