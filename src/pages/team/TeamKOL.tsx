@@ -1826,7 +1826,16 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
       primary_profile_id: form.primary_profile_id || null,
-      primary_link_exception: !!form.primary_link_exception,
+      // 旅行日系列跨館視為同一份合約，不需使用者勾選特例，直接自動標記
+      primary_link_exception: !!form.primary_link_exception || (() => {
+        if (!form.primary_profile_id) return false;
+        const parent = rows.find((r) => r.id === form.primary_profile_id);
+        const parentAccId = parent?.accommodation_id ?? null;
+        if (!parentAccId || !form.accommodation_id || parentAccId === form.accommodation_id) return false;
+        const parentName = accommodations.find((a) => a.id === parentAccId)?.name ?? parent?.venue_name ?? null;
+        const selfName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null;
+        return isTravelSeriesAccommodation(parentName) && isTravelSeriesAccommodation(selfName);
+      })(),
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
     payload.follower_count = followerParsed.value;
