@@ -760,6 +760,7 @@ function InvitationsTab({
   const [similarMatches, setSimilarMatches] = useState<KolRow[]>([]);
   /** 列表一鍵合併：child 掛到 parent 之下 */
   const [mergeConfirm, setMergeConfirm] = useState<{ parent: KolRow; child: KolRow } | null>(null);
+  const [mergeExceptionConfirmed, setMergeExceptionConfirmed] = useState(false);
   const [mergeSubmitting, setMergeSubmitting] = useState(false);
 
 
@@ -2089,18 +2090,22 @@ function InvitationsTab({
   // 僅管理員可用；零刪除、不改獎金口徑，只建立歸戶關係。
   const handleConfirmMerge = async () => {
     if (!mergeConfirm) return;
-    setMergeSubmitting(true);
     const { parent, child } = mergeConfirm;
+    const gap = parent.check_in_date && child.check_in_date
+      ? Math.abs(new Date(parent.check_in_date).getTime() - new Date(child.check_in_date).getTime()) / 86400000
+      : 0;
+    if (gap > 31 && !mergeExceptionConfirmed) {
+      toast.error("入住日相差超過 31 天，請先勾選「特例附屬」");
+      return;
+    }
+    setMergeSubmitting(true);
     const gid = parent.contract_group_id ?? child.contract_group_id ?? crypto.randomUUID();
     // child 設為附屬；雙方 contract_group_id 統一（留空者補上，非空者維持既有歸戶）
     const linkRes = await supabase
       .from("kol_profiles")
       .update({
         primary_profile_id: parent.id,
-        primary_link_exception:
-          !!parent.check_in_date && !!child.check_in_date
-            ? Math.abs(new Date(parent.check_in_date).getTime() - new Date(child.check_in_date).getTime()) / 86400000 > 31
-            : false,
+        primary_link_exception: gap > 31,
         kpi_qualified: false,
       } as any)
       .eq("id", child.id);
@@ -2126,6 +2131,7 @@ function InvitationsTab({
     }
     toast.success(`已將「${child.name}」設為「${parent.name}」的附屬記錄並歸入同一合約`);
     setMergeConfirm(null);
+    setMergeExceptionConfirmed(false);
     fetchRows();
   };
 
@@ -3727,13 +3733,17 @@ function InvitationsTab({
                     if (c.source === "scout_discount_codes") return "block";
                     if (c.source !== "kol_profiles") return "warning";
                     if (isLinked(c)) return "warning";
+                    const currentNameKey = kolNameKey(form.name);
+                    const existingNameKey = kolNameKey(c.owner_name ?? "");
+                    const identityInputComplete = !!currentNameKey && !!normalizeIgHandle(form.ig_handle);
+                    if (!identityInputComplete) return "info";
                     const samePerson = isSameKolIdentity({
                       formName: form.name,
                       formIg: form.ig_handle,
                       formContractGroupId: contractGroupId,
                       conflict: c,
                     });
-                    if (samePerson && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name)) return "block";
+                    if (existingNameKey && existingNameKey !== currentNameKey) return "block";
                     if (!samePerson) return "block";
                     if (c.accommodation_id && c.accommodation_id === form.accommodation_id) return "block";
                     return isSameContractScope({
@@ -3752,16 +3762,10 @@ function InvitationsTab({
                     : levels.includes("warning")
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
-                  // 需要處理的只有「不同人、尚未建立主檔關係」的同 CID 命中
+                  // 同館且尚未建立關係的同 CID 命中，直接提供主檔候選；名稱不一致仍會硬擋至統一。
                   const needsPrimary = kolHits.filter((c) => {
                     if (levelOf(c) !== "block" || isLinked(c)) return false;
-                    const sameIdentity = isSameKolIdentity({
-                      formName: form.name,
-                      formIg: form.ig_handle,
-                      formContractGroupId: contractGroupId,
-                      conflict: c,
-                    });
-                    return !sameIdentity && c.accommodation_id === form.accommodation_id;
+                    return c.accommodation_id === form.accommodation_id;
                   });
                   return (
                     <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
@@ -3773,7 +3777,8 @@ function InvitationsTab({
                           formContractGroupId: contractGroupId,
                           conflict: c,
                         });
-                        const namesDiffer = sameIdentity && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
+                        const namesDiffer = !!kolNameKey(c.owner_name ?? "") && !!kolNameKey(form.name)
+                          && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
                         const isSamePersonOther = sameIdentity && !namesDiffer && c.accommodation_id !== form.accommodation_id;
                         return (
                           <div key={i}>
@@ -3785,7 +3790,9 @@ function InvitationsTab({
                                   ? lv === "warning"
                                     ? `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}已用同一支 CID；依規則屬同一份合約，只計 1 個資格。`
                                     : `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格，無需處理。`
-                                  : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
+                                  : !form.name.trim() || !form.ig_handle.trim()
+                                    ? `此 CID 已有「${c.owner_name ?? "-"}」的紀錄${c.accommodation_name ? `（${c.accommodation_name}）` : ""}；請先填完 KOL 名稱與 IG，系統會再判斷是否需要處理。`
+                                    : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
                                 : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
                             {namesDiffer && (
                               <div className="mt-1 font-medium">
@@ -3875,7 +3882,8 @@ function InvitationsTab({
                           <Checkbox checked={form.primary_link_exception} disabled />
                           <span>
                             跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
-                            此為既有關係，唯讀顯示，不開放新建跨館附屬；如需調整請取消主檔關係後改用「合併到同一份合約」。
+                            {form.primary_link_exception ? " 已回填為既有特例。" : " 尚未標記特例，請聯絡管理員確認資料。"}
+                            此關係唯讀，因跨館邀約應各自保留主檔與資格，再以「同一份合約」歸戶；不開放直接修改可避免誤把不同館別的獨立合作扣成單一資格。
                           </span>
                         </div>
                       );
@@ -4406,7 +4414,15 @@ function InvitationsTab({
       </AlertDialog>
 
       {/* 列表疑似重複：一鍵合併 */}
-      <AlertDialog open={!!mergeConfirm} onOpenChange={(o) => !o && !mergeSubmitting && setMergeConfirm(null)}>
+      <AlertDialog
+        open={!!mergeConfirm}
+        onOpenChange={(o) => {
+          if (!o && !mergeSubmitting) {
+            setMergeConfirm(null);
+            setMergeExceptionConfirmed(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>合併疑似重複的邀約</AlertDialogTitle>
@@ -4429,12 +4445,27 @@ function InvitationsTab({
                   合併後兩筆會歸入同一份合約，附屬那筆的「累積資格」會取消打勾，請款統計只會計算一次，
                   但兩筆資料都會保留、不會被刪除，日後仍可拆分。
                 </p>
+                {mergeConfirm?.parent.check_in_date && mergeConfirm.child.check_in_date &&
+                  Math.abs(new Date(mergeConfirm.parent.check_in_date).getTime() - new Date(mergeConfirm.child.check_in_date).getTime()) / 86400000 > 31 && (
+                    <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-amber-900">
+                      <Checkbox
+                        checked={mergeExceptionConfirmed}
+                        onCheckedChange={(checked) => setMergeExceptionConfirmed(checked === true)}
+                      />
+                      <span>特例附屬：入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
+                    </label>
+                  )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={mergeSubmitting}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmMerge} disabled={mergeSubmitting}>
+            <AlertDialogAction
+              onClick={handleConfirmMerge}
+              disabled={mergeSubmitting || (!!mergeConfirm?.parent.check_in_date && !!mergeConfirm?.child.check_in_date &&
+                Math.abs(new Date(mergeConfirm.parent.check_in_date).getTime() - new Date(mergeConfirm.child.check_in_date).getTime()) / 86400000 > 31 &&
+                !mergeExceptionConfirmed)}
+            >
               {mergeSubmitting ? "處理中..." : "確認合併"}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -4451,7 +4482,7 @@ function InvitationsTab({
               <div className="space-y-2 text-left text-sm">
                 <p>
                   接下來會以「{subsidiaryIntroTarget?.name ?? ""}」為主要記錄，建立一筆掛在它底下的附屬記錄，
-                  用於同一位 KOL 在同一次合作中的第二個館別／第二個入住日。
+                  用於同一位 KOL 在同一館別合作中的另一筆入住記錄。
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>KOL 名稱、網紅帳號連結、邀約人會自動沿用主要記錄，仍可修改。</li>
