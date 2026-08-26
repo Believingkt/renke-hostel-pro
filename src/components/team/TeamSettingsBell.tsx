@@ -284,18 +284,31 @@ export function TeamSettingsBell() {
     setKindFilter("all");
   }, [categoryFilter]);
 
+  const shownCount = useMemo(
+    () =>
+      groups.reduce(
+        (n, g) =>
+          n +
+          (collapsedGroups.includes(g.kind)
+            ? 0
+            : Math.min(g.items.length, groupLimits[g.kind] ?? GROUP_PAGE)),
+        0,
+      ),
+    [groups, collapsedGroups, groupLimits],
+  );
 
-  // 一致性檢查：實際渲染的 <li> 數量必須等於 visibleItems 長度
+  // 一致性檢查：實際渲染的通知列數量必須等於目前應顯示的數量
   useEffect(() => {
     if (!open) return;
     const id = window.setTimeout(() => {
-      setRenderedCount(listRef.current?.querySelectorAll(":scope > li").length ?? 0);
+      setRenderedCount(listRef.current?.querySelectorAll("[data-notif-item]").length ?? 0);
     }, 0);
     return () => window.clearTimeout(id);
-  }, [open, visibleItems, expandedIds]);
+  }, [open, visibleItems, expandedIds, collapsedGroups, groupLimits]);
 
   const renderMismatch =
-    open && visibleItems.length > 0 && renderedCount > 0 && renderedCount !== visibleItems.length;
+    open && shownCount > 0 && renderedCount > 0 && renderedCount !== shownCount;
+
 
   useEffect(() => {
     if (renderMismatch) {
