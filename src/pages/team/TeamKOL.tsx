@@ -2955,14 +2955,34 @@ function InvitationsTab({
               if (parentVenue && parentVenue.room_type_id && parentVenue.is_active === false && parentVenue.accommodation_id) {
                 parentSubName = accommodations.find((a) => a.id === parentVenue.accommodation_id)?.name ?? parentSubName;
               }
+              const crossVenue = !!parent?.accommodation_id && !!viewingRow.accommodation_id
+                && parent.accommodation_id !== viewingRow.accommodation_id;
+              const gapDays = parent?.check_in_date && viewingRow.check_in_date
+                ? Math.round(Math.abs(new Date(parent.check_in_date).getTime() - new Date(viewingRow.check_in_date).getTime()) / 86400000)
+                : null;
+              const isException = (viewingRow as { primary_link_exception?: boolean | null }).primary_link_exception === true;
               return (
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                   <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
                     附屬記錄
                   </Badge>
+                  {isException && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                      特例附屬
+                    </Badge>
+                  )}
+                  {crossVenue && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                      跨館遺留
+                    </Badge>
+                  )}
                   <span className="text-muted-foreground">主要館別：{parentSubName}</span>
+                  {gapDays !== null && gapDays > 31 && (
+                    <span className="text-muted-foreground">入住日相差 {gapDays} 天</span>
+                  )}
                 </div>
               );
+
             })()}
             <div className="flex flex-wrap items-center gap-2 mt-2">
 
@@ -3844,9 +3864,23 @@ function InvitationsTab({
                     const conflictParent = cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id);
                     const parentCheckIn = parent?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
                     const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
-                    if (!parentCheckIn || !form.check_in_date || parentAccommodationId !== form.accommodation_id) return null;
-                    const gap = Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
-                    if (gap <= 31) return null;
+                    const crossVenue = !!parentAccommodationId && !!form.accommodation_id
+                      && parentAccommodationId !== form.accommodation_id;
+                    const gap = parentCheckIn && form.check_in_date
+                      ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
+                      : null;
+                    if (crossVenue) {
+                      return (
+                        <div className="mt-3 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-2 text-blue-900">
+                          <Checkbox checked={form.primary_link_exception} disabled />
+                          <span>
+                            跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
+                            此為既有關係，唯讀顯示，不開放新建跨館附屬；如需調整請取消主檔關係後改用「合併到同一份合約」。
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (gap === null || gap <= 31) return null;
                     return (
                       <label className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
                         <Checkbox
@@ -3857,6 +3891,7 @@ function InvitationsTab({
                       </label>
                     );
                   })()}
+
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
