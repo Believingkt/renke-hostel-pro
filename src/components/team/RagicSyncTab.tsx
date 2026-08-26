@@ -235,20 +235,26 @@ function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
   }
   if (r.income_type === "行銷推廣費") {
     const m = c.marketing_rule;
-    if (!m) return [{ label: "費用來源", value: "合約約定月費（未設規則）" }];
+    const revenueRow = {
+      label: "當月入住營收（夜次均攤）",
+      value: `${n(c.gross_revenue_twd)} 元`,
+    };
+    if (!m) return [{ label: "費用來源", value: "合約約定月費（未設規則）" }, revenueRow];
     if (m.marketing_fee_threshold > 0) {
       return [
         { label: "營收門檻", value: `${n(m.marketing_fee_threshold)} 元` },
         { label: "高階月費", value: `${n(m.marketing_fee_high)} 元` },
         { label: "低階月費", value: `${n(m.marketing_fee_low)} 元` },
-        { label: "當月入住營收（夜次均攤）", value: `${n(c.gross_revenue_twd)} 元` },
+        revenueRow,
       ];
     }
     return [
       { label: "基本服務費", value: `${n(m.marketing_fee_low)} 元` },
       { label: "每多一棟加收", value: `${n(m.marketing_fee_per_extra_property)} 元` },
+      revenueRow,
     ];
   }
+
   if (r.income_type === "門市運營") {
     return [{ label: "當月入住營收（夜次均攤）", value: `${n(c.revenue_twd)} 元` }];
   }
