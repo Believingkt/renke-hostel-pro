@@ -5267,6 +5267,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           order_number: string | null
+          primary_link_exception: boolean
           primary_profile_id: string | null
           public_token: string | null
           publish_date: string | null
@@ -5322,6 +5323,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          primary_link_exception?: boolean
           primary_profile_id?: string | null
           public_token?: string | null
           publish_date?: string | null
@@ -5377,6 +5379,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_number?: string | null
+          primary_link_exception?: boolean
           primary_profile_id?: string | null
           public_token?: string | null
           publish_date?: string | null
