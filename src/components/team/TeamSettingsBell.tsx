@@ -335,17 +335,25 @@ export function TeamSettingsBell() {
     if (!open) {
       setExpandedIds([]);
       setQuery("");
-      setLevelFilter("all");
-      setCategoryFilter("all");
-      setKindFilter("all");
+      // 關閉時回到「預設檢視」，而不是硬性重設為全部
+      setLevelFilter(defaultView.level);
+      setCategoryFilter(defaultView.category);
+      setKindFilter(defaultView.kind);
       setGroupLimits({});
+      setViewSaved(false);
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 分類切換時清掉不再適用的事件類型篩選
+  // 分類切換時清掉不再適用的事件類型篩選（初次載入沿用預設檢視）
+  const categoryFirstRun = useRef(true);
   useEffect(() => {
+    if (categoryFirstRun.current) {
+      categoryFirstRun.current = false;
+      return;
+    }
     setKindFilter("all");
   }, [categoryFilter]);
+
 
   const shownCount = useMemo(
     () =>
