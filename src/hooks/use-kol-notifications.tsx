@@ -12,9 +12,9 @@ import type { TeamNotification } from "@/lib/notifications/types";
  * KOL 進度事件通知（衍生式，不建表）。
  *
  * 目前涵蓋三種情境：
- *  A. kol-qualification：星探建立了正式邀約，但星探主管尚未勾選「累積資格」
- *  B. kol-publish-overdue：已過預計上片日（入住日 + 14 天），仍缺發布日期或發布連結
- *  C. kol-cid-missing：已到入住日，折扣碼 / CID 仍未建立完成
+ *  A. kol-qualification（建議／黃）：星探建立了正式邀約，但星探主管尚未勾選「累積資格」
+ *  B. kol-publish-overdue（建議／黃）：已過預計上片日（入住日 + 14 天），仍缺發布日期或發布連結
+ *  C. kol-cid-missing（嚴重／紅）：已到入住日，折扣碼 / CID 仍未建立完成（不再檢查 legacy short_url）
  *
  * 通知對象：super_admin / admin / scout_manager / scout（scout 只會看到 RLS 允許的自家資料）。
  */
