@@ -157,6 +157,14 @@ function flatten(results: AccomResult[]): RagicRow[] {
         commission_rate: p[F.COMMISSION_RATE] || "",
         note: p[F.NOTE] || "",
         no_fee_warning: !!p[F.NOTE] && r.revenue_twd > 0 && r.management_fee_twd === 0,
+        calc: {
+          revenue_twd: r.revenue_twd,
+          gross_revenue_twd: r.gross_revenue_twd ?? r.revenue_twd,
+          threshold: r.fee_config?.threshold ?? 0,
+          rate: r.fee_config?.rate ?? 0,
+          marketing_rule: r.marketing_rule ?? null,
+        },
+
         post_result: resp
           ? {
               ok: !!resp.ok,
