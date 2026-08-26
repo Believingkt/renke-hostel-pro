@@ -679,6 +679,11 @@ export default function RagicSyncTab() {
                         )}
                       </span>
                     )}
+                    {showDetails && !r.skipped && amountFormula(r) && (
+                      <div className="mt-1 text-xs font-normal text-muted-foreground tabular-nums text-right">
+                        {amountFormula(r)}
+                      </div>
+                    )}
                   </TableCell>
 
 
