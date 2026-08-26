@@ -313,10 +313,10 @@ export function TeamSettingsBell() {
   useEffect(() => {
     if (renderMismatch) {
       console.warn(
-        `[TeamSettingsBell] 通知渲染不一致：應顯示 ${visibleItems.length} 則，實際渲染 ${renderedCount} 則`,
+        `[TeamSettingsBell] 通知渲染不一致：應顯示 ${shownCount} 則，實際渲染 ${renderedCount} 則`,
       );
     }
-  }, [renderMismatch, visibleItems.length, renderedCount]);
+  }, [renderMismatch, shownCount, renderedCount]);
 
   const go = (item: TeamNotification) => {
     if (!item.href) return;
