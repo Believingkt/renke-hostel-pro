@@ -408,8 +408,11 @@ export function TeamSettingsBell() {
   const scrollTopRef = useRef(0);
   const getViewport = () =>
     listRef.current?.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+  /** 開啟明細時凍結當下清單順序，避免「只看未讀」時標已讀導致上下則失效 */
+  const [detailList, setDetailList] = useState<TeamNotification[]>([]);
   const openDetail = (item: TeamNotification) => {
     scrollTopRef.current = getViewport()?.scrollTop ?? 0;
+    setDetailList(visibleItems);
     markRead(item.id);
     setDetailItem(item);
   };
@@ -429,10 +432,10 @@ export function TeamSettingsBell() {
   };
 
   /** 明細視窗的上／下一則（依目前篩選後的清單順序） */
-  const detailIndex = detailItem ? visibleItems.findIndex((i) => i.id === detailItem.id) : -1;
+  const detailIndex = detailItem ? detailList.findIndex((i) => i.id === detailItem.id) : -1;
   const stepDetail = (delta: number) => {
     if (detailIndex < 0) return;
-    const next = visibleItems[detailIndex + delta];
+    const next = detailList[detailIndex + delta];
     if (!next) return;
     markRead(next.id);
     setDetailItem(next);
@@ -452,7 +455,7 @@ export function TeamSettingsBell() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [detailItem, detailIndex, visibleItems]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [detailItem, detailIndex, detailList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** 批次已讀前的預覽清單 */
   const renderPreviewList = (list: TeamNotification[]) => (
@@ -1078,13 +1081,13 @@ export function TeamSettingsBell() {
                   上一則
                 </Button>
                 <span className="text-[11px] text-muted-foreground">
-                  {detailIndex >= 0 ? `${detailIndex + 1} / ${visibleItems.length}　←/→` : ""}
+                  {detailIndex >= 0 ? `${detailIndex + 1} / ${detailList.length}　←/→` : ""}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  disabled={detailIndex < 0 || detailIndex >= visibleItems.length - 1}
+                  disabled={detailIndex < 0 || detailIndex >= detailList.length - 1}
                   onClick={() => stepDetail(1)}
                 >
                   下一則
