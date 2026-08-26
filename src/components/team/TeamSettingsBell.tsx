@@ -588,33 +588,49 @@ export function TeamSettingsBell() {
           <ScrollArea className="h-[min(60vh,420px)]">
             <ul ref={listRef} className="divide-y">
               {groups.map((group) => {
-                const collapsed = collapsedGroups.includes(group.kind);
+                const collapsed = groupCollapsed(group.kind);
                 const limit = groupLimits[group.kind] ?? GROUP_PAGE;
                 const shown = collapsed ? [] : group.items.slice(0, limit);
                 const groupErrors = group.items.filter((i) => i.severity === "error").length;
+                const groupUnread = group.items.filter((i) => !isRead(i.id));
                 return (
                   <li key={group.kind}>
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group.kind)}
-                      className="flex w-full items-center gap-2 bg-muted/40 px-3 py-2 text-left hover:bg-muted"
-                      aria-expanded={!collapsed}
-                    >
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                          collapsed ? "-rotate-90" : ""
-                        }`}
-                      />
-                      <span className="truncate text-xs font-semibold">{group.label}</span>
-                      {groupErrors > 0 && (
-                        <Badge variant="destructive" className="text-[10px] font-normal">
-                          嚴重 {groupErrors}
-                        </Badge>
+                    <div className="flex items-center gap-1 bg-muted/40 pr-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.kind)}
+                        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left hover:bg-muted"
+                        aria-expanded={!collapsed}
+                      >
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                            collapsed ? "-rotate-90" : ""
+                          }`}
+                        />
+                        <span className="truncate text-xs font-semibold">{group.label}</span>
+                        {groupErrors > 0 && (
+                          <Badge variant="destructive" className="text-[10px] font-normal">
+                            嚴重 {groupErrors}
+                          </Badge>
+                        )}
+                        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                          {group.items.length} 則
+                        </span>
+                      </button>
+                      {groupUnread.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 px-2 text-[11px]"
+                          title={`將本組 ${groupUnread.length} 則標為已讀`}
+                          onClick={() => markManyRead(groupUnread.map((i) => i.id))}
+                        >
+                          <CheckCheck className="mr-1 h-3.5 w-3.5" />
+                          本組已讀
+                        </Button>
                       )}
-                      <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
-                        {group.items.length} 則
-                      </span>
-                    </button>
+                    </div>
+
 
                     {!collapsed && (
                       <ul className="divide-y">
