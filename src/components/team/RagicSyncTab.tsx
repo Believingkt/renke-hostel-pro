@@ -363,6 +363,22 @@ export default function RagicSyncTab() {
             ※ 月份篩選＝該月內實際入住晚數對應的營收（跨月訂單會拆分計算），非以訂單日或退房日歸屬。
           </span>
         </p>
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)}>
+            <BookOpen className="mr-1 h-4 w-4" />
+            操作引導教學
+          </Button>
+          <a
+            href={RAGIC_FORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground"
+          >
+            <ExternalLink className="h-4 w-4" />
+            前往 Ragic 收入來源表單
+          </a>
+        </div>
+
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end gap-3">
