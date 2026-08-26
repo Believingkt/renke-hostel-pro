@@ -3669,7 +3669,83 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID" anchorId="kolf-cid">
-                {cidConflicts.length > 0 && (() => {
+                {/* 同館同住分步導引 */}
+                <Accordion type="single" collapsible className="mb-2">
+                  <AccordionItem value="guide" className="rounded-md border px-2">
+                    <AccordionTrigger className="py-2 text-xs">同館同住怎麼設定？（分步導引）</AccordionTrigger>
+                    <AccordionContent className="pb-2 text-xs text-muted-foreground whitespace-pre-line">
+                      {[
+                        "Step 1｜館別：先在「館別」下拉選單選好本筆入住的館別（之後的判斷都以這個館別為基準）。",
+                        "Step 2｜KOL 名稱 + IG 帳號：兩欄都填完，系統才會判斷「是不是同一位 KOL」。",
+                        "　　・IG 相同但名稱不同 → 先出現「名稱／IG 確認」提示，必須先解決才會進入同住判斷。",
+                        "Step 3｜折扣碼 / CID：填入與同住主檔相同的 CID。",
+                        "　　・同館 + 同 CID + 同一位 KOL → 判定為重複建檔，直接擋下（請去編輯既有那筆）。",
+                        "　　・同館 + 同 CID + 不同人 → 判定為同住夥伴，下方會出現「設為主檔：○○○」按鈕。",
+                        "　　・跨館 + 同 CID → 同樣會出現「設為主檔」按鈕（同一份合約歸戶）。",
+                        "Step 4｜點「設為主檔：○○○」→ 確認視窗說明分潤與 KPI 只計主檔一份 → 確認。",
+                        "Step 5｜特例附屬（只有以下情況才會出現，且必須勾選才能存）：",
+                        "　　・主檔與本筆分屬不同館別；或",
+                        "　　・與主檔的入住日相差超過 31 天。",
+                        "Step 6｜下方「明細顯示預覽」確認儲存後明細會怎麼呈現，再按儲存。",
+                      ].join("\n")}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                {cidChecking && (
+                  <div className="mb-2 rounded-md border border-border bg-muted p-2 text-xs text-muted-foreground">
+                    正在依目前的館別 / KOL / CID 重新檢查衝突與同住關係…
+                  </div>
+                )}
+
+                {/* 同一 IG、不同名稱：先確認是名稱 key 錯還是 IG 貼錯，才進入同住判斷 */}
+                {!cidChecking && (() => {
+                  const hit = cidConflicts.find((c) => {
+                    if (c.source !== "kol_profiles") return false;
+                    const s = kolIdentitySignals({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    return s.igMatches && !s.nameMatches && !!kolNameKey(form.name) && !!kolNameKey(c.owner_name ?? "");
+                  });
+                  if (!hit) return null;
+                  return (
+                    <div className="mb-2 rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive space-y-2">
+                      <div className="font-medium whitespace-pre-line">
+                        {`⛔ IG 帳號與既有邀約「${hit.owner_name ?? "-"}」完全相同，但 KOL 名稱不一致（本筆填「${form.name.trim()}」）。\n請先確認：是「KOL 名稱 key 錯」，還是「IG 連結貼錯（其實是另一位 KOL）」？`}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setForm({ ...form, name: (hit.owner_name ?? "").trim() })}
+                        >
+                          名稱 key 錯：統一為「{hit.owner_name ?? "-"}」
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const el = document.getElementById(FIELD_ANCHORS.ig_handle);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            (el?.querySelector("input") as HTMLElement | null)?.focus();
+                          }}
+                        >
+                          IG 連結貼錯：前往修正 IG
+                        </Button>
+                      </div>
+                      <div className="text-[11px] font-normal">
+                        修正後系統才會重新判斷同館同住（不同人才會出現「設為主檔」按鈕）。
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {!cidChecking && cidConflicts.length > 0 && (() => {
                   const selfAccName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? "";
                   const selfVenueType = form.venue_id
                     ? (venues.find((v) => v.id === form.venue_id)?.type ?? "民宿")
