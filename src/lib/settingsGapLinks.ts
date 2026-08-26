@@ -1,6 +1,9 @@
 /**
- * 設定完整性儀表板：缺漏格子 → HQ 設定頁跳轉連結。
+ * 設定完整性儀表板：缺漏格子 → 設定頁跳轉連結。
  * 抽成純函式方便測試，並確保 tab／acc／focus 三個參數一致。
+ *
+ * 同時作為「小鈴鐺通知」的單一真相來源：
+ * 每個缺口對應「該通知哪些角色」與「該角色真正能編輯的位置」。
  */
 
 export type GapKey =
@@ -15,11 +18,15 @@ export type GapKey =
   | "closerFlag"
   | "payoutBasis"
   | "closerRate"
+  | "videoRate"
   | "amScope"
   | "venueClosing"
   | "tierRule"
+  | "kolQuota"
   // 獎金發放（全站維度）
-  | "globalBonus";
+  | "globalBonus"
+  | "scoutTier"
+  | "scoutSalary";
 
 /** 業主月結頁可被 focus 捲動的卡片區塊 */
 export type OwnerSettlementFocus = "service-fee" | "marketing-fee" | "history";
@@ -50,12 +57,17 @@ export const GAP_TARGETS: Record<GapKey, GapTarget> = {
   closerFlag: { tab: "bonus" },
   payoutBasis: { tab: "bonus" },
   closerRate: { tab: "bonus" },
+  videoRate: { tab: "bonus" },
   // AM 所轄館別在團隊成員管理頁，HQ 設定頁沒有對應卡片
   amScope: { tab: null },
   venueClosing: { tab: "bonus" },
   tierRule: { tab: "venue-tiers", noAcc: true },
+  // 互惠額度在 KOL 星探頁
+  kolQuota: { tab: null },
 
   globalBonus: { tab: "bonus", noAcc: true },
+  scoutTier: { tab: null },
+  scoutSalary: { tab: null },
 };
 
 /** 產生 HQ 設定頁連結；沒有對應 HQ 頁面時回傳 null */
@@ -73,4 +85,67 @@ export function parseOwnerSettlementFocus(raw: string | null): OwnerSettlementFo
   return OWNER_SETTLEMENT_FOCUS_VALUES.includes(raw as OwnerSettlementFocus)
     ? (raw as OwnerSettlementFocus)
     : null;
+}
+
+/* ------------------------------------------------------------------ *
+ * 小鈴鐺通知：角色 × 缺口 → 該角色能編輯的位置
+ * ------------------------------------------------------------------ */
+
+/** 只有這些角色能開 /hq/bonus-settings（HQAdminGuard） */
+export const HQ_ROLES = ["super_admin", "admin", "finance"];
+
+/** 團隊路徑的設定頁（不需 HQ 權限） */
+const TEAM_MEMBERS = "/team/members";
+const TEAM_KOL_QUOTA = "/team/kol?tab=reciprocal";
+const TEAM_KOL_SETTINGS = "/team/kol?tab=settings";
+
+export interface GapAudienceRule {
+  /** 應收到通知的角色（super_admin／admin 一律收到） */
+  roles: string[];
+  /** 非 HQ 角色的替代編輯位置；沒有就代表該角色只能通知 HQ */
+  teamHref?: string;
+}
+
+export const GAP_AUDIENCE: Record<GapKey, GapAudienceRule> = {
+  partnership: { roles: ["am_manager", "am"] },
+  settlementRule: { roles: ["am_manager", "am", "finance"] },
+  marketingFee: { roles: ["am_manager", "am", "finance"] },
+  bookingSetting: { roles: ["am_manager", "am"] },
+  legacyRate: { roles: ["finance"] },
+
+  teamBonusFlag: { roles: ["am_manager"] },
+  closerFlag: { roles: ["closer_manager"] },
+  payoutBasis: { roles: ["am_manager", "finance"] },
+  closerRate: { roles: ["closer_manager"] },
+  videoRate: { roles: ["closer_manager"] },
+  amScope: { roles: ["am_manager"], teamHref: TEAM_MEMBERS },
+  venueClosing: { roles: ["closer_manager"] },
+  tierRule: { roles: ["am_manager", "finance"] },
+  kolQuota: { roles: ["scout_manager", "scout", "am_manager"], teamHref: TEAM_KOL_QUOTA },
+
+  globalBonus: { roles: ["finance"] },
+  scoutTier: { roles: ["scout_manager"], teamHref: TEAM_KOL_SETTINGS },
+  scoutSalary: { roles: ["scout_manager"], teamHref: TEAM_KOL_SETTINGS },
+};
+
+export function isHqRole(roles: string[]): boolean {
+  return roles.some((r) => HQ_ROLES.includes(r));
+}
+
+/** 這個缺口要不要通知這位使用者 */
+export function shouldNotify(key: GapKey, roles: string[]): boolean {
+  if (roles.includes("super_admin") || roles.includes("admin")) return true;
+  const rule = GAP_AUDIENCE[key];
+  return roles.some((r) => rule.roles.includes(r));
+}
+
+/**
+ * 依角色解析真正能點過去的位置：
+ * - HQ 角色 → HQ 設定頁（若有）
+ * - 其他角色 → 團隊路徑的替代設定頁（若有），否則無連結（只提示，不誤導）
+ */
+export function resolveGapHref(key: GapKey, roles: string[], accId?: string): string | null {
+  const rule = GAP_AUDIENCE[key];
+  if (isHqRole(roles)) return buildGapHref(key, accId) ?? rule.teamHref ?? null;
+  return rule.teamHref ?? null;
 }

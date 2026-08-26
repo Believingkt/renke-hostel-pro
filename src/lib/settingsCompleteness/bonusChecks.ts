@@ -14,10 +14,12 @@ export const BONUS_VENUE_COLUMNS: CheckColumn[] = [
   { key: "teamBonusFlag", label: "採計團隊獎金" },
   { key: "closerFlag", label: "採計成交組" },
   { key: "payoutBasis", label: "業主自帶口徑" },
-  { key: "closerRate", label: "成交／影音費率" },
+  { key: "closerRate", label: "成交費率" },
+  { key: "videoRate", label: "影音費率" },
   { key: "amScope", label: "AM 負責人" },
   { key: "venueClosing", label: "場域簽約人" },
   { key: "tierRule", label: "館別級距規則" },
+  { key: "kolQuota", label: "KOL 互惠額度" },
 ];
 
 const STEP1 = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ① 步 合作期間卡片";
@@ -48,6 +50,8 @@ export interface BonusVenueInput {
   amManagedIds: string[];
   venueClosingAccIds: string[];
   tierRuleAccIds: string[];
+  /** 本月已設定互惠額度（quota > 0）的館別 */
+  kolQuotaAccIds: string[];
 }
 
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
@@ -61,11 +65,20 @@ function activePeriod(periods: PeriodRow[], today: string): PeriodRow | undefine
 }
 
 export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
-  const { today, accs, periods, commissionSettings, amManagedIds, venueClosingAccIds, tierRuleAccIds } =
-    input;
+  const {
+    today,
+    accs,
+    periods,
+    commissionSettings,
+    amManagedIds,
+    venueClosingAccIds,
+    tierRuleAccIds,
+    kolQuotaAccIds,
+  } = input;
   const amSet = new Set(amManagedIds);
   const closingSet = new Set(venueClosingAccIds);
   const tierSet = new Set(tierRuleAccIds);
+  const quotaSet = new Set(kolQuotaAccIds);
 
   return accs.map((a) => {
     const ps = periods.filter((x) => x.accommodation_id === a.id);
@@ -142,6 +155,29 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
           }
         : { level: "ok", label: `${(closerRate * 100).toFixed(2).replace(/\.00$/, "")}%` };
 
+    const videoRate = cs ? num(cs.video_rate) : null;
+    const videoRateRes: CheckResult = !cs
+      ? {
+          level: "error",
+          label: "無影音費率",
+          href: buildGapHref("videoRate", a.id)!,
+          target: STEP4,
+          fields: ["生效日", "影音費率"],
+          hint: "此館沒有生效中的費率版本，影音獎金會算不出金額。請新增一筆生效版本。",
+        }
+      : videoRate === null
+        ? {
+            level: "warn",
+            label: "未填",
+            href: buildGapHref("videoRate", a.id)!,
+            target: STEP4,
+            fields: ["影音費率"],
+            hint: "此館的影音費率未填寫，影音獎金會以 0 計算。",
+          }
+        : videoRate <= 0
+          ? { level: "ok", label: "0%（影音已停用）" }
+          : { level: "ok", label: `${(videoRate * 100).toFixed(2).replace(/\.00$/, "")}%` };
+
     const amScope: CheckResult = amSet.has(a.id)
       ? { level: "ok", label: "已指派" }
       : {
@@ -167,6 +203,16 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
       ? { level: "ok", label: "使用級距" }
       : { level: "ok", label: "使用全站費率" };
 
+    const kolQuota: CheckResult = quotaSet.has(a.id)
+      ? { level: "ok", label: "本月已設定" }
+      : {
+          level: "warn",
+          label: "本月未設定",
+          target: "KOL 星探管理 →「互惠額度」",
+          fields: ["本月互惠額度（每館每月）"],
+          hint: "此館本月沒有互惠額度設定，星探無法安排互惠邀約，KOL 相關獎金也不會產生。",
+        };
+
     return {
       accId: a.id,
       accName: a.name,
@@ -175,9 +221,11 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
         closerFlag,
         payoutBasis,
         closerRate: closerRateRes,
+        videoRate: videoRateRes,
         amScope,
         venueClosing,
         tierRule,
+        kolQuota,
       },
     };
   });
@@ -204,6 +252,10 @@ export interface BonusGlobalInput {
   /** teamcommission_role_bindings 已綁定的 role_type */
   boundRoleTypes: string[];
   hasCloserTeamBonus: boolean;
+  /** scout_tier_settings 是否有生效版本 */
+  hasScoutTiers: boolean;
+  /** scout_salary_settings 是否有生效版本 */
+  hasScoutSalary: boolean;
   /** 目前發放月套用中的加倍活動描述（可空） */
   activeMultipliers: Array<{ bonus_type: string; multiplier: number }>;
 }
@@ -311,6 +363,38 @@ export function buildBonusGlobalRows(input: BonusGlobalInput): GlobalCheckRow[] 
           target: STEP4,
           fields: ["成交組團隊獎金比率", "生效日"],
           hint: "尚未設定成交組團隊獎金比率，該獎金不會發放。",
+        },
+  });
+
+  rows.push({
+    key: "scout_tier",
+    label: "星探級距費率設定",
+    role: "決定星探依成案數落在哪個級距、抽成幾 %；未設定則星探抽成為 0。",
+    affects: ["星探獎金"],
+    result: input.hasScoutTiers
+      ? { level: "ok", label: "已設定" }
+      : {
+          level: "error",
+          label: "未設定",
+          target: "KOL 星探管理 →「星探設定」",
+          fields: ["級距名稱／成案數區間／抽成率", "生效日"],
+          hint: "沒有生效中的星探級距費率，星探抽成一律以 0 計算。",
+        },
+  });
+
+  rows.push({
+    key: "scout_salary",
+    label: "星探底薪／團隊獎金設定",
+    role: "決定星探底薪與團隊獎金門檻；未設定則不發。",
+    affects: ["星探底薪", "星探團隊獎金"],
+    result: input.hasScoutSalary
+      ? { level: "ok", label: "已設定" }
+      : {
+          level: "warn",
+          label: "未設定",
+          target: "KOL 星探管理 →「星探設定」",
+          fields: ["底薪", "團隊獎金", "團隊門檻 %", "生效日"],
+          hint: "尚未設定星探底薪與團隊獎金，相關項目不會發放。",
         },
   });
 

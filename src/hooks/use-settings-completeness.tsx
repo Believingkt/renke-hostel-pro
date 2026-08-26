@@ -12,6 +12,8 @@ interface State {
   ragicRows: VenueCheckRow[];
   bonusVenueRows: VenueCheckRow[];
   bonusGlobalRows: GlobalCheckRow[];
+  /** 因 RLS 讀不到而不可信任的檢查 key（避免對無權限角色誤報缺漏） */
+  blockedChecks: string[];
   loading: boolean;
 }
 
@@ -29,6 +31,7 @@ export function useSettingsCompleteness() {
     ragicRows: [],
     bonusVenueRows: [],
     bonusGlobalRows: [],
+    blockedChecks: [],
     loading: true,
   });
 
@@ -53,6 +56,9 @@ export function useSettingsCompleteness() {
       closerTeamRes,
       multiplierRes,
       roleRes,
+      quotaRes,
+      scoutTierRes,
+      scoutSalaryRes,
     ] = await Promise.all([
       supabase
         .from("accommodation_info")
@@ -119,6 +125,12 @@ export function useSettingsCompleteness() {
         .from("teamcommission_role_bindings")
         .select("role_type, effective_from")
         .lte("effective_from", today),
+      supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .select("accommodation_id, quota")
+        .eq("year_month", month),
+      supabase.from("scout_tier_settings").select("id").lte("effective_from", today).limit(1),
+      supabase.from("scout_salary_settings").select("id").lte("effective_from", today).limit(1),
     ]);
 
     const accs = ((accRes.data ?? []) as AccRow[]).filter((a) => a.id && a.name);
@@ -145,6 +157,9 @@ export function useSettingsCompleteness() {
       amManagedIds,
       venueClosingAccIds: ((closingRes.data ?? []) as any[]).map((r) => r.accommodation_id),
       tierRuleAccIds: ((tierRes.data ?? []) as any[]).map((r) => r.accommodation_id),
+      kolQuotaAccIds: ((quotaRes.data ?? []) as any[])
+        .filter((r) => Number(r.quota) > 0)
+        .map((r) => r.accommodation_id),
     });
 
     const activeMultipliers = ((multiplierRes.data ?? []) as any[])
@@ -166,10 +181,32 @@ export function useSettingsCompleteness() {
         new Set(((roleRes.data ?? []) as any[]).map((r) => r.role_type as string)),
       ),
       hasCloserTeamBonus: (closerTeamRes.data ?? []).length > 0,
+      hasScoutTiers: (scoutTierRes.data ?? []).length > 0,
+      hasScoutSalary: (scoutSalaryRes.data ?? []).length > 0,
       activeMultipliers,
     });
 
-    setState({ ragicRows, bonusVenueRows, bonusGlobalRows, loading: false });
+    // 讀取被 RLS 擋下時，該群組的檢查結果不可信任，統一標記為 blocked
+    const blockedChecks = [
+      ...(ruleRes.error ? ["settlementRule", "marketingFee", "legacyRate"] : []),
+      ...(periodRes.error ? ["partnership", "teamBonusFlag", "closerFlag", "payoutBasis"] : []),
+      ...(bookingRes.error ? ["bookingSetting"] : []),
+      ...(commissionRes.error ? ["closerRate", "videoRate"] : []),
+      ...(profileRes.error ? ["amScope"] : []),
+      ...(closingRes.error ? ["venueClosing"] : []),
+      ...(tierRes.error ? ["tierRule"] : []),
+      ...(quotaRes.error ? ["kolQuota"] : []),
+      ...(rateRes.error ? ["rate_version"] : []),
+      ...(sharedRes.error ? ["shared_sources"] : []),
+      ...(kolRes.error ? ["kol_sources"] : []),
+      ...(roleRes.error ? ["role_binding"] : []),
+      ...(closerTeamRes.error ? ["closer_team_bonus"] : []),
+      ...(scoutTierRes.error ? ["scout_tier"] : []),
+      ...(scoutSalaryRes.error ? ["scout_salary"] : []),
+      ...(multiplierRes.error ? ["bonus_multiplier"] : []),
+    ];
+
+    setState({ ragicRows, bonusVenueRows, bonusGlobalRows, blockedChecks, loading: false });
   }, []);
 
   useEffect(() => {
