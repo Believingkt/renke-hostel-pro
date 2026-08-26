@@ -1324,7 +1324,8 @@ function InvitationsTab({
     setIgContentUrlAck(false);
   }, [sheetOpen, editingId]);
 
-  // ig_handle 即時重複檢查
+  // ig_handle 即時重複檢查：只在目前主檔之前已有同 IG 主檔時提示。
+  // 最早的第一筆主檔（包含日後回頭編輯）不顯示提示；附屬紀錄也不顯示。
   useEffect(() => {
     const ig = form.ig_handle.trim();
     // 既有附屬紀錄已經完成主檔關聯，不需要再次確認「二次合作」。
@@ -1333,24 +1334,43 @@ function InvitationsTab({
       setDupWarning(null);
       return;
     }
+    let cancelled = false;
     const handle = setTimeout(async () => {
-      let q = supabase
+      const { data } = await supabase
         .from("kol_profiles")
-        .select("id, name, scout_id, invited_at, booking_status, accommodation_id, venue_id, primary_profile_id, team_member_profiles:scout_id(display_name)")
+        .select("id, name, scout_id, invited_at, created_at, booking_status, accommodation_id, venue_id, primary_profile_id, team_member_profiles:scout_id(display_name)")
         .eq("ig_handle", normalizeIgHandle(ig))
-        .eq("is_error", false);
-      if (editingId) q = q.neq("id", editingId);
-      const { data } = await q.limit(5);
-      // 同一家族（本筆的主檔／同主檔的兄弟／掛在本筆下的附屬）不算重複邀約，不需再確認
-      const selfPrimary = form.primary_profile_id ?? null;
-      const others = ((data as any[]) ?? []).filter((d) => {
-        const dPrimary = d.primary_profile_id ?? null;
-        if (selfPrimary && (d.id === selfPrimary || dPrimary === selfPrimary)) return false;
-        if (editingId && dPrimary === editingId) return false;
-        return true;
-      });
-      if (others.length > 0) {
-        const d: any = others[0];
+        .eq("is_error", false)
+        .is("primary_profile_id", null)
+        .limit(100);
+      if (cancelled) return;
+
+      const currentInvitedAt = form.invited_at || "9999-12-31";
+      const editingRow = editingId ? rows.find((row) => row.id === editingId) : null;
+      const queriedMasters = ((data as any[]) ?? []);
+      const masters = [
+        ...queriedMasters,
+        ...(editingId && !queriedMasters.some((d) => d.id === editingId)
+          ? [{ id: editingId, invited_at: currentInvitedAt, created_at: editingRow?.created_at ?? "" }]
+          : []),
+      ]
+        .map((d) => editingId && d.id === editingId ? { ...d, invited_at: currentInvitedAt } : d)
+        .sort((a, b) => {
+          const dateCompare = (a.invited_at || "9999-12-31").localeCompare(b.invited_at || "9999-12-31");
+          if (dateCompare !== 0) return dateCompare;
+          const createdCompare = (a.created_at || "").localeCompare(b.created_at || "");
+          if (createdCompare !== 0) return createdCompare;
+          return String(a.id).localeCompare(String(b.id));
+        });
+
+      // 新增主檔視為同日既有資料之後；編輯主檔則只找排序在本筆之前的資料。
+      const currentIndex = editingId ? masters.findIndex((d) => d.id === editingId) : -1;
+      const earlierMasters = editingId
+        ? (currentIndex > 0 ? masters.slice(0, currentIndex) : [])
+        : masters.filter((d) => (d.invited_at || "9999-12-31") <= currentInvitedAt);
+
+      if (earlierMasters.length > 0) {
+        const d: any = earlierMasters[0];
         const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
         const stLabel = d.booking_status ?? "-";
         const venueLabel =
@@ -1371,8 +1391,11 @@ function InvitationsTab({
         setDupWarning(null);
       }
     }, 400);
-    return () => clearTimeout(handle);
-  }, [form.ig_handle, editingId, form.primary_profile_id]);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [form.ig_handle, form.invited_at, editingId, form.primary_profile_id, rows]);
 
   // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
   // 不阻擋、不改資料，只列出相似紀錄並提供「查看明細」與「設為附屬」捷徑。
