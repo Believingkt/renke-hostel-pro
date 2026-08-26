@@ -88,7 +88,7 @@ export function buildKolNotifications(
         scope: label(row),
         title: "待勾選累積資格",
         detail: `邀約已建立（${String(row.invited_at).slice(0, 10)}），星探主管尚未勾選「累積資格」，此筆不會計入星探級距。`,
-        href: KOL_HREF,
+        href: `${KOL_HREF}&kolId=${row.id}`,
         editable: true,
         reason: null,
         meta: [
@@ -114,7 +114,7 @@ export function buildKolNotifications(
         scope: label(row),
         title: "上片逾期未回填",
         detail: `預計上片日 ${deadline} 已過，仍缺${hasVal(row.publish_date) ? "" : "發布日期"}${!hasVal(row.publish_date) && !hasVal(row.publish_url) ? "與" : ""}${hasVal(row.publish_url) ? "" : "發布連結"}。`,
-        href: KOL_HREF,
+        href: `${KOL_HREF}&kolId=${row.id}`,
         editable: canEdit,
         reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
         meta: [
@@ -138,7 +138,7 @@ export function buildKolNotifications(
           scope: label(row),
           title: "折扣碼／CID 未建立完成",
           detail: `入住日 ${row.check_in_date} 已到，仍缺 ${missing.join("、")}，此筆業績無法歸戶。`,
-          href: KOL_HREF,
+          href: `${KOL_HREF}&kolId=${row.id}`,
           editable: canEdit,
           reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
           meta: [
