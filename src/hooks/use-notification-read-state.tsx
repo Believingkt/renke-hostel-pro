@@ -61,6 +61,20 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
     [key],
   );
 
+  /** 一次標記多則（分組「本組全部已讀」用） */
+  const markManyRead = useCallback(
+    (ids: string[]) => {
+      setReadIds((prev) => {
+        const next = Array.from(new Set([...prev, ...ids]));
+        if (next.length === prev.length) return prev;
+        persist(key, next);
+        return next;
+      });
+    },
+    [key],
+  );
+
+
   // 「全部已讀」前的快照，可供還原（undo）
   const [undoSnapshot, setUndoSnapshot] = useState<string[] | null>(null);
 
@@ -93,6 +107,8 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
     readIds,
     isRead,
     markRead,
+    markManyRead,
+
     markAllRead,
     undoMarkAllRead,
     canUndoMarkAllRead: undoSnapshot !== null,

@@ -86,7 +86,7 @@ export function TeamSettingsBell() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
-  const [levelFilter, setLevelFilter] = useState<"all" | "error" | "warn">("all");
+  const [levelFilter, setLevelFilter] = useState<"all" | Severity>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>("all");
   const [kindFilter, setKindFilter] = useState<string>("all");
   const listRef = useRef<HTMLUListElement | null>(null);
@@ -193,8 +193,9 @@ export function TeamSettingsBell() {
   );
 
   const activeIds = useMemo(() => items.map((i) => i.id), [items]);
-  const { isRead, markRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
+  const { isRead, markRead, markManyRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
     useNotificationReadState(userId, activeIds);
+
   const [confirmAllRead, setConfirmAllRead] = useState(false);
 
   const unread = items.filter((i) => !isRead(i.id));
@@ -221,16 +222,29 @@ export function TeamSettingsBell() {
     return Array.from(map, ([kind, label]) => ({ kind, label }));
   }, [items, categoryFilter]);
 
-  const visibleItems = useMemo(() => {
+  /** 先套用分類／事件類型／搜尋（不含嚴重度），作為嚴重度篩選鈕的計數基準 */
+  const scopedItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
-      if (levelFilter !== "all" && i.severity !== levelFilter) return false;
       if (kindFilter !== "all" && i.kind !== kindFilter) return false;
       if (!q) return true;
       return `${i.scope} ${i.title} ${i.detail}`.toLowerCase().includes(q);
     });
-  }, [items, query, levelFilter, categoryFilter, kindFilter]);
+  }, [items, query, categoryFilter, kindFilter]);
+
+  const scopedCounts = useMemo(() => {
+    const c = { all: scopedItems.length, error: 0, warn: 0, info: 0 };
+    scopedItems.forEach((i) => {
+      c[i.severity] += 1;
+    });
+    return c;
+  }, [scopedItems]);
+
+  const visibleItems = useMemo(
+    () => scopedItems.filter((i) => levelFilter === "all" || i.severity === levelFilter),
+    [scopedItems, levelFilter],
+  );
 
   const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
 
@@ -247,25 +261,33 @@ export function TeamSettingsBell() {
   }, [visibleItems]);
 
   const GROUP_PAGE = 20;
-  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
-  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
-  const groupCollapsed = (kind: string) => collapsedGroups.includes(kind);
-  const toggleGroup = (kind: string) =>
-    setCollapsedGroups((prev) =>
-      prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind],
-    );
-
-  // 通知量大時預設收合，只留最大的一組展開
-  useEffect(() => {
-    if (!open) return;
-    if (visibleItems.length > 30 && groups.length > 1) {
-      setCollapsedGroups(groups.slice(1).map((g) => g.kind));
-    } else {
-      setCollapsedGroups([]);
+  /** 分組預設全部收合；只記住「使用者主動展開」的分類（localStorage） */
+  const expandedGroupsKey = `team:notif-expanded-groups:${userId}`;
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(`team:notif-expanded-groups:${userId}`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
     }
-    setGroupLimits({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, categoryFilter, levelFilter, kindFilter, query]);
+  });
+  const persistExpandedGroups = (next: string[]) => {
+    setExpandedGroups(next);
+    try {
+      localStorage.setItem(expandedGroupsKey, JSON.stringify(next));
+    } catch {
+      /* 私密瀏覽模式忽略 */
+    }
+  };
+  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
+  const groupCollapsed = (kind: string) => !expandedGroups.includes(kind);
+  const toggleGroup = (kind: string) =>
+    persistExpandedGroups(
+      expandedGroups.includes(kind)
+        ? expandedGroups.filter((k) => k !== kind)
+        : [...expandedGroups, kind],
+    );
 
   useEffect(() => {
     if (!open) {
@@ -274,7 +296,6 @@ export function TeamSettingsBell() {
       setLevelFilter("all");
       setCategoryFilter("all");
       setKindFilter("all");
-      setCollapsedGroups([]);
       setGroupLimits({});
     }
   }, [open]);
@@ -289,12 +310,12 @@ export function TeamSettingsBell() {
       groups.reduce(
         (n, g) =>
           n +
-          (collapsedGroups.includes(g.kind)
+          (groupCollapsed(g.kind)
             ? 0
             : Math.min(g.items.length, groupLimits[g.kind] ?? GROUP_PAGE)),
         0,
       ),
-    [groups, collapsedGroups, groupLimits],
+    [groups, expandedGroups, groupLimits], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // 一致性檢查：實際渲染的通知列數量必須等於目前應顯示的數量
@@ -304,10 +325,11 @@ export function TeamSettingsBell() {
       setRenderedCount(listRef.current?.querySelectorAll("[data-notif-item]").length ?? 0);
     }, 0);
     return () => window.clearTimeout(id);
-  }, [open, visibleItems, expandedIds, collapsedGroups, groupLimits]);
+  }, [open, visibleItems, expandedIds, expandedGroups, groupLimits]);
 
   const renderMismatch =
     open && shownCount > 0 && renderedCount > 0 && renderedCount !== shownCount;
+
 
 
   useEffect(() => {
@@ -499,22 +521,26 @@ export function TeamSettingsBell() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* 計數以目前分類／事件類型／搜尋範圍為準，確保與下方清單一致 */}
               {[
-                { v: "all" as const, label: "全部嚴重度" },
-                { v: "error" as const, label: `嚴重 ${errorCount}` },
-                { v: "warn" as const, label: `建議 ${count - errorCount}` },
+                { v: "all" as const, label: `全部嚴重度 ${scopedCounts.all}`, dot: "" },
+                { v: "error" as const, label: `嚴重 ${scopedCounts.error}`, dot: "bg-destructive" },
+                { v: "warn" as const, label: `建議 ${scopedCounts.warn}`, dot: "bg-amber-500" },
+                { v: "info" as const, label: `提示 ${scopedCounts.info}`, dot: "bg-emerald-500" },
               ].map((o) => (
                 <button
                   key={o.v}
                   type="button"
                   onClick={() => setLevelFilter(o.v)}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                  className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
                     levelFilter === o.v ? "border-primary bg-primary/10 font-medium" : "hover:bg-muted"
                   }`}
                 >
+                  {o.dot && <span className={`h-1.5 w-1.5 rounded-full ${o.dot}`} />}
                   {o.label}
                 </button>
               ))}
+
               <select
                 value={kindFilter}
                 onChange={(e) => setKindFilter(e.target.value)}
@@ -567,33 +593,49 @@ export function TeamSettingsBell() {
           <ScrollArea className="h-[min(60vh,420px)]">
             <ul ref={listRef} className="divide-y">
               {groups.map((group) => {
-                const collapsed = collapsedGroups.includes(group.kind);
+                const collapsed = groupCollapsed(group.kind);
                 const limit = groupLimits[group.kind] ?? GROUP_PAGE;
                 const shown = collapsed ? [] : group.items.slice(0, limit);
                 const groupErrors = group.items.filter((i) => i.severity === "error").length;
+                const groupUnread = group.items.filter((i) => !isRead(i.id));
                 return (
                   <li key={group.kind}>
-                    <button
-                      type="button"
-                      onClick={() => toggleGroup(group.kind)}
-                      className="flex w-full items-center gap-2 bg-muted/40 px-3 py-2 text-left hover:bg-muted"
-                      aria-expanded={!collapsed}
-                    >
-                      <ChevronDown
-                        className={`h-3.5 w-3.5 shrink-0 transition-transform ${
-                          collapsed ? "-rotate-90" : ""
-                        }`}
-                      />
-                      <span className="truncate text-xs font-semibold">{group.label}</span>
-                      {groupErrors > 0 && (
-                        <Badge variant="destructive" className="text-[10px] font-normal">
-                          嚴重 {groupErrors}
-                        </Badge>
+                    <div className="flex items-center gap-1 bg-muted/40 pr-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.kind)}
+                        className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left hover:bg-muted"
+                        aria-expanded={!collapsed}
+                      >
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                            collapsed ? "-rotate-90" : ""
+                          }`}
+                        />
+                        <span className="truncate text-xs font-semibold">{group.label}</span>
+                        {groupErrors > 0 && (
+                          <Badge variant="destructive" className="text-[10px] font-normal">
+                            嚴重 {groupErrors}
+                          </Badge>
+                        )}
+                        <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                          {group.items.length} 則
+                        </span>
+                      </button>
+                      {groupUnread.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 px-2 text-[11px]"
+                          title={`將本組 ${groupUnread.length} 則標為已讀`}
+                          onClick={() => markManyRead(groupUnread.map((i) => i.id))}
+                        >
+                          <CheckCheck className="mr-1 h-3.5 w-3.5" />
+                          本組已讀
+                        </Button>
                       )}
-                      <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
-                        {group.items.length} 則
-                      </span>
-                    </button>
+                    </div>
+
 
                     {!collapsed && (
                       <ul className="divide-y">
@@ -730,32 +772,47 @@ export function TeamSettingsBell() {
         )}
 
         {visibleItems.length > 0 && (
-          <div className="flex items-center gap-1 border-t px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
             <Button
               variant="ghost"
               size="sm"
               className="flex-1 text-xs"
               onClick={() =>
-                setCollapsedGroups(
-                  collapsedGroups.length > 0 ? [] : groups.map((g) => g.kind),
+                persistExpandedGroups(
+                  expandedGroups.length > 0 ? [] : groups.map((g) => g.kind),
                 )
               }
             >
               <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
-              {collapsedGroups.length > 0
-                ? `展開全部分類（${groups.length}）`
-                : `收合全部分類（${groups.length}）`}
+              {expandedGroups.length > 0
+                ? `收合全部分類（${groups.length}）`
+                : `展開全部分類（${groups.length}）`}
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={() => setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))}
-            >
-              {allExpanded ? "收合明細" : "展開明細"}
-            </Button>
+            {/* 只有在有展開中的分類（清單真的列出明細列）時才顯示 */}
+            {shownCount > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))}
+              >
+                {allExpanded ? "收合所有明細" : "展開所有明細"}
+              </Button>
+            )}
+            {badge > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => setConfirmAllRead(true)}
+              >
+                <CheckCheck className="mr-1 h-3.5 w-3.5" />
+                標記全部為已讀
+              </Button>
+            )}
           </div>
         )}
+
 
       </PopoverContent>
 
