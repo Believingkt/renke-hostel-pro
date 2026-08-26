@@ -3945,39 +3945,6 @@ function InvitationsTab({
                   >
                     取消主檔關係
                   </button>
-                  {(() => {
-                    const parent = rows.find((r) => r.id === form.primary_profile_id);
-                    const conflictParent = cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id);
-                    const parentCheckIn = parent?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
-                    const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
-                    const crossVenue = !!parentAccommodationId && !!form.accommodation_id
-                      && parentAccommodationId !== form.accommodation_id;
-                    const gap = parentCheckIn && form.check_in_date
-                      ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
-                      : null;
-                    if (crossVenue) {
-                      return (
-                        <div className="mt-3 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-2 text-blue-900">
-                          <Checkbox checked={form.primary_link_exception} disabled />
-                          <span>
-                            跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
-                            {form.primary_link_exception ? " 已回填為既有特例。" : " 尚未標記特例，請聯絡管理員確認資料。"}
-                            此關係唯讀，因跨館邀約應各自保留主檔與資格，再以「同一份合約」歸戶；不開放直接修改可避免誤把不同館別的獨立合作扣成單一資格。
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (gap === null || gap <= 31) return null;
-                    return (
-                      <label className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
-                        <Checkbox
-                          checked={form.primary_link_exception}
-                          onCheckedChange={(checked) => setForm({ ...form, primary_link_exception: checked === true })}
-                        />
-                        <span>特例附屬：兩筆入住日相差 {Math.round(gap)} 天，已確認仍屬同一份主檔／附屬合作。</span>
-                      </label>
-                    );
-                  })()}
 
                 </div>
               ) : (
