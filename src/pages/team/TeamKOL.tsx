@@ -758,6 +758,8 @@ function InvitationsTab({
   /** 既有的同名不同寫法（供表單即時提示） */
   const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
+  /** cidConflicts 對應的查詢條件（code|accommodation|editingId），避免顯示到上一次查詢的結果 */
+  const [cidConflictKey, setCidConflictKey] = useState<string | null>(null);
   const [primaryConfirm, setPrimaryConfirm] = useState<{ id: string; name: string } | null>(null);
   /** 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約 */
   const [similarMatches, setSimilarMatches] = useState<KolRow[]>([]);
