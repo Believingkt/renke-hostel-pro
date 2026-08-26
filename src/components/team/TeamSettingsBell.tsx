@@ -923,6 +923,33 @@ export function TeamSettingsBell() {
                   此帳號無法直接編輯，請聯絡可編輯的負責角色。
                 </p>
               )}
+
+              {/* 連續檢查：不用關閉視窗就能看下一則 */}
+              <div className="flex items-center justify-between gap-2 border-t pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  disabled={detailIndex <= 0}
+                  onClick={() => stepDetail(-1)}
+                >
+                  <ChevronLeft className="mr-1 h-3.5 w-3.5" />
+                  上一則
+                </Button>
+                <span className="text-[11px] text-muted-foreground">
+                  {detailIndex >= 0 ? `${detailIndex + 1} / ${visibleItems.length}` : ""}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  disabled={detailIndex < 0 || detailIndex >= visibleItems.length - 1}
+                  onClick={() => stepDetail(1)}
+                >
+                  下一則
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </div>
             </>
           )}
         </DialogContent>
@@ -933,10 +960,11 @@ export function TeamSettingsBell() {
           <AlertDialogHeader>
             <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
-              目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（事件本身不會被處理）。
+              以下 {unread.length} 則未讀通知會一次標為已讀（事件本身不會被處理）。
               標記後 10 秒內可在鈴鐺內按「復原」還原未讀狀態。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {renderPreviewList(unread)}
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
@@ -956,14 +984,15 @@ export function TeamSettingsBell() {
           <AlertDialogHeader>
             <AlertDialogTitle>將「{confirmGroup?.label}」整組標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
-              這組有 {confirmGroup?.ids.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
+              以下 {confirmGroup?.items.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {renderPreviewList(confirmGroup?.items ?? [])}
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmGroup) markManyRead(confirmGroup.ids);
+                if (confirmGroup) markManyRead(confirmGroup.items.map((i) => i.id));
                 setConfirmGroup(null);
               }}
             >
@@ -972,6 +1001,7 @@ export function TeamSettingsBell() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
     </Popover>
   );
