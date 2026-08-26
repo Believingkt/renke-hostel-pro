@@ -568,21 +568,22 @@ export default function RagicSyncTab() {
                   <TableCell>
                     <span className="inline-flex items-center gap-1">
                       {r.income_type}
-                      {incomeTypeHelp(r.income_type) && (
+                      {rowSettings(r) && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <button type="button" aria-label={`${r.income_type} 計算公式`}>
+                            <button type="button" aria-label={`${r.income_type} 目前設定值`}>
                               <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent className="z-50 max-w-sm bg-popover text-left">
+                          <TooltipContent className="z-50 max-w-xs bg-popover text-left">
                             <div className="space-y-1 text-xs">
-                              <div className="font-medium">
-                                {incomeTypeHelp(r.income_type)!.formula}
-                              </div>
-                              <p className="text-muted-foreground">
-                                {incomeTypeHelp(r.income_type)!.desc}
-                              </p>
+                              <div className="font-medium">目前設定值</div>
+                              {rowSettings(r)!.map((s) => (
+                                <div key={s.label} className="flex justify-between gap-3">
+                                  <span className="text-muted-foreground">{s.label}</span>
+                                  <span className="tabular-nums">{s.value}</span>
+                                </div>
+                              ))}
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -593,16 +594,27 @@ export default function RagicSyncTab() {
                     {r.skipped ? (
                       "—"
                     ) : (
-                      <>
-                        <div>{r.amount_twd.toLocaleString()}</div>
+                      <span className="inline-flex items-center justify-end gap-1">
+                        {r.amount_twd.toLocaleString()}
                         {amountFormula(r) && (
-                          <div className="text-[11px] font-normal text-muted-foreground">
-                            {amountFormula(r)}
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button type="button" aria-label="金額計算式">
+                                <HelpCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent className="z-50 max-w-sm bg-popover text-left">
+                              <div className="space-y-1 text-xs">
+                                <div className="font-medium">實際代入計算</div>
+                                <div className="tabular-nums">{amountFormula(r)}</div>
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
-                      </>
+                      </span>
                     )}
                   </TableCell>
+
 
                   <TableCell>{r.original_currency}</TableCell>
                   <TableCell>{r.exchange_rate || "—"}</TableCell>
