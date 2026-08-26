@@ -61,22 +61,51 @@ export function AccommodationSelector() {
         )
       );
 
-      if (accommodationIds.length === 0) {
+      // 全域角色（會計 finance / 全域 super_admin）：不綁館別，但可跨館唯讀查詢
+      // → 館別切換器應列出所有啟用中的民宿，而非只有另外綁定的那一館
+      let isGlobalViewer = false;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: globalRoles } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .is('accommodation_id', null)
+            .in('role', ['finance', 'super_admin']);
+          isGlobalViewer = (globalRoles?.length ?? 0) > 0;
+        }
+      } catch {
+        /* 取不到全域角色時退回原本行為 */
+      }
+
+      if (accommodationIds.length === 0 && !isGlobalViewer) {
         console.log('[AccommodationSelector] No accommodation-bound roles');
         setIsLoading(false);
         return;
       }
 
-      console.log('[AccommodationSelector] Loading accommodations:', accommodationIds);
+      console.log('[AccommodationSelector] Loading accommodations:', {
+        accommodationIds,
+        isGlobalViewer,
+      });
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('accommodation_info')
-        .select('id, name, short_url_alias, custom_domain, display_order')
-        .in('id', accommodationIds)
+        .select('id, name, short_url_alias, custom_domain, display_order');
+
+      if (isGlobalViewer) {
+        query = query.eq('is_active', true);
+      } else {
+        query = query.in('id', accommodationIds);
+      }
+
+      const { data, error } = await query
         .order('display_order', { ascending: true, nullsFirst: false })
         .order('name', { ascending: true });
 
       if (error) throw error;
+
 
       // PMS 網域：後台 context 由網址代號決定，沒有代號的民宿無法進入 → 排除
       const list = (data || []).filter(
