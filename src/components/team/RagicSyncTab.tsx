@@ -218,6 +218,39 @@ function incomeTypeHelp(type: string): { formula: string; desc: string } | null 
   }
 }
 
+/** 該列「目前實際設定值」摘要（簡化版，顯示門檻與費率數字） */
+function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
+  if (!r.calc) return null;
+  const c = r.calc;
+  if (r.income_type === "平台抽成") {
+    return [
+      { label: "抽成門檻", value: `${n(c.threshold)} 元` },
+      { label: "抽成%", value: c.rate ? pct(c.rate) : "未設定" },
+      { label: "當月入住營收（夜次均攤）", value: `${n(c.revenue_twd)} 元` },
+    ];
+  }
+  if (r.income_type === "行銷推廣費") {
+    const m = c.marketing_rule;
+    if (!m) return [{ label: "費用來源", value: "合約約定月費（未設規則）" }];
+    if (m.marketing_fee_threshold > 0) {
+      return [
+        { label: "營收門檻", value: `${n(m.marketing_fee_threshold)} 元` },
+        { label: "高階月費", value: `${n(m.marketing_fee_high)} 元` },
+        { label: "低階月費", value: `${n(m.marketing_fee_low)} 元` },
+        { label: "本月毛營收", value: `${n(c.gross_revenue_twd)} 元` },
+      ];
+    }
+    return [
+      { label: "基本服務費", value: `${n(m.marketing_fee_low)} 元` },
+      { label: "每多一棟加收", value: `${n(m.marketing_fee_per_extra_property)} 元` },
+    ];
+  }
+  if (r.income_type === "門市運營") {
+    return [{ label: "當月入住營收（夜次均攤）", value: `${n(c.revenue_twd)} 元` }];
+  }
+  return null;
+}
+
 /** 金額欄要顯示的實際代入數字 */
 function amountFormula(r: RagicRow): string | null {
   if (r.skipped || !r.calc) return null;
@@ -235,7 +268,7 @@ function amountFormula(r: RagicRow): string | null {
       const hit = c.gross_revenue_twd >= m.marketing_fee_threshold;
       return `${n(r.amount_twd)} ← 毛營收 ${n(c.gross_revenue_twd)} ${hit ? "≥" : "<"} 門檻 ${n(
         m.marketing_fee_threshold,
-      )} → 採${hit ? "高階" : "低階"}月費`;
+      )} → 採${hit ? "高階" : "低階"}月費（${n(hit ? m.marketing_fee_high : m.marketing_fee_low)}）`;
     }
     return `${n(r.amount_twd)} = 基本 ${n(m.marketing_fee_low)} + (棟數 − 1) × ${n(
       m.marketing_fee_per_extra_property,
@@ -243,6 +276,7 @@ function amountFormula(r: RagicRow): string | null {
   }
   return null;
 }
+
 
 
 type PersistedPreview = {
