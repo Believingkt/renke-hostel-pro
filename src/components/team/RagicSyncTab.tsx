@@ -187,7 +187,10 @@ function flatten(results: AccomResult[]): RagicRow[] {
   return rows;
 }
 
-const STORAGE_KEY = "ragic-sync-preview-v1";
+const STORAGE_KEY = "ragic-sync-preview-v2";
+const LEGACY_STORAGE_KEYS = ["ragic-sync-preview-v1"];
+const CACHE_VERSION = 2;
+const DETAILS_KEY = "ragic-sync-show-details";
 
 const RAGIC_FORM_URL = "https://ap15.ragic.com/lakeze/income-source/2?PAGEID=yj4";
 
