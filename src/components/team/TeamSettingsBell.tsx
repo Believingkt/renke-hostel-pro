@@ -221,16 +221,29 @@ export function TeamSettingsBell() {
     return Array.from(map, ([kind, label]) => ({ kind, label }));
   }, [items, categoryFilter]);
 
-  const visibleItems = useMemo(() => {
+  /** 先套用分類／事件類型／搜尋（不含嚴重度），作為嚴重度篩選鈕的計數基準 */
+  const scopedItems = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter((i) => {
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
-      if (levelFilter !== "all" && i.severity !== levelFilter) return false;
       if (kindFilter !== "all" && i.kind !== kindFilter) return false;
       if (!q) return true;
       return `${i.scope} ${i.title} ${i.detail}`.toLowerCase().includes(q);
     });
-  }, [items, query, levelFilter, categoryFilter, kindFilter]);
+  }, [items, query, categoryFilter, kindFilter]);
+
+  const scopedCounts = useMemo(() => {
+    const c = { all: scopedItems.length, error: 0, warn: 0, info: 0 };
+    scopedItems.forEach((i) => {
+      c[i.severity] += 1;
+    });
+    return c;
+  }, [scopedItems]);
+
+  const visibleItems = useMemo(
+    () => scopedItems.filter((i) => levelFilter === "all" || i.severity === levelFilter),
+    [scopedItems, levelFilter],
+  );
 
   const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
 
@@ -247,25 +260,33 @@ export function TeamSettingsBell() {
   }, [visibleItems]);
 
   const GROUP_PAGE = 20;
-  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
-  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
-  const groupCollapsed = (kind: string) => collapsedGroups.includes(kind);
-  const toggleGroup = (kind: string) =>
-    setCollapsedGroups((prev) =>
-      prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind],
-    );
-
-  // 通知量大時預設收合，只留最大的一組展開
-  useEffect(() => {
-    if (!open) return;
-    if (visibleItems.length > 30 && groups.length > 1) {
-      setCollapsedGroups(groups.slice(1).map((g) => g.kind));
-    } else {
-      setCollapsedGroups([]);
+  /** 分組預設全部收合；只記住「使用者主動展開」的分類（localStorage） */
+  const expandedGroupsKey = `team:notif-expanded-groups:${userId}`;
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(`team:notif-expanded-groups:${userId}`);
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return [];
     }
-    setGroupLimits({});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, categoryFilter, levelFilter, kindFilter, query]);
+  });
+  const persistExpandedGroups = (next: string[]) => {
+    setExpandedGroups(next);
+    try {
+      localStorage.setItem(expandedGroupsKey, JSON.stringify(next));
+    } catch {
+      /* 私密瀏覽模式忽略 */
+    }
+  };
+  const [groupLimits, setGroupLimits] = useState<Record<string, number>>({});
+  const groupCollapsed = (kind: string) => !expandedGroups.includes(kind);
+  const toggleGroup = (kind: string) =>
+    persistExpandedGroups(
+      expandedGroups.includes(kind)
+        ? expandedGroups.filter((k) => k !== kind)
+        : [...expandedGroups, kind],
+    );
 
   useEffect(() => {
     if (!open) {
@@ -274,7 +295,6 @@ export function TeamSettingsBell() {
       setLevelFilter("all");
       setCategoryFilter("all");
       setKindFilter("all");
-      setCollapsedGroups([]);
       setGroupLimits({});
     }
   }, [open]);
@@ -289,12 +309,12 @@ export function TeamSettingsBell() {
       groups.reduce(
         (n, g) =>
           n +
-          (collapsedGroups.includes(g.kind)
+          (groupCollapsed(g.kind)
             ? 0
             : Math.min(g.items.length, groupLimits[g.kind] ?? GROUP_PAGE)),
         0,
       ),
-    [groups, collapsedGroups, groupLimits],
+    [groups, expandedGroups, groupLimits], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   // 一致性檢查：實際渲染的通知列數量必須等於目前應顯示的數量
@@ -304,10 +324,11 @@ export function TeamSettingsBell() {
       setRenderedCount(listRef.current?.querySelectorAll("[data-notif-item]").length ?? 0);
     }, 0);
     return () => window.clearTimeout(id);
-  }, [open, visibleItems, expandedIds, collapsedGroups, groupLimits]);
+  }, [open, visibleItems, expandedIds, expandedGroups, groupLimits]);
 
   const renderMismatch =
     open && shownCount > 0 && renderedCount > 0 && renderedCount !== shownCount;
+
 
 
   useEffect(() => {
