@@ -645,6 +645,16 @@ export default function RagicSyncTab() {
                         </Tooltip>
                       )}
                     </span>
+                    {showDetails && rowSettings(r) && (
+                      <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        {rowSettings(r)!.map((s) => (
+                          <div key={s.label} className="flex justify-between gap-2">
+                            <span>{s.label}</span>
+                            <span className="tabular-nums">{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {r.skipped ? (
