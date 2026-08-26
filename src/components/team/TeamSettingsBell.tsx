@@ -418,10 +418,11 @@ export function TeamSettingsBell() {
   };
   const closeDetail = () => {
     setDetailItem(null);
-    window.setTimeout(() => {
+    // 清單重新顯示後再還原捲動位置
+    requestAnimationFrame(() => {
       const vp = getViewport();
       if (vp) vp.scrollTop = scrollTopRef.current;
-    }, 0);
+    });
   };
 
   const go = (item: TeamNotification) => {
@@ -509,7 +510,23 @@ export function TeamSettingsBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[min(94vw,460px)] p-0">
+      <PopoverContent
+        align="end"
+        // 明細視窗開啟時：暫時隱藏清單（避免蓋住明細），但保持掛載以保留分組與捲動位置
+        className={`w-[min(94vw,460px)] p-0 ${detailItem ? "pointer-events-none opacity-0" : ""}`}
+        onInteractOutside={(e) => {
+          if (detailItem) e.preventDefault();
+        }}
+        onFocusOutside={(e) => {
+          if (detailItem) e.preventDefault();
+        }}
+        onPointerDownOutside={(e) => {
+          if (detailItem) e.preventDefault();
+        }}
+        onEscapeKeyDown={(e) => {
+          if (detailItem) e.preventDefault();
+        }}
+      >
         <div className="flex items-center justify-between gap-2 border-b px-3 py-2">
           <div className="min-w-0">
             <p className="text-sm font-semibold">團隊通知</p>
