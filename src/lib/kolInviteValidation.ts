@@ -303,7 +303,15 @@ export function validateInvite(
   },
 ): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const add = (i: ValidationIssue) => issues.push(i);
+  const seen = new Set<string>();
+  const add = (i: ValidationIssue) => {
+    // 同一則提示（同規則／欄位／訊息）只出現一次，避免多個子館／子檔重複觸發
+    const key = `${i.rule}|${i.field}|${i.message}|${i.actual ?? ""}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    issues.push(i);
+  };
+
   const today = new Date().toISOString().slice(0, 10);
 
   // 1. 日期
