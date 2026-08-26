@@ -485,15 +485,17 @@ export default function RagicSyncTab() {
                 <span className="inline-flex">
                   <Button
                     onClick={handlePreview}
-                    disabled={loading || writing || !!hasPreview}
+                    disabled={loading || writing || (!!hasPreview && !missingCalc)}
                   >
                     {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                    {isStale ? "重新預覽" : "預覽"}
+                    {isStale || missingCalc ? "重新預覽" : "預覽"}
                   </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent className="bg-popover z-50">
-                {hasPreview
+                {missingCalc
+                  ? "資料格式已更新，請重新預覽以取得計算明細"
+                  : hasPreview
                   ? `${previewedAt?.year} 年 ${previewedAt?.month} 月已完成預覽，切換年／月後才能再次預覽`
                   : isStale
                     ? "篩選已變更，請重新預覽"
