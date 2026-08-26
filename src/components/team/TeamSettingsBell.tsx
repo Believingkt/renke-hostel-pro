@@ -185,11 +185,58 @@ export function TeamSettingsBell() {
   const count = items.length;
   const badge = unread.length;
 
+  // 缺口類型選單（依目前可見範圍動態產生）
+  const gapOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    items.forEach((i) => map.set(i.gap, i.title));
+    return Array.from(map, ([gap, label]) => ({ gap, label }));
+  }, [items]);
+
+  // 搜尋 / 篩選後真正要渲染的清單
+  const visibleItems = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter((i) => {
+      if (levelFilter !== "all" && i.level !== levelFilter) return false;
+      if (gapFilter !== "all" && i.gap !== gapFilter) return false;
+      if (!q) return true;
+      return `${i.scope} ${i.title} ${i.detail}`.toLowerCase().includes(q);
+    });
+  }, [items, query, levelFilter, gapFilter]);
+
+  const filtering = query.trim() !== "" || levelFilter !== "all" || gapFilter !== "all";
+  const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
+
   useEffect(() => {
-    if (!open) setExpanded(null);
+    if (!open) {
+      setExpandedIds([]);
+      setQuery("");
+      setLevelFilter("all");
+      setGapFilter("all");
+    }
   }, [open]);
 
+  // 一致性檢查：實際渲染的 <li> 數量必須等於 visibleItems 長度
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => {
+      setRenderedCount(listRef.current?.querySelectorAll(":scope > li").length ?? 0);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [open, visibleItems, expandedIds]);
+
+  const renderMismatch =
+    open && visibleItems.length > 0 && renderedCount > 0 && renderedCount !== visibleItems.length;
+
+  useEffect(() => {
+    if (renderMismatch) {
+      console.warn(
+        `[TeamSettingsBell] 通知渲染不一致：應顯示 ${visibleItems.length} 則，實際渲染 ${renderedCount} 則`,
+      );
+    }
+  }, [renderMismatch, visibleItems.length, renderedCount]);
+
   if (loading && count === 0) return null;
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
