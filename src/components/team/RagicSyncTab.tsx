@@ -321,9 +321,30 @@ export default function RagicSyncTab() {
   const [skipped, setSkipped] = useState<SkipEntry[] | null>(persisted?.skipped ?? null);
   const [showSkipped, setShowSkipped] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DETAILS_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(
     persisted?.previewedAt ?? null,
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DETAILS_KEY, showDetails ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [showDetails]);
+
+  /** 舊格式資料（缺 calc）→ 明細無法顯示，提示重新預覽 */
+  const missingCalc = useMemo(
+    () => !!rows && rows.some((r) => !r.skipped && !r.calc),
+    [rows],
   );
 
   useEffect(() => {
@@ -334,7 +355,7 @@ export default function RagicSyncTab() {
       }
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ year, month, rows, skipped: skipped ?? [], previewedAt }),
+        JSON.stringify({ version: CACHE_VERSION, year, month, rows, skipped: skipped ?? [], previewedAt }),
       );
     } catch {
       /* ignore quota errors */
