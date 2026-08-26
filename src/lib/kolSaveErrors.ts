@@ -30,7 +30,7 @@ const RULES: Rule[] = [
     }),
   },
   {
-    test: /館別與本筆不同/,
+    test: /館別與本筆不同|與本筆不同館別/,
     build: (raw) => ({
       rule: "db.primary_accommodation",
       field: "venue",
@@ -38,6 +38,16 @@ const RULES: Rule[] = [
       expected: "同一份合約＝同一支折扣碼（CID）",
       suggestion:
         "兩種處理方式擇一：① 若確為同一份合作案，請把兩筆的折扣碼（CID）改成一致後再設主檔；② 若是不同合作案，請維持各自獨立的主檔，不要設為附屬。",
+    }),
+  },
+  {
+    test: /主檔與附屬記錄都必須填寫入住日|附屬記錄只適用同館且入住日相差 1 天內/,
+    build: (raw) => ({
+      rule: "db.primary_same_stay",
+      field: "dates",
+      message: raw,
+      expected: "主檔與附屬記錄需為同館，且入住日相同或相差 1 天",
+      suggestion: "若是跨館或不同檔期的合作，請取消附屬關係、各自保留主要記錄，再使用「合併到同一份合約」。",
     }),
   },
   {

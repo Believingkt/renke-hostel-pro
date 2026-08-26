@@ -1371,6 +1371,10 @@ function InvitationsTab({
           const mPrimary = m.primary_profile_id ?? null;
           if (selfPrimary && (m.id === selfPrimary || mPrimary === selfPrimary)) return false;
           if (editingId && mPrimary === editingId) return false;
+          if (kolNameKey(m.name ?? "") !== name) return false;
+          if (!form.check_in_date || !m.check_in_date) return false;
+          const gap = Math.abs(new Date(m.check_in_date).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
+          if (gap > 1) return false;
           return true;
         });
         setSimilarMatches(filtered.slice(0, 5));
@@ -1379,7 +1383,7 @@ function InvitationsTab({
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [sheetOpen, form.accommodation_id, form.cid_code, form.name, form.primary_profile_id, editingId]);
+  }, [sheetOpen, form.accommodation_id, form.cid_code, form.name, form.check_in_date, form.primary_profile_id, editingId]);
 
 
   const openCreate = () => {
@@ -3711,7 +3715,16 @@ function InvitationsTab({
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
                   // 需要處理的只有「不同人、尚未建立主檔關係」的同 CID 命中
-                  const needsPrimary = kolHits.filter((c) => levelOf(c) === "block" && !isLinked(c));
+                  const needsPrimary = kolHits.filter((c) => {
+                    if (levelOf(c) !== "block" || isLinked(c)) return false;
+                    const sameIdentity = isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    return !sameIdentity && c.accommodation_id === form.accommodation_id;
+                  });
                   return (
                     <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
                       {cidConflicts.map((c, i) => {

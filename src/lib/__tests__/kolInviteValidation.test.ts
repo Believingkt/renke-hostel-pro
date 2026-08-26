@@ -258,6 +258,25 @@ describe("折扣碼衝突回傳邏輯", () => {
     expect(rules(r)).toContain("name.same_identity_different_name");
   });
 
+  it("does not allow the different-person confirmation to bypass a same-identity name mismatch", () => {
+    const r = run(
+      {
+        cid_code: "DICKYLEMON22",
+        name: "餓犬Dicky",
+        ig_handle: "dickydoggy22",
+        ig_duplicate_confirmed: true,
+        collab_confirmed: true,
+      },
+      {
+        conflicts: [
+          conflict({ owner_name: "Dicky", accommodation_id: ACC_B, detail: { ig_handle: "dickydoggy22" } }),
+        ],
+      },
+    );
+    expect(rules(r)).toContain("name.same_identity_different_name");
+    expect(r.blocks.length).toBeGreaterThan(0);
+  });
+
   it("only warns when a PMS discount code belongs to another accommodation", () => {
     const r = run(
       { cid_code: "SELFE" },
