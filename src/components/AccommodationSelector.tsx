@@ -73,7 +73,7 @@ export function AccommodationSelector() {
             .select('role')
             .eq('user_id', session.user.id)
             .is('accommodation_id', null)
-            .in('role', GLOBAL_VIEWER_ROLES as unknown as string[]);
+            .in('role', GLOBAL_VIEWER_ROLES as unknown as never[]);
           isGlobalViewer = (globalRoles?.length ?? 0) > 0;
         }
       } catch {
