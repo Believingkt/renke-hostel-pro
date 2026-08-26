@@ -51,6 +51,7 @@ import {
   normalizeKolName,
   kolNameKey,
   isSameContractScope,
+  isTravelSeriesAccommodation,
   isSameKolIdentity,
   kolIdentitySignals,
   RULE_ACTION_HINTS,
