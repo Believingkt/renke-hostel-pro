@@ -10,6 +10,8 @@ import {
   ChevronDown,
   CheckCheck,
   Undo2,
+  Search,
+  ChevronsUpDown,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -24,6 +26,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -544,6 +547,22 @@ export function TeamSettingsBell() {
               })}
             </ul>
           </ScrollArea>
+        )}
+
+        {visibleItems.length > 0 && (
+          <div className="border-t px-3 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() =>
+                setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))
+              }
+            >
+              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
+              {allExpanded ? "全部收合" : `全部展開（${visibleItems.length} 則）`}
+            </Button>
+          </div>
         )}
 
         {isHqRole(roles) && (
