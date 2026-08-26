@@ -857,29 +857,6 @@ export function TeamSettingsBell() {
                 {allExpanded ? "收合所有明細" : "展開所有明細"}
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-xs"
-              title="把目前的嚴重度／分類／事件類型篩選設為下次開啟的預設"
-              onClick={() => {
-                const next = {
-                  level: levelFilter,
-                  category: categoryFilter,
-                  kind: kindFilter,
-                };
-                setDefaultView(next);
-                try {
-                  localStorage.setItem(defaultViewKey, JSON.stringify(next));
-                } catch {
-                  /* 私密瀏覽模式忽略 */
-                }
-                setViewSaved(true);
-                window.setTimeout(() => setViewSaved(false), 2000);
-              }}
-            >
-              {viewSaved ? "已設為預設檢視" : "設為預設檢視"}
-            </Button>
           </div>
         )}
       </PopoverContent>
