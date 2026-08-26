@@ -3841,8 +3841,11 @@ function InvitationsTab({
                   </button>
                   {(() => {
                     const parent = rows.find((r) => r.id === form.primary_profile_id);
-                    if (!parent?.check_in_date || !form.check_in_date || parent.accommodation_id !== form.accommodation_id) return null;
-                    const gap = Math.abs(new Date(parent.check_in_date).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
+                    const conflictParent = cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id);
+                    const parentCheckIn = parent?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
+                    const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
+                    if (!parentCheckIn || !form.check_in_date || parentAccommodationId !== form.accommodation_id) return null;
+                    const gap = Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
                     if (gap <= 31) return null;
                     return (
                       <label className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
