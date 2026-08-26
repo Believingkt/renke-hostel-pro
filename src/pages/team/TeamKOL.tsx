@@ -2203,6 +2203,10 @@ function InvitationsTab({
   const showShortUrl = selectedAcc?.booking_type === "short_url";
   const shortUrlPrefix = selectedAcc?.short_url_alias ? `https://liker.land/${selectedAcc.short_url_alias}/` : "";
 
+  // 即時衝突檢查是否已對齊目前表單（避免切換 KOL／CID／館別時顯示舊結果或閃爍）
+  const cidQueryKey = `${normalizeCode(form.cid_code)}|${form.accommodation_id || ""}|${editingId ?? ""}`;
+  const cidChecking = !!normalizeCode(form.cid_code) && cidConflictKey !== cidQueryKey;
+
   return (
     <div className="space-y-4">
       {/* 篩選列 */}
