@@ -12,9 +12,9 @@ import type { TeamNotification } from "@/lib/notifications/types";
  * KOL 進度事件通知（衍生式，不建表）。
  *
  * 目前涵蓋三種情境：
- *  A. kol-qualification：星探建立了正式邀約，但星探主管尚未勾選「累積資格」
- *  B. kol-publish-overdue：已過預計上片日（入住日 + 14 天），仍缺發布日期或發布連結
- *  C. kol-cid-missing：已到入住日，折扣碼 / CID 仍未建立完成
+ *  A. kol-qualification（建議／黃）：星探建立了正式邀約，但星探主管尚未勾選「累積資格」
+ *  B. kol-publish-overdue（建議／黃）：已過預計上片日（入住日 + 14 天），仍缺發布日期或發布連結
+ *  C. kol-cid-missing（嚴重／紅）：已到入住日，折扣碼 / CID 仍未建立完成（不再檢查 legacy short_url）
  *
  * 通知對象：super_admin / admin / scout_manager / scout（scout 只會看到 RLS 允許的自家資料）。
  */
@@ -35,11 +35,15 @@ interface KolRow {
   publish_date: string | null;
   publish_url: string | null;
   cid_code: string | null;
-  short_url: string | null;
   kpi_qualified: boolean | null;
   is_error: boolean | null;
   booking_status: string | null;
+  rarity: string | null;
+  primary_profile_id: string | null;
 }
+
+/** 這些訂房狀態不需要（也不該）勾選累積資格 */
+const QUALIFICATION_EXCLUDED_STATUS = ["已取消"];
 
 function label(row: KolRow): string {
   const who = row.name?.trim() || "未命名 KOL";
@@ -58,14 +62,24 @@ export function buildKolNotifications(
 
   for (const row of rows) {
     if (row.is_error) continue;
+    // 已取消的邀約不需要任何後續補件通知
+    if (QUALIFICATION_EXCLUDED_STATUS.includes(String(row.booking_status ?? ""))) continue;
 
     // A. 待勾選累積資格
-    if (
-      canQualify &&
+    // 只在「這筆確實需要被勾選」時才提醒：
+    //  - 有填寫日期且在回溯期內
+    //  - 有入住日（kpi_eligible 的判定基礎）
+    //  - 非 ck（揪客）稀有度：規則上不可勾選符合資格
+    //  - 非同住夥伴（primary_profile_id 有值時一律不列入 KPI）
+    const qualificationApplicable =
       !row.kpi_qualified &&
       hasVal(row.invited_at) &&
-      String(row.invited_at).slice(0, 10) >= lookbackFrom
-    ) {
+      String(row.invited_at).slice(0, 10) >= lookbackFrom &&
+      hasVal(row.check_in_date) &&
+      String(row.rarity ?? "").toLowerCase() !== "ck" &&
+      !hasVal(row.primary_profile_id);
+
+    if (canQualify && qualificationApplicable) {
       out.push({
         id: `kol:qualification:${row.id}`,
         kind: "kol-qualification",
@@ -80,12 +94,13 @@ export function buildKolNotifications(
         meta: [
           { label: "資料表", value: "kol_profiles.kpi_qualified" },
           { label: "誰能編輯", value: "super_admin、admin、scout_manager" },
+          { label: "排除條件", value: "已取消、稀有度 ck（揪客）、同住夥伴（附屬記錄）、無入住日者不提醒。" },
           { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 開啟該筆 → 勾選累積資格。" },
         ],
       });
     }
 
-    // B. 上片逾期未填發布資料
+    // B. 上片逾期未填發布資料（提醒性質，列為建議黃燈）
     const deadline = hasVal(row.check_in_date)
       ? addDaysYmd(String(row.check_in_date), PUBLISH_DEADLINE_DAYS)
       : null;
@@ -95,7 +110,7 @@ export function buildKolNotifications(
         id: `kol:publish:${row.id}`,
         kind: "kol-publish-overdue",
         category: "kol",
-        severity: "error",
+        severity: "warn",
         scope: label(row),
         title: "上片逾期未回填",
         detail: `預計上片日 ${deadline} 已過，仍缺${hasVal(row.publish_date) ? "" : "發布日期"}${!hasVal(row.publish_date) && !hasVal(row.publish_url) ? "與" : ""}${hasVal(row.publish_url) ? "" : "發布連結"}。`,
@@ -154,7 +169,7 @@ export function useKolNotifications(roles: string[]) {
       const { data, error } = await supabase
         .from("kol_profiles")
         .select(
-          "id,name,venue_name,check_in_date,invited_at,publish_date,publish_url,cid_code,short_url,kpi_qualified,is_error,booking_status",
+          "id,name,venue_name,check_in_date,invited_at,publish_date,publish_url,cid_code,kpi_qualified,is_error,booking_status,rarity,primary_profile_id",
         )
         .order("check_in_date", { ascending: false })
         .limit(600);
