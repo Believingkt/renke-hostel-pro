@@ -49,6 +49,7 @@ import {
   normalizeKolName,
   kolNameKey,
   isSameContractScope,
+  isSameKolIdentity,
 
   type CodeConflict,
   type ValidationIssue,
@@ -1370,6 +1371,10 @@ function InvitationsTab({
           const mPrimary = m.primary_profile_id ?? null;
           if (selfPrimary && (m.id === selfPrimary || mPrimary === selfPrimary)) return false;
           if (editingId && mPrimary === editingId) return false;
+          if (kolNameKey(m.name ?? "") !== name) return false;
+          if (!form.check_in_date || !m.check_in_date) return false;
+          const gap = Math.abs(new Date(m.check_in_date).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
+          if (gap > 1) return false;
           return true;
         });
         setSimilarMatches(filtered.slice(0, 5));
@@ -1378,7 +1383,7 @@ function InvitationsTab({
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [sheetOpen, form.accommodation_id, form.cid_code, form.name, form.primary_profile_id, editingId]);
+  }, [sheetOpen, form.accommodation_id, form.cid_code, form.name, form.check_in_date, form.primary_profile_id, editingId]);
 
 
   const openCreate = () => {
@@ -1982,7 +1987,7 @@ function InvitationsTab({
     fetchRows();
   };
 
-  // 搜尋可作為主要記錄的候選（只顯示 primary_profile_id IS NULL 且排除自己）
+  // 主檔／附屬只用於同館、同住檔期；跨館同合約請使用 contract_group_id 歸戶。
   useEffect(() => {
     if (!linkSubsidiaryTarget) {
       setLinkSearchResults([]);
@@ -2004,7 +2009,15 @@ function InvitationsTab({
         .or(`name.ilike.%${q}%,ig_handle.ilike.%${q}%`)
         .limit(20);
       if (cancelled) return;
-      const list = (data ?? []) as unknown as KolRow[];
+      const rawList = (data ?? []) as unknown as KolRow[];
+      const childDate = linkSubsidiaryTarget.check_in_date;
+      const list = rawList.filter((candidate) => {
+        if (candidate.accommodation_id !== linkSubsidiaryTarget.accommodation_id) return false;
+        if (kolNameKey(candidate.name ?? "") !== kolNameKey(linkSubsidiaryTarget.name ?? "")) return false;
+        if (!childDate || !candidate.check_in_date) return false;
+        const gap = Math.abs(new Date(candidate.check_in_date).getTime() - new Date(childDate).getTime()) / 86400000;
+        return gap <= 1;
+      });
       // 補上館別名稱
       const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
       const venueMap = new Map(venues.map((v) => [v.id, v.name]));
@@ -3676,7 +3689,13 @@ function InvitationsTab({
                     if (c.source === "scout_discount_codes") return "block";
                     if (c.source !== "kol_profiles") return "warning";
                     if (isLinked(c)) return "warning";
-                    const samePerson = (c.owner_name ?? "").trim() === (form.name ?? "").trim();
+                    const samePerson = isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    if (samePerson && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name)) return "block";
                     if (!samePerson) return "block";
                     if (c.accommodation_id && c.accommodation_id === form.accommodation_id) return "block";
                     return isSameContractScope({
@@ -3696,15 +3715,28 @@ function InvitationsTab({
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
                   // 需要處理的只有「不同人、尚未建立主檔關係」的同 CID 命中
-                  const needsPrimary = kolHits.filter((c) => levelOf(c) === "block" && !isLinked(c));
+                  const needsPrimary = kolHits.filter((c) => {
+                    if (levelOf(c) !== "block" || isLinked(c)) return false;
+                    const sameIdentity = isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    return !sameIdentity && c.accommodation_id === form.accommodation_id;
+                  });
                   return (
                     <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
                       {cidConflicts.map((c, i) => {
                         const lv = levels[i];
-                        const isSamePersonOther =
-                          c.source === "kol_profiles" &&
-                          (c.owner_name ?? "").trim() === (form.name ?? "").trim() &&
-                          c.accommodation_id !== form.accommodation_id;
+                        const sameIdentity = c.source === "kol_profiles" && isSameKolIdentity({
+                          formName: form.name,
+                          formIg: form.ig_handle,
+                          formContractGroupId: contractGroupId,
+                          conflict: c,
+                        });
+                        const namesDiffer = sameIdentity && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
+                        const isSamePersonOther = sameIdentity && !namesDiffer && c.accommodation_id !== form.accommodation_id;
                         return (
                           <div key={i}>
                             {marks[lv]}{" "}
@@ -3717,6 +3749,11 @@ function InvitationsTab({
                                     : `同一位 KOL 於${c.accommodation_name ? `（${c.accommodation_name}）` : "其他館別"}也有合作（同 CID），屬不同館別的獨立合作，各自計算資格，無需處理。`
                                   : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
                                 : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
+                            {namesDiffer && (
+                              <div className="mt-1 font-medium">
+                                請統一 KOL 名稱是「{c.owner_name ?? "-"}」或是「{form.name.trim()}」。
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -4208,7 +4245,7 @@ function InvitationsTab({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              將「{linkSubsidiaryTarget?.name ?? ""}」設為以下某筆邀約的附屬記錄。輸入 KOL 名稱或 IG 帳號進行搜尋。
+              附屬記錄只適用於同一位 KOL、同館別且入住日相差 1 天內的同住資料。跨館但屬同一份合約時，請改用「合併到同一份合約」。
             </p>
             <Input
               placeholder="搜尋 KOL 名稱或 IG 帳號"
@@ -4220,7 +4257,7 @@ function InvitationsTab({
                 <div className="p-3 text-xs text-muted-foreground">搜尋中…</div>
               )}
               {!linkSearching && linkSearchQuery.trim() && linkSearchResults.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">找不到符合的記錄</div>
+                <div className="p-3 text-xs text-muted-foreground">找不到同館、同名且入住日相差 1 天內的主要記錄</div>
               )}
               {!linkSearching && !linkSearchQuery.trim() && (
                 <div className="p-3 text-xs text-muted-foreground">請輸入關鍵字搜尋</div>
@@ -4241,7 +4278,7 @@ function InvitationsTab({
                     {r.ig_url || igProfileUrl(r.ig_handle) || r.ig_handle || "-"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"}
+                     {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"} · 同住主檔候選
                   </div>
                 </button>
               ))}
@@ -4320,7 +4357,8 @@ function InvitationsTab({
                   <li>KOL 名稱、網紅帳號連結、邀約人會自動沿用主要記錄，仍可修改。</li>
                   <li>附屬記錄<strong>不會</strong>另外計入累積資格與住宿間數，一份合約仍只算一筆資格。</li>
                   <li>相關分潤與獎金一律歸屬於主要記錄，不會重複計算。</li>
-                  <li>館別、入住日期、折扣碼、訂單編號、發布連結等仍可各自填寫。</li>
+                   <li>只適用於同一館別、入住日相同或相差 1 天的同住資料。</li>
+                   <li>跨館同 CID 不要設為附屬；請各自建立主要記錄，再使用「合併到同一份合約」。</li>
                   <li>之後可在附屬記錄的明細中「取消附屬關係」，讓它恢復為獨立的主要記錄。</li>
                 </ul>
               </div>
