@@ -3718,14 +3718,29 @@ function InvitationsTab({
                     : levels.includes("warning")
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
-                  // 跨館同 CID 才提供主檔候選（同住夥伴分屬不同館別時歸戶同一份合約）；
-                  // 同館別同 CID 一律視為重複建檔，直接阻擋、不提供設為主檔。
+                  // 同住主檔候選：
+                  //  - 跨館同 CID（同一份合約歸戶）
+                  //  - 同館同 CID 但「不同人」＝真正的同住夥伴，允許掛在主檔底下
+                  // 只有「同館 + 判定為同一人」才視為重複建檔，直接阻擋、不提供設為主檔。
+                  const isSamePersonHit = (c: typeof kolHits[number]) =>
+                    isSameKolIdentity({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
                   const needsPrimary = kolHits.filter((c) => {
                     if (levelOf(c) !== "block" || isLinked(c)) return false;
-                    return !!c.accommodation_id && c.accommodation_id !== form.accommodation_id;
+                    if (!c.accommodation_id) return false;
+                    if (c.accommodation_id !== form.accommodation_id) return true;
+                    return !isSamePersonHit(c);
                   });
                   const sameVenueDuplicate = kolHits.some(
-                    (c) => levelOf(c) === "block" && !isLinked(c) && c.accommodation_id === form.accommodation_id,
+                    (c) =>
+                      levelOf(c) === "block" &&
+                      !isLinked(c) &&
+                      c.accommodation_id === form.accommodation_id &&
+                      isSamePersonHit(c),
                   );
 
                   if (visibleConflicts.length === 0 && !linked && needsPrimary.length === 0) return null;
@@ -3815,8 +3830,8 @@ function InvitationsTab({
                       )}
                       {sameVenueDuplicate && !linked && (
                         <div className="font-medium">
-                          ⛔ 同館別已有相同 CID 的邀約，視為重複建檔，無法儲存。
-                          <div className="font-normal">請改為編輯既有那筆邀約；若確實是另一位 KOL，請改用其獨立的專屬折扣碼。</div>
+                          ⛔ 同館別已有「同一位 KOL」使用相同 CID，視為重複建檔，無法儲存。
+                          <div className="font-normal">請改為編輯既有那筆邀約（不要新增第二筆）。</div>
                         </div>
                       )}
                       {kolHits.length > 0 && (linked || needsPrimary.length > 0) && (
@@ -3825,8 +3840,10 @@ function InvitationsTab({
                             <span>已建立同住合拍關係：分潤與 KPI 只算主檔，本筆不重複計分。</span>
                           ) : (
                             <>
-                              <div className="font-medium">
-                                ⚠️ 不同 KOL，使用同 CID，請確認是否為同時入住？；若不是同時入住，請改用獨立另外的專屬折扣碼。
+                              <div className="font-medium whitespace-pre-line">
+                                {"⚠️ 不同 KOL 使用同一組 CID，請確認是否為「同時入住（同住合拍）」？\n" +
+                                  "・是同住 → 點下方「設為主檔」，把本筆掛在主檔底下；分潤與 KPI 只算主檔一份。\n" +
+                                  "・不是同住 → 請改用本人獨立的專屬折扣碼。"}
                               </div>
                               <div className="mt-1 flex flex-wrap gap-2">
                                 {needsPrimary
@@ -3889,8 +3906,12 @@ function InvitationsTab({
 
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  同住合拍請於上方「折扣碼 / CID」出現衝突提示時，點「設為主檔」建立關係（舊的「同住夥伴折扣碼」欄位已停用）。
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {"同住合拍設定方式（舊的「同住夥伴折扣碼」欄位已停用）：\n" +
+                    "1. 在「折扣碼 / CID」填入與同住主檔相同的 CID。\n" +
+                    "2. 上方會出現衝突提示，點「設為主檔：○○○」把本筆掛在主檔底下。\n" +
+                    "3. 若主檔為不同館別或入住日相差超過 31 天，再勾選「特例附屬」即可儲存。\n" +
+                    "※ 同館別且判定為「同一位 KOL」屬重複建檔，請直接編輯既有那筆。"}
                 </p>
               )}
             </Field>
