@@ -678,7 +678,14 @@ export function TeamSettingsBell() {
                           size="sm"
                           className="h-7 shrink-0 px-2 text-[11px]"
                           title={`將本組 ${groupUnread.length} 則標為已讀`}
-                          onClick={() => markManyRead(groupUnread.map((i) => i.id))}
+                          onClick={() =>
+                            setConfirmGroup({
+                              kind: group.kind,
+                              label: group.label,
+                              ids: groupUnread.map((i) => i.id),
+                            })
+                          }
+
                         >
                           <CheckCheck className="mr-1 h-3.5 w-3.5" />
                           本組已讀
