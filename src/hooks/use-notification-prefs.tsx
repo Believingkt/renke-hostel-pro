@@ -12,7 +12,10 @@ export const SEVERITY_ORDER: Record<Severity, number> = { error: 0, warn: 1, inf
 
 /** 目前已註冊的通知事件類型（未來新增事件在此擴充） */
 export const NOTIFICATION_KINDS = [
-  { kind: "settings-gap", label: "設定缺口" },
+  { kind: "settings-gap", label: "設定缺口", category: "settings" as const },
+  { kind: "kol-qualification", label: "KOL 待勾選累積資格", category: "kol" as const },
+  { kind: "kol-publish-overdue", label: "KOL 上片逾期", category: "kol" as const },
+  { kind: "kol-cid-missing", label: "KOL 折扣碼／CID 未建立", category: "kol" as const },
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]["kind"];
