@@ -169,7 +169,7 @@ export function useKolNotifications(roles: string[]) {
       const { data, error } = await supabase
         .from("kol_profiles")
         .select(
-          "id,name,venue_name,check_in_date,invited_at,publish_date,publish_url,cid_code,short_url,kpi_qualified,is_error,booking_status",
+          "id,name,venue_name,check_in_date,invited_at,publish_date,publish_url,cid_code,kpi_qualified,is_error,booking_status,rarity,primary_profile_id",
         )
         .order("check_in_date", { ascending: false })
         .limit(600);
