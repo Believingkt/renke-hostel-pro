@@ -706,13 +706,11 @@ export function TeamSettingsBell() {
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      // 點擊通知 → 開啟完整明細視窗（可直接跳轉）
                                       markRead(item.id);
-                                      setExpandedIds((prev) =>
-                                        isOpen
-                                          ? prev.filter((x) => x !== item.id)
-                                          : [...prev, item.id],
-                                      );
+                                      setDetailItem(item);
                                     }}
+
                                     className="min-w-0 flex-1 text-left"
                                   >
                                     <div className="flex items-center gap-2">
