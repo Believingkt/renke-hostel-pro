@@ -247,11 +247,10 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         console.log('[AccommodationContext] Loading accommodations for:', session.user.id);
       }
 
-      const { data, error } = await supabase
+      const { data: roleRows, error } = await supabase
         .from('user_roles')
         .select('accommodation_id, role')
         .eq('user_id', session.user.id)
-        .not('accommodation_id', 'is', null)
         .limit(1000);
 
       if (error) {
@@ -260,10 +259,36 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      loadedForUserRef.current = session.user.id;
-      setUserAccommodations(data || []);
+      const scoped = (roleRows || []).filter(
+        (row): row is { accommodation_id: string; role: string } => !!row.accommodation_id
+      );
 
-      if (data && data.length > 0 && forceAutoSelect) {
+      // 全域唯讀角色（finance / am / am_manager / super_admin，accommodation_id = null）
+      // → 併入所有啟用中民宿，讓 alias 解析、?accId= 與切換器都能跨館運作
+      const isGlobalViewer = (roleRows || []).some(
+        (row) => !row.accommodation_id && (GLOBAL_VIEWER_ROLES as readonly string[]).includes(row.role)
+      );
+
+      let data = scoped;
+
+      if (isGlobalViewer) {
+        const { data: allAccs } = await supabase
+          .from('accommodation_info')
+          .select('id')
+          .eq('is_active', true);
+        const existing = new Set(scoped.map((row) => row.accommodation_id));
+        data = [
+          ...scoped,
+          ...(allAccs || [])
+            .filter((acc) => !existing.has(acc.id))
+            .map((acc) => ({ accommodation_id: acc.id, role: GLOBAL_VIEWER_ROLE_TAG })),
+        ];
+      }
+
+      loadedForUserRef.current = session.user.id;
+      setUserAccommodations(data);
+
+      if (data.length > 0 && forceAutoSelect) {
         const domainAccommodationId = await resolveDomainAccommodationId(data);
 
         // 0. PMS 網域：無 accId 時，以登入時輸入的民宿代號（路徑 alias）為準
