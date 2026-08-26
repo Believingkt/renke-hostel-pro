@@ -4452,11 +4452,15 @@ function InvitationsTab({
                         前往欄位 <ChevronRight className="ml-0.5 h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="mt-1 text-sm text-foreground">{issue.message}</p>
+                    <p className="mt-1 text-sm text-foreground whitespace-pre-line">{issue.message}</p>
                     <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      <div>🚫 觸發規則：{issue.rule}</div>
                       {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
                       {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
-                      {issue.suggestion && <div>💡 建議做法：{issue.suggestion}</div>}
+                      {issue.suggestion && <div className="whitespace-pre-line">💡 建議做法：{issue.suggestion}</div>}
+                      {RULE_ACTION_HINTS[issue.rule] && (
+                        <div className="text-foreground">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                      )}
                     </div>
                   </div>
                 ))}
