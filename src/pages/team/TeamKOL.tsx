@@ -2011,7 +2011,7 @@ function InvitationsTab({
     fetchRows();
   };
 
-  // 主檔／附屬只用於同館、同住檔期；跨館同合約請使用 contract_group_id 歸戶。
+  // 主檔／附屬用於同一位 KOL 的同一份合作；跨館或入住日相差超過 31 天時需勾選「特例附屬」。
   useEffect(() => {
     if (!linkSubsidiaryTarget) {
       setLinkSearchResults([]);
@@ -2036,12 +2036,11 @@ function InvitationsTab({
       const rawList = (data ?? []) as unknown as KolRow[];
       const childDate = linkSubsidiaryTarget.check_in_date;
       const list = rawList.filter((candidate) => {
-        if (candidate.accommodation_id !== linkSubsidiaryTarget.accommodation_id) return false;
         if (kolNameKey(candidate.name ?? "") !== kolNameKey(linkSubsidiaryTarget.name ?? "")) return false;
         if (!childDate || !candidate.check_in_date) return false;
-        const gap = Math.abs(new Date(candidate.check_in_date).getTime() - new Date(childDate).getTime()) / 86400000;
         return true;
       });
+
       // 補上館別名稱
       const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
       const venueMap = new Map(venues.map((v) => [v.id, v.name]));
@@ -2110,8 +2109,11 @@ function InvitationsTab({
     const gap = parent.check_in_date && child.check_in_date
       ? Math.abs(new Date(parent.check_in_date).getTime() - new Date(child.check_in_date).getTime()) / 86400000
       : 0;
-    if (gap > 31 && !mergeExceptionConfirmed) {
-      toast.error("入住日相差超過 31 天，請先勾選「特例附屬」");
+    const crossVenue = !!parent.accommodation_id && !!child.accommodation_id
+      && parent.accommodation_id !== child.accommodation_id;
+    const needsException = gap > 31 || crossVenue;
+    if (needsException && !mergeExceptionConfirmed) {
+      toast.error(crossVenue ? "跨館別附屬，請先勾選「特例附屬」" : "入住日相差超過 31 天，請先勾選「特例附屬」");
       return;
     }
     setMergeSubmitting(true);
@@ -2121,9 +2123,10 @@ function InvitationsTab({
       .from("kol_profiles")
       .update({
         primary_profile_id: parent.id,
-        primary_link_exception: gap > 31,
+        primary_link_exception: needsException,
         kpi_qualified: false,
       } as any)
+
       .eq("id", child.id);
     let updateError = linkRes.error;
     if (!updateError && !parent.contract_group_id) {
@@ -2903,15 +2906,12 @@ function InvitationsTab({
                       特例附屬
                     </Badge>
                   )}
-                  {crossVenue && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                      跨館遺留
-                    </Badge>
-                  )}
                   <span className="text-muted-foreground">主要館別：{parentSubName}</span>
+                  {crossVenue && <span className="text-muted-foreground">跨館別附屬</span>}
                   {gapDays !== null && gapDays > 31 && (
                     <span className="text-muted-foreground">入住日相差 {gapDays} 天</span>
                   )}
+
                 </div>
               );
 
@@ -3718,11 +3718,16 @@ function InvitationsTab({
                     : levels.includes("warning")
                       ? "border-amber-300 bg-amber-50 text-amber-900"
                       : "border-border bg-muted text-muted-foreground";
-                  // 同館且尚未建立關係的同 CID 命中，直接提供主檔候選；名稱不一致仍會硬擋至統一。
+                  // 跨館同 CID 才提供主檔候選（同住夥伴分屬不同館別時歸戶同一份合約）；
+                  // 同館別同 CID 一律視為重複建檔，直接阻擋、不提供設為主檔。
                   const needsPrimary = kolHits.filter((c) => {
                     if (levelOf(c) !== "block" || isLinked(c)) return false;
-                    return c.accommodation_id === form.accommodation_id;
+                    return !!c.accommodation_id && c.accommodation_id !== form.accommodation_id;
                   });
+                  const sameVenueDuplicate = kolHits.some(
+                    (c) => levelOf(c) === "block" && !isLinked(c) && c.accommodation_id === form.accommodation_id,
+                  );
+
                   if (visibleConflicts.length === 0 && !linked && needsPrimary.length === 0) return null;
 
                   // 去重：同一位 KOL 的附屬記錄（子檔）若其主檔已顯示，就不重複列出
@@ -3755,28 +3760,22 @@ function InvitationsTab({
                     const gap = parentCheckIn && form.check_in_date
                       ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
                       : null;
-                    if (crossVenue) {
-                      return (
-                        <div className="mt-2 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-2 text-blue-900">
-                          <Checkbox checked={form.primary_link_exception} disabled />
-                          <span>
-                            跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
-                            {form.primary_link_exception ? " 已回填為既有特例。" : " 尚未標記特例，請聯絡管理員確認資料。"}
-                            此關係唯讀，因跨館邀約應各自保留主檔與資格，再以「同一份合約」歸戶。
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (gap === null || gap <= 31) return null;
+                    const needsException = crossVenue || (gap !== null && gap > 31);
+                    if (!needsException) return null;
+                    const reasons = [
+                      crossVenue ? "主檔與本筆分屬不同館別" : null,
+                      gap !== null && gap > 31 ? `入住日相差 ${Math.round(gap)} 天` : null,
+                    ].filter(Boolean).join("、");
                     return (
                       <label className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
                         <Checkbox
                           checked={form.primary_link_exception}
                           onCheckedChange={(checked) => setForm({ ...form, primary_link_exception: checked === true })}
                         />
-                        <span>特例附屬：兩筆入住日相差 {Math.round(gap)} 天，已確認仍屬同一份主檔／附屬合作。</span>
+                        <span>特例附屬：{reasons}，已確認仍屬同一份主檔／附屬合作。</span>
                       </label>
                     );
+
                   })();
 
                   return (
@@ -3814,6 +3813,12 @@ function InvitationsTab({
                           ℹ️ 請統一 KOL 名稱是「{nameDiffHit.owner_name ?? "-"}」或是「{form.name.trim()}」。
                         </div>
                       )}
+                      {sameVenueDuplicate && !linked && (
+                        <div className="font-medium">
+                          ⛔ 同館別已有相同 CID 的邀約，視為重複建檔，無法儲存。
+                          <div className="font-normal">請改為編輯既有那筆邀約；若確實是另一位 KOL，請改用其獨立的專屬折扣碼。</div>
+                        </div>
+                      )}
                       {kolHits.length > 0 && (linked || needsPrimary.length > 0) && (
                         <div className="pt-1">
                           {linked ? (
@@ -3821,7 +3826,7 @@ function InvitationsTab({
                           ) : (
                             <>
                               <div className="font-medium">
-                                ⚠️ 同 CID 必須先建立「同住主檔」關係才能儲存；若不是同住夥伴，請改用獨立另外的專屬折扣碼。
+                                ⚠️ 不同 KOL，使用同 CID，請確認是否為同時入住？；若不是同時入住，請改用獨立另外的專屬折扣碼。
                               </div>
                               <div className="mt-1 flex flex-wrap gap-2">
                                 {needsPrimary
@@ -3837,6 +3842,7 @@ function InvitationsTab({
                                       }
                                     >
                                       設為主檔：{c.owner_name ?? "-"}
+                                      {c.accommodation_name ? `（${c.accommodation_name}）` : ""}
                                     </Button>
                                   ))}
                               </div>
@@ -3853,6 +3859,7 @@ function InvitationsTab({
                           )}
                         </div>
                       )}
+
                       {primaryNotice}
                     </div>
                   );
@@ -4135,8 +4142,10 @@ function InvitationsTab({
                   <li>分潤與勞報一律歸主檔，本筆不重複計算。</li>
                   <li>本筆不列入 KPI 與住宿間數。</li>
                   <li>公開查詢連結以主檔為準。</li>
+                  <li>跨館別、或入住日相差超過 31 天時，仍需在下方勾選「特例附屬」才能儲存。</li>
                 </ul>
-                <p>若兩人／兩筆其實是各自獨立的合作，請改用各自獨立的專屬折扣碼，不要設為附屬。</p>
+                <p>不同 KOL 共用同一支 CID，只有在「同時入住」時才適用；若不是同時入住，請改用各自獨立的專屬折扣碼，不要設為附屬。</p>
+
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -4338,8 +4347,9 @@ function InvitationsTab({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              一般附屬記錄適用於同一位 KOL、同館別且入住日相差 31 天內的資料；超過 31 天需另外確認「特例附屬」。
+              一般附屬記錄適用於同一位 KOL、同館別且入住日相差 31 天內的資料；跨館別或超過 31 天需另外勾選「特例附屬」。
             </p>
+
             <Input
               placeholder="搜尋 KOL 名稱或 IG 帳號"
               value={linkSearchQuery}
@@ -4350,7 +4360,7 @@ function InvitationsTab({
                 <div className="p-3 text-xs text-muted-foreground">搜尋中…</div>
               )}
               {!linkSearching && linkSearchQuery.trim() && linkSearchResults.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">找不到同館、同名的主要記錄</div>
+                <div className="p-3 text-xs text-muted-foreground">找不到同名的主要記錄</div>
               )}
               {!linkSearching && !linkSearchQuery.trim() && (
                 <div className="p-3 text-xs text-muted-foreground">請輸入關鍵字搜尋</div>
@@ -4365,8 +4375,11 @@ function InvitationsTab({
                       const gap = linkSubsidiaryTarget.check_in_date && r.check_in_date
                         ? Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000
                         : 0;
+                      const crossVenue = !!r.accommodation_id && !!linkSubsidiaryTarget.accommodation_id
+                        && r.accommodation_id !== linkSubsidiaryTarget.accommodation_id;
                       setLinkExceptionConfirmed(false);
-                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r, isException: gap > 31 });
+                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r, isException: gap > 31 || crossVenue });
+
                     }
                   }}
                 >
@@ -4376,12 +4389,15 @@ function InvitationsTab({
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                      {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"} · {
-                       linkSubsidiaryTarget?.check_in_date && r.check_in_date &&
-                       Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000 > 31
+                       (r.accommodation_id && linkSubsidiaryTarget?.accommodation_id &&
+                         r.accommodation_id !== linkSubsidiaryTarget.accommodation_id) ||
+                       (linkSubsidiaryTarget?.check_in_date && r.check_in_date &&
+                       Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000 > 31)
                          ? "特例附屬候選"
                          : "主檔候選"
                      }
                   </div>
+
                 </button>
               ))}
             </div>
@@ -4411,7 +4427,8 @@ function InvitationsTab({
                   checked={linkExceptionConfirmed}
                   onCheckedChange={(checked) => setLinkExceptionConfirmed(checked === true)}
                 />
-                <span>特例附屬：入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
+                <span>特例附屬：跨館別或入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
+
               </label>
             )}
           </AlertDialogHeader>
@@ -4503,7 +4520,8 @@ function InvitationsTab({
                   <li>附屬記錄<strong>不會</strong>另外計入累積資格與住宿間數，一份合約仍只算一筆資格。</li>
                   <li>相關分潤與獎金一律歸屬於主要記錄，不會重複計算。</li>
                    <li>一般附屬適用於同一館別、入住日相差 31 天內的資料。</li>
-                   <li>超過 31 天必須另外勾選「特例附屬」確認；跨館既有關係保留，但不開放新建。</li>
+                   <li>跨館別或超過 31 天必須另外勾選「特例附屬」確認。</li>
+
                   <li>之後可在附屬記錄的明細中「取消附屬關係」，讓它恢復為獨立的主要記錄。</li>
                 </ul>
               </div>
