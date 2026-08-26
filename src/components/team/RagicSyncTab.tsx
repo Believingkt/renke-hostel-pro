@@ -613,7 +613,9 @@ export default function RagicSyncTab() {
               ))}
             </TableBody>
           </Table>
+         </TooltipProvider>
         </div>
+
 
         {skipped && skipped.length > 0 && (
           <div className="rounded-md border border-amber-500/40 bg-amber-500/5">
