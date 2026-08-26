@@ -187,7 +187,10 @@ function flatten(results: AccomResult[]): RagicRow[] {
   return rows;
 }
 
-const STORAGE_KEY = "ragic-sync-preview-v1";
+const STORAGE_KEY = "ragic-sync-preview-v2";
+const LEGACY_STORAGE_KEYS = ["ragic-sync-preview-v1"];
+const CACHE_VERSION = 2;
+const DETAILS_KEY = "ragic-sync-show-details";
 
 const RAGIC_FORM_URL = "https://ap15.ragic.com/lakeze/income-source/2?PAGEID=yj4";
 
@@ -280,6 +283,7 @@ function amountFormula(r: RagicRow): string | null {
 
 
 type PersistedPreview = {
+  version?: number;
   year: number;
   month: number;
   rows: RagicRow[];
@@ -289,10 +293,16 @@ type PersistedPreview = {
 
 function loadPersisted(): PersistedPreview | null {
   try {
+    // 舊版本快取缺少 calc 欄位，直接丟棄避免明細靜默消失
+    LEGACY_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedPreview;
     if (!parsed || !Array.isArray(parsed.rows)) return null;
+    if (parsed.version !== CACHE_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
@@ -311,9 +321,30 @@ export default function RagicSyncTab() {
   const [skipped, setSkipped] = useState<SkipEntry[] | null>(persisted?.skipped ?? null);
   const [showSkipped, setShowSkipped] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [showDetails, setShowDetails] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(DETAILS_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
 
   const [previewedAt, setPreviewedAt] = useState<{ year: number; month: number } | null>(
     persisted?.previewedAt ?? null,
+  );
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(DETAILS_KEY, showDetails ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }, [showDetails]);
+
+  /** 舊格式資料（缺 calc）→ 明細無法顯示，提示重新預覽 */
+  const missingCalc = useMemo(
+    () => !!rows && rows.some((r) => !r.skipped && !r.calc),
+    [rows],
   );
 
   useEffect(() => {
@@ -324,7 +355,7 @@ export default function RagicSyncTab() {
       }
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ year, month, rows, skipped: skipped ?? [], previewedAt }),
+        JSON.stringify({ version: CACHE_VERSION, year, month, rows, skipped: skipped ?? [], previewedAt }),
       );
     } catch {
       /* ignore quota errors */
@@ -454,15 +485,17 @@ export default function RagicSyncTab() {
                 <span className="inline-flex">
                   <Button
                     onClick={handlePreview}
-                    disabled={loading || writing || !!hasPreview}
+                    disabled={loading || writing || (!!hasPreview && !missingCalc)}
                   >
                     {loading && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                    {isStale ? "重新預覽" : "預覽"}
+                    {isStale || missingCalc ? "重新預覽" : "預覽"}
                   </Button>
                 </span>
               </TooltipTrigger>
               <TooltipContent className="bg-popover z-50">
-                {hasPreview
+                {missingCalc
+                  ? "資料格式已更新，請重新預覽以取得計算明細"
+                  : hasPreview
                   ? `${previewedAt?.year} 年 ${previewedAt?.month} 月已完成預覽，切換年／月後才能再次預覽`
                   : isStale
                     ? "篩選已變更，請重新預覽"
@@ -501,13 +534,36 @@ export default function RagicSyncTab() {
         )}
 
 
+        {missingCalc && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <span>
+              <strong className="text-amber-700 dark:text-amber-400">資料格式已更新，請按上方「重新預覽」</strong>
+              <br />
+              <span className="text-xs text-muted-foreground">
+                目前顯示的是舊版快取，缺少計算依據（營收／門檻／費率），因此計算明細與問號說明無法顯示。金額本身仍為當時預覽結果。
+              </span>
+            </span>
+          </div>
+        )}
+
         {rows && (
-          <div className="text-sm text-muted-foreground">
-            共 {rows.length} 筆
-            {postedCount > 0 && `（已送出 ${postedCount} 筆）`}
-            ・計算範圍是{previewedAt?.year ?? year}年{previewedAt?.month ?? month}月1日～
-            {previewedAt?.month ?? month}月
-            {new Date(previewedAt?.year ?? year, previewedAt?.month ?? month, 0).getDate()}日
+          <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+            <div>
+              共 {rows.length} 筆
+              {postedCount > 0 && `（已送出 ${postedCount} 筆）`}
+              ・計算範圍是{previewedAt?.year ?? year}年{previewedAt?.month ?? month}月1日～
+              {previewedAt?.month ?? month}月
+              {new Date(previewedAt?.year ?? year, previewedAt?.month ?? month, 0).getDate()}日
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowDetails((v) => !v)}
+            >
+              {showDetails ? "隱藏計算明細" : "顯示計算明細"}
+            </Button>
           </div>
         )}
 
@@ -589,6 +645,16 @@ export default function RagicSyncTab() {
                         </Tooltip>
                       )}
                     </span>
+                    {showDetails && rowSettings(r) && (
+                      <div className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                        {rowSettings(r)!.map((s) => (
+                          <div key={s.label} className="flex justify-between gap-2">
+                            <span>{s.label}</span>
+                            <span className="tabular-nums">{s.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {r.skipped ? (
@@ -612,6 +678,11 @@ export default function RagicSyncTab() {
                           </Tooltip>
                         )}
                       </span>
+                    )}
+                    {showDetails && !r.skipped && amountFormula(r) && (
+                      <div className="mt-1 text-xs font-normal text-muted-foreground tabular-nums text-right">
+                        {amountFormula(r)}
+                      </div>
                     )}
                   </TableCell>
 
