@@ -53,6 +53,9 @@ export function useSettingsCompleteness() {
       closerTeamRes,
       multiplierRes,
       roleRes,
+      quotaRes,
+      scoutTierRes,
+      scoutSalaryRes,
     ] = await Promise.all([
       supabase
         .from("accommodation_info")
@@ -119,6 +122,12 @@ export function useSettingsCompleteness() {
         .from("teamcommission_role_bindings")
         .select("role_type, effective_from")
         .lte("effective_from", today),
+      supabase
+        .from("kol_reciprocal_monthly_quotas")
+        .select("accommodation_id, quota")
+        .eq("year_month", month),
+      supabase.from("scout_tier_settings").select("id").lte("effective_from", today).limit(1),
+      supabase.from("scout_salary_settings").select("id").lte("effective_from", today).limit(1),
     ]);
 
     const accs = ((accRes.data ?? []) as AccRow[]).filter((a) => a.id && a.name);
@@ -145,6 +154,9 @@ export function useSettingsCompleteness() {
       amManagedIds,
       venueClosingAccIds: ((closingRes.data ?? []) as any[]).map((r) => r.accommodation_id),
       tierRuleAccIds: ((tierRes.data ?? []) as any[]).map((r) => r.accommodation_id),
+      kolQuotaAccIds: ((quotaRes.data ?? []) as any[])
+        .filter((r) => Number(r.quota) > 0)
+        .map((r) => r.accommodation_id),
     });
 
     const activeMultipliers = ((multiplierRes.data ?? []) as any[])
@@ -166,6 +178,8 @@ export function useSettingsCompleteness() {
         new Set(((roleRes.data ?? []) as any[]).map((r) => r.role_type as string)),
       ),
       hasCloserTeamBonus: (closerTeamRes.data ?? []).length > 0,
+      hasScoutTiers: (scoutTierRes.data ?? []).length > 0,
+      hasScoutSalary: (scoutSalaryRes.data ?? []).length > 0,
       activeMultipliers,
     });
 

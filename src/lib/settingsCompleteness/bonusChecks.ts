@@ -208,7 +208,6 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
       : {
           level: "warn",
           label: "本月未設定",
-          href: null as unknown as undefined,
           target: "KOL 星探管理 →「互惠額度」",
           fields: ["本月互惠額度（每館每月）"],
           hint: "此館本月沒有互惠額度設定，星探無法安排互惠邀約，KOL 相關獎金也不會產生。",
