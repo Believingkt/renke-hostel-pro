@@ -4189,6 +4189,40 @@ function InvitationsTab({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 設為主檔前的說明確認 */}
+      <AlertDialog open={!!primaryConfirm} onOpenChange={(o) => !o && setPrimaryConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>要把本筆設為「{primaryConfirm?.name}」的附屬記錄嗎？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                <p>設定主檔代表兩筆是同一份合作（同住合拍、共用同一支 CID）：</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>分潤與勞報一律歸主檔，本筆不重複計算。</li>
+                  <li>本筆不列入 KPI 與住宿間數。</li>
+                  <li>公開查詢連結以主檔為準。</li>
+                </ul>
+                <p>若兩人／兩筆其實是各自獨立的合作，請改用各自獨立的專屬折扣碼，不要設為附屬。</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (primaryConfirm) {
+                  setForm({ ...form, primary_profile_id: primaryConfirm.id, primary_link_exception: false });
+                }
+                setPrimaryConfirm(null);
+              }}
+            >
+              確認設為主檔
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       <AlertDialog open={blockIssues.length > 0} onOpenChange={(o) => !o && setBlockIssues([])}>
         <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
           <AlertDialogHeader>
