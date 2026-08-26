@@ -778,6 +778,7 @@ function InvitationsTab({
   const [linkSearchResults, setLinkSearchResults] = useState<KolRow[]>([]);
   const [linkSearching, setLinkSearching] = useState(false);
   const [linkConfirm, setLinkConfirm] = useState<{ child: KolRow; parent: KolRow; isException: boolean } | null>(null);
+  const [linkExceptionConfirmed, setLinkExceptionConfirmed] = useState(false);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
   // 取消附屬關係
@@ -4304,6 +4305,7 @@ function InvitationsTab({
                       const gap = linkSubsidiaryTarget.check_in_date && r.check_in_date
                         ? Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000
                         : 0;
+                      setLinkExceptionConfirmed(false);
                       setLinkConfirm({ child: linkSubsidiaryTarget, parent: r, isException: gap > 31 });
                     }
                   }}
@@ -4328,7 +4330,15 @@ function InvitationsTab({
       </Dialog>
 
       {/* 設為附屬記錄確認 */}
-      <AlertDialog open={!!linkConfirm} onOpenChange={(o) => !o && !linkSubmitting && setLinkConfirm(null)}>
+      <AlertDialog
+        open={!!linkConfirm}
+        onOpenChange={(o) => {
+          if (!o && !linkSubmitting) {
+            setLinkConfirm(null);
+            setLinkExceptionConfirmed(false);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確認設為附屬記錄</AlertDialogTitle>
@@ -4337,14 +4347,20 @@ function InvitationsTab({
             </AlertDialogDescription>
             {linkConfirm?.isException && (
               <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                <Checkbox checked disabled />
+                <Checkbox
+                  checked={linkExceptionConfirmed}
+                  onCheckedChange={(checked) => setLinkExceptionConfirmed(checked === true)}
+                />
                 <span>特例附屬：入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
               </label>
             )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={linkSubmitting}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLinkSubsidiary} disabled={linkSubmitting}>
+            <AlertDialogAction
+              onClick={handleConfirmLinkSubsidiary}
+              disabled={linkSubmitting || (!!linkConfirm?.isException && !linkExceptionConfirmed)}
+            >
               {linkSubmitting ? "處理中..." : "確認"}
             </AlertDialogAction>
           </AlertDialogFooter>
