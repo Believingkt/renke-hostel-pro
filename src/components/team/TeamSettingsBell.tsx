@@ -566,102 +566,167 @@ export function TeamSettingsBell() {
         ) : (
           <ScrollArea className="h-[min(60vh,420px)]">
             <ul ref={listRef} className="divide-y">
-              {visibleItems.map((item) => {
-                const read = isRead(item.id);
-                const isOpen = expandedIds.includes(item.id);
+              {groups.map((group) => {
+                const collapsed = collapsedGroups.includes(group.kind);
+                const limit = groupLimits[group.kind] ?? GROUP_PAGE;
+                const shown = collapsed ? [] : group.items.slice(0, limit);
+                const groupErrors = group.items.filter((i) => i.severity === "error").length;
                 return (
-                  <li key={item.id} className={read ? "opacity-70" : ""}>
-                    <div className="px-3 py-2.5">
-                      <div className="flex items-start gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            markRead(item.id);
-                            setExpandedIds((prev) =>
-                              isOpen ? prev.filter((x) => x !== item.id) : [...prev, item.id],
-                            );
-                          }}
-                          className="min-w-0 flex-1 text-left"
-                        >
-                          <div className="flex items-center gap-2">
-                            {!read && (
-                              <span
-                                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                                  item.severity === "error" ? "bg-destructive" : "bg-amber-500"
-                                }`}
-                              />
-                            )}
-                            <Badge
-                              variant={item.severity === "error" ? "destructive" : "secondary"}
-                              className="text-[11px] font-normal"
-                            >
-                              {item.severity === "error" ? "嚴重" : "建議"}
-                            </Badge>
-                            <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                              {CATEGORY_LABEL[item.category]}
-                            </span>
-                            <span className="truncate text-sm font-medium">
-                              {item.scope}｜{item.title}
-                            </span>
-                            {!item.editable && (
-                              <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                            )}
-                            <ChevronDown
-                              className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${
-                                isOpen ? "rotate-180" : ""
-                              }`}
-                            />
-                          </div>
-                          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                            {item.detail}
-                          </p>
-                        </button>
-                        {item.href && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 shrink-0"
-                            title={item.editable ? "前往設定頁" : "前往查看（唯讀）"}
-                            aria-label={item.editable ? "前往設定頁" : "前往查看（唯讀）"}
-                            onClick={() => go(item)}
-                          >
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      {isOpen && (
-                        <div className="mt-2 space-y-1.5 rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed">
-                          {(item.meta ?? []).map((m) => (
-                            <p key={m.label}>
-                              <span className="text-muted-foreground">{m.label}：</span>
-                              {m.value}
-                            </p>
-                          ))}
-                          {item.reason && (
-                            <p className="text-amber-700 dark:text-amber-400">{item.reason}</p>
-                          )}
-                          {item.href ? (
-                            <Button
-                              size="sm"
-                              variant={item.editable ? "default" : "outline"}
-                              className="mt-1 w-full"
-                              onClick={() => go(item)}
-                            >
-                              {item.editable ? "前往設定頁" : "前往查看（唯讀）"}
-                              <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
-                            </Button>
-                          ) : (
-                            <p className="text-muted-foreground">此帳號無法直接編輯，請聯絡可編輯的負責角色。</p>
-                          )}
-                        </div>
+                  <li key={group.kind}>
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.kind)}
+                      className="flex w-full items-center gap-2 bg-muted/40 px-3 py-2 text-left hover:bg-muted"
+                      aria-expanded={!collapsed}
+                    >
+                      <ChevronDown
+                        className={`h-3.5 w-3.5 shrink-0 transition-transform ${
+                          collapsed ? "-rotate-90" : ""
+                        }`}
+                      />
+                      <span className="truncate text-xs font-semibold">{group.label}</span>
+                      {groupErrors > 0 && (
+                        <Badge variant="destructive" className="text-[10px] font-normal">
+                          嚴重 {groupErrors}
+                        </Badge>
                       )}
-                    </div>
+                      <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                        {group.items.length} 則
+                      </span>
+                    </button>
+
+                    {!collapsed && (
+                      <ul className="divide-y">
+                        {shown.map((item) => {
+                          const read = isRead(item.id);
+                          const isOpen = expandedIds.includes(item.id);
+                          return (
+                            <li key={item.id} data-notif-item className={read ? "opacity-70" : ""}>
+                              <div className="px-3 py-2.5">
+                                <div className="flex items-start gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      markRead(item.id);
+                                      setExpandedIds((prev) =>
+                                        isOpen
+                                          ? prev.filter((x) => x !== item.id)
+                                          : [...prev, item.id],
+                                      );
+                                    }}
+                                    className="min-w-0 flex-1 text-left"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {!read && (
+                                        <span
+                                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                                            item.severity === "error"
+                                              ? "bg-destructive"
+                                              : "bg-amber-500"
+                                          }`}
+                                        />
+                                      )}
+                                      <Badge
+                                        variant={
+                                          item.severity === "error" ? "destructive" : "secondary"
+                                        }
+                                        className="text-[11px] font-normal"
+                                      >
+                                        {item.severity === "error" ? "嚴重" : "建議"}
+                                      </Badge>
+                                      <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                                        {CATEGORY_LABEL[item.category]}
+                                      </span>
+                                      <span className="truncate text-sm font-medium">
+                                        {item.scope}｜{item.title}
+                                      </span>
+                                      {!item.editable && (
+                                        <Lock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                      )}
+                                      <ChevronDown
+                                        className={`ml-auto h-3.5 w-3.5 shrink-0 transition-transform ${
+                                          isOpen ? "rotate-180" : ""
+                                        }`}
+                                      />
+                                    </div>
+                                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                                      {item.detail}
+                                    </p>
+                                  </button>
+                                  {item.href && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 shrink-0"
+                                      title={item.editable ? "前往設定頁" : "前往查看（唯讀）"}
+                                      aria-label={item.editable ? "前往設定頁" : "前往查看（唯讀）"}
+                                      onClick={() => go(item)}
+                                    >
+                                      <ArrowUpRight className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+
+                                {isOpen && (
+                                  <div className="mt-2 space-y-1.5 rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed">
+                                    {(item.meta ?? []).map((m) => (
+                                      <p key={m.label}>
+                                        <span className="text-muted-foreground">{m.label}：</span>
+                                        {m.value}
+                                      </p>
+                                    ))}
+                                    {item.reason && (
+                                      <p className="text-amber-700 dark:text-amber-400">
+                                        {item.reason}
+                                      </p>
+                                    )}
+                                    {item.href ? (
+                                      <Button
+                                        size="sm"
+                                        variant={item.editable ? "default" : "outline"}
+                                        className="mt-1 w-full"
+                                        onClick={() => go(item)}
+                                      >
+                                        {item.editable ? "前往設定頁" : "前往查看（唯讀）"}
+                                        <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                                      </Button>
+                                    ) : (
+                                      <p className="text-muted-foreground">
+                                        此帳號無法直接編輯，請聯絡可編輯的負責角色。
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          );
+                        })}
+
+                        {group.items.length > shown.length && (
+                          <li className="px-3 py-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-xs"
+                              onClick={() =>
+                                setGroupLimits((prev) => ({
+                                  ...prev,
+                                  [group.kind]: limit + GROUP_PAGE,
+                                }))
+                              }
+                            >
+                              顯示更多（還有 {group.items.length - shown.length} 則）
+                            </Button>
+                          </li>
+                        )}
+                      </ul>
+                    )}
                   </li>
                 );
               })}
             </ul>
           </ScrollArea>
+
         )}
 
         {visibleItems.length > 0 && (
