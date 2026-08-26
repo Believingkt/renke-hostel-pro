@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, MinusCircle, RefreshCw, XCircle } from "lucide-react";
+import SettingsGapDetailCards from "@/components/team/SettingsGapDetailCards";
 
 const GROUPS: Array<{ key: CheckGroupKey; label: string; desc: string; errorLabel: string }> = [
   {
@@ -122,6 +123,7 @@ export default function RateConsistencyCheckTab() {
   };
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-2">
@@ -330,5 +332,12 @@ export default function RateConsistencyCheckTab() {
         </Dialog>
       </CardContent>
     </Card>
+
+    <SettingsGapDetailCards
+      ragicRows={ragicRows}
+      bonusVenueRows={bonusVenueRows}
+      bonusGlobalRows={bonusGlobalRows}
+    />
+    </div>
   );
 }
