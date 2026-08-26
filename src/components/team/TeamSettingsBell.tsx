@@ -12,6 +12,8 @@ import {
   Undo2,
   Search,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -94,33 +96,10 @@ export function TeamSettingsBell() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState<"all" | Severity>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>("all");
+  const [kindFilter, setKindFilter] = useState<string>("all");
 
-  /** 使用者可把目前的篩選條件存成預設檢視（下次開啟自動套用） */
-  const defaultViewKey = `team:notif-default-view:${userId}`;
-  const readDefaultView = (): {
-    level: "all" | Severity;
-    category: "all" | NotificationCategory;
-    kind: string;
-  } => {
-    try {
-      const raw = localStorage.getItem(`team:notif-default-view:${userId}`);
-      const p = raw ? (JSON.parse(raw) as Record<string, string>) : {};
-      return {
-        level: (p.level as "all" | Severity) ?? "all",
-        category: (p.category as "all" | NotificationCategory) ?? "all",
-        kind: p.kind ?? "all",
-      };
-    } catch {
-      return { level: "all", category: "all", kind: "all" };
-    }
-  };
-  const [defaultView, setDefaultView] = useState(readDefaultView);
-  const [levelFilter, setLevelFilter] = useState<"all" | Severity>(defaultView.level);
-  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>(
-    defaultView.category,
-  );
-  const [kindFilter, setKindFilter] = useState<string>(defaultView.kind);
-  const [viewSaved, setViewSaved] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
   const [renderedCount, setRenderedCount] = useState(0);
 
@@ -234,7 +213,7 @@ export function TeamSettingsBell() {
   const [confirmGroup, setConfirmGroup] = useState<{
     kind: string;
     label: string;
-    ids: string[];
+    items: TeamNotification[];
   } | null>(null);
   /** 點擊通知後開啟的完整明細視窗 */
   const [detailItem, setDetailItem] = useState<TeamNotification | null>(null);
@@ -343,12 +322,11 @@ export function TeamSettingsBell() {
     if (!open) {
       setExpandedIds([]);
       setQuery("");
-      // 關閉時回到「預設檢視」，而不是硬性重設為全部
-      setLevelFilter(defaultView.level);
-      setCategoryFilter(defaultView.category);
-      setKindFilter(defaultView.kind);
+      setLevelFilter("all");
+      setCategoryFilter("all");
+      setKindFilter("all");
       setGroupLimits({});
-      setViewSaved(false);
+
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -404,6 +382,43 @@ export function TeamSettingsBell() {
     setOpen(false);
     navigate(item.href);
   };
+
+  /** 明細視窗的上／下一則（依目前篩選後的清單順序） */
+  const detailIndex = detailItem ? visibleItems.findIndex((i) => i.id === detailItem.id) : -1;
+  const stepDetail = (delta: number) => {
+    if (detailIndex < 0) return;
+    const next = visibleItems[detailIndex + delta];
+    if (!next) return;
+    markRead(next.id);
+    setDetailItem(next);
+  };
+
+  /** 批次已讀前的預覽清單 */
+  const renderPreviewList = (list: TeamNotification[]) => (
+    <div className="max-h-56 overflow-y-auto rounded-md border bg-muted/30 p-2 text-xs">
+      {list.length === 0 ? (
+        <p className="text-muted-foreground">沒有未讀通知。</p>
+      ) : (
+        <ul className="space-y-1">
+          {list.slice(0, 50).map((i) => (
+            <li key={i.id} className="flex items-start gap-1.5">
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                  i.severity === "error" ? "bg-destructive" : "bg-amber-500"
+                }`}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {i.scope}｜{i.title}
+              </span>
+            </li>
+          ))}
+          {list.length > 50 && (
+            <li className="text-muted-foreground">…等共 {list.length} 則</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
 
   if (busy && count === 0) return null;
 
@@ -690,7 +705,7 @@ export function TeamSettingsBell() {
                             setConfirmGroup({
                               kind: group.kind,
                               label: group.label,
-                              ids: groupUnread.map((i) => i.id),
+                              items: groupUnread,
                             })
                           }
 
@@ -880,29 +895,6 @@ export function TeamSettingsBell() {
                 {allExpanded ? "收合所有明細" : "展開所有明細"}
               </Button>
             )}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-xs"
-              title="把目前的嚴重度／分類／事件類型篩選設為下次開啟的預設"
-              onClick={() => {
-                const next = {
-                  level: levelFilter,
-                  category: categoryFilter,
-                  kind: kindFilter,
-                };
-                setDefaultView(next);
-                try {
-                  localStorage.setItem(defaultViewKey, JSON.stringify(next));
-                } catch {
-                  /* 私密瀏覽模式忽略 */
-                }
-                setViewSaved(true);
-                window.setTimeout(() => setViewSaved(false), 2000);
-              }}
-            >
-              {viewSaved ? "已設為預設檢視" : "設為預設檢視"}
-            </Button>
           </div>
         )}
       </PopoverContent>
@@ -970,6 +962,33 @@ export function TeamSettingsBell() {
                   此帳號無法直接編輯，請聯絡可編輯的負責角色。
                 </p>
               )}
+
+              {/* 連續檢查：不用關閉視窗就能看下一則 */}
+              <div className="flex items-center justify-between gap-2 border-t pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  disabled={detailIndex <= 0}
+                  onClick={() => stepDetail(-1)}
+                >
+                  <ChevronLeft className="mr-1 h-3.5 w-3.5" />
+                  上一則
+                </Button>
+                <span className="text-[11px] text-muted-foreground">
+                  {detailIndex >= 0 ? `${detailIndex + 1} / ${visibleItems.length}` : ""}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  disabled={detailIndex < 0 || detailIndex >= visibleItems.length - 1}
+                  onClick={() => stepDetail(1)}
+                >
+                  下一則
+                  <ChevronRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              </div>
             </>
           )}
         </DialogContent>
@@ -980,10 +999,11 @@ export function TeamSettingsBell() {
           <AlertDialogHeader>
             <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
-              目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（事件本身不會被處理）。
+              以下 {unread.length} 則未讀通知會一次標為已讀（事件本身不會被處理）。
               標記後 10 秒內可在鈴鐺內按「復原」還原未讀狀態。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {renderPreviewList(unread)}
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
@@ -1003,14 +1023,15 @@ export function TeamSettingsBell() {
           <AlertDialogHeader>
             <AlertDialogTitle>將「{confirmGroup?.label}」整組標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
-              這組有 {confirmGroup?.ids.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
+              以下 {confirmGroup?.items.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {renderPreviewList(confirmGroup?.items ?? [])}
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmGroup) markManyRead(confirmGroup.ids);
+                if (confirmGroup) markManyRead(confirmGroup.items.map((i) => i.id));
                 setConfirmGroup(null);
               }}
             >
@@ -1019,6 +1040,7 @@ export function TeamSettingsBell() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
 
     </Popover>
   );
