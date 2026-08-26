@@ -225,6 +225,7 @@ interface KolRow {
   follower_count: number | null;
   follower_count_updated_at: string | null;
   primary_profile_id?: string | null;
+  primary_link_exception?: boolean;
   contract_group_id?: string | null;
   // 顯示用
   _accommodation_name?: string;
@@ -267,6 +268,7 @@ interface FormState {
   follower_count_input: string;
   follower_count_original: number | null;
   primary_profile_id: string | null;
+  primary_link_exception: boolean;
 }
 
 const EMPTY_FORM: FormState = {
@@ -302,6 +304,7 @@ const EMPTY_FORM: FormState = {
   follower_count_input: "",
   follower_count_original: null,
   primary_profile_id: null,
+  primary_link_exception: false,
 
 };
 
@@ -774,7 +777,7 @@ function InvitationsTab({
   const [linkSearchQuery, setLinkSearchQuery] = useState("");
   const [linkSearchResults, setLinkSearchResults] = useState<KolRow[]>([]);
   const [linkSearching, setLinkSearching] = useState(false);
-  const [linkConfirm, setLinkConfirm] = useState<{ child: KolRow; parent: KolRow } | null>(null);
+  const [linkConfirm, setLinkConfirm] = useState<{ child: KolRow; parent: KolRow; isException: boolean } | null>(null);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
 
   // 取消附屬關係
@@ -1374,7 +1377,7 @@ function InvitationsTab({
           if (kolNameKey(m.name ?? "") !== name) return false;
           if (!form.check_in_date || !m.check_in_date) return false;
           const gap = Math.abs(new Date(m.check_in_date).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
-          if (gap > 1) return false;
+          if (gap > 31) return false;
           return true;
         });
         setSimilarMatches(filtered.slice(0, 5));
@@ -1460,6 +1463,7 @@ function InvitationsTab({
       follower_count_input: row.follower_count != null ? String(row.follower_count) : "",
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
+      primary_link_exception: !!row.primary_link_exception,
     });
     setContractGroupId(row.contract_group_id ?? null);
     setDupWarning(null);
@@ -1773,6 +1777,7 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
       primary_profile_id: form.primary_profile_id || null,
+      primary_link_exception: !!form.primary_link_exception,
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
     payload.follower_count = followerParsed.value;
@@ -1871,6 +1876,7 @@ function InvitationsTab({
     setForm({
       ...EMPTY_FORM,
       primary_profile_id: opts.primaryId,
+      primary_link_exception: false,
       accommodation_select: `acc:${opts.accommodationId}`,
       accommodation_id: opts.accommodationId,
       venue_id: parentVenue?.id ?? "",
@@ -2016,7 +2022,7 @@ function InvitationsTab({
         if (kolNameKey(candidate.name ?? "") !== kolNameKey(linkSubsidiaryTarget.name ?? "")) return false;
         if (!childDate || !candidate.check_in_date) return false;
         const gap = Math.abs(new Date(candidate.check_in_date).getTime() - new Date(childDate).getTime()) / 86400000;
-        return gap <= 1;
+        return true;
       });
       // 補上館別名稱
       const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
@@ -2042,7 +2048,11 @@ function InvitationsTab({
     setLinkSubmitting(true);
     const { error } = await supabase
       .from("kol_profiles")
-      .update({ primary_profile_id: linkConfirm.parent.id, kpi_qualified: false } as any)
+      .update({
+        primary_profile_id: linkConfirm.parent.id,
+        primary_link_exception: linkConfirm.isException,
+        kpi_qualified: false,
+      } as any)
       .eq("id", linkConfirm.child.id);
     setLinkSubmitting(false);
     if (error) {
@@ -2062,7 +2072,7 @@ function InvitationsTab({
     setUnlinkSubmitting(true);
     const { error } = await supabase
       .from("kol_profiles")
-      .update({ primary_profile_id: null } as any)
+      .update({ primary_profile_id: null, primary_link_exception: false } as any)
       .eq("id", unlinkTarget.id);
     setUnlinkSubmitting(false);
     if (error) {
@@ -2084,7 +2094,14 @@ function InvitationsTab({
     // child 設為附屬；雙方 contract_group_id 統一（留空者補上，非空者維持既有歸戶）
     const linkRes = await supabase
       .from("kol_profiles")
-      .update({ primary_profile_id: parent.id, kpi_qualified: false } as any)
+      .update({
+        primary_profile_id: parent.id,
+        primary_link_exception:
+          !!parent.check_in_date && !!child.check_in_date
+            ? Math.abs(new Date(parent.check_in_date).getTime() - new Date(child.check_in_date).getTime()) / 86400000 > 31
+            : false,
+        kpi_qualified: false,
+      } as any)
       .eq("id", child.id);
     let updateError = linkRes.error;
     if (!updateError && !parent.contract_group_id) {
@@ -3396,7 +3413,7 @@ function InvitationsTab({
                           size="sm"
                           variant="link"
                           className="h-auto p-0 text-xs"
-                          onClick={() => setForm((prev) => ({ ...prev, primary_profile_id: m.id }))}
+                          onClick={() => setForm((prev) => ({ ...prev, primary_profile_id: m.id, primary_link_exception: false }))}
                         >
                           設為此筆的附屬
                         </Button>
@@ -3776,7 +3793,7 @@ function InvitationsTab({
                                       size="sm"
                                       variant="outline"
                                       onClick={() =>
-                                        setForm({ ...form, primary_profile_id: c.detail.profile_id })
+                                        setForm({ ...form, primary_profile_id: c.detail.profile_id, primary_link_exception: false })
                                       }
                                     >
                                       設為主檔：{c.owner_name ?? "-"}
@@ -3789,7 +3806,7 @@ function InvitationsTab({
                             <button
                               type="button"
                               className="mt-1 underline underline-offset-2"
-                              onClick={() => setForm({ ...form, primary_profile_id: null })}
+                              onClick={() => setForm({ ...form, primary_profile_id: null, primary_link_exception: false })}
                             >
                               取消主檔關係
                             </button>
@@ -3817,10 +3834,25 @@ function InvitationsTab({
                   <button
                     type="button"
                     className="ml-2 underline underline-offset-2"
-                    onClick={() => setForm({ ...form, primary_profile_id: null })}
+                    onClick={() => setForm({ ...form, primary_profile_id: null, primary_link_exception: false })}
                   >
                     取消主檔關係
                   </button>
+                  {(() => {
+                    const parent = rows.find((r) => r.id === form.primary_profile_id);
+                    if (!parent?.check_in_date || !form.check_in_date || parent.accommodation_id !== form.accommodation_id) return null;
+                    const gap = Math.abs(new Date(parent.check_in_date).getTime() - new Date(form.check_in_date).getTime()) / 86400000;
+                    if (gap <= 31) return null;
+                    return (
+                      <label className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
+                        <Checkbox
+                          checked={form.primary_link_exception}
+                          onCheckedChange={(checked) => setForm({ ...form, primary_link_exception: checked === true })}
+                        />
+                        <span>特例附屬：兩筆入住日相差 {Math.round(gap)} 天，已確認仍屬同一份主檔／附屬合作。</span>
+                      </label>
+                    );
+                  })()}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
@@ -4245,7 +4277,7 @@ function InvitationsTab({
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-xs text-muted-foreground">
-              附屬記錄只適用於同一位 KOL、同館別且入住日相差 1 天內的同住資料。跨館但屬同一份合約時，請改用「合併到同一份合約」。
+              一般附屬記錄適用於同一位 KOL、同館別且入住日相差 31 天內的資料；超過 31 天需另外確認「特例附屬」。
             </p>
             <Input
               placeholder="搜尋 KOL 名稱或 IG 帳號"
@@ -4257,7 +4289,7 @@ function InvitationsTab({
                 <div className="p-3 text-xs text-muted-foreground">搜尋中…</div>
               )}
               {!linkSearching && linkSearchQuery.trim() && linkSearchResults.length === 0 && (
-                <div className="p-3 text-xs text-muted-foreground">找不到同館、同名且入住日相差 1 天內的主要記錄</div>
+                <div className="p-3 text-xs text-muted-foreground">找不到同館、同名的主要記錄</div>
               )}
               {!linkSearching && !linkSearchQuery.trim() && (
                 <div className="p-3 text-xs text-muted-foreground">請輸入關鍵字搜尋</div>
@@ -4269,7 +4301,10 @@ function InvitationsTab({
                   className="w-full text-left p-3 hover:bg-muted/50 text-sm"
                   onClick={() => {
                     if (linkSubsidiaryTarget) {
-                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r });
+                      const gap = linkSubsidiaryTarget.check_in_date && r.check_in_date
+                        ? Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000
+                        : 0;
+                      setLinkConfirm({ child: linkSubsidiaryTarget, parent: r, isException: gap > 31 });
                     }
                   }}
                 >
@@ -4278,7 +4313,12 @@ function InvitationsTab({
                     {r.ig_url || igProfileUrl(r.ig_handle) || r.ig_handle || "-"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                     {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"} · 同住主檔候選
+                     {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"} · {
+                       linkSubsidiaryTarget?.check_in_date && r.check_in_date &&
+                       Math.abs(new Date(linkSubsidiaryTarget.check_in_date).getTime() - new Date(r.check_in_date).getTime()) / 86400000 > 31
+                         ? "特例附屬候選"
+                         : "主檔候選"
+                     }
                   </div>
                 </button>
               ))}
@@ -4295,6 +4335,12 @@ function InvitationsTab({
             <AlertDialogDescription>
               確定將此記錄設為「{linkConfirm?.parent.name ?? ""} - {linkConfirm?.parent._accommodation_name ?? ""}」的附屬記錄嗎？此操作會將「累積資格」設為不打勾。
             </AlertDialogDescription>
+            {linkConfirm?.isException && (
+              <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <Checkbox checked readOnly />
+                <span>特例附屬：入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
+              </label>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={linkSubmitting}>取消</AlertDialogCancel>
@@ -4357,8 +4403,8 @@ function InvitationsTab({
                   <li>KOL 名稱、網紅帳號連結、邀約人會自動沿用主要記錄，仍可修改。</li>
                   <li>附屬記錄<strong>不會</strong>另外計入累積資格與住宿間數，一份合約仍只算一筆資格。</li>
                   <li>相關分潤與獎金一律歸屬於主要記錄，不會重複計算。</li>
-                   <li>只適用於同一館別、入住日相同或相差 1 天的同住資料。</li>
-                   <li>跨館同 CID 不要設為附屬；請各自建立主要記錄，再使用「合併到同一份合約」。</li>
+                   <li>一般附屬適用於同一館別、入住日相差 31 天內的資料。</li>
+                   <li>超過 31 天必須另外勾選「特例附屬」確認；跨館既有關係保留，但不開放新建。</li>
                   <li>之後可在附屬記錄的明細中「取消附屬關係」，讓它恢復為獨立的主要記錄。</li>
                 </ul>
               </div>
