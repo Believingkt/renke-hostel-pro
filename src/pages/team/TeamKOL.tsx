@@ -52,6 +52,8 @@ import {
   kolNameKey,
   isSameContractScope,
   isSameKolIdentity,
+  kolIdentitySignals,
+  RULE_ACTION_HINTS,
 
   type CodeConflict,
   type ValidationIssue,
