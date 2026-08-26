@@ -91,7 +91,13 @@ export function TeamSettingsBell() {
     useSettingsCompleteness();
   const [open, setOpen] = useState(false);
   const [showPrefs, setShowPrefs] = useState(false);
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
+  const [query, setQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState<"all" | "error" | "warn">("all");
+  const [gapFilter, setGapFilter] = useState<string>("all");
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const [renderedCount, setRenderedCount] = useState(0);
+
   const { prefs, update } = useNotificationPrefs(userId, roles);
 
   const allItems = useMemo<Item[]>(() => {
