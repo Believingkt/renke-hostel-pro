@@ -193,8 +193,9 @@ export function TeamSettingsBell() {
   );
 
   const activeIds = useMemo(() => items.map((i) => i.id), [items]);
-  const { isRead, markRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
+  const { isRead, markRead, markManyRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
     useNotificationReadState(userId, activeIds);
+
   const [confirmAllRead, setConfirmAllRead] = useState(false);
 
   const unread = items.filter((i) => !isRead(i.id));
