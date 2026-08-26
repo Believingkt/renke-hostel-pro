@@ -1346,7 +1346,14 @@ function InvitationsTab({
       if (cancelled) return;
 
       const currentInvitedAt = form.invited_at || "9999-12-31";
-      const masters = ((data as any[]) ?? [])
+      const editingRow = editingId ? rows.find((row) => row.id === editingId) : null;
+      const queriedMasters = ((data as any[]) ?? []);
+      const masters = [
+        ...queriedMasters,
+        ...(editingId && !queriedMasters.some((d) => d.id === editingId)
+          ? [{ id: editingId, invited_at: currentInvitedAt, created_at: editingRow?.created_at ?? "" }]
+          : []),
+      ]
         .map((d) => editingId && d.id === editingId ? { ...d, invited_at: currentInvitedAt } : d)
         .sort((a, b) => {
           const dateCompare = (a.invited_at || "9999-12-31").localeCompare(b.invited_at || "9999-12-31");
@@ -1388,7 +1395,7 @@ function InvitationsTab({
       cancelled = true;
       clearTimeout(handle);
     };
-  }, [form.ig_handle, form.invited_at, editingId, form.primary_profile_id]);
+  }, [form.ig_handle, form.invited_at, editingId, form.primary_profile_id, rows]);
 
   // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
   // 不阻擋、不改資料，只列出相似紀錄並提供「查看明細」與「設為附屬」捷徑。
