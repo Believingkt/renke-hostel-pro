@@ -411,7 +411,13 @@ export default function TeamKOL() {
     };
   }, [isAmTeam, isManager, userId]);
 
-  const [tab, setTab] = useState("invitations");
+  // 分頁狀態可由網址 ?tab= 帶入（小鈴鐺通知等外部連結會用到）
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(() => searchParams.get("tab") || "invitations");
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t) setTab(t);
+  }, [searchParams]);
   const [prefill, setPrefill] = useState<InvitationPrefill | null>(null);
   const [canSeeStats, setCanSeeStats] = useState<boolean>(
     roles.includes("super_admin") ||
