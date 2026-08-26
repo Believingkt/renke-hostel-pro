@@ -270,7 +270,7 @@ function amountFormula(r: RagicRow): string | null {
     if (!m) return `${n(r.amount_twd)} = 合約約定月費`;
     if (m.marketing_fee_threshold > 0) {
       const hit = c.gross_revenue_twd >= m.marketing_fee_threshold;
-      return `${n(r.amount_twd)} ← 毛營收 ${n(c.gross_revenue_twd)} ${hit ? "≥" : "<"} 門檻 ${n(
+      return `${n(r.amount_twd)} ← 當月入住營收 ${n(c.gross_revenue_twd)} ${hit ? "≥" : "<"} 門檻 ${n(
         m.marketing_fee_threshold,
       )} → 採${hit ? "高階" : "低階"}月費（${n(hit ? m.marketing_fee_high : m.marketing_fee_low)}）`;
     }
