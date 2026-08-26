@@ -1333,13 +1333,21 @@ function InvitationsTab({
     const handle = setTimeout(async () => {
       let q = supabase
         .from("kol_profiles")
-        .select("id, name, scout_id, invited_at, booking_status, accommodation_id, venue_id, team_member_profiles:scout_id(display_name)")
+        .select("id, name, scout_id, invited_at, booking_status, accommodation_id, venue_id, primary_profile_id, team_member_profiles:scout_id(display_name)")
         .eq("ig_handle", normalizeIgHandle(ig))
         .eq("is_error", false);
       if (editingId) q = q.neq("id", editingId);
-      const { data } = await q.limit(1);
-      if (data && data.length > 0) {
-        const d: any = data[0];
+      const { data } = await q.limit(5);
+      // 同一家族（本筆的主檔／同主檔的兄弟／掛在本筆下的附屬）不算重複邀約，不需再確認
+      const selfPrimary = form.primary_profile_id ?? null;
+      const others = ((data as any[]) ?? []).filter((d) => {
+        const dPrimary = d.primary_profile_id ?? null;
+        if (selfPrimary && (d.id === selfPrimary || dPrimary === selfPrimary)) return false;
+        if (editingId && dPrimary === editingId) return false;
+        return true;
+      });
+      if (others.length > 0) {
+        const d: any = others[0];
         const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
         const stLabel = d.booking_status ?? "-";
         const venueLabel =
@@ -1361,7 +1369,7 @@ function InvitationsTab({
       }
     }, 400);
     return () => clearTimeout(handle);
-  }, [form.ig_handle, editingId]);
+  }, [form.ig_handle, editingId, form.primary_profile_id]);
 
   // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
   // 不阻擋、不改資料，只列出相似紀錄並提供「查看明細」與「設為附屬」捷徑。
@@ -1629,7 +1637,7 @@ function InvitationsTab({
         normIg && !igIsContentUrl
           ? supabase
               .from("kol_profiles")
-              .select("id, name, ig_handle")
+              .select("id, name, ig_handle, primary_profile_id")
               .ilike("ig_handle", normIg)
               .eq("is_error", false)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
@@ -1664,7 +1672,16 @@ function InvitationsTab({
         .filter((c) => c.severity !== "info")
         .map((c) => ({ ...c, venue_type: venueTypeOfAcc(c.accommodation_id) }));
 
-      const igDup = ((igRes?.data as any[]) ?? []).find((r) => (r.name ?? "").trim() !== form.name.trim());
+      const selfPrimaryId = form.primary_profile_id ?? null;
+      const igDup = ((igRes?.data as any[]) ?? [])
+        .filter((r) => {
+          const rPrimary = r.primary_profile_id ?? null;
+          // 同一家族（主檔／兄弟／本筆的附屬）視為合法共用，不再要求勾選確認
+          if (selfPrimaryId && (r.id === selfPrimaryId || rPrimary === selfPrimaryId)) return false;
+          if (editingId && rPrimary === editingId) return false;
+          return true;
+        })
+        .find((r) => (r.name ?? "").trim() !== form.name.trim());
       igDupName = igDup?.name ?? null;
       const existingName = ((nameRes?.data as any[]) ?? [])[0]?.name ?? null;
       nameVariantExisting = existingName && existingName !== form.name.trim() ? existingName : null;
