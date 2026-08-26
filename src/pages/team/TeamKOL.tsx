@@ -714,6 +714,22 @@ function InvitationsTab({
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
 
+  // 通知小鈴鐺深連結：/team/kol?tab=invitations&kolId=xxx → 自動開啟該筆詳情
+  const [deepLinkParams, setDeepLinkParams] = useSearchParams();
+  const deepLinkKolId = deepLinkParams.get("kolId");
+  const deepLinkHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!deepLinkKolId || deepLinkHandledRef.current === deepLinkKolId) return;
+    const target = rows.find((r) => r.id === deepLinkKolId);
+    if (!target) return;
+    deepLinkHandledRef.current = deepLinkKolId;
+    setViewingRow(target);
+    const next = new URLSearchParams(deepLinkParams);
+    next.delete("kolId");
+    setDeepLinkParams(next, { replace: true });
+  }, [deepLinkKolId, rows]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   // 稀有度版本 & 標籤字典
   const [rarities, setRarities] = useState<RaritySetting[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
