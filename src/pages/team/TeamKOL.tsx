@@ -4009,6 +4009,149 @@ function InvitationsTab({
               )}
             </Field>
 
+            {/* 明細顯示預覽 + 目前被擋住的原因（未儲存前即時預覽） */}
+            {showCid && (() => {
+              const parentRow = form.primary_profile_id
+                ? rows.find((r) => r.id === form.primary_profile_id)
+                : null;
+              const conflictParent = form.primary_profile_id
+                ? cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id)
+                : null;
+              const parentName = parentRow?.name ?? conflictParent?.owner_name ?? null;
+              const parentCheckIn = parentRow?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
+              const parentAccId = parentRow?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
+              const parentAccName =
+                accommodations.find((a) => a.id === parentAccId)?.name ??
+                conflictParent?.accommodation_name ??
+                parentRow?.venue_name ??
+                "—";
+              const crossVenue = !!parentAccId && !!form.accommodation_id && parentAccId !== form.accommodation_id;
+              const gap =
+                parentCheckIn && form.check_in_date
+                  ? Math.round(
+                      Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000,
+                    )
+                  : null;
+              const needsException = crossVenue || (gap !== null && gap > 31);
+
+              // 目前被擋住的原因（前端即時判斷，儲存時仍以完整驗證為準）
+              const blockers: { rule: string; text: string }[] = [];
+              const identityComplete = !!kolNameKey(form.name) && !!normalizeIgHandle(form.ig_handle);
+              if (!cidChecking && identityComplete) {
+                for (const c of cidConflicts) {
+                  if (c.source !== "kol_profiles") continue;
+                  const linked =
+                    form.primary_profile_id === (c.detail?.profile_id ?? null) ||
+                    (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId);
+                  if (linked) continue;
+                  const s = kolIdentitySignals({
+                    formName: form.name,
+                    formIg: form.ig_handle,
+                    formContractGroupId: contractGroupId,
+                    conflict: c,
+                  });
+                  const samePerson = s.nameMatches || s.igMatches || s.groupMatches;
+                  const namesDiffer =
+                    !!kolNameKey(c.owner_name ?? "") && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
+                  if (samePerson && namesDiffer) {
+                    blockers.push({
+                      rule: "name.same_identity_different_name",
+                      text: `名稱不一致：既有「${c.owner_name ?? "-"}」 vs 本筆「${form.name.trim()}」。`,
+                    });
+                  } else if (samePerson && c.accommodation_id === form.accommodation_id) {
+                    blockers.push({
+                      rule: "cid.duplicate_same_person",
+                      text: `同館別已有同一位 KOL「${c.owner_name ?? "-"}」使用此 CID（重複建檔）。`,
+                    });
+                  } else if (!samePerson) {
+                    blockers.push({
+                      rule: "cid.used_by_other",
+                      text: `此 CID 目前屬於「${c.owner_name ?? "-"}」，尚未建立同住主檔／附屬關係。`,
+                    });
+                  }
+                }
+              }
+              if (needsException && !form.primary_link_exception) {
+                blockers.push({
+                  rule: "primary.exception_required",
+                  text: `主檔為${crossVenue ? "不同館別" : ""}${crossVenue && gap !== null && gap > 31 ? "、" : ""}${gap !== null && gap > 31 ? `入住日相差 ${gap} 天` : ""}，尚未勾選「特例附屬」。`,
+                });
+              }
+
+              return (
+                <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                  <div className="font-medium text-sm">明細顯示預覽（尚未儲存）</div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      {form.name.trim() || "（未填名稱）"}
+                    </span>
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      CID：{normalizeCode(form.cid_code) || "—"}
+                    </span>
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      館別：{accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name || "—"}
+                    </span>
+                    {form.primary_profile_id ? (
+                      <>
+                        <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-amber-900">
+                          附屬記錄（主檔：{parentName ?? "—"}）
+                        </span>
+                        {needsException && (
+                          <span
+                            className={`rounded border px-1.5 py-0.5 ${
+                              form.primary_link_exception
+                                ? "border-amber-300 bg-amber-50 text-amber-900"
+                                : "border-destructive bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            特例附屬{form.primary_link_exception ? "已勾選" : "未勾選"}
+                          </span>
+                        )}
+                        {crossVenue && (
+                          <span className="rounded border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-sky-900">
+                            跨館別附屬（主檔館別：{parentAccName}）
+                          </span>
+                        )}
+                        {gap !== null && (
+                          <span className="rounded border bg-background px-1.5 py-0.5">入住日相差 {gap} 天</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="rounded border bg-background px-1.5 py-0.5">主檔（獨立計算 KPI 與分潤）</span>
+                    )}
+                  </div>
+                  {form.primary_profile_id && (
+                    <div className="text-muted-foreground">
+                      明細將顯示為附屬記錄：不列入 KPI 與住宿間數，分潤一律歸主檔「{parentName ?? "—"}」。
+                    </div>
+                  )}
+                  <div className="border-t pt-2">
+                    {cidChecking ? (
+                      <span className="text-muted-foreground">驗證中…</span>
+                    ) : blockers.length === 0 ? (
+                      <span className="text-emerald-700">目前沒有偵測到阻擋項目，可以嘗試儲存。</span>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="font-medium text-destructive">
+                          目前被擋住的原因（{blockers.length}）
+                        </div>
+                        {blockers.map((b, i) => (
+                          <div key={i} className="rounded border border-destructive/40 bg-destructive/5 p-2">
+                            <div className="text-destructive">⛔ {b.text}</div>
+                            <div className="mt-0.5 text-muted-foreground">
+                              💡 怎麼做：{RULE_ACTION_HINTS[b.rule] ?? "請依提示修正後再儲存。"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+
+
 
 
             <Field label="KOL購票連結">
