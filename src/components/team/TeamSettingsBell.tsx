@@ -94,33 +94,10 @@ export function TeamSettingsBell() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
+  const [levelFilter, setLevelFilter] = useState<"all" | Severity>("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>("all");
+  const [kindFilter, setKindFilter] = useState<string>("all");
 
-  /** 使用者可把目前的篩選條件存成預設檢視（下次開啟自動套用） */
-  const defaultViewKey = `team:notif-default-view:${userId}`;
-  const readDefaultView = (): {
-    level: "all" | Severity;
-    category: "all" | NotificationCategory;
-    kind: string;
-  } => {
-    try {
-      const raw = localStorage.getItem(`team:notif-default-view:${userId}`);
-      const p = raw ? (JSON.parse(raw) as Record<string, string>) : {};
-      return {
-        level: (p.level as "all" | Severity) ?? "all",
-        category: (p.category as "all" | NotificationCategory) ?? "all",
-        kind: p.kind ?? "all",
-      };
-    } catch {
-      return { level: "all", category: "all", kind: "all" };
-    }
-  };
-  const [defaultView, setDefaultView] = useState(readDefaultView);
-  const [levelFilter, setLevelFilter] = useState<"all" | Severity>(defaultView.level);
-  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>(
-    defaultView.category,
-  );
-  const [kindFilter, setKindFilter] = useState<string>(defaultView.kind);
-  const [viewSaved, setViewSaved] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
   const [renderedCount, setRenderedCount] = useState(0);
 
