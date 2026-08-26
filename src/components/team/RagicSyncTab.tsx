@@ -202,7 +202,8 @@ function incomeTypeHelp(type: string): { formula: string; desc: string } | null 
   switch (type) {
     case "平台抽成":
       return {
-        formula: "平台抽成 = max(0, 當月入住營收 − 抽成門檻) × 抽成%",
+        formula:
+          "平台抽成 = max(0, 當月入住營收（排除不抽成訂單來源） − 抽成門檻) × 抽成%",
         desc: "入住營收採「夜次均攤」：每張訂單的成交金額除以住宿晚數，只計入落在該月的晚數；跨月訂單自動拆分。已排除取消單、保留單，以及後台設定的排除來源（如業主自訂、互惠等）。抽成門檻與抽成% 取自總部設定頁的業主月結費率規則（生效日 ≤ 當月）。",
       };
     case "行銷推廣費":
@@ -229,7 +230,7 @@ function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
     return [
       { label: "抽成門檻", value: `${n(c.threshold)} 元` },
       { label: "抽成%", value: c.rate ? pct(c.rate) : "未設定" },
-      { label: "當月入住營收（夜次均攤）", value: `${n(c.revenue_twd)} 元` },
+      { label: "可抽成訂單來源營收", value: `${n(c.revenue_twd)} 元` },
     ];
   }
   if (r.income_type === "行銷推廣費") {
@@ -240,7 +241,7 @@ function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
         { label: "營收門檻", value: `${n(m.marketing_fee_threshold)} 元` },
         { label: "高階月費", value: `${n(m.marketing_fee_high)} 元` },
         { label: "低階月費", value: `${n(m.marketing_fee_low)} 元` },
-        { label: "本月毛營收", value: `${n(c.gross_revenue_twd)} 元` },
+        { label: "當月入住營收（夜次均攤）", value: `${n(c.gross_revenue_twd)} 元` },
       ];
     }
     return [

@@ -997,8 +997,13 @@ export default function OwnerSettlement() {
             }
             tone="income"
           />
-
-
+          <BreakdownRow
+            icon={Percent}
+            label="可抽成訂單來源營收"
+            sublabel="入住營收扣除不抽成訂單來源（如業主自帶、互惠等）後的金額，為平台服務費的計算基礎"
+            value={rows.reduce((s, r) => s + (r.exempt ? 0 : r.monthFinal), 0)}
+            tone="income"
+          />
 
           <div className="h-px bg-border my-2" />
 
