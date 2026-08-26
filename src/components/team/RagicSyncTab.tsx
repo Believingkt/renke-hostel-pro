@@ -21,6 +21,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+interface MarketingRule {
+  marketing_fee_low: number;
+  marketing_fee_high: number;
+  marketing_fee_threshold: number;
+  marketing_fee_per_extra_property: number;
+}
+
 interface RagicRow {
   venue: string;
   business_unit: string;
@@ -33,6 +40,14 @@ interface RagicRow {
   skipped?: boolean;
   reason?: string;
   no_fee_warning?: boolean;
+  /** 計算依據（供金額欄顯示實際算式） */
+  calc?: {
+    revenue_twd: number;
+    gross_revenue_twd: number;
+    threshold: number;
+    rate: number;
+    marketing_rule?: MarketingRule | null;
+  };
   post_result?: {
     ok: boolean;
     action?: string;
@@ -48,13 +63,16 @@ interface AccomResult {
   original_currency: string;
   exchange_rate: number;
   revenue_twd: number;
+  gross_revenue_twd?: number;
   management_fee_twd: number;
+  marketing_rule?: MarketingRule | null;
   fee_config: { rate: number; threshold: number } | null;
   payloads?: Array<Record<string, string>>;
   skipped?: boolean;
   reason?: string;
   ragic_responses?: Array<any>;
 }
+
 
 interface SkipEntry {
   accommodation_id: string;
