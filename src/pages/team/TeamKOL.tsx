@@ -3830,8 +3830,8 @@ function InvitationsTab({
                       )}
                       {sameVenueDuplicate && !linked && (
                         <div className="font-medium">
-                          ⛔ 同館別已有相同 CID 的邀約，視為重複建檔，無法儲存。
-                          <div className="font-normal">請改為編輯既有那筆邀約；若確實是另一位 KOL，請改用其獨立的專屬折扣碼。</div>
+                          ⛔ 同館別已有「同一位 KOL」使用相同 CID，視為重複建檔，無法儲存。
+                          <div className="font-normal">請改為編輯既有那筆邀約（不要新增第二筆）。</div>
                         </div>
                       )}
                       {kolHits.length > 0 && (linked || needsPrimary.length > 0) && (
@@ -3840,8 +3840,10 @@ function InvitationsTab({
                             <span>已建立同住合拍關係：分潤與 KPI 只算主檔，本筆不重複計分。</span>
                           ) : (
                             <>
-                              <div className="font-medium">
-                                ⚠️ 不同 KOL，使用同 CID，請確認是否為同時入住？；若不是同時入住，請改用獨立另外的專屬折扣碼。
+                              <div className="font-medium whitespace-pre-line">
+                                {"⚠️ 不同 KOL 使用同一組 CID，請確認是否為「同時入住（同住合拍）」？\n" +
+                                  "・是同住 → 點下方「設為主檔」，把本筆掛在主檔底下；分潤與 KPI 只算主檔一份。\n" +
+                                  "・不是同住 → 請改用本人獨立的專屬折扣碼。"}
                               </div>
                               <div className="mt-1 flex flex-wrap gap-2">
                                 {needsPrimary
