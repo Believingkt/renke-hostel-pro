@@ -206,7 +206,6 @@ export function TeamSettingsBell() {
           </div>
           <div className="flex shrink-0 items-center gap-1">
             {badge > 0 && (
-              <Button variant="ghost" size="sm" onClick={markAllRead} title="全部標為已讀">
               <Button
                 variant="ghost"
                 size="sm"
@@ -221,11 +220,13 @@ export function TeamSettingsBell() {
                 <Undo2 className="h-4 w-4" />
               </Button>
             )}
-
+            <Button
+              variant="ghost"
               size="sm"
               onClick={() => setShowPrefs((v) => !v)}
               title="通知偏好"
             >
+
               <Settings2 className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm" onClick={reload} disabled={loading} title="重新檢查">
