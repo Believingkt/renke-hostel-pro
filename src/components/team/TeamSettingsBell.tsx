@@ -730,18 +730,33 @@ export function TeamSettingsBell() {
         )}
 
         {visibleItems.length > 0 && (
-          <div className="border-t px-3 py-2">
+          <div className="flex items-center gap-1 border-t px-3 py-2">
             <Button
               variant="ghost"
               size="sm"
-              className="w-full"
-              onClick={() => setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))}
+              className="flex-1 text-xs"
+              onClick={() =>
+                setCollapsedGroups(
+                  collapsedGroups.length > 0 ? [] : groups.map((g) => g.kind),
+                )
+              }
             >
               <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
-              {allExpanded ? "全部收合" : `全部展開（${visibleItems.length} 則）`}
+              {collapsedGroups.length > 0
+                ? `展開全部分類（${groups.length}）`
+                : `收合全部分類（${groups.length}）`}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs"
+              onClick={() => setExpandedIds(allExpanded ? [] : visibleItems.map((i) => i.id))}
+            >
+              {allExpanded ? "收合明細" : "展開明細"}
             </Button>
           </div>
         )}
+
       </PopoverContent>
 
       <AlertDialog open={confirmAllRead} onOpenChange={setConfirmAllRead}>
