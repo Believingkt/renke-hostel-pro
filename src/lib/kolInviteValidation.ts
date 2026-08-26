@@ -434,12 +434,13 @@ export function validateInvite(
         suggestion: `請換一組，例如在原碼後加上識別字尾（${normalizeCode(f.cid_code)}KOL）。`,
       });
     } else if (c.source === "kol_profiles") {
-      const samePerson = isSameKolIdentity({
+      const signals = kolIdentitySignals({
         formName: f.name,
         formIg: f.ig_handle,
         formContractGroupId: f.contract_group_id,
         conflict: c,
       });
+      const samePerson = signals.nameMatches || signals.igMatches || signals.groupMatches;
       const otherId = c.detail?.profile_id ?? null;
       const linkedAsPrimary = !!otherId && f.primary_profile_id === otherId;
       const linkedAsChild = !!f.self_id && (c.detail?.primary_profile_id ?? null) === f.self_id;
