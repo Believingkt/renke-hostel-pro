@@ -3906,8 +3906,12 @@ function InvitationsTab({
 
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  同住合拍請於上方「折扣碼 / CID」出現衝突提示時，點「設為主檔」建立關係（舊的「同住夥伴折扣碼」欄位已停用）。
+                <p className="text-sm text-muted-foreground whitespace-pre-line">
+                  {"同住合拍設定方式（舊的「同住夥伴折扣碼」欄位已停用）：\n" +
+                    "1. 在「折扣碼 / CID」填入與同住主檔相同的 CID。\n" +
+                    "2. 上方會出現衝突提示，點「設為主檔：○○○」把本筆掛在主檔底下。\n" +
+                    "3. 若主檔為不同館別或入住日相差超過 31 天，再勾選「特例附屬」即可儲存。\n" +
+                    "※ 同館別且判定為「同一位 KOL」屬重複建檔，請直接編輯既有那筆。"}
                 </p>
               )}
             </Field>
