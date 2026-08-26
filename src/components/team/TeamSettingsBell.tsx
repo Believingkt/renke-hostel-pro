@@ -432,6 +432,23 @@ export function TeamSettingsBell() {
           </div>
         )}
       </PopoverContent>
+
+      <AlertDialog open={confirmAllRead} onOpenChange={setConfirmAllRead}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
+            <AlertDialogDescription>
+              目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（設定缺口本身不會被修正）。
+              標記後可按鈴鐺內的「復原」按鈕還原未讀狀態。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={markAllRead}>確認全部已讀</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
+
 }
