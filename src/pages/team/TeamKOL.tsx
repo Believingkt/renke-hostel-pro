@@ -4337,7 +4337,7 @@ function InvitationsTab({
             </AlertDialogDescription>
             {linkConfirm?.isException && (
               <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                <Checkbox checked readOnly />
+                <Checkbox checked disabled />
                 <span>特例附屬：入住日相差超過 31 天，我已確認這兩筆仍屬同一份合作。</span>
               </label>
             )}
