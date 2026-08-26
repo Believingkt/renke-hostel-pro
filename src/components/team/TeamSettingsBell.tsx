@@ -206,7 +206,6 @@ export function TeamSettingsBell() {
     });
   }, [items, query, levelFilter, gapFilter]);
 
-  const filtering = query.trim() !== "" || levelFilter !== "all" || gapFilter !== "all";
   const allExpanded = visibleItems.length > 0 && expandedIds.length >= visibleItems.length;
 
   useEffect(() => {
