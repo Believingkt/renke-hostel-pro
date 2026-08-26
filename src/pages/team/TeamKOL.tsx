@@ -1343,8 +1343,13 @@ function InvitationsTab({
           accommodations.find((a) => a.id === d.accommodation_id)?.name ??
           "未指定";
         setDupWarning(
-          `此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，館別：${venueLabel}，狀態：${stLabel}` +
-            (d.name ? `（既有名稱：${d.name}）` : ""),
+          [
+            `此 KOL 的已有邀約紀錄：`,
+            `${sn} 於 ${d.invited_at ?? "-"} 填寫`,
+            `館別：${venueLabel}`,
+            `狀態：${stLabel}`,
+            ...(d.name ? [`（既有名稱：${d.name}）`] : []),
+          ].join("\n"),
         );
 
       } else {
@@ -3322,7 +3327,7 @@ function InvitationsTab({
 
             {dupWarning && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
-                <div>⚠️ {dupWarning}</div>
+                <div className="whitespace-pre-line">⚠️ {dupWarning}</div>
                 <label className="flex items-start gap-2">
                   <Checkbox
                     className="mt-0.5"

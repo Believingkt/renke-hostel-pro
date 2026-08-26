@@ -446,7 +446,7 @@ export function validateInvite(
           message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
           expected: `所有邀約統一使用同一個 KOL 名稱`,
           actual: `${existingName} / ${currentName}`,
-          suggestion: `若確為不同人或二次合作，請勾選「確認為不同人／二次合作」後再儲存。請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
+          suggestion: `請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
         });
       } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
