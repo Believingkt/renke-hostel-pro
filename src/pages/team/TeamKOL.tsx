@@ -1327,7 +1327,9 @@ function InvitationsTab({
   // ig_handle 即時重複檢查
   useEffect(() => {
     const ig = form.ig_handle.trim();
-    if (!ig || isContentPostUrl(ig)) {
+    // 既有附屬紀錄已經完成主檔關聯，不需要再次確認「二次合作」。
+    // 名稱／IG 不一致仍由下方 CID 身分規則獨立檢查並阻擋。
+    if ((editingId && form.primary_profile_id) || !ig || isContentPostUrl(ig)) {
       setDupWarning(null);
       return;
     }
@@ -1674,15 +1676,19 @@ function InvitationsTab({
         .map((c) => ({ ...c, venue_type: venueTypeOfAcc(c.accommodation_id) }));
 
       const selfPrimaryId = form.primary_profile_id ?? null;
-      const igDup = ((igRes?.data as any[]) ?? [])
-        .filter((r) => {
-          const rPrimary = r.primary_profile_id ?? null;
-          // 同一家族（主檔／兄弟／本筆的附屬）視為合法共用，不再要求勾選確認
-          if (selfPrimaryId && (r.id === selfPrimaryId || rPrimary === selfPrimaryId)) return false;
-          if (editingId && rPrimary === editingId) return false;
-          return true;
-        })
-        .find((r) => (r.name ?? "").trim() !== form.name.trim());
+      // 編輯既有附屬紀錄時，主檔關係本身就是已確認的合作關係，
+      // 不再以 IG 重複要求勾選「二次合作」；名稱不一致仍交由 CID 身分規則處理。
+      const igDup = editingId && selfPrimaryId
+        ? undefined
+        : ((igRes?.data as any[]) ?? [])
+            .filter((r) => {
+              const rPrimary = r.primary_profile_id ?? null;
+              // 同一家族（主檔／兄弟／本筆的附屬）視為合法共用，不再要求勾選確認
+              if (selfPrimaryId && (r.id === selfPrimaryId || rPrimary === selfPrimaryId)) return false;
+              if (editingId && rPrimary === editingId) return false;
+              return true;
+            })
+            .find((r) => (r.name ?? "").trim() !== form.name.trim());
       igDupName = igDup?.name ?? null;
       const existingName = ((nameRes?.data as any[]) ?? [])[0]?.name ?? null;
       nameVariantExisting = existingName && existingName !== form.name.trim() ? existingName : null;
