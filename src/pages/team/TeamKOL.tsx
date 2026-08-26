@@ -4474,9 +4474,10 @@ function InvitationsTab({
                       <div>🚫 觸發規則：{issue.rule}</div>
                       {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
                       {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
-                      {issue.suggestion && <div className="whitespace-pre-line">💡 建議做法：{issue.suggestion}</div>}
-                      {RULE_ACTION_HINTS[issue.rule] && (
-                        <div className="text-foreground">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                      {RULE_ACTION_HINTS[issue.rule] ? (
+                        <div className="text-foreground whitespace-pre-line">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                      ) : (
+                        issue.suggestion && <div className="whitespace-pre-line">💡 建議做法：{issue.suggestion}</div>
                       )}
                     </div>
                   </div>
