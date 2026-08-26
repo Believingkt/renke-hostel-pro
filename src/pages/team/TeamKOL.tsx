@@ -756,6 +756,7 @@ function InvitationsTab({
   /** 既有的同名不同寫法（供表單即時提示） */
   const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
+  const [primaryConfirm, setPrimaryConfirm] = useState<{ id: string; name: string } | null>(null);
   /** 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約 */
   const [similarMatches, setSimilarMatches] = useState<KolRow[]>([]);
   /** 列表一鍵合併：child 掛到 parent 之下 */
@@ -3789,10 +3790,65 @@ function InvitationsTab({
                     return c.accommodation_id === form.accommodation_id;
                   });
                   if (visibleConflicts.length === 0 && !linked && needsPrimary.length === 0) return null;
+
+                  // 去重：同一位 KOL 的附屬記錄（子檔）若其主檔已顯示，就不重複列出
+                  const shownIds = new Set(
+                    visibleConflicts.map((c) => c.detail?.profile_id).filter(Boolean) as string[],
+                  );
+                  const deduped = visibleConflicts.filter((c) => {
+                    if (c.source !== "kol_profiles") return true;
+                    const parentId = c.detail?.primary_profile_id ?? null;
+                    return !(parentId && shownIds.has(parentId));
+                  });
+                  // 名稱不一致提示只顯示一次
+                  const nameDiffHit = deduped.find(
+                    (c) =>
+                      c.source === "kol_profiles" &&
+                      !!kolNameKey(c.owner_name ?? "") &&
+                      !!kolNameKey(form.name) &&
+                      kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name),
+                  );
+
+                  // 主檔／特例附屬提示（原本放在「同住夥伴」欄位，改置於 CID 欄位上方避免混淆）
+                  const primaryNotice = (() => {
+                    if (!form.primary_profile_id) return null;
+                    const parent = rows.find((r) => r.id === form.primary_profile_id);
+                    const conflictParent = cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id);
+                    const parentCheckIn = parent?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
+                    const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
+                    const crossVenue = !!parentAccommodationId && !!form.accommodation_id
+                      && parentAccommodationId !== form.accommodation_id;
+                    const gap = parentCheckIn && form.check_in_date
+                      ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
+                      : null;
+                    if (crossVenue) {
+                      return (
+                        <div className="mt-2 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-2 text-blue-900">
+                          <Checkbox checked={form.primary_link_exception} disabled />
+                          <span>
+                            跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
+                            {form.primary_link_exception ? " 已回填為既有特例。" : " 尚未標記特例，請聯絡管理員確認資料。"}
+                            此關係唯讀，因跨館邀約應各自保留主檔與資格，再以「同一份合約」歸戶。
+                          </span>
+                        </div>
+                      );
+                    }
+                    if (gap === null || gap <= 31) return null;
+                    return (
+                      <label className="mt-2 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
+                        <Checkbox
+                          checked={form.primary_link_exception}
+                          onCheckedChange={(checked) => setForm({ ...form, primary_link_exception: checked === true })}
+                        />
+                        <span>特例附屬：兩筆入住日相差 {Math.round(gap)} 天，已確認仍屬同一份主檔／附屬合作。</span>
+                      </label>
+                    );
+                  })();
+
                   return (
                     <div className={`mb-2 rounded-md border p-2 text-xs space-y-1 ${tone}`}>
-                      {visibleConflicts.map((c, i) => {
-                        const lv = levels[i];
+                      {deduped.map((c, i) => {
+                        const lv = levelOf(c);
                         const sameIdentity = c.source === "kol_profiles" && isSameKolIdentity({
                           formName: form.name,
                           formIg: form.ig_handle,
@@ -3816,14 +3872,14 @@ function InvitationsTab({
                                     ? `此館別已有相同 CID 的邀約；填完 KOL 名稱與 IG 後，系統會確認是否為重複建檔。`
                                     : `此 CID 已被「${c.owner_name ?? "-"}」使用${c.accommodation_name ? `（${c.accommodation_name}）` : ""}，入住日 ${c.detail?.check_in_date ?? "-"}。`
                                 : `PMS 已有此折扣碼${c.accommodation_name ? `（綁定 ${c.accommodation_name}）` : ""}。`}
-                            {namesDiffer && (
-                              <div className="mt-1 font-medium">
-                                請統一 KOL 名稱是「{c.owner_name ?? "-"}」或是「{form.name.trim()}」。
-                              </div>
-                            )}
                           </div>
                         );
                       })}
+                      {nameDiffHit && (
+                        <div className="font-medium">
+                          ℹ️ 請統一 KOL 名稱是「{nameDiffHit.owner_name ?? "-"}」或是「{form.name.trim()}」。
+                        </div>
+                      )}
                       {kolHits.length > 0 && (linked || needsPrimary.length > 0) && (
                         <div className="pt-1">
                           {linked ? (
@@ -3831,7 +3887,7 @@ function InvitationsTab({
                           ) : (
                             <>
                               <div className="font-medium">
-                                同 CID 必須先建立「同住主檔」關係才能儲存；若不是同住夥伴，請改用本人的專屬碼。
+                                ⚠️ 同 CID 必須先建立「同住主檔」關係才能儲存；若不是同住夥伴，請改用獨立另外的專屬折扣碼。
                               </div>
                               <div className="mt-1 flex flex-wrap gap-2">
                                 {needsPrimary
@@ -3843,7 +3899,7 @@ function InvitationsTab({
                                       size="sm"
                                       variant="outline"
                                       onClick={() =>
-                                        setForm({ ...form, primary_profile_id: c.detail.profile_id, primary_link_exception: false })
+                                        setPrimaryConfirm({ id: c.detail.profile_id, name: c.owner_name ?? "-" })
                                       }
                                     >
                                       設為主檔：{c.owner_name ?? "-"}
@@ -3863,6 +3919,7 @@ function InvitationsTab({
                           )}
                         </div>
                       )}
+                      {primaryNotice}
                     </div>
                   );
                 })()}
@@ -3888,39 +3945,6 @@ function InvitationsTab({
                   >
                     取消主檔關係
                   </button>
-                  {(() => {
-                    const parent = rows.find((r) => r.id === form.primary_profile_id);
-                    const conflictParent = cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id);
-                    const parentCheckIn = parent?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
-                    const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
-                    const crossVenue = !!parentAccommodationId && !!form.accommodation_id
-                      && parentAccommodationId !== form.accommodation_id;
-                    const gap = parentCheckIn && form.check_in_date
-                      ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
-                      : null;
-                    if (crossVenue) {
-                      return (
-                        <div className="mt-3 flex items-start gap-2 rounded-md border border-blue-300 bg-blue-50 p-2 text-blue-900">
-                          <Checkbox checked={form.primary_link_exception} disabled />
-                          <span>
-                            跨館遺留附屬：主檔與本筆分屬不同館別{gap !== null ? `，入住日相差 ${Math.round(gap)} 天` : ""}。
-                            {form.primary_link_exception ? " 已回填為既有特例。" : " 尚未標記特例，請聯絡管理員確認資料。"}
-                            此關係唯讀，因跨館邀約應各自保留主檔與資格，再以「同一份合約」歸戶；不開放直接修改可避免誤把不同館別的獨立合作扣成單一資格。
-                          </span>
-                        </div>
-                      );
-                    }
-                    if (gap === null || gap <= 31) return null;
-                    return (
-                      <label className="mt-3 flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
-                        <Checkbox
-                          checked={form.primary_link_exception}
-                          onCheckedChange={(checked) => setForm({ ...form, primary_link_exception: checked === true })}
-                        />
-                        <span>特例附屬：兩筆入住日相差 {Math.round(gap)} 天，已確認仍屬同一份主檔／附屬合作。</span>
-                      </label>
-                    );
-                  })()}
 
                 </div>
               ) : (
@@ -4164,6 +4188,40 @@ function InvitationsTab({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* 設為主檔前的說明確認 */}
+      <AlertDialog open={!!primaryConfirm} onOpenChange={(o) => !o && setPrimaryConfirm(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>要把本筆設為「{primaryConfirm?.name}」的附屬記錄嗎？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-left">
+                <p>設定主檔代表兩筆是同一份合作（同住合拍、共用同一支 CID）：</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>分潤與勞報一律歸主檔，本筆不重複計算。</li>
+                  <li>本筆不列入 KPI 與住宿間數。</li>
+                  <li>公開查詢連結以主檔為準。</li>
+                </ul>
+                <p>若兩人／兩筆其實是各自獨立的合作，請改用各自獨立的專屬折扣碼，不要設為附屬。</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (primaryConfirm) {
+                  setForm({ ...form, primary_profile_id: primaryConfirm.id, primary_link_exception: false });
+                }
+                setPrimaryConfirm(null);
+              }}
+            >
+              確認設為主檔
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <AlertDialog open={blockIssues.length > 0} onOpenChange={(o) => !o && setBlockIssues([])}>
         <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
