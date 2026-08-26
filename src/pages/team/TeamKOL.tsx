@@ -4089,7 +4089,7 @@ function InvitationsTab({
                       CID：{normalizeCode(form.cid_code) || "—"}
                     </span>
                     <span className="rounded border bg-background px-1.5 py-0.5">
-                      館別：{accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name || "—"}
+                      館別：{accommodations.find((a) => a.id === form.accommodation_id)?.name ?? (form.venue_name || "—")}
                     </span>
                     {form.primary_profile_id ? (
                       <>
