@@ -3882,10 +3882,16 @@ function InvitationsTab({
                     const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
                     const crossVenue = !!parentAccommodationId && !!form.accommodation_id
                       && parentAccommodationId !== form.accommodation_id;
+                    // 旅行日系列彼此視為同一份合約，跨館不需特例附屬
+                    const sameSeries = crossVenue && isTravelSeriesAccommodation(
+                      accommodations.find((a) => a.id === parentAccommodationId)?.name ?? conflictParent?.accommodation_name ?? null,
+                    ) && isTravelSeriesAccommodation(
+                      accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null,
+                    );
                     const gap = parentCheckIn && form.check_in_date
                       ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
                       : null;
-                    const needsException = crossVenue || (gap !== null && gap > 31);
+                    const needsException = (crossVenue && !sameSeries) || (gap !== null && gap > 31);
                     if (!needsException) return null;
                     const reasons = [
                       crossVenue ? "主檔與本筆分屬不同館別" : null,
