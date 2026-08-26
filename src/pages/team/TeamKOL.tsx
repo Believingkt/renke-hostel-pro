@@ -3800,13 +3800,16 @@ function InvitationsTab({
             </Field>
 
 
-            {showShortUrl && (
-              <Field label="短網址後綴">
-                <Input value={form.short_url} onChange={(e) => setForm({ ...form, short_url: e.target.value })} />
-                {shortUrlPrefix && (
+            {(showShortUrl || form.short_url) && (
+              <Field label="短網址後綴（Legacy，唯讀）">
+                <Input value={form.short_url} readOnly disabled className="bg-muted" />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  已停用：業績歸戶一律以折扣碼 / CID 為準，此欄位僅保留歷史資料。
+                </p>
+                {shortUrlPrefix && form.short_url && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     完整網址：{shortUrlPrefix}
-                    {form.short_url || form.cid_code}
+                    {form.short_url}
                   </p>
                 )}
               </Field>

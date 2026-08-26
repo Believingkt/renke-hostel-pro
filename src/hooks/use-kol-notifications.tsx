@@ -114,7 +114,6 @@ export function buildKolNotifications(
     if (hasVal(row.check_in_date) && String(row.check_in_date) <= today) {
       const missing: string[] = [];
       if (!hasVal(row.cid_code)) missing.push("折扣碼 / CID");
-      if (!hasVal(row.short_url)) missing.push("短網址");
       if (missing.length > 0) {
         out.push({
           id: `kol:cid:${row.id}`,
@@ -128,8 +127,8 @@ export function buildKolNotifications(
           editable: canEdit,
           reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
           meta: [
-            { label: "資料表", value: "kol_profiles.cid_code / short_url" },
-            { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 建立折扣碼與短網址。" },
+            { label: "資料表", value: "kol_profiles.cid_code" },
+            { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 建立折扣碼 / CID。" },
           ],
         });
       }
