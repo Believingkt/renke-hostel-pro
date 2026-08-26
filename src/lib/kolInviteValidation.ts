@@ -746,3 +746,15 @@ export function validateInvite(
     issues,
   };
 }
+
+/** 每條阻擋規則對應「我現在該怎麼做」的具體動作說明（顯示於編輯頁即時提示與阻擋視窗）。 */
+export const RULE_ACTION_HINTS: Record<string, string> = {
+  "name.same_identity_different_name":
+    "先確認是「KOL 名稱 key 錯」還是「IG 連結貼錯」：名稱錯 → 統一成既有名稱；IG 錯 → 改填正確 IG 帳號，系統才會改走同住夥伴的判斷。",
+  "cid.duplicate_same_person": "同館別同一位 KOL 只留一筆：請關閉本表單，改為編輯既有那筆邀約。",
+  "cid.used_by_other":
+    "確認是否同時入住：是同住 → 在 CID 欄位下方點「設為主檔：○○○」；不是同住 → 改用本人獨立的專屬折扣碼。",
+  "cid.scout_namespace": "此碼屬星探專屬碼命名空間，請換一組 CID。",
+  "primary.exception_required": "主檔為不同館別或入住日相差超過 31 天：請勾選 CID 欄位上方的「特例附屬」。",
+  "venue.parent_mismatch": "請重新在館別下拉選單選一次，讓場域與母館一致。",
+};
