@@ -1329,7 +1329,7 @@ function InvitationsTab({
     const handle = setTimeout(async () => {
       let q = supabase
         .from("kol_profiles")
-        .select("id, scout_id, invited_at, booking_status, team_member_profiles:scout_id(display_name)")
+        .select("id, name, scout_id, invited_at, booking_status, accommodation_id, venue_id, team_member_profiles:scout_id(display_name)")
         .eq("ig_handle", normalizeIgHandle(ig))
         .eq("is_error", false);
       if (editingId) q = q.neq("id", editingId);
@@ -1338,7 +1338,15 @@ function InvitationsTab({
         const d: any = data[0];
         const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
         const stLabel = d.booking_status ?? "-";
-        setDupWarning(`此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，狀態：${stLabel}`);
+        const venueLabel =
+          venues.find((v) => v.id === d.venue_id)?.name ??
+          accommodations.find((a) => a.id === d.accommodation_id)?.name ??
+          "未指定";
+        setDupWarning(
+          `此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，館別：${venueLabel}，狀態：${stLabel}` +
+            (d.name ? `（既有名稱：${d.name}）` : ""),
+        );
+
       } else {
         setDupWarning(null);
       }
