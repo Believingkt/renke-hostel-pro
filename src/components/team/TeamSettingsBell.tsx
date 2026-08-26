@@ -24,7 +24,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -86,11 +94,36 @@ export function TeamSettingsBell() {
   const [showPrefs, setShowPrefs] = useState(false);
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [query, setQuery] = useState("");
-  const [levelFilter, setLevelFilter] = useState<"all" | Severity>("all");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>("all");
-  const [kindFilter, setKindFilter] = useState<string>("all");
+
+  /** 使用者可把目前的篩選條件存成預設檢視（下次開啟自動套用） */
+  const defaultViewKey = `team:notif-default-view:${userId}`;
+  const readDefaultView = (): {
+    level: "all" | Severity;
+    category: "all" | NotificationCategory;
+    kind: string;
+  } => {
+    try {
+      const raw = localStorage.getItem(`team:notif-default-view:${userId}`);
+      const p = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+      return {
+        level: (p.level as "all" | Severity) ?? "all",
+        category: (p.category as "all" | NotificationCategory) ?? "all",
+        kind: p.kind ?? "all",
+      };
+    } catch {
+      return { level: "all", category: "all", kind: "all" };
+    }
+  };
+  const [defaultView, setDefaultView] = useState(readDefaultView);
+  const [levelFilter, setLevelFilter] = useState<"all" | Severity>(defaultView.level);
+  const [categoryFilter, setCategoryFilter] = useState<"all" | NotificationCategory>(
+    defaultView.category,
+  );
+  const [kindFilter, setKindFilter] = useState<string>(defaultView.kind);
+  const [viewSaved, setViewSaved] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
   const [renderedCount, setRenderedCount] = useState(0);
+
 
   const { prefs, update } = useNotificationPrefs(userId, roles);
 
@@ -197,6 +230,23 @@ export function TeamSettingsBell() {
     useNotificationReadState(userId, activeIds);
 
   const [confirmAllRead, setConfirmAllRead] = useState(false);
+  /** 分組「本組已讀」二次確認（避免誤按整組消失） */
+  const [confirmGroup, setConfirmGroup] = useState<{
+    kind: string;
+    label: string;
+    ids: string[];
+  } | null>(null);
+  /** 點擊通知後開啟的完整明細視窗 */
+  const [detailItem, setDetailItem] = useState<TeamNotification | null>(null);
+  /** 全部已讀後的短暫復原提示（10 秒） */
+  const [undoLeft, setUndoLeft] = useState(0);
+
+  useEffect(() => {
+    if (undoLeft <= 0) return;
+    const t = window.setTimeout(() => setUndoLeft((n) => n - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [undoLeft]);
+
 
   const unread = items.filter((i) => !isRead(i.id));
   const unreadErrors = unread.filter((i) => i.severity === "error").length;
@@ -293,17 +343,25 @@ export function TeamSettingsBell() {
     if (!open) {
       setExpandedIds([]);
       setQuery("");
-      setLevelFilter("all");
-      setCategoryFilter("all");
-      setKindFilter("all");
+      // 關閉時回到「預設檢視」，而不是硬性重設為全部
+      setLevelFilter(defaultView.level);
+      setCategoryFilter(defaultView.category);
+      setKindFilter(defaultView.kind);
       setGroupLimits({});
+      setViewSaved(false);
     }
-  }, [open]);
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 分類切換時清掉不再適用的事件類型篩選
+  // 分類切換時清掉不再適用的事件類型篩選（初次載入沿用預設檢視）
+  const categoryFirstRun = useRef(true);
   useEffect(() => {
+    if (categoryFirstRun.current) {
+      categoryFirstRun.current = false;
+      return;
+    }
     setKindFilter("all");
   }, [categoryFilter]);
+
 
   const shownCount = useMemo(
     () =>
@@ -628,7 +686,14 @@ export function TeamSettingsBell() {
                           size="sm"
                           className="h-7 shrink-0 px-2 text-[11px]"
                           title={`將本組 ${groupUnread.length} 則標為已讀`}
-                          onClick={() => markManyRead(groupUnread.map((i) => i.id))}
+                          onClick={() =>
+                            setConfirmGroup({
+                              kind: group.kind,
+                              label: group.label,
+                              ids: groupUnread.map((i) => i.id),
+                            })
+                          }
+
                         >
                           <CheckCheck className="mr-1 h-3.5 w-3.5" />
                           本組已讀
@@ -649,13 +714,11 @@ export function TeamSettingsBell() {
                                   <button
                                     type="button"
                                     onClick={() => {
+                                      // 點擊通知 → 開啟完整明細視窗（可直接跳轉）
                                       markRead(item.id);
-                                      setExpandedIds((prev) =>
-                                        isOpen
-                                          ? prev.filter((x) => x !== item.id)
-                                          : [...prev, item.id],
-                                      );
+                                      setDetailItem(item);
                                     }}
+
                                     className="min-w-0 flex-1 text-left"
                                   >
                                     <div className="flex items-center gap-2">
@@ -771,6 +834,24 @@ export function TeamSettingsBell() {
 
         )}
 
+        {undoLeft > 0 && canUndoMarkAllRead && (
+          <div className="flex items-center gap-2 border-t bg-amber-50 px-3 py-2 text-[11px] text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <span className="min-w-0 flex-1">已將全部通知標為已讀，可在 {undoLeft} 秒內復原。</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0 text-[11px]"
+              onClick={() => {
+                undoMarkAllRead();
+                setUndoLeft(0);
+              }}
+            >
+              <Undo2 className="mr-1 h-3.5 w-3.5" />
+              復原
+            </Button>
+          </div>
+        )}
+
         {visibleItems.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
             <Button
@@ -799,22 +880,100 @@ export function TeamSettingsBell() {
                 {allExpanded ? "收合所有明細" : "展開所有明細"}
               </Button>
             )}
-            {badge > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex-1 text-xs"
-                onClick={() => setConfirmAllRead(true)}
-              >
-                <CheckCheck className="mr-1 h-3.5 w-3.5" />
-                標記全部為已讀
-              </Button>
-            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1 text-xs"
+              title="把目前的嚴重度／分類／事件類型篩選設為下次開啟的預設"
+              onClick={() => {
+                const next = {
+                  level: levelFilter,
+                  category: categoryFilter,
+                  kind: kindFilter,
+                };
+                setDefaultView(next);
+                try {
+                  localStorage.setItem(defaultViewKey, JSON.stringify(next));
+                } catch {
+                  /* 私密瀏覽模式忽略 */
+                }
+                setViewSaved(true);
+                window.setTimeout(() => setViewSaved(false), 2000);
+              }}
+            >
+              {viewSaved ? "已設為預設檢視" : "設為預設檢視"}
+            </Button>
           </div>
         )}
-
-
       </PopoverContent>
+
+      {/* 通知完整明細 */}
+      <Dialog open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}>
+        <DialogContent className="max-w-md">
+          {detailItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base">
+                  {detailItem.scope}｜{detailItem.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs leading-relaxed">
+                  {detailItem.detail}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge
+                  variant={detailItem.severity === "error" ? "destructive" : "secondary"}
+                  className="text-[11px] font-normal"
+                >
+                  {detailItem.severity === "error"
+                    ? "嚴重"
+                    : detailItem.severity === "warn"
+                      ? "建議"
+                      : "提示"}
+                </Badge>
+                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                  {CATEGORY_LABEL[detailItem.category]}
+                </span>
+                {!detailItem.editable && (
+                  <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Lock className="h-3 w-3" />
+                    唯讀
+                  </span>
+                )}
+              </div>
+              <div className="space-y-1.5 rounded-md bg-muted/50 p-2.5 text-xs leading-relaxed">
+                {(detailItem.meta ?? []).map((m) => (
+                  <p key={m.label}>
+                    <span className="text-muted-foreground">{m.label}：</span>
+                    {m.value}
+                  </p>
+                ))}
+                {detailItem.reason && (
+                  <p className="text-amber-700 dark:text-amber-400">{detailItem.reason}</p>
+                )}
+              </div>
+              {detailItem.href ? (
+                <Button
+                  className="w-full"
+                  variant={detailItem.editable ? "default" : "outline"}
+                  onClick={() => {
+                    const target = detailItem;
+                    setDetailItem(null);
+                    go(target);
+                  }}
+                >
+                  {detailItem.editable ? "前往設定頁" : "前往查看（唯讀）"}
+                  <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
+                </Button>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  此帳號無法直接編輯，請聯絡可編輯的負責角色。
+                </p>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmAllRead} onOpenChange={setConfirmAllRead}>
         <AlertDialogContent>
@@ -822,15 +981,45 @@ export function TeamSettingsBell() {
             <AlertDialogTitle>將全部通知標為已讀？</AlertDialogTitle>
             <AlertDialogDescription>
               目前有 {badge} 則未讀通知會一次標為已讀，紅點會消失（事件本身不會被處理）。
-              標記後可按鈴鐺內的「復原」按鈕還原未讀狀態。
+              標記後 10 秒內可在鈴鐺內按「復原」還原未讀狀態。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={markAllRead}>確認全部已讀</AlertDialogAction>
+            <AlertDialogAction
+              onClick={() => {
+                markAllRead();
+                setUndoLeft(10);
+              }}
+            >
+              確認全部已讀
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmGroup} onOpenChange={(v) => !v && setConfirmGroup(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>將「{confirmGroup?.label}」整組標為已讀？</AlertDialogTitle>
+            <AlertDialogDescription>
+              這組有 {confirmGroup?.ids.length ?? 0} 則未讀通知會一次標為已讀（事件本身不會被處理）。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (confirmGroup) markManyRead(confirmGroup.ids);
+                setConfirmGroup(null);
+              }}
+            >
+              確認本組已讀
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </Popover>
   );
 }
