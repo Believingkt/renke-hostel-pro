@@ -462,10 +462,14 @@ export function validateInvite(
           level: "block",
           rule: "name.same_identity_different_name",
           field: "name",
-          message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
-          expected: `所有邀約統一使用同一個 KOL 名稱`,
+          message: signals.igMatches
+            ? `IG 帳號與既有邀約「${existingName}」完全相同，但 KOL 名稱不一致（本筆填「${currentName}」）。請先確認是「KOL 名稱 key 錯」還是「IG 連結貼錯」，確認後才會進入同館同住的判斷。`
+            : `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
+          expected: `同一位 KOL 的所有邀約使用同一個名稱；不同人則必須使用不同的 IG 帳號`,
           actual: `${existingName} / ${currentName}`,
-          suggestion: `請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
+          suggestion: signals.igMatches
+            ? `若是名稱 key 錯：請把名稱統一為「${existingName}」或「${currentName}」；若是 IG 連結貼錯（其實是另一位 KOL）：請改填正確的 IG 帳號，系統才會改用「不同人／同住夥伴」的規則判斷。`
+            : `請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
         });
       } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
