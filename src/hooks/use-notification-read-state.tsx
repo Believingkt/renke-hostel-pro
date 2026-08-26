@@ -107,6 +107,8 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
     readIds,
     isRead,
     markRead,
+    markManyRead,
+
     markAllRead,
     undoMarkAllRead,
     canUndoMarkAllRead: undoSnapshot !== null,
