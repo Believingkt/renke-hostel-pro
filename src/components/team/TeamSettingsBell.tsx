@@ -361,18 +361,92 @@ export function TeamSettingsBell() {
           </div>
         )}
 
-        {count === 0 ? (
-          <div className="flex items-center gap-2 px-3 py-6 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            你負責範圍內的設定都已完成。
+        {/* 搜尋 / 篩選 */}
+        {count > 0 && (
+          <div className="space-y-2 border-b px-3 py-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜尋館別、項目或說明"
+                className="h-8 pl-7 text-xs"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { v: "all" as const, label: `全部 ${count}` },
+                { v: "error" as const, label: `嚴重 ${items.filter((i) => i.level === "error").length}` },
+                { v: "warn" as const, label: `建議 ${items.filter((i) => i.level !== "error").length}` },
+              ].map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => setLevelFilter(o.v)}
+                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                    levelFilter === o.v ? "border-primary bg-primary/10 font-medium" : "hover:bg-muted"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+              <select
+                value={gapFilter}
+                onChange={(e) => setGapFilter(e.target.value)}
+                className="ml-auto h-7 rounded-md border bg-background px-1.5 text-[11px]"
+                aria-label="依缺口類型篩選"
+              >
+                <option value="all">所有缺口類型</option>
+                {gapOptions.map((o) => (
+                  <option key={o.gap} value={o.gap}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
+
+        {renderMismatch && (
+          <div className="border-b bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
+            通知渲染不一致：應顯示 {visibleItems.length} 則，實際只列出 {renderedCount} 則，請按重新檢查。
+          </div>
+        )}
+
+        {visibleItems.length === 0 ? (
+          <div className="space-y-2 px-3 py-6 text-sm text-muted-foreground">
+            {count === 0 ? (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                你負責範圍內的設定都已完成。
+              </div>
+            ) : (
+              <>
+                <p>沒有符合條件的通知（共 {count} 則被搜尋或篩選隱藏）。</p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setQuery("");
+                    setLevelFilter("all");
+                    setGapFilter("all");
+                  }}
+                >
+                  清除搜尋與篩選
+                </Button>
+              </>
+            )}
+            <p className="text-[11px]">
+              想看歷史／已解決紀錄，請到「設定完整性檢查」頁的缺口明細列表查詢。
+            </p>
           </div>
         ) : (
           <ScrollArea className="h-[min(60vh,420px)]">
-            <ul className="divide-y">
-              {items.map((item) => {
+            <ul ref={listRef} className="divide-y">
+              {visibleItems.map((item) => {
                 const detail = GAP_DETAILS[item.gap];
                 const read = isRead(item.id);
-                const isOpen = expanded === item.id;
+                const isOpen = expandedIds.includes(item.id);
                 return (
                   <li key={item.id} className={read ? "opacity-70" : ""}>
                     <div className="px-3 py-2.5">
@@ -380,10 +454,13 @@ export function TeamSettingsBell() {
                         type="button"
                         onClick={() => {
                           markRead(item.id);
-                          setExpanded(isOpen ? null : item.id);
+                          setExpandedIds((prev) =>
+                            isOpen ? prev.filter((x) => x !== item.id) : [...prev, item.id],
+                          );
                         }}
                         className="w-full text-left"
                       >
+
                         <div className="flex items-center gap-2">
                           {!read && (
                             <span
