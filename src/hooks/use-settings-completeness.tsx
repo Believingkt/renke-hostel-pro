@@ -12,6 +12,8 @@ interface State {
   ragicRows: VenueCheckRow[];
   bonusVenueRows: VenueCheckRow[];
   bonusGlobalRows: GlobalCheckRow[];
+  /** 因 RLS 讀不到而不可信任的檢查 key（避免對無權限角色誤報缺漏） */
+  blockedChecks: string[];
   loading: boolean;
 }
 
@@ -29,6 +31,7 @@ export function useSettingsCompleteness() {
     ragicRows: [],
     bonusVenueRows: [],
     bonusGlobalRows: [],
+    blockedChecks: [],
     loading: true,
   });
 
@@ -183,7 +186,27 @@ export function useSettingsCompleteness() {
       activeMultipliers,
     });
 
-    setState({ ragicRows, bonusVenueRows, bonusGlobalRows, loading: false });
+    // 讀取被 RLS 擋下時，該群組的檢查結果不可信任，統一標記為 blocked
+    const blockedChecks = [
+      ...(ruleRes.error ? ["settlementRule", "marketingFee", "legacyRate"] : []),
+      ...(periodRes.error ? ["partnership", "teamBonusFlag", "closerFlag", "payoutBasis"] : []),
+      ...(bookingRes.error ? ["bookingSetting"] : []),
+      ...(commissionRes.error ? ["closerRate", "videoRate"] : []),
+      ...(profileRes.error ? ["amScope"] : []),
+      ...(closingRes.error ? ["venueClosing"] : []),
+      ...(tierRes.error ? ["tierRule"] : []),
+      ...(quotaRes.error ? ["kolQuota"] : []),
+      ...(rateRes.error ? ["rate_version"] : []),
+      ...(sharedRes.error ? ["shared_sources"] : []),
+      ...(kolRes.error ? ["kol_sources"] : []),
+      ...(roleRes.error ? ["role_binding"] : []),
+      ...(closerTeamRes.error ? ["closer_team_bonus"] : []),
+      ...(scoutTierRes.error ? ["scout_tier"] : []),
+      ...(scoutSalaryRes.error ? ["scout_salary"] : []),
+      ...(multiplierRes.error ? ["bonus_multiplier"] : []),
+    ];
+
+    setState({ ragicRows, bonusVenueRows, bonusGlobalRows, blockedChecks, loading: false });
   }, []);
 
   useEffect(() => {
