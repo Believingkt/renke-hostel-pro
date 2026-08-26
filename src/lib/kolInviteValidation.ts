@@ -463,7 +463,7 @@ export function validateInvite(
           rule: "name.same_identity_different_name",
           field: "name",
           message: signals.igMatches
-            ? `IG 帳號與既有邀約「${existingName}」完全相同，但 KOL 名稱不一致（本筆填「${currentName}」）。請先確認是「KOL 名稱 key 錯」還是「IG 連結貼錯」，確認後才會進入同館同住的判斷。`
+            ? `IG 帳號與既有邀約「${existingName}」完全相同，但 KOL 名稱不一致（本筆填「${currentName}」）。`
             : `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
           expected: `同一位 KOL 的所有邀約使用同一個名稱；不同人則必須使用不同的 IG 帳號`,
           actual: `${existingName} / ${currentName}`,
