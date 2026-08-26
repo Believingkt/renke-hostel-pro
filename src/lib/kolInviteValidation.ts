@@ -430,7 +430,15 @@ export function validateInvite(
       const existingNameKey = kolNameKey(existingName);
       const currentNameKey = kolNameKey(currentName);
       const nameDiffers = !!existingNameKey && !!currentNameKey && existingNameKey !== currentNameKey;
-      if (nameDiffers) {
+      if (linkedAsPrimary || linkedAsChild) {
+        add({
+          level: "warning",
+          rule: "cid.collab_confirmed",
+          field: "cid_code",
+          message: `此 CID 也由「${c.owner_name}」${where}使用，已建立同住主檔／附屬關係。`,
+          suggestion: "分潤與 KPI 只算主檔，同行者不重複計分。",
+        });
+      } else if (nameDiffers && samePerson) {
         add({
           level: "block",
           rule: "name.same_identity_different_name",
@@ -439,14 +447,6 @@ export function validateInvite(
           expected: `所有邀約統一使用同一個 KOL 名稱`,
           actual: `${existingName} / ${currentName}`,
           suggestion: `若確為不同人或二次合作，請勾選「確認為不同人／二次合作」後再儲存。請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
-        });
-      } else if (linkedAsPrimary || linkedAsChild) {
-        add({
-          level: "warning",
-          rule: "cid.collab_confirmed",
-          field: "cid_code",
-          message: `此 CID 也由「${c.owner_name}」${where}使用，已建立同住主檔／附屬關係。`,
-          suggestion: "分潤與 KPI 只算主檔，同行者不重複計分。",
         });
       } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
