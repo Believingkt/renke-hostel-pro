@@ -778,6 +778,8 @@ export function TeamSettingsBell() {
                 const limit = groupLimits[group.kind] ?? GROUP_PAGE;
                 const shown = collapsed ? [] : group.items.slice(0, limit);
                 const groupErrors = group.items.filter((i) => i.severity === "error").length;
+                const groupWarns = group.items.filter((i) => i.severity === "warn").length;
+                const groupInfos = group.items.filter((i) => i.severity === "info").length;
                 const groupUnread = group.items.filter((i) => !isRead(i.id));
                 return (
                   <li key={group.kind}>
@@ -799,6 +801,23 @@ export function TeamSettingsBell() {
                             嚴重 {groupErrors}
                           </Badge>
                         )}
+                        {groupWarns > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-300 bg-amber-50 text-[10px] font-normal text-amber-700"
+                          >
+                            建議 {groupWarns}
+                          </Badge>
+                        )}
+                        {groupInfos > 0 && (
+                          <Badge
+                            variant="outline"
+                            className="border-emerald-300 bg-emerald-50 text-[10px] font-normal text-emerald-700"
+                          >
+                            提示 {groupInfos}
+                          </Badge>
+                        )}
+
                         <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
                           {group.items.length} 則
                         </span>
