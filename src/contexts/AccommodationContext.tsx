@@ -2,6 +2,7 @@ import * as React from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { isPmsHost, extractAliasFromPath } from "@/lib/appMode";
+import { GLOBAL_VIEWER_ROLES, GLOBAL_VIEWER_ROLE_TAG } from "@/lib/globalViewerRoles";
 
 const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
@@ -259,9 +260,9 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         return;
       }
 
-      const scoped = (roleRows || []).filter(
-        (row): row is { accommodation_id: string; role: string } => !!row.accommodation_id
-      );
+      const scoped: Array<{ accommodation_id: string; role: string }> = (roleRows || [])
+        .filter((row) => !!row.accommodation_id)
+        .map((row) => ({ accommodation_id: row.accommodation_id as string, role: row.role as string }));
 
       // 全域唯讀角色（finance / am / am_manager / super_admin，accommodation_id = null）
       // → 併入所有啟用中民宿，讓 alias 解析、?accId= 與切換器都能跨館運作
