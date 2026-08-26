@@ -3327,7 +3327,7 @@ function InvitationsTab({
 
             {dupWarning && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
-                <div>⚠️ {dupWarning}</div>
+                <div className="whitespace-pre-line">⚠️ {dupWarning}</div>
                 <label className="flex items-start gap-2">
                   <Checkbox
                     className="mt-0.5"
