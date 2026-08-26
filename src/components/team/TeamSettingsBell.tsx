@@ -534,7 +534,7 @@ export function TeamSettingsBell() {
 
         {renderMismatch && (
           <div className="border-b bg-destructive/10 px-3 py-2 text-[11px] text-destructive">
-            通知渲染不一致：應顯示 {visibleItems.length} 則，實際只列出 {renderedCount} 則，請按重新檢查。
+            通知渲染不一致：應顯示 {shownCount} 則，實際只列出 {renderedCount} 則，請按重新檢查。
           </div>
         )}
 
