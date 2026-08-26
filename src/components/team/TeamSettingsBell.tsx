@@ -14,6 +14,8 @@ import {
   ChevronsUpDown,
   ChevronLeft,
   ChevronRight,
+  Mail,
+  MailOpen,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -205,8 +207,20 @@ export function TeamSettingsBell() {
   );
 
   const activeIds = useMemo(() => items.map((i) => i.id), [items]);
-  const { isRead, markRead, markManyRead, markAllRead, undoMarkAllRead, canUndoMarkAllRead } =
-    useNotificationReadState(userId, activeIds);
+  const {
+    isRead,
+    markRead,
+    markManyRead,
+    markUnread,
+    markAllRead,
+    undoMarkAllRead,
+    canUndoMarkAllRead,
+  } = useNotificationReadState(userId, activeIds);
+
+  /** 只看未讀 */
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  /** 單則「標記為未讀」後的短暫復原（10 秒內可還原成已讀） */
+  const [undoUnread, setUndoUnread] = useState<{ id: string; left: number } | null>(null);
 
   const [confirmAllRead, setConfirmAllRead] = useState(false);
   /** 分組「本組已讀」二次確認（避免誤按整組消失） */
@@ -226,6 +240,19 @@ export function TeamSettingsBell() {
     return () => window.clearTimeout(t);
   }, [undoLeft]);
 
+
+  useEffect(() => {
+    if (!undoUnread) return;
+    if (undoUnread.left <= 0) {
+      setUndoUnread(null);
+      return;
+    }
+    const t = window.setTimeout(
+      () => setUndoUnread((s) => (s ? { ...s, left: s.left - 1 } : null)),
+      1000,
+    );
+    return () => window.clearTimeout(t);
+  }, [undoUnread]);
 
   const unread = items.filter((i) => !isRead(i.id));
   const unreadErrors = unread.filter((i) => i.severity === "error").length;
@@ -257,10 +284,11 @@ export function TeamSettingsBell() {
     return items.filter((i) => {
       if (categoryFilter !== "all" && i.category !== categoryFilter) return false;
       if (kindFilter !== "all" && i.kind !== kindFilter) return false;
+      if (unreadOnly && isRead(i.id)) return false;
       if (!q) return true;
       return `${i.scope} ${i.title} ${i.detail}`.toLowerCase().includes(q);
     });
-  }, [items, query, categoryFilter, kindFilter]);
+  }, [items, query, categoryFilter, kindFilter, unreadOnly, isRead]);
 
   const scopedCounts = useMemo(() => {
     const c = { all: scopedItems.length, error: 0, warn: 0, info: 0 };
@@ -376,6 +404,26 @@ export function TeamSettingsBell() {
     }
   }, [renderMismatch, shownCount, renderedCount]);
 
+  /** 明細視窗關閉後回到清單原本捲動位置 */
+  const scrollTopRef = useRef(0);
+  const getViewport = () =>
+    listRef.current?.closest("[data-radix-scroll-area-viewport]") as HTMLElement | null;
+  /** 開啟明細時凍結當下清單順序，避免「只看未讀」時標已讀導致上下則失效 */
+  const [detailList, setDetailList] = useState<TeamNotification[]>([]);
+  const openDetail = (item: TeamNotification) => {
+    scrollTopRef.current = getViewport()?.scrollTop ?? 0;
+    setDetailList(visibleItems);
+    markRead(item.id);
+    setDetailItem(item);
+  };
+  const closeDetail = () => {
+    setDetailItem(null);
+    window.setTimeout(() => {
+      const vp = getViewport();
+      if (vp) vp.scrollTop = scrollTopRef.current;
+    }, 0);
+  };
+
   const go = (item: TeamNotification) => {
     if (!item.href) return;
     markRead(item.id);
@@ -384,14 +432,30 @@ export function TeamSettingsBell() {
   };
 
   /** 明細視窗的上／下一則（依目前篩選後的清單順序） */
-  const detailIndex = detailItem ? visibleItems.findIndex((i) => i.id === detailItem.id) : -1;
+  const detailIndex = detailItem ? detailList.findIndex((i) => i.id === detailItem.id) : -1;
   const stepDetail = (delta: number) => {
     if (detailIndex < 0) return;
-    const next = visibleItems[detailIndex + delta];
+    const next = detailList[detailIndex + delta];
     if (!next) return;
     markRead(next.id);
     setDetailItem(next);
   };
+
+  // 明細視窗鍵盤快捷鍵：← / → 或 j / k 切換上下一則
+  useEffect(() => {
+    if (!detailItem) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" || e.key === "k") {
+        e.preventDefault();
+        stepDetail(-1);
+      } else if (e.key === "ArrowRight" || e.key === "j") {
+        e.preventDefault();
+        stepDetail(1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detailItem, detailIndex, detailList]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** 批次已讀前的預覽清單 */
   const renderPreviewList = (list: TeamNotification[]) => (
@@ -456,6 +520,33 @@ export function TeamSettingsBell() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setUnreadOnly((v) => !v)}
+              title={unreadOnly ? "顯示全部通知" : "只看未讀"}
+              className={unreadOnly ? "text-primary" : ""}
+            >
+              {unreadOnly ? <MailOpen className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+            </Button>
+            {groups.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  persistExpandedGroups(
+                    expandedGroups.length > 0 ? [] : groups.map((g) => g.kind),
+                  )
+                }
+                title={
+                  expandedGroups.length > 0
+                    ? `收合全部分類（${groups.length}）`
+                    : `展開全部分類（${groups.length}）`
+                }
+              >
+                <ChevronsUpDown className="h-4 w-4" />
+              </Button>
+            )}
             {badge > 0 && (
               <Button
                 variant="ghost"
@@ -730,8 +821,7 @@ export function TeamSettingsBell() {
                                     type="button"
                                     onClick={() => {
                                       // 點擊通知 → 開啟完整明細視窗（可直接跳轉）
-                                      markRead(item.id);
-                                      setDetailItem(item);
+                                      openDetail(item);
                                     }}
 
                                     className="min-w-0 flex-1 text-left"
@@ -869,21 +959,6 @@ export function TeamSettingsBell() {
 
         {visibleItems.length > 0 && (
           <div className="flex flex-wrap items-center gap-1 border-t px-3 py-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="flex-1 text-xs"
-              onClick={() =>
-                persistExpandedGroups(
-                  expandedGroups.length > 0 ? [] : groups.map((g) => g.kind),
-                )
-              }
-            >
-              <ChevronsUpDown className="mr-1 h-3.5 w-3.5" />
-              {expandedGroups.length > 0
-                ? `收合全部分類（${groups.length}）`
-                : `展開全部分類（${groups.length}）`}
-            </Button>
             {/* 只有在有展開中的分類（清單真的列出明細列）時才顯示 */}
             {shownCount > 0 && (
               <Button
@@ -900,7 +975,7 @@ export function TeamSettingsBell() {
       </PopoverContent>
 
       {/* 通知完整明細 */}
-      <Dialog open={!!detailItem} onOpenChange={(v) => !v && setDetailItem(null)}>
+      <Dialog open={!!detailItem} onOpenChange={(v) => !v && closeDetail()}>
         <DialogContent className="max-w-md">
           {detailItem && (
             <>
@@ -950,7 +1025,7 @@ export function TeamSettingsBell() {
                   variant={detailItem.editable ? "default" : "outline"}
                   onClick={() => {
                     const target = detailItem;
-                    setDetailItem(null);
+                    closeDetail();
                     go(target);
                   }}
                 >
@@ -963,7 +1038,37 @@ export function TeamSettingsBell() {
                 </p>
               )}
 
-              {/* 連續檢查：不用關閉視窗就能看下一則 */}
+              {/* 誤觸已讀時可標回未讀，10 秒內可復原 */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
+                  onClick={() => {
+                    markUnread(detailItem.id);
+                    setUndoUnread({ id: detailItem.id, left: 10 });
+                  }}
+                >
+                  <Mail className="mr-1 h-3.5 w-3.5" />
+                  標記為未讀
+                </Button>
+                {undoUnread?.id === detailItem.id && undoUnread.left > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    onClick={() => {
+                      markRead(undoUnread.id);
+                      setUndoUnread(null);
+                    }}
+                  >
+                    <Undo2 className="mr-1 h-3.5 w-3.5" />
+                    復原（{undoUnread.left}）
+                  </Button>
+                )}
+              </div>
+
+              {/* 連續檢查：不用關閉視窗就能看下一則（← → 或 j / k） */}
               <div className="flex items-center justify-between gap-2 border-t pt-2">
                 <Button
                   variant="outline"
@@ -976,13 +1081,13 @@ export function TeamSettingsBell() {
                   上一則
                 </Button>
                 <span className="text-[11px] text-muted-foreground">
-                  {detailIndex >= 0 ? `${detailIndex + 1} / ${visibleItems.length}` : ""}
+                  {detailIndex >= 0 ? `${detailIndex + 1} / ${detailList.length}　←/→` : ""}
                 </span>
                 <Button
                   variant="outline"
                   size="sm"
                   className="text-xs"
-                  disabled={detailIndex < 0 || detailIndex >= visibleItems.length - 1}
+                  disabled={detailIndex < 0 || detailIndex >= detailList.length - 1}
                   onClick={() => stepDetail(1)}
                 >
                   下一則

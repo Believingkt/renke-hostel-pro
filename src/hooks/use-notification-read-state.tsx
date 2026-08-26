@@ -75,6 +75,19 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
   );
 
 
+  /** 單則標記為未讀（明細視窗誤觸已讀時可還原） */
+  const markUnread = useCallback(
+    (id: string) => {
+      setReadIds((prev) => {
+        if (!prev.includes(id)) return prev;
+        const next = prev.filter((x) => x !== id);
+        persist(key, next);
+        return next;
+      });
+    },
+    [key],
+  );
+
   // 「全部已讀」前的快照，可供還原（undo）
   const [undoSnapshot, setUndoSnapshot] = useState<string[] | null>(null);
 
@@ -108,6 +121,7 @@ export function useNotificationReadState(userId: string, activeIds: string[]) {
     isRead,
     markRead,
     markManyRead,
+    markUnread,
 
     markAllRead,
     undoMarkAllRead,
