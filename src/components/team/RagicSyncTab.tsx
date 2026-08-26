@@ -283,6 +283,7 @@ function amountFormula(r: RagicRow): string | null {
 
 
 type PersistedPreview = {
+  version?: number;
   year: number;
   month: number;
   rows: RagicRow[];
@@ -292,10 +293,16 @@ type PersistedPreview = {
 
 function loadPersisted(): PersistedPreview | null {
   try {
+    // 舊版本快取缺少 calc 欄位，直接丟棄避免明細靜默消失
+    LEGACY_STORAGE_KEYS.forEach((k) => localStorage.removeItem(k));
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as PersistedPreview;
     if (!parsed || !Array.isArray(parsed.rows)) return null;
+    if (parsed.version !== CACHE_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
     return parsed;
   } catch {
     return null;
