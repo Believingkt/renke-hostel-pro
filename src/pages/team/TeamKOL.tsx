@@ -1343,8 +1343,13 @@ function InvitationsTab({
           accommodations.find((a) => a.id === d.accommodation_id)?.name ??
           "未指定";
         setDupWarning(
-          `此 KOL 已有邀約紀錄：${sn} 於 ${d.invited_at ?? "-"}，館別：${venueLabel}，狀態：${stLabel}` +
-            (d.name ? `（既有名稱：${d.name}）` : ""),
+          [
+            `此 KOL 的已有邀約紀錄：`,
+            `${sn} 於 ${d.invited_at ?? "-"} 填寫`,
+            `館別：${venueLabel}`,
+            `狀態：${stLabel}`,
+            ...(d.name ? [`（既有名稱：${d.name}）`] : []),
+          ].join("\n"),
         );
 
       } else {
