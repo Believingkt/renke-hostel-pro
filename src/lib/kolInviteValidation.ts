@@ -235,12 +235,12 @@ export type CodeConflict = {
  * 同一位 KOL 的多訊號判定：名稱、IG 或既有合約歸戶任一相符即視為同一人。
  * 此判定只用來辨識身分；名稱寫法仍必須統一，不能用確認勾選略過。
  */
-export function isSameKolIdentity(input: {
+export function kolIdentitySignals(input: {
   formName: string;
   formIg?: string | null;
   formContractGroupId?: string | null;
   conflict: CodeConflict;
-}): boolean {
+}): { nameMatches: boolean; igMatches: boolean; groupMatches: boolean } {
   const otherName = input.conflict.owner_name ?? "";
   const nameMatches = !!kolNameKey(input.formName) && kolNameKey(input.formName) === kolNameKey(otherName);
   const selfIg = normalizeIgHandle(input.formIg ?? "").toLowerCase();
@@ -248,7 +248,17 @@ export function isSameKolIdentity(input: {
   const igMatches = !!selfIg && !!otherIg && selfIg === otherIg;
   const otherGroup = input.conflict.detail?.contract_group_id ?? null;
   const groupMatches = !!input.formContractGroupId && input.formContractGroupId === otherGroup;
-  return nameMatches || igMatches || groupMatches;
+  return { nameMatches, igMatches, groupMatches };
+}
+
+export function isSameKolIdentity(input: {
+  formName: string;
+  formIg?: string | null;
+  formContractGroupId?: string | null;
+  conflict: CodeConflict;
+}): boolean {
+  const s = kolIdentitySignals(input);
+  return s.nameMatches || s.igMatches || s.groupMatches;
 }
 
 
@@ -424,12 +434,13 @@ export function validateInvite(
         suggestion: `請換一組，例如在原碼後加上識別字尾（${normalizeCode(f.cid_code)}KOL）。`,
       });
     } else if (c.source === "kol_profiles") {
-      const samePerson = isSameKolIdentity({
+      const signals = kolIdentitySignals({
         formName: f.name,
         formIg: f.ig_handle,
         formContractGroupId: f.contract_group_id,
         conflict: c,
       });
+      const samePerson = signals.nameMatches || signals.igMatches || signals.groupMatches;
       const otherId = c.detail?.profile_id ?? null;
       const linkedAsPrimary = !!otherId && f.primary_profile_id === otherId;
       const linkedAsChild = !!f.self_id && (c.detail?.primary_profile_id ?? null) === f.self_id;
@@ -451,10 +462,14 @@ export function validateInvite(
           level: "block",
           rule: "name.same_identity_different_name",
           field: "name",
-          message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
-          expected: `所有邀約統一使用同一個 KOL 名稱`,
+          message: signals.igMatches
+            ? `IG 帳號與既有邀約「${existingName}」完全相同，但 KOL 名稱不一致（本筆填「${currentName}」）。請先確認是「KOL 名稱 key 錯」還是「IG 連結貼錯」，確認後才會進入同館同住的判斷。`
+            : `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
+          expected: `同一位 KOL 的所有邀約使用同一個名稱；不同人則必須使用不同的 IG 帳號`,
           actual: `${existingName} / ${currentName}`,
-          suggestion: `請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
+          suggestion: signals.igMatches
+            ? `若是名稱 key 錯：請把名稱統一為「${existingName}」或「${currentName}」；若是 IG 連結貼錯（其實是另一位 KOL）：請改填正確的 IG 帳號，系統才會改用「不同人／同住夥伴」的規則判斷。`
+            : `請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
         });
       } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
@@ -731,3 +746,15 @@ export function validateInvite(
     issues,
   };
 }
+
+/** 每條阻擋規則對應「我現在該怎麼做」的具體動作說明（顯示於編輯頁即時提示與阻擋視窗）。 */
+export const RULE_ACTION_HINTS: Record<string, string> = {
+  "name.same_identity_different_name":
+    "先確認是「KOL 名稱 key 錯」還是「IG 連結貼錯」：名稱錯 → 統一成既有名稱；IG 錯 → 改填正確 IG 帳號，系統才會改走同住夥伴的判斷。",
+  "cid.duplicate_same_person": "同館別同一位 KOL 只留一筆：請關閉本表單，改為編輯既有那筆邀約。",
+  "cid.used_by_other":
+    "確認是否同時入住：是同住 → 在 CID 欄位下方點「設為主檔：○○○」；不是同住 → 改用本人獨立的專屬折扣碼。",
+  "cid.scout_namespace": "此碼屬星探專屬碼命名空間，請換一組 CID。",
+  "primary.exception_required": "主檔為不同館別或入住日相差超過 31 天：請勾選 CID 欄位上方的「特例附屬」。",
+  "venue.parent_mismatch": "請重新在館別下拉選單選一次，讓場域與母館一致。",
+};

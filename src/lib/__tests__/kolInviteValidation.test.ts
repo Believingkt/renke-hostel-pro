@@ -243,7 +243,10 @@ describe("折扣碼衝突回傳邏輯", () => {
     );
     const issue = r.issues.find((i) => i.rule === "name.same_identity_different_name");
     expect(issue?.level).toBe("block");
-    expect(issue?.suggestion).toContain("請統一 KOL 名稱是「Dicky」或是「餓犬Dicky」");
+    // IG 相同、名稱不同：先要求確認是名稱 key 錯還是 IG 貼錯
+    expect(issue?.message).toContain("IG 帳號與既有邀約");
+    expect(issue?.suggestion).toContain("請把名稱統一為「Dicky」或「餓犬Dicky」");
+    expect(issue?.suggestion).toContain("IG 連結貼錯");
   });
 
   it("uses contract group as an identity signal and requires one name", () => {

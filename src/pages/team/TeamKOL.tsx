@@ -52,6 +52,8 @@ import {
   kolNameKey,
   isSameContractScope,
   isSameKolIdentity,
+  kolIdentitySignals,
+  RULE_ACTION_HINTS,
 
   type CodeConflict,
   type ValidationIssue,
@@ -758,6 +760,8 @@ function InvitationsTab({
   /** 既有的同名不同寫法（供表單即時提示） */
   const [nameVariant, setNameVariant] = useState<string | null>(null);
   const [cidConflicts, setCidConflicts] = useState<CodeConflict[]>([]);
+  /** cidConflicts 對應的查詢條件（code|accommodation|editingId），避免顯示到上一次查詢的結果 */
+  const [cidConflictKey, setCidConflictKey] = useState<string | null>(null);
   const [primaryConfirm, setPrimaryConfirm] = useState<{ id: string; name: string } | null>(null);
   /** 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約 */
   const [similarMatches, setSimilarMatches] = useState<KolRow[]>([]);
@@ -1492,10 +1496,11 @@ function InvitationsTab({
 
   const canReportError = (row: KolRow) => row.created_by === currentUserId || isManager;
 
-  // 折扣碼即時衝突檢查
+  // 折扣碼即時衝突檢查（以 query key 標記結果，避免切換 KOL／CID／館別時顯示到上一筆的提示）
   useEffect(() => {
     if (!sheetOpen) {
       setCidConflicts([]);
+      setCidConflictKey(null);
       setCollabConfirmed(false);
       setIgDupConfirmed(false);
       setNameVariantConfirmed(false);
@@ -1503,19 +1508,27 @@ function InvitationsTab({
       return;
     }
     const code = normalizeCode(form.cid_code);
+    const key = `${code}|${form.accommodation_id || ""}|${editingId ?? ""}`;
     if (!code) {
       setCidConflicts([]);
+      setCidConflictKey(key);
       return;
     }
+    let cancelled = false;
     const t = setTimeout(async () => {
       const { data } = await supabase.rpc("check_discount_code_conflict", {
         _code: code,
         _accommodation_id: form.accommodation_id || null,
         _exclude_profile_id: editingId,
       });
+      if (cancelled) return;
       setCidConflicts(((data as CodeConflict[]) ?? []).filter((c) => c.severity !== "info"));
+      setCidConflictKey(key);
     }, 350);
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
   }, [form.cid_code, form.accommodation_id, editingId, sheetOpen]);
 
   // 名稱「僅全半形／大小寫／空白不同」即時偵測
@@ -2191,6 +2204,10 @@ function InvitationsTab({
   const showCid = selectedAcc?.booking_type !== "short_url";
   const showShortUrl = selectedAcc?.booking_type === "short_url";
   const shortUrlPrefix = selectedAcc?.short_url_alias ? `https://liker.land/${selectedAcc.short_url_alias}/` : "";
+
+  // 即時衝突檢查是否已對齊目前表單（避免切換 KOL／CID／館別時顯示舊結果或閃爍）
+  const cidQueryKey = `${normalizeCode(form.cid_code)}|${form.accommodation_id || ""}|${editingId ?? ""}`;
+  const cidChecking = !!normalizeCode(form.cid_code) && cidConflictKey !== cidQueryKey;
 
   return (
     <div className="space-y-4">
@@ -3652,7 +3669,83 @@ function InvitationsTab({
 
             {showCid && (
               <Field label="折扣碼 / CID" anchorId="kolf-cid">
-                {cidConflicts.length > 0 && (() => {
+                {/* 同館同住分步導引 */}
+                <Accordion type="single" collapsible className="mb-2">
+                  <AccordionItem value="guide" className="rounded-md border px-2">
+                    <AccordionTrigger className="py-2 text-xs">同館同住怎麼設定？（分步導引）</AccordionTrigger>
+                    <AccordionContent className="pb-2 text-xs text-muted-foreground whitespace-pre-line">
+                      {[
+                        "Step 1｜館別：先在「館別」下拉選單選好本筆入住的館別（之後的判斷都以這個館別為基準）。",
+                        "Step 2｜KOL 名稱 + IG 帳號：兩欄都填完，系統才會判斷「是不是同一位 KOL」。",
+                        "　　・IG 相同但名稱不同 → 先出現「名稱／IG 確認」提示，必須先解決才會進入同住判斷。",
+                        "Step 3｜折扣碼 / CID：填入與同住主檔相同的 CID。",
+                        "　　・同館 + 同 CID + 同一位 KOL → 判定為重複建檔，直接擋下（請去編輯既有那筆）。",
+                        "　　・同館 + 同 CID + 不同人 → 判定為同住夥伴，下方會出現「設為主檔：○○○」按鈕。",
+                        "　　・跨館 + 同 CID → 同樣會出現「設為主檔」按鈕（同一份合約歸戶）。",
+                        "Step 4｜點「設為主檔：○○○」→ 確認視窗說明分潤與 KPI 只計主檔一份 → 確認。",
+                        "Step 5｜特例附屬（只有以下情況才會出現，且必須勾選才能存）：",
+                        "　　・主檔與本筆分屬不同館別；或",
+                        "　　・與主檔的入住日相差超過 31 天。",
+                        "Step 6｜下方「明細顯示預覽」確認儲存後明細會怎麼呈現，再按儲存。",
+                      ].join("\n")}
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+
+                {cidChecking && (
+                  <div className="mb-2 rounded-md border border-border bg-muted p-2 text-xs text-muted-foreground">
+                    正在依目前的館別 / KOL / CID 重新檢查衝突與同住關係…
+                  </div>
+                )}
+
+                {/* 同一 IG、不同名稱：先確認是名稱 key 錯還是 IG 貼錯，才進入同住判斷 */}
+                {!cidChecking && (() => {
+                  const hit = cidConflicts.find((c) => {
+                    if (c.source !== "kol_profiles") return false;
+                    const s = kolIdentitySignals({
+                      formName: form.name,
+                      formIg: form.ig_handle,
+                      formContractGroupId: contractGroupId,
+                      conflict: c,
+                    });
+                    return s.igMatches && !s.nameMatches && !!kolNameKey(form.name) && !!kolNameKey(c.owner_name ?? "");
+                  });
+                  if (!hit) return null;
+                  return (
+                    <div className="mb-2 rounded-md border border-destructive bg-destructive/10 p-2 text-xs text-destructive space-y-2">
+                      <div className="font-medium whitespace-pre-line">
+                        {`⛔ IG 帳號與既有邀約「${hit.owner_name ?? "-"}」完全相同，但 KOL 名稱不一致（本筆填「${form.name.trim()}」）。\n請先確認：是「KOL 名稱 key 錯」，還是「IG 連結貼錯（其實是另一位 KOL）」？`}
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setForm({ ...form, name: (hit.owner_name ?? "").trim() })}
+                        >
+                          名稱 key 錯：統一為「{hit.owner_name ?? "-"}」
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const el = document.getElementById(FIELD_ANCHORS.ig_handle);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            (el?.querySelector("input") as HTMLElement | null)?.focus();
+                          }}
+                        >
+                          IG 連結貼錯：前往修正 IG
+                        </Button>
+                      </div>
+                      <div className="text-[11px] font-normal">
+                        修正後系統才會重新判斷同館同住（不同人才會出現「設為主檔」按鈕）。
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {!cidChecking && cidConflicts.length > 0 && (() => {
                   const selfAccName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? "";
                   const selfVenueType = form.venue_id
                     ? (venues.find((v) => v.id === form.venue_id)?.type ?? "民宿")
@@ -3915,6 +4008,149 @@ function InvitationsTab({
                 </p>
               )}
             </Field>
+
+            {/* 明細顯示預覽 + 目前被擋住的原因（未儲存前即時預覽） */}
+            {showCid && (() => {
+              const parentRow = form.primary_profile_id
+                ? rows.find((r) => r.id === form.primary_profile_id)
+                : null;
+              const conflictParent = form.primary_profile_id
+                ? cidConflicts.find((c) => c.detail?.profile_id === form.primary_profile_id)
+                : null;
+              const parentName = parentRow?.name ?? conflictParent?.owner_name ?? null;
+              const parentCheckIn = parentRow?.check_in_date ?? conflictParent?.detail?.check_in_date ?? null;
+              const parentAccId = parentRow?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
+              const parentAccName =
+                accommodations.find((a) => a.id === parentAccId)?.name ??
+                conflictParent?.accommodation_name ??
+                parentRow?.venue_name ??
+                "—";
+              const crossVenue = !!parentAccId && !!form.accommodation_id && parentAccId !== form.accommodation_id;
+              const gap =
+                parentCheckIn && form.check_in_date
+                  ? Math.round(
+                      Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000,
+                    )
+                  : null;
+              const needsException = crossVenue || (gap !== null && gap > 31);
+
+              // 目前被擋住的原因（前端即時判斷，儲存時仍以完整驗證為準）
+              const blockers: { rule: string; text: string }[] = [];
+              const identityComplete = !!kolNameKey(form.name) && !!normalizeIgHandle(form.ig_handle);
+              if (!cidChecking && identityComplete) {
+                for (const c of cidConflicts) {
+                  if (c.source !== "kol_profiles") continue;
+                  const linked =
+                    form.primary_profile_id === (c.detail?.profile_id ?? null) ||
+                    (!!editingId && (c.detail?.primary_profile_id ?? null) === editingId);
+                  if (linked) continue;
+                  const s = kolIdentitySignals({
+                    formName: form.name,
+                    formIg: form.ig_handle,
+                    formContractGroupId: contractGroupId,
+                    conflict: c,
+                  });
+                  const samePerson = s.nameMatches || s.igMatches || s.groupMatches;
+                  const namesDiffer =
+                    !!kolNameKey(c.owner_name ?? "") && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
+                  if (samePerson && namesDiffer) {
+                    blockers.push({
+                      rule: "name.same_identity_different_name",
+                      text: `名稱不一致：既有「${c.owner_name ?? "-"}」 vs 本筆「${form.name.trim()}」。`,
+                    });
+                  } else if (samePerson && c.accommodation_id === form.accommodation_id) {
+                    blockers.push({
+                      rule: "cid.duplicate_same_person",
+                      text: `同館別已有同一位 KOL「${c.owner_name ?? "-"}」使用此 CID（重複建檔）。`,
+                    });
+                  } else if (!samePerson) {
+                    blockers.push({
+                      rule: "cid.used_by_other",
+                      text: `此 CID 目前屬於「${c.owner_name ?? "-"}」，尚未建立同住主檔／附屬關係。`,
+                    });
+                  }
+                }
+              }
+              if (needsException && !form.primary_link_exception) {
+                blockers.push({
+                  rule: "primary.exception_required",
+                  text: `主檔為${crossVenue ? "不同館別" : ""}${crossVenue && gap !== null && gap > 31 ? "、" : ""}${gap !== null && gap > 31 ? `入住日相差 ${gap} 天` : ""}，尚未勾選「特例附屬」。`,
+                });
+              }
+
+              return (
+                <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
+                  <div className="font-medium text-sm">明細顯示預覽（尚未儲存）</div>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      {form.name.trim() || "（未填名稱）"}
+                    </span>
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      CID：{normalizeCode(form.cid_code) || "—"}
+                    </span>
+                    <span className="rounded border bg-background px-1.5 py-0.5">
+                      館別：{accommodations.find((a) => a.id === form.accommodation_id)?.name ?? (form.venue_name || "—")}
+                    </span>
+                    {form.primary_profile_id ? (
+                      <>
+                        <span className="rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-amber-900">
+                          附屬記錄（主檔：{parentName ?? "—"}）
+                        </span>
+                        {needsException && (
+                          <span
+                            className={`rounded border px-1.5 py-0.5 ${
+                              form.primary_link_exception
+                                ? "border-amber-300 bg-amber-50 text-amber-900"
+                                : "border-destructive bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            特例附屬{form.primary_link_exception ? "已勾選" : "未勾選"}
+                          </span>
+                        )}
+                        {crossVenue && (
+                          <span className="rounded border border-sky-300 bg-sky-50 px-1.5 py-0.5 text-sky-900">
+                            跨館別附屬（主檔館別：{parentAccName}）
+                          </span>
+                        )}
+                        {gap !== null && (
+                          <span className="rounded border bg-background px-1.5 py-0.5">入住日相差 {gap} 天</span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="rounded border bg-background px-1.5 py-0.5">主檔（獨立計算 KPI 與分潤）</span>
+                    )}
+                  </div>
+                  {form.primary_profile_id && (
+                    <div className="text-muted-foreground">
+                      明細將顯示為附屬記錄：不列入 KPI 與住宿間數，分潤一律歸主檔「{parentName ?? "—"}」。
+                    </div>
+                  )}
+                  <div className="border-t pt-2">
+                    {cidChecking ? (
+                      <span className="text-muted-foreground">驗證中…</span>
+                    ) : blockers.length === 0 ? (
+                      <span className="text-emerald-700">目前沒有偵測到阻擋項目，可以嘗試儲存。</span>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="font-medium text-destructive">
+                          目前被擋住的原因（{blockers.length}）
+                        </div>
+                        {blockers.map((b, i) => (
+                          <div key={i} className="rounded border border-destructive/40 bg-destructive/5 p-2">
+                            <div className="text-destructive">⛔ {b.text}</div>
+                            <div className="mt-0.5 text-muted-foreground">
+                              💡 怎麼做：{RULE_ACTION_HINTS[b.rule] ?? "請依提示修正後再儲存。"}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+
 
 
 
@@ -4216,11 +4452,15 @@ function InvitationsTab({
                         前往欄位 <ChevronRight className="ml-0.5 h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="mt-1 text-sm text-foreground">{issue.message}</p>
+                    <p className="mt-1 text-sm text-foreground whitespace-pre-line">{issue.message}</p>
                     <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                      <div>🚫 觸發規則：{issue.rule}</div>
                       {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
                       {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
-                      {issue.suggestion && <div>💡 建議做法：{issue.suggestion}</div>}
+                      {issue.suggestion && <div className="whitespace-pre-line">💡 建議做法：{issue.suggestion}</div>}
+                      {RULE_ACTION_HINTS[issue.rule] && (
+                        <div className="text-foreground">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                      )}
                     </div>
                   </div>
                 ))}
