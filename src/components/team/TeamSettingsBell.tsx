@@ -12,6 +12,8 @@ import {
   Undo2,
   Search,
   ChevronsUpDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -211,7 +213,7 @@ export function TeamSettingsBell() {
   const [confirmGroup, setConfirmGroup] = useState<{
     kind: string;
     label: string;
-    ids: string[];
+    items: TeamNotification[];
   } | null>(null);
   /** 點擊通知後開啟的完整明細視窗 */
   const [detailItem, setDetailItem] = useState<TeamNotification | null>(null);
@@ -380,6 +382,43 @@ export function TeamSettingsBell() {
     setOpen(false);
     navigate(item.href);
   };
+
+  /** 明細視窗的上／下一則（依目前篩選後的清單順序） */
+  const detailIndex = detailItem ? visibleItems.findIndex((i) => i.id === detailItem.id) : -1;
+  const stepDetail = (delta: number) => {
+    if (detailIndex < 0) return;
+    const next = visibleItems[detailIndex + delta];
+    if (!next) return;
+    markRead(next.id);
+    setDetailItem(next);
+  };
+
+  /** 批次已讀前的預覽清單 */
+  const renderPreviewList = (list: TeamNotification[]) => (
+    <div className="max-h-56 overflow-y-auto rounded-md border bg-muted/30 p-2 text-xs">
+      {list.length === 0 ? (
+        <p className="text-muted-foreground">沒有未讀通知。</p>
+      ) : (
+        <ul className="space-y-1">
+          {list.slice(0, 50).map((i) => (
+            <li key={i.id} className="flex items-start gap-1.5">
+              <span
+                className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${
+                  i.severity === "error" ? "bg-destructive" : "bg-amber-500"
+                }`}
+              />
+              <span className="min-w-0 flex-1 truncate">
+                {i.scope}｜{i.title}
+              </span>
+            </li>
+          ))}
+          {list.length > 50 && (
+            <li className="text-muted-foreground">…等共 {list.length} 則</li>
+          )}
+        </ul>
+      )}
+    </div>
+  );
 
   if (busy && count === 0) return null;
 
@@ -666,7 +705,7 @@ export function TeamSettingsBell() {
                             setConfirmGroup({
                               kind: group.kind,
                               label: group.label,
-                              ids: groupUnread.map((i) => i.id),
+                              items: groupUnread,
                             })
                           }
 
