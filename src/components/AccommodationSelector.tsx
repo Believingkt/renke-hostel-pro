@@ -3,7 +3,8 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { openFrontendBooking } from "@/lib/frontendUrl";
-import { isPmsMode, pmsHref, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+import { isPmsMode, pmsHref, normalizePmsPath, LAST_PROPERTY_ALIAS_KEY } from "@/lib/appMode";
+import { GLOBAL_VIEWER_ROLES } from "@/lib/globalViewerRoles";
 
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Loader2 } from "lucide-react";
@@ -72,7 +73,7 @@ export function AccommodationSelector() {
             .select('role')
             .eq('user_id', session.user.id)
             .is('accommodation_id', null)
-            .in('role', ['finance', 'super_admin']);
+            .in('role', GLOBAL_VIEWER_ROLES as unknown as never[]);
           isGlobalViewer = (globalRoles?.length ?? 0) > 0;
         }
       } catch {
@@ -190,7 +191,11 @@ export function AccommodationSelector() {
         } catch {
           /* ignore */
         }
-        window.location.assign(pmsHref(`/${alias}/admin`));
+        // 保留目前所在的後台子路徑（例如 /admin/owner-settlement），
+        // 否則切換館別會一律跳回後台首頁的營運分析
+        const currentPath = normalizePmsPath(window.location.pathname);
+        const subPath = currentPath.startsWith("/admin") ? currentPath : "/admin";
+        window.location.assign(pmsHref(`/${alias}${subPath}`));
         return;
       }
     }
