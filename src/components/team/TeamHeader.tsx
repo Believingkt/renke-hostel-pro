@@ -2,6 +2,8 @@ import { useLocation } from "react-router-dom";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { PAGE_TITLES } from "./teamConfig";
 import { useTeam } from "./TeamContext";
+import { TeamSettingsBell } from "./TeamSettingsBell";
+
 
 export function TeamHeader() {
   const { pathname } = useLocation();
