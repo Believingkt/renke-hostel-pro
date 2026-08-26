@@ -235,12 +235,12 @@ export type CodeConflict = {
  * 同一位 KOL 的多訊號判定：名稱、IG 或既有合約歸戶任一相符即視為同一人。
  * 此判定只用來辨識身分；名稱寫法仍必須統一，不能用確認勾選略過。
  */
-export function isSameKolIdentity(input: {
+export function kolIdentitySignals(input: {
   formName: string;
   formIg?: string | null;
   formContractGroupId?: string | null;
   conflict: CodeConflict;
-}): boolean {
+}): { nameMatches: boolean; igMatches: boolean; groupMatches: boolean } {
   const otherName = input.conflict.owner_name ?? "";
   const nameMatches = !!kolNameKey(input.formName) && kolNameKey(input.formName) === kolNameKey(otherName);
   const selfIg = normalizeIgHandle(input.formIg ?? "").toLowerCase();
@@ -248,7 +248,17 @@ export function isSameKolIdentity(input: {
   const igMatches = !!selfIg && !!otherIg && selfIg === otherIg;
   const otherGroup = input.conflict.detail?.contract_group_id ?? null;
   const groupMatches = !!input.formContractGroupId && input.formContractGroupId === otherGroup;
-  return nameMatches || igMatches || groupMatches;
+  return { nameMatches, igMatches, groupMatches };
+}
+
+export function isSameKolIdentity(input: {
+  formName: string;
+  formIg?: string | null;
+  formContractGroupId?: string | null;
+  conflict: CodeConflict;
+}): boolean {
+  const s = kolIdentitySignals(input);
+  return s.nameMatches || s.igMatches || s.groupMatches;
 }
 
 
