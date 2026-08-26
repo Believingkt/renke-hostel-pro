@@ -51,6 +51,7 @@ import {
   normalizeKolName,
   kolNameKey,
   isSameContractScope,
+  isTravelSeriesAccommodation,
   isSameKolIdentity,
   kolIdentitySignals,
   RULE_ACTION_HINTS,
@@ -1825,7 +1826,16 @@ function InvitationsTab({
       kpi_eligible: kpiEligible,
       kpi_month: kpiMonth,
       primary_profile_id: form.primary_profile_id || null,
-      primary_link_exception: !!form.primary_link_exception,
+      // 旅行日系列跨館視為同一份合約，不需使用者勾選特例，直接自動標記
+      primary_link_exception: !!form.primary_link_exception || (() => {
+        if (!form.primary_profile_id) return false;
+        const parent = rows.find((r) => r.id === form.primary_profile_id);
+        const parentAccId = parent?.accommodation_id ?? null;
+        if (!parentAccId || !form.accommodation_id || parentAccId === form.accommodation_id) return false;
+        const parentName = accommodations.find((a) => a.id === parentAccId)?.name ?? parent?.venue_name ?? null;
+        const selfName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null;
+        return isTravelSeriesAccommodation(parentName) && isTravelSeriesAccommodation(selfName);
+      })(),
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
     payload.follower_count = followerParsed.value;
@@ -3882,10 +3892,16 @@ function InvitationsTab({
                     const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
                     const crossVenue = !!parentAccommodationId && !!form.accommodation_id
                       && parentAccommodationId !== form.accommodation_id;
+                    // 旅行日系列彼此視為同一份合約，跨館不需特例附屬
+                    const sameSeries = crossVenue && isTravelSeriesAccommodation(
+                      accommodations.find((a) => a.id === parentAccommodationId)?.name ?? conflictParent?.accommodation_name ?? null,
+                    ) && isTravelSeriesAccommodation(
+                      accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null,
+                    );
                     const gap = parentCheckIn && form.check_in_date
                       ? Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000
                       : null;
-                    const needsException = crossVenue || (gap !== null && gap > 31);
+                    const needsException = (crossVenue && !sameSeries) || (gap !== null && gap > 31);
                     if (!needsException) return null;
                     const reasons = [
                       crossVenue ? "主檔與本筆分屬不同館別" : null,
@@ -4043,16 +4059,27 @@ function InvitationsTab({
                 parentRow?.venue_name ??
                 "—";
               const crossVenue = !!parentAccId && !!form.accommodation_id && parentAccId !== form.accommodation_id;
+              // 旅行日系列彼此視為同一份合約，跨館不需特例附屬
+              const sameSeries =
+                crossVenue &&
+                isTravelSeriesAccommodation(parentAccName) &&
+                isTravelSeriesAccommodation(
+                  accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null,
+                );
               const gap =
                 parentCheckIn && form.check_in_date
                   ? Math.round(
                       Math.abs(new Date(parentCheckIn).getTime() - new Date(form.check_in_date).getTime()) / 86400000,
                     )
                   : null;
-              const needsException = crossVenue || (gap !== null && gap > 31);
+              const needsException = (crossVenue && !sameSeries) || (gap !== null && gap > 31);
 
               // 目前被擋住的原因（前端即時判斷，儲存時仍以完整驗證為準）
-              const blockers: { rule: string; text: string }[] = [];
+              const blockerMap = new Map<string, { rule: string; text: string }>();
+              const pushBlocker = (b: { rule: string; text: string }) => {
+                // 同一條規則＋同一段文字只顯示一次（避免子館／多筆同人紀錄重複列出）
+                if (!blockerMap.has(`${b.rule}|${b.text}`)) blockerMap.set(`${b.rule}|${b.text}`, b);
+              };
               const identityComplete = !!kolNameKey(form.name) && !!normalizeIgHandle(form.ig_handle);
               if (!cidChecking && identityComplete) {
                 for (const c of cidConflicts) {
@@ -4071,17 +4098,17 @@ function InvitationsTab({
                   const namesDiffer =
                     !!kolNameKey(c.owner_name ?? "") && kolNameKey(c.owner_name ?? "") !== kolNameKey(form.name);
                   if (samePerson && namesDiffer) {
-                    blockers.push({
+                    pushBlocker({
                       rule: "name.same_identity_different_name",
                       text: `名稱不一致：既有「${c.owner_name ?? "-"}」 vs 本筆「${form.name.trim()}」。`,
                     });
                   } else if (samePerson && c.accommodation_id === form.accommodation_id) {
-                    blockers.push({
+                    pushBlocker({
                       rule: "cid.duplicate_same_person",
                       text: `同館別已有同一位 KOL「${c.owner_name ?? "-"}」使用此 CID（重複建檔）。`,
                     });
                   } else if (!samePerson) {
-                    blockers.push({
+                    pushBlocker({
                       rule: "cid.used_by_other",
                       text: `此 CID 目前屬於「${c.owner_name ?? "-"}」，尚未建立同住主檔／附屬關係。`,
                     });
@@ -4089,11 +4116,13 @@ function InvitationsTab({
                 }
               }
               if (needsException && !form.primary_link_exception) {
-                blockers.push({
+                pushBlocker({
                   rule: "primary.exception_required",
                   text: `主檔為${crossVenue ? "不同館別" : ""}${crossVenue && gap !== null && gap > 31 ? "、" : ""}${gap !== null && gap > 31 ? `入住日相差 ${gap} 天` : ""}，尚未勾選「特例附屬」。`,
                 });
               }
+              const blockers = [...blockerMap.values()];
+
 
               return (
                 <div className="rounded-md border bg-muted/30 p-3 text-xs space-y-2">
