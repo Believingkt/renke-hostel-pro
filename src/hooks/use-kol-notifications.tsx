@@ -35,11 +35,15 @@ interface KolRow {
   publish_date: string | null;
   publish_url: string | null;
   cid_code: string | null;
-  short_url: string | null;
   kpi_qualified: boolean | null;
   is_error: boolean | null;
   booking_status: string | null;
+  rarity: string | null;
+  primary_profile_id: string | null;
 }
+
+/** 這些訂房狀態不需要（也不該）勾選累積資格 */
+const QUALIFICATION_EXCLUDED_STATUS = ["已取消"];
 
 function label(row: KolRow): string {
   const who = row.name?.trim() || "未命名 KOL";
