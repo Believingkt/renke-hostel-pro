@@ -2955,14 +2955,34 @@ function InvitationsTab({
               if (parentVenue && parentVenue.room_type_id && parentVenue.is_active === false && parentVenue.accommodation_id) {
                 parentSubName = accommodations.find((a) => a.id === parentVenue.accommodation_id)?.name ?? parentSubName;
               }
+              const crossVenue = !!parent?.accommodation_id && !!viewingRow.accommodation_id
+                && parent.accommodation_id !== viewingRow.accommodation_id;
+              const gapDays = parent?.check_in_date && viewingRow.check_in_date
+                ? Math.round(Math.abs(new Date(parent.check_in_date).getTime() - new Date(viewingRow.check_in_date).getTime()) / 86400000)
+                : null;
+              const isException = (viewingRow as { primary_link_exception?: boolean | null }).primary_link_exception === true;
               return (
                 <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                   <Badge variant="outline" className="bg-gray-100 text-gray-600 border-gray-300">
                     附屬記錄
                   </Badge>
+                  {isException && (
+                    <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-300">
+                      特例附屬
+                    </Badge>
+                  )}
+                  {crossVenue && (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
+                      跨館遺留
+                    </Badge>
+                  )}
                   <span className="text-muted-foreground">主要館別：{parentSubName}</span>
+                  {gapDays !== null && gapDays > 31 && (
+                    <span className="text-muted-foreground">入住日相差 {gapDays} 天</span>
+                  )}
                 </div>
               );
+
             })()}
             <div className="flex flex-wrap items-center gap-2 mt-2">
 
