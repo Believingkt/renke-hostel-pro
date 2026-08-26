@@ -8,7 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
-import { AlertTriangle, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { AlertTriangle, Loader2, CheckCircle2, XCircle, HelpCircle, BookOpen, ExternalLink } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 import { toast } from "sonner";
 import {
   AlertDialog,
