@@ -422,18 +422,31 @@ export function validateInvite(
         formContractGroupId: f.contract_group_id,
         conflict: c,
       });
+      const otherId = c.detail?.profile_id ?? null;
+      const linkedAsPrimary = !!otherId && f.primary_profile_id === otherId;
+      const linkedAsChild = !!f.self_id && (c.detail?.primary_profile_id ?? null) === f.self_id;
       const existingName = (c.owner_name ?? "").trim();
       const currentName = (f.name ?? "").trim();
-      const nameDiffers = samePerson && !!existingName && !!currentName && kolNameKey(existingName) !== kolNameKey(currentName);
+      const existingNameKey = kolNameKey(existingName);
+      const currentNameKey = kolNameKey(currentName);
+      const nameDiffers = !!existingNameKey && !!currentNameKey && existingNameKey !== currentNameKey;
       if (nameDiffers) {
         add({
           level: "block",
           rule: "name.same_identity_different_name",
           field: "name",
-          message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」是同一位 KOL，但名稱寫法不一致。`,
+          message: `系統依 IG／CID／合約資料判定「${existingName}」與「${currentName}」可能是同一位 KOL，但名稱寫法不一致。`,
           expected: `所有邀約統一使用同一個 KOL 名稱`,
           actual: `${existingName} / ${currentName}`,
           suggestion: `若確為不同人或二次合作，請勾選「確認為不同人／二次合作」後再儲存。請統一 KOL 名稱是「${existingName}」或是「${currentName}」。`,
+        });
+      } else if (linkedAsPrimary || linkedAsChild) {
+        add({
+          level: "warning",
+          rule: "cid.collab_confirmed",
+          field: "cid_code",
+          message: `此 CID 也由「${c.owner_name}」${where}使用，已建立同住主檔／附屬關係。`,
+          suggestion: "分潤與 KPI 只算主檔，同行者不重複計分。",
         });
       } else if (samePerson && c.accommodation_id && c.accommodation_id === f.accommodation_id) {
         add({
@@ -476,9 +489,6 @@ export function validateInvite(
 
         // 同住合拍必須有「實際的主檔關聯」才算數：
         // 本筆掛在對方底下，或對方掛在本筆底下（或以 companion_cid 互指）。
-        const otherId = c.detail?.profile_id ?? null;
-        const linkedAsPrimary = !!otherId && f.primary_profile_id === otherId;
-        const linkedAsChild = !!f.self_id && (c.detail?.primary_profile_id ?? null) === f.self_id;
         const isCompanionPair =
           (!!normalizeCode(f.companion_cid) && normalizeCode(f.companion_cid) === normalizeCode(c.code ?? "")) ||
           (!!normalizeCode(c.detail?.companion_cid ?? "") &&
