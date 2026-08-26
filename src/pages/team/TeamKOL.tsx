@@ -3321,14 +3321,23 @@ function InvitationsTab({
             </div>
 
             {dupWarning && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800">
+              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
                 <div>⚠️ {dupWarning}</div>
-                <label className="mt-2 flex items-center gap-2">
-                  <Checkbox checked={igDupConfirmed} onCheckedChange={(c) => setIgDupConfirmed(!!c)} />
-                  <span>確認為不同人／二次合作</span>
+                <label className="flex items-start gap-2">
+                  <Checkbox
+                    className="mt-0.5"
+                    checked={igDupConfirmed}
+                    onCheckedChange={(c) => setIgDupConfirmed(!!c)}
+                  />
+                  <span>請確認是否為同一位 KOL，進行二次以上的合作？是 = 打勾</span>
                 </label>
+                <div className="text-amber-700">
+                  或<br />
+                  請確認目前網紅帳號相同、名稱卻不同。是 key 錯，或 IG 連結貼錯？
+                </div>
               </div>
             )}
+
 
             {similarMatches.length > 0 && (
               <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-900 space-y-2">
