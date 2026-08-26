@@ -21,9 +21,11 @@ export function TeamHeader() {
       <SidebarTrigger className="admin-icon-btn h-9 w-9 md:h-10 md:w-10" />
       <h1 className="text-base md:text-lg font-semibold truncate">{title}</h1>
       <div className="flex-1" />
+      <TeamSettingsBell />
       <span className="text-sm text-muted-foreground truncate max-w-[40%]">
         {displayName}
       </span>
+
     </header>
   );
 }
