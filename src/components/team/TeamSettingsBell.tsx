@@ -521,22 +521,26 @@ export function TeamSettingsBell() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
+              {/* 計數以目前分類／事件類型／搜尋範圍為準，確保與下方清單一致 */}
               {[
-                { v: "all" as const, label: "全部嚴重度" },
-                { v: "error" as const, label: `嚴重 ${errorCount}` },
-                { v: "warn" as const, label: `建議 ${count - errorCount}` },
+                { v: "all" as const, label: `全部嚴重度 ${scopedCounts.all}`, dot: "" },
+                { v: "error" as const, label: `嚴重 ${scopedCounts.error}`, dot: "bg-destructive" },
+                { v: "warn" as const, label: `建議 ${scopedCounts.warn}`, dot: "bg-amber-500" },
+                { v: "info" as const, label: `提示 ${scopedCounts.info}`, dot: "bg-emerald-500" },
               ].map((o) => (
                 <button
                   key={o.v}
                   type="button"
                   onClick={() => setLevelFilter(o.v)}
-                  className={`rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
+                  className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] transition-colors ${
                     levelFilter === o.v ? "border-primary bg-primary/10 font-medium" : "hover:bg-muted"
                   }`}
                 >
+                  {o.dot && <span className={`h-1.5 w-1.5 rounded-full ${o.dot}`} />}
                   {o.label}
                 </button>
               ))}
+
               <select
                 value={kindFilter}
                 onChange={(e) => setKindFilter(e.target.value)}
