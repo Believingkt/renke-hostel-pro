@@ -13,3 +13,11 @@ export function compositionCellDisplay(
   if (!hasExclusiveOrder) return { show: false, text: "" };
   return { show: true, text: `${remaining}/${total}` };
 }
+
+/**
+ * 斜線底紋只沿用上層房型日期格既有鎖房判定（isBlockedByExclusive），
+ * 與「是否有扣除」無關。
+ */
+export function compositionCellStriped(upperBlocked: boolean): boolean {
+  return upperBlocked;
+}
