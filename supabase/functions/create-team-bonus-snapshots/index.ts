@@ -810,9 +810,29 @@ serve(async (req) => {
       };
     };
 
+    /**
+     * 固定額類共用：旅行日系列合併只算一館。
+     * 非旅行日館全數保留，旅行日多館只取第一個代表，回傳合併後清單與被合併的 id。
+     * 僅供「固定金額 × 館別數」類獎金使用，抽成類（營收）不得套用。
+     */
+    const mergeTravelSeries = (accIds: string[]) => {
+      const isTravel = (id: string) => (accNameById.get(id) ?? "").startsWith("旅行日");
+      const travelIds = accIds.filter(isTravel);
+      return {
+        ids: [...accIds.filter((id) => !isTravel(id)), ...(travelIds.length > 0 ? [travelIds[0]] : [])],
+        travelIds,
+      };
+    };
+
+    /** 固定額類的館別顯示名稱（旅行日一律顯示「旅行日系列」） */
+    const fixedAccNames = (accIds: string[]) =>
+      accIds.map((id) =>
+        (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
+      );
 
     /** 固定額類：逐館一份固定金額 */
     const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
+
       accIds.map((id) => ({
         accommodation_id: id,
         accommodation_name: accNameById.get(id) ?? null,
@@ -880,49 +900,55 @@ serve(async (req) => {
       const managed: string[] = Array.isArray(profile.am_managed_accommodation_ids)
         ? profile.am_managed_accommodation_ids.filter(Boolean)
         : [];
-      // 旅行日系列不計入 AM 績效／場域獎金
+      // 旅行日系列不計入 AM 績效（抽成類）；場域獎金則改為合併算一館
       const managedNoTravel = managed.filter(
         (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
       );
-      if (managedNoTravel.length === 0) continue;
+      if (managed.length === 0) continue;
 
-      const myRevenue = await getAccommodationRevenue(
-        supabase,
-        managedNoTravel,
-        monthStartDate,
-        monthEndDate,
-        sharedSources,
-      );
+      if (managedNoTravel.length > 0) {
+        const myRevenue = await getAccommodationRevenue(
+          supabase,
+          managedNoTravel,
+          monthStartDate,
+          monthEndDate,
+          sharedSources,
+        );
 
-      const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
+        const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
 
-      push({
-        bonus_type: "am_performance",
-        member_id: profile.id,
-        snapshot_month: snapshotMonthStr,
-        payout_month: payoutMonthStr,
-        base_revenue: myRevenue.payout,
-        base_revenue_incl_owner: myRevenue.incl,
-        base_revenue_excl_owner: myRevenue.excl,
-        rate: amPerfRate,
-        fixed_amount: null,
-        venue_count: managedNoTravel.length,
-        amount: amPerfPool.amount,
-        amount_incl_owner: amPerfPool.incl,
-        amount_excl_owner: amPerfPool.excl,
-        payout_basis_used: myRevenue.basis,
-        lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
-        settings_snapshot: {
-          as_of: asOf,
+        push({
+          bonus_type: "am_performance",
+          member_id: profile.id,
+          snapshot_month: snapshotMonthStr,
+          payout_month: payoutMonthStr,
+          base_revenue: myRevenue.payout,
+          base_revenue_incl_owner: myRevenue.incl,
+          base_revenue_excl_owner: myRevenue.excl,
           rate: amPerfRate,
-          shared_sources: sharedSources,
-          accommodation_ids: managedNoTravel,
-          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
-          tier_rule_accommodation_ids: amPerfPool.tierAccIds,
-        },
-      });
+          fixed_amount: null,
+          venue_count: managedNoTravel.length,
+          amount: amPerfPool.amount,
+          amount_incl_owner: amPerfPool.incl,
+          amount_excl_owner: amPerfPool.excl,
+          payout_basis_used: myRevenue.basis,
+          lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
+          settings_snapshot: {
+            as_of: asOf,
+            rate: amPerfRate,
+            shared_sources: sharedSources,
+            accommodation_ids: managedNoTravel,
+            excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+            tier_rule_accommodation_ids: amPerfPool.tierAccIds,
+          },
+        });
+      }
 
 
+
+      // AM場域獎金：旅行日系列合併只算一館（與網紅月費同口徑）
+      // 注意：不可改動 managedNoTravel，該變數同時供 am_performance 的營收抽成使用（旅行日不列入抽成）。
+      const amVenue = mergeTravelSeries(managed);
       push({
         bonus_type: "am_venue_bonus",
         member_id: profile.id,
@@ -933,18 +959,20 @@ serve(async (req) => {
         base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: amVenueFixed,
-        venue_count: managedNoTravel.length,
-        lines: fixedLines(managedNoTravel, amVenueFixed),
-        amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
+        venue_count: amVenue.ids.length,
+        lines: fixedLines(amVenue.ids, amVenueFixed),
+        amount: Number(amVenueFixed ?? 0) * amVenue.ids.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: amVenueFixed,
-          accommodation_ids: managedNoTravel,
-          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+          accommodation_ids: amVenue.ids,
+          accommodation_names: fixedAccNames(amVenue.ids),
+          travel_days_merged_ids: amVenue.travelIds,
         },
       });
+
 
     }
 
@@ -1113,13 +1141,8 @@ serve(async (req) => {
       const partneredAccIds = activeAccIds.filter(
         (id) => (kolMonthlyRanges[id]?.length ?? 0) > 0,
       );
-      const travelDayIds = partneredAccIds.filter((id) =>
-        (accNameById.get(id) ?? "").startsWith("旅行日"),
-      );
-      const kolMonthlyAccIds = [
-        ...partneredAccIds.filter((id) => !(accNameById.get(id) ?? "").startsWith("旅行日")),
-        ...(travelDayIds.length > 0 ? [travelDayIds[0]] : []),
-      ];
+      const { ids: kolMonthlyAccIds, travelIds: travelDayIds } = mergeTravelSeries(partneredAccIds);
+
       push({
         bonus_type: "kol_monthly",
         member_id: kolRecipientId,
@@ -1141,9 +1164,8 @@ serve(async (req) => {
           fixed_amount: kolMonthlyFixed,
           role_binding: "kol_bonus_recipient",
           accommodation_ids: kolMonthlyAccIds,
-          accommodation_names: kolMonthlyAccIds.map((id) =>
-            (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
-          ),
+          accommodation_names: fixedAccNames(kolMonthlyAccIds),
+
           travel_days_merged_ids: travelDayIds,
         },
       });
@@ -1155,7 +1177,9 @@ serve(async (req) => {
     for (const [memberId, accIds] of closingMap) {
       if (!profileById.has(memberId)) continue;
       const flags = await getMarketingFeeFlags(supabase, accIds, monthStartDate);
-      const hitIds = accIds.filter((id) => flags[id] === true);
+      const hitIdsRaw = accIds.filter((id) => flags[id] === true);
+      // 旅行日系列合併只算一館（與 AM場域獎金／網紅月費同口徑）
+      const { ids: hitIds, travelIds: closingTravelIds } = mergeTravelSeries(hitIdsRaw);
       if (hitIds.length === 0) continue;
       push({
         bonus_type: "venue_closing",
@@ -1177,7 +1201,9 @@ serve(async (req) => {
           as_of: asOf,
           fixed_amount: venueClosingFixed,
           accommodation_ids: hitIds,
-          accommodation_names: hitIds.map((id) => accNameById.get(id) ?? id),
+          accommodation_names: fixedAccNames(hitIds),
+          travel_days_merged_ids: closingTravelIds,
+
           assigned_accommodation_ids: accIds,
         },
       });
