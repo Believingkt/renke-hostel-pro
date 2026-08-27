@@ -64,6 +64,10 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 import { roundBonus, roundBoosted } from "@/lib/bonusRounding";
+import {
+  buildScoutCloserBreakdown,
+  type ScoutCloserCodeRow,
+} from "@/utils/scoutCloserBreakdown";
 import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
 
 /** 館別營收／獎金明細列 */
@@ -107,6 +111,7 @@ interface CloserVenueRow {
 }
 
 interface TeamHomePayload {
+  scoutCloserRows: ScoutCloserCodeRow[];
   closerVenueRows: CloserVenueRow[];
 
 
@@ -341,6 +346,9 @@ export default function TeamHome() {
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
   const [closerPreviewCnt, setCloserPreviewCnt] = useState(0);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
+  const [scoutCloserRows, setScoutCloserRows] = useState<ScoutCloserCodeRow[]>([]);
+  const [scoutCloserOpen, setScoutCloserOpen] = useState(false);
+  const [expandedScoutCode, setExpandedScoutCode] = useState<string | null>(null);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
@@ -479,6 +487,9 @@ export default function TeamHome() {
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
     setCloserPreviewCnt(p.closerPreviewCount ?? 0);
     setScoutCloserAmt(p.scoutCloserSum);
+    setScoutCloserRows(p.scoutCloserRows ?? []);
+    setScoutCloserOpen(false);
+    setExpandedScoutCode(null);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
     setCloserTeamBonusNoSetting(p.closerTeamBonusNoSet);
@@ -784,6 +795,7 @@ export default function TeamHome() {
         })();
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
+        const scoutCloserRows: ScoutCloserCodeRow[] = [];
         const pScoutCloser = (async () => {
         if (showCloser && isMonthlyPayout) {
           const { data: partnerCodes } = await db
@@ -803,7 +815,7 @@ export default function TeamHome() {
           if (rateMap.size > 0) {
             const { data: ords } = await db
               .from("orders")
-              .select("id, discount_code, final_price, order_date")
+              .select("id, order_number, discount_code, final_price, order_date")
               .neq("order_status", "cancelled")
               .not("discount_code", "is", null)
               .gte("order_date", monthStartIso)
@@ -824,13 +836,27 @@ export default function TeamHome() {
               });
             }
 
-            for (const o of orderList) {
-              if (excluded.has(o.id)) continue;
-              if (closerByOrderId.get(o.id) !== userId) continue;
-              const rate = rateMap.get(String(o.discount_code).trim().toUpperCase());
-              if (!rate) continue;
-              scoutCloserSum += Math.round(Number(o.final_price ?? 0) * rate);
+            // 已由後端試算／發放的折扣碼獎金（有紀錄＝實發，無紀錄＝預估）
+            const settledOrderIds = new Set<string>();
+            if (orderIds.length > 0) {
+              const { data: payoutRows } = await db
+                .from("scout_discount_code_payouts")
+                .select("order_id, payout_status")
+                .eq("recipient_id", userId)
+                .in("order_id", orderIds);
+              (payoutRows ?? []).forEach((r: any) => {
+                if (r.order_id) settledOrderIds.add(String(r.order_id));
+              });
             }
+
+            const breakdown = buildScoutCloserBreakdown(
+              orderList as any[],
+              rateMap,
+              (id) => !excluded.has(id) && closerByOrderId.get(id) === userId,
+              settledOrderIds,
+            );
+            scoutCloserSum += breakdown.total;
+            scoutCloserRows.push(...breakdown.rows);
           }
         }
 
@@ -1862,6 +1888,7 @@ export default function TeamHome() {
 
         if (cancelled) return;
         const payload: TeamHomePayload = {
+          scoutCloserRows,
           closerVenueRows,
           closerSum,
 
@@ -2557,6 +2584,80 @@ export default function TeamHome() {
                     >
                       各館別明細（{closerVenueRows.length} 館）
                     </Button>
+                  ) : null}
+
+                  {!loading && c.key === "scout_closer_bonus" && scoutCloserRows.length > 0 ? (
+                    <div className="mt-2" data-testid="scout-closer-detail">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-full text-xs sm:h-7 sm:w-auto"
+                        onClick={() => {
+                          setExpandedScoutCode(null);
+                          setScoutCloserOpen((v) => !v);
+                        }}
+                      >
+                        {scoutCloserOpen
+                          ? "收合折扣碼明細"
+                          : `折扣碼明細（${scoutCloserRows.length} 組・${scoutCloserRows.reduce((n, r) => n + r.count, 0)} 筆）`}
+                      </Button>
+
+                      {scoutCloserOpen ? (
+                        <div className="mt-2 space-y-1.5">
+                          {scoutCloserRows.map((r) => {
+                            const open = expandedScoutCode === r.code;
+                            return (
+                              <div key={r.code} className="rounded-md border p-2">
+                                <button
+                                  type="button"
+                                  className="flex w-full items-start justify-between gap-2 text-left"
+                                  onClick={() => setExpandedScoutCode(open ? null : r.code)}
+                                >
+                                  <span className="min-w-0 text-[11px] sm:text-xs break-words">
+                                    <span className="font-medium">{r.code}</span>
+                                    <span className="text-muted-foreground">
+                                      　{(r.rate * 100).toFixed(1)}%・{r.count} 筆
+                                    </span>
+                                  </span>
+                                  <span className="tabular-nums whitespace-nowrap text-[11px] sm:text-xs">
+                                    {fmt(roundBoosted(r.amount, c.multiplier))}
+                                  </span>
+                                </button>
+                                {open ? (
+                                  <div className="mt-1.5 space-y-0.5 border-t pt-1.5">
+                                    {r.orders.map((o) => (
+                                      <div
+                                        key={o.no}
+                                        className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"
+                                      >
+                                        <span className="min-w-0 break-all">
+                                          {o.no}
+                                          <Badge
+                                            variant="outline"
+                                            className="ml-1 px-1 py-0 text-[10px] align-middle"
+                                          >
+                                            {o.settled ? "實發" : "預估"}
+                                          </Badge>
+                                        </span>
+                                        <span className="tabular-nums whitespace-nowrap">
+                                          {fmt(roundBoosted(o.amount, c.multiplier))}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                          <div className="flex items-center justify-between border-t pt-1.5 text-[11px] sm:text-xs font-medium">
+                            <span>合計</span>
+                            <span className="tabular-nums">
+                              {fmt(roundBoosted(scoutCloserRows.reduce((n, r) => n + r.amount, 0), c.multiplier))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
 
                 </CardContent>
