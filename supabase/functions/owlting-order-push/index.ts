@@ -454,7 +454,13 @@ async function processRow(
   };
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
 
-  const uniqueId = order.owlting_unique_id ?? order.order_number;
+  // Deleted-order replay MUST reuse the original PMS identity from the snapshot.
+  const uniqueId = order.owlting_unique_id ?? (fromSnapshot ? null : order.order_number);
+  if (!uniqueId) {
+    await finalizeFail(admin, row, baseLog, "manual review: no OwlTing PMS identity for deleted-order Cancel", true);
+    return { id: row.id, outcome: "failed", reason: "no PMS identity" };
+  }
+
   const xml = buildResNotifRq(owlOrder, owlCfg, {
     resStatus: row.res_status,
     echoToken: row.echo_token,
