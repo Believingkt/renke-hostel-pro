@@ -15,9 +15,16 @@ export function compositionCellDisplay(
 }
 
 /**
- * 斜線底紋只沿用上層房型日期格既有鎖房判定（isBlockedByExclusive），
- * 與「是否有扣除」無關。
+ * 斜線底紋沿用「上層包棟房型當日」既有判定，不另建庫存算法：
+ *  - upperBlocked：既有鎖房／包區連動鎖房（isBlockedByExclusive）
+ *  - upperNoInventory：既有 available === 0
+ *  - upperSoldOut：既有 remaining === 0（available - booked）
+ * 與「是否有組成扣除數字」完全獨立。
  */
-export function compositionCellStriped(upperBlocked: boolean): boolean {
-  return upperBlocked;
+export function compositionCellStriped(
+  upperBlocked: boolean,
+  upperNoInventory = false,
+  upperSoldOut = false,
+): boolean {
+  return upperBlocked || upperNoInventory || upperSoldOut;
 }
