@@ -12,6 +12,28 @@ export const PAYOUT_MONTH_REQUIRED_ERROR =
 
 export const PAYOUT_MONTH_PATTERN = /^\d{4}-\d{2}$/;
 
+export function payoutEqualsSnapshotError(month: string, expected: string | null): string {
+  return `發放月（${month}）與資料月相同，這會造成期別錯誤，已中止。${
+    expected ? `正確發放月應為 ${expected}。` : ""
+  }`.trim();
+}
+
+/** 月份字串是否合法（含 01-12 範圍檢查） */
+export function isValidMonthKey(value: unknown): value is string {
+  if (typeof value !== "string" || !PAYOUT_MONTH_PATTERN.test(value)) return false;
+  const m = Number(value.split("-")[1]);
+  return m >= 1 && m <= 12;
+}
+
+/** 資料月 +1 = 預期發放月 */
+export function nextMonthKey(monthKey: string): string | null {
+  if (!isValidMonthKey(monthKey)) return null;
+  const [y, m] = monthKey.split("-").map(Number);
+  const ny = m === 12 ? y + 1 : y;
+  const nm = m === 12 ? 1 : m + 1;
+  return `${ny}-${String(nm).padStart(2, "0")}`;
+}
+
 export interface ResolvePayoutMonthInput {
   /** 請求 body（未知型別，容忍任意輸入） */
   body: Record<string, unknown> | null | undefined;
@@ -19,6 +41,8 @@ export interface ResolvePayoutMonthInput {
   payoutYear: number;
   /** 執行當下台北時區的月（1-12） */
   payoutMonth: number;
+  /** 本次要產生的資料月（快照月），YYYY-MM；用於期別防呆 */
+  snapshotMonth?: string | null;
 }
 
 export type ResolvePayoutMonthResult =
@@ -33,23 +57,35 @@ export function resolvePayoutMonth({
   body,
   payoutYear,
   payoutMonth,
+  snapshotMonth,
 }: ResolvePayoutMonthInput): ResolvePayoutMonthResult {
   const testMode = (body as Record<string, unknown> | null)?.test_mode === true;
   const raw = (body as Record<string, unknown> | null)?.payout_month;
-  const override =
-    typeof raw === "string" && PAYOUT_MONTH_PATTERN.test(raw) ? raw : null;
+  const override = isValidMonthKey(raw) ? raw : null;
 
   if (testMode && !override) {
     return { ok: false, status: 400, error: PAYOUT_MONTH_REQUIRED_ERROR };
   }
 
+  const snap = isValidMonthKey(snapshotMonth) ? snapshotMonth : null;
+  const expected = snap ? nextMonthKey(snap) : null;
+
   if (override) {
+    if (snap && override === snap) {
+      return { ok: false, status: 400, error: payoutEqualsSnapshotError(override, expected) };
+    }
     return { ok: true, payoutMonthStr: override, source: "override" };
+  }
+
+  const execStr = `${payoutYear}-${pad2(payoutMonth)}`;
+  if (snap && execStr === snap) {
+    return { ok: false, status: 400, error: payoutEqualsSnapshotError(execStr, expected) };
   }
 
   return {
     ok: true,
-    payoutMonthStr: `${payoutYear}-${pad2(payoutMonth)}`,
+    payoutMonthStr: execStr,
     source: "execution_month",
   };
 }
+

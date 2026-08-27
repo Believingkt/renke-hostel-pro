@@ -122,7 +122,7 @@ serve(async (req) => {
     // 手動重算（test_mode）一律要求明確帶入 payout_month，避免被寫成「執行當月」造成
     // snapshot_month === payout_month 的錯誤期別。排程（非 test_mode）維持原邏輯。
     // 規則抽到 payoutMonthResolver.ts（純函式，有 Deno 測試覆蓋）。
-    const payoutResolution = resolvePayoutMonth({ body, payoutYear, payoutMonth });
+    const payoutResolution = resolvePayoutMonth({ body, payoutYear, payoutMonth, snapshotMonth: snapshotMonthStr });
     if (!payoutResolution.ok) {
       return jsonResponse(
         { success: false, error: payoutResolution.error },

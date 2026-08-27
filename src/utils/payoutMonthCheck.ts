@@ -7,15 +7,22 @@
 
 export const PAYOUT_MONTH_PATTERN = /^\d{4}-\d{2}$/;
 
+/** 月份字串是否合法（含 01-12 範圍檢查） */
+export function isValidMonthKey(value: unknown): value is string {
+  if (typeof value !== "string" || !PAYOUT_MONTH_PATTERN.test(value)) return false;
+  const m = Number(value.split("-")[1]);
+  return m >= 1 && m <= 12;
+}
+
 /** 資料月 +1 = 預期發放月 */
 export function nextMonthKey(monthKey: string): string | null {
-  if (!PAYOUT_MONTH_PATTERN.test(monthKey)) return null;
+  if (!isValidMonthKey(monthKey)) return null;
   const [y, m] = monthKey.split("-").map(Number);
-  if (m < 1 || m > 12) return null;
   const ny = m === 12 ? y + 1 : y;
   const nm = m === 12 ? 1 : m + 1;
   return `${ny}-${String(nm).padStart(2, "0")}`;
 }
+
 
 export interface PayoutPrecheckInput {
   /** 資料月（快照月），格式 YYYY-MM */
