@@ -37,7 +37,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronDown, ChevronRight, Eye, Pencil, CalendarIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, CalendarIcon, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
