@@ -1164,9 +1164,8 @@ serve(async (req) => {
           fixed_amount: kolMonthlyFixed,
           role_binding: "kol_bonus_recipient",
           accommodation_ids: kolMonthlyAccIds,
-          accommodation_names: kolMonthlyAccIds.map((id) =>
-            (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
-          ),
+          accommodation_names: fixedAccNames(kolMonthlyAccIds),
+
           travel_days_merged_ids: travelDayIds,
         },
       });
