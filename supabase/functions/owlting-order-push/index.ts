@@ -516,16 +516,19 @@ async function processRow(
       await admin.from("accommodation_owlting_config").update({
         last_successful_sync_at: new Date().toISOString(),
       }).eq("accommodation_id", row.accommodation_id);
-      await admin.from("orders").update({
-        owlting_unique_id: uniqueId,
-        owlting_sync_state: {
-          mode: "live",
-          last_action: row.res_status,
-          last_echo_token: row.echo_token,
-          owlnest_md5: md5,
-          at: new Date().toISOString(),
-        },
-      }).eq("id", order.id);
+      if (!fromSnapshot) {
+        await admin.from("orders").update({
+          owlting_unique_id: uniqueId,
+          owlting_sync_state: {
+            mode: "live",
+            last_action: row.res_status,
+            last_echo_token: row.echo_token,
+            owlnest_md5: md5,
+            at: new Date().toISOString(),
+          },
+        }).eq("id", order.id);
+      }
+
       return { id: row.id, outcome: "sent" };
     }
     const { iso, failedFinal } = computeNextRetry(row.attempt_count + 1);
