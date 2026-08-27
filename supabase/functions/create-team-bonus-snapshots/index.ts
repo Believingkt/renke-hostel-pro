@@ -1205,7 +1205,7 @@ serve(async (req) => {
           fixed_amount: venueClosingFixed,
           accommodation_ids: hitIds,
           accommodation_names: fixedAccNames(hitIds),
-          travel_days_merged_ids: closingTravelIds,
+          travel_days_excluded_ids: closingTravelIds,
 
           assigned_accommodation_ids: accIds,
         },
