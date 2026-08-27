@@ -73,10 +73,40 @@ export interface ResolvePayoutMonthInput {
 
 export type ResolvePayoutMonthResult =
   | { ok: true; payoutMonthStr: string; source: "override" | "execution_month" }
-  | { ok: false; status: 400; error: string };
+  | {
+      ok: false;
+      status: 400;
+      error: string;
+      error_code: PayoutMonthErrorCode;
+      error_category: PayoutMonthErrorCategory;
+      snapshot_month: string | null;
+      expected_payout_month: string | null;
+      received_payout_month: string | null;
+    };
 
 function pad2(n: number): string {
   return String(n).padStart(2, "0");
+}
+
+function fail(
+  code: PayoutMonthErrorCode,
+  error: string,
+  meta: {
+    snapshotMonth: string | null;
+    expected: string | null;
+    received: string | null;
+  },
+): ResolvePayoutMonthResult {
+  return {
+    ok: false,
+    status: 400,
+    error,
+    error_code: code,
+    error_category: PAYOUT_MONTH_ERROR_CATEGORY[code],
+    snapshot_month: meta.snapshotMonth,
+    expected_payout_month: meta.expected,
+    received_payout_month: meta.received,
+  };
 }
 
 export function resolvePayoutMonth({
@@ -89,23 +119,47 @@ export function resolvePayoutMonth({
   const raw = (body as Record<string, unknown> | null)?.payout_month;
   const override = isValidMonthKey(raw) ? raw : null;
 
-  if (testMode && !override) {
-    return { ok: false, status: 400, error: PAYOUT_MONTH_REQUIRED_ERROR };
-  }
-
   const snap = isValidMonthKey(snapshotMonth) ? snapshotMonth : null;
   const expected = snap ? nextMonthKey(snap) : null;
+  const received = typeof raw === "string" ? raw : raw == null ? null : String(raw);
+  const meta = { snapshotMonth: snap, expected, received };
+
+  if (testMode && !override) {
+    const provided = raw !== undefined && raw !== null && raw !== "";
+    return fail(
+      provided ? "PAYOUT_MONTH_INVALID_FORMAT" : "PAYOUT_MONTH_MISSING",
+      provided
+        ? `發放月格式錯誤（收到「${received}」），需為 YYYY-MM 且月份介於 01-12。${PAYOUT_MONTH_REQUIRED_ERROR}`
+        : PAYOUT_MONTH_REQUIRED_ERROR,
+      meta,
+    );
+  }
 
   if (override) {
     if (snap && override === snap) {
-      return { ok: false, status: 400, error: payoutEqualsSnapshotError(override, expected) };
+      return fail(
+        "PAYOUT_MONTH_EQUALS_SNAPSHOT",
+        payoutEqualsSnapshotError(override, expected),
+        meta,
+      );
+    }
+    // 跨年推算錯誤：月份對、年度錯（例：資料月 2026-12 卻送 2026-01）
+    if (expected && override !== expected && override.slice(5) === expected.slice(5)) {
+      return fail(
+        "PAYOUT_MONTH_ROLLOVER_MISMATCH",
+        payoutRolloverMismatchError(override, expected),
+        meta,
+      );
     }
     return { ok: true, payoutMonthStr: override, source: "override" };
   }
 
   const execStr = `${payoutYear}-${pad2(payoutMonth)}`;
   if (snap && execStr === snap) {
-    return { ok: false, status: 400, error: payoutEqualsSnapshotError(execStr, expected) };
+    return fail("PAYOUT_MONTH_EQUALS_SNAPSHOT", payoutEqualsSnapshotError(execStr, expected), {
+      ...meta,
+      received: execStr,
+    });
   }
 
   return {
@@ -113,5 +167,6 @@ export function resolvePayoutMonth({
     payoutMonthStr: execStr,
     source: "execution_month",
   };
+
 }
 
