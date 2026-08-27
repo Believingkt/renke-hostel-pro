@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
 import { PaymentHoldRows, PaymentHoldCard } from "@/components/booking-calendar/PaymentHoldRows";
 import type { PaymentHoldEvent } from "@/lib/paymentHoldEvents";
-import { compositionCellDisplay } from "@/lib/compositionRowDisplay";
+import { compositionCellDisplay, compositionCellStriped } from "@/lib/compositionRowDisplay";
 
 
 interface BookingCalendarGridProps {
@@ -1433,8 +1433,14 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                             const lockedCount = cfg ? (cfg.get(pr.name) ?? 0) : (hasExclusiveBooking ? pr.count : 0);
                              const remaining = Math.max(0, pr.count - lockedCount);
                              const cell = compositionCellDisplay(hasExclusiveOrder, remaining, pr.count);
-                             // 斜線沿用上層房型日期格既有鎖房判定（唯一 SoT）
-                             const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                             // 斜線沿用上層房型日期格既有判定（鎖房 / 無庫存 / 售罄），不另建庫存算法
+                             const upperAvailable = getAvailableRooms(roomType.id, dateStr);
+                             const upperRemaining = Math.max(0, upperAvailable - getBookedCount(roomType.id, dateStr));
+                             const blockedByExclusive = compositionCellStriped(
+                               isBlockedByExclusive(roomType.id, dateStr),
+                               upperAvailable === 0,
+                               upperRemaining === 0,
+                             );
                              return (
                                <div
                                  key={dateStr}
