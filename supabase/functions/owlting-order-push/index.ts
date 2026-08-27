@@ -230,12 +230,14 @@ async function processRow(
         .eq("order_id", order.id);
 
 
-  const rawStayInputs = (orRooms && orRooms.length > 0)
-    ? orRooms.map((r: any) => ({
+  const rawStayInputs: Array<{ room_type_id: string; quantity: number; unit_amount: number }> =
+    (orRooms && orRooms.length > 0)
+    ? (orRooms as any[]).map((r: any) => ({
         room_type_id: r.room_type_id,
         quantity: r.quantity ?? 1,
         unit_amount: Math.round(Number(r.room_price ?? 0)),
       }))
+
     : (order.room_type_id ? [{
         room_type_id: order.room_type_id,
         quantity: 1,
