@@ -1856,7 +1856,9 @@ export default function TeamHome() {
 
         if (cancelled) return;
         const payload: TeamHomePayload = {
+          closerVenueRows,
           closerSum,
+
           closerBackfillSum,
           closerBackfillCount,
           closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
