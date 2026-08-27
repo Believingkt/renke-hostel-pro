@@ -128,8 +128,13 @@ Deno.serve(async (req) => {
     typeof reqBody?.snapshot_month === "string" && /^\d{4}-\d{2}$/.test(reqBody.snapshot_month)
       ? reqBody.snapshot_month
       : null;
+  // 手動重算必須明確帶入發放月（資料月 +1），否則下游會拒絕執行
+  const payoutMonthParam =
+    typeof reqBody?.payout_month === "string" && /^\d{4}-\d{2}$/.test(reqBody.payout_month)
+      ? reqBody.payout_month
+      : null;
   const snapshotBody: Record<string, unknown> = snapshotMonth
-    ? { test_mode: true, test_month: snapshotMonth }
+    ? { test_mode: true, test_month: snapshotMonth, ...(payoutMonthParam ? { payout_month: payoutMonthParam } : {}) }
     : {};
   // 手動回填時可指定要以 final（定案）或 draft（草稿）寫入快照
   if (snapshotMonth && reqBody?.finalize === true) snapshotBody.finalize = true;
