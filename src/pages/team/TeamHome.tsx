@@ -103,12 +103,17 @@ interface CloserVenueRow {
   adjust: number;
   gross: number;
   total: number;
+  /** 已取消但尚未產生 closer_commission_adjustments 的金額（個人實發口徑，正值＝未來預計扣回） */
+  pendingClawback: number;
   orders: Array<{
     no: string;
     kind: "current" | "backfill" | "preview" | "adjust";
     amount: number;
+    /** 訂單已取消且查無對應扣回紀錄 → 待扣回 */
+    pendingClawback?: boolean;
   }>;
 }
+
 
 interface TeamHomePayload {
   scoutCloserRows: ScoutCloserCodeRow[];
