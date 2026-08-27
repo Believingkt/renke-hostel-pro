@@ -1479,12 +1479,44 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
-              <Button onClick={runRecalc} disabled={recalcRunning}>
+              <Button onClick={() => runRecalc()} disabled={recalcRunning}>
                 {recalcRunning ? "試算中…" : "開始重新試算"}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* 回填前置檢查：發放月與預期（資料月 +1）不一致時的二次確認 */}
+        <AlertDialog open={!!payoutWarn} onOpenChange={(o) => !o && setPayoutWarn(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>發放月與預期不一致</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  <p>{payoutWarn?.message}</p>
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+                    資料月 <strong>{prevMonthKey}</strong>・預期發放月{" "}
+                    <strong>{payoutWarn?.expected}</strong>・實際將送出{" "}
+                    <strong>{payoutWarn?.payoutMonth}</strong>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    若不確定，請先關閉並重新選擇正確的發放年月；錯誤的發放月會造成 TeamHome 與本頁金額對不上。
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
+              <Button
+                disabled={recalcRunning}
+                onClick={() => runRecalc({ confirmedPayoutMonth: payoutWarn?.payoutMonth })}
+              >
+                仍要以 {payoutWarn?.payoutMonth} 送出
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {/* 單段式：執行完成後的結果摘要（不做事前預覽，已發放快照永不變動） */}
         <AlertDialog open={!!recalcResult} onOpenChange={(o) => !o && setRecalcResult(null)}>
