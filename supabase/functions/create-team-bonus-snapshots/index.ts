@@ -1177,7 +1177,9 @@ serve(async (req) => {
     for (const [memberId, accIds] of closingMap) {
       if (!profileById.has(memberId)) continue;
       const flags = await getMarketingFeeFlags(supabase, accIds, monthStartDate);
-      const hitIds = accIds.filter((id) => flags[id] === true);
+      const hitIdsRaw = accIds.filter((id) => flags[id] === true);
+      // 旅行日系列合併只算一館（與 AM場域獎金／網紅月費同口徑）
+      const { ids: hitIds, travelIds: closingTravelIds } = mergeTravelSeries(hitIdsRaw);
       if (hitIds.length === 0) continue;
       push({
         bonus_type: "venue_closing",
@@ -1199,7 +1201,9 @@ serve(async (req) => {
           as_of: asOf,
           fixed_amount: venueClosingFixed,
           accommodation_ids: hitIds,
-          accommodation_names: hitIds.map((id) => accNameById.get(id) ?? id),
+          accommodation_names: fixedAccNames(hitIds),
+          travel_days_merged_ids: closingTravelIds,
+
           assigned_accommodation_ids: accIds,
         },
       });
