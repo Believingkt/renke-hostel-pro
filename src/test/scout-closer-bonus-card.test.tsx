@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { useState } from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
 import {
   buildScoutCloserBreakdown,
@@ -78,8 +79,8 @@ describe("星探成交獎金｜資料正確性", () => {
 
 /** 卡片明細 UI 的最小重現（與 TeamHome 相同的展開行為與標記） */
 function ScoutCloserDetail({ rows }: { rows: ScoutCloserCodeRow[] }) {
-  const [open, setOpen] = (globalThis as any).__useState(false);
-  const [code, setCode] = (globalThis as any).__useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
   return (
     <div>
       <button onClick={() => setOpen(!open)}>
@@ -109,9 +110,7 @@ function ScoutCloserDetail({ rows }: { rows: ScoutCloserCodeRow[] }) {
 }
 
 describe("星探成交獎金｜卡片明細 UI", () => {
-  it("展開後顯示折扣碼、筆數、單號與預估/實發標記", async () => {
-    const { useState } = await import("react");
-    (globalThis as any).__useState = useState;
+  it("展開後顯示折扣碼、筆數、單號與預估/實發標記", () => {
     const rows = buildScoutCloserBreakdown(ordersM1, rateMap, eligible, new Set(["o1"])).rows;
     render(<ScoutCloserDetail rows={rows} />);
 
