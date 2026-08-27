@@ -810,9 +810,29 @@ serve(async (req) => {
       };
     };
 
+    /**
+     * 固定額類共用：旅行日系列合併只算一館。
+     * 非旅行日館全數保留，旅行日多館只取第一個代表，回傳合併後清單與被合併的 id。
+     * 僅供「固定金額 × 館別數」類獎金使用，抽成類（營收）不得套用。
+     */
+    const mergeTravelSeries = (accIds: string[]) => {
+      const isTravel = (id: string) => (accNameById.get(id) ?? "").startsWith("旅行日");
+      const travelIds = accIds.filter(isTravel);
+      return {
+        ids: [...accIds.filter((id) => !isTravel(id)), ...(travelIds.length > 0 ? [travelIds[0]] : [])],
+        travelIds,
+      };
+    };
+
+    /** 固定額類的館別顯示名稱（旅行日一律顯示「旅行日系列」） */
+    const fixedAccNames = (accIds: string[]) =>
+      accIds.map((id) =>
+        (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
+      );
 
     /** 固定額類：逐館一份固定金額 */
     const fixedLines = (accIds: string[], fixed: number | null): LineDraft[] =>
+
       accIds.map((id) => ({
         accommodation_id: id,
         accommodation_name: accNameById.get(id) ?? null,
