@@ -1185,9 +1185,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       if (error) throw error;
       const res = data as {
         failed?: string[];
-        results?: Array<{ fn: string; body?: unknown }>;
+        results?: Array<{ fn: string; ok?: boolean; status?: number | null; body?: unknown }>;
       };
+      // 後端 400（可機讀錯誤代碼）→ 顯示明確原因與建議操作，並阻止相同參數重送
+      const presented = extractPayoutMonthError(res?.results);
+      if (presented) {
+        setRecalcError({ signature: recalcSignature, presented });
+        toast.error(presented.title, {
+          description: `${presented.reason} ${presented.action}`,
+        });
+        return;
+      }
       const failed: string[] = res?.failed ?? [];
+
       const snapBody = res?.results?.find((r) => r.fn === "create-commission-snapshots")?.body as
         | {
             created?: number;
