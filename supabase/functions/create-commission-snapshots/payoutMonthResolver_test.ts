@@ -113,3 +113,49 @@ Deno.test("snapshotMonth 格式錯誤 → 不做期別比對，維持原行為",
   });
   assertEquals(res.ok && res.payoutMonthStr, "2026-09");
 });
+
+Deno.test("錯誤代碼分類：缺失 / 格式錯誤 / 等於資料月 / 跨年推算錯誤", () => {
+  const missing = resolvePayoutMonth({ body: { test_mode: true }, snapshotMonth: "2026-08", ...EXEC });
+  if (missing.ok) throw new Error("unreachable");
+  assertEquals(missing.error_code, "PAYOUT_MONTH_MISSING");
+  assertEquals(missing.error_category, "missing");
+  assertEquals(missing.expected_payout_month, "2026-09");
+
+  const bad = resolvePayoutMonth({
+    body: { test_mode: true, payout_month: "2026-13" },
+    snapshotMonth: "2026-08",
+    ...EXEC,
+  });
+  if (bad.ok) throw new Error("unreachable");
+  assertEquals(bad.error_code, "PAYOUT_MONTH_INVALID_FORMAT");
+  assertEquals(bad.received_payout_month, "2026-13");
+
+  const same = resolvePayoutMonth({
+    body: { test_mode: true, payout_month: "2026-08" },
+    snapshotMonth: "2026-08",
+    ...EXEC,
+  });
+  if (same.ok) throw new Error("unreachable");
+  assertEquals(same.error_code, "PAYOUT_MONTH_EQUALS_SNAPSHOT");
+  assertEquals(same.error_category, "equals_snapshot");
+
+  const rollover = resolvePayoutMonth({
+    body: { test_mode: true, payout_month: "2026-01" },
+    snapshotMonth: "2026-12",
+    payoutYear: 2027,
+    payoutMonth: 1,
+  });
+  if (rollover.ok) throw new Error("unreachable");
+  assertEquals(rollover.error_code, "PAYOUT_MONTH_ROLLOVER_MISMATCH");
+  assertEquals(rollover.expected_payout_month, "2027-01");
+});
+
+Deno.test("跨年正確帶入 2027-01 → 通過", () => {
+  const res = resolvePayoutMonth({
+    body: { test_mode: true, payout_month: "2027-01" },
+    snapshotMonth: "2026-12",
+    payoutYear: 2027,
+    payoutMonth: 1,
+  });
+  assertEquals(res.ok, true);
+});
