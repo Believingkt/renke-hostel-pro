@@ -943,6 +943,9 @@ serve(async (req) => {
       });
 
 
+      // AM場域獎金：旅行日系列合併只算一館（與網紅月費同口徑）
+      // 注意：不可改動 managedNoTravel，該變數同時供 am_performance 的營收抽成使用（旅行日不列入抽成）。
+      const amVenue = mergeTravelSeries(managed);
       push({
         bonus_type: "am_venue_bonus",
         member_id: profile.id,
@@ -953,18 +956,20 @@ serve(async (req) => {
         base_revenue_excl_owner: null,
         rate: null,
         fixed_amount: amVenueFixed,
-        venue_count: managedNoTravel.length,
-        lines: fixedLines(managedNoTravel, amVenueFixed),
-        amount: Number(amVenueFixed ?? 0) * managedNoTravel.length,
+        venue_count: amVenue.ids.length,
+        lines: fixedLines(amVenue.ids, amVenueFixed),
+        amount: Number(amVenueFixed ?? 0) * amVenue.ids.length,
         amount_incl_owner: null,
         amount_excl_owner: null,
         settings_snapshot: {
           as_of: asOf,
           fixed_amount: amVenueFixed,
-          accommodation_ids: managedNoTravel,
-          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+          accommodation_ids: amVenue.ids,
+          accommodation_names: fixedAccNames(amVenue.ids),
+          travel_days_merged_ids: amVenue.travelIds,
         },
       });
+
 
     }
 
