@@ -106,7 +106,17 @@ interface CloserVenueRow {
   }>;
 }
 
+/** 星探成交獎金明細（依合作折扣碼分組，純顯示對帳用，不影響金額計算） */
+export interface ScoutCloserCodeRow {
+  code: string;
+  rate: number;
+  count: number;
+  amount: number;
+  orders: Array<{ no: string; amount: number; settled: boolean }>;
+}
+
 interface TeamHomePayload {
+  scoutCloserRows: ScoutCloserCodeRow[];
   closerVenueRows: CloserVenueRow[];
 
 
@@ -341,6 +351,9 @@ export default function TeamHome() {
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
   const [closerPreviewCnt, setCloserPreviewCnt] = useState(0);
   const [scoutCloserAmt, setScoutCloserAmt] = useState(0);
+  const [scoutCloserRows, setScoutCloserRows] = useState<ScoutCloserCodeRow[]>([]);
+  const [scoutCloserOpen, setScoutCloserOpen] = useState(false);
+  const [expandedScoutCode, setExpandedScoutCode] = useState<string | null>(null);
   const [closerTeamBonusAmt, setCloserTeamBonusAmt] = useState(0);
   const [closerTeamBonusRate, setCloserTeamBonusRate] = useState(0);
   const [closerTeamBonusNoSetting, setCloserTeamBonusNoSetting] = useState(false);
@@ -479,6 +492,9 @@ export default function TeamHome() {
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
     setCloserPreviewCnt(p.closerPreviewCount ?? 0);
     setScoutCloserAmt(p.scoutCloserSum);
+    setScoutCloserRows(p.scoutCloserRows ?? []);
+    setScoutCloserOpen(false);
+    setExpandedScoutCode(null);
     setCloserTeamBonusAmt(p.closerTeamBonusSum);
     setCloserTeamBonusRate(p.closerTeamBonusRateVal);
     setCloserTeamBonusNoSetting(p.closerTeamBonusNoSet);
@@ -784,6 +800,7 @@ export default function TeamHome() {
         })();
         // ===== 星探成交獎金（scout_discount_codes partner，成交人 = 自己）=====
         let scoutCloserSum = 0;
+        const scoutCloserRows: ScoutCloserCodeRow[] = [];
         const pScoutCloser = (async () => {
         if (showCloser && isMonthlyPayout) {
           const { data: partnerCodes } = await db
@@ -803,7 +820,7 @@ export default function TeamHome() {
           if (rateMap.size > 0) {
             const { data: ords } = await db
               .from("orders")
-              .select("id, discount_code, final_price, order_date")
+              .select("id, order_number, discount_code, final_price, order_date")
               .neq("order_status", "cancelled")
               .not("discount_code", "is", null)
               .gte("order_date", monthStartIso)
@@ -824,13 +841,44 @@ export default function TeamHome() {
               });
             }
 
+            // 已由後端試算／發放的折扣碼獎金（有紀錄＝實發，無紀錄＝預估）
+            const settledOrderIds = new Set<string>();
+            if (orderIds.length > 0) {
+              const { data: payoutRows } = await db
+                .from("scout_discount_code_payouts")
+                .select("order_id, payout_status")
+                .eq("recipient_id", userId)
+                .in("order_id", orderIds);
+              (payoutRows ?? []).forEach((r: any) => {
+                if (r.order_id) settledOrderIds.add(String(r.order_id));
+              });
+            }
+
+            const byCode = new Map<string, ScoutCloserCodeRow>();
             for (const o of orderList) {
               if (excluded.has(o.id)) continue;
               if (closerByOrderId.get(o.id) !== userId) continue;
-              const rate = rateMap.get(String(o.discount_code).trim().toUpperCase());
+              const code = String(o.discount_code).trim().toUpperCase();
+              const rate = rateMap.get(code);
               if (!rate) continue;
-              scoutCloserSum += Math.round(Number(o.final_price ?? 0) * rate);
+              const amt = Math.round(Number(o.final_price ?? 0) * rate);
+              scoutCloserSum += amt;
+              let row = byCode.get(code);
+              if (!row) {
+                row = { code, rate, count: 0, amount: 0, orders: [] };
+                byCode.set(code, row);
+              }
+              row.count += 1;
+              row.amount += amt;
+              row.orders.push({
+                no: String(o.order_number ?? o.id),
+                amount: amt,
+                settled: settledOrderIds.has(String(o.id)),
+              });
             }
+            scoutCloserRows.push(
+              ...Array.from(byCode.values()).sort((a, b) => b.amount - a.amount),
+            );
           }
         }
 
@@ -1862,6 +1910,7 @@ export default function TeamHome() {
 
         if (cancelled) return;
         const payload: TeamHomePayload = {
+          scoutCloserRows,
           closerVenueRows,
           closerSum,
 
