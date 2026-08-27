@@ -129,8 +129,9 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     key: "venue_closing",
     name: "場域成交獎金",
     category: "team",
-    formula: "該月簽約成立且收取行銷推廣費的館別數 × 固定金額",
-    basis: "固定金額；門檻判定會用到館別營收，故仍標記受雙軌口徑影響",
+    formula: "該月簽約成立且收取行銷推廣費的館別數 × 固定金額（旅行日系列合併只算一館）",
+    basis: "固定金額；旅行日系列合併只算一館；門檻判定會用到館別營收，故仍標記受雙軌口徑影響",
+
     gates: ["該月生效的簽約人指派", "館別約定收取行銷推廣費"],
     usesVenueRevenue: true,
     anchorId: "bonus-venue_closing",
