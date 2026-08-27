@@ -1207,7 +1207,14 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                               const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                               const isSatSun = isWeekend(date);
                               const isRedDay = (isSatSun || isHoliday) && holiday?.holiday_type !== "work_on_weekend";
-                              const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                              // 斜線沿用上層房型日期格既有判定（鎖房 / 未開庫存 / 售罄），不另建庫存算法
+                              const rowAvailable = getAvailableRooms(roomType.id, dateStr);
+                              const rowRemaining = Math.max(0, rowAvailable - getBookedCount(roomType.id, dateStr));
+                              const blockedByExclusive = compositionCellStriped(
+                                isBlockedByExclusive(roomType.id, dateStr),
+                                rowAvailable === 0,
+                                rowAvailable > 0 && rowRemaining === 0,
+                              );
                               const isLast = i === dates.length - 1;
                               return (
                                 <div
