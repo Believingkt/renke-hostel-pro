@@ -2532,6 +2532,21 @@ export default function TeamHome() {
 
                         : null
                     : null}
+
+                  {!loading && c.key === "closer" && closerVenueRows.length > 0 ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 h-9 w-full text-xs sm:h-7 sm:w-auto"
+                      onClick={() => {
+                        setExpandedVenueKey(null);
+                        setCloserVenueOpen(true);
+                      }}
+                    >
+                      各館別明細（{closerVenueRows.length} 館）
+                    </Button>
+                  ) : null}
+
                 </CardContent>
               </Card>
             );
