@@ -1430,32 +1430,33 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                             const hasExclusiveBooking = exclusiveBookedDates.get(roomType.id)?.has(dateStr) === true;
                             const hasExclusiveOrder = hasExclusiveBooking || !!cfg;
                             const lockedCount = cfg ? (cfg.get(pr.name) ?? 0) : (hasExclusiveBooking ? pr.count : 0);
-                            const remaining = Math.max(0, pr.count - lockedCount);
-                            return (
-                              <div
-                                key={dateStr}
-                                className={cn(
-                                   "shrink-0 border-r last:border-r-0 p-2 text-center text-sm overflow-hidden",
-                                  isRedDay && "bg-destructive/5",
-                                  isToday(date) && "bg-primary/5",
-                                )}
-                                style={{
-                                   ...dayColumnStyle,
-                                  ...(hasExclusiveOrder
-                                    ? {
-                                        backgroundColor: "hsl(var(--muted) / 0.28)",
-                                        backgroundImage:
-                                          "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
-                                      }
-                                    : {}),
-                                }}
-                              >
-                                {hasExclusiveOrder ? (
-                                  <span className="inline-flex items-center justify-center gap-0.5 text-muted-foreground">
-                                    <Lock className="h-3 w-3" />
-                                    <span className="font-medium">{remaining}/{pr.count}</span>
-                                  </span>
-                                ) : null}
+                             const remaining = Math.max(0, pr.count - lockedCount);
+                             const cell = compositionCellDisplay(hasExclusiveOrder, remaining, pr.count);
+                             return (
+                               <div
+                                 key={dateStr}
+                                 className={cn(
+                                    "shrink-0 border-r last:border-r-0 p-2 text-center text-sm overflow-hidden",
+                                   isRedDay && "bg-destructive/5",
+                                   isToday(date) && "bg-primary/5",
+                                 )}
+                                 style={{
+                                    ...dayColumnStyle,
+                                   ...(hasExclusiveOrder
+                                     ? {
+                                         backgroundColor: "hsl(var(--muted) / 0.28)",
+                                         backgroundImage:
+                                           "repeating-linear-gradient(-45deg, transparent, transparent 6px, hsl(var(--border) / 0.8) 6px, hsl(var(--border) / 0.8) 8px)",
+                                       }
+                                     : {}),
+                                 }}
+                               >
+                                 {cell.show ? (
+                                   <span className="inline-flex items-center justify-center gap-0.5 text-muted-foreground">
+                                     <Lock className="h-3 w-3" />
+                                     <span className="font-medium">{cell.text}</span>
+                                   </span>
+                                 ) : null}
                               </div>
                             );
                           })}
