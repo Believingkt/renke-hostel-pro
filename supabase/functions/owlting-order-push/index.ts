@@ -523,7 +523,7 @@ async function processRow(
       duration_ms: durationMs,
       success: ok,
       owlnest_md5: md5,
-      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { cancel_response_kind: kind } : {}) },
+      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { source: "deleted_order_snapshot", cancel_response_kind: kind } : {}) },
       error_message: ok
         ? (kind === "already_cancelled" ? "already_cancelled (idempotent success)"
           : kind === "not_found" ? "already_absent / not_found (reconciliation success)" : null)
