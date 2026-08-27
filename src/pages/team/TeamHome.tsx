@@ -2868,6 +2868,13 @@ export default function TeamHome() {
                                 <div className="text-[11px] text-muted-foreground mt-0.5">
                                   {r.orders.length} 筆訂單・Gross {fmt(r.gross)}・點擊{open ? "收合" : "展開"}單號
                                 </div>
+                                {r.pendingClawback !== 0 ? (
+                                  <div className="text-[11px] text-amber-600 dark:text-amber-500 mt-0.5">
+                                    含待扣回 {fmt(r.pendingClawback)}（
+                                    {r.orders.filter((o) => o.pendingClawback).length} 筆已取消未扣回）
+                                  </div>
+                                ) : null}
+
                               </td>
                               <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.current)}</td>
                               <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.backfill)}</td>
