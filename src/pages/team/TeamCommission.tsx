@@ -1135,12 +1135,23 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
   // payout_month 必須明確送出（資料月 +1），否則後端會拒絕，避免快照被寫成「執行當月」
   // 送出前先跑「回填前置檢查」：缺失／與預期不一致時中止或要求二次確認。
+  const recalcSignature = `${year}-${month}-${recalcPeriod}-${prevMonthKey}`;
+  /** 後端已用相同參數拒絕過 → 阻止重送 */
+  const recalcBlocked = recalcError?.signature === recalcSignature;
+
   const runRecalc = async (opts?: { confirmedPayoutMonth?: string }) => {
+    if (recalcError && recalcError.signature === recalcSignature) {
+      toast.error(recalcError.presented.title, {
+        description: `${recalcError.presented.reason} ${recalcError.presented.action}`,
+      });
+      return;
+    }
     const precheck = precheckPayoutMonth({
       snapshotMonth: prevMonthKey,
       selectedYear: year,
       selectedMonth: month,
     });
+
 
     if (!precheck.ok || !precheck.payoutMonth) {
       setPayoutWarn(null);
