@@ -64,6 +64,10 @@ import {
   formatCountableRangeNote,
 } from "@/lib/teamBonusRevenue";
 import { roundBonus, roundBoosted } from "@/lib/bonusRounding";
+import {
+  buildScoutCloserBreakdown,
+  type ScoutCloserCodeRow,
+} from "@/utils/scoutCloserBreakdown";
 import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
 
 /** 館別營收／獎金明細列 */
