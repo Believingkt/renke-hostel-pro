@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
 import { PaymentHoldRows, PaymentHoldCard } from "@/components/booking-calendar/PaymentHoldRows";
 import type { PaymentHoldEvent } from "@/lib/paymentHoldEvents";
-import { compositionCellDisplay } from "@/lib/compositionRowDisplay";
+import { compositionCellDisplay, compositionCellStriped } from "@/lib/compositionRowDisplay";
 
 
 interface BookingCalendarGridProps {
