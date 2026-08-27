@@ -896,7 +896,7 @@ export default function TeamHome() {
         if (showCloser && isMonthlyPayout) {
           const { data: adjRows } = await db
             .from("closer_commission_adjustments")
-            .select("adjustment_type, closer_amount")
+            .select("adjustment_type, closer_amount, order_id")
             .eq("adjustment_month", monthInfo.payoutMonthKey)
             .eq("closer_id", userId);
           for (const r of (adjRows ?? []) as any[]) {
@@ -904,7 +904,18 @@ export default function TeamHome() {
             const amt = toCloserPersonal(Number(r.closer_amount ?? 0));
             if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
             else closerOtherAdjSum += amt;
+            if (r.order_id) {
+              closerVenueRaw.push({
+                orderId: String(r.order_id),
+                accId: null,
+                rate: null,
+                gross: Number(r.closer_amount ?? 0),
+                personal: amt,
+                kind: "adjust",
+              });
+            }
           }
+
           closerCancelAdjSum = Math.round(closerCancelAdjSum);
           closerOtherAdjSum = Math.round(closerOtherAdjSum);
 
