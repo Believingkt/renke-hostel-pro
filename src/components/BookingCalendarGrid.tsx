@@ -1032,6 +1032,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                       const isSoldOut = available > 0 && remaining === 0;
                       const noInventory = available === 0;
                       const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
+                      // 斜線 = 該日已不可再售：鎖房 / 無庫存 / 售罄（沿用畫面同一組顯示值，不另建算法）
+                      const striped = compositionCellStriped(blockedByExclusive, noInventory, isSoldOut);
                       const holiday = holidays.get(dateStr);
                       const isHoliday = holiday && (holiday.holiday_type === "holiday" || holiday.holiday_type === "compensatory_day_off");
                       const isSatSun = isWeekend(date);
@@ -1047,7 +1049,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           )}
                           style={{
                             ...dayColumnStyle,
-                            ...(blockedByExclusive
+                            ...(striped
                               ? {
                                   backgroundColor: "hsl(var(--muted) / 0.28)",
                                   backgroundImage:

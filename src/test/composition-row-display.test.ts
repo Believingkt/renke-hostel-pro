@@ -57,3 +57,22 @@ describe("包棟內房間組成斜線繼承上層狀態", () => {
     expect(compositionCellStriped(false, false, true)).toBe(true);
   });
 });
+
+describe("上層房型日期格斜線（庫存 0 即斜線）", () => {
+  it("CASE 1: 庫存 1 未鎖房 → 無斜線", () => {
+    expect(compositionCellStriped(false, false, false)).toBe(false);
+  });
+  it("CASE 2: 庫存 0 → 斜線", () => {
+    expect(compositionCellStriped(false, true, false)).toBe(true);
+  });
+  it("CASE 7: 草原區 0 斜線 / 高地區 1 不斜線", () => {
+    expect(compositionCellStriped(false, true, false)).toBe(true);
+    expect(compositionCellStriped(false, false, false)).toBe(false);
+  });
+  it("CASE 9: 人工／包區鎖房仍斜線", () => {
+    expect(compositionCellStriped(true, false, false)).toBe(true);
+  });
+  it("售罄（available>0 但 remaining 0）→ 斜線", () => {
+    expect(compositionCellStriped(false, false, true)).toBe(true);
+  });
+});
