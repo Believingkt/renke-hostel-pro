@@ -1402,20 +1402,37 @@ export default function TeamCommissionStatsTab() {
 
 
                             <TableCell className="tabular-nums font-semibold">
-                              {bonusMultiplier > 1 ? (
-                                <div className="flex flex-col leading-tight items-end">
-                                  <span className="text-muted-foreground line-through text-xs font-normal">
-                                    {fmtMoney(memberTotal)}
+                              <AxisTooltip
+                                content={
+                                  <div className="space-y-1 tabular-nums">
+                                    <p className="font-semibold">{r.name}・發放月 {payoutMonthKey} 組成</p>
+                                    <p>本期（資料月 {dataMonthKey}）：{fmtMoney(netCommission(memberCommissionSum))}</p>
+                                    <p>＋ 回溯補建：{fmtMoney(memberBf)}</p>
+                                    <p>＋ 分潤補差／取消扣回：{fmtMoney(memberAdj)}</p>
+                                    <p className="border-t border-border pt-1 font-semibold">
+                                      ＝ 發放總計：{fmtMoney(memberTotal)}
+                                    </p>
+                                    <p className="text-muted-foreground">點成員列可展開逐館與逐筆明細。</p>
+                                  </div>
+                                }
+                              >
+                                {bonusMultiplier > 1 ? (
+                                  <span className="flex flex-col leading-tight items-end">
+                                    <span className="text-muted-foreground line-through text-xs font-normal">
+                                      {fmtMoney(memberTotal)}
+                                    </span>
+                                    <span className="text-primary">
+                                      {fmtMoney(memberTotalBoosted)}
+                                      <span className="ml-1 text-xs font-normal text-primary/80">×{bonusMultiplier.toFixed(2)}</span>
+                                    </span>
                                   </span>
-                                  <span className="text-primary">
-                                    {fmtMoney(memberTotalBoosted)}
-                                    <span className="ml-1 text-xs font-normal text-primary/80">×{bonusMultiplier.toFixed(2)}</span>
-                                  </span>
-                                </div>
-                              ) : (
-                                fmtMoney(memberTotal)
-                              )}
+                                ) : (
+                                  <span>{fmtMoney(memberTotal)}</span>
+                                )}
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </AxisTooltip>
                             </TableCell>
+
                           </>
                         )}
                         <TableCell className="tabular-nums">{r.cancelCount}</TableCell>
