@@ -674,11 +674,20 @@ export default function TeamHome() {
         // Snapshot 為唯一 Source of Truth；Preview 只補「尚未建立任何 Snapshot」的訂單，
         // 去重以 order_id 為鍵並跨所有 payout_month 檢查，避免舊快照被重複計入。
         let closerPreviewCount = 0;
+        // 各館別明細原始列（只做顯示彙整，不參與任何金額計算）
+        const closerVenueRaw: Array<{
+          orderId: string;
+          accId: string | null;
+          rate: number | null;
+          gross: number;
+          personal: number;
+          kind: "current" | "backfill" | "preview" | "adjust";
+        }> = [];
         const pCloser = (async () => {
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
+            .select("order_id, accommodation_id, closer_rate, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -691,11 +700,20 @@ export default function TeamHome() {
                 const amt = toCloserPersonal(Number(r.closer_commission_amount ?? 0));
                 closerSum += amt;
                 const sm = String(r.snapshot_month ?? "");
-                if (sm && sm !== currentMonthKey) {
+                const isBackfill = !!sm && sm !== currentMonthKey;
+                if (isBackfill) {
                   closerBackfillSum += amt;
                   closerBackfillCount += 1;
                   closerBackfillMonthSet.add(sm);
                 }
+                closerVenueRaw.push({
+                  orderId: String(r.order_id),
+                  accId: r.accommodation_id ? String(r.accommodation_id) : null,
+                  rate: r.closer_rate === null || r.closer_rate === undefined ? null : Number(r.closer_rate),
+                  gross: Number(r.closer_commission_amount ?? 0),
+                  personal: amt,
+                  kind: isBackfill ? "backfill" : "current",
+                });
               }
               if (showVideo && r.video_creator_id === userId) {
                 videoSum += roundBonus(r.video_commission_amount);
@@ -731,7 +749,16 @@ export default function TeamHome() {
               const oid = String(r.order_id);
               if (snapshotted.has(oid) || counted.has(oid)) continue;
               counted.add(oid);
-              closerSum += toCloserPersonal(Number(r.closer_commission ?? 0));
+              const amt = toCloserPersonal(Number(r.closer_commission ?? 0));
+              closerSum += amt;
+              closerVenueRaw.push({
+                orderId: oid,
+                accId: r.accommodation_id ? String(r.accommodation_id) : null,
+                rate: r.closer_rate === null || r.closer_rate === undefined ? null : Number(r.closer_rate),
+                gross: Number(r.closer_commission ?? 0),
+                personal: amt,
+                kind: "preview",
+              });
             }
             closerPreviewCount = counted.size;
 
@@ -741,6 +768,7 @@ export default function TeamHome() {
             }
           }
         }
+
 
 
 
