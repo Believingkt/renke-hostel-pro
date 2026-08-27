@@ -12,11 +12,37 @@ export const PAYOUT_MONTH_REQUIRED_ERROR =
 
 export const PAYOUT_MONTH_PATTERN = /^\d{4}-\d{2}$/;
 
+/** 可機讀錯誤代碼（前端依代碼顯示對應提示與建議操作） */
+export type PayoutMonthErrorCode =
+  | "PAYOUT_MONTH_MISSING"
+  | "PAYOUT_MONTH_INVALID_FORMAT"
+  | "PAYOUT_MONTH_EQUALS_SNAPSHOT"
+  | "PAYOUT_MONTH_ROLLOVER_MISMATCH";
+
+/** 錯誤分類（供告警/報表聚合） */
+export type PayoutMonthErrorCategory =
+  | "missing"
+  | "invalid_format"
+  | "equals_snapshot"
+  | "rollover_mismatch";
+
+export const PAYOUT_MONTH_ERROR_CATEGORY: Record<PayoutMonthErrorCode, PayoutMonthErrorCategory> = {
+  PAYOUT_MONTH_MISSING: "missing",
+  PAYOUT_MONTH_INVALID_FORMAT: "invalid_format",
+  PAYOUT_MONTH_EQUALS_SNAPSHOT: "equals_snapshot",
+  PAYOUT_MONTH_ROLLOVER_MISMATCH: "rollover_mismatch",
+};
+
 export function payoutEqualsSnapshotError(month: string, expected: string | null): string {
   return `發放月（${month}）與資料月相同，這會造成期別錯誤，已中止。${
     expected ? `正確發放月應為 ${expected}。` : ""
   }`.trim();
 }
+
+export function payoutRolloverMismatchError(month: string, expected: string): string {
+  return `發放月（${month}）跨年推算錯誤，依規則（資料月 +1）應為 ${expected}，已中止以免快照寫入錯誤年度。`;
+}
+
 
 /** 月份字串是否合法（含 01-12 範圍檢查） */
 export function isValidMonthKey(value: unknown): value is string {
