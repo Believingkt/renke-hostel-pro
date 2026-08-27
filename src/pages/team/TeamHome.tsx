@@ -472,6 +472,8 @@ export default function TeamHome() {
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
+    setCloserVenueRows(p.closerVenueRows ?? []);
+
     setCloserBackfill(p.closerBackfillSum ?? 0);
     setCloserBackfillCnt(p.closerBackfillCount ?? 0);
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
