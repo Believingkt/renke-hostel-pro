@@ -1049,7 +1049,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                           )}
                           style={{
                             ...dayColumnStyle,
-                            ...(blockedByExclusive
+                            ...(striped
                               ? {
                                   backgroundColor: "hsl(var(--muted) / 0.28)",
                                   backgroundImage:
