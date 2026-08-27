@@ -456,6 +456,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     expected: string;
     message: string;
   } | null>(null);
+  /** 後端回傳 400（可機讀錯誤代碼）：顯示原因與建議操作，並阻止以相同參數重送 */
+  const [recalcError, setRecalcError] = useState<{
+    signature: string;
+    presented: PayoutErrorPresentation;
+  } | null>(null);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
   const [venueDetail, setVenueDetail] = useState<{
     member: string;
