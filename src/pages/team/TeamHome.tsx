@@ -2901,10 +2901,23 @@ export default function TeamHome() {
                                                   ? "預估"
                                                   : "本期"}
                                           </span>
+                                          {o.pendingClawback ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="ml-1 text-[10px] px-1 py-0 border-amber-500 text-amber-600 dark:text-amber-500"
+                                            >
+                                              待扣回
+                                            </Badge>
+                                          ) : null}
                                         </span>
-                                        <span className="tabular-nums whitespace-nowrap">{fmt(o.amount)}</span>
+                                        <span
+                                          className={`tabular-nums whitespace-nowrap ${o.pendingClawback ? "text-amber-600 dark:text-amber-500" : ""}`}
+                                        >
+                                          {fmt(o.amount)}
+                                        </span>
                                       </div>
                                     ))}
+
                                   </div>
                                 </td>
                               </tr>
