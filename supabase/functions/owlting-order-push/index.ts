@@ -203,7 +203,9 @@ async function processRow(
   }
   const order: any = resolved.order;
   const fromSnapshot = resolved.kind === "snapshot";
-  if (fromSnapshot) baseLog.source = "deleted_order_snapshot";
+  // NOTE: do NOT add ad-hoc columns to baseLog — owlting_order_push_log has a
+  // fixed schema and unknown keys make the insert fail silently. The snapshot
+  // marker goes into mapping_meta instead.
 
   // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
   // 即使後續在 PMS 修改內容或取消也不重推。
@@ -521,7 +523,7 @@ async function processRow(
       duration_ms: durationMs,
       success: ok,
       owlnest_md5: md5,
-      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { cancel_response_kind: kind } : {}) },
+      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { source: "deleted_order_snapshot", cancel_response_kind: kind } : {}) },
       error_message: ok
         ? (kind === "already_cancelled" ? "already_cancelled (idempotent success)"
           : kind === "not_found" ? "already_absent / not_found (reconciliation success)" : null)
