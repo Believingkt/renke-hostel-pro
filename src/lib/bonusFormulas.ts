@@ -159,6 +159,17 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     anchorId: "bonus-closer_team_bonus",
   },
 
+  {
+    key: "scout_closer_bonus",
+    name: "星探成交獎金",
+    category: "closer",
+    formula: "Σ(使用星探合作折扣碼之訂單金額 × 該折扣碼成交加成費率)",
+    basis: "訂單成交人為本人、且折扣碼為 partner 類型並設有成交加成費率；獨立於館別分潤快照，不併入成交獎金",
+    gates: [GATE_STATUS, "訂單成交人為本人", "折扣碼啟用中且設有成交加成費率"],
+    usesVenueRevenue: false,
+    anchorId: "bonus-scout_closer_bonus",
+  },
+
   // ── 三、星探獎金 ─────────────────────────────
   {
     key: "scout_base",
