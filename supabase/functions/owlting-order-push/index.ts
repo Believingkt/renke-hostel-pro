@@ -494,7 +494,11 @@ async function processRow(
 
   try {
     const { status, text, durationMs } = await sendToOwlting(cfg.cm_api_endpoint_url, xml);
-    const ok = status >= 200 && status < 300 && isSuccessRs(text);
+    const rawOk = status >= 200 && status < 300 && isSuccessRs(text);
+    // Idempotency reconciliation applies ONLY to the deleted-order snapshot
+    // replay path; normal Cancel semantics are unchanged.
+    const kind = fromSnapshot ? classifyCancelResponse(status, text, isSuccessRs(text)) : (rawOk ? "success" : "error");
+    const ok = rawOk || (fromSnapshot && (kind === "already_cancelled" || kind === "not_found"));
     const md5 = parseOwlNestMd5(text);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
@@ -504,9 +508,13 @@ async function processRow(
       duration_ms: durationMs,
       success: ok,
       owlnest_md5: md5,
-      mapping_meta: { stays: mappingAudit },
-      error_message: ok ? null : "non-success response",
+      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { cancel_response_kind: kind } : {}) },
+      error_message: ok
+        ? (kind === "already_cancelled" ? "already_cancelled (idempotent success)"
+          : kind === "not_found" ? "already_absent / not_found (reconciliation success)" : null)
+        : "non-success response",
     });
+
     if (ok) {
       await admin.from("owlting_order_push_queue").update({
         status: "sent",
