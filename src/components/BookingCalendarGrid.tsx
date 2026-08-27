@@ -1433,6 +1433,8 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                             const lockedCount = cfg ? (cfg.get(pr.name) ?? 0) : (hasExclusiveBooking ? pr.count : 0);
                              const remaining = Math.max(0, pr.count - lockedCount);
                              const cell = compositionCellDisplay(hasExclusiveOrder, remaining, pr.count);
+                             // 斜線沿用上層房型日期格既有鎖房判定（唯一 SoT）
+                             const blockedByExclusive = isBlockedByExclusive(roomType.id, dateStr);
                              return (
                                <div
                                  key={dateStr}
@@ -1443,7 +1445,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                  )}
                                  style={{
                                     ...dayColumnStyle,
-                                   ...(hasExclusiveOrder
+                                   ...(blockedByExclusive
                                      ? {
                                          backgroundColor: "hsl(var(--muted) / 0.28)",
                                          backgroundImage:
