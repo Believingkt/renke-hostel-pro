@@ -203,7 +203,9 @@ async function processRow(
   }
   const order: any = resolved.order;
   const fromSnapshot = resolved.kind === "snapshot";
-  if (fromSnapshot) baseLog.source = "deleted_order_snapshot";
+  // NOTE: do NOT add ad-hoc columns to baseLog — owlting_order_push_log has a
+  // fixed schema and unknown keys make the insert fail silently. The snapshot
+  // marker goes into mapping_meta instead.
 
   // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
   // 即使後續在 PMS 修改內容或取消也不重推。
