@@ -37,7 +37,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronDown, ChevronRight, Eye, Pencil, CalendarIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, Pencil, CalendarIcon, Info } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -103,7 +110,38 @@ function DateYMDPicker({
   );
 }
 
+/**
+ * 口徑說明用 Tooltip（純顯示，不影響任何計算）。
+ * 桌機 hover／鍵盤 focus 皆可觸發；手機版摘要卡另有逐項列出組成，不依賴 hover。
+ */
+function AxisTooltip({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center gap-1 cursor-help"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {children}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[300px] text-xs leading-relaxed">
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 interface OrderLite {
+
   id: string;
   accommodation_id: string;
   final_price: number;
@@ -1080,7 +1118,7 @@ export default function TeamCommissionStatsTab() {
 
                   <div className="mt-2 border-t pt-2">
                     <div className="text-[11px] text-muted-foreground">
-                      {showAdj ? "發放總計" : "分潤金額"}
+                      {showAdj ? `發放總計（發放月 ${payoutMonthKey}）` : "分潤金額"}
                     </div>
                     <div className="text-xl font-semibold tabular-nums break-words text-primary">
                       {fmtMoney(showAdj ? mainTotal : netCommission(memberCommissionSum))}
@@ -1096,7 +1134,16 @@ export default function TeamCommissionStatsTab() {
                   </div>
 
                   <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t pt-2 text-[11px]">
+                    {showAdj && (
+                      <div className="flex min-w-0 items-baseline justify-between gap-2">
+                        <dt className="text-muted-foreground">本期（資料月 {dataMonthKey}）</dt>
+                        <dd className="tabular-nums whitespace-nowrap">
+                          {fmtMoney(netCommission(memberCommissionSum))}
+                        </dd>
+                      </div>
+                    )}
                     {hasBackfill && (
+
                       <div className="flex min-w-0 items-baseline justify-between gap-2">
                         <dt className="text-muted-foreground">回溯補建</dt>
                         <dd
@@ -1234,7 +1281,25 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">
-                  分潤金額
+                  <AxisTooltip
+                    content={
+                      <div className="space-y-1">
+                        <p className="font-semibold">成交口徑（資料月 {dataMonthKey}）</p>
+                        <p>
+                          只計 order_date 落在 {dataMonthKey} 的訂單，代表「這個月成交了多少」。
+                          不含前期回溯補建、不含分潤補差與取消扣回，因此會與 TeamHome 的發放金額不同。
+                        </p>
+                      </div>
+                    }
+                  >
+                    分潤金額
+                    {showAdj && (
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        （資料月 {dataMonthKey}）
+                      </span>
+                    )}
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
                   {showBonus && (
                     <span
                       className="ml-1 text-[10px] text-muted-foreground font-normal"
@@ -1260,8 +1325,31 @@ export default function TeamCommissionStatsTab() {
                         （{payoutMonthKey} 發放月）
                       </span>
                     </TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">發放總計</TableHead>
+                    <TableHead className="whitespace-nowrap tabular-nums">
+                      <AxisTooltip
+                        content={
+                          <div className="space-y-1">
+                            <p className="font-semibold">發放口徑（發放月 {payoutMonthKey}）</p>
+                            <p>
+                              與 TeamHome「成交獎金」卡片同一口徑：
+                              資料月 {dataMonthKey} 本期金額 ＋ 回溯補建（前期漏建訂單）
+                              ＋ 分潤補差（含取消扣回，扣回為負值）。
+                            </p>
+                            <p className="text-muted-foreground">
+                              展開成員列可逐館、逐筆查看每一項組成。
+                            </p>
+                          </div>
+                        }
+                      >
+                        發放總計
+                        <span className="text-[10px] text-muted-foreground font-normal">
+                          （發放月 {payoutMonthKey}）
+                        </span>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </AxisTooltip>
+                    </TableHead>
                   </>
+
                 )}
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
@@ -1323,20 +1411,37 @@ export default function TeamCommissionStatsTab() {
 
 
                             <TableCell className="tabular-nums font-semibold">
-                              {bonusMultiplier > 1 ? (
-                                <div className="flex flex-col leading-tight items-end">
-                                  <span className="text-muted-foreground line-through text-xs font-normal">
-                                    {fmtMoney(memberTotal)}
+                              <AxisTooltip
+                                content={
+                                  <div className="space-y-1 tabular-nums">
+                                    <p className="font-semibold">{r.name}・發放月 {payoutMonthKey} 組成</p>
+                                    <p>本期（資料月 {dataMonthKey}）：{fmtMoney(netCommission(memberCommissionSum))}</p>
+                                    <p>＋ 回溯補建：{fmtMoney(memberBf)}</p>
+                                    <p>＋ 分潤補差／取消扣回：{fmtMoney(memberAdj)}</p>
+                                    <p className="border-t border-border pt-1 font-semibold">
+                                      ＝ 發放總計：{fmtMoney(memberTotal)}
+                                    </p>
+                                    <p className="text-muted-foreground">點成員列可展開逐館與逐筆明細。</p>
+                                  </div>
+                                }
+                              >
+                                {bonusMultiplier > 1 ? (
+                                  <span className="flex flex-col leading-tight items-end">
+                                    <span className="text-muted-foreground line-through text-xs font-normal">
+                                      {fmtMoney(memberTotal)}
+                                    </span>
+                                    <span className="text-primary">
+                                      {fmtMoney(memberTotalBoosted)}
+                                      <span className="ml-1 text-xs font-normal text-primary/80">×{bonusMultiplier.toFixed(2)}</span>
+                                    </span>
                                   </span>
-                                  <span className="text-primary">
-                                    {fmtMoney(memberTotalBoosted)}
-                                    <span className="ml-1 text-xs font-normal text-primary/80">×{bonusMultiplier.toFixed(2)}</span>
-                                  </span>
-                                </div>
-                              ) : (
-                                fmtMoney(memberTotal)
-                              )}
+                                ) : (
+                                  <span>{fmtMoney(memberTotal)}</span>
+                                )}
+                                <Info className="h-3 w-3 text-muted-foreground" />
+                              </AxisTooltip>
                             </TableCell>
+
                           </>
                         )}
                         <TableCell className="tabular-nums">{r.cancelCount}</TableCell>
