@@ -122,6 +122,10 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 import { roundBonus } from "@/lib/bonusRounding";
 import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
 import { precheckPayoutMonth } from "@/utils/payoutMonthCheck";
+import {
+  extractPayoutMonthError,
+  type PayoutErrorPresentation,
+} from "@/utils/payoutMonthErrors";
 
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -455,6 +459,11 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
     payoutMonth: string;
     expected: string;
     message: string;
+  } | null>(null);
+  /** 後端回傳 400（可機讀錯誤代碼）：顯示原因與建議操作，並阻止以相同參數重送 */
+  const [recalcError, setRecalcError] = useState<{
+    signature: string;
+    presented: PayoutErrorPresentation;
   } | null>(null);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
   const [venueDetail, setVenueDetail] = useState<{
@@ -1126,12 +1135,29 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
   // payout_month 必須明確送出（資料月 +1），否則後端會拒絕，避免快照被寫成「執行當月」
   // 送出前先跑「回填前置檢查」：缺失／與預期不一致時中止或要求二次確認。
+  const recalcSignature = `${year}-${month}-${recalcPeriod}-${prevMonthKey}`;
+  /** 後端已用相同參數拒絕過 → 阻止重送 */
+  const recalcBlocked = recalcError?.signature === recalcSignature;
+
+  // 參數變更（年／月／期別／資料月）後解除封鎖，允許重新送出
+  useEffect(() => {
+    setRecalcError((prev) => (prev && prev.signature !== recalcSignature ? null : prev));
+  }, [recalcSignature]);
+
+
   const runRecalc = async (opts?: { confirmedPayoutMonth?: string }) => {
+    if (recalcError && recalcError.signature === recalcSignature) {
+      toast.error(recalcError.presented.title, {
+        description: `${recalcError.presented.reason} ${recalcError.presented.action}`,
+      });
+      return;
+    }
     const precheck = precheckPayoutMonth({
       snapshotMonth: prevMonthKey,
       selectedYear: year,
       selectedMonth: month,
     });
+
 
     if (!precheck.ok || !precheck.payoutMonth) {
       setPayoutWarn(null);
@@ -1165,9 +1191,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
       if (error) throw error;
       const res = data as {
         failed?: string[];
-        results?: Array<{ fn: string; body?: unknown }>;
+        results?: Array<{ fn: string; ok?: boolean; status?: number | null; body?: unknown }>;
       };
+      // 後端 400（可機讀錯誤代碼）→ 顯示明確原因與建議操作，並阻止相同參數重送
+      const presented = extractPayoutMonthError(res?.results);
+      if (presented) {
+        setRecalcError({ signature: recalcSignature, presented });
+        toast.error(presented.title, {
+          description: `${presented.reason} ${presented.action}`,
+        });
+        return;
+      }
       const failed: string[] = res?.failed ?? [];
+
       const snapBody = res?.results?.find((r) => r.fn === "create-commission-snapshots")?.body as
         | {
             created?: number;
@@ -1474,13 +1510,34 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {recalcBlocked && recalcError && (
+                    <div className="space-y-1 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs">
+                      <p className="font-semibold text-destructive">
+                        {recalcError.presented.title}（代碼 {recalcError.presented.code}）
+                      </p>
+                      <p>{recalcError.presented.reason}</p>
+                      <p className="text-muted-foreground">
+                        建議操作：{recalcError.presented.action}
+                      </p>
+                      <p className="text-muted-foreground">
+                        資料月 {recalcError.presented.snapshotMonth ?? "—"}・預期發放月{" "}
+                        {recalcError.presented.expectedPayoutMonth ?? "—"}・實際送出{" "}
+                        {recalcError.presented.receivedPayoutMonth ?? "—"}
+                      </p>
+                      <p className="text-muted-foreground">
+                        已阻止以相同參數重送，請先修改發放年月或期別。
+                      </p>
+                    </div>
+                  )}
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
-              <Button onClick={() => runRecalc()} disabled={recalcRunning}>
-                {recalcRunning ? "試算中…" : "開始重新試算"}
+              <Button onClick={() => runRecalc()} disabled={recalcRunning || recalcBlocked}>
+                {recalcRunning ? "試算中…" : recalcBlocked ? "已阻止重送（請修改參數）" : "開始重新試算"}
+
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
