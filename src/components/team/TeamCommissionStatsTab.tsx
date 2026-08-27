@@ -110,7 +110,38 @@ function DateYMDPicker({
   );
 }
 
+/**
+ * 口徑說明用 Tooltip（純顯示，不影響任何計算）。
+ * 桌機 hover／鍵盤 focus 皆可觸發；手機版摘要卡另有逐項列出組成，不依賴 hover。
+ */
+function AxisTooltip({
+  children,
+  content,
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+}) {
+  return (
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span
+            className="inline-flex items-center gap-1 cursor-help"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {children}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[300px] text-xs leading-relaxed">
+          {content}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 interface OrderLite {
+
   id: string;
   accommodation_id: string;
   final_price: number;
