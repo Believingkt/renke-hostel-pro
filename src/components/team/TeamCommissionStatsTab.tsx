@@ -1272,7 +1272,25 @@ export default function TeamCommissionStatsTab() {
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">
-                  分潤金額
+                  <AxisTooltip
+                    content={
+                      <div className="space-y-1">
+                        <p className="font-semibold">成交口徑（資料月 {dataMonthKey}）</p>
+                        <p>
+                          只計 order_date 落在 {dataMonthKey} 的訂單，代表「這個月成交了多少」。
+                          不含前期回溯補建、不含分潤補差與取消扣回，因此會與 TeamHome 的發放金額不同。
+                        </p>
+                      </div>
+                    }
+                  >
+                    分潤金額
+                    {showAdj && (
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        （資料月 {dataMonthKey}）
+                      </span>
+                    )}
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
                   {showBonus && (
                     <span
                       className="ml-1 text-[10px] text-muted-foreground font-normal"
@@ -1298,8 +1316,31 @@ export default function TeamCommissionStatsTab() {
                         （{payoutMonthKey} 發放月）
                       </span>
                     </TableHead>
-                    <TableHead className="whitespace-nowrap tabular-nums">發放總計</TableHead>
+                    <TableHead className="whitespace-nowrap tabular-nums">
+                      <AxisTooltip
+                        content={
+                          <div className="space-y-1">
+                            <p className="font-semibold">發放口徑（發放月 {payoutMonthKey}）</p>
+                            <p>
+                              與 TeamHome「成交獎金」卡片同一口徑：
+                              資料月 {dataMonthKey} 本期金額 ＋ 回溯補建（前期漏建訂單）
+                              ＋ 分潤補差（含取消扣回，扣回為負值）。
+                            </p>
+                            <p className="text-muted-foreground">
+                              展開成員列可逐館、逐筆查看每一項組成。
+                            </p>
+                          </div>
+                        }
+                      >
+                        發放總計
+                        <span className="text-[10px] text-muted-foreground font-normal">
+                          （發放月 {payoutMonthKey}）
+                        </span>
+                        <Info className="h-3 w-3 text-muted-foreground" />
+                      </AxisTooltip>
+                    </TableHead>
                   </>
+
                 )}
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
