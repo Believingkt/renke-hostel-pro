@@ -900,47 +900,50 @@ serve(async (req) => {
       const managed: string[] = Array.isArray(profile.am_managed_accommodation_ids)
         ? profile.am_managed_accommodation_ids.filter(Boolean)
         : [];
-      // 旅行日系列不計入 AM 績效／場域獎金
+      // 旅行日系列不計入 AM 績效（抽成類）；場域獎金則改為合併算一館
       const managedNoTravel = managed.filter(
         (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
       );
-      if (managedNoTravel.length === 0) continue;
+      if (managed.length === 0) continue;
 
-      const myRevenue = await getAccommodationRevenue(
-        supabase,
-        managedNoTravel,
-        monthStartDate,
-        monthEndDate,
-        sharedSources,
-      );
+      if (managedNoTravel.length > 0) {
+        const myRevenue = await getAccommodationRevenue(
+          supabase,
+          managedNoTravel,
+          monthStartDate,
+          monthEndDate,
+          sharedSources,
+        );
 
-      const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
+        const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
 
-      push({
-        bonus_type: "am_performance",
-        member_id: profile.id,
-        snapshot_month: snapshotMonthStr,
-        payout_month: payoutMonthStr,
-        base_revenue: myRevenue.payout,
-        base_revenue_incl_owner: myRevenue.incl,
-        base_revenue_excl_owner: myRevenue.excl,
-        rate: amPerfRate,
-        fixed_amount: null,
-        venue_count: managedNoTravel.length,
-        amount: amPerfPool.amount,
-        amount_incl_owner: amPerfPool.incl,
-        amount_excl_owner: amPerfPool.excl,
-        payout_basis_used: myRevenue.basis,
-        lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
-        settings_snapshot: {
-          as_of: asOf,
+        push({
+          bonus_type: "am_performance",
+          member_id: profile.id,
+          snapshot_month: snapshotMonthStr,
+          payout_month: payoutMonthStr,
+          base_revenue: myRevenue.payout,
+          base_revenue_incl_owner: myRevenue.incl,
+          base_revenue_excl_owner: myRevenue.excl,
           rate: amPerfRate,
-          shared_sources: sharedSources,
-          accommodation_ids: managedNoTravel,
-          excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
-          tier_rule_accommodation_ids: amPerfPool.tierAccIds,
-        },
-      });
+          fixed_amount: null,
+          venue_count: managedNoTravel.length,
+          amount: amPerfPool.amount,
+          amount_incl_owner: amPerfPool.incl,
+          amount_excl_owner: amPerfPool.excl,
+          payout_basis_used: myRevenue.basis,
+          lines: revenueLines(myRevenue, amPerfRate, { bonusType: "am_performance" }),
+          settings_snapshot: {
+            as_of: asOf,
+            rate: amPerfRate,
+            shared_sources: sharedSources,
+            accommodation_ids: managedNoTravel,
+            excluded_travel_days: managed.filter((id) => !managedNoTravel.includes(id)),
+            tier_rule_accommodation_ids: amPerfPool.tierAccIds,
+          },
+        });
+      }
+
 
 
       // AM場域獎金：旅行日系列合併只算一館（與網紅月費同口徑）
