@@ -122,6 +122,10 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 import { roundBonus } from "@/lib/bonusRounding";
 import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
 import { precheckPayoutMonth } from "@/utils/payoutMonthCheck";
+import {
+  extractPayoutMonthError,
+  type PayoutErrorPresentation,
+} from "@/utils/payoutMonthErrors";
 
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
