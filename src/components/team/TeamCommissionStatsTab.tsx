@@ -1118,7 +1118,7 @@ export default function TeamCommissionStatsTab() {
 
                   <div className="mt-2 border-t pt-2">
                     <div className="text-[11px] text-muted-foreground">
-                      {showAdj ? "發放總計" : "分潤金額"}
+                      {showAdj ? `發放總計（發放月 ${payoutMonthKey}）` : "分潤金額"}
                     </div>
                     <div className="text-xl font-semibold tabular-nums break-words text-primary">
                       {fmtMoney(showAdj ? mainTotal : netCommission(memberCommissionSum))}
@@ -1134,7 +1134,16 @@ export default function TeamCommissionStatsTab() {
                   </div>
 
                   <dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 border-t pt-2 text-[11px]">
+                    {showAdj && (
+                      <div className="flex min-w-0 items-baseline justify-between gap-2">
+                        <dt className="text-muted-foreground">本期（資料月 {dataMonthKey}）</dt>
+                        <dd className="tabular-nums whitespace-nowrap">
+                          {fmtMoney(netCommission(memberCommissionSum))}
+                        </dd>
+                      </div>
+                    )}
                     {hasBackfill && (
+
                       <div className="flex min-w-0 items-baseline justify-between gap-2">
                         <dt className="text-muted-foreground">回溯補建</dt>
                         <dd
