@@ -1510,13 +1510,34 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {recalcBlocked && recalcError && (
+                    <div className="space-y-1 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs">
+                      <p className="font-semibold text-destructive">
+                        {recalcError.presented.title}（代碼 {recalcError.presented.code}）
+                      </p>
+                      <p>{recalcError.presented.reason}</p>
+                      <p className="text-muted-foreground">
+                        建議操作：{recalcError.presented.action}
+                      </p>
+                      <p className="text-muted-foreground">
+                        資料月 {recalcError.presented.snapshotMonth ?? "—"}・預期發放月{" "}
+                        {recalcError.presented.expectedPayoutMonth ?? "—"}・實際送出{" "}
+                        {recalcError.presented.receivedPayoutMonth ?? "—"}
+                      </p>
+                      <p className="text-muted-foreground">
+                        已阻止以相同參數重送，請先修改發放年月或期別。
+                      </p>
+                    </div>
+                  )}
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
-              <Button onClick={() => runRecalc()} disabled={recalcRunning}>
-                {recalcRunning ? "試算中…" : "開始重新試算"}
+              <Button onClick={() => runRecalc()} disabled={recalcRunning || recalcBlocked}>
+                {recalcRunning ? "試算中…" : recalcBlocked ? "已阻止重送（請修改參數）" : "開始重新試算"}
+
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
