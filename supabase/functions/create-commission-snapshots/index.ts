@@ -5,6 +5,8 @@ import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
+import { resolvePayoutMonth } from "./payoutMonthResolver.ts";
+
 
 /** 保留單（hold）不計入分潤 */
 function isHoldOrder(status?: string | null): boolean {
@@ -119,21 +121,16 @@ serve(async (req) => {
     const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
     // 手動重算（test_mode）一律要求明確帶入 payout_month，避免被寫成「執行當月」造成
     // snapshot_month === payout_month 的錯誤期別。排程（非 test_mode）維持原邏輯。
-    const payoutMonthOverride =
-      typeof body?.payout_month === "string" && /^\d{4}-\d{2}$/.test(body.payout_month)
-        ? body.payout_month
-        : null;
-    if (testMode && !payoutMonthOverride) {
+    // 規則抽到 payoutMonthResolver.ts（純函式，有 Deno 測試覆蓋）。
+    const payoutResolution = resolvePayoutMonth({ body, payoutYear, payoutMonth });
+    if (!payoutResolution.ok) {
       return jsonResponse(
-        {
-          success: false,
-          error:
-            "手動重算必須明確指定發放月 payout_month（格式 YYYY-MM，通常為資料月 +1）。未指定時不會沿用執行當月，請重新送出。",
-        },
-        400,
+        { success: false, error: payoutResolution.error },
+        payoutResolution.status,
       );
     }
-    const payoutMonthStr = payoutMonthOverride ?? `${payoutYear}-${pad2(payoutMonth)}`;
+    const payoutMonthStr = payoutResolution.payoutMonthStr;
+
 
     const supabase = authRes.ctx.admin;
 

@@ -121,6 +121,7 @@ const CYCLE_PAYOUT_DAYS: Record<string, number[]> = {
 
 import { roundBonus } from "@/lib/bonusRounding";
 import { loadCloserBonusRateResolver, splitCloserBonus } from "@/lib/closerBonusSplit";
+import { precheckPayoutMonth } from "@/utils/payoutMonthCheck";
 
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -448,6 +449,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   const [recalcResult, setRecalcResult] = useState<{
     title: string;
     rows: Array<{ label: string; value: number }>;
+  } | null>(null);
+  /** 回填前置檢查：發放月與預期（資料月 +1）不一致時的二次確認 */
+  const [payoutWarn, setPayoutWarn] = useState<{
+    payoutMonth: string;
+    expected: string;
+    message: string;
   } | null>(null);
   const [teamBonusNotFinalized, setTeamBonusNotFinalized] = useState(false);
   const [venueDetail, setVenueDetail] = useState<{
@@ -1118,11 +1125,33 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
   // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
   // payout_month 必須明確送出（資料月 +1），否則後端會拒絕，避免快照被寫成「執行當月」
-  const runRecalc = async () => {
+  // 送出前先跑「回填前置檢查」：缺失／與預期不一致時中止或要求二次確認。
+  const runRecalc = async (opts?: { confirmedPayoutMonth?: string }) => {
+    const precheck = precheckPayoutMonth({
+      snapshotMonth: prevMonthKey,
+      selectedYear: year,
+      selectedMonth: month,
+    });
+
+    if (!precheck.ok || !precheck.payoutMonth) {
+      setPayoutWarn(null);
+      toast.error("重新試算已中止", { description: precheck.message ?? "發放月檢查未通過" });
+      return;
+    }
+
+    if (precheck.level === "warn" && opts?.confirmedPayoutMonth !== precheck.payoutMonth) {
+      setPayoutWarn({
+        payoutMonth: precheck.payoutMonth,
+        expected: precheck.expectedPayoutMonth ?? "—",
+        message: precheck.message ?? "",
+      });
+      return;
+    }
+
+    setPayoutWarn(null);
     setRecalcRunning(true);
     try {
-      const [py, pm] = prevMonthKey.split("-").map(Number);
-      const payoutMonthKeyForRecalc = `${pm === 12 ? py + 1 : py}-${String(pm === 12 ? 1 : pm + 1).padStart(2, "0")}`;
+      const payoutMonthKeyForRecalc = precheck.payoutMonth;
       const { data, error } = await supabase.functions.invoke("cron-dispatcher-commission", {
         body: {
           year,
@@ -1132,6 +1161,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           payout_month: payoutMonthKeyForRecalc,
         },
       });
+
       if (error) throw error;
       const res = data as {
         failed?: string[];
@@ -1449,12 +1479,44 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
-              <Button onClick={runRecalc} disabled={recalcRunning}>
+              <Button onClick={() => runRecalc()} disabled={recalcRunning}>
                 {recalcRunning ? "試算中…" : "開始重新試算"}
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* 回填前置檢查：發放月與預期（資料月 +1）不一致時的二次確認 */}
+        <AlertDialog open={!!payoutWarn} onOpenChange={(o) => !o && setPayoutWarn(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>發放月與預期不一致</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-2 text-sm">
+                  <p>{payoutWarn?.message}</p>
+                  <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs">
+                    資料月 <strong>{prevMonthKey}</strong>・預期發放月{" "}
+                    <strong>{payoutWarn?.expected}</strong>・實際將送出{" "}
+                    <strong>{payoutWarn?.payoutMonth}</strong>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    若不確定，請先關閉並重新選擇正確的發放年月；錯誤的發放月會造成 TeamHome 與本頁金額對不上。
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={recalcRunning}>取消</AlertDialogCancel>
+              <Button
+                disabled={recalcRunning}
+                onClick={() => runRecalc({ confirmedPayoutMonth: payoutWarn?.payoutMonth })}
+              >
+                仍要以 {payoutWarn?.payoutMonth} 送出
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
 
         {/* 單段式：執行完成後的結果摘要（不做事前預覽，已發放快照永不變動） */}
         <AlertDialog open={!!recalcResult} onOpenChange={(o) => !o && setRecalcResult(null)}>
