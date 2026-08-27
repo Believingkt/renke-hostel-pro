@@ -117,11 +117,22 @@ serve(async (req) => {
     }
 
     const snapshotMonthStr = `${snapYear}-${pad2(snapMonth)}`;
-    // 允許（僅手動重算時）指定發放期；未指定時維持原本「執行當月」邏輯不變
+    // 手動重算（test_mode）一律要求明確帶入 payout_month，避免被寫成「執行當月」造成
+    // snapshot_month === payout_month 的錯誤期別。排程（非 test_mode）維持原邏輯。
     const payoutMonthOverride =
-      testMode && typeof body?.payout_month === "string" && /^\d{4}-\d{2}$/.test(body.payout_month)
+      typeof body?.payout_month === "string" && /^\d{4}-\d{2}$/.test(body.payout_month)
         ? body.payout_month
         : null;
+    if (testMode && !payoutMonthOverride) {
+      return jsonResponse(
+        {
+          success: false,
+          error:
+            "手動重算必須明確指定發放月 payout_month（格式 YYYY-MM，通常為資料月 +1）。未指定時不會沿用執行當月，請重新送出。",
+        },
+        400,
+      );
+    }
     const payoutMonthStr = payoutMonthOverride ?? `${payoutYear}-${pad2(payoutMonth)}`;
 
     const supabase = authRes.ctx.admin;

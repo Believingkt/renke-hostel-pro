@@ -1117,15 +1117,19 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   }, [fetchData]);
 
   // 手動重新試算：呼叫 cron-dispatcher-commission，帶入發放年月與期別
+  // payout_month 必須明確送出（資料月 +1），否則後端會拒絕，避免快照被寫成「執行當月」
   const runRecalc = async () => {
     setRecalcRunning(true);
     try {
+      const [py, pm] = prevMonthKey.split("-").map(Number);
+      const payoutMonthKeyForRecalc = `${pm === 12 ? py + 1 : py}-${String(pm === 12 ? 1 : pm + 1).padStart(2, "0")}`;
       const { data, error } = await supabase.functions.invoke("cron-dispatcher-commission", {
         body: {
           year,
           month,
           period: recalcPeriod,
           snapshot_month: prevMonthKey,
+          payout_month: payoutMonthKeyForRecalc,
         },
       });
       if (error) throw error;
