@@ -1776,6 +1776,77 @@ export default function TeamHome() {
           pMultipliers,
         ]);
 
+        // ===== 成交獎金：各館別明細彙整（純顯示，對帳用）=====
+        // 桶鍵 = 館別 + 費率（與「成交統計」的 uid|acc|rate 分桶一致）。
+        const closerVenueRows: CloserVenueRow[] = [];
+        if (closerVenueRaw.length > 0) {
+          const ids = Array.from(new Set(closerVenueRaw.map((r) => r.orderId)));
+          const orderInfo = new Map<string, { no: string; accId: string | null }>();
+          for (let i = 0; i < ids.length; i += 300) {
+            const chunk = ids.slice(i, i + 300);
+            const { data: ords } = await db
+              .from("orders")
+              .select("id, order_number, accommodation_id")
+              .in("id", chunk);
+            (ords ?? []).forEach((o: any) =>
+              orderInfo.set(String(o.id), {
+                no: String(o.order_number ?? "").trim() || String(o.id).slice(0, 8),
+                accId: o.accommodation_id ? String(o.accommodation_id) : null,
+              }),
+            );
+          }
+          const accIds = Array.from(
+            new Set(
+              closerVenueRaw
+                .map((r) => r.accId ?? orderInfo.get(r.orderId)?.accId ?? null)
+                .filter((v): v is string => !!v),
+            ),
+          );
+          const accNames = new Map<string, string>();
+          if (accIds.length > 0) {
+            const { data: accs } = await db
+              .from("accommodation_info")
+              .select("id, name")
+              .in("id", accIds);
+            (accs ?? []).forEach((a: any) => accNames.set(String(a.id), String(a.name ?? "")));
+          }
+
+          const bucket = new Map<string, CloserVenueRow>();
+          for (const r of closerVenueRaw) {
+            const accId = r.accId ?? orderInfo.get(r.orderId)?.accId ?? "unknown";
+            const key = `${accId}|${r.rate ?? ""}`;
+            let row = bucket.get(key);
+            if (!row) {
+              row = {
+                accId,
+                name: accNames.get(accId) ?? "未知館別",
+                rate: r.rate,
+                current: 0,
+                backfill: 0,
+                adjust: 0,
+                gross: 0,
+                total: 0,
+                orders: [],
+              };
+              bucket.set(key, row);
+            }
+            if (r.kind === "backfill") row.backfill += r.personal;
+            else if (r.kind === "adjust") row.adjust += r.personal;
+            else row.current += r.personal;
+            row.gross += r.gross;
+            row.total += r.personal;
+            row.orders.push({
+              no: orderInfo.get(r.orderId)?.no ?? r.orderId.slice(0, 8),
+              kind: r.kind,
+              amount: r.personal,
+            });
+          }
+          closerVenueRows.push(
+            ...Array.from(bucket.values()).sort((a, b) => b.total - a.total),
+          );
+        }
+
+
         // ===== Multipliers =====
         // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
         // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
