@@ -103,12 +103,17 @@ interface CloserVenueRow {
   adjust: number;
   gross: number;
   total: number;
+  /** 已取消但尚未產生 closer_commission_adjustments 的金額（個人實發口徑，正值＝未來預計扣回） */
+  pendingClawback: number;
   orders: Array<{
     no: string;
     kind: "current" | "backfill" | "preview" | "adjust";
     amount: number;
+    /** 訂單已取消且查無對應扣回紀錄 → 待扣回 */
+    pendingClawback?: boolean;
   }>;
 }
+
 
 interface TeamHomePayload {
   scoutCloserRows: ScoutCloserCodeRow[];
@@ -1813,20 +1818,28 @@ export default function TeamHome() {
         const closerVenueRows: CloserVenueRow[] = [];
         if (closerVenueRaw.length > 0) {
           const ids = Array.from(new Set(closerVenueRaw.map((r) => r.orderId)));
-          const orderInfo = new Map<string, { no: string; accId: string | null }>();
+          const orderInfo = new Map<
+            string,
+            { no: string; accId: string | null; cancelled: boolean }
+          >();
           for (let i = 0; i < ids.length; i += 300) {
             const chunk = ids.slice(i, i + 300);
             const { data: ords } = await db
               .from("orders")
-              .select("id, order_number, accommodation_id")
+              .select("id, order_number, accommodation_id, order_status")
               .in("id", chunk);
             (ords ?? []).forEach((o: any) =>
               orderInfo.set(String(o.id), {
                 no: String(o.order_number ?? "").trim() || String(o.id).slice(0, 8),
                 accId: o.accommodation_id ? String(o.accommodation_id) : null,
+                cancelled: String(o.order_status ?? "") === "cancelled",
               }),
             );
           }
+          // 已有 closer_commission_adjustments（本期別）的訂單 → 已扣回，不標記
+          const adjustedOrderIds = new Set(
+            closerVenueRaw.filter((r) => r.kind === "adjust").map((r) => r.orderId),
+          );
           const accIds = Array.from(
             new Set(
               closerVenueRaw
@@ -1858,6 +1871,7 @@ export default function TeamHome() {
                 adjust: 0,
                 gross: 0,
                 total: 0,
+                pendingClawback: 0,
                 orders: [],
               };
               bucket.set(key, row);
@@ -1867,12 +1881,20 @@ export default function TeamHome() {
             else row.current += r.personal;
             row.gross += r.gross;
             row.total += r.personal;
+            // 待扣回：快照／預估仍計入金額，但訂單已取消且查無對應扣回紀錄
+            const pending =
+              r.kind !== "adjust" &&
+              !!orderInfo.get(r.orderId)?.cancelled &&
+              !adjustedOrderIds.has(r.orderId);
+            if (pending) row.pendingClawback += r.personal;
             row.orders.push({
               no: orderInfo.get(r.orderId)?.no ?? r.orderId.slice(0, 8),
               kind: r.kind,
               amount: r.personal,
+              pendingClawback: pending,
             });
           }
+
           closerVenueRows.push(
             ...Array.from(bucket.values()).sort((a, b) => b.total - a.total),
           );
@@ -2786,6 +2808,11 @@ export default function TeamHome() {
               (s, r) => s + r.orders.filter((o) => o.kind === "preview").length,
               0,
             );
+            const pendingCnt = rows.reduce(
+              (s, r) => s + r.orders.filter((o) => o.pendingClawback).length,
+              0,
+            );
+            const pendingAmt = sum((r) => r.pendingClawback);
             return (
               <div className="mx-auto w-full max-w-2xl">
                 <DrawerHeader>
@@ -2799,8 +2826,15 @@ export default function TeamHome() {
                       卡片顯示的是個人實發（Gross 扣除團獎拆分比例後），統計 Tab 若顯示 Gross，差額即為此拆分。
                       {previewCnt > 0 ? `　另含 ${previewCnt} 筆預估補位（尚未建立正式快照）。` : ""}
                     </span>
+                    {pendingCnt > 0 ? (
+                      <span className="block text-[11px] text-amber-600 dark:text-amber-500">
+                        待扣回 {pendingCnt} 筆・{fmt(pendingAmt)}：訂單已取消但尚未產生扣回紀錄，
+                        金額仍留在本表；「成交統計」即時排除已取消訂單，此金額即為兩邊差額來源。
+                      </span>
+                    ) : null}
                   </DrawerDescription>
                 </DrawerHeader>
+
                 <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
                   <table className="w-full min-w-[520px] text-xs sm:text-sm">
                     <thead>
@@ -2834,6 +2868,13 @@ export default function TeamHome() {
                                 <div className="text-[11px] text-muted-foreground mt-0.5">
                                   {r.orders.length} 筆訂單・Gross {fmt(r.gross)}・點擊{open ? "收合" : "展開"}單號
                                 </div>
+                                {r.pendingClawback !== 0 ? (
+                                  <div className="text-[11px] text-amber-600 dark:text-amber-500 mt-0.5">
+                                    含待扣回 {fmt(r.pendingClawback)}（
+                                    {r.orders.filter((o) => o.pendingClawback).length} 筆已取消未扣回）
+                                  </div>
+                                ) : null}
+
                               </td>
                               <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.current)}</td>
                               <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.backfill)}</td>
@@ -2860,10 +2901,23 @@ export default function TeamHome() {
                                                   ? "預估"
                                                   : "本期"}
                                           </span>
+                                          {o.pendingClawback ? (
+                                            <Badge
+                                              variant="outline"
+                                              className="ml-1 text-[10px] px-1 py-0 border-amber-500 text-amber-600 dark:text-amber-500"
+                                            >
+                                              待扣回
+                                            </Badge>
+                                          ) : null}
                                         </span>
-                                        <span className="tabular-nums whitespace-nowrap">{fmt(o.amount)}</span>
+                                        <span
+                                          className={`tabular-nums whitespace-nowrap ${o.pendingClawback ? "text-amber-600 dark:text-amber-500" : ""}`}
+                                        >
+                                          {fmt(o.amount)}
+                                        </span>
                                       </div>
                                     ))}
+
                                   </div>
                                 </td>
                               </tr>
