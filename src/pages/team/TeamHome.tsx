@@ -106,15 +106,6 @@ interface CloserVenueRow {
   }>;
 }
 
-/** 星探成交獎金明細（依合作折扣碼分組，純顯示對帳用，不影響金額計算） */
-export interface ScoutCloserCodeRow {
-  code: string;
-  rate: number;
-  count: number;
-  amount: number;
-  orders: Array<{ no: string; amount: number; settled: boolean }>;
-}
-
 interface TeamHomePayload {
   scoutCloserRows: ScoutCloserCodeRow[];
   closerVenueRows: CloserVenueRow[];
@@ -854,31 +845,14 @@ export default function TeamHome() {
               });
             }
 
-            const byCode = new Map<string, ScoutCloserCodeRow>();
-            for (const o of orderList) {
-              if (excluded.has(o.id)) continue;
-              if (closerByOrderId.get(o.id) !== userId) continue;
-              const code = String(o.discount_code).trim().toUpperCase();
-              const rate = rateMap.get(code);
-              if (!rate) continue;
-              const amt = Math.round(Number(o.final_price ?? 0) * rate);
-              scoutCloserSum += amt;
-              let row = byCode.get(code);
-              if (!row) {
-                row = { code, rate, count: 0, amount: 0, orders: [] };
-                byCode.set(code, row);
-              }
-              row.count += 1;
-              row.amount += amt;
-              row.orders.push({
-                no: String(o.order_number ?? o.id),
-                amount: amt,
-                settled: settledOrderIds.has(String(o.id)),
-              });
-            }
-            scoutCloserRows.push(
-              ...Array.from(byCode.values()).sort((a, b) => b.amount - a.amount),
+            const breakdown = buildScoutCloserBreakdown(
+              orderList as any[],
+              rateMap,
+              (id) => !excluded.has(id) && closerByOrderId.get(id) === userId,
+              settledOrderIds,
             );
+            scoutCloserSum += breakdown.total;
+            scoutCloserRows.push(...breakdown.rows);
           }
         }
 
