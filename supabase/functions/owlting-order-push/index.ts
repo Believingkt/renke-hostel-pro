@@ -478,14 +478,17 @@ async function processRow(
       sent_at: new Date().toISOString(),
       last_error: "dryrun",
     }).eq("id", row.id);
-    await admin.from("orders").update({
-      owlting_sync_state: {
-        mode: "dryrun",
-        last_action: row.res_status,
-        last_echo_token: row.echo_token,
-        at: new Date().toISOString(),
-      },
-    }).eq("id", order.id);
+    if (!fromSnapshot) {
+      await admin.from("orders").update({
+        owlting_sync_state: {
+          mode: "dryrun",
+          last_action: row.res_status,
+          last_echo_token: row.echo_token,
+          at: new Date().toISOString(),
+        },
+      }).eq("id", order.id);
+    }
+
     return { id: row.id, outcome: "dryrun_logged" };
   }
 
