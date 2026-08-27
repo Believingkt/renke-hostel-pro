@@ -2608,6 +2608,80 @@ export default function TeamHome() {
                     </Button>
                   ) : null}
 
+                  {!loading && c.key === "scout_closer_bonus" && scoutCloserRows.length > 0 ? (
+                    <div className="mt-2" data-testid="scout-closer-detail">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 w-full text-xs sm:h-7 sm:w-auto"
+                        onClick={() => {
+                          setExpandedScoutCode(null);
+                          setScoutCloserOpen((v) => !v);
+                        }}
+                      >
+                        {scoutCloserOpen
+                          ? "收合折扣碼明細"
+                          : `折扣碼明細（${scoutCloserRows.length} 組・${scoutCloserRows.reduce((n, r) => n + r.count, 0)} 筆）`}
+                      </Button>
+
+                      {scoutCloserOpen ? (
+                        <div className="mt-2 space-y-1.5">
+                          {scoutCloserRows.map((r) => {
+                            const open = expandedScoutCode === r.code;
+                            return (
+                              <div key={r.code} className="rounded-md border p-2">
+                                <button
+                                  type="button"
+                                  className="flex w-full items-start justify-between gap-2 text-left"
+                                  onClick={() => setExpandedScoutCode(open ? null : r.code)}
+                                >
+                                  <span className="min-w-0 text-[11px] sm:text-xs break-words">
+                                    <span className="font-medium">{r.code}</span>
+                                    <span className="text-muted-foreground">
+                                      　{(r.rate * 100).toFixed(1)}%・{r.count} 筆
+                                    </span>
+                                  </span>
+                                  <span className="tabular-nums whitespace-nowrap text-[11px] sm:text-xs">
+                                    {fmt(roundBoosted(r.amount, c.multiplier))}
+                                  </span>
+                                </button>
+                                {open ? (
+                                  <div className="mt-1.5 space-y-0.5 border-t pt-1.5">
+                                    {r.orders.map((o) => (
+                                      <div
+                                        key={o.no}
+                                        className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground"
+                                      >
+                                        <span className="min-w-0 break-all">
+                                          {o.no}
+                                          <Badge
+                                            variant="outline"
+                                            className="ml-1 px-1 py-0 text-[10px] align-middle"
+                                          >
+                                            {o.settled ? "實發" : "預估"}
+                                          </Badge>
+                                        </span>
+                                        <span className="tabular-nums whitespace-nowrap">
+                                          {fmt(roundBoosted(o.amount, c.multiplier))}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                          <div className="flex items-center justify-between border-t pt-1.5 text-[11px] sm:text-xs font-medium">
+                            <span>合計</span>
+                            <span className="tabular-nums">
+                              {fmt(roundBoosted(scoutCloserRows.reduce((n, r) => n + r.amount, 0), c.multiplier))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
                 </CardContent>
               </Card>
             );
