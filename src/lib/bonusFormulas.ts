@@ -69,8 +69,9 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     name: "AM場域獎金",
     category: "team",
     formula: "所轄館別數 × 每館固定金額",
-    basis: "固定金額，與營收無關",
-    gates: [GATE_PARTNERSHIP, GATE_TRAVEL],
+    basis: "固定金額，與營收無關；旅行日系列合併只算一館",
+    gates: [GATE_PARTNERSHIP],
+
     usesVenueRevenue: false,
     anchorId: "bonus-am_venue_bonus",
   },
