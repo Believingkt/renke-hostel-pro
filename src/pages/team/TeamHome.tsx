@@ -2067,7 +2067,6 @@ export default function TeamHome() {
         multiplier: closerMult,
       });
     }
-    if (scoutCloserAmt > 0) lines.push({ label: "星探成交獎金", amount: scoutCloserBoosted, multiplier: closerMult });
     // 分潤補差（依發放期別的快照 adjustment），取消扣回為負數
     const cancelAdj = roundBoosted(closerCancelAdj, closerMult);
     const otherAdj = roundBoosted(closerOtherAdj, closerMult);
@@ -2076,8 +2075,8 @@ export default function TeamHome() {
     cards.push({
       key: "closer",
       title: "成交獎金",
-      amount: closerBoosted + scoutCloserBoosted + cancelAdj + otherAdj,
-      baseAmount: closerAmt + scoutCloserAmt + closerCancelAdj + closerOtherAdj,
+      amount: closerBoosted + cancelAdj + otherAdj,
+      baseAmount: closerAmt + closerCancelAdj + closerOtherAdj,
       multiplier: closerMult,
       note: [
         monthlyNote(
@@ -2095,6 +2094,19 @@ export default function TeamHome() {
       alwaysShowLines: backfillBoosted !== 0 || cancelAdj !== 0 || otherAdj !== 0,
     });
 
+    // 星探成交獎金：獨立卡片顯示，不併入「成交獎金」
+    if (scoutCloserAmt > 0) {
+      cards.push({
+        key: "scout_closer_bonus",
+        title: "星探成交獎金",
+        amount: scoutCloserBoosted,
+        baseAmount: scoutCloserAmt,
+        multiplier: closerMult,
+        note: monthlyNote(
+          "使用星探合作折扣碼的訂單、成交人為本人的加成；不屬於館別分潤快照，故不列入成交獎金的各館別明細",
+        ),
+      });
+    }
   }
 
   if (showCloser && isMonthly) {
@@ -2770,8 +2782,8 @@ export default function TeamHome() {
                     </tfoot>
                   </table>
                   <p className="mt-3 text-[11px] text-muted-foreground">
-                    註：卡片金額另含「星探成交獎金」（使用星探合作折扣碼的訂單、成交人為本人的加成），
-                    該項不屬於館別分潤快照，故不列入本表，請以卡片項目列為準。
+                    註：「星探成交獎金」（使用星探合作折扣碼的訂單、成交人為本人的加成）已獨立為單獨卡片顯示，
+                    不屬於館別分潤快照，故不列入本表與本卡片金額。
                   </p>
                 </div>
               </div>
