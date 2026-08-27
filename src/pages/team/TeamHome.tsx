@@ -332,6 +332,10 @@ export default function TeamHome() {
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
+  const [closerVenueRows, setCloserVenueRows] = useState<CloserVenueRow[]>([]);
+  const [closerVenueOpen, setCloserVenueOpen] = useState(false);
+  const [expandedVenueKey, setExpandedVenueKey] = useState<string | null>(null);
+
   const [closerBackfill, setCloserBackfill] = useState(0);
   const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
