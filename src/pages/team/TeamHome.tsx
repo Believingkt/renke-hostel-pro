@@ -86,7 +86,29 @@ interface VenueRevenueLine {
 /** 首屏資料快取存活時間：10 分鐘內回訪直接沿用，不再重算。 */
 const TEAM_HOME_CACHE_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * 成交獎金「各館別明細」列（純對帳用，不影響任何金額計算）。
+ * 金額一律是「個人實發」（Gross ×(1 − bonus_rate)），另附 gross 供與統計 Tab 對照。
+ */
+interface CloserVenueRow {
+  accId: string;
+  name: string;
+  rate: number | null;
+  current: number;
+  backfill: number;
+  adjust: number;
+  gross: number;
+  total: number;
+  orders: Array<{
+    no: string;
+    kind: "current" | "backfill" | "preview" | "adjust";
+    amount: number;
+  }>;
+}
+
 interface TeamHomePayload {
+  closerVenueRows: CloserVenueRow[];
+
 
   closerSum: number;
   closerBackfillSum: number;
