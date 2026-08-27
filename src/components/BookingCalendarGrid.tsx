@@ -1455,9 +1455,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                     <Lock className="h-3 w-3" />
                                     <span className="font-medium">{remaining}/{pr.count}</span>
                                   </span>
-                                ) : (
-                                  <span className="font-medium text-foreground">{pr.count}</span>
-                                )}
+                                ) : null}
                               </div>
                             );
                           })}
