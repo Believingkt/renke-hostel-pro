@@ -125,7 +125,15 @@ serve(async (req) => {
     const payoutResolution = resolvePayoutMonth({ body, payoutYear, payoutMonth, snapshotMonth: snapshotMonthStr });
     if (!payoutResolution.ok) {
       return jsonResponse(
-        { success: false, error: payoutResolution.error },
+        {
+          success: false,
+          error: payoutResolution.error,
+          error_code: payoutResolution.error_code,
+          error_category: payoutResolution.error_category,
+          snapshot_month: payoutResolution.snapshot_month,
+          expected_payout_month: payoutResolution.expected_payout_month,
+          received_payout_month: payoutResolution.received_payout_month,
+        },
         payoutResolution.status,
       );
     }
