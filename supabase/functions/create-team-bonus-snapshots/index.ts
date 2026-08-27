@@ -1141,13 +1141,8 @@ serve(async (req) => {
       const partneredAccIds = activeAccIds.filter(
         (id) => (kolMonthlyRanges[id]?.length ?? 0) > 0,
       );
-      const travelDayIds = partneredAccIds.filter((id) =>
-        (accNameById.get(id) ?? "").startsWith("旅行日"),
-      );
-      const kolMonthlyAccIds = [
-        ...partneredAccIds.filter((id) => !(accNameById.get(id) ?? "").startsWith("旅行日")),
-        ...(travelDayIds.length > 0 ? [travelDayIds[0]] : []),
-      ];
+      const { ids: kolMonthlyAccIds, travelIds: travelDayIds } = mergeTravelSeries(partneredAccIds);
+
       push({
         bonus_type: "kol_monthly",
         member_id: kolRecipientId,
