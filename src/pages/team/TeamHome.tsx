@@ -2656,6 +2656,131 @@ export default function TeamHome() {
           })()}
         </DrawerContent>
       </Drawer>
+
+      {/* 成交獎金－各館別明細（對帳用；與「成交統計」同分桶：館別 × 費率） */}
+      <Drawer open={closerVenueOpen} onOpenChange={setCloserVenueOpen}>
+        <DrawerContent>
+          {(() => {
+            const rows = closerVenueRows;
+            const sum = (f: (r: CloserVenueRow) => number) =>
+              rows.reduce((s, r) => s + f(r), 0);
+            const totalCurrent = sum((r) => r.current);
+            const totalBackfill = sum((r) => r.backfill);
+            const totalAdjust = sum((r) => r.adjust);
+            const totalPersonal = sum((r) => r.total);
+            const totalGross = sum((r) => r.gross);
+            const previewCnt = rows.reduce(
+              (s, r) => s + r.orders.filter((o) => o.kind === "preview").length,
+              0,
+            );
+            return (
+              <div className="mx-auto w-full max-w-2xl">
+                <DrawerHeader>
+                  <DrawerTitle>成交獎金－各館別明細</DrawerTitle>
+                  <DrawerDescription className="space-y-0.5">
+                    <span className="block tabular-nums">
+                      個人實發合計 {fmt(totalPersonal)}　／　Gross 合計 {fmt(totalGross)}
+                    </span>
+                    <span className="block text-[11px]">
+                      每列＝本期 ＋ 回溯補建 ＋ 補差 ＝ 發放總計，與「成交統計」欄位口徑一致。
+                      卡片顯示的是個人實發（Gross 扣除團獎拆分比例後），統計 Tab 若顯示 Gross，差額即為此拆分。
+                      {previewCnt > 0 ? `　另含 ${previewCnt} 筆預估補位（尚未建立正式快照）。` : ""}
+                    </span>
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-xs sm:text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground border-b">
+                        <th className="text-left py-2 font-medium">館別</th>
+                        <th className="text-right py-2 font-medium">本期</th>
+                        <th className="text-right py-2 font-medium">回溯補建</th>
+                        <th className="text-right py-2 font-medium">補差／扣回</th>
+                        <th className="text-right py-2 font-medium">發放總計</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => {
+                        const key = `${r.accId}|${r.rate ?? ""}`;
+                        const open = expandedVenueKey === key;
+                        return (
+                          <>
+                            <tr
+                              key={key}
+                              className="border-b last:border-0 cursor-pointer hover:bg-muted/40"
+                              onClick={() => setExpandedVenueKey(open ? null : key)}
+                            >
+                              <td className="py-2 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="break-words">{r.name}</span>
+                                  {r.rate !== null ? (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      {pctText(r.rate)}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground mt-0.5">
+                                  {r.orders.length} 筆訂單・Gross {fmt(r.gross)}・點擊{open ? "收合" : "展開"}單號
+                                </div>
+                              </td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.current)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.backfill)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.adjust)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap font-medium">{fmt(r.total)}</td>
+                            </tr>
+                            {open ? (
+                              <tr key={`${key}-detail`} className="border-b last:border-0 bg-muted/30">
+                                <td colSpan={5} className="py-2 px-2">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                    {r.orders.map((o, i) => (
+                                      <div
+                                        key={`${o.no}-${i}`}
+                                        className="flex items-center justify-between gap-2 text-[11px] sm:text-xs"
+                                      >
+                                        <span className="font-mono">
+                                          {o.no}
+                                          <span className="ml-1 text-muted-foreground">
+                                            {o.kind === "backfill"
+                                              ? "回溯"
+                                              : o.kind === "adjust"
+                                                ? "補差"
+                                                : o.kind === "preview"
+                                                  ? "預估"
+                                                  : "本期"}
+                                          </span>
+                                        </span>
+                                        <span className="tabular-nums whitespace-nowrap">{fmt(o.amount)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t font-medium">
+                        <td className="py-2">合計</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalCurrent)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalBackfill)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalAdjust)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalPersonal)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  <p className="mt-3 text-[11px] text-muted-foreground">
+                    註：卡片金額另含「星探成交獎金」（使用星探合作折扣碼的訂單、成交人為本人的加成），
+                    該項不屬於館別分潤快照，故不列入本表，請以卡片項目列為準。
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+        </DrawerContent>
+      </Drawer>
+
     </div>
   );
 }
