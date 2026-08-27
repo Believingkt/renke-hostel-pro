@@ -1139,6 +1139,12 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
   /** 後端已用相同參數拒絕過 → 阻止重送 */
   const recalcBlocked = recalcError?.signature === recalcSignature;
 
+  // 參數變更（年／月／期別／資料月）後解除封鎖，允許重新送出
+  useEffect(() => {
+    setRecalcError((prev) => (prev && prev.signature !== recalcSignature ? null : prev));
+  }, [recalcSignature]);
+
+
   const runRecalc = async (opts?: { confirmedPayoutMonth?: string }) => {
     if (recalcError && recalcError.signature === recalcSignature) {
       toast.error(recalcError.presented.title, {
