@@ -33,7 +33,7 @@ const MAX_ATTEMPTS = 5;
 interface QueueRow {
   id: string;
   accommodation_id: string;
-  order_id: string;
+  order_id: string | null;
   res_status: ResStatus;
   echo_token: string;
   status: string;
