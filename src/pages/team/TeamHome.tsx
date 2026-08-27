@@ -1818,20 +1818,28 @@ export default function TeamHome() {
         const closerVenueRows: CloserVenueRow[] = [];
         if (closerVenueRaw.length > 0) {
           const ids = Array.from(new Set(closerVenueRaw.map((r) => r.orderId)));
-          const orderInfo = new Map<string, { no: string; accId: string | null }>();
+          const orderInfo = new Map<
+            string,
+            { no: string; accId: string | null; cancelled: boolean }
+          >();
           for (let i = 0; i < ids.length; i += 300) {
             const chunk = ids.slice(i, i + 300);
             const { data: ords } = await db
               .from("orders")
-              .select("id, order_number, accommodation_id")
+              .select("id, order_number, accommodation_id, order_status")
               .in("id", chunk);
             (ords ?? []).forEach((o: any) =>
               orderInfo.set(String(o.id), {
                 no: String(o.order_number ?? "").trim() || String(o.id).slice(0, 8),
                 accId: o.accommodation_id ? String(o.accommodation_id) : null,
+                cancelled: String(o.order_status ?? "") === "cancelled",
               }),
             );
           }
+          // 已有 closer_commission_adjustments（本期別）的訂單 → 已扣回，不標記
+          const adjustedOrderIds = new Set(
+            closerVenueRaw.filter((r) => r.kind === "adjust").map((r) => r.orderId),
+          );
           const accIds = Array.from(
             new Set(
               closerVenueRaw
@@ -1863,6 +1871,7 @@ export default function TeamHome() {
                 adjust: 0,
                 gross: 0,
                 total: 0,
+                pendingClawback: 0,
                 orders: [],
               };
               bucket.set(key, row);
@@ -1872,12 +1881,20 @@ export default function TeamHome() {
             else row.current += r.personal;
             row.gross += r.gross;
             row.total += r.personal;
+            // 待扣回：快照／預估仍計入金額，但訂單已取消且查無對應扣回紀錄
+            const pending =
+              r.kind !== "adjust" &&
+              !!orderInfo.get(r.orderId)?.cancelled &&
+              !adjustedOrderIds.has(r.orderId);
+            if (pending) row.pendingClawback += r.personal;
             row.orders.push({
               no: orderInfo.get(r.orderId)?.no ?? r.orderId.slice(0, 8),
               kind: r.kind,
               amount: r.personal,
+              pendingClawback: pending,
             });
           }
+
           closerVenueRows.push(
             ...Array.from(bucket.values()).sort((a, b) => b.total - a.total),
           );
