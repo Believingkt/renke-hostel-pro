@@ -15,6 +15,8 @@ import {
   type ResStatus,
 } from "./xml.ts";
 import { buildMappingTables, mapOutboundStay } from "./group-mapping.ts";
+import { resolveOrderForQueueRow, classifyCancelResponse } from "./deletedSnapshot.ts";
+
 
 
 const corsHeaders = {
@@ -31,7 +33,7 @@ const MAX_ATTEMPTS = 5;
 interface QueueRow {
   id: string;
   accommodation_id: string;
-  order_id: string;
+  order_id: string | null;
   res_status: ResStatus;
   echo_token: string;
   status: string;
@@ -183,16 +185,25 @@ async function processRow(
   }
 
   // Load order with rooms
-  const { data: order } = await admin
-    .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status, order_source")
-    .eq("id", row.order_id)
-    .maybeSingle();
+  const { data: dbOrder } = row.order_id
+    ? await admin
+        .from("orders")
+        .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status, order_source")
+        .eq("id", row.order_id)
+        .maybeSingle()
+    : { data: null };
 
-  if (!order) {
-    await finalizeFail(admin, row, baseLog, "order not found", true);
-    return { id: row.id, outcome: "failed", reason: "order not found" };
+  // NARROW branch: order hard-deleted locally (order_id SET NULL by FK) and the
+  // Cancel was never delivered -> rebuild from the delete-trigger snapshot.
+  // Normal orders keep the exact same path as before.
+  const resolved = resolveOrderForQueueRow(row as any, dbOrder ?? null);
+  if (resolved.kind === "fail") {
+    await finalizeFail(admin, row, baseLog, resolved.reason, resolved.permanent);
+    return { id: row.id, outcome: "failed", reason: resolved.reason };
   }
+  const order: any = resolved.order;
+  const fromSnapshot = resolved.kind === "snapshot";
+  if (fromSnapshot) baseLog.source = "deleted_order_snapshot";
 
   // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
   // 即使後續在 PMS 修改內容或取消也不重推。
@@ -211,17 +222,22 @@ async function processRow(
   }
 
   // Build room stays from order_rooms; fall back to single (room_type_id, qty=1)
-  const { data: orRooms } = await admin
-    .from("order_rooms")
-    .select("room_type_id, quantity, room_price")
-    .eq("order_id", order.id);
+  const { data: orRooms } = fromSnapshot
+    ? { data: order.__snapshot_rooms }
+    : await admin
+        .from("order_rooms")
+        .select("room_type_id, quantity, room_price")
+        .eq("order_id", order.id);
 
-  const rawStayInputs = (orRooms && orRooms.length > 0)
-    ? orRooms.map((r: any) => ({
+
+  const rawStayInputs: Array<{ room_type_id: string; quantity: number; unit_amount: number }> =
+    (orRooms && orRooms.length > 0)
+    ? (orRooms as any[]).map((r: any) => ({
         room_type_id: r.room_type_id,
         quantity: r.quantity ?? 1,
         unit_amount: Math.round(Number(r.room_price ?? 0)),
       }))
+
     : (order.room_type_id ? [{
         room_type_id: order.room_type_id,
         quantity: 1,
@@ -442,7 +458,13 @@ async function processRow(
   };
   const owlCfg: OwlConfig = { owlting_hotel_code: cfg.owlting_hotel_code };
 
-  const uniqueId = order.owlting_unique_id ?? order.order_number;
+  // Deleted-order replay MUST reuse the original PMS identity from the snapshot.
+  const uniqueId = order.owlting_unique_id ?? (fromSnapshot ? null : order.order_number);
+  if (!uniqueId) {
+    await finalizeFail(admin, row, baseLog, "manual review: no OwlTing PMS identity for deleted-order Cancel", true);
+    return { id: row.id, outcome: "failed", reason: "no PMS identity" };
+  }
+
   const xml = buildResNotifRq(owlOrder, owlCfg, {
     resStatus: row.res_status,
     echoToken: row.echo_token,
@@ -466,14 +488,17 @@ async function processRow(
       sent_at: new Date().toISOString(),
       last_error: "dryrun",
     }).eq("id", row.id);
-    await admin.from("orders").update({
-      owlting_sync_state: {
-        mode: "dryrun",
-        last_action: row.res_status,
-        last_echo_token: row.echo_token,
-        at: new Date().toISOString(),
-      },
-    }).eq("id", order.id);
+    if (!fromSnapshot) {
+      await admin.from("orders").update({
+        owlting_sync_state: {
+          mode: "dryrun",
+          last_action: row.res_status,
+          last_echo_token: row.echo_token,
+          at: new Date().toISOString(),
+        },
+      }).eq("id", order.id);
+    }
+
     return { id: row.id, outcome: "dryrun_logged" };
   }
 
@@ -482,7 +507,11 @@ async function processRow(
 
   try {
     const { status, text, durationMs } = await sendToOwlting(cfg.cm_api_endpoint_url, xml);
-    const ok = status >= 200 && status < 300 && isSuccessRs(text);
+    const rawOk = status >= 200 && status < 300 && isSuccessRs(text);
+    // Idempotency reconciliation applies ONLY to the deleted-order snapshot
+    // replay path; normal Cancel semantics are unchanged.
+    const kind = fromSnapshot ? classifyCancelResponse(status, text, isSuccessRs(text)) : (rawOk ? "success" : "error");
+    const ok = rawOk || (fromSnapshot && (kind === "already_cancelled" || kind === "not_found"));
     const md5 = parseOwlNestMd5(text);
     await admin.from("owlting_order_push_log").insert({
       ...baseLog,
@@ -492,9 +521,13 @@ async function processRow(
       duration_ms: durationMs,
       success: ok,
       owlnest_md5: md5,
-      mapping_meta: { stays: mappingAudit },
-      error_message: ok ? null : "non-success response",
+      mapping_meta: { stays: mappingAudit, ...(fromSnapshot ? { cancel_response_kind: kind } : {}) },
+      error_message: ok
+        ? (kind === "already_cancelled" ? "already_cancelled (idempotent success)"
+          : kind === "not_found" ? "already_absent / not_found (reconciliation success)" : null)
+        : "non-success response",
     });
+
     if (ok) {
       await admin.from("owlting_order_push_queue").update({
         status: "sent",
@@ -504,16 +537,19 @@ async function processRow(
       await admin.from("accommodation_owlting_config").update({
         last_successful_sync_at: new Date().toISOString(),
       }).eq("accommodation_id", row.accommodation_id);
-      await admin.from("orders").update({
-        owlting_unique_id: uniqueId,
-        owlting_sync_state: {
-          mode: "live",
-          last_action: row.res_status,
-          last_echo_token: row.echo_token,
-          owlnest_md5: md5,
-          at: new Date().toISOString(),
-        },
-      }).eq("id", order.id);
+      if (!fromSnapshot) {
+        await admin.from("orders").update({
+          owlting_unique_id: uniqueId,
+          owlting_sync_state: {
+            mode: "live",
+            last_action: row.res_status,
+            last_echo_token: row.echo_token,
+            owlnest_md5: md5,
+            at: new Date().toISOString(),
+          },
+        }).eq("id", order.id);
+      }
+
       return { id: row.id, outcome: "sent" };
     }
     const { iso, failedFinal } = computeNextRetry(row.attempt_count + 1);
