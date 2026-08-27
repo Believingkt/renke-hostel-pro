@@ -2808,6 +2808,11 @@ export default function TeamHome() {
               (s, r) => s + r.orders.filter((o) => o.kind === "preview").length,
               0,
             );
+            const pendingCnt = rows.reduce(
+              (s, r) => s + r.orders.filter((o) => o.pendingClawback).length,
+              0,
+            );
+            const pendingAmt = sum((r) => r.pendingClawback);
             return (
               <div className="mx-auto w-full max-w-2xl">
                 <DrawerHeader>
@@ -2821,8 +2826,15 @@ export default function TeamHome() {
                       卡片顯示的是個人實發（Gross 扣除團獎拆分比例後），統計 Tab 若顯示 Gross，差額即為此拆分。
                       {previewCnt > 0 ? `　另含 ${previewCnt} 筆預估補位（尚未建立正式快照）。` : ""}
                     </span>
+                    {pendingCnt > 0 ? (
+                      <span className="block text-[11px] text-amber-600 dark:text-amber-500">
+                        待扣回 {pendingCnt} 筆・{fmt(pendingAmt)}：訂單已取消但尚未產生扣回紀錄，
+                        金額仍留在本表；「成交統計」即時排除已取消訂單，此金額即為兩邊差額來源。
+                      </span>
+                    ) : null}
                   </DrawerDescription>
                 </DrawerHeader>
+
                 <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
                   <table className="w-full min-w-[520px] text-xs sm:text-sm">
                     <thead>
