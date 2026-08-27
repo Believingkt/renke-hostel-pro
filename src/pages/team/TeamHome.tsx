@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
 import ZeroBonusReason from "@/components/team/ZeroBonusReason";
@@ -2704,9 +2704,8 @@ export default function TeamHome() {
                         const key = `${r.accId}|${r.rate ?? ""}`;
                         const open = expandedVenueKey === key;
                         return (
-                          <>
+                          <Fragment key={key}>
                             <tr
-                              key={key}
                               className="border-b last:border-0 cursor-pointer hover:bg-muted/40"
                               onClick={() => setExpandedVenueKey(open ? null : key)}
                             >
@@ -2729,7 +2728,7 @@ export default function TeamHome() {
                               <td className="py-2 text-right tabular-nums whitespace-nowrap font-medium">{fmt(r.total)}</td>
                             </tr>
                             {open ? (
-                              <tr key={`${key}-detail`} className="border-b last:border-0 bg-muted/30">
+                              <tr className="border-b last:border-0 bg-muted/30">
                                 <td colSpan={5} className="py-2 px-2">
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                     {r.orders.map((o, i) => (
@@ -2756,7 +2755,7 @@ export default function TeamHome() {
                                 </td>
                               </tr>
                             ) : null}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </tbody>
