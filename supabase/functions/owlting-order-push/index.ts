@@ -183,16 +183,25 @@ async function processRow(
   }
 
   // Load order with rooms
-  const { data: order } = await admin
-    .from("orders")
-    .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status, order_source")
-    .eq("id", row.order_id)
-    .maybeSingle();
+  const { data: dbOrder } = row.order_id
+    ? await admin
+        .from("orders")
+        .select("id, order_number, accommodation_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, payment_status, notes, room_type_id, package_id, meal_plan, owlting_unique_id, order_status, order_source")
+        .eq("id", row.order_id)
+        .maybeSingle()
+    : { data: null };
 
-  if (!order) {
-    await finalizeFail(admin, row, baseLog, "order not found", true);
-    return { id: row.id, outcome: "failed", reason: "order not found" };
+  // NARROW branch: order hard-deleted locally (order_id SET NULL by FK) and the
+  // Cancel was never delivered -> rebuild from the delete-trigger snapshot.
+  // Normal orders keep the exact same path as before.
+  const resolved = resolveOrderForQueueRow(row as any, dbOrder ?? null);
+  if (resolved.kind === "fail") {
+    await finalizeFail(admin, row, baseLog, resolved.reason, resolved.permanent);
+    return { id: row.id, outcome: "failed", reason: resolved.reason };
   }
+  const order: any = resolved.order;
+  const fromSnapshot = resolved.kind === "snapshot";
+  if (fromSnapshot) baseLog.source = "deleted_order_snapshot";
 
   // 補單（來源為 owlting / hotelnabe 的 inbound 訂單）一律不回推，
   // 即使後續在 PMS 修改內容或取消也不重推。
@@ -211,10 +220,13 @@ async function processRow(
   }
 
   // Build room stays from order_rooms; fall back to single (room_type_id, qty=1)
-  const { data: orRooms } = await admin
-    .from("order_rooms")
-    .select("room_type_id, quantity, room_price")
-    .eq("order_id", order.id);
+  const { data: orRooms } = fromSnapshot
+    ? { data: order.__snapshot_rooms }
+    : await admin
+        .from("order_rooms")
+        .select("room_type_id, quantity, room_price")
+        .eq("order_id", order.id);
+
 
   const rawStayInputs = (orRooms && orRooms.length > 0)
     ? orRooms.map((r: any) => ({
