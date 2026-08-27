@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import BonusFormulaHint from "@/components/team/BonusFormulaHint";
 import ZeroBonusReason from "@/components/team/ZeroBonusReason";
@@ -86,7 +86,29 @@ interface VenueRevenueLine {
 /** 首屏資料快取存活時間：10 分鐘內回訪直接沿用，不再重算。 */
 const TEAM_HOME_CACHE_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * 成交獎金「各館別明細」列（純對帳用，不影響任何金額計算）。
+ * 金額一律是「個人實發」（Gross ×(1 − bonus_rate)），另附 gross 供與統計 Tab 對照。
+ */
+interface CloserVenueRow {
+  accId: string;
+  name: string;
+  rate: number | null;
+  current: number;
+  backfill: number;
+  adjust: number;
+  gross: number;
+  total: number;
+  orders: Array<{
+    no: string;
+    kind: "current" | "backfill" | "preview" | "adjust";
+    amount: number;
+  }>;
+}
+
 interface TeamHomePayload {
+  closerVenueRows: CloserVenueRow[];
+
 
   closerSum: number;
   closerBackfillSum: number;
@@ -310,6 +332,10 @@ export default function TeamHome() {
 
   const [loading, setLoading] = useState(true);
   const [closerAmt, setCloserAmt] = useState(0);
+  const [closerVenueRows, setCloserVenueRows] = useState<CloserVenueRow[]>([]);
+  const [closerVenueOpen, setCloserVenueOpen] = useState(false);
+  const [expandedVenueKey, setExpandedVenueKey] = useState<string | null>(null);
+
   const [closerBackfill, setCloserBackfill] = useState(0);
   const [closerBackfillCnt, setCloserBackfillCnt] = useState(0);
   const [closerBackfillMonthList, setCloserBackfillMonthList] = useState<string[]>([]);
@@ -446,6 +472,8 @@ export default function TeamHome() {
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
     setCloserAmt(p.closerSum);
+    setCloserVenueRows(p.closerVenueRows ?? []);
+
     setCloserBackfill(p.closerBackfillSum ?? 0);
     setCloserBackfillCnt(p.closerBackfillCount ?? 0);
     setCloserBackfillMonthList(p.closerBackfillMonths ?? []);
@@ -652,11 +680,20 @@ export default function TeamHome() {
         // Snapshot 為唯一 Source of Truth；Preview 只補「尚未建立任何 Snapshot」的訂單，
         // 去重以 order_id 為鍵並跨所有 payout_month 檢查，避免舊快照被重複計入。
         let closerPreviewCount = 0;
+        // 各館別明細原始列（只做顯示彙整，不參與任何金額計算）
+        const closerVenueRaw: Array<{
+          orderId: string;
+          accId: string | null;
+          rate: number | null;
+          gross: number;
+          personal: number;
+          kind: "current" | "backfill" | "preview" | "adjust";
+        }> = [];
         const pCloser = (async () => {
         if (needMeta) {
           const { data: snapRows } = await db
             .from("closer_commission_snapshots")
-            .select("order_id, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
+            .select("order_id, accommodation_id, closer_rate, closer_id, video_creator_id, closer_commission_amount, video_commission_amount, snapshot_month")
             .eq("payout_month", payoutMonthKey)
             .or(`closer_id.eq.${userId},video_creator_id.eq.${userId}`);
 
@@ -669,11 +706,20 @@ export default function TeamHome() {
                 const amt = toCloserPersonal(Number(r.closer_commission_amount ?? 0));
                 closerSum += amt;
                 const sm = String(r.snapshot_month ?? "");
-                if (sm && sm !== currentMonthKey) {
+                const isBackfill = !!sm && sm !== currentMonthKey;
+                if (isBackfill) {
                   closerBackfillSum += amt;
                   closerBackfillCount += 1;
                   closerBackfillMonthSet.add(sm);
                 }
+                closerVenueRaw.push({
+                  orderId: String(r.order_id),
+                  accId: r.accommodation_id ? String(r.accommodation_id) : null,
+                  rate: r.closer_rate === null || r.closer_rate === undefined ? null : Number(r.closer_rate),
+                  gross: Number(r.closer_commission_amount ?? 0),
+                  personal: amt,
+                  kind: isBackfill ? "backfill" : "current",
+                });
               }
               if (showVideo && r.video_creator_id === userId) {
                 videoSum += roundBonus(r.video_commission_amount);
@@ -709,7 +755,16 @@ export default function TeamHome() {
               const oid = String(r.order_id);
               if (snapshotted.has(oid) || counted.has(oid)) continue;
               counted.add(oid);
-              closerSum += toCloserPersonal(Number(r.closer_commission ?? 0));
+              const amt = toCloserPersonal(Number(r.closer_commission ?? 0));
+              closerSum += amt;
+              closerVenueRaw.push({
+                orderId: oid,
+                accId: r.accommodation_id ? String(r.accommodation_id) : null,
+                rate: r.closer_rate === null || r.closer_rate === undefined ? null : Number(r.closer_rate),
+                gross: Number(r.closer_commission ?? 0),
+                personal: amt,
+                kind: "preview",
+              });
             }
             closerPreviewCount = counted.size;
 
@@ -719,6 +774,7 @@ export default function TeamHome() {
             }
           }
         }
+
 
 
 
@@ -846,7 +902,7 @@ export default function TeamHome() {
         if (showCloser && isMonthlyPayout) {
           const { data: adjRows } = await db
             .from("closer_commission_adjustments")
-            .select("adjustment_type, closer_amount")
+            .select("adjustment_type, closer_amount, order_id")
             .eq("adjustment_month", monthInfo.payoutMonthKey)
             .eq("closer_id", userId);
           for (const r of (adjRows ?? []) as any[]) {
@@ -854,7 +910,18 @@ export default function TeamHome() {
             const amt = toCloserPersonal(Number(r.closer_amount ?? 0));
             if (String(r.adjustment_type ?? "").includes("cancel")) closerCancelAdjSum += amt;
             else closerOtherAdjSum += amt;
+            if (r.order_id) {
+              closerVenueRaw.push({
+                orderId: String(r.order_id),
+                accId: null,
+                rate: null,
+                gross: Number(r.closer_amount ?? 0),
+                personal: amt,
+                kind: "adjust",
+              });
+            }
           }
+
           closerCancelAdjSum = Math.round(closerCancelAdjSum);
           closerOtherAdjSum = Math.round(closerOtherAdjSum);
 
@@ -1715,6 +1782,77 @@ export default function TeamHome() {
           pMultipliers,
         ]);
 
+        // ===== 成交獎金：各館別明細彙整（純顯示，對帳用）=====
+        // 桶鍵 = 館別 + 費率（與「成交統計」的 uid|acc|rate 分桶一致）。
+        const closerVenueRows: CloserVenueRow[] = [];
+        if (closerVenueRaw.length > 0) {
+          const ids = Array.from(new Set(closerVenueRaw.map((r) => r.orderId)));
+          const orderInfo = new Map<string, { no: string; accId: string | null }>();
+          for (let i = 0; i < ids.length; i += 300) {
+            const chunk = ids.slice(i, i + 300);
+            const { data: ords } = await db
+              .from("orders")
+              .select("id, order_number, accommodation_id")
+              .in("id", chunk);
+            (ords ?? []).forEach((o: any) =>
+              orderInfo.set(String(o.id), {
+                no: String(o.order_number ?? "").trim() || String(o.id).slice(0, 8),
+                accId: o.accommodation_id ? String(o.accommodation_id) : null,
+              }),
+            );
+          }
+          const accIds = Array.from(
+            new Set(
+              closerVenueRaw
+                .map((r) => r.accId ?? orderInfo.get(r.orderId)?.accId ?? null)
+                .filter((v): v is string => !!v),
+            ),
+          );
+          const accNames = new Map<string, string>();
+          if (accIds.length > 0) {
+            const { data: accs } = await db
+              .from("accommodation_info")
+              .select("id, name")
+              .in("id", accIds);
+            (accs ?? []).forEach((a: any) => accNames.set(String(a.id), String(a.name ?? "")));
+          }
+
+          const bucket = new Map<string, CloserVenueRow>();
+          for (const r of closerVenueRaw) {
+            const accId = r.accId ?? orderInfo.get(r.orderId)?.accId ?? "unknown";
+            const key = `${accId}|${r.rate ?? ""}`;
+            let row = bucket.get(key);
+            if (!row) {
+              row = {
+                accId,
+                name: accNames.get(accId) ?? "未知館別",
+                rate: r.rate,
+                current: 0,
+                backfill: 0,
+                adjust: 0,
+                gross: 0,
+                total: 0,
+                orders: [],
+              };
+              bucket.set(key, row);
+            }
+            if (r.kind === "backfill") row.backfill += r.personal;
+            else if (r.kind === "adjust") row.adjust += r.personal;
+            else row.current += r.personal;
+            row.gross += r.gross;
+            row.total += r.personal;
+            row.orders.push({
+              no: orderInfo.get(r.orderId)?.no ?? r.orderId.slice(0, 8),
+              kind: r.kind,
+              amount: r.personal,
+            });
+          }
+          closerVenueRows.push(
+            ...Array.from(bucket.values()).sort((a, b) => b.total - a.total),
+          );
+        }
+
+
         // ===== Multipliers =====
         // 加倍活動一律以「發放月」設定。不同獎金的資料月不同（例：星探底薪／團隊獎金
         // 的資料月是「上個月」、星探分潤依期別），所以這裡取回整份設定，
@@ -1724,7 +1862,9 @@ export default function TeamHome() {
 
         if (cancelled) return;
         const payload: TeamHomePayload = {
+          closerVenueRows,
           closerSum,
+
           closerBackfillSum,
           closerBackfillCount,
           closerBackfillMonths: Array.from(closerBackfillMonthSet).sort(),
@@ -2392,6 +2532,21 @@ export default function TeamHome() {
 
                         : null
                     : null}
+
+                  {!loading && c.key === "closer" && closerVenueRows.length > 0 ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 h-9 w-full text-xs sm:h-7 sm:w-auto"
+                      onClick={() => {
+                        setExpandedVenueKey(null);
+                        setCloserVenueOpen(true);
+                      }}
+                    >
+                      各館別明細（{closerVenueRows.length} 館）
+                    </Button>
+                  ) : null}
+
                 </CardContent>
               </Card>
             );
@@ -2501,6 +2656,130 @@ export default function TeamHome() {
           })()}
         </DrawerContent>
       </Drawer>
+
+      {/* 成交獎金－各館別明細（對帳用；與「成交統計」同分桶：館別 × 費率） */}
+      <Drawer open={closerVenueOpen} onOpenChange={setCloserVenueOpen}>
+        <DrawerContent>
+          {(() => {
+            const rows = closerVenueRows;
+            const sum = (f: (r: CloserVenueRow) => number) =>
+              rows.reduce((s, r) => s + f(r), 0);
+            const totalCurrent = sum((r) => r.current);
+            const totalBackfill = sum((r) => r.backfill);
+            const totalAdjust = sum((r) => r.adjust);
+            const totalPersonal = sum((r) => r.total);
+            const totalGross = sum((r) => r.gross);
+            const previewCnt = rows.reduce(
+              (s, r) => s + r.orders.filter((o) => o.kind === "preview").length,
+              0,
+            );
+            return (
+              <div className="mx-auto w-full max-w-2xl">
+                <DrawerHeader>
+                  <DrawerTitle>成交獎金－各館別明細</DrawerTitle>
+                  <DrawerDescription className="space-y-0.5">
+                    <span className="block tabular-nums">
+                      個人實發合計 {fmt(totalPersonal)}　／　Gross 合計 {fmt(totalGross)}
+                    </span>
+                    <span className="block text-[11px]">
+                      每列＝本期 ＋ 回溯補建 ＋ 補差 ＝ 發放總計，與「成交統計」欄位口徑一致。
+                      卡片顯示的是個人實發（Gross 扣除團獎拆分比例後），統計 Tab 若顯示 Gross，差額即為此拆分。
+                      {previewCnt > 0 ? `　另含 ${previewCnt} 筆預估補位（尚未建立正式快照）。` : ""}
+                    </span>
+                  </DrawerDescription>
+                </DrawerHeader>
+                <div className="safe-bottom px-3 pb-8 sm:px-4 max-h-[60dvh] overflow-y-auto overflow-x-auto">
+                  <table className="w-full min-w-[520px] text-xs sm:text-sm">
+                    <thead>
+                      <tr className="text-muted-foreground border-b">
+                        <th className="text-left py-2 font-medium">館別</th>
+                        <th className="text-right py-2 font-medium">本期</th>
+                        <th className="text-right py-2 font-medium">回溯補建</th>
+                        <th className="text-right py-2 font-medium">補差／扣回</th>
+                        <th className="text-right py-2 font-medium">發放總計</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.map((r) => {
+                        const key = `${r.accId}|${r.rate ?? ""}`;
+                        const open = expandedVenueKey === key;
+                        return (
+                          <Fragment key={key}>
+                            <tr
+                              className="border-b last:border-0 cursor-pointer hover:bg-muted/40"
+                              onClick={() => setExpandedVenueKey(open ? null : key)}
+                            >
+                              <td className="py-2 pr-2">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="break-words">{r.name}</span>
+                                  {r.rate !== null ? (
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      {pctText(r.rate)}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <div className="text-[11px] text-muted-foreground mt-0.5">
+                                  {r.orders.length} 筆訂單・Gross {fmt(r.gross)}・點擊{open ? "收合" : "展開"}單號
+                                </div>
+                              </td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.current)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.backfill)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap">{fmt(r.adjust)}</td>
+                              <td className="py-2 text-right tabular-nums whitespace-nowrap font-medium">{fmt(r.total)}</td>
+                            </tr>
+                            {open ? (
+                              <tr className="border-b last:border-0 bg-muted/30">
+                                <td colSpan={5} className="py-2 px-2">
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                    {r.orders.map((o, i) => (
+                                      <div
+                                        key={`${o.no}-${i}`}
+                                        className="flex items-center justify-between gap-2 text-[11px] sm:text-xs"
+                                      >
+                                        <span className="font-mono">
+                                          {o.no}
+                                          <span className="ml-1 text-muted-foreground">
+                                            {o.kind === "backfill"
+                                              ? "回溯"
+                                              : o.kind === "adjust"
+                                                ? "補差"
+                                                : o.kind === "preview"
+                                                  ? "預估"
+                                                  : "本期"}
+                                          </span>
+                                        </span>
+                                        <span className="tabular-nums whitespace-nowrap">{fmt(o.amount)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : null}
+                          </Fragment>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t font-medium">
+                        <td className="py-2">合計</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalCurrent)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalBackfill)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalAdjust)}</td>
+                        <td className="py-2 text-right tabular-nums">{fmt(totalPersonal)}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                  <p className="mt-3 text-[11px] text-muted-foreground">
+                    註：卡片金額另含「星探成交獎金」（使用星探合作折扣碼的訂單、成交人為本人的加成），
+                    該項不屬於館別分潤快照，故不列入本表，請以卡片項目列為準。
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+        </DrawerContent>
+      </Drawer>
+
     </div>
   );
 }
