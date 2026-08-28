@@ -1729,8 +1729,19 @@ export default function TeamCommissionStatsTab() {
                   <TableHead className="whitespace-nowrap">成交組</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">成交組分潤%</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">成交組分潤金額</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={cancelAxisTip}>
+                      取消訂單數
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={cancelAxisTip}>
+                      取消訂單總金額
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+
                   <TableHead />
                 </TableRow>
               </TableHeader>
