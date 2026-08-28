@@ -744,7 +744,6 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         />
       )}
 
-      {!showInPricingPage && (
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -819,9 +818,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             )}
           </CardContent>
         </Card>
-      )}
 
-      {!showInPricingPage && (
         <Card>
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -893,7 +890,6 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             )}
           </CardContent>
         </Card>
-      )}
 
 
       <Card>
