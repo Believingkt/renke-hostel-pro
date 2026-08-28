@@ -3606,6 +3606,9 @@ const BookingFlow = () => {
             discount_amount: discountAmount,
             final_price: finalPrice,
             deposit_amount: 0,
+            // 訂房訂金快照（SoT）：下單當下計算結果，不隨 booking_settings 變動
+            booking_deposit_amount: orderPaymentType === "atm" ? getAtmDepositBreakdown().deposit : null,
+            booking_deposit_percentage: orderPaymentType === "atm" ? getAtmDepositBreakdown().percentage : null,
             deposit_required_amount: depositPaymentType ? securityDepositAmount : 0,
             deposit_method: depositPaymentType || null,
             deposit_status: depositPaymentType ? "pending" : "not_required",
@@ -3731,19 +3734,18 @@ const BookingFlow = () => {
 
       // 發送訂購確認郵件（統一走 notify-booking-confirmation）
       // - 非 3DS 信用卡（paidOrderResult）：create-paid-order 已寄信，跳過避免重複
-      // - ATM 待匯款：建單當下即寄「訂房確認（待匯款）」，入帳後的收據信由 tappay-notify 另寄，不重複
+      // - ATM 待匯款：改為等虛擬帳號建立成功後由 tappay-atm-create 寄出，避免信件缺少匯款資訊
       // - 其餘（信用卡已扣款、現場付款等未付款訂單）：按下「確認訂房」後即刻寄出
       let emailSent = false;
-      const shouldSendEmailNow = !paidOrderResult && !!guestInfo.email;
+      const shouldSendEmailNow = !paidOrderResult && !!guestInfo.email && orderPaymentType !== "atm";
+
 
       if (shouldSendEmailNow && orderData?.id) {
         try {
           const paymentMethodLabel =
             orderPaymentType === "credit_card"
               ? "信用卡"
-              : orderPaymentType === "atm"
-                ? "ATM 虛擬帳號（待匯款）"
-                : (paymentMethod || (paymentTransactionId ? "線上付款" : "現場付款"));
+              : (paymentMethod || (paymentTransactionId ? "線上付款" : "現場付款"));
 
 
           const { data: emailData, error: emailError } = await supabase.functions.invoke(

@@ -1,5 +1,6 @@
 // 訂單確認信：完整複製會員端「訂單詳情頁」(src/pages/MemberOrderDetail.tsx) 的內容與版面。
 // 所有資料一律由 DB 取得（server truth），避免與頁面顯示不一致。
+import { resolvePaymentSummary } from "./paymentSummary.ts";
 import {
   cancellationPolicyCopyForOrder,
   freeCancelDaysFor,
@@ -92,12 +93,6 @@ const extractGuestNotes = (notes?: string | null): string => {
     .join("\n");
 };
 
-const getAtmTransferAmount = (order: any): number => {
-  const fromNotes = Number(order?.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, ""));
-  if (fromNotes > 0) return fromNotes;
-  return Math.max(0, Number(order?.final_price || 0) - Number(order?.paid_amount || 0));
-};
-
 const isAtmExpired = (order: any): boolean => {
   if (!order?.atm_vacc_no || !order?.atm_expire_at) return false;
   if (order.payment_status === "paid" || order.payment_status === "deposit_paid") return false;
@@ -151,7 +146,7 @@ export async function buildOrderConfirmationEmail(
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, deposit_amount, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_status, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
+      "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, deposit_amount, booking_deposit_amount, booking_deposit_percentage, order_source, payment_provider, payment_method, deposit_payment_method, balance_payment_method, room_charge_status, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, accommodation_id, room_type_id, package_id, room_types(name)",
     )
     .eq("order_number", orderNumber)
     .maybeSingle();
@@ -168,7 +163,7 @@ export async function buildOrderConfirmationEmail(
   ] = await Promise.all([
     supabase
       .from("accommodation_info")
-      .select("id, name, address, phone, email, short_url_alias")
+      .select("id, name, address, phone, email, short_url_alias, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice")
       .eq("id", order.accommodation_id)
       .maybeSingle(),
     supabase
@@ -220,36 +215,24 @@ export async function buildOrderConfirmationEmail(
   const discount = Number(order.discount_amount || 0);
   const finalPrice = Number(order.final_price || 0);
   const paid = Number(order.paid_amount || 0);
-  const depositRequired = Number(order.deposit_required_amount || 0);
-  const balance = Math.max(finalPrice - paid, 0);
+  const paySummary = resolvePaymentSummary(order as any);
+  const balance = paySummary.accommodationBalance;
   const points = Math.round(finalPrice * 0.04);
 
   const cancelled = order.order_status === "cancelled";
   const statusLabel = STATUS_LABELS[order.order_status] || order.order_status;
 
-  const atmAmount = getAtmTransferAmount(order);
+  const atmAmount = paySummary.bookingDepositAmount || Math.max(finalPrice - paid, 0);
   const atmExpired = isAtmExpired(order);
   const atmExpire = order.atm_expire_at ? new Date(order.atm_expire_at) : null;
-  const depositPct = order.notes?.match(/的\s*(\d+)%/)?.[1];
+  const depositPct = paySummary.bookingDepositPercentage;
 
   const siteUrl = opts.siteUrl || "https://booking.lakeze.com";
   const orderUrl = `${siteUrl}/member/orders/${encodeURIComponent(order.order_number)}?accId=${order.accommodation_id}`;
 
   // 1. 訂單摘要
-  const payAmount =
-    order.payment_status === "paid"
-      ? finalPrice
-      : order.atm_vacc_no
-        ? atmAmount
-        : depositRequired || finalPrice;
-  const payTitle =
-    order.payment_status === "paid"
-      ? "已付款"
-      : order.atm_vacc_no
-        ? atmExpired
-          ? "訂金已逾期未付"
-          : "待匯款訂金"
-        : "已授權稍後付款";
+  const payAmount = paySummary.payAmount;
+  const payTitle = paySummary.payTitle;
   const payDesc =
     order.payment_status === "paid"
       ? "款項已收訖，入住當日請出示訂單編號辦理報到。"
@@ -362,6 +345,12 @@ export async function buildOrderConfirmationEmail(
         row(`房費（${nights} 晚）`, `NT$ ${nf(totalPrice)}`, true) +
         (discount > 0 ? row("折扣", `<span style="color:#ef4444;">-NT$ ${nf(discount)}</span>`) : "") +
         (paid > 0 ? row("已付款", `NT$ ${nf(paid)}`) : "") +
+        (paySummary.pendingBookingDeposit > 0
+          ? row(
+              `待付訂房訂金${paySummary.bookingDepositPercentage ? `（${paySummary.bookingDepositPercentage}%）` : ""}`,
+              `<span style="color:${ORANGE};font-weight:700;">NT$ ${nf(paySummary.pendingBookingDeposit)}</span>`,
+            )
+          : "") +
         (balance > 0 ? row("現場應付尾款", `NT$ ${nf(balance)}`) : ""),
     )}
     ${divider}
@@ -490,6 +479,23 @@ export async function buildOrderConfirmationEmail(
   </table>`
     : "";
 
+  // 5. 入住押金提醒（純文字，由「訂房確認通知」設定控制是否顯示）
+  const depositNoticeLines = String(acc?.email_security_deposit_notice || "")
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 0);
+  const securityDepositCard =
+    acc?.email_show_security_deposit_notice && depositNoticeLines.length
+      ? card(
+          block(
+            `${sectionTitle(acc?.email_security_deposit_notice_title || "入住押金說明")}
+             <div style="font-size:13px;color:#666;line-height:1.9;">
+               ${depositNoticeLines.map((l: string) => `<p style="margin:0;">${esc(l)}</p>`).join("")}
+             </div>`,
+          ),
+        )
+      : "";
+
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /></head>
 <body style="margin:0;padding:0;background:#f5f5f5;">
@@ -504,6 +510,7 @@ export async function buildOrderConfirmationEmail(
           ${stayCard}
           ${atmCard}
           ${stayDetail}
+          ${securityDepositCard}
           ${guestCard}
           ${pointsCard}
           <p style="text-align:center;margin:18px 0;">

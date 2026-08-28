@@ -592,6 +592,9 @@ const WebsiteContent = () => {
     contactLineId: "",
     contactEmail: "",
     serviceHours: "",
+    showSecurityDepositNotice: false,
+    securityDepositNoticeTitle: "",
+    securityDepositNotice: "",
   });
   
   // 訂房設定驗證錯誤
@@ -1234,7 +1237,7 @@ const WebsiteContent = () => {
           case 'email-notification': {
             const { data: accEmailData } = await supabase
               .from("accommodation_info")
-              .select("phone, email, line_id, email_important_notice, email_service_hours")
+              .select("phone, email, line_id, email_important_notice, email_service_hours, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice")
               .eq("id", accommodationId)
               .maybeSingle();
             if (accEmailData) {
@@ -1244,6 +1247,9 @@ const WebsiteContent = () => {
                 contactLineId: accEmailData.line_id || "",
                 contactEmail: accEmailData.email || "",
                 serviceHours: (accEmailData as any).email_service_hours || "",
+                showSecurityDepositNotice: !!(accEmailData as any).email_show_security_deposit_notice,
+                securityDepositNoticeTitle: (accEmailData as any).email_security_deposit_notice_title || "",
+                securityDepositNotice: (accEmailData as any).email_security_deposit_notice || "",
               });
             }
             break;
@@ -1746,6 +1752,13 @@ const WebsiteContent = () => {
             .filter(s => s.length > 0)
             .join('\n') || null,
           email_service_hours: emailNotification.serviceHours || null,
+          email_show_security_deposit_notice: emailNotification.showSecurityDepositNotice,
+          email_security_deposit_notice_title: emailNotification.securityDepositNoticeTitle || null,
+          email_security_deposit_notice: emailNotification.securityDepositNotice
+            .split('\n')
+            .map(s => s.trim())
+            .filter(s => s.length > 0)
+            .join('\n') || null,
           phone: emailNotification.contactPhone || null,
           line_id: emailNotification.contactLineId || null,
           email: emailNotification.contactEmail || null,
@@ -4341,6 +4354,48 @@ const WebsiteContent = () => {
                   placeholder="例如：每日 09:00 - 21:00"
                 />
                 <p className="text-xs text-muted-foreground">未填寫則此欄位不會出現在信件中。</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-1.5 bg-primary rounded-full" />
+                <div>
+                  <CardTitle className="text-xl">🏦 入住押金提醒</CardTitle>
+                  <CardDescription>
+                    純文字說明，會顯示在訂房確認 Email 中。關閉或內容留空時，信件不會出現此區塊。
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <Label className="text-base font-medium">在訂房確認信顯示押金提醒</Label>
+                <Switch
+                  checked={emailNotification.showSecurityDepositNotice}
+                  onCheckedChange={(v) => setEmailNotification(prev => ({ ...prev, showSecurityDepositNotice: v }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium">區塊標題</Label>
+                <Input
+                  value={emailNotification.securityDepositNoticeTitle}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, securityDepositNoticeTitle: e.target.value }))}
+                  placeholder="例如：入住押金說明（留空則顯示「入住押金說明」）"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-base font-medium">押金說明內容</Label>
+                <Textarea
+                  value={emailNotification.securityDepositNotice}
+                  onChange={(e) => setEmailNotification(prev => ({ ...prev, securityDepositNotice: e.target.value }))}
+                  placeholder={"例如：\n入住當日將收取押金 NT$ 5,000，退房確認無損壞後全額退還\n攜帶寵物入住另收押金 NT$ 2,000"}
+                  rows={6}
+                  className="resize-y"
+                />
+                <p className="text-xs text-muted-foreground">每行一條，空白行會在儲存時自動過濾。</p>
               </div>
             </CardContent>
           </Card>

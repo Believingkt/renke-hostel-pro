@@ -324,7 +324,10 @@ export type Database = {
           display_order: number | null
           email: string | null
           email_important_notice: string | null
+          email_security_deposit_notice: string | null
+          email_security_deposit_notice_title: string | null
           email_service_hours: string | null
+          email_show_security_deposit_notice: boolean
           exclusive_room_breakdown: Json | null
           exclusive_total_rooms: number | null
           facebook_url: string | null
@@ -430,7 +433,10 @@ export type Database = {
           display_order?: number | null
           email?: string | null
           email_important_notice?: string | null
+          email_security_deposit_notice?: string | null
+          email_security_deposit_notice_title?: string | null
           email_service_hours?: string | null
+          email_show_security_deposit_notice?: boolean
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
@@ -536,7 +542,10 @@ export type Database = {
           display_order?: number | null
           email?: string | null
           email_important_notice?: string | null
+          email_security_deposit_notice?: string | null
+          email_security_deposit_notice_title?: string | null
           email_service_hours?: string | null
+          email_show_security_deposit_notice?: boolean
           exclusive_room_breakdown?: Json | null
           exclusive_total_rooms?: number | null
           facebook_url?: string | null
@@ -7373,6 +7382,8 @@ export type Database = {
           atm_vacc_no: string | null
           auto_created_from_email_id: string | null
           balance_payment_method: string | null
+          booking_deposit_amount: number | null
+          booking_deposit_percentage: number | null
           cancellation_fee_amount: number
           cancellation_fee_percent: number | null
           cancelled_at: string | null
@@ -7469,6 +7480,8 @@ export type Database = {
           atm_vacc_no?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
+          booking_deposit_amount?: number | null
+          booking_deposit_percentage?: number | null
           cancellation_fee_amount?: number
           cancellation_fee_percent?: number | null
           cancelled_at?: string | null
@@ -7565,6 +7578,8 @@ export type Database = {
           atm_vacc_no?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
+          booking_deposit_amount?: number | null
+          booking_deposit_percentage?: number | null
           cancellation_fee_amount?: number
           cancellation_fee_percent?: number | null
           cancelled_at?: string | null

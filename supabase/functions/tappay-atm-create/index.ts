@@ -6,6 +6,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
+import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 
 
 interface AtmCreatePayload {
@@ -329,6 +330,17 @@ serve(async (req) => {
     // App 推播：訂房成功（含 ATM 繳費資訊）—— 背景執行，不阻塞回應
     const pushPromise = pushOrderEvent(order.id, "order_created").catch(() => {});
     try { (globalThis as any).EdgeRuntime?.waitUntil?.(pushPromise); } catch { /* noop */ }
+
+    // 訂房確認信：等虛擬帳號建立成功後才寄，確保信中含正確的匯款帳號與訂金金額
+    const mailPromise = sendBookingConfirmationByOrderId(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      order.id,
+      "ATM 虛擬帳號（待匯款）",
+      "atm_va_created",
+    ).catch((e) => console.error("[tappay-atm-create] send email failed", e));
+    try { (globalThis as any).EdgeRuntime?.waitUntil?.(mailPromise); } catch { /* noop */ }
+
 
 
 

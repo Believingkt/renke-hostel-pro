@@ -55,7 +55,8 @@ import { format, differenceInCalendarDays, addDays } from "date-fns";
 
 import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
-import { getAtmTransferAmount, isAtmExpired } from "@/lib/atmPayment";
+import { isAtmExpired } from "@/lib/atmPayment";
+import { resolvePaymentSummary } from "@/lib/paymentSummary";
 import { bookingPath } from "@/lib/frontendUrl";
 
 const ORANGE = "hsl(24,100%,50%)";
@@ -252,6 +253,8 @@ interface DetailData {
   final_price: number;
   paid_amount: number;
   deposit_required_amount: number;
+  booking_deposit_amount: number | null;
+  booking_deposit_percentage: number | null;
   notes: string | null;
   atm_vacc_no: string | null;
   atm_vacc_bank_code: string | null;
@@ -345,7 +348,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -423,6 +426,8 @@ const MemberOrderDetail = () => {
         final_price: Number(data.final_price || 0),
         paid_amount: Number(data.paid_amount || 0),
         deposit_required_amount: Number(data.deposit_required_amount || 0),
+        booking_deposit_amount: (data as any).booking_deposit_amount ?? null,
+        booking_deposit_percentage: (data as any).booking_deposit_percentage ?? null,
         notes: data.notes,
         atm_vacc_no: (data as any).atm_vacc_no || null,
         atm_vacc_bank_code: (data as any).atm_vacc_bank_code || null,
@@ -658,7 +663,9 @@ const MemberOrderDetail = () => {
 
 
   // ATM 轉帳金額與逾期狀態（與虛擬帳號卡片一致）
-  const atmTransferAmount = getAtmTransferAmount(order as any);
+  // 付款摘要單一真實來源：訂房訂金取訂單快照（舊單回退備註），不使用入住押金欄位
+  const paySummary = resolvePaymentSummary(order as any);
+  const atmTransferAmount = paySummary.bookingDepositAmount;
   const atmExpired = isAtmExpired(order as any);
 
 
@@ -739,15 +746,9 @@ const MemberOrderDetail = () => {
           <>
             <div className="border-t border-orange-100 pt-3">
               <p className="text-base font-semibold">
-                {order.payment_status === "paid"
-                  ? "已付款"
-                  : order.atm_vacc_no
-                    ? atmExpired
-                      ? "訂金已逾期未付"
-                      : "待匯款訂金"
-                    : "已授權稍後付款"}{" "}
+                {paySummary.payTitle}{" "}
                 <span className="text-xl font-bold" style={{ color: atmExpired ? "hsl(var(--destructive))" : ORANGE }}>
-                  NT$ {(order.payment_status === "paid" ? order.final_price : order.atm_vacc_no ? atmTransferAmount : order.deposit_required_amount || order.final_price).toLocaleString()}
+                  NT$ {paySummary.payAmount.toLocaleString()}
                 </span>
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
@@ -977,11 +978,7 @@ const MemberOrderDetail = () => {
           })()}
 
           {(() => {
-            const pendingDeposit =
-              order.paid_amount <= 0 && atmTransferAmount > 0 && order.payment_status !== "paid"
-                ? atmTransferAmount
-                : 0;
-            const onSiteBalance = Math.max(balance - pendingDeposit, 0);
+            const onSiteBalance = paySummary.accommodationBalance;
             if (onSiteBalance <= 0) return null;
             return (
               <div className="flex items-baseline justify-between gap-3 text-sm">
