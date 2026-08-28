@@ -138,10 +138,26 @@ export interface DateChangeNotice {
   operator?: string | null;
 }
 
+/** 純資料模型：正式寄信與預覽共用同一組欄位 */
+export interface OrderConfirmationEmailData {
+  order: any;
+  acc: any;
+  settings: any;
+  accPhoto?: string | null;
+  pkg?: any;
+  /** 已過濾（is_available !== false）的設施名稱 */
+  facilities?: string[];
+}
+
+export interface OrderConfirmationEmailOptions {
+  siteUrl?: string;
+  dateChange?: DateChangeNotice | null;
+}
+
 export async function buildOrderConfirmationEmail(
   supabase: any,
   orderNumber: string,
-  opts: { siteUrl?: string; dateChange?: DateChangeNotice | null } = {},
+  opts: OrderConfirmationEmailOptions = {},
 ): Promise<BuiltEmail | { error: string }> {
   const { data: order } = await supabase
     .from("orders")
@@ -194,15 +210,37 @@ export async function buildOrderConfirmationEmail(
       .order("category", { ascending: true }),
   ]);
 
+  return renderOrderConfirmationEmail(
+    {
+      order,
+      acc,
+      settings,
+      accPhoto: accPhotos?.[0]?.photo_url || "",
+      pkg,
+      facilities: (facilitiesRows || [])
+        .filter((f: any) => f.is_available !== false)
+        .map((f: any) => f.facility_name)
+        .filter(Boolean),
+    },
+    opts,
+  );
+}
+
+/**
+ * 純渲染：不碰 DB、不寄信。正式信與「訂房確認通知」預覽共用同一份版型與付款摘要規則。
+ */
+export function renderOrderConfirmationEmail(
+  data: OrderConfirmationEmailData,
+  opts: OrderConfirmationEmailOptions = {},
+): BuiltEmail {
+  const { order, acc, settings, pkg } = data;
   const accName = acc?.name || "";
   const accPhone = acc?.phone || "";
   const accEmail = acc?.email || "";
   const accAddress = acc?.address || "";
-  const accPhoto = accPhotos?.[0]?.photo_url || "";
-  const facilities = (facilitiesRows || [])
-    .filter((f: any) => f.is_available !== false)
-    .map((f: any) => f.facility_name)
-    .filter(Boolean);
+  const accPhoto = data.accPhoto || "";
+  const facilities = data.facilities || [];
+
   const includes = Array.isArray(pkg?.includes)
     ? (pkg.includes as any[]).filter((i) => i?.text)
     : [];
@@ -529,7 +567,7 @@ export async function buildOrderConfirmationEmail(
   return {
     subject: `${accName ? `【${accName}】` : ""}${dc ? "【入住日期已更改】" : ""}訂房確認通知 - 訂單編號 ${order.order_number}`,
     html,
-    to: order.guest_email,
+    to: order.guest_email || "",
     guestName: order.guest_name,
     orderNumber: order.order_number,
     accommodationName: accName,
