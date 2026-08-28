@@ -1694,8 +1694,9 @@ export default function TeamCommissionStatsTab() {
               <DateYMDPicker label="結束日期" value={customEnd} onChange={setCustomEnd} />
               </div>
               <p className="text-xs text-muted-foreground">
-                依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
+                有效訂單與取消訂單皆依<strong>下單日 (order_date)</strong> 篩選，包含起訖兩日
               </p>
+
               <p className="text-xs font-medium text-primary">
                 查詢區間：{period.startDate} ～ {format(new Date(new Date(period.nextIso).getTime() - 86400000), "yyyy-MM-dd")}
                 {customStart.getTime() > customEnd.getTime() && (
