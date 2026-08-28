@@ -216,7 +216,7 @@ export default function ScoutDiscountCodesTab() {
     }
     setSaving(true);
     const payload = {
-      discount_code: fCode.trim(),
+      discount_code: fCode.trim().toUpperCase(),
       accommodation_id: fAcc === NONE ? null : fAcc,
       scout_id: fScout,
       closer_id: null,
@@ -391,7 +391,7 @@ export default function ScoutDiscountCodesTab() {
               <Label>折扣碼</Label>
               <Input
                 value={fCode}
-                onChange={(e) => setFCode(e.target.value)}
+                onChange={(e) => setFCode(e.target.value.toUpperCase())}
                 placeholder="輸入折扣碼"
                 className="font-mono"
               />
