@@ -3,6 +3,7 @@ import { format } from "date-fns";
 import { Order } from "@/types/order";
 import { getOrderStatusConfig, getPaymentStatusConfig, getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getEffectivePaymentStatus } from "@/utils/orderHelpers";
 import { supabase } from "@/integrations/supabase/client";
+import { parseLegacyDepositFromNotes } from "@/lib/paymentSummary";
 
 interface OrderRoom {
   order_id: string;
@@ -71,6 +72,17 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
       .trim();
   };
 
+  // Excel「訂金」＝住宿訂房訂金。
+  // 前台 ATM 單以 booking_deposit_amount 快照為準；既有以 deposit_amount 為 SoT 的通路（團購／後台匯款單）維持原值；
+  // 兩者皆無才回退舊訂單 notes parser。不使用 deposit_required_amount（入住押金）。
+  const resolveExportDeposit = (order: Order): number => {
+    const snapshot = Number((order as any).booking_deposit_amount) || 0;
+    if (snapshot > 0) return snapshot;
+    const legacyField = Number(order.deposit_amount) || 0;
+    if (legacyField > 0) return legacyField;
+    return parseLegacyDepositFromNotes(order.notes).amount;
+  };
+
   const data = orders.map((order) => {
     const effectivePayment = getEffectivePaymentStatus(order.payment_status, order.payment_link_created_at);
     const rooms = roomsByOrder.get(order.id) || [];
@@ -119,7 +131,7 @@ export async function exportOrdersToExcel(orders: Order[], filename?: string) {
       "折扣金額": order.discount_amount,
       "折扣碼": order.discount_code || "",
       "實收金額": order.final_price,
-      "訂金": order.deposit_amount,
+      "訂金": resolveExportDeposit(order),
       "已付金額": order.paid_amount,
       "加購內容": addonItems.join("、"),
       "加購小計": addonSubtotal,

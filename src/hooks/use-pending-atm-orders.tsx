@@ -56,7 +56,7 @@ export function usePendingAtmOrders() {
         const { data } = await supabase
           .from("orders")
           .select(
-            "id, order_number, final_price, paid_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, payment_status, order_status"
+            "id, order_number, final_price, paid_amount, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, payment_status, order_status, booking_deposit_amount, booking_deposit_percentage"
           )
           .eq("member_id", member.id)
           .eq("payment_status", "pending_payment" as any)

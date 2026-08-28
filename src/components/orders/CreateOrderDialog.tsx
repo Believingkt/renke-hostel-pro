@@ -1453,6 +1453,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         deposit_payment_method: form.deposit_payment_method || null,
         balance_payment_method: form.balance_payment_method || null,
         deposit_amount: depositAmount,
+        // 一般訂房 Booking Deposit 快照：僅在確有訂金時寫入；比例僅在確為比例制時寫入
+        booking_deposit_amount: depositAmount > 0 ? depositAmount : null,
+        booking_deposit_percentage:
+          depositAmount > 0 && depositPct > 0 && depositAmount === Math.round(totals.final * depositPct / 100)
+            ? depositPct
+            : null,
         paid_amount: paidAmount,
         notes: (() => {
           let note = form.notes.trim();

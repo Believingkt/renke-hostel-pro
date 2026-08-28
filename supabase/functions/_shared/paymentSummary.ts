@@ -72,20 +72,38 @@ export function resolvePaymentSummary(order?: PaymentSummaryOrder | null, now: n
     order.payment_status !== "deposit_paid" &&
     new Date(order.atm_expire_at).getTime() <= now;
 
-  const pendingBookingDeposit =
-    !isPaid && paidAmount <= 0 && bookingDepositAmount > 0 ? bookingDepositAmount : 0;
+  // 尚待支付的訂房訂金＝訂金 − 已付（已全額付清時為 0）
+  const pendingBookingDeposit = isPaid
+    ? 0
+    : Math.max(bookingDepositAmount - paidAmount, 0);
 
-  const accommodationBalance = Math.max(totalAmount - paidAmount - pendingBookingDeposit, 0);
+  // 入住現場尾款＝總額 −（訂金與已付金額取大者）；與「未補足訂金」是兩件事
+  const accommodationBalance = Math.max(
+    totalAmount - Math.max(bookingDepositAmount, paidAmount),
+    0,
+  );
   const isFullPayment = bookingDepositAmount <= 0 || bookingDepositAmount >= totalAmount;
 
-  const payAmount = isPaid ? totalAmount : pendingBookingDeposit > 0 ? pendingBookingDeposit : totalAmount;
+  const depositSettled = bookingDepositAmount > 0 && paidAmount >= bookingDepositAmount;
+
+  const payAmount = isPaid
+    ? totalAmount
+    : pendingBookingDeposit > 0
+      ? pendingBookingDeposit
+      : depositSettled
+        ? paidAmount
+        : totalAmount;
   const payTitle = isPaid
     ? "已付款"
     : pendingBookingDeposit > 0
       ? atmExpired
         ? "訂金已逾期未付"
-        : "待匯款訂金"
-      : "待付款";
+        : paidAmount > 0
+          ? "待補足訂金"
+          : "待匯款訂金"
+      : depositSettled
+        ? "已付訂金"
+        : "待付款";
 
   return {
     totalAmount,
