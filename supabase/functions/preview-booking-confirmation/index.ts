@@ -138,7 +138,7 @@ serve(async (req) => {
         supabase
           .from("accommodation_info")
           .select(
-            "id, name, address, phone, email, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice",
+            "id, name, address, phone, email, email_important_notice, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice",
           )
           .eq("id", accommodationId)
           .maybeSingle(),

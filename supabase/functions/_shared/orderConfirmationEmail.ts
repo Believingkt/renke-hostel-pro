@@ -179,7 +179,7 @@ export async function buildOrderConfirmationEmail(
   ] = await Promise.all([
     supabase
       .from("accommodation_info")
-      .select("id, name, address, phone, email, short_url_alias, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice")
+      .select("id, name, address, phone, email, short_url_alias, email_important_notice, email_show_security_deposit_notice, email_security_deposit_notice_title, email_security_deposit_notice")
       .eq("id", order.accommodation_id)
       .maybeSingle(),
     supabase
@@ -332,7 +332,7 @@ export function renderOrderConfirmationEmail(
   </table>`;
 
   // 2. 住宿卡（日期 / 房間搭配 / 尊榮禮遇 / 費用明細 / 取消政策）
-  const policyLines = htmlToLines(settings?.cancellation_policy);
+  // 註：booking_settings.cancellation_policy 內容與正式取消政策重複，故此信不再重複顯示（資料保留）。
   const stayCard = card(`
     <div style="padding:12px 16px;background:#fff7ed;border-bottom:1px solid #eee;text-align:center;">
       <p style="margin:0;font-size:17px;font-weight:800;letter-spacing:1px;color:${ORANGE};">${esc(accName)}</p>
@@ -400,7 +400,7 @@ export function renderOrderConfirmationEmail(
       "background:#fafafa;",
     )}
     ${divider}
-    ${block(renderCancellationPolicyHtml(policyCopy, policyLines))}`);
+    ${block(renderCancellationPolicyHtml(policyCopy))}`);
 
 
   // 3. ATM 虛擬帳號卡片
@@ -426,7 +426,13 @@ export function renderOrderConfirmationEmail(
     : "";
 
   // 4. 住宿詳情
-  const otherNoteLines = htmlToLines(settings?.other_notes);
+  // 「重要提醒」= 官網內容 → 訂房確認通知 →（accommodation_info.email_important_notice）
+  // 逐行 trim、過濾空行、原樣輸出（不自動加項目符號、不解析內容）
+  const importantNoticeLines = String(acc?.email_important_notice || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 0);
   const guestNotes = extractGuestNotes(order.notes);
   const stayDetail = card(
     block(`
@@ -459,14 +465,14 @@ export function renderOrderConfirmationEmail(
           : ""
       }
 
-      <p style="margin:14px 0 0 0;font-size:14px;font-weight:600;">${esc(settings?.check_in_section_title || "如何辦理入住")}</p>
-      <div style="margin:3px 0 0 0;font-size:13px;color:#666;line-height:1.8;">
-        ${settings?.check_in_section_subtitle ? `<p style="margin:0;">${esc(settings.check_in_section_subtitle)}</p>` : ""}
-        ${settings?.check_in_time ? `<p style="margin:0;">入住時間：${esc(settings.check_in_time)} 後</p>` : ""}
-        ${settings?.check_out_time ? `<p style="margin:0;">退房時間：${esc(settings.check_out_time)} 前</p>` : ""}
-        ${otherNoteLines.map((l) => `<p style="margin:0;">${esc(l)}</p>`).join("")}
-        ${accPhone ? `<p style="margin:0;">抵達前請先致電住宿 ${esc(accPhone)} 聯繫辦理入住。</p>` : ""}
-      </div>
+      ${
+        importantNoticeLines.length
+          ? `<p style="margin:14px 0 0 0;font-size:14px;font-weight:600;">⚠️ 重要提醒</p>
+             <div style="margin:3px 0 0 0;font-size:13px;color:#666;line-height:1.8;">
+               ${importantNoticeLines.map((l) => `<p style="margin:0;">${esc(l)}</p>`).join("")}
+             </div>`
+          : ""
+      }
 
       ${
         guestNotes
