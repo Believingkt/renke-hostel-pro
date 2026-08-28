@@ -377,6 +377,43 @@ export default function TeamCommissionStatsTab() {
   const closerMultiplier = multiplierForDataMonth("closer", dataMonthKey);
   const videoMultiplier = multiplierForDataMonth("video", dataMonthKey);
 
+  /** 口徑說明文字（純顯示，不影響任何計算） */
+  const validAxisTip = useMemo(
+    () => (
+      <div className="space-y-1">
+        <p className="font-semibold">有效訂單口徑（依下單日 order_date）</p>
+        <p>
+          下單日落在本區間、且<strong>狀態非「已取消」</strong>的訂單，取消單不會計入此欄。
+        </p>
+        <p className="text-muted-foreground">
+          另排除：已標記排除的訂單、保留中（hold）訂單、金額 ≤ 0、非台幣／免抽成／不在合作期間／未達抽成門檻者。
+          金額為抽成基準額（已扣加購），非訂單成交價。
+        </p>
+      </div>
+    ),
+    [],
+  );
+
+  const cancelAxisTip = useMemo(
+    () => (
+      <div className="space-y-1">
+        <p className="font-semibold">
+          取消訂單口徑（依{period.cancelField === "cancelled_at" ? "取消時間 cancelled_at" : "下單日 order_date"}）
+        </p>
+        <p>
+          {period.cancelField === "cancelled_at"
+            ? "月份模式：抓「在本區間內被取消」的訂單，其成交月（下單日）可能早於本區間，不一定屬於資料月。"
+            : "自訂區間模式：取消單與有效訂單一致，皆依下單日 order_date 篩選。"}
+        </p>
+        <p className="text-muted-foreground">
+          此金額為參考資訊，<strong>不會</strong>從左側「分潤金額」中扣除；實際扣回走發放管理的「分潤補差」。
+        </p>
+      </div>
+    ),
+    [period.cancelField],
+  );
+
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
