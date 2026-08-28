@@ -192,6 +192,9 @@ export function InlineChatPayment({
           payment_status: 'deposit_paid',
           paid_amount: paymentAmount,
           deposit_amount: paymentAmount,
+          // 一般訂房 Booking Deposit 快照（本次建單當下實際值；無訂金則 NULL）
+          booking_deposit_amount: useDeposit ? paymentAmount : null,
+          booking_deposit_percentage: useDeposit ? depositPercentage : null,
           deposit_payment_method: '信用卡',
           payment_method: '信用卡',
           order_status: 'confirmed',

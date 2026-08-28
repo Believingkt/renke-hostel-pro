@@ -774,12 +774,27 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         paid_amount = depositAmount;
       }
 
+      // 只有使用者真的改動訂金金額時才更新 Booking Deposit 快照；
+      // 單純編輯其他欄位的舊訂單不得被隱性 backfill。
+      const originalDeposit = Number((order as any)?.deposit_amount) || 0;
+      const depositChanged = depositAmount !== originalDeposit;
+      const bookingDepositSnapshot = depositChanged
+        ? {
+            booking_deposit_amount: depositAmount > 0 ? depositAmount : null,
+            booking_deposit_percentage:
+              depositAmount > 0 && depositPct > 0 && depositAmount === Math.round(totalFinal * depositPct / 100)
+                ? depositPct
+                : null,
+          }
+        : {};
+
       await onSave({
         order_status: editForm.order_status,
         payment_status,
         deposit_payment_method: editForm.deposit_payment_method,
         balance_payment_method: editForm.balance_payment_method,
         deposit_amount: depositAmount,
+        ...bookingDepositSnapshot,
         paid_amount,
         notes: editForm.notes,
         check_in_date: editForm.check_in_date,
