@@ -393,7 +393,11 @@ export default function ScoutDiscountCodesTab() {
                 value={fCode}
                 onChange={(e) => setFCode(e.target.value)}
                 placeholder="輸入折扣碼"
+                className="font-mono"
               />
+              <p className="text-xs text-muted-foreground">
+                折扣碼不分大小寫，系統統一以大寫儲存與比對（例如 selfabby 與 SELFABBY 視為同一組）。
+              </p>
             </div>
 
             <div className="space-y-1">
