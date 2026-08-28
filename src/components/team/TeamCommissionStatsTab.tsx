@@ -377,6 +377,43 @@ export default function TeamCommissionStatsTab() {
   const closerMultiplier = multiplierForDataMonth("closer", dataMonthKey);
   const videoMultiplier = multiplierForDataMonth("video", dataMonthKey);
 
+  /** 口徑說明文字（純顯示，不影響任何計算） */
+  const validAxisTip = useMemo(
+    () => (
+      <div className="space-y-1">
+        <p className="font-semibold">有效訂單口徑（依下單日 order_date）</p>
+        <p>
+          下單日落在本區間、且<strong>狀態非「已取消」</strong>的訂單，取消單不會計入此欄。
+        </p>
+        <p className="text-muted-foreground">
+          另排除：已標記排除的訂單、保留中（hold）訂單、金額 ≤ 0、非台幣／免抽成／不在合作期間／未達抽成門檻者。
+          金額為抽成基準額（已扣加購），非訂單成交價。
+        </p>
+      </div>
+    ),
+    [],
+  );
+
+  const cancelAxisTip = useMemo(
+    () => (
+      <div className="space-y-1">
+        <p className="font-semibold">
+          取消訂單口徑（依{period.cancelField === "cancelled_at" ? "取消時間 cancelled_at" : "下單日 order_date"}）
+        </p>
+        <p>
+          {period.cancelField === "cancelled_at"
+            ? "月份模式：抓「在本區間內被取消」的訂單，其成交月（下單日）可能早於本區間，不一定屬於資料月。"
+            : "自訂區間模式：取消單與有效訂單一致，皆依下單日 order_date 篩選。"}
+        </p>
+        <p className="text-muted-foreground">
+          此金額為參考資訊，<strong>不會</strong>從左側「分潤金額」中扣除；實際扣回走發放管理的「分潤補差」。
+        </p>
+      </div>
+    ),
+    [period.cancelField],
+  );
+
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1180,6 +1217,13 @@ export default function TeamCommissionStatsTab() {
                       </dd>
                     </div>
                   </dl>
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                    有效訂單／分潤金額依下單日 order_date（已排除取消單）；
+                    取消訂單依
+                    {period.cancelField === "cancelled_at" ? "取消時間 cancelled_at，成交月可能早於本區間" : "下單日 order_date"}
+                    ，且不從分潤金額中扣除。
+                  </p>
+
 
                   {isOpen && (
                     <div className="mt-2 space-y-1.5 border-t pt-2">
@@ -1278,17 +1322,33 @@ export default function TeamCommissionStatsTab() {
               <TableRow>
                 <TableHead className="w-8" />
                 <TableHead className="whitespace-nowrap">{memberLabel}</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={validAxisTip}>
+                    有效訂單數
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={validAxisTip}>
+                    有效訂單總金額
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+
                 <TableHead className="whitespace-nowrap tabular-nums">
                   <AxisTooltip
                     content={
                       <div className="space-y-1">
                         <p className="font-semibold">成交口徑（資料月 {dataMonthKey}）</p>
                         <p>
-                          只計 order_date 落在 {dataMonthKey} 的訂單，代表「這個月成交了多少」。
+                          只計 order_date 落在 {dataMonthKey} 的<strong>有效訂單</strong>（已排除狀態為「已取消」者），
+                          代表「這個月成交了多少」。
                           不含前期回溯補建、不含分潤補差與取消扣回，因此會與 TeamHome 的發放金額不同。
                         </p>
+                        <p className="text-muted-foreground">
+                          右側「取消分潤金額」僅供參考，不會從此欄扣除；跨月取消（本月成交、次月取消）的扣回於發放月以「分潤補差」處理。
+                        </p>
+
                       </div>
                     }
                   >
@@ -1351,9 +1411,25 @@ export default function TeamCommissionStatsTab() {
                   </>
 
                 )}
-                <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">取消分潤金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={cancelAxisTip}>
+                    取消訂單數
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={cancelAxisTip}>
+                    取消訂單總金額
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={cancelAxisTip}>
+                    取消分潤金額
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -1646,8 +1722,11 @@ export default function TeamCommissionStatsTab() {
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">
-                統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
+                統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單（有效訂單依下單日 order_date）。
+                <br />
+                取消訂單欄位則依<strong>取消時間 (cancelled_at)</strong> 落在同一區間，其成交月可能早於本區間。
               </p>
+
             </>
           ) : (
             <>
@@ -1657,8 +1736,9 @@ export default function TeamCommissionStatsTab() {
               <DateYMDPicker label="結束日期" value={customEnd} onChange={setCustomEnd} />
               </div>
               <p className="text-xs text-muted-foreground">
-                依下單日 (order_date) 篩選，包含起訖兩日；有效訂單與取消訂單皆套用此區間
+                有效訂單與取消訂單皆依<strong>下單日 (order_date)</strong> 篩選，包含起訖兩日
               </p>
+
               <p className="text-xs font-medium text-primary">
                 查詢區間：{period.startDate} ～ {format(new Date(new Date(period.nextIso).getTime() - 86400000), "yyyy-MM-dd")}
                 {customStart.getTime() > customEnd.getTime() && (
@@ -1722,15 +1802,37 @@ export default function TeamCommissionStatsTab() {
                   <TableHead className="whitespace-nowrap">星探</TableHead>
                   <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                   <TableHead className="whitespace-nowrap">民宿</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={validAxisTip}>
+                      有效訂單數
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={validAxisTip}>
+                      有效訂單總金額
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+
                   <TableHead className="whitespace-nowrap tabular-nums">星探分潤%</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">星探分潤金額</TableHead>
                   <TableHead className="whitespace-nowrap">成交組</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">成交組分潤%</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">成交組分潤金額</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">取消訂單數</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">取消訂單總金額</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={cancelAxisTip}>
+                      取消訂單數
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={cancelAxisTip}>
+                      取消訂單總金額
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+
                   <TableHead />
                 </TableRow>
               </TableHeader>
