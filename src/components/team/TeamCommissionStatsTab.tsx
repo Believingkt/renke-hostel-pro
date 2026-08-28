@@ -1217,6 +1217,13 @@ export default function TeamCommissionStatsTab() {
                       </dd>
                     </div>
                   </dl>
+                  <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                    有效訂單／分潤金額依下單日 order_date（已排除取消單）；
+                    取消訂單依
+                    {period.cancelField === "cancelled_at" ? "取消時間 cancelled_at，成交月可能早於本區間" : "下單日 order_date"}
+                    ，且不從分潤金額中扣除。
+                  </p>
+
 
                   {isOpen && (
                     <div className="mt-2 space-y-1.5 border-t pt-2">
