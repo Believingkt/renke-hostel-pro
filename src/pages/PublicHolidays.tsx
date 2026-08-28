@@ -821,6 +821,81 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         </Card>
       )}
 
+      {!showInPricingPage && (
+        <Card>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              同步總部假日設定
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              新館可直接沿用總部（其他館別）已維護好的國定假日與自訂假日。預設只補上本館缺漏的日期，不會動到已設定的日期。
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs sm:text-sm">來源館別</Label>
+                <Select value={sourceId} onValueChange={setSourceId} disabled={isCopying || !sourceOptions.length}>
+                  <SelectTrigger className="w-full sm:w-[260px]">
+                    <SelectValue placeholder="尚無可用的來源館別" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sourceOptions.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>
+                        {o.name}（{o.count} 筆）
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handleCopyFromSource}
+                disabled={isCopying || !sourceId || !accommodationId}
+                className="text-xs sm:text-sm"
+              >
+                {isCopying ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    同步中…
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4 mr-2" />
+                    同步總部設定
+                  </>
+                )}
+              </Button>
+              <label className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 accent-primary"
+                  checked={overwriteExisting}
+                  onChange={(e) => setOverwriteExisting(e.target.checked)}
+                  disabled={isCopying}
+                />
+                覆蓋本館已存在的同一天設定
+              </label>
+            </div>
+            {copyMessage && (
+              <div
+                role="status"
+                aria-live="polite"
+                className={cn(
+                  "mt-3 rounded-md border px-3 py-2 text-xs sm:text-sm",
+                  isCopying && "border-primary/30 bg-primary/5 text-primary",
+                  !isCopying && copyOk && "border-green-500/30 bg-green-500/5 text-green-700",
+                  !isCopying && !copyOk && "border-destructive/30 bg-destructive/5 text-destructive",
+                )}
+              >
+                {copyMessage}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+
       <Card>
         <CardHeader className="p-4 sm:p-6">
           <CardDescription className="text-xs sm:text-sm">
