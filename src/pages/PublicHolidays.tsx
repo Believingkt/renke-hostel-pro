@@ -141,6 +141,15 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [syncResult, setSyncResult] = useState<{ inserted: number; year: number } | null>(null);
 
+  // 同步總部（其他館別）假日設定
+  const [sourceOptions, setSourceOptions] = useState<Array<{ id: string; name: string; count: number }>>([]);
+  const [sourceId, setSourceId] = useState<string>("");
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [isCopying, setIsCopying] = useState(false);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [copyOk, setCopyOk] = useState(false);
+
+
   // Reset list immediately when switching accommodation to prevent cross-tenant flash
   useEffect(() => {
     setHolidays([]);
