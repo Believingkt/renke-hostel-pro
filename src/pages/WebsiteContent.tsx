@@ -56,6 +56,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookingNotificationEmailsCard } from "@/components/admin/BookingNotificationEmailsCard";
+import { BookingConfirmationEmailPreview } from "@/components/admin/BookingConfirmationEmailPreview";
+
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -4269,7 +4271,10 @@ const WebsiteContent = () => {
         <TabsContent value="email-notification" className="space-y-6">
           <PageHeader title="訂房確認通知" icon={Mail} />
 
+          <div className="grid gap-6 xl:grid-cols-2 items-start">
+          <div className="space-y-6">
           <Card>
+
             <CardHeader className="pb-4">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-1.5 bg-primary rounded-full" />
@@ -4407,7 +4412,23 @@ const WebsiteContent = () => {
             isSaving={isSaving}
             saveText="儲存變更"
           />
+          </div>
+
+          <div className="xl:sticky xl:top-4">
+            <BookingConfirmationEmailPreview
+              accommodationId={currentAccommodationId ?? null}
+              settings={{
+                contactPhone: emailNotification.contactPhone,
+                contactEmail: emailNotification.contactEmail,
+                showSecurityDepositNotice: emailNotification.showSecurityDepositNotice,
+                securityDepositNoticeTitle: emailNotification.securityDepositNoticeTitle,
+                securityDepositNotice: emailNotification.securityDepositNotice,
+              }}
+            />
+          </div>
+          </div>
         </TabsContent>
+
 
 
         <TabsContent value="location" className="space-y-6">
