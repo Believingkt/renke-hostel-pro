@@ -521,6 +521,88 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     }
   };
 
+  // 載入可作為「總部範本」的來源館別（依已設定假日數排序）
+  useEffect(() => {
+    if (!accommodationId) return;
+    let cancelled = false;
+    (async () => {
+      const [{ data: accs }, { data: rows }] = await Promise.all([
+        supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("display_order"),
+        supabase.from("public_holidays").select("accommodation_id"),
+      ]);
+      if (cancelled) return;
+      const counts = new Map<string, number>();
+      (rows ?? []).forEach((r) => counts.set(r.accommodation_id, (counts.get(r.accommodation_id) ?? 0) + 1));
+      const options = (accs ?? [])
+        .filter((a) => a.id !== accommodationId)
+        .map((a) => ({ id: a.id, name: a.name as string, count: counts.get(a.id) ?? 0 }))
+        .filter((a) => a.count > 0)
+        .sort((a, b) => b.count - a.count);
+      setSourceOptions(options);
+      setSourceId(options[0]?.id ?? "");
+      setCopyMessage(null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
+
+  // 從來源館別複製假日設定
+  const handleCopyFromSource = async () => {
+    if (!accommodationId || !sourceId) return;
+    setIsCopying(true);
+    setCopyOk(false);
+    setCopyMessage("正在同步總部假日設定…");
+    try {
+      const { data: sourceRows, error: srcErr } = await supabase
+        .from("public_holidays")
+        .select("holiday_date, holiday_name, holiday_type, is_custom")
+        .eq("accommodation_id", sourceId)
+        .order("holiday_date");
+      if (srcErr) throw srcErr;
+      if (!sourceRows?.length) throw new Error("來源館別尚未設定任何假日");
+
+      const existingDates = new Set(holidays.map((h) => h.holiday_date));
+      const candidates = overwriteExisting
+        ? sourceRows
+        : sourceRows.filter((r) => !existingDates.has(r.holiday_date));
+
+      if (!candidates.length) {
+        setCopyOk(true);
+        setCopyMessage("已是最新：沒有需要補上的假日日期");
+        return;
+      }
+
+      const { error: upsertErr } = await supabase.from("public_holidays").upsert(
+        candidates.map((r) => ({
+          accommodation_id: accommodationId,
+          holiday_date: r.holiday_date,
+          holiday_name: r.holiday_name,
+          holiday_type: r.holiday_type,
+          is_custom: r.is_custom,
+        })),
+        { onConflict: "accommodation_id,holiday_date" },
+      );
+      if (upsertErr) throw upsertErr;
+
+      setCopyOk(true);
+      setCopyMessage(
+        `同步完成：共寫入 ${candidates.length} 筆假日${overwriteExisting ? "（含覆蓋既有同日資料）" : "（僅補上缺漏日期）"}`,
+      );
+      toast({ title: "總部設定同步完成", description: `寫入 ${candidates.length} 筆` });
+      await loadHolidays();
+    } catch (err) {
+      console.error("Copy holidays error:", err);
+      const msg = err instanceof Error ? err.message : "同步失敗";
+      setCopyOk(false);
+      setCopyMessage(`同步失敗：${msg}`);
+      toast({ title: "同步失敗", description: msg, variant: "destructive" });
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+
   // 獲取當前月份的假日
   const monthHolidays = useMemo(() => {
     return holidays.filter(holiday => {
