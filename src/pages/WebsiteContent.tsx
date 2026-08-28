@@ -4420,6 +4420,7 @@ const WebsiteContent = () => {
               settings={{
                 contactPhone: emailNotification.contactPhone,
                 contactEmail: emailNotification.contactEmail,
+                importantNotice: emailNotification.importantNotice,
                 showSecurityDepositNotice: emailNotification.showSecurityDepositNotice,
                 securityDepositNoticeTitle: emailNotification.securityDepositNoticeTitle,
                 securityDepositNotice: emailNotification.securityDepositNotice,

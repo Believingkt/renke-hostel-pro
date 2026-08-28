@@ -77,6 +77,7 @@ export function BookingConfirmationEmailPreview({ accommodationId, settings }: P
       accommodation_override: {
         phone: settings.contactPhone || null,
         email: settings.contactEmail || null,
+        email_important_notice: settings.importantNotice || null,
         email_show_security_deposit_notice: settings.showSecurityDepositNotice,
         email_security_deposit_notice_title: settings.securityDepositNoticeTitle || null,
         email_security_deposit_notice: settings.securityDepositNotice || null,
