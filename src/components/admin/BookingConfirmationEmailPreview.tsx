@@ -25,6 +25,7 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 export interface EmailPreviewSettings {
   contactPhone: string;
   contactEmail: string;
+  importantNotice: string;
   showSecurityDepositNotice: boolean;
   securityDepositNoticeTitle: string;
   securityDepositNotice: string;
