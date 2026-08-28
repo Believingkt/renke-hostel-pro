@@ -1315,8 +1315,19 @@ export default function TeamCommissionStatsTab() {
               <TableRow>
                 <TableHead className="w-8" />
                 <TableHead className="whitespace-nowrap">{memberLabel}</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
-                <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={validAxisTip}>
+                    有效訂單數
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+                <TableHead className="whitespace-nowrap tabular-nums">
+                  <AxisTooltip content={validAxisTip}>
+                    有效訂單總金額
+                    <Info className="h-3 w-3 text-muted-foreground" />
+                  </AxisTooltip>
+                </TableHead>
+
                 <TableHead className="whitespace-nowrap tabular-nums">
                   <AxisTooltip
                     content={
