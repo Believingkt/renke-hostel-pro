@@ -1683,8 +1683,11 @@ export default function TeamCommissionStatsTab() {
                 </Select>
               </div>
               <p className="text-xs text-muted-foreground">
-                統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單
+                統計上月的訂單，例如選擇 6 月 10 日，計算的是 5 月 1 日～5 月 31 日的訂單（有效訂單依下單日 order_date）。
+                <br />
+                取消訂單欄位則依<strong>取消時間 (cancelled_at)</strong> 落在同一區間，其成交月可能早於本區間。
               </p>
+
             </>
           ) : (
             <>
