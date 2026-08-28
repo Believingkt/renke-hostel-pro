@@ -1334,9 +1334,14 @@ export default function TeamCommissionStatsTab() {
                       <div className="space-y-1">
                         <p className="font-semibold">成交口徑（資料月 {dataMonthKey}）</p>
                         <p>
-                          只計 order_date 落在 {dataMonthKey} 的訂單，代表「這個月成交了多少」。
+                          只計 order_date 落在 {dataMonthKey} 的<strong>有效訂單</strong>（已排除狀態為「已取消」者），
+                          代表「這個月成交了多少」。
                           不含前期回溯補建、不含分潤補差與取消扣回，因此會與 TeamHome 的發放金額不同。
                         </p>
+                        <p className="text-muted-foreground">
+                          右側「取消分潤金額」僅供參考，不會從此欄扣除；跨月取消（本月成交、次月取消）的扣回於發放月以「分潤補差」處理。
+                        </p>
+
                       </div>
                     }
                   >
