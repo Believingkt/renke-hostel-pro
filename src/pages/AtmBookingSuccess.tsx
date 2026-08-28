@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
-import { getDepositBreakdown, type DepositSettingsLike } from "@/lib/bookingDeposit";
+import { resolvePaymentSummary } from "@/lib/paymentSummary";
 
 
 interface OrderRow {
@@ -41,6 +41,9 @@ interface OrderRow {
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
   accommodation_id: string | null;
+  notes?: string | null;
+  booking_deposit_amount?: number | null;
+  booking_deposit_percentage?: number | null;
 }
 
 const TAPPAY_FALLBACK_EMAIL = "noreply@lakeze.com";
@@ -168,26 +171,6 @@ export default function AtmBookingSuccess() {
   const [order, setOrder] = useState<OrderRow | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paidDetected, setPaidDetected] = useState(false);
-  const [depositSettings, setDepositSettings] = useState<DepositSettingsLike | null>(null);
-
-
-  // 載入該民宿訂金比例設定（ATM 匯款僅收訂金，預設 30%）
-  useEffect(() => {
-    const accommodationId = order?.accommodation_id || accId;
-    if (!accommodationId) return;
-    let alive = true;
-    (async () => {
-      const { data } = await supabase
-        .from("booking_settings")
-        .select("use_deposit, deposit_percentage")
-        .eq("accommodation_id", accommodationId)
-        .maybeSingle();
-      if (alive) setDepositSettings((data as DepositSettingsLike) ?? {});
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [order?.accommodation_id, accId]);
 
 
   useEffect(() => {
@@ -309,16 +292,20 @@ export default function AtmBookingSuccess() {
     return Math.max(0, (order.final_price || 0) - (order.paid_amount || 0));
   }, [order]);
 
-  /** ATM 匯款僅收訂金（預設 30%），尾款入住現場付清 */
-  const depositInfo = useMemo(
-    () => getDepositBreakdown(order?.final_price || 0, depositSettings),
-    [order?.final_price, depositSettings],
-  );
+  /**
+   * 付款摘要一律以訂單本身的訂房訂金快照為準（舊單回退解析備註），
+   * 不再依當下 booking_settings 重新計算，避免歷史訂單金額被之後的設定變動污染。
+   */
+  const summary = useMemo(() => resolvePaymentSummary(order), [order]);
+  const depositPercentLabel = summary.bookingDepositPercentage != null ? `${summary.bookingDepositPercentage}%` : "";
 
-  /** 本次應匯款金額＝訂金扣掉已付款 */
+  /** 本次應匯款金額＝訂房訂金扣掉已付款；無訂金快照則為全額未付金額 */
   const amountDueNow = useMemo(
-    () => Math.max(0, Math.min(depositInfo.deposit, order?.final_price || 0) - (order?.paid_amount || 0)),
-    [depositInfo.deposit, order?.final_price, order?.paid_amount],
+    () =>
+      summary.bookingDepositAmount > 0
+        ? Math.max(0, summary.bookingDepositAmount - summary.paidAmount)
+        : Math.max(0, summary.totalAmount - summary.paidAmount),
+    [summary],
   );
 
 
@@ -376,7 +363,7 @@ export default function AtmBookingSuccess() {
               </>
             ) : (
               <>
-                本次僅需匯款 <span className="font-semibold text-primary">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），
+                本次僅需匯款 <span className="font-semibold text-primary">訂金 NT$ {amountDueNow.toLocaleString()}</span>{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，
                 我們收到入帳通知後將自動確認您的訂房，尾款請於入住當天現場付清。
               </>
             )}
@@ -453,7 +440,7 @@ export default function AtmBookingSuccess() {
                   </div>
                 )}
                 <div className="flex items-center justify-between text-base">
-                  <span className="font-semibold">本次需匯款訂金（{depositInfo.percentage}%）</span>
+                  <span className="font-semibold">本次需匯款訂金{depositPercentLabel ? `（${depositPercentLabel}）` : ""}</span>
                   <span className="font-bold text-primary text-lg">NT$ {amountDueNow.toLocaleString()}</span>
                 </div>
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -464,7 +451,7 @@ export default function AtmBookingSuccess() {
                   <Info className="h-4 w-4 text-primary" />
                   <AlertTitle className="text-sm font-semibold">本次僅需匯款訂金</AlertTitle>
                   <AlertDescription className="text-xs leading-relaxed">
-                    虛擬帳號金額為訂金 NT$ {amountDueNow.toLocaleString()}（訂單總額的 {depositInfo.percentage}%），請勿更改匯款金額，以免無法自動核帳。
+                    虛擬帳號金額為訂金 NT$ {amountDueNow.toLocaleString()}{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，請勿更改匯款金額，以免無法自動核帳。
                     收到入帳通知後訂房即確認，剩餘尾款 NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
                   </AlertDescription>
                 </Alert>
@@ -499,17 +486,11 @@ export default function AtmBookingSuccess() {
 
               />
             )}
-            {depositSettings === null ? (
-              <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                計算訂金金額中...
-              </div>
-            ) : (
             <AtmPaymentPanel
               orderId={order.id}
               orderNumber={order.order_number}
               amount={amountDueNow || remainingAmount || order.final_price}
-              amountLabel={orderPaid ? "已收款金額（訂金）" : `轉帳金額（訂金 ${depositInfo.percentage}%）`}
+              amountLabel={orderPaid ? "已收款金額（訂金）" : `轉帳金額（訂金${depositPercentLabel ? ` ${depositPercentLabel}` : ""}）`}
               expireInMinutes={20}
               paid={orderPaid}
               paidAmount={order.paid_amount || 0}
@@ -544,7 +525,6 @@ export default function AtmBookingSuccess() {
                 );
               }}
             />
-            )}
 
           </CardContent>
         </Card>
@@ -568,7 +548,7 @@ export default function AtmBookingSuccess() {
                 </>
               ) : (
                 <>
-                  <li>本次匯款金額為 <span className="font-medium text-foreground">訂金 NT$ {amountDueNow.toLocaleString()}</span>（訂單總額的 {depositInfo.percentage}%），非訂單全額。</li>
+                  <li>本次匯款金額為 <span className="font-medium text-foreground">訂金 NT$ {amountDueNow.toLocaleString()}</span>{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，非訂單全額。</li>
                   <li>取得虛擬帳號後，請於繳費期限內以 <span className="font-medium text-foreground">ATM、網路銀行或臨櫃</span> 方式匯款。</li>
                   <li>轉帳金額請務必與顯示金額一致，<span className="font-medium text-foreground">不可分次匯款</span>，否則無法自動對帳。</li>
                   <li>系統收到訂金入帳通知後將自動確認訂房，並寄發訂房確認信至您的 Email。</li>
