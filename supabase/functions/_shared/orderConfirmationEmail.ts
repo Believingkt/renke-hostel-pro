@@ -426,7 +426,13 @@ export function renderOrderConfirmationEmail(
     : "";
 
   // 4. 住宿詳情
-  const otherNoteLines = htmlToLines(settings?.other_notes);
+  // 「重要提醒」= 官網內容 → 訂房確認通知 →（accommodation_info.email_important_notice）
+  // 逐行 trim、過濾空行、原樣輸出（不自動加項目符號、不解析內容）
+  const importantNoticeLines = String(acc?.email_important_notice || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((l: string) => l.trim())
+    .filter((l: string) => l.length > 0);
   const guestNotes = extractGuestNotes(order.notes);
   const stayDetail = card(
     block(`
