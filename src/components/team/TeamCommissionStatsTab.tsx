@@ -1759,8 +1759,19 @@ export default function TeamCommissionStatsTab() {
                   <TableHead className="whitespace-nowrap">星探</TableHead>
                   <TableHead className="whitespace-nowrap">折扣碼</TableHead>
                   <TableHead className="whitespace-nowrap">民宿</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">有效訂單數</TableHead>
-                  <TableHead className="whitespace-nowrap tabular-nums">有效訂單總金額</TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={validAxisTip}>
+                      有效訂單數
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+                  <TableHead className="whitespace-nowrap tabular-nums">
+                    <AxisTooltip content={validAxisTip}>
+                      有效訂單總金額
+                      <Info className="h-3 w-3 text-muted-foreground" />
+                    </AxisTooltip>
+                  </TableHead>
+
                   <TableHead className="whitespace-nowrap tabular-nums">星探分潤%</TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">星探分潤金額</TableHead>
                   <TableHead className="whitespace-nowrap">成交組</TableHead>
