@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { resolvePaymentSummary } from "@/lib/paymentSummary";
 
 /**
  * ATM 虛擬帳號共用邏輯：確保會員端、後台訂單列表與訂單明細顯示一致。
@@ -12,21 +13,26 @@ export interface AtmSourceOrder {
   atm_vacc_bank_code?: string | null;
   atm_expire_at?: string | null;
   payment_status?: string | null;
+  booking_deposit_amount?: number | null;
+  booking_deposit_percentage?: number | null;
 }
 
-/** 從備註取出實際開立的 ATM 轉帳（訂金）金額，取不到則以未付餘額為準 */
+/**
+ * ATM 應繳（訂房訂金）金額。
+ * SoT 順序：orders.booking_deposit_amount 快照 → notes legacy parser → 未付餘額。
+ * 一律不使用 deposit_required_amount（入住押金）或當前 booking_settings。
+ */
 export function getAtmTransferAmount(order?: AtmSourceOrder | null): number {
-  const fromNotes = Number(
-    order?.notes?.match(/訂金\s*NT\$\s*([\d,]+)/)?.[1]?.replace(/,/g, "")
-  );
-  if (fromNotes > 0) return fromNotes;
+  const s = resolvePaymentSummary(order);
+  if (s.bookingDepositAmount > 0) {
+    return s.pendingBookingDeposit > 0 ? s.pendingBookingDeposit : s.bookingDepositAmount;
+  }
   return Math.max(0, (order?.final_price || 0) - (order?.paid_amount || 0));
 }
 
-/** 備註中的訂金比例（例如 30） */
+/** 訂金比例（快照優先，其次備註 legacy） */
 export function getAtmDepositPercent(order?: AtmSourceOrder | null): number | null {
-  const pct = order?.notes?.match(/的\s*(\d+)%/)?.[1];
-  return pct ? Number(pct) : null;
+  return resolvePaymentSummary(order).bookingDepositPercentage;
 }
 
 export function getAtmExpireDate(order?: AtmSourceOrder | null): Date | null {
