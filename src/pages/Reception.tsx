@@ -582,7 +582,7 @@ export default function Reception() {
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <div className="text-sm font-medium">{amenityTitle}</div>
                 <div className="text-xs text-muted-foreground">
-                  依本頁名單訂單備品分配加總{mode === "checkin" ? "（含續住）" : ""}
+                  {mode === "checkout" ? "依當日退房訂單統計" : "僅統計當日新入住訂單，不含續住"}
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
