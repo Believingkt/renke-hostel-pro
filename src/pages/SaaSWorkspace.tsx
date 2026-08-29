@@ -1214,6 +1214,7 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* 平台營收（僅總覽身份） */}
           {isAdminView && (
