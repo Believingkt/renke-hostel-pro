@@ -496,6 +496,38 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
+  const [activeTab, setActiveTab] = useState("d1");
+  useEffect(() => {
+    if (!isAdminView && activeTab === "revenue") setActiveTab("d1");
+  }, [isAdminView, activeTab]);
+
+  const managerInviteCodes = useMemo(() => {
+    const manager = COMMUNITY_MANAGERS.find((m) => m.id === identity);
+    if (!manager) return MOCK_INVITE_CODES;
+    return MOCK_INVITE_CODES.filter((c) => c.owner === manager.label);
+  }, [identity]);
+
+  const spreadStats = managerPanel
+    ? {
+        total: managerPanel.totalSpread,
+        conversions: managerPanel.conversions,
+        levels: [
+          { level: 1, label: "第一層擴散", people: managerPanel.level1, note: "由社群管理員直接邀請" },
+          { level: 2, label: "第二層擴散", people: managerPanel.level2, note: "由第一層成員再邀請" },
+        ],
+      }
+    : {
+        total: 8,
+        conversions: 2,
+        levels: MOCK_SPREAD_TREE,
+      };
+
+  const conversionRate =
+    spreadStats.total > 0
+      ? ((spreadStats.conversions / spreadStats.total) * 100).toFixed(1)
+      : "0.0";
+
+
   const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
   const [createOpen, setCreateOpen] = useState(false);
   const [formKol, setFormKol] = useState(selectedKol);
