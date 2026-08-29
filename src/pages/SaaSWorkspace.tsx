@@ -684,15 +684,15 @@ export default function SaaSWorkspace() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
-            <TabsTrigger value="d1">創作者導流</TabsTrigger>
-            <TabsTrigger value="d2">社群裂變</TabsTrigger>
+            {canSeeD1 && <TabsTrigger value="d1">創作者導流</TabsTrigger>}
+            {canSeeD2 && <TabsTrigger value="d2">社群裂變</TabsTrigger>}
             {isAdminView && <TabsTrigger value="revenue">平台營收</TabsTrigger>}
           </TabsList>
 
-
-
           {/* D1 */}
+          {canSeeD1 && (
           <TabsContent value="d1" className="mt-4 space-y-6">
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
