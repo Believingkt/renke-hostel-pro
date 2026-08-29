@@ -55,5 +55,8 @@ export const PMS_RESERVED_FIRST_SEGMENT_SET: ReadonlySet<string> = new Set(
 
 /** 路徑第一段是否為保留字（非民宿 alias） */
 export function isReservedFirstSegment(segment: string): boolean {
-  return RESERVED_FIRST_SEGMENT_SET.has(segment);
+  return (
+    RESERVED_FIRST_SEGMENT_SET.has(segment) ||
+    RESERVED_FIRST_SEGMENT_SET.has(segment.toLowerCase())
+  );
 }
