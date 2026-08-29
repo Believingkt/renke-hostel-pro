@@ -79,13 +79,37 @@ const MOCK_KOLS: MockKol[] = [
 
 const ADMIN_IDENTITY = "system-admin";
 
+type CommunityManager = {
+  id: string;
+  label: string;
+  venue: string;
+  inviteCode: string;
+};
+
+/** 社群管理員（對應歷史邀請碼建立者） */
+const COMMUNITY_MANAGERS: CommunityManager[] = [
+  { id: "cm-lvxingri-guang", label: "旅行日-光 社群管理員", venue: "旅行日-光", inviteCode: "LZ-A7K2" },
+  { id: "cm-senshan", label: "森山寫照 社群管理員", venue: "森山寫照", inviteCode: "LZ-B3M9" },
+  { id: "cm-yunxiu", label: "雲岫海景渡假會館 社群管理員", venue: "雲岫海景渡假會館", inviteCode: "LZ-C8Q4" },
+  { id: "cm-songxiang", label: "淞湘卉館 社群管理員", venue: "淞湘卉館", inviteCode: "LZ-D5T1" },
+];
+
+const KOL_IDENTITIES = MOCK_KOLS.map((k) => ({
+  value: k.cidCode,
+  label: `KOL ${k.name.replace(/（.*?）|｜.*$/g, "")}／創作者導流`,
+}));
+
+const MANAGER_IDENTITIES = COMMUNITY_MANAGERS.map((m) => ({
+  value: m.id,
+  label: m.label,
+}));
+
 const VIEW_IDENTITIES = [
-  ...MOCK_KOLS.map((k) => ({
-    value: k.cidCode,
-    label: `KOL ${k.name.replace(/（.*?）|｜.*$/g, "")}／創作者導流`,
-  })),
+  ...KOL_IDENTITIES,
+  ...MANAGER_IDENTITIES,
   { value: ADMIN_IDENTITY, label: "系統管理員／總覽" },
 ];
+
 
 type CodeOrder = { code: string; buyer: string; amount: number; status: string };
 type BonusRow = { orderNo: string; checkIn: string; amount: number; bonus: number; status: string };
