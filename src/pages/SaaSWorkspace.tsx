@@ -483,8 +483,11 @@ export default function SaaSWorkspace() {
   );
 
   const isAdminView = identity === ADMIN_IDENTITY;
+  const managerPanel = MANAGER_PANELS[identity] ?? null;
+  const isManagerView = managerPanel !== null;
 
-  const selectedKol = isAdminView ? MOCK_KOLS[0].cidCode : identity;
+  const selectedKol = KOL_PANELS[identity] ? identity : MOCK_KOLS[0].cidCode;
+
 
   const selectedKolName = useMemo(
     () => MOCK_KOLS.find((k) => k.cidCode === selectedKol)?.name ?? "",
