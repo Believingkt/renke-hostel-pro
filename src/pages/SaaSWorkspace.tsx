@@ -955,6 +955,7 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
 
+            {isAdminView && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
