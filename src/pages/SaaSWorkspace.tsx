@@ -605,12 +605,30 @@ export default function SaaSWorkspace() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {VIEW_IDENTITIES.map((i) => (
-                    <SelectItem key={i.value} value={i.value}>
-                      {i.label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>創作者</SelectLabel>
+                    {KOL_IDENTITIES.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>
+                        {i.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>社群管理員</SelectLabel>
+                    {MANAGER_IDENTITIES.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>
+                        {i.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>總覽</SelectLabel>
+                    <SelectItem value={ADMIN_IDENTITY}>系統管理員／總覽</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
+
               </Select>
               <span className="text-xs text-muted-foreground">目前檢視：{identityLabel}</span>
             </div>
