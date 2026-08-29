@@ -83,3 +83,20 @@ export function aggregateAmenitySummary(
   });
   return sortLines([...acc.values()]).filter((l) => l.quantity > 0);
 }
+
+/**
+ * 總表 aggregate 專用訂單集合（與單筆顯示語意分離）
+ * - checkin：只取 check_in_date === activeDate（新入住，排除續住）
+ * - checkout：只取 check_out_date === activeDate
+ */
+export function selectSummaryOrderIds(
+  orders: Array<{ id: string; check_in_date: string; check_out_date: string }>,
+  activeDate: string,
+  mode: "checkin" | "checkout",
+): string[] {
+  return orders
+    .filter((o) =>
+      mode === "checkout" ? o.check_out_date === activeDate : o.check_in_date === activeDate,
+    )
+    .map((o) => o.id);
+}
