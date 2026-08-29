@@ -10,7 +10,10 @@ import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -79,13 +82,37 @@ const MOCK_KOLS: MockKol[] = [
 
 const ADMIN_IDENTITY = "system-admin";
 
+type CommunityManager = {
+  id: string;
+  label: string;
+  venue: string;
+  inviteCode: string;
+};
+
+/** 社群管理員（對應歷史邀請碼建立者） */
+const COMMUNITY_MANAGERS: CommunityManager[] = [
+  { id: "cm-lvxingri-guang", label: "旅行日-光 社群管理員", venue: "旅行日-光", inviteCode: "LZ-A7K2" },
+  { id: "cm-senshan", label: "森山寫照 社群管理員", venue: "森山寫照", inviteCode: "LZ-B3M9" },
+  { id: "cm-yunxiu", label: "雲岫海景渡假會館 社群管理員", venue: "雲岫海景渡假會館", inviteCode: "LZ-C8Q4" },
+  { id: "cm-songxiang", label: "淞湘卉館 社群管理員", venue: "淞湘卉館", inviteCode: "LZ-D5T1" },
+];
+
+const KOL_IDENTITIES = MOCK_KOLS.map((k) => ({
+  value: k.cidCode,
+  label: `KOL ${k.name.replace(/（.*?）|｜.*$/g, "")}／創作者導流`,
+}));
+
+const MANAGER_IDENTITIES = COMMUNITY_MANAGERS.map((m) => ({
+  value: m.id,
+  label: m.label,
+}));
+
 const VIEW_IDENTITIES = [
-  ...MOCK_KOLS.map((k) => ({
-    value: k.cidCode,
-    label: `KOL ${k.name.replace(/（.*?）|｜.*$/g, "")}／創作者導流`,
-  })),
+  ...KOL_IDENTITIES,
+  ...MANAGER_IDENTITIES,
   { value: ADMIN_IDENTITY, label: "系統管理員／總覽" },
 ];
+
 
 type CodeOrder = { code: string; buyer: string; amount: number; status: string };
 type BonusRow = { orderNo: string; checkIn: string; amount: number; bonus: number; status: string };
@@ -252,6 +279,85 @@ const MOCK_REWARD_TIERS = [
   { tier: "管理員加碼", rate: "+2%", condition: "單月累積轉換 ≥ 5 筆" },
 ];
 
+type SpreadPartner = { name: string; level: "第一層" | "第二層"; orders: number; bonus: number };
+type ManagerPanel = {
+  venue: string;
+  totalSpread: number;
+  level1: number;
+  level2: number;
+  conversions: number;
+  monthlyBonus: number;
+  partners: SpreadPartner[];
+};
+
+/** 各社群管理員的館別視角假資料（加總與全站小樣本一致） */
+const MANAGER_PANELS: Record<string, ManagerPanel> = {
+  "cm-lvxingri-guang": {
+    venue: "旅行日-光",
+    totalSpread: 3,
+    level1: 2,
+    level2: 1,
+    conversions: 1,
+    monthlyBonus: 1840,
+    partners: [
+      { name: "陳O安", level: "第一層", orders: 1, bonus: 1040 },
+      { name: "林O妤", level: "第一層", orders: 0, bonus: 0 },
+      { name: "黃O豪", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-senshan": {
+    venue: "森山寫照",
+    totalSpread: 2,
+    level1: 1,
+    level2: 1,
+    conversions: 1,
+    monthlyBonus: 1260,
+    partners: [
+      { name: "何O瑄", level: "第一層", orders: 1, bonus: 960 },
+      { name: "楊O廷", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-yunxiu": {
+    venue: "雲岫海景渡假會館",
+    totalSpread: 2,
+    level1: 1,
+    level2: 1,
+    conversions: 0,
+    monthlyBonus: 620,
+    partners: [
+      { name: "郭O筑", level: "第一層", orders: 0, bonus: 0 },
+      { name: "許O傑", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-songxiang": {
+    venue: "淞湘卉館",
+    totalSpread: 1,
+    level1: 1,
+    level2: 0,
+    conversions: 0,
+    monthlyBonus: 480,
+    partners: [
+      { name: "蔡O慈", level: "第一層", orders: 0, bonus: 0 },
+      { name: "周O倫", level: "第一層", orders: 0, bonus: 0 },
+    ],
+  },
+};
+
+const PLATFORM_REVENUE_STATS = [
+  { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
+  { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
+  { title: "本月台灣旅圖抽成金額", value: "NT$ 6,180", icon: LayoutDashboard, variant: "blue" as const },
+  { title: "本月人客多抽成金額", value: "NT$ 9,240", icon: Users, variant: "purple" as const },
+];
+
+const PLATFORM_REVENUE_ROWS = [
+  { project: "多渠道創作者導流", lvtu: "2%", lakeze: "3%", amount: 8620 },
+  { project: "社群裂變推廣", lvtu: "2%", lakeze: "4%", amount: 5140 },
+  { project: "跨館聯合專案", lvtu: "4%", lakeze: "4%", amount: 1660 },
+];
+
+
+
 
 const CID_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -380,8 +486,11 @@ export default function SaaSWorkspace() {
   );
 
   const isAdminView = identity === ADMIN_IDENTITY;
+  const managerPanel = MANAGER_PANELS[identity] ?? null;
+  const isManagerView = managerPanel !== null;
 
-  const selectedKol = isAdminView ? MOCK_KOLS[0].cidCode : identity;
+  const selectedKol = KOL_PANELS[identity] ? identity : MOCK_KOLS[0].cidCode;
+
 
   const selectedKolName = useMemo(
     () => MOCK_KOLS.find((k) => k.cidCode === selectedKol)?.name ?? "",
@@ -389,6 +498,38 @@ export default function SaaSWorkspace() {
   );
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
+
+  const [activeTab, setActiveTab] = useState("d1");
+  useEffect(() => {
+    if (!isAdminView && activeTab === "revenue") setActiveTab("d1");
+  }, [isAdminView, activeTab]);
+
+  const managerInviteCodes = useMemo(() => {
+    const manager = COMMUNITY_MANAGERS.find((m) => m.id === identity);
+    if (!manager) return MOCK_INVITE_CODES;
+    return MOCK_INVITE_CODES.filter((c) => c.owner === manager.label);
+  }, [identity]);
+
+  const spreadStats = managerPanel
+    ? {
+        total: managerPanel.totalSpread,
+        conversions: managerPanel.conversions,
+        levels: [
+          { level: 1, label: "第一層擴散", people: managerPanel.level1, note: "由社群管理員直接邀請" },
+          { level: 2, label: "第二層擴散", people: managerPanel.level2, note: "由第一層成員再邀請" },
+        ],
+      }
+    : {
+        total: 8,
+        conversions: 2,
+        levels: MOCK_SPREAD_TREE,
+      };
+
+  const conversionRate =
+    spreadStats.total > 0
+      ? ((spreadStats.conversions / spreadStats.total) * 100).toFixed(1)
+      : "0.0";
+
 
   const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
   const [createOpen, setCreateOpen] = useState(false);
@@ -467,12 +608,30 @@ export default function SaaSWorkspace() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {VIEW_IDENTITIES.map((i) => (
-                    <SelectItem key={i.value} value={i.value}>
-                      {i.label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    <SelectLabel>創作者</SelectLabel>
+                    {KOL_IDENTITIES.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>
+                        {i.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>社群管理員</SelectLabel>
+                    {MANAGER_IDENTITIES.map((i) => (
+                      <SelectItem key={i.value} value={i.value}>
+                        {i.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectSeparator />
+                  <SelectGroup>
+                    <SelectLabel>總覽</SelectLabel>
+                    <SelectItem value={ADMIN_IDENTITY}>系統管理員／總覽</SelectItem>
+                  </SelectGroup>
                 </SelectContent>
+
               </Select>
               <span className="text-xs text-muted-foreground">目前檢視：{identityLabel}</span>
             </div>
@@ -512,11 +671,13 @@ export default function SaaSWorkspace() {
           </div>
         </header>
 
-        <Tabs defaultValue="d1" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="d1">創作者導流</TabsTrigger>
             <TabsTrigger value="d2">社群裂變</TabsTrigger>
+            {isAdminView && <TabsTrigger value="revenue">平台營收</TabsTrigger>}
           </TabsList>
+
 
 
           {/* D1 */}
@@ -894,7 +1055,7 @@ export default function SaaSWorkspace() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_INVITE_CODES.map((c) => (
+                      {managerInviteCodes.map((c) => (
                         <TableRow key={c.code}>
                           <TableCell className="font-mono whitespace-nowrap">{c.code}</TableCell>
                           <TableCell>{c.owner}</TableCell>
@@ -922,19 +1083,28 @@ export default function SaaSWorkspace() {
                 <CardDescription>邀請鏈的層級擴散人數與轉換表現</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className={cn("grid gap-3 sm:grid-cols-2", managerPanel && "lg:grid-cols-3")}>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">總擴散人數</p>
-                    <p className="mt-1 text-2xl font-bold">8</p>
+                    <p className="mt-1 text-2xl font-bold">{spreadStats.total}</p>
                   </Card>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">轉換率</p>
-                    <p className="mt-1 text-2xl font-bold text-primary">25.0%（2 / 8）</p>
-
+                    <p className="mt-1 text-2xl font-bold text-primary">
+                      {conversionRate}%（{spreadStats.conversions} / {spreadStats.total}）
+                    </p>
                   </Card>
+                  {managerPanel && (
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">本月管理員獎金</p>
+                      <p className="mt-1 text-2xl font-bold text-primary">
+                        NT$ {managerPanel.monthlyBonus.toLocaleString()}
+                      </p>
+                    </Card>
+                  )}
                 </div>
                 <ul className="space-y-2">
-                  {MOCK_SPREAD_TREE.map((n) => (
+                  {spreadStats.levels.map((n) => (
                     <li
                       key={n.level}
                       className={cn(
@@ -952,6 +1122,47 @@ export default function SaaSWorkspace() {
                 </ul>
               </CardContent>
             </Card>
+
+            {managerPanel && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="h-5 w-5 text-primary" />
+                    裂變夥伴績效清單
+                  </CardTitle>
+                  <CardDescription>{managerPanel.venue} 社群的夥伴帶單與獎金表現</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>夥伴姓名</TableHead>
+                          <TableHead>加入層級</TableHead>
+                          <TableHead className="text-right">帶來訂單數</TableHead>
+                          <TableHead className="text-right">獎金金額</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {managerPanel.partners.map((p) => (
+                          <TableRow key={p.name}>
+                            <TableCell className="whitespace-nowrap">{p.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{p.level}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{p.orders}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">
+                              NT$ {p.bonus.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
 
             <Card>
               <CardHeader>
@@ -985,6 +1196,68 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* 平台營收（僅總覽身份） */}
+          {isAdminView && (
+            <TabsContent value="revenue" className="mt-4 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Wallet className="h-5 w-5 text-primary" />
+                    平台營收
+                  </CardTitle>
+                  <CardDescription>台灣旅圖與人客多之平台抽成總覽</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {PLATFORM_REVENUE_STATS.map((s) => (
+                      <Card key={s.title} className="p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-muted-foreground">{s.title}</p>
+                            <p className="mt-1 text-xl font-bold md:text-2xl">{s.value}</p>
+                          </div>
+                          <div className={cn("rounded-xl p-3", STAT_VARIANTS[s.variant])}>
+                            <s.icon className="h-6 w-6" />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>專案類型</TableHead>
+                          <TableHead>台灣旅圖抽成%</TableHead>
+                          <TableHead>人客多抽成%</TableHead>
+                          <TableHead className="text-right">本月抽成金額</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {PLATFORM_REVENUE_ROWS.map((r) => (
+                          <TableRow key={r.project}>
+                            <TableCell className="whitespace-nowrap">{r.project}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{r.lvtu}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{r.lakeze}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">
+                              NT$ {r.amount.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
         </Tabs>
       </div>
     </div>
