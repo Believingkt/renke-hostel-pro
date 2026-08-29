@@ -56,8 +56,15 @@ export function TeamSidebar() {
     <Sidebar collapsible="icon" className="admin-theme border-r">
       {!collapsed && (
         <SidebarHeader className="border-b px-6 py-4">
-          <BrandLogoBar scope="team" label="團隊" partnerLogoClassName="h-7" />
+          <NavLink
+            to="/team"
+            onClick={handleClick}
+            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity duration-200"
+          >
+            <BrandLogoBar scope="team" label="團隊" partnerLogoClassName="h-7" />
+          </NavLink>
         </SidebarHeader>
+
       )}
 
       <SidebarContent>
