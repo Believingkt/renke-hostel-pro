@@ -94,6 +94,8 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<AmenityItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [peak, setPeak] = useState<AmenityFuturePeak>(IDLE_PEAK);
+
   const { usage, days } = useUsageOverview(accommodationId, refreshKey);
 
   const load = useCallback(async () => {
