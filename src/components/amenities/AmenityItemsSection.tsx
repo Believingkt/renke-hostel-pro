@@ -106,6 +106,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const openAdd = () => {
     setEditing(null);
     setForm({ ...emptyForm });
+    setPeak(IDLE_PEAK);
     setDialogOpen(true);
   };
 
@@ -119,7 +120,13 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       is_active: item.is_active,
     });
     setDialogOpen(true);
+    // 只有編輯既有備品才需要 peak（新增備品不會有既有 allocation）
+    setPeak(LOADING_PEAK);
+    fetchAmenityFuturePeak({ accommodationId, amenityItemId: item.id })
+      .then((res) => setPeak(res))
+      .catch(() => setPeak(ERROR_PEAK));
   };
+
 
   const handleSave = async () => {
     if (!form.name.trim()) {
