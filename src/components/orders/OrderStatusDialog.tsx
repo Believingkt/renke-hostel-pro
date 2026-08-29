@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
 import { getOrderStatusConfig } from "@/utils/orderHelpers";
 import { isHoldOrder } from "@/lib/holdOrder";
+import { buildAmenityRestoreError, type AmenityRestoreError } from "@/lib/amenityRescheduleGuard";
+import { AlertTriangle } from "lucide-react";
 
 interface OrderStatusDialogProps {
   order: Order | null;
