@@ -291,7 +291,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}>
+                    <Button variant="ghost" size="icon" onClick={() => openDelete(item)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
