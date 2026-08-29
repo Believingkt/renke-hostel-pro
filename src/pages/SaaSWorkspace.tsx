@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -1250,6 +1251,67 @@ export default function SaaSWorkspace() {
                       </TableBody>
                     </Table>
                   </div>
+                )}
+                {isAdminView && !managerPanel && (
+                  <Accordion type="multiple" className="rounded-lg border px-3">
+                    {Object.entries(MANAGER_PANELS).map(([id, m]) => (
+                      <AccordionItem key={id} value={id}>
+                        <AccordionTrigger className="text-sm">
+                          <span className="flex flex-wrap items-center gap-2">
+                            <span className="font-medium">{m.venue}</span>
+                            <span className="text-xs text-muted-foreground">
+                              第一層 {m.level1} 人 · 第二層 {m.level2} 人
+                            </span>
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-3">
+                          <div className="rounded-lg border bg-card p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-medium">第一層擴散</span>
+                              <span className="tabular-nums text-primary">{m.level1} 人</span>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">由社群管理員直接邀請</p>
+                            {m.level1Members.length > 0 && (
+                              <ul className="mt-3 divide-y rounded-md border bg-background">
+                                {m.level1Members.map((mem) => (
+                                  <li
+                                    key={mem.name}
+                                    className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+                                  >
+                                    <span className="font-medium">{mem.name}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                      加入日期 {mem.joinedAt}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                          <div className="ml-6 rounded-lg border border-dashed bg-card p-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-medium">第二層擴散</span>
+                              <span className="tabular-nums text-primary">{m.level2} 人</span>
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">由第一層成員再邀請</p>
+                            {m.level2Members.length > 0 && (
+                              <ul className="mt-3 space-y-1">
+                                {m.level2Members.map((mem) => (
+                                  <li
+                                    key={mem.name}
+                                    className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
+                                  >
+                                    <span className="text-foreground/80">{mem.name}</span>
+                                    <span>· 由 {mem.invitedBy} 邀請</span>
+                                    <span>· {mem.joinedAt} 加入</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 )}
                 <ul className="space-y-2">
                   {spreadStats.levels.map((n) => (
