@@ -499,10 +499,21 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
+  // Demo 用途的前端可視性規則（非真實權限驗證）
+  const canSeeD1 = isAdminView || !isManagerView;
+  const canSeeD2 = isAdminView || isManagerView;
+  const visibleTabs = [
+    ...(canSeeD1 ? ["d1"] : []),
+    ...(canSeeD2 ? ["d2"] : []),
+    ...(isAdminView ? ["revenue"] : []),
+  ];
+
   const [activeTab, setActiveTab] = useState("d1");
   useEffect(() => {
-    if (!isAdminView && activeTab === "revenue") setActiveTab("d1");
-  }, [isAdminView, activeTab]);
+    if (!visibleTabs.includes(activeTab)) setActiveTab(visibleTabs[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSeeD1, canSeeD2, isAdminView, activeTab]);
+
 
   const managerInviteCodes = useMemo(() => {
     const manager = COMMUNITY_MANAGERS.find((m) => m.id === identity);
