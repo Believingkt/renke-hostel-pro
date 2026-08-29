@@ -499,10 +499,21 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
+  // Demo 用途的前端可視性規則（非真實權限驗證）
+  const canSeeD1 = isAdminView || !isManagerView;
+  const canSeeD2 = isAdminView || isManagerView;
+  const visibleTabs = [
+    ...(canSeeD1 ? ["d1"] : []),
+    ...(canSeeD2 ? ["d2"] : []),
+    ...(isAdminView ? ["revenue"] : []),
+  ];
+
   const [activeTab, setActiveTab] = useState("d1");
   useEffect(() => {
-    if (!isAdminView && activeTab === "revenue") setActiveTab("d1");
-  }, [isAdminView, activeTab]);
+    if (!visibleTabs.includes(activeTab)) setActiveTab(visibleTabs[0]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSeeD1, canSeeD2, isAdminView, activeTab]);
+
 
   const managerInviteCodes = useMemo(() => {
     const manager = COMMUNITY_MANAGERS.find((m) => m.id === identity);
@@ -532,6 +543,11 @@ export default function SaaSWorkspace() {
 
 
   const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
+  // KOL 身份只看得到自己的折扣碼；總覽維持全站清單
+  const visibleCodeHistory = useMemo(
+    () => (isAdminView ? codeHistory : codeHistory.filter((h) => h.kolName === selectedKolName)),
+    [codeHistory, isAdminView, selectedKolName],
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [formKol, setFormKol] = useState(selectedKol);
   const [formVenue, setFormVenue] = useState("");
@@ -673,15 +689,15 @@ export default function SaaSWorkspace() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
-            <TabsTrigger value="d1">創作者導流</TabsTrigger>
-            <TabsTrigger value="d2">社群裂變</TabsTrigger>
+            {canSeeD1 && <TabsTrigger value="d1">創作者導流</TabsTrigger>}
+            {canSeeD2 && <TabsTrigger value="d2">社群裂變</TabsTrigger>}
             {isAdminView && <TabsTrigger value="revenue">平台營收</TabsTrigger>}
           </TabsList>
 
-
-
           {/* D1 */}
+          {canSeeD1 && (
           <TabsContent value="d1" className="mt-4 space-y-6">
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -740,7 +756,7 @@ export default function SaaSWorkspace() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {codeHistory.map((h) => (
+                        {visibleCodeHistory.map((h) => (
                           <TableRow key={h.id}>
                             <TableCell className="font-mono whitespace-nowrap">{h.code}</TableCell>
                             <TableCell className="whitespace-nowrap">{h.kolName}</TableCell>
@@ -944,6 +960,7 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
 
+            {isAdminView && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -992,7 +1009,9 @@ export default function SaaSWorkspace() {
                 </div>
               </CardContent>
             </Card>
+            )}
 
+            {isAdminView && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -1030,10 +1049,14 @@ export default function SaaSWorkspace() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </TabsContent>
+          )}
 
           {/* D2 */}
+          {canSeeD2 && (
           <TabsContent value="d2" className="mt-4 space-y-6">
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -1196,6 +1219,7 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* 平台營收（僅總覽身份） */}
           {isAdminView && (
