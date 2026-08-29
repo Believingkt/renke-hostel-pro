@@ -209,22 +209,23 @@ const MOCK_INVITES = [
 ];
 
 const MOCK_INVITE_CODES = [
-  { code: "LZ-A7K2", owner: "旅行日-光 社群團長", used: 42, createdAt: "2026-07-28", status: "啟用中" },
-  { code: "LZ-B3M9", owner: "森山寫照 社群團長", used: 27, createdAt: "2026-08-04", status: "啟用中" },
-  { code: "LZ-C8Q4", owner: "雲岫海景渡假會館 社群團長", used: 11, createdAt: "2026-08-11", status: "已停用" },
-  { code: "LZ-D5T1", owner: "淞湘卉館 社群團長", used: 63, createdAt: "2026-08-18", status: "啟用中" },
+  { code: "LZ-A7K2", owner: "旅行日-光 社群管理員", used: 3, createdAt: "2026-07-28", status: "啟用中" },
+  { code: "LZ-B3M9", owner: "森山寫照 社群管理員", used: 2, createdAt: "2026-08-04", status: "啟用中" },
+  { code: "LZ-C8Q4", owner: "雲岫海景渡假會館 社群管理員", used: 1, createdAt: "2026-08-11", status: "已停用" },
+  { code: "LZ-D5T1", owner: "淞湘卉館 社群管理員", used: 2, createdAt: "2026-08-18", status: "啟用中" },
 ];
 
 const MOCK_SPREAD_TREE = [
-  { level: 1, label: "第一層擴散", people: 86, note: "由社群團長直接邀請" },
-  { level: 2, label: "第二層擴散", people: 214, note: "由第一層成員再邀請" },
+  { level: 1, label: "第一層擴散", people: 5, note: "由社群管理員直接邀請" },
+  { level: 2, label: "第二層擴散", people: 3, note: "由第一層成員再邀請" },
 ];
 
 const MOCK_REWARD_TIERS = [
   { tier: "第一層", rate: "8%", condition: "被邀請人完成首筆入住" },
   { tier: "第二層", rate: "3%", condition: "第二層成員完成首筆入住" },
-  { tier: "團長加碼", rate: "+2%", condition: "單月累積轉換 ≥ 20 筆" },
+  { tier: "管理員加碼", rate: "+2%", condition: "單月累積轉換 ≥ 5 筆" },
 ];
+
 
 const CID_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
