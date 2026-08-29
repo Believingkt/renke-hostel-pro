@@ -152,10 +152,16 @@ export async function buildExemptResolver(
 
 import { extractAddonTotal } from "./ownerSettlement";
 import { extraOnSiteAddonFromNotes } from "./orderAddonTotal";
+import { getCommissionFormulaVersion } from "./commissionFormulaVersion";
+
+export { getCommissionFormulaVersion, taipeiCalendarDate, COMMISSION_V2_CUTOFF_TAIPEI_DATE } from "./commissionFormulaVersion";
+export type { CommissionFormulaVersion } from "./commissionFormulaVersion";
 
 /**
- * 佣金/獎金計算基礎（canonical，前端唯一真相）：
- *   max(0, final_price − custom_addon_details 總額 − notes 內「額外現場加購金額」)
+ * 佣金/獎金計算基礎（canonical，前端唯一真相，版本化）：
+ *   LEGACY（order_date 台北日 < 2026-08-01）：max(0, final_price − custom_addon 總額)
+ *   V2    （order_date 台北日 >= 2026-08-01）：再扣 notes 內「額外現場加購金額」
+ *   order_date 缺失／無效 → fail-safe LEGACY
  *
  * 與 supabase/functions/_shared/addonTotal.ts 的同名函式語意完全一致（mirror）。
  * order_meta.team_commission_price 人工覆蓋值由呼叫端優先採用，
@@ -168,10 +174,11 @@ export function commissionBaseFromOrder(order: {
   final_price?: number | string | null;
   custom_addon_details?: unknown;
   notes?: string | null;
+  order_date?: string | Date | null;
 }): number {
   const final = Number(order.final_price ?? 0) || 0;
-  return Math.max(
-    0,
-    final - extractAddonTotal(order.custom_addon_details) - extraOnSiteAddonFromNotes(order.notes),
-  );
+  const custom = extractAddonTotal(order.custom_addon_details);
+  const version = getCommissionFormulaVersion(order);
+  const onsite = version === "V2" ? extraOnSiteAddonFromNotes(order.notes) : 0;
+  return Math.max(0, final - custom - onsite);
 }

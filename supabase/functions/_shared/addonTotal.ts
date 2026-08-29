@@ -1,3 +1,5 @@
+import { getCommissionFormulaVersion } from "./commissionFormulaVersion.ts";
+
 /**
  * 加購項目金額加總（與前端 src/lib/ownerSettlement.ts 的 extractAddonTotal 邏輯一致）
  * 逐筆加總 orders.custom_addon_details JSONB 陣列裡的 total 欄位。
@@ -27,8 +29,10 @@ export function extraOnSiteAddonFromNotes(notes?: string | null): number {
 }
 
 /**
- * 佣金/獎金計算基礎（canonical）：
- *   max(0, final_price − custom_addon_details 總額 − notes 內「額外現場加購金額」)
+ * 佣金/獎金計算基礎（canonical，版本化）：
+ *   LEGACY（order_date 台北日 < 2026-08-01）：max(0, final_price − custom_addon 總額)
+ *   V2    （order_date 台北日 >= 2026-08-01）：再扣 notes 內「額外現場加購金額」
+ *   order_date 缺失／無效 → fail-safe LEGACY
  *
  * 註：order_meta.team_commission_price 的人工覆蓋判斷由呼叫端維持既有語意，
  *     覆蓋值一律直接採用，不得再扣加購（避免 double exclusion）。
@@ -37,9 +41,11 @@ export function commissionBaseFromOrder(order: {
   final_price?: number | string | null;
   custom_addon_details?: unknown;
   notes?: string | null;
+  order_date?: string | Date | null;
 }): number {
   const final = Number(order.final_price ?? 0) || 0;
   const addon = extractAddonTotal(order.custom_addon_details);
-  const onsite = extraOnSiteAddonFromNotes(order.notes);
+  const version = getCommissionFormulaVersion(order);
+  const onsite = version === "V2" ? extraOnSiteAddonFromNotes(order.notes) : 0;
   return Math.max(0, final - addon - onsite);
 }
