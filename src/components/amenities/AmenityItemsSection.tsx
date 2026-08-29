@@ -330,6 +330,12 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                   }
                   className="text-base"
                 />
+                {totalCheck.error ? (
+                  <p className="text-xs font-medium text-destructive">{totalCheck.error}</p>
+                ) : totalCheck.helper ? (
+                  <p className="text-xs text-muted-foreground">{totalCheck.helper}</p>
+                ) : null}
+
               </div>
               <div className="space-y-2">
                 <Label>單位（選填）</Label>
