@@ -1516,9 +1516,9 @@ export default function TeamOrders() {
                           }
                         />
                         <p className="text-xs text-muted-foreground">
-                          系統自動計算：訂單金額 − 增值服務 ＝ NT$ {autoBase.toLocaleString()}
+                          系統自動計算：訂單金額 − 加購金額 ＝ NT$ {autoBase.toLocaleString()}
                           {addonTotal > 0
-                            ? `（增值服務 NT$ ${addonTotal.toLocaleString()} 不計入分潤）`
+                            ? `（增值服務＋額外現場加購 NT$ ${addonTotal.toLocaleString()} 不計入分潤）`
                             : ""}
                         </p>
                         {isManual ? (
