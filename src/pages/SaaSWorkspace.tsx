@@ -280,6 +280,8 @@ const MOCK_REWARD_TIERS = [
 ];
 
 type SpreadPartner = { name: string; level: "第一層" | "第二層"; orders: number; bonus: number };
+type Level1Member = { name: string; joinedAt: string };
+type Level2Member = { name: string; invitedBy: string; joinedAt: string };
 type ManagerPanel = {
   venue: string;
   totalSpread: number;
@@ -288,6 +290,8 @@ type ManagerPanel = {
   conversions: number;
   monthlyBonus: number;
   partners: SpreadPartner[];
+  level1Members: Level1Member[];
+  level2Members: Level2Member[];
 };
 
 /** 各社群管理員的館別視角假資料（加總與全站小樣本一致） */
@@ -304,6 +308,11 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
       { name: "林O妤", level: "第一層", orders: 0, bonus: 0 },
       { name: "黃O豪", level: "第二層", orders: 0, bonus: 0 },
     ],
+    level1Members: [
+      { name: "陳O安", joinedAt: "2026-07-30" },
+      { name: "林O妤", joinedAt: "2026-08-05" },
+    ],
+    level2Members: [{ name: "黃O豪", invitedBy: "陳O安", joinedAt: "2026-08-13" }],
   },
   "cm-senshan": {
     venue: "森山寫照",
@@ -316,6 +325,8 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
       { name: "何O瑄", level: "第一層", orders: 1, bonus: 960 },
       { name: "楊O廷", level: "第二層", orders: 0, bonus: 0 },
     ],
+    level1Members: [{ name: "何O瑄", joinedAt: "2026-08-06" }],
+    level2Members: [{ name: "楊O廷", invitedBy: "何O瑄", joinedAt: "2026-08-17" }],
   },
   "cm-yunxiu": {
     venue: "雲岫海景渡假會館",
@@ -328,20 +339,29 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
       { name: "郭O筑", level: "第一層", orders: 0, bonus: 0 },
       { name: "許O傑", level: "第二層", orders: 0, bonus: 0 },
     ],
+    level1Members: [{ name: "郭O筑", joinedAt: "2026-08-12" }],
+    level2Members: [{ name: "許O傑", invitedBy: "郭O筑", joinedAt: "2026-08-21" }],
   },
   "cm-songxiang": {
     venue: "淞湘卉館",
-    totalSpread: 1,
-    level1: 1,
-    level2: 0,
+    totalSpread: 3,
+    level1: 2,
+    level2: 1,
     conversions: 0,
     monthlyBonus: 480,
     partners: [
       { name: "蔡O慈", level: "第一層", orders: 0, bonus: 0 },
       { name: "周O倫", level: "第一層", orders: 0, bonus: 0 },
+      { name: "吳O恩", level: "第二層", orders: 0, bonus: 0 },
     ],
+    level1Members: [
+      { name: "蔡O慈", joinedAt: "2026-08-19" },
+      { name: "周O倫", joinedAt: "2026-08-22" },
+    ],
+    level2Members: [{ name: "吳O恩", invitedBy: "周O倫", joinedAt: "2026-08-26" }],
   },
 };
+
 
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
