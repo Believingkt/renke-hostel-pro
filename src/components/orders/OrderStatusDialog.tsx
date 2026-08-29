@@ -172,6 +172,17 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
               rows={2}
             />
           </div>
+          {amenityError && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-destructive">{amenityError.title}</p>
+                  <p className="text-muted-foreground leading-relaxed">{amenityError.description}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
