@@ -1196,6 +1196,68 @@ export default function SaaSWorkspace() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* 平台營收（僅總覽身份） */}
+          {isAdminView && (
+            <TabsContent value="revenue" className="mt-4 space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Wallet className="h-5 w-5 text-primary" />
+                    平台營收
+                  </CardTitle>
+                  <CardDescription>台灣旅圖與人客多之平台抽成總覽</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    {PLATFORM_REVENUE_STATS.map((s) => (
+                      <Card key={s.title} className="p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm text-muted-foreground">{s.title}</p>
+                            <p className="mt-1 text-xl font-bold md:text-2xl">{s.value}</p>
+                          </div>
+                          <div className={cn("rounded-xl p-3", STAT_VARIANTS[s.variant])}>
+                            <s.icon className="h-6 w-6" />
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>專案類型</TableHead>
+                          <TableHead>台灣旅圖抽成%</TableHead>
+                          <TableHead>人客多抽成%</TableHead>
+                          <TableHead className="text-right">本月抽成金額</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {PLATFORM_REVENUE_ROWS.map((r) => (
+                          <TableRow key={r.project}>
+                            <TableCell className="whitespace-nowrap">{r.project}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{r.lvtu}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{r.lakeze}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">
+                              NT$ {r.amount.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
         </Tabs>
       </div>
     </div>
