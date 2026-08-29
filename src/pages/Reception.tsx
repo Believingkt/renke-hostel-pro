@@ -970,6 +970,7 @@ export default function Reception() {
         accommodationId={currentAccommodationId}
         mode={mode}
         targetDate={targetDate}
+        showAmenityAllocations
       />
     </div>
   );

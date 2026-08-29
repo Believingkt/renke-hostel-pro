@@ -16,6 +16,8 @@ interface Props {
   targetDate?: string; // yyyy-MM-dd, required for checkin/checkout
   orderIds?: string[]; // required for mode="list"
   titleOverride?: string;
+  /** 只有 Reception 匯出顯示「備品分配」欄；Orders 匯出維持原欄位 */
+  showAmenityAllocations?: boolean;
 }
 
 interface Row {
@@ -53,7 +55,7 @@ const sourceMap: Record<string, string> = {
 };
 const labelSource = (s: string | null | undefined) => (s ? (sourceMap[s] || s) : "");
 
-export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate, orderIds, titleOverride }: Props) {
+export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mode, targetDate, orderIds, titleOverride, showAmenityAllocations = false }: Props) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -96,12 +98,16 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
             supabase.from("order_meta")
               .select("order_id, display_currency")
               .in("order_id", ids),
-            supabase.from("order_amenity_allocations")
-              .select("order_id, amenity_item_id, quantity")
-              .in("order_id", ids),
-            supabase.from("amenity_items")
-              .select("id, name, unit, display_order")
-              .eq("accommodation_id", accommodationId),
+            showAmenityAllocations
+              ? supabase.from("order_amenity_allocations")
+                  .select("order_id, amenity_item_id, quantity")
+                  .in("order_id", ids)
+              : Promise.resolve({ data: [] as any[] }),
+            showAmenityAllocations
+              ? supabase.from("amenity_items")
+                  .select("id, name, unit, display_order")
+                  .eq("accommodation_id", accommodationId)
+              : Promise.resolve({ data: [] as any[] }),
           ]);
           amenityMap = buildOrderAmenityMap(
             (allocs ?? []) as Array<{ order_id: string; amenity_item_id: string; quantity: number | null }>,
@@ -179,7 +185,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         setLoading(false);
       }
     })();
-  }, [open, accommodationId, mode, targetDate]);
+  }, [open, accommodationId, mode, targetDate, showAmenityAllocations]);
 
   const title = titleOverride
     ?? (mode === "list"
@@ -204,7 +210,9 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     { key: "unpaid", label: "未收", align: "right" },
     { key: "addons", label: "加購商品" },
     { key: "addon_qty", label: "數量" },
-    { key: "amenities", label: "備品分配" },
+    ...(showAmenityAllocations
+      ? [{ key: "amenities" as keyof Row, label: "備品分配" }]
+      : []),
     { key: "notes", label: "訂單備註" },
   ];
 
