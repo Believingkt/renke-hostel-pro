@@ -139,12 +139,23 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   };
 
 
+  const totalCheck = checkTotalQuantityChange({
+    isEditing: !!editing,
+    currentTotal: editing?.total_quantity ?? 0,
+    nextTotal: Math.max(0, Number(form.total_quantity) || 0),
+    peak,
+  });
+
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("請輸入備品名稱");
       return;
     }
-    setSaving(true);
+    if (!totalCheck.canSave) {
+      toast.error(totalCheck.error ?? "無法確認目前備品分配量，請稍後再試。");
+      return;
+    }
+
     try {
       const payload = {
         accommodation_id: accommodationId,
