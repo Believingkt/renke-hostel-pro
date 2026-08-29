@@ -47,7 +47,7 @@ import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSou
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 import { extractAddonTotal } from "@/lib/ownerSettlement";
-import { commissionBaseFromOrder } from "@/lib/ownerExempt";
+import { commissionBaseFromOrder, getCommissionFormulaVersion } from "@/lib/ownerExempt";
 import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
 
 interface Member {
