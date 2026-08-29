@@ -14,8 +14,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { toast } from "sonner";
 import {
   Sparkles,
   LayoutDashboard,
@@ -26,8 +33,11 @@ import {
   Wallet,
   Ticket,
   UserPlus,
+  UserCircle,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 
 /** 頁面內全部為前端常數，不連接任何資料表或 API */
 
