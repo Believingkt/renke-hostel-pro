@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { DepositQuickEdit } from "@/components/orders/DepositQuickEdit";
+import { useReceptionAmenities } from "@/hooks/use-reception-amenities";
+import { aggregateAmenitySummary, formatAmenityLine } from "@/lib/receptionAmenities";
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
   { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
@@ -395,6 +397,18 @@ export default function Reception() {
     return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant", { numeric: true }) * dir);
   }, [orders, keyword, sortKey, sortDir, mode]);
 
+  // 備品分配（structured SoT，batch 讀取，不碰 orders.notes）
+  const orderIds = useMemo(() => orders.map((o) => o.id), [orders]);
+  const { amenityMap } = useReceptionAmenities(currentAccommodationId, orderIds);
+  // 當日備品準備：沿用 Reception 當前名單（已排除 cancelled）
+  const amenitySummary = useMemo(
+    () => aggregateAmenitySummary(orderIds, amenityMap),
+    [orderIds, amenityMap],
+  );
+  const amenityTitle =
+    mode === "checkout" ? `${targetDate} 退房備品回收清單` : `${targetDate} 入住備品準備`;
+
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else {
@@ -558,6 +572,32 @@ export default function Reception() {
             </Button>
           </div>
 
+          {/* 當日備品準備總表（依 structured allocation 加總，非庫存佔用） */}
+          {amenitySummary.length > 0 && (
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="text-sm font-medium">{amenityTitle}</div>
+                <div className="text-xs text-muted-foreground">
+                  依本頁名單訂單備品分配加總{mode === "checkin" ? "（含續住）" : ""}
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {amenitySummary.map((line) => (
+                  <span
+                    key={line.itemId}
+                    className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm"
+                  >
+                    <span>{line.name}</span>
+                    <span className="font-semibold tabular-nums">{line.quantity}</span>
+                    {line.unit?.trim() && (
+                      <span className="text-xs text-muted-foreground">{line.unit.trim()}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
 
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto rounded-lg border">
@@ -576,6 +616,7 @@ export default function Reception() {
                   <Th onClick={() => toggleSort("room_unit")} active={sortKey === "room_unit"}>
                     房號
                   </Th>
+                  <Th>備品分配</Th>
                   <Th>付款狀態</Th>
                   <Th>押金</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
@@ -589,13 +630,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
@@ -637,6 +678,19 @@ export default function Reception() {
                         <td className="px-4 py-3 align-top">{roomLabel(o)}</td>
                         <td className="px-4 py-3 align-top tabular-nums">
                           {units.length > 0 ? units.join("、") : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-4 py-3 align-top">
+                          {(amenityMap[o.id]?.length ?? 0) > 0 ? (
+                            <div className="flex flex-col gap-0.5 min-w-[8rem] max-w-[14rem]">
+                              {amenityMap[o.id].map((line) => (
+                                <span key={line.itemId} className="text-xs whitespace-nowrap">
+                                  {formatAmenityLine(line)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
                         </td>
                         <td className="px-4 py-3 align-top">
                           <Select
@@ -791,6 +845,19 @@ export default function Reception() {
                       <span className="text-foreground">房號：</span>
                       {units.length > 0 ? <span className="tabular-nums">{units.join("、")}</span> : "—"}
                     </div>
+
+                    {(amenityMap[o.id]?.length ?? 0) > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="text-foreground">備品：</span>
+                        <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5 align-top">
+                          {amenityMap[o.id].map((line) => (
+                            <span key={line.itemId} className="whitespace-nowrap">
+                              {formatAmenityLine(line)}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
 
 
                     <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-h-[2.75rem]">
