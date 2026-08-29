@@ -134,6 +134,7 @@ const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
+const SaaSWorkspace = lazy(() => import("./pages/SaaSWorkspace"));
 const TeamHome = lazy(() => import("./pages/team/TeamHome"));
 const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
