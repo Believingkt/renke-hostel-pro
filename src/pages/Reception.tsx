@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { DepositQuickEdit } from "@/components/orders/DepositQuickEdit";
 import { useReceptionAmenities } from "@/hooks/use-reception-amenities";
-import { aggregateAmenitySummary, formatAmenityLine } from "@/lib/receptionAmenities";
+import { aggregateAmenitySummary, formatAmenityLine, selectSummaryOrderIds } from "@/lib/receptionAmenities";
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
   { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
@@ -400,13 +400,17 @@ export default function Reception() {
   // 備品分配（structured SoT，batch 讀取，不碰 orders.notes）
   const orderIds = useMemo(() => orders.map((o) => o.id), [orders]);
   const { amenityMap } = useReceptionAmenities(currentAccommodationId, orderIds);
-  // 當日備品準備：沿用 Reception 當前名單（已排除 cancelled）
+  // 總表：入住只算當日新入住（排除續住）；退房只算當日退房
+  const summaryOrderIds = useMemo(
+    () => selectSummaryOrderIds(orders, targetDate, mode),
+    [orders, targetDate, mode],
+  );
   const amenitySummary = useMemo(
-    () => aggregateAmenitySummary(orderIds, amenityMap),
-    [orderIds, amenityMap],
+    () => aggregateAmenitySummary(summaryOrderIds, amenityMap),
+    [summaryOrderIds, amenityMap],
   );
   const amenityTitle =
-    mode === "checkout" ? `${targetDate} 退房備品回收清單` : `${targetDate} 入住備品準備`;
+    mode === "checkout" ? `${targetDate} 退房備品回收` : `${targetDate} 入住備品準備`;
 
 
   const toggleSort = (key: SortKey) => {
@@ -578,7 +582,7 @@ export default function Reception() {
               <div className="flex items-baseline justify-between gap-2 flex-wrap">
                 <div className="text-sm font-medium">{amenityTitle}</div>
                 <div className="text-xs text-muted-foreground">
-                  依本頁名單訂單備品分配加總{mode === "checkin" ? "（含續住）" : ""}
+                  {mode === "checkout" ? "依當日退房訂單統計" : "僅統計當日新入住訂單，不含續住"}
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap gap-2">
