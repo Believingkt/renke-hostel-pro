@@ -155,8 +155,9 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       toast.error(totalCheck.error ?? "無法確認目前備品分配量，請稍後再試。");
       return;
     }
-
+    setSaving(true);
     try {
+
       const payload = {
         accommodation_id: accommodationId,
         name: form.name.trim(),
