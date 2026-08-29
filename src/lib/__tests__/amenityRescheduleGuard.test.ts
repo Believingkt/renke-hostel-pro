@@ -137,3 +137,52 @@ describe("P2-3A amenity reschedule guard", () => {
     expect(fetchOrderAllocations).not.toHaveBeenCalled();
   });
 });
+
+import { buildAmenityRestoreError } from "../amenityRescheduleGuard";
+
+const AMENITY_MSG = "備品「嬰兒床」在 2026-09-28 已超過可用數量（總數 2，需求 3）";
+
+describe("P2-3B 取消訂單復原備品錯誤 UX", () => {
+  it("CASE A｜備品足夠（無 error）→ 不產生備品 UX", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "confirmed", message: null })).toBeNull();
+  });
+
+  it("CASE B｜cancelled → confirmed 備品不足", () => {
+    const r = buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "confirmed", message: AMENITY_MSG });
+    expect(r?.title).toBe("無法恢復訂單：備品數量不足");
+    expect(r?.description).toContain("嬰兒床");
+    expect(r?.description).toContain("2026-09-28");
+    expect(r?.description).toContain("此訂單尚未恢復");
+  });
+
+  it("CASE C｜cancelled → pending 備品不足", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "pending", message: AMENITY_MSG })).not.toBeNull();
+  });
+
+  it("CASE D｜confirmed → cancelled 不觸發", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "confirmed", toStatus: "cancelled", message: AMENITY_MSG })).toBeNull();
+  });
+
+  it("CASE E｜confirmed → pending 不觸發", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "confirmed", toStatus: "pending", message: AMENITY_MSG })).toBeNull();
+  });
+
+  it("CASE F｜generic P0001 不誤判", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "confirmed", message: "所選日期庫存不足" })).toBeNull();
+  });
+
+  it("CASE G｜network / generic error 維持原 UX", () => {
+    expect(buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "confirmed", message: "Failed to fetch" })).toBeNull();
+    expect(buildAmenityRestoreError({ fromStatus: "cancelled", toStatus: "confirmed", message: undefined })).toBeNull();
+  });
+
+  it("CASE H｜parser 無法完整解析時安全 fallback", () => {
+    const r = buildAmenityRestoreError({
+      fromStatus: "cancelled",
+      toStatus: "confirmed",
+      message: "備品「嬰兒床」已超過可用數量",
+    });
+    expect(r?.title).toBe("無法恢復訂單：備品數量不足");
+    expect(r?.description).toContain("尚未恢復");
+  });
+});
