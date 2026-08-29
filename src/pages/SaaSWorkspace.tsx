@@ -1055,7 +1055,7 @@ export default function SaaSWorkspace() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_INVITE_CODES.map((c) => (
+                      {managerInviteCodes.map((c) => (
                         <TableRow key={c.code}>
                           <TableCell className="font-mono whitespace-nowrap">{c.code}</TableCell>
                           <TableCell>{c.owner}</TableCell>
