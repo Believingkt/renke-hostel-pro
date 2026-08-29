@@ -846,6 +846,19 @@ export default function Reception() {
                       {units.length > 0 ? <span className="tabular-nums">{units.join("、")}</span> : "—"}
                     </div>
 
+                    {(amenityMap[o.id]?.length ?? 0) > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="text-foreground">備品：</span>
+                        <span className="inline-flex flex-wrap gap-x-2 gap-y-0.5 align-top">
+                          {amenityMap[o.id].map((line) => (
+                            <span key={line.itemId} className="whitespace-nowrap">
+                              {formatAmenityLine(line)}
+                            </span>
+                          ))}
+                        </span>
+                      </div>
+                    )}
+
 
                     <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 min-h-[2.75rem]">
                       <Select
