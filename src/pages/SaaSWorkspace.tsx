@@ -671,11 +671,13 @@ export default function SaaSWorkspace() {
           </div>
         </header>
 
-        <Tabs defaultValue="d1" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList>
             <TabsTrigger value="d1">創作者導流</TabsTrigger>
             <TabsTrigger value="d2">社群裂變</TabsTrigger>
+            {isAdminView && <TabsTrigger value="revenue">平台營收</TabsTrigger>}
           </TabsList>
+
 
 
           {/* D1 */}
