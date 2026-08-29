@@ -268,11 +268,6 @@ const MOCK_INVITE_CODES = [
   { code: "LZ-D5T1", owner: "淞湘卉館 社群管理員", used: 2, createdAt: "2026-08-18", status: "啟用中" },
 ];
 
-const MOCK_SPREAD_TREE = [
-  { level: 1, label: "第一層擴散", people: 5, note: "由社群管理員直接邀請" },
-  { level: 2, label: "第二層擴散", people: 3, note: "由第一層成員再邀請" },
-];
-
 const MOCK_REWARD_TIERS = [
   { tier: "第一層", rate: "8%", condition: "被邀請人完成首筆入住" },
   { tier: "第二層", rate: "3%", condition: "第二層成員完成首筆入住" },
@@ -363,6 +358,17 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
 };
 
 
+/** 全站彙總＝4 位社群管理員加總（避免與各館數字兜不起來） */
+const GLOBAL_SPREAD = Object.values(MANAGER_PANELS).reduce(
+  (acc, m) => ({
+    total: acc.total + m.totalSpread,
+    level1: acc.level1 + m.level1,
+    level2: acc.level2 + m.level2,
+    conversions: acc.conversions + m.conversions,
+  }),
+  { total: 0, level1: 0, level2: 0, conversions: 0 },
+);
+
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
   { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
@@ -444,7 +450,40 @@ const INITIAL_CODE_HISTORY: CodeHistoryRow[] = [
     mode: "自動",
     createdAt: "2026-08-15 09:47",
   },
+  {
+    id: "h5",
+    code: "093330",
+    kolName: "仙女他媽（施怡君）",
+    venue: "森山寫照",
+    mode: "手動",
+    createdAt: "2026-08-13 16:24",
+  },
+  {
+    id: "h6",
+    code: "BRYAN1014",
+    kolName: "Bryan Aka黑熊他爸🐾",
+    venue: "雲岫海景渡假會館",
+    mode: "手動",
+    createdAt: "2026-08-10 11:52",
+  },
+  {
+    id: "h7",
+    code: "SUESU9KM",
+    kolName: "蘇蘇",
+    venue: "旅行日-DAIDODO",
+    mode: "自動",
+    createdAt: "2026-08-08 20:16",
+  },
+  {
+    id: "h8",
+    code: "STARM3VQ",
+    kolName: "明星煌",
+    venue: "雲岫海景渡假會館",
+    mode: "自動",
+    createdAt: "2026-08-05 13:09",
+  },
 ];
+
 
 function nowStamp() {
   const d = new Date();
@@ -468,7 +507,7 @@ export default function SaaSWorkspace() {
   const [signedIn, setSignedIn] = useState(false);
   const [accountName, setAccountName] = useState("");
 
-  const [identity, setIdentity] = useState(VIEW_IDENTITIES[0].value);
+  const [identity, setIdentity] = useState(ADMIN_IDENTITY);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -551,9 +590,12 @@ export default function SaaSWorkspace() {
         ],
       }
     : {
-        total: 8,
-        conversions: 2,
-        levels: MOCK_SPREAD_TREE,
+        total: GLOBAL_SPREAD.total,
+        conversions: GLOBAL_SPREAD.conversions,
+        levels: [
+          { level: 1, label: "第一層擴散", people: GLOBAL_SPREAD.level1, note: "由社群管理員直接邀請" },
+          { level: 2, label: "第二層擴散", people: GLOBAL_SPREAD.level2, note: "由第一層成員再邀請" },
+        ],
       };
 
   const conversionRate =
@@ -639,7 +681,13 @@ export default function SaaSWorkspace() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
             <div className="flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">檢視身份</Label>
-              <Select value={identity} onValueChange={setIdentity}>
+              <Select
+                value={identity}
+                onValueChange={(v) => {
+                  setIdentity(v);
+                  setGeneratedCode(null);
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-72">
                   <SelectValue />
                 </SelectTrigger>
@@ -730,25 +778,30 @@ export default function SaaSWorkspace() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
-                    <Select
-                      value={selectedKol}
-                      onValueChange={(v) => {
-                        setIdentity(v);
-                        setGeneratedCode(null);
-                      }}
-                    >
-
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MOCK_KOLS.map((k) => (
-                          <SelectItem key={k.cidCode} value={k.cidCode}>
-                            {k.name}（{k.igHandle}）
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isAdminView ? (
+                      <Select
+                        value={selectedKol}
+                        onValueChange={(v) => {
+                          setIdentity(v);
+                          setGeneratedCode(null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_KOLS.map((k) => (
+                            <SelectItem key={k.cidCode} value={k.cidCode}>
+                              {k.name}（{k.igHandle}）
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                        {selectedKolName}
+                      </div>
+                    )}
                   </div>
                   <Button onClick={openCreateDialog}>產生折扣碼</Button>
                 </div>
@@ -764,6 +817,13 @@ export default function SaaSWorkspace() {
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium">歷史已建立折扣碼</p>
+                  {visibleCodeHistory.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                        尚無折扣碼紀錄
+                      </CardContent>
+                    </Card>
+                  ) : (
                   <div className="rounded-lg border">
                     <Table>
                       <TableHeader>
@@ -792,6 +852,7 @@ export default function SaaSWorkspace() {
                       </TableBody>
                     </Table>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -835,24 +896,30 @@ export default function SaaSWorkspace() {
                     <div className="space-y-4">
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
-                        <Select
-                          value={formKol}
-                          onValueChange={(v) => {
-                            setFormKol(v);
-                            setFormVenue(KOL_VENUE_OPTIONS[v]?.[0] ?? "");
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MOCK_KOLS.map((k) => (
-                              <SelectItem key={k.cidCode} value={k.cidCode}>
-                                {k.name}（{k.igHandle}）
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {isAdminView ? (
+                          <Select
+                            value={formKol}
+                            onValueChange={(v) => {
+                              setFormKol(v);
+                              setFormVenue(KOL_VENUE_OPTIONS[v]?.[0] ?? "");
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MOCK_KOLS.map((k) => (
+                                <SelectItem key={k.cidCode} value={k.cidCode}>
+                                  {k.name}（{k.igHandle}）
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                            {formKolName}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-1">
