@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getPaymentStatusConfig, getOrderSourceConfig, getOrderOtaCode } from "@/utils/orderHelpers";
+import { buildOrderAmenityMap, formatAmenityLine, type ReceptionAmenityItemRef } from "@/lib/receptionAmenities";
 
 interface Props {
   open: boolean;
@@ -40,6 +41,7 @@ interface Row {
   unpaid: number;
   addons: string;
   addon_qty: string;
+  amenities: string;
   notes: string;
 }
 
@@ -85,15 +87,26 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         const ids = (ordersData ?? []).map((o: any) => o.id);
         let roomsMap = new Map<string, any[]>();
         let currencyMap = new Map<string, string>();
+        let amenityMap: Record<string, ReturnType<typeof buildOrderAmenityMap>[string]> = {};
         if (ids.length) {
-          const [{ data: rooms }, { data: meta }] = await Promise.all([
+          const [{ data: rooms }, { data: meta }, { data: allocs }, { data: amenityItems }] = await Promise.all([
             supabase.from("order_rooms")
               .select("order_id, quantity, room_price, template_name, room_types(name), room_units(unit_number)")
               .in("order_id", ids),
             supabase.from("order_meta")
               .select("order_id, display_currency")
               .in("order_id", ids),
+            supabase.from("order_amenity_allocations")
+              .select("order_id, amenity_item_id, quantity")
+              .in("order_id", ids),
+            supabase.from("amenity_items")
+              .select("id, name, unit, display_order")
+              .eq("accommodation_id", accommodationId),
           ]);
+          amenityMap = buildOrderAmenityMap(
+            (allocs ?? []) as Array<{ order_id: string; amenity_item_id: string; quantity: number | null }>,
+            (amenityItems ?? []) as ReceptionAmenityItemRef[],
+          );
           for (const r of rooms ?? []) {
             const arr = roomsMap.get((r as any).order_id) ?? [];
             arr.push(r);
@@ -156,6 +169,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
             unpaid: price - paid,
             addons: addons.join("\n"),
             addon_qty: qtys.join("\n"),
+            amenities: (amenityMap[o.id] ?? []).map(formatAmenityLine).join("\n"),
             notes: o.notes ?? "",
           };
         });
@@ -190,6 +204,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
     { key: "unpaid", label: "未收", align: "right" },
     { key: "addons", label: "加購商品" },
     { key: "addon_qty", label: "數量" },
+    { key: "amenities", label: "備品分配" },
     { key: "notes", label: "訂單備註" },
   ];
 
