@@ -370,7 +370,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || !totalCheck.canSave}>
               儲存
             </Button>
           </DialogFooter>
