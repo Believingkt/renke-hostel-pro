@@ -1491,9 +1491,12 @@ export default function TeamOrders() {
                   const confirmedBy = form.commission_price_confirmed_by;
                   const confirmedAt = form.commission_price_confirmed_at;
                   const mismatch = Number(tcp) !== Number(fp);
+                  // 顯示用加購總額須與 versioned commission base 口徑一致
                   const addonTotal =
                     extractAddonTotal((editOrder as any).custom_addon_details) +
-                    extraOnSiteAddonFromNotes((editOrder as any).notes);
+                    (getCommissionFormulaVersion(editOrder as any) === "V2"
+                      ? extraOnSiteAddonFromNotes((editOrder as any).notes)
+                      : 0);
                   const autoBase = commissionBaseFromOrder(editOrder as any);
                   const isManual = !!form.team_commission_price_is_manual;
 
