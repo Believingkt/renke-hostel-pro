@@ -417,9 +417,19 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       }
 
       if (error || payload?.success === false) {
+        const rawMsg = payload?.message || error?.message || "";
+        if (isAmenityCapacityError(rawMsg)) {
+          const parsed = parseAmenityCapacityError(rawMsg);
+          setAmenityBlockError(
+            parsed
+              ? { name: parsed.name, date: parsed.date, total: parsed.total, demand: parsed.demand }
+              : { name: "", date: "" },
+          );
+          return;
+        }
         toast({
           title: "改期失敗",
-          description: payload?.message || error?.message || "未知錯誤",
+          description: rawMsg || "未知錯誤",
           variant: "destructive",
         });
         return;
