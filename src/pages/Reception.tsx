@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { DepositQuickEdit } from "@/components/orders/DepositQuickEdit";
+import { useReceptionAmenities } from "@/hooks/use-reception-amenities";
+import { aggregateAmenitySummary, formatAmenityLine } from "@/lib/receptionAmenities";
 
 const PAYMENT_STATUS_OPTIONS: { value: string; label: string; cls: string }[] = [
   { value: "unpaid", label: "未付款", cls: "bg-destructive/10 text-destructive border-destructive/30" },
