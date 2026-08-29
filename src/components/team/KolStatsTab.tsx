@@ -441,7 +441,7 @@ export function KolStatsTab() {
           let q = supabase
             .from("orders")
             .select(
-              "order_number, discount_code, final_price, custom_addon_details, currency_at_booking, owner_direct, order_source, created_at, order_date, accommodation_id",
+              "order_number, discount_code, final_price, custom_addon_details, notes, currency_at_booking, owner_direct, order_source, created_at, order_date, accommodation_id",
             )
             .not("discount_code", "is", null)
             .neq("order_status", "cancelled");

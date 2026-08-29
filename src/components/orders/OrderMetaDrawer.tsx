@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
-import { extractAddonTotal } from "@/lib/ownerSettlement";
+import { commissionBaseFromOrder } from "@/lib/ownerExempt";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
 import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
@@ -280,7 +280,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .maybeSingle(),
         supabase
           .from("orders")
-          .select("order_date, order_status, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details")
+          .select("order_date, order_status, final_price, check_out_date, payment_status, accommodation_id, custom_addon_details, notes")
           .eq("id", orderId)
           .maybeSingle(),
       ]) as any;
@@ -345,7 +345,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       const autoTcp =
         fp === null
           ? null
-          : Math.max(0, Number(fp) - extractAddonTotal((orderRow as any)?.custom_addon_details));
+          : commissionBaseFromOrder(orderRow as any);
       setAutoTeamCommissionPrice(autoTcp);
 
       // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)

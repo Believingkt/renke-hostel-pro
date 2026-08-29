@@ -151,12 +151,27 @@ export async function buildExemptResolver(
 }
 
 import { extractAddonTotal } from "./ownerSettlement";
+import { extraOnSiteAddonFromNotes } from "./orderAddonTotal";
 
-/** 佣金/獎金計算基礎：final_price 扣除加購項目（不小於 0） */
+/**
+ * 佣金/獎金計算基礎（canonical，前端唯一真相）：
+ *   max(0, final_price − custom_addon_details 總額 − notes 內「額外現場加購金額」)
+ *
+ * 與 supabase/functions/_shared/addonTotal.ts 的同名函式語意完全一致（mirror）。
+ * order_meta.team_commission_price 人工覆蓋值由呼叫端優先採用，
+ * 覆蓋值不得再扣任何加購（避免 double exclusion）。
+ *
+ * 注意：本函式「不」用於業主月結（owner settlement 走
+ * commission_excluded_addon_ids / types 的獨立規則），該口徑不受影響。
+ */
 export function commissionBaseFromOrder(order: {
   final_price?: number | string | null;
   custom_addon_details?: unknown;
+  notes?: string | null;
 }): number {
   const final = Number(order.final_price ?? 0) || 0;
-  return Math.max(0, final - extractAddonTotal(order.custom_addon_details));
+  return Math.max(
+    0,
+    final - extractAddonTotal(order.custom_addon_details) - extraOnSiteAddonFromNotes(order.notes),
+  );
 }

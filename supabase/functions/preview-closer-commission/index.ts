@@ -99,7 +99,7 @@ serve(async (req) => {
     const endUtc = hasRange ? endIsoOverride! : taipeiMidnightUtcISO(year, month + 1, 1);
 
     const ORDER_COLS =
-      "id, accommodation_id, final_price, custom_addon_details, check_in_date, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source";
+      "id, accommodation_id, final_price, custom_addon_details, notes, check_in_date, order_date, order_status, guest_name, currency_at_booking, owner_direct, order_source";
 
     // 1) 該月 order_date 落在區間內、未取消／非保留、金額 > 0 的訂單
     let ordersQuery = supabase

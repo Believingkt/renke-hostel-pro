@@ -158,7 +158,7 @@ serve(async (req) => {
       // 1) Orders in target month：排除已取消、保留單（hold）與 final_price <= 0
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, notes, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .neq("order_status", "cancelled")
         .neq("order_status", "hold")
         .gt("final_price", 0)
@@ -339,7 +339,7 @@ serve(async (req) => {
 
       const { data: orders, error: ordErr } = await supabase
         .from("orders")
-        .select("id, accommodation_id, final_price, custom_addon_details, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
+        .select("id, accommodation_id, final_price, custom_addon_details, notes, check_in_date, check_out_date, order_date, order_status, currency_at_booking, owner_direct, order_source")
         .in("id", orderIds);
       if (ordErr) throw ordErr;
       const orderMap = new Map<string, any>();

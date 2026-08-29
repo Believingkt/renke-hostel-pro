@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const ORDER_SELECT =
-  "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id, custom_addon_details, currency_at_booking";
+  "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id, custom_addon_details, notes, currency_at_booking";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {

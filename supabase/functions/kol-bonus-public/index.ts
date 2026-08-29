@@ -16,7 +16,7 @@ const INTERNAL_ROLES = ["super_admin", "hotel_admin", "scout_manager", "scout", 
  *      KOL 分潤只看訂單是否使用該 KOL 的折扣碼。
  */
 function resolveCommissionBase(
-  order: { final_price?: number | null; total_price?: number | null; custom_addon_details?: unknown },
+  order: { final_price?: number | null; total_price?: number | null; custom_addon_details?: unknown; notes?: string | null },
   manualOverride: number | null | undefined,
 ) {
   const gross = Number(order.final_price ?? order.total_price ?? 0) || 0;
@@ -32,7 +32,7 @@ function resolveCommissionBase(
 }
 
 const ORDER_SELECT =
-  "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id, custom_addon_details, currency_at_booking";
+  "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id, custom_addon_details, notes, currency_at_booking";
 
 type EnrichedOrder = Record<string, unknown>;
 
