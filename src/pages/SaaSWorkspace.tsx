@@ -452,7 +452,7 @@ export default function SaaSWorkspace() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_CODE_ORDERS.map((o) => (
+                      {panel.codeOrders.map((o) => (
                         <TableRow key={o.code + o.buyer}>
                           <TableCell className="font-mono whitespace-nowrap">{o.code}</TableCell>
                           <TableCell className="whitespace-nowrap">{o.buyer}</TableCell>
@@ -503,7 +503,7 @@ export default function SaaSWorkspace() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {MOCK_BONUS_ROWS.map((r) => (
+                      {panel.bonusRows.map((r) => (
                         <TableRow key={r.orderNo}>
                           <TableCell className="font-mono whitespace-nowrap">{r.orderNo}</TableCell>
                           <TableCell className="whitespace-nowrap">{r.checkIn}</TableCell>
