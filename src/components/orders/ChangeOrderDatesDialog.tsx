@@ -309,6 +309,9 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       setNewCheckOut(order.check_out_date);
       setReason("");
       setInventoryError(null);
+      setAmenityConflicts([]);
+      setAmenityCheckFailed(false);
+      setAmenityBlockError(null);
     }
   }, [open, order.check_in_date, order.check_out_date]);
 
@@ -328,6 +331,37 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     })();
     return () => { cancelled = true; };
   }, [open, order.accommodation_id, today]);
+
+  // 備品 pre-check：日期實際變更時才跑
+  useEffect(() => {
+    if (!open) return;
+    const unchanged =
+      newCheckIn === order.check_in_date && newCheckOut === order.check_out_date;
+    if (unchanged || !newCheckIn || !newCheckOut || newCheckOut <= newCheckIn) {
+      setAmenityConflicts([]);
+      setAmenityCheckFailed(false);
+      return;
+    }
+    let cancelled = false;
+    setAmenityChecking(true);
+    setAmenityCheckFailed(false);
+    precheckAmenityReschedule({
+      orderId: order.id,
+      accommodationId: order.accommodation_id,
+      newCheckIn,
+      newCheckOut,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === "conflict") setAmenityConflicts(res.conflicts);
+        else setAmenityConflicts([]);
+        setAmenityCheckFailed(res.status === "error");
+      })
+      .finally(() => {
+        if (!cancelled) setAmenityChecking(false);
+      });
+    return () => { cancelled = true; };
+  }, [open, newCheckIn, newCheckOut, order.id, order.accommodation_id, order.check_in_date, order.check_out_date]);
 
   const invoke = async (force: boolean) => {
     setSubmitting(true);
