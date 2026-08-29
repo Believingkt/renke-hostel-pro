@@ -264,6 +264,68 @@ function buildCidCode(name: string) {
   return `${prefix}${suffix}`;
 }
 
+/** 每位創作者可合作的館別（前端常數） */
+const KOL_VENUE_OPTIONS: Record<string, string[]> = {
+  "093330": ["森山寫照", "淞湘卉館"],
+  DICKYLEMON22: ["旅行日-光", "旅行日-DAIDODO"],
+  BRYAN1014: ["雲岫海景渡假會館"],
+  MIKALLXX: ["雲岫海景渡假會館", "奧莉薇雅生活小酒店"],
+  XUANKEKE: ["淞湘卉館", "森山寫照"],
+  SUESUE: ["旅行日-DAIDODO"],
+  OREO0126: ["奧莉薇雅生活小酒店", "旅行日-光"],
+  STARMONARCH: ["雲岫海景渡假會館", "淞湘卉館"],
+};
+
+type CodeHistoryRow = {
+  id: string;
+  code: string;
+  kolName: string;
+  venue: string;
+  mode: "自動" | "手動";
+  createdAt: string;
+};
+
+const INITIAL_CODE_HISTORY: CodeHistoryRow[] = [
+  {
+    id: "h1",
+    code: "OREO0126",
+    kolName: "Oreo｜建築旅遊部落客",
+    venue: "奧莉薇雅生活小酒店",
+    mode: "手動",
+    createdAt: "2026-08-24 14:12",
+  },
+  {
+    id: "h2",
+    code: "XUANK7QP",
+    kolName: "竹軒｜Mixx質感電商",
+    venue: "淞湘卉館",
+    mode: "自動",
+    createdAt: "2026-08-21 10:38",
+  },
+  {
+    id: "h3",
+    code: "DICKYLEMON22",
+    kolName: "餓犬Dicky",
+    venue: "旅行日-光",
+    mode: "手動",
+    createdAt: "2026-08-18 19:05",
+  },
+  {
+    id: "h4",
+    code: "MIKA4TXB",
+    kolName: "Mika｜今晚住這裡·旅宿探索中",
+    venue: "雲岫海景渡假會館",
+    mode: "自動",
+    createdAt: "2026-08-15 09:47",
+  },
+];
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function statusVariantClass(status: string) {
   if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中") {
     return "border-primary/40 text-primary";
