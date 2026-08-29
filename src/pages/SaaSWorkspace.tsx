@@ -1083,19 +1083,28 @@ export default function SaaSWorkspace() {
                 <CardDescription>邀請鏈的層級擴散人數與轉換表現</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className={cn("grid gap-3 sm:grid-cols-2", managerPanel && "lg:grid-cols-3")}>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">總擴散人數</p>
-                    <p className="mt-1 text-2xl font-bold">8</p>
+                    <p className="mt-1 text-2xl font-bold">{spreadStats.total}</p>
                   </Card>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">轉換率</p>
-                    <p className="mt-1 text-2xl font-bold text-primary">25.0%（2 / 8）</p>
-
+                    <p className="mt-1 text-2xl font-bold text-primary">
+                      {conversionRate}%（{spreadStats.conversions} / {spreadStats.total}）
+                    </p>
                   </Card>
+                  {managerPanel && (
+                    <Card className="p-4">
+                      <p className="text-sm text-muted-foreground">本月管理員獎金</p>
+                      <p className="mt-1 text-2xl font-bold text-primary">
+                        NT$ {managerPanel.monthlyBonus.toLocaleString()}
+                      </p>
+                    </Card>
+                  )}
                 </div>
                 <ul className="space-y-2">
-                  {MOCK_SPREAD_TREE.map((n) => (
+                  {spreadStats.levels.map((n) => (
                     <li
                       key={n.level}
                       className={cn(
@@ -1113,6 +1122,47 @@ export default function SaaSWorkspace() {
                 </ul>
               </CardContent>
             </Card>
+
+            {managerPanel && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Users className="h-5 w-5 text-primary" />
+                    裂變夥伴績效清單
+                  </CardTitle>
+                  <CardDescription>{managerPanel.venue} 社群的夥伴帶單與獎金表現</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>夥伴姓名</TableHead>
+                          <TableHead>加入層級</TableHead>
+                          <TableHead className="text-right">帶來訂單數</TableHead>
+                          <TableHead className="text-right">獎金金額</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {managerPanel.partners.map((p) => (
+                          <TableRow key={p.name}>
+                            <TableCell className="whitespace-nowrap">{p.name}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{p.level}</Badge>
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{p.orders}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">
+                              NT$ {p.bonus.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
 
             <Card>
               <CardHeader>
