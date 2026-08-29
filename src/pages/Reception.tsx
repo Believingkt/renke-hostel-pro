@@ -680,6 +680,19 @@ export default function Reception() {
                           {units.length > 0 ? units.join("、") : <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3 align-top">
+                          {(amenityMap[o.id]?.length ?? 0) > 0 ? (
+                            <div className="flex flex-col gap-0.5 min-w-[8rem] max-w-[14rem]">
+                              {amenityMap[o.id].map((line) => (
+                                <span key={line.itemId} className="text-xs whitespace-nowrap">
+                                  {formatAmenityLine(line)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 align-top">
                           <Select
                             value={o.payment_status}
                             onValueChange={(v) => handlePaymentChange(o, v)}
