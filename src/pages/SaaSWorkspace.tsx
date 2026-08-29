@@ -1160,7 +1160,37 @@ export default function SaaSWorkspace() {
                         <span className="tabular-nums text-primary">{n.people} 人</span>
                       </div>
                       <p className="mt-1 text-xs text-muted-foreground">{n.note}</p>
+                      {managerPanel && n.level === 1 && managerPanel.level1Members.length > 0 && (
+                        <ul className="mt-3 divide-y rounded-md border bg-background">
+                          {managerPanel.level1Members.map((m) => (
+                            <li
+                              key={m.name}
+                              className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm"
+                            >
+                              <span className="font-medium">{m.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                加入日期 {m.joinedAt}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {managerPanel && n.level === 2 && managerPanel.level2Members.length > 0 && (
+                        <ul className="mt-3 space-y-1">
+                          {managerPanel.level2Members.map((m) => (
+                            <li
+                              key={m.name}
+                              className="flex flex-wrap items-center gap-x-2 gap-y-0.5 rounded-md bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground"
+                            >
+                              <span className="text-foreground/80">{m.name}</span>
+                              <span>· 由 {m.invitedBy} 邀請</span>
+                              <span>· {m.joinedAt} 加入</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </li>
+
                   ))}
                 </ul>
               </CardContent>
