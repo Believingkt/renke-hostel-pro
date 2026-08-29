@@ -407,7 +407,14 @@ export default function SaaSWorkspace() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
-                    <Select value={selectedKol} onValueChange={setSelectedKol}>
+                    <Select
+                      value={selectedKol}
+                      onValueChange={(v) => {
+                        setIdentity(v);
+                        setGeneratedCode(null);
+                      }}
+                    >
+
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
