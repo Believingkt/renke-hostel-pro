@@ -19,16 +19,26 @@ export interface AmenityAvailability {
   available: number;
 }
 
-/** 住宿夜次：入住日 ~ 退房前一日 */
+/** date-only 加減天數（純字串運算，不受 runtime timezone 影響） */
+export function addDaysDateOnly(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.slice(0, 10).split("-").map((v) => parseInt(v, 10));
+  const dt = new Date(Date.UTC(y, (m || 1) - 1, d || 1));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
+}
+
+/** 住宿夜次：入住日 ~ 退房前一日（check-in inclusive, check-out exclusive） */
 export function toNightRange(checkIn?: string | null, checkOut?: string | null) {
   if (!checkIn || !checkOut) return null;
   const start = checkIn.slice(0, 10);
-  const end = new Date(`${checkOut.slice(0, 10)}T00:00:00`);
-  end.setDate(end.getDate() - 1);
-  if (new Date(`${start}T00:00:00`) > end) return null;
-  const endStr = end.toISOString().slice(0, 10);
-  return { start, end: endStr };
+  const rawEnd = checkOut.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(rawEnd)) return null;
+  const end = addDaysDateOnly(rawEnd, -1);
+  if (start > end) return null;
+  return { start, end };
 }
+
 
 export async function fetchAmenityItems(accommodationId: string): Promise<AmenityItem[]> {
   const { data, error } = await supabase
