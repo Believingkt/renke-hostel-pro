@@ -106,3 +106,38 @@ export function isAmenityCapacityError(message?: string | null): boolean {
   if (!message) return false;
   return message.includes("備品「") && message.includes("已超過可用數量");
 }
+
+export interface AmenityRestoreError {
+  title: string;
+  description: string;
+}
+
+/**
+ * P2-3B：取消訂單復原（cancelled → 非 cancelled）被 amenity trigger 擋下時的可讀錯誤。
+ * 僅在該 status 轉換 + 可靠辨識為備品容量錯誤時回傳，其餘一律 null（維持原本 generic UX）。
+ */
+export function buildAmenityRestoreError(params: {
+  fromStatus?: string | null;
+  toStatus?: string | null;
+  message?: string | null;
+}): AmenityRestoreError | null {
+  const { fromStatus, toStatus, message } = params;
+  if (fromStatus !== "cancelled" || !toStatus || toStatus === "cancelled") return null;
+  if (!isAmenityCapacityError(message)) return null;
+
+  const parsed = parseAmenityCapacityError(message);
+  const title = "無法恢復訂單：備品數量不足";
+  if (!parsed) {
+    return {
+      title,
+      description:
+        "新住宿日期的備品數量不足，因此此訂單尚未恢復。請先調整相關訂單的備品分配，確認數量足夠後再重新恢復訂單。",
+    };
+  }
+  return {
+    title,
+    description:
+      `${parsed.date} 的「${parsed.name}」目前數量不足（總數 ${parsed.total}，目前總需求 ${parsed.demand}），` +
+      "因此此訂單尚未恢復。請先調整相關訂單的備品分配，確認數量足夠後再重新恢復訂單。",
+  };
+}

@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
 import { getOrderStatusConfig } from "@/utils/orderHelpers";
 import { isHoldOrder } from "@/lib/holdOrder";
+import { buildAmenityRestoreError, type AmenityRestoreError } from "@/lib/amenityRescheduleGuard";
+import { AlertTriangle } from "lucide-react";
 
 interface OrderStatusDialogProps {
   order: Order | null;
@@ -29,11 +31,13 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
   const [selectedStatus, setSelectedStatus] = useState("");
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [amenityError, setAmenityError] = useState<AmenityRestoreError | null>(null);
 
   useEffect(() => {
     if (open && order) {
       setSelectedStatus(order.order_status);
       setReason("");
+      setAmenityError(null);
     }
   }, [open, order]);
 
@@ -44,6 +48,7 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
     }
 
     setIsSaving(true);
+    setAmenityError(null);
     try {
       const oldLabel = getOrderStatusConfig(order.order_status).label;
       const newLabel = getOrderStatusConfig(selectedStatus).label;
@@ -108,7 +113,17 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
       onSuccess();
     } catch (error) {
       console.error("更新訂單狀態失敗:", error);
-      toast({ title: "更新失敗", description: "無法更新訂單狀態，請稍後再試", variant: "destructive" });
+      const restoreError = buildAmenityRestoreError({
+        fromStatus: order.order_status,
+        toStatus: selectedStatus,
+        message: error instanceof Error ? error.message : (error as any)?.message,
+      });
+      if (restoreError) {
+        setAmenityError(restoreError);
+        toast({ title: restoreError.title, description: restoreError.description, variant: "destructive" });
+      } else {
+        toast({ title: "更新失敗", description: "無法更新訂單狀態，請稍後再試", variant: "destructive" });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -157,6 +172,17 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
               rows={2}
             />
           </div>
+          {amenityError && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
+                <div className="space-y-1">
+                  <p className="font-medium text-destructive">{amenityError.title}</p>
+                  <p className="text-muted-foreground leading-relaxed">{amenityError.description}</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
