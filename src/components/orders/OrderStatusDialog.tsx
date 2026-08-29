@@ -48,6 +48,7 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
     }
 
     setIsSaving(true);
+    setAmenityError(null);
     try {
       const oldLabel = getOrderStatusConfig(order.order_status).label;
       const newLabel = getOrderStatusConfig(selectedStatus).label;
