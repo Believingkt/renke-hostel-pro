@@ -20,6 +20,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Input } from "@/components/ui/input";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { toast } from "sonner";
@@ -254,6 +264,68 @@ function buildCidCode(name: string) {
   return `${prefix}${suffix}`;
 }
 
+/** 每位創作者可合作的館別（前端常數） */
+const KOL_VENUE_OPTIONS: Record<string, string[]> = {
+  "093330": ["森山寫照", "淞湘卉館"],
+  DICKYLEMON22: ["旅行日-光", "旅行日-DAIDODO"],
+  BRYAN1014: ["雲岫海景渡假會館"],
+  MIKALLXX: ["雲岫海景渡假會館", "奧莉薇雅生活小酒店"],
+  XUANKEKE: ["淞湘卉館", "森山寫照"],
+  SUESUE: ["旅行日-DAIDODO"],
+  OREO0126: ["奧莉薇雅生活小酒店", "旅行日-光"],
+  STARMONARCH: ["雲岫海景渡假會館", "淞湘卉館"],
+};
+
+type CodeHistoryRow = {
+  id: string;
+  code: string;
+  kolName: string;
+  venue: string;
+  mode: "自動" | "手動";
+  createdAt: string;
+};
+
+const INITIAL_CODE_HISTORY: CodeHistoryRow[] = [
+  {
+    id: "h1",
+    code: "OREO0126",
+    kolName: "Oreo｜建築旅遊部落客",
+    venue: "奧莉薇雅生活小酒店",
+    mode: "手動",
+    createdAt: "2026-08-24 14:12",
+  },
+  {
+    id: "h2",
+    code: "XUANK7QP",
+    kolName: "竹軒｜Mixx質感電商",
+    venue: "淞湘卉館",
+    mode: "自動",
+    createdAt: "2026-08-21 10:38",
+  },
+  {
+    id: "h3",
+    code: "DICKYLEMON22",
+    kolName: "餓犬Dicky",
+    venue: "旅行日-光",
+    mode: "手動",
+    createdAt: "2026-08-18 19:05",
+  },
+  {
+    id: "h4",
+    code: "MIKA4TXB",
+    kolName: "Mika｜今晚住這裡·旅宿探索中",
+    venue: "雲岫海景渡假會館",
+    mode: "自動",
+    createdAt: "2026-08-15 09:47",
+  },
+];
+
+function nowStamp() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function statusVariantClass(status: string) {
   if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中") {
     return "border-primary/40 text-primary";
@@ -317,6 +389,48 @@ export default function SaaSWorkspace() {
   );
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
+
+  const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [formKol, setFormKol] = useState(selectedKol);
+  const [formVenue, setFormVenue] = useState("");
+  const [formMode, setFormMode] = useState<"auto" | "manual">("auto");
+  const [formCode, setFormCode] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const formVenueOptions = KOL_VENUE_OPTIONS[formKol] ?? [];
+  const formKolName = MOCK_KOLS.find((k) => k.cidCode === formKol)?.name ?? "";
+
+  const openCreateDialog = () => {
+    setFormKol(selectedKol);
+    setFormVenue(KOL_VENUE_OPTIONS[selectedKol]?.[0] ?? "");
+    setFormMode("auto");
+    setFormCode("");
+    setFormError("");
+    setCreateOpen(true);
+  };
+
+  const handleCreateCode = () => {
+    if (formMode === "manual" && !formCode.trim()) {
+      setFormError("請輸入折扣碼");
+      return;
+    }
+    const code = formMode === "auto" ? buildCidCode(formKolName) : formCode.trim().toUpperCase();
+    setGeneratedCode(code);
+    setCodeHistory((prev) => [
+      {
+        id: `${code}-${Date.now()}`,
+        code,
+        kolName: formKolName,
+        venue: formVenue || formVenueOptions[0] || "—",
+        mode: formMode === "auto" ? "自動" : "手動",
+        createdAt: nowStamp(),
+      },
+      ...prev,
+    ]);
+    setCreateOpen(false);
+    toast.success("已於館別後台建立折扣代碼");
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -439,9 +553,7 @@ export default function SaaSWorkspace() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <Button onClick={() => setGeneratedCode(buildCidCode(selectedKolName))}>
-                    產生折扣碼
-                  </Button>
+                  <Button onClick={openCreateDialog}>產生折扣碼</Button>
                 </div>
 
                 {generatedCode && (
@@ -453,34 +565,164 @@ export default function SaaSWorkspace() {
                   </div>
                 )}
 
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>折扣碼</TableHead>
-                        <TableHead>訂購人</TableHead>
-                        <TableHead className="text-right">金額</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {panel.codeOrders.map((o) => (
-                        <TableRow key={o.code + o.buyer}>
-                          <TableCell className="font-mono whitespace-nowrap">{o.code}</TableCell>
-                          <TableCell className="whitespace-nowrap">{o.buyer}</TableCell>
-                          <TableCell className="text-right tabular-nums">
-                            NT$ {o.amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusVariantClass(o.status)}>
-                              {o.status}
-                            </Badge>
-                          </TableCell>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">歷史已建立折扣碼</p>
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>折扣碼</TableHead>
+                          <TableHead>對應 KOL</TableHead>
+                          <TableHead>對應館別</TableHead>
+                          <TableHead>建立方式</TableHead>
+                          <TableHead>建立時間</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {codeHistory.map((h) => (
+                          <TableRow key={h.id}>
+                            <TableCell className="font-mono whitespace-nowrap">{h.code}</TableCell>
+                            <TableCell className="whitespace-nowrap">{h.kolName}</TableCell>
+                            <TableCell className="whitespace-nowrap">{h.venue}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{h.mode}</Badge>
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap tabular-nums">
+                              {h.createdAt}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">使用此折扣碼的訂單</p>
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>折扣碼</TableHead>
+                          <TableHead>訂購人</TableHead>
+                          <TableHead className="text-right">金額</TableHead>
+                          <TableHead>狀態</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {panel.codeOrders.map((o) => (
+                          <TableRow key={o.code + o.buyer}>
+                            <TableCell className="font-mono whitespace-nowrap">{o.code}</TableCell>
+                            <TableCell className="whitespace-nowrap">{o.buyer}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              NT$ {o.amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusVariantClass(o.status)}>
+                                {o.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+
+                <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>建立折扣碼</DialogTitle>
+                      <DialogDescription>選擇創作者與館別，並決定折扣碼建立方式</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
+                        <Select
+                          value={formKol}
+                          onValueChange={(v) => {
+                            setFormKol(v);
+                            setFormVenue(KOL_VENUE_OPTIONS[v]?.[0] ?? "");
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {MOCK_KOLS.map((k) => (
+                              <SelectItem key={k.cidCode} value={k.cidCode}>
+                                {k.name}（{k.igHandle}）
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">館別</Label>
+                        <Select value={formVenue} onValueChange={setFormVenue}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="選擇館別" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {formVenueOptions.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {v}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">建立方式</Label>
+                        <RadioGroup
+                          value={formMode}
+                          onValueChange={(v) => {
+                            setFormMode(v as "auto" | "manual");
+                            setFormError("");
+                          }}
+                          className="gap-2"
+                        >
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="auto" id="code-mode-auto" />
+                            <Label htmlFor="code-mode-auto" className="font-normal">
+                              自動建立（系統隨機產生）
+                            </Label>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <RadioGroupItem value="manual" id="code-mode-manual" />
+                            <Label htmlFor="code-mode-manual" className="font-normal">
+                              手動輸入
+                            </Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      {formMode === "manual" && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">折扣碼</Label>
+                          <Input
+                            value={formCode}
+                            onChange={(e) => {
+                              setFormCode(e.target.value);
+                              setFormError("");
+                            }}
+                            placeholder="例如 LAKEZE2026"
+                            className="font-mono"
+                          />
+                          {formError && <p className="text-xs text-destructive">{formError}</p>}
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setCreateOpen(false)}>
+                        取消
+                      </Button>
+                      <Button onClick={handleCreateCode}>確認建立</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
 
