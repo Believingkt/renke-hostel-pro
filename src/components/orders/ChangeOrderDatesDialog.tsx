@@ -599,7 +599,16 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting || !newCheckIn || !newCheckOut}>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                submitting ||
+                !newCheckIn ||
+                !newCheckOut ||
+                amenityChecking ||
+                amenityConflicts.length > 0
+              }
+            >
               {submitting ? "處理中…" : "確認改期"}
             </Button>
           </DialogFooter>
