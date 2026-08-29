@@ -400,22 +400,32 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                 className="text-base"
               />
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label>啟用</Label>
-                <p className="text-xs text-muted-foreground">停用後訂單將無法再分配此備品</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label>啟用</Label>
+                  <p className="text-xs text-muted-foreground">停用後訂單將無法再分配此備品</p>
+                </div>
+                <Switch
+                  checked={form.is_active}
+                  onCheckedChange={(v) => setForm({ ...form, is_active: v })}
+                />
               </div>
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={(v) => setForm({ ...form, is_active: v })}
-              />
+              {deactivateCheck.error ? (
+                <p className="text-xs font-medium text-destructive">{deactivateCheck.error}</p>
+              ) : deactivateCheck.helper ? (
+                <p className="text-xs text-muted-foreground">{deactivateCheck.helper}</p>
+              ) : null}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving || !totalCheck.canSave}>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !totalCheck.canSave || !deactivateCheck.canSave}
+            >
               儲存
             </Button>
           </DialogFooter>
@@ -425,22 +435,29 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteCheck.canDelete ? "確認刪除" : "無法刪除此備品"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              刪除備品「{deleting?.name}」會一併移除所有訂單上的分配紀錄，此操作無法復原。
+              {deleteCheck.canDelete
+                ? `確定要刪除備品「${deleting?.name}」嗎？此備品尚未被任何訂單使用，刪除後無法復原。`
+                : deleteCheck.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              確認刪除
-            </AlertDialogAction>
+            <AlertDialogCancel>{deleteCheck.canDelete ? "取消" : "關閉"}</AlertDialogCancel>
+            {deleteCheck.canDelete && (
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                確認刪除
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
