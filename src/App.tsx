@@ -134,6 +134,7 @@ const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
 const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
+const SaaSWorkspace = lazy(() => import("./pages/SaaSWorkspace"));
 const TeamHome = lazy(() => import("./pages/team/TeamHome"));
 const TeamPlaceholder = lazy(() => import("./pages/team/TeamPlaceholder"));
 const TeamOrders = lazy(() => import("./pages/team/TeamOrders"));
@@ -706,6 +707,14 @@ function App() {
                       } />
 
 
+
+                      {/* 成長營運工作台（需登入，守衛在頁面內自行處理） */}
+                      <Route path="/SaaS" element={
+                        <Suspense fallback={null}><SaaSWorkspace /></Suspense>
+                      } />
+                      <Route path="/saas" element={
+                        <Suspense fallback={null}><SaaSWorkspace /></Suspense>
+                      } />
 
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
