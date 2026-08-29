@@ -400,13 +400,17 @@ export default function Reception() {
   // 備品分配（structured SoT，batch 讀取，不碰 orders.notes）
   const orderIds = useMemo(() => orders.map((o) => o.id), [orders]);
   const { amenityMap } = useReceptionAmenities(currentAccommodationId, orderIds);
-  // 當日備品準備：沿用 Reception 當前名單（已排除 cancelled）
+  // 總表：入住只算當日新入住（排除續住）；退房只算當日退房
+  const summaryOrderIds = useMemo(
+    () => selectSummaryOrderIds(orders, targetDate, mode),
+    [orders, targetDate, mode],
+  );
   const amenitySummary = useMemo(
-    () => aggregateAmenitySummary(orderIds, amenityMap),
-    [orderIds, amenityMap],
+    () => aggregateAmenitySummary(summaryOrderIds, amenityMap),
+    [summaryOrderIds, amenityMap],
   );
   const amenityTitle =
-    mode === "checkout" ? `${targetDate} 退房備品回收清單` : `${targetDate} 入住備品準備`;
+    mode === "checkout" ? `${targetDate} 退房備品回收` : `${targetDate} 入住備品準備`;
 
 
   const toggleSort = (key: SortKey) => {
