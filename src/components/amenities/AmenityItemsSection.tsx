@@ -26,6 +26,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { fetchAmenityItems, type AmenityItem } from "@/lib/amenityAllocation";
+import {
+  ERROR_PEAK,
+  IDLE_PEAK,
+  LOADING_PEAK,
+  checkTotalQuantityChange,
+  fetchAmenityFuturePeak,
+  type AmenityFuturePeak,
+} from "@/lib/amenityTotalGuard";
+
 
 interface Props {
   accommodationId: string;
