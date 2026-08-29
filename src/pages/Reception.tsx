@@ -616,6 +616,7 @@ export default function Reception() {
                   <Th onClick={() => toggleSort("room_unit")} active={sortKey === "room_unit"}>
                     房號
                   </Th>
+                  <Th>備品分配</Th>
                   <Th>付款狀態</Th>
                   <Th>押金</Th>
                   <Th onClick={() => toggleSort("status")} active={sortKey === "status"}>
@@ -629,13 +630,13 @@ export default function Reception() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                       載入中…
                     </td>
                   </tr>
                 ) : sortedFiltered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-4 py-10 text-center text-muted-foreground">
                       {keyword ? "找不到符合條件的訂單" : "目前沒有需要處理的訂單"}
                     </td>
                   </tr>
