@@ -366,13 +366,19 @@ export default function SaaSWorkspace() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem
-                    className="cursor-pointer py-3"
-                    onClick={() => toast.info("功能開發中")}
-                  >
-                    <UserCircle className="mr-2 h-4 w-4" />
-                    個人基本資料
+                  <DropdownMenuItem asChild className="cursor-pointer py-3">
+                    <a
+                      href={LABOR_FORM_URL}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center"
+                    >
+                      <UserCircle className="mr-2 h-4 w-4" />
+                      填寫勞報單
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
                   </DropdownMenuItem>
+
                   <DropdownMenuItem
                     className="cursor-pointer py-3 text-destructive"
                     onClick={handleSignOut}
