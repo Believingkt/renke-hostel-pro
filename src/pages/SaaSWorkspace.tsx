@@ -484,11 +484,14 @@ export default function SaaSWorkspace() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">本月訂單數</p>
-                    <p className="mt-1 text-2xl font-bold">14</p>
+                    <p className="mt-1 text-2xl font-bold">{panel.orders}</p>
                   </Card>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">預估獎金</p>
-                    <p className="mt-1 text-2xl font-bold text-primary">NT$ 18,640</p>
+                    <p className="mt-1 text-2xl font-bold text-primary">
+                      NT$ {panel.bonus.toLocaleString()}
+                    </p>
+
                   </Card>
                 </div>
                 <div className="rounded-lg border">
