@@ -390,6 +390,48 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
+  const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [formKol, setFormKol] = useState(selectedKol);
+  const [formVenue, setFormVenue] = useState("");
+  const [formMode, setFormMode] = useState<"auto" | "manual">("auto");
+  const [formCode, setFormCode] = useState("");
+  const [formError, setFormError] = useState("");
+
+  const formVenueOptions = KOL_VENUE_OPTIONS[formKol] ?? [];
+  const formKolName = MOCK_KOLS.find((k) => k.cidCode === formKol)?.name ?? "";
+
+  const openCreateDialog = () => {
+    setFormKol(selectedKol);
+    setFormVenue(KOL_VENUE_OPTIONS[selectedKol]?.[0] ?? "");
+    setFormMode("auto");
+    setFormCode("");
+    setFormError("");
+    setCreateOpen(true);
+  };
+
+  const handleCreateCode = () => {
+    if (formMode === "manual" && !formCode.trim()) {
+      setFormError("請輸入折扣碼");
+      return;
+    }
+    const code = formMode === "auto" ? buildCidCode(formKolName) : formCode.trim().toUpperCase();
+    setGeneratedCode(code);
+    setCodeHistory((prev) => [
+      {
+        id: `${code}-${Date.now()}`,
+        code,
+        kolName: formKolName,
+        venue: formVenue || formVenueOptions[0] || "—",
+        mode: formMode === "auto" ? "自動" : "手動",
+        createdAt: nowStamp(),
+      },
+      ...prev,
+    ]);
+    setCreateOpen(false);
+    toast.success("已於館別後台建立折扣代碼");
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth?next=" + encodeURIComponent("/SaaS"), { replace: true });
