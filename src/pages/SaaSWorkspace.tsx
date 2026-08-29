@@ -51,27 +51,131 @@ const MOCK_KOLS: MockKol[] = [
   { name: "明星煌", igHandle: "starmonarch", cidCode: "STARMONARCH", venue: "雲岫海景渡假會館", rarity: "SR", bookingStatus: "訂房確認中" },
 ];
 
+const ADMIN_IDENTITY = "system-admin";
+
 const VIEW_IDENTITIES = [
-  { value: "kol-fafa", label: "KOL 仙女他媽／D1" },
-  { value: "kol-dicky", label: "KOL 餓犬Dicky／D1" },
-  { value: "community", label: "社群團長／D2" },
-  { value: "system-admin", label: "系統管理員／總覽" },
+  ...MOCK_KOLS.map((k) => ({
+    value: k.cidCode,
+    label: `KOL ${k.name.replace(/（.*?）|｜.*$/g, "")}／創作者導流`,
+  })),
+  { value: ADMIN_IDENTITY, label: "系統管理員／總覽" },
 ];
 
-const MOCK_CODE_ORDERS = [
-  { code: "093330", buyer: "陳O瑜", amount: 12800, status: "已成交" },
-  { code: "DICKYLEMON22", buyer: "林O辰", amount: 8600, status: "待確認" },
-  { code: "XUANKEKE", buyer: "王O婷", amount: 15400, status: "已成交" },
-  { code: "OREO0126", buyer: "張O豪", amount: 6200, status: "已取消" },
-  { code: "STARMONARCH", buyer: "李O安", amount: 21000, status: "已成交" },
-];
+type CodeOrder = { code: string; buyer: string; amount: number; status: string };
+type BonusRow = { orderNo: string; checkIn: string; amount: number; bonus: number; status: string };
+type KolPanel = { orders: number; bonus: number; codeOrders: CodeOrder[]; bonusRows: BonusRow[] };
 
-const MOCK_BONUS_ROWS = [
-  { orderNo: "K7M2P9X4", checkIn: "2026-09-05", amount: 12800, bonus: 1280, status: "已入帳" },
-  { orderNo: "R4T8N3B6", checkIn: "2026-09-14", amount: 15400, bonus: 1540, status: "已入帳" },
-  { orderNo: "Q9W5Z2H7", checkIn: "2026-09-22", amount: 8600, bonus: 860, status: "計算中" },
-  { orderNo: "L3F6D8K2", checkIn: "2026-10-02", amount: 21000, bonus: 2100, status: "計算中" },
-];
+/** 每位創作者一組獨立的前端假資料 */
+const KOL_PANELS: Record<string, KolPanel> = {
+  "093330": {
+    orders: 9,
+    bonus: 11240,
+    codeOrders: [
+      { code: "093330", buyer: "陳O瑜", amount: 12800, status: "已成交" },
+      { code: "093330", buyer: "何O芳", amount: 9600, status: "待確認" },
+      { code: "093330", buyer: "楊O瑄", amount: 7400, status: "已成交" },
+    ],
+    bonusRows: [
+      { orderNo: "K7M2P9X4", checkIn: "2026-09-05", amount: 12800, bonus: 1280, status: "已入帳" },
+      { orderNo: "R4T8N3B6", checkIn: "2026-09-14", amount: 9600, bonus: 960, status: "計算中" },
+      { orderNo: "Q9W5Z2H7", checkIn: "2026-09-22", amount: 7400, bonus: 740, status: "已入帳" },
+    ],
+  },
+  DICKYLEMON22: {
+    orders: 6,
+    bonus: 7380,
+    codeOrders: [
+      { code: "DICKYLEMON22", buyer: "林O辰", amount: 8600, status: "待確認" },
+      { code: "DICKYLEMON22", buyer: "邱O傑", amount: 11200, status: "已成交" },
+    ],
+    bonusRows: [
+      { orderNo: "L3F6D8K2", checkIn: "2026-09-08", amount: 8600, bonus: 860, status: "計算中" },
+      { orderNo: "T5B9C2M7", checkIn: "2026-09-19", amount: 11200, bonus: 1120, status: "已入帳" },
+    ],
+  },
+  BRYAN1014: {
+    orders: 3,
+    bonus: 2960,
+    codeOrders: [
+      { code: "BRYAN1014", buyer: "沈O瑋", amount: 6800, status: "已取消" },
+      { code: "BRYAN1014", buyer: "吳O瑄", amount: 9200, status: "已成交" },
+    ],
+    bonusRows: [
+      { orderNo: "H8N4V6R3", checkIn: "2026-09-11", amount: 9200, bonus: 920, status: "已入帳" },
+    ],
+  },
+  MIKALLXX: {
+    orders: 4,
+    bonus: 4120,
+    codeOrders: [
+      { code: "MIKALLXX", buyer: "郭O安", amount: 7300, status: "已成交" },
+      { code: "MIKALLXX", buyer: "許O筑", amount: 5400, status: "待確認" },
+    ],
+    bonusRows: [
+      { orderNo: "D2Q7X5L9", checkIn: "2026-09-03", amount: 7300, bonus: 730, status: "已入帳" },
+      { orderNo: "W6K3T8P4", checkIn: "2026-09-25", amount: 5400, bonus: 540, status: "計算中" },
+    ],
+  },
+  XUANKEKE: {
+    orders: 11,
+    bonus: 14680,
+    codeOrders: [
+      { code: "XUANKEKE", buyer: "王O婷", amount: 15400, status: "已成交" },
+      { code: "XUANKEKE", buyer: "蔡O妤", amount: 12100, status: "已成交" },
+      { code: "XUANKEKE", buyer: "周O廷", amount: 8800, status: "待確認" },
+    ],
+    bonusRows: [
+      { orderNo: "M9J4R7S2", checkIn: "2026-09-06", amount: 15400, bonus: 1540, status: "已入帳" },
+      { orderNo: "P3L8V5N6", checkIn: "2026-09-17", amount: 12100, bonus: 1210, status: "已入帳" },
+      { orderNo: "F7C2H9B4", checkIn: "2026-10-01", amount: 8800, bonus: 880, status: "計算中" },
+    ],
+  },
+  SUESUE: {
+    orders: 5,
+    bonus: 5240,
+    codeOrders: [
+      { code: "SUESUE", buyer: "江O倫", amount: 6900, status: "已成交" },
+      { code: "SUESUE", buyer: "簡O慈", amount: 7600, status: "待確認" },
+    ],
+    bonusRows: [
+      { orderNo: "S4G8K3D7", checkIn: "2026-09-09", amount: 6900, bonus: 690, status: "已入帳" },
+      { orderNo: "N6Y2M5Q8", checkIn: "2026-09-28", amount: 7600, bonus: 760, status: "計算中" },
+    ],
+  },
+  OREO0126: {
+    orders: 7,
+    bonus: 8460,
+    codeOrders: [
+      { code: "OREO0126", buyer: "張O豪", amount: 6200, status: "已取消" },
+      { code: "OREO0126", buyer: "鍾O儀", amount: 10400, status: "已成交" },
+      { code: "OREO0126", buyer: "劉O程", amount: 9100, status: "已成交" },
+    ],
+    bonusRows: [
+      { orderNo: "B5T9W4J2", checkIn: "2026-09-12", amount: 10400, bonus: 1040, status: "已入帳" },
+      { orderNo: "V8R3P6C5", checkIn: "2026-09-24", amount: 9100, bonus: 910, status: "計算中" },
+    ],
+  },
+  STARMONARCH: {
+    orders: 8,
+    bonus: 9720,
+    codeOrders: [
+      { code: "STARMONARCH", buyer: "李O安", amount: 21000, status: "已成交" },
+      { code: "STARMONARCH", buyer: "范O琳", amount: 8300, status: "待確認" },
+    ],
+    bonusRows: [
+      { orderNo: "X2D7L4F9", checkIn: "2026-09-07", amount: 21000, bonus: 2100, status: "已入帳" },
+      { orderNo: "C6M1K8T3", checkIn: "2026-09-21", amount: 8300, bonus: 830, status: "計算中" },
+    ],
+  },
+};
+
+const ADMIN_PANEL: KolPanel = {
+  orders: Object.values(KOL_PANELS).reduce((s, p) => s + p.orders, 0),
+  bonus: Object.values(KOL_PANELS).reduce((s, p) => s + p.bonus, 0),
+  codeOrders: Object.values(KOL_PANELS).flatMap((p) => p.codeOrders).slice(0, 8),
+  bonusRows: Object.values(KOL_PANELS).flatMap((p) => p.bonusRows).slice(0, 8),
+};
+
 
 const MOCK_STATS = [
   { title: "本月總轉換數", value: "184", icon: TrendingUp, variant: "coral" as const },
