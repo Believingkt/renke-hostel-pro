@@ -47,6 +47,8 @@ import { getOrderSourceConfig, getHotelnabeOtaCode, getOrderOtaCode, getOrderSou
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 import { extractAddonTotal } from "@/lib/ownerSettlement";
+import { commissionBaseFromOrder } from "@/lib/ownerExempt";
+import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
 
 interface Member {
   user_id: string;
@@ -67,6 +69,7 @@ interface OrderRow {
   check_out_date: string;
   final_price: number;
   custom_addon_details?: unknown;
+  notes?: string | null;
   discount_code: string | null;
   order_source: string | null;
   ota_channel: string | null;
@@ -569,7 +572,7 @@ export default function TeamOrders() {
           .from("orders")
           .select(
             `id, order_number, guest_name, guest_phone, check_in_date, check_out_date,
-             final_price, custom_addon_details, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
+             final_price, custom_addon_details, notes, discount_code, order_source, ota_channel, accommodation_id, order_date, created_at, order_status, payment_status`,
             { count: "exact" }
           )
       );
@@ -672,6 +675,7 @@ export default function TeamOrders() {
         check_out_date: o.check_out_date,
         final_price: o.final_price,
         custom_addon_details: o.custom_addon_details ?? null,
+        notes: o.notes ?? null,
         discount_code: o.discount_code,
         order_source: o.order_source,
         ota_channel: o.ota_channel,
@@ -784,7 +788,7 @@ export default function TeamOrders() {
       deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
       team_commission_price:
         o.meta?.team_commission_price ??
-        Math.max(0, (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details)),
+        commissionBaseFromOrder(o as any),
       team_commission_price_is_manual: o.meta?.team_commission_price_is_manual ?? false,
       commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
       commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
@@ -811,7 +815,7 @@ export default function TeamOrders() {
       // Decide whether 分潤基準金額 changed → bump confirmed_by / confirmed_at
       const prevTcp =
         editOrder.meta?.team_commission_price ??
-        Math.max(0, (editOrder.final_price ?? 0) - extractAddonTotal((editOrder as any).custom_addon_details));
+        commissionBaseFromOrder(editOrder as any);
       const newTcpRaw = form.team_commission_price;
       const newTcp =
         newTcpRaw === null || newTcpRaw === undefined || (newTcpRaw as any) === ""
@@ -1185,10 +1189,7 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
-                          const autoBase = Math.max(
-                            0,
-                            (o.final_price ?? 0) - extractAddonTotal((o as any).custom_addon_details),
-                          );
+                          const autoBase = commissionBaseFromOrder(o as any);
                           const status = getCommissionStatus({
                             checkOutDate: o.check_out_date,
                             teamCommissionPrice: o.meta?.team_commission_price ?? autoBase,
@@ -1490,10 +1491,10 @@ export default function TeamOrders() {
                   const confirmedBy = form.commission_price_confirmed_by;
                   const confirmedAt = form.commission_price_confirmed_at;
                   const mismatch = Number(tcp) !== Number(fp);
-                  const addonTotal = extractAddonTotal(
-                    (editOrder as any).custom_addon_details,
-                  );
-                  const autoBase = Math.max(0, fp - addonTotal);
+                  const addonTotal =
+                    extractAddonTotal((editOrder as any).custom_addon_details) +
+                    extraOnSiteAddonFromNotes((editOrder as any).notes);
+                  const autoBase = commissionBaseFromOrder(editOrder as any);
                   const isManual = !!form.team_commission_price_is_manual;
 
                   if (isEditing && canEdit) {

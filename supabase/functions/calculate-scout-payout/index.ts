@@ -498,7 +498,7 @@ serve(async (req) => {
         // KOL 分潤訂單：以「訂單日期 order_date（timestamptz）」為發放條件，台北時區半開區間
         const { data: orders, error: ordErr } = await supabase
           .from("orders")
-          .select("final_price, custom_addon_details, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source")
+          .select("final_price, custom_addon_details, notes, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source")
           .not("discount_code", "is", null)
           .gte("order_date", `${periodStart}T00:00:00+08:00`)
           .lt("order_date", `${periodEnd}T00:00:00+08:00`)
@@ -648,7 +648,7 @@ serve(async (req) => {
         const { data: dcOrders, error: dcErr } = await supabase
           .from("orders")
           .select(
-            "id, final_price, custom_addon_details, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source",
+            "id, final_price, custom_addon_details, notes, discount_code, order_date, currency_at_booking, accommodation_id, owner_direct, order_source",
           )
           .not("discount_code", "is", null)
           .gte("order_date", `${periodStart}T00:00:00+08:00`)
