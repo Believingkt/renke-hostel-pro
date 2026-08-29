@@ -112,7 +112,17 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
       onSuccess();
     } catch (error) {
       console.error("更新訂單狀態失敗:", error);
-      toast({ title: "更新失敗", description: "無法更新訂單狀態，請稍後再試", variant: "destructive" });
+      const restoreError = buildAmenityRestoreError({
+        fromStatus: order.order_status,
+        toStatus: selectedStatus,
+        message: error instanceof Error ? error.message : (error as any)?.message,
+      });
+      if (restoreError) {
+        setAmenityError(restoreError);
+        toast({ title: restoreError.title, description: restoreError.description, variant: "destructive" });
+      } else {
+        toast({ title: "更新失敗", description: "無法更新訂單狀態，請稍後再試", variant: "destructive" });
+      }
     } finally {
       setIsSaving(false);
     }
