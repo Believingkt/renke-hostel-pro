@@ -26,6 +26,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { fetchAmenityItems, type AmenityItem } from "@/lib/amenityAllocation";
+import {
+  ERROR_PEAK,
+  IDLE_PEAK,
+  LOADING_PEAK,
+  checkTotalQuantityChange,
+  fetchAmenityFuturePeak,
+  type AmenityFuturePeak,
+} from "@/lib/amenityTotalGuard";
+
 
 interface Props {
   accommodationId: string;
@@ -85,6 +94,8 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<AmenityItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [peak, setPeak] = useState<AmenityFuturePeak>(IDLE_PEAK);
+
   const { usage, days } = useUsageOverview(accommodationId, refreshKey);
 
   const load = useCallback(async () => {
@@ -106,6 +117,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const openAdd = () => {
     setEditing(null);
     setForm({ ...emptyForm });
+    setPeak(IDLE_PEAK);
     setDialogOpen(true);
   };
 
@@ -119,15 +131,33 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       is_active: item.is_active,
     });
     setDialogOpen(true);
+    // 只有編輯既有備品才需要 peak（新增備品不會有既有 allocation）
+    setPeak(LOADING_PEAK);
+    fetchAmenityFuturePeak({ accommodationId, amenityItemId: item.id })
+      .then((res) => setPeak(res))
+      .catch(() => setPeak(ERROR_PEAK));
   };
+
+
+  const totalCheck = checkTotalQuantityChange({
+    isEditing: !!editing,
+    currentTotal: editing?.total_quantity ?? 0,
+    nextTotal: Math.max(0, Number(form.total_quantity) || 0),
+    peak,
+  });
 
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("請輸入備品名稱");
       return;
     }
+    if (!totalCheck.canSave) {
+      toast.error(totalCheck.error ?? "無法確認目前備品分配量，請稍後再試。");
+      return;
+    }
     setSaving(true);
     try {
+
       const payload = {
         accommodation_id: accommodationId,
         name: form.name.trim(),
@@ -300,6 +330,12 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                   }
                   className="text-base"
                 />
+                {totalCheck.error ? (
+                  <p className="text-xs font-medium text-destructive">{totalCheck.error}</p>
+                ) : totalCheck.helper ? (
+                  <p className="text-xs text-muted-foreground">{totalCheck.helper}</p>
+                ) : null}
+
               </div>
               <div className="space-y-2">
                 <Label>單位（選填）</Label>
@@ -334,7 +370,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            <Button onClick={handleSave} disabled={saving || !totalCheck.canSave}>
               儲存
             </Button>
           </DialogFooter>
