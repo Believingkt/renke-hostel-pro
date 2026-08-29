@@ -444,7 +444,40 @@ const INITIAL_CODE_HISTORY: CodeHistoryRow[] = [
     mode: "自動",
     createdAt: "2026-08-15 09:47",
   },
+  {
+    id: "h5",
+    code: "093330",
+    kolName: "仙女他媽（施怡君）",
+    venue: "森山寫照",
+    mode: "手動",
+    createdAt: "2026-08-13 16:24",
+  },
+  {
+    id: "h6",
+    code: "BRYAN1014",
+    kolName: "Bryan Aka黑熊他爸🐾",
+    venue: "雲岫海景渡假會館",
+    mode: "手動",
+    createdAt: "2026-08-10 11:52",
+  },
+  {
+    id: "h7",
+    code: "SUESU9KM",
+    kolName: "蘇蘇",
+    venue: "旅行日-DAIDODO",
+    mode: "自動",
+    createdAt: "2026-08-08 20:16",
+  },
+  {
+    id: "h8",
+    code: "STARM3VQ",
+    kolName: "明星煌",
+    venue: "雲岫海景渡假會館",
+    mode: "自動",
+    createdAt: "2026-08-05 13:09",
+  },
 ];
+
 
 function nowStamp() {
   const d = new Date();
