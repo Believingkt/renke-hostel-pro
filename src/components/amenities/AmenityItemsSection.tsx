@@ -105,6 +105,9 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const [deleting, setDeleting] = useState<AmenityItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [peak, setPeak] = useState<AmenityFuturePeak>(IDLE_PEAK);
+  const [lifecycle, setLifecycle] = useState<AmenityLifecycle>(IDLE_LIFECYCLE);
+  const [deleteLifecycle, setDeleteLifecycle] = useState<AmenityLifecycle>(IDLE_LIFECYCLE);
+
 
   const { usage, days } = useUsageOverview(accommodationId, refreshKey);
 
