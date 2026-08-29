@@ -252,9 +252,9 @@ export default function SaaSWorkspace() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [accountName, setAccountName] = useState("");
 
   const [identity, setIdentity] = useState(VIEW_IDENTITIES[0].value);
-  const [selectedKol, setSelectedKol] = useState(MOCK_KOLS[0].cidCode);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -266,6 +266,9 @@ export default function SaaSWorkspace() {
         navigate("/auth?next=" + encodeURIComponent("/SaaS"), { replace: true });
         return;
       }
+      const u = data.session.user;
+      const meta = (u.user_metadata ?? {}) as Record<string, string>;
+      setAccountName(meta.display_name || meta.name || meta.full_name || u.email || "已登入帳號");
       setSignedIn(true);
       setAuthChecked(true);
     });
@@ -288,10 +291,21 @@ export default function SaaSWorkspace() {
     [identity],
   );
 
+  const isAdminView = identity === ADMIN_IDENTITY;
+
+  const selectedKol = isAdminView ? MOCK_KOLS[0].cidCode : identity;
+
   const selectedKolName = useMemo(
     () => MOCK_KOLS.find((k) => k.cidCode === selectedKol)?.name ?? "",
     [selectedKol],
   );
+
+  const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth?next=" + encodeURIComponent("/SaaS"), { replace: true });
+  };
 
   if (!authChecked || !signedIn) {
     return (
@@ -304,7 +318,7 @@ export default function SaaSWorkspace() {
   return (
     <div className="admin-theme min-h-screen bg-background overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 md:py-8 space-y-6">
-        <header className="flex flex-col gap-3 border-b border-primary/20 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <header className="flex flex-col gap-3 border-b border-primary/20 pb-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <h1 className="flex items-center gap-2 text-xl font-bold md:text-2xl">
               <Sparkles className="h-6 w-6 text-primary" />
@@ -314,29 +328,60 @@ export default function SaaSWorkspace() {
               多渠道創作者內容導流與社群裂變推廣的整合視圖
             </p>
           </div>
-          <div className="flex flex-col gap-1 sm:items-end">
-            <Label className="text-xs text-muted-foreground">檢視身份</Label>
-            <Select value={identity} onValueChange={setIdentity}>
-              <SelectTrigger className="w-full sm:w-72">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {VIEW_IDENTITIES.map((i) => (
-                  <SelectItem key={i.value} value={i.value}>
-                    {i.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <span className="text-xs text-muted-foreground">目前檢視：{identityLabel}</span>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">檢視身份</Label>
+              <Select value={identity} onValueChange={setIdentity}>
+                <SelectTrigger className="w-full sm:w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIEW_IDENTITIES.map((i) => (
+                    <SelectItem key={i.value} value={i.value}>
+                      {i.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground">目前檢視：{identityLabel}</span>
+            </div>
+
+            <div className="sm:pl-3 sm:border-l">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-10 gap-2 px-3">
+                    <UserCircle className="h-5 w-5 shrink-0" />
+                    <span className="max-w-[160px] truncate text-sm font-medium">{accountName}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem
+                    className="cursor-pointer py-3"
+                    onClick={() => toast.info("功能開發中")}
+                  >
+                    <UserCircle className="mr-2 h-4 w-4" />
+                    個人基本資料
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="cursor-pointer py-3 text-destructive"
+                    onClick={handleSignOut}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    登出
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </header>
 
         <Tabs defaultValue="d1" className="w-full">
           <TabsList>
-            <TabsTrigger value="d1">D1 創作者導流</TabsTrigger>
-            <TabsTrigger value="d2">D2 社群裂變</TabsTrigger>
+            <TabsTrigger value="d1">創作者導流</TabsTrigger>
+            <TabsTrigger value="d2">社群裂變</TabsTrigger>
           </TabsList>
+
 
           {/* D1 */}
           <TabsContent value="d1" className="mt-4 space-y-6">
