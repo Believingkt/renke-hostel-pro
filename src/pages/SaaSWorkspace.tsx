@@ -276,6 +276,85 @@ const MOCK_REWARD_TIERS = [
   { tier: "管理員加碼", rate: "+2%", condition: "單月累積轉換 ≥ 5 筆" },
 ];
 
+type SpreadPartner = { name: string; level: "第一層" | "第二層"; orders: number; bonus: number };
+type ManagerPanel = {
+  venue: string;
+  totalSpread: number;
+  level1: number;
+  level2: number;
+  conversions: number;
+  monthlyBonus: number;
+  partners: SpreadPartner[];
+};
+
+/** 各社群管理員的館別視角假資料（加總與全站小樣本一致） */
+const MANAGER_PANELS: Record<string, ManagerPanel> = {
+  "cm-lvxingri-guang": {
+    venue: "旅行日-光",
+    totalSpread: 3,
+    level1: 2,
+    level2: 1,
+    conversions: 1,
+    monthlyBonus: 1840,
+    partners: [
+      { name: "陳O安", level: "第一層", orders: 1, bonus: 1040 },
+      { name: "林O妤", level: "第一層", orders: 0, bonus: 0 },
+      { name: "黃O豪", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-senshan": {
+    venue: "森山寫照",
+    totalSpread: 2,
+    level1: 1,
+    level2: 1,
+    conversions: 1,
+    monthlyBonus: 1260,
+    partners: [
+      { name: "何O瑄", level: "第一層", orders: 1, bonus: 960 },
+      { name: "楊O廷", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-yunxiu": {
+    venue: "雲岫海景渡假會館",
+    totalSpread: 2,
+    level1: 1,
+    level2: 1,
+    conversions: 0,
+    monthlyBonus: 620,
+    partners: [
+      { name: "郭O筑", level: "第一層", orders: 0, bonus: 0 },
+      { name: "許O傑", level: "第二層", orders: 0, bonus: 0 },
+    ],
+  },
+  "cm-songxiang": {
+    venue: "淞湘卉館",
+    totalSpread: 1,
+    level1: 1,
+    level2: 0,
+    conversions: 0,
+    monthlyBonus: 480,
+    partners: [
+      { name: "蔡O慈", level: "第一層", orders: 0, bonus: 0 },
+      { name: "周O倫", level: "第一層", orders: 0, bonus: 0 },
+    ],
+  },
+};
+
+const PLATFORM_REVENUE_STATS = [
+  { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
+  { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
+  { title: "本月台灣旅圖抽成金額", value: "NT$ 6,180", icon: LayoutDashboard, variant: "blue" as const },
+  { title: "本月人客多抽成金額", value: "NT$ 9,240", icon: Users, variant: "purple" as const },
+];
+
+const PLATFORM_REVENUE_ROWS = [
+  { project: "多渠道創作者導流", lvtu: "2%", lakeze: "3%", amount: 8620 },
+  { project: "社群裂變推廣", lvtu: "2%", lakeze: "4%", amount: 5140 },
+  { project: "跨館聯合專案", lvtu: "4%", lakeze: "4%", amount: 1660 },
+];
+
+
+
 
 const CID_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
