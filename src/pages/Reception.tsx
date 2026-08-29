@@ -572,6 +572,32 @@ export default function Reception() {
             </Button>
           </div>
 
+          {/* 當日備品準備總表（依 structured allocation 加總，非庫存佔用） */}
+          {amenitySummary.length > 0 && (
+            <div className="rounded-lg border bg-muted/20 p-3">
+              <div className="flex items-baseline justify-between gap-2 flex-wrap">
+                <div className="text-sm font-medium">{amenityTitle}</div>
+                <div className="text-xs text-muted-foreground">
+                  依本頁名單訂單備品分配加總{mode === "checkin" ? "（含續住）" : ""}
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {amenitySummary.map((line) => (
+                  <span
+                    key={line.itemId}
+                    className="inline-flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-sm"
+                  >
+                    <span>{line.name}</span>
+                    <span className="font-semibold tabular-nums">{line.quantity}</span>
+                    {line.unit?.trim() && (
+                      <span className="text-xs text-muted-foreground">{line.unit.trim()}</span>
+                    )}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
 
           {/* Desktop Table */}
           <div className="hidden md:block overflow-x-auto rounded-lg border">
