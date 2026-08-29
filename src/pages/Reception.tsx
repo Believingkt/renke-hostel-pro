@@ -397,6 +397,18 @@ export default function Reception() {
     return [...list].sort((a, b) => get(a).localeCompare(get(b), "zh-Hant", { numeric: true }) * dir);
   }, [orders, keyword, sortKey, sortDir, mode]);
 
+  // 備品分配（structured SoT，batch 讀取，不碰 orders.notes）
+  const orderIds = useMemo(() => orders.map((o) => o.id), [orders]);
+  const { amenityMap } = useReceptionAmenities(currentAccommodationId, orderIds);
+  // 當日備品準備：沿用 Reception 當前名單（已排除 cancelled）
+  const amenitySummary = useMemo(
+    () => aggregateAmenitySummary(orderIds, amenityMap),
+    [orderIds, amenityMap],
+  );
+  const amenityTitle =
+    mode === "checkout" ? `${targetDate} 退房備品回收清單` : `${targetDate} 入住備品準備`;
+
+
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
     else {
