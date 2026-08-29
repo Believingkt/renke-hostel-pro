@@ -366,6 +366,7 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
   const invoke = async (force: boolean) => {
     setSubmitting(true);
     setInventoryError(null);
+    setAmenityBlockError(null);
     try {
       const { data, error } = await supabase.functions.invoke("change-order-dates", {
         body: {
