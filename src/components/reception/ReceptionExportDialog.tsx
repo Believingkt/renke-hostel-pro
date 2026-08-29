@@ -185,7 +185,7 @@ export function ReceptionExportDialog({ open, onOpenChange, accommodationId, mod
         setLoading(false);
       }
     })();
-  }, [open, accommodationId, mode, targetDate]);
+  }, [open, accommodationId, mode, targetDate, showAmenityAllocations]);
 
   const title = titleOverride
     ?? (mode === "list"
