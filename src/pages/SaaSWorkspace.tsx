@@ -756,7 +756,7 @@ export default function SaaSWorkspace() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {codeHistory.map((h) => (
+                        {visibleCodeHistory.map((h) => (
                           <TableRow key={h.id}>
                             <TableCell className="font-mono whitespace-nowrap">{h.code}</TableCell>
                             <TableCell className="whitespace-nowrap">{h.kolName}</TableCell>
