@@ -708,6 +708,14 @@ function App() {
 
 
 
+                      {/* 成長營運工作台（需登入，守衛在頁面內自行處理） */}
+                      <Route path="/SaaS" element={
+                        <Suspense fallback={null}><SaaSWorkspace /></Suspense>
+                      } />
+                      <Route path="/saas" element={
+                        <Suspense fallback={null}><SaaSWorkspace /></Suspense>
+                      } />
+
                       {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
                       <Route path="/hq-auth" element={<HQAuth />} />
                       <Route path="/team-auth" element={<TeamAuth />} />
