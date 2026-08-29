@@ -1041,10 +1041,14 @@ export default function SaaSWorkspace() {
                 </div>
               </CardContent>
             </Card>
+            )}
           </TabsContent>
+          )}
 
           {/* D2 */}
+          {canSeeD2 && (
           <TabsContent value="d2" className="mt-4 space-y-6">
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
