@@ -34,6 +34,16 @@ import {
   fetchAmenityFuturePeak,
   type AmenityFuturePeak,
 } from "@/lib/amenityTotalGuard";
+import {
+  ERROR_LIFECYCLE,
+  IDLE_LIFECYCLE,
+  LOADING_LIFECYCLE,
+  checkDeactivation,
+  checkDelete,
+  fetchAmenityLifecycle,
+  type AmenityLifecycle,
+} from "@/lib/amenityLifecycleGuard";
+
 
 
 interface Props {
@@ -95,6 +105,9 @@ export function AmenityItemsSection({ accommodationId }: Props) {
   const [deleting, setDeleting] = useState<AmenityItem | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [peak, setPeak] = useState<AmenityFuturePeak>(IDLE_PEAK);
+  const [lifecycle, setLifecycle] = useState<AmenityLifecycle>(IDLE_LIFECYCLE);
+  const [deleteLifecycle, setDeleteLifecycle] = useState<AmenityLifecycle>(IDLE_LIFECYCLE);
+
 
   const { usage, days } = useUsageOverview(accommodationId, refreshKey);
 
@@ -118,6 +131,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     setEditing(null);
     setForm({ ...emptyForm });
     setPeak(IDLE_PEAK);
+    setLifecycle(IDLE_LIFECYCLE);
     setDialogOpen(true);
   };
 
@@ -136,8 +150,20 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     fetchAmenityFuturePeak({ accommodationId, amenityItemId: item.id })
       .then((res) => setPeak(res))
       .catch(() => setPeak(ERROR_PEAK));
+    // 停用 guard：今天＋未來是否仍有有效訂單使用
+    setLifecycle(LOADING_LIFECYCLE);
+    fetchAmenityLifecycle({ amenityItemId: item.id })
+      .then((res) => setLifecycle(res))
+      .catch(() => setLifecycle(ERROR_LIFECYCLE));
   };
 
+  const openDelete = (item: AmenityItem) => {
+    setDeleting(item);
+    setDeleteLifecycle(LOADING_LIFECYCLE);
+    fetchAmenityLifecycle({ amenityItemId: item.id })
+      .then((res) => setDeleteLifecycle(res))
+      .catch(() => setDeleteLifecycle(ERROR_LIFECYCLE));
+  };
 
   const totalCheck = checkTotalQuantityChange({
     isEditing: !!editing,
@@ -146,6 +172,15 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     peak,
   });
 
+  const deactivateCheck = checkDeactivation({
+    isEditing: !!editing,
+    wasActive: editing?.is_active ?? false,
+    nextActive: form.is_active,
+    lifecycle,
+  });
+
+  const deleteCheck = checkDelete(deleteLifecycle);
+
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("請輸入備品名稱");
@@ -153,6 +188,10 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     }
     if (!totalCheck.canSave) {
       toast.error(totalCheck.error ?? "無法確認目前備品分配量，請稍後再試。");
+      return;
+    }
+    if (!deactivateCheck.canSave) {
+      toast.error(deactivateCheck.error ?? "正在確認此備品是否仍有未來訂單使用…");
       return;
     }
     setSaving(true);
@@ -188,6 +227,11 @@ export function AmenityItemsSection({ accommodationId }: Props) {
 
   const handleDelete = async () => {
     if (!deleting) return;
+    // Lifecycle guard：只有「從未被任何訂單分配過」的備品才允許硬刪
+    if (!deleteCheck.canDelete) {
+      toast.error(deleteCheck.message ?? "無法刪除此備品。");
+      return;
+    }
     try {
       const { error } = await supabase.from("amenity_items").delete().eq("id", deleting.id);
       if (error) throw error;
@@ -199,6 +243,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       toast.error("刪除失敗", { description: e.message });
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -246,7 +291,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                     <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setDeleting(item)}>
+                    <Button variant="ghost" size="icon" onClick={() => openDelete(item)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -355,22 +400,32 @@ export function AmenityItemsSection({ accommodationId }: Props) {
                 className="text-base"
               />
             </div>
-            <div className="flex items-center justify-between rounded-md border p-3">
-              <div>
-                <Label>啟用</Label>
-                <p className="text-xs text-muted-foreground">停用後訂單將無法再分配此備品</p>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div>
+                  <Label>啟用</Label>
+                  <p className="text-xs text-muted-foreground">停用後訂單將無法再分配此備品</p>
+                </div>
+                <Switch
+                  checked={form.is_active}
+                  onCheckedChange={(v) => setForm({ ...form, is_active: v })}
+                />
               </div>
-              <Switch
-                checked={form.is_active}
-                onCheckedChange={(v) => setForm({ ...form, is_active: v })}
-              />
+              {deactivateCheck.error ? (
+                <p className="text-xs font-medium text-destructive">{deactivateCheck.error}</p>
+              ) : deactivateCheck.helper ? (
+                <p className="text-xs text-muted-foreground">{deactivateCheck.helper}</p>
+              ) : null}
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving || !totalCheck.canSave}>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !totalCheck.canSave || !deactivateCheck.canSave}
+            >
               儲存
             </Button>
           </DialogFooter>
@@ -380,22 +435,29 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       <AlertDialog open={!!deleting} onOpenChange={(o) => !o && setDeleting(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確認刪除</AlertDialogTitle>
+            <AlertDialogTitle>
+              {deleteCheck.canDelete ? "確認刪除" : "無法刪除此備品"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              刪除備品「{deleting?.name}」會一併移除所有訂單上的分配紀錄，此操作無法復原。
+              {deleteCheck.canDelete
+                ? `確定要刪除備品「${deleting?.name}」嗎？此備品尚未被任何訂單使用，刪除後無法復原。`
+                : deleteCheck.message}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              確認刪除
-            </AlertDialogAction>
+            <AlertDialogCancel>{deleteCheck.canDelete ? "取消" : "關閉"}</AlertDialogCancel>
+            {deleteCheck.canDelete && (
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                確認刪除
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   );
 }
