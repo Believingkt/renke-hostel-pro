@@ -439,7 +439,17 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       onOpenChange(false);
       onSuccess?.();
     } catch (e: any) {
-      toast({ title: "改期失敗", description: e?.message ?? "未知錯誤", variant: "destructive" });
+      const msg = e?.message ?? "";
+      if (isAmenityCapacityError(msg)) {
+        const parsed = parseAmenityCapacityError(msg);
+        setAmenityBlockError(
+          parsed
+            ? { name: parsed.name, date: parsed.date, total: parsed.total, demand: parsed.demand }
+            : { name: "", date: "" },
+        );
+      } else {
+        toast({ title: "改期失敗", description: msg || "未知錯誤", variant: "destructive" });
+      }
     } finally {
       setSubmitting(false);
     }
