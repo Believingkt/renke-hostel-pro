@@ -37,6 +37,7 @@ const FRONTEND_RESERVED_FIRST_SEGMENTS = [
   "pay",
   "payment-result",
   "og-preview",
+  "saas",
   "__cb",
 ] as const;
 
