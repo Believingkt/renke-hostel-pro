@@ -671,11 +671,12 @@ export default function SaaSWorkspace() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">總擴散人數</p>
-                    <p className="mt-1 text-2xl font-bold">300</p>
+                    <p className="mt-1 text-2xl font-bold">8</p>
                   </Card>
                   <Card className="p-4">
                     <p className="text-sm text-muted-foreground">轉換率</p>
-                    <p className="mt-1 text-2xl font-bold text-primary">12.4%</p>
+                    <p className="mt-1 text-2xl font-bold text-primary">25.0%（2 / 8）</p>
+
                   </Card>
                 </div>
                 <ul className="space-y-2">
