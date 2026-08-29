@@ -287,6 +287,14 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
 
   const [inventoryError, setInventoryError] = useState<string | null>(null);
 
+  // 備品 pre-check（UX 用；DB trigger 仍為最終保護）
+  const [amenityChecking, setAmenityChecking] = useState(false);
+  const [amenityConflicts, setAmenityConflicts] = useState<AmenityConflict[]>([]);
+  const [amenityCheckFailed, setAmenityCheckFailed] = useState(false);
+  const [amenityBlockError, setAmenityBlockError] = useState<
+    { name: string; date: string; total?: number; demand?: number } | null
+  >(null);
+
   const [kolConfirm, setKolConfirm] = useState<{
     open: boolean;
     yearMonth: string;
