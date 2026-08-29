@@ -35,8 +35,14 @@ import {
   UserPlus,
   UserCircle,
   LogOut,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const LABOR_FORM_URL =
+  "https://ap15.ragic.com/lakeze/ragicadministration/5?ragic-web-embed=true&webaction=form&ver=new&version=2";
+
+
 
 
 /** 頁面內全部為前端常數，不連接任何資料表或 API */
