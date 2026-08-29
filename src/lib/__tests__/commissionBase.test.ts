@@ -9,9 +9,12 @@ import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
  */
 const onsiteNotes = (n: number) => `備註\n【額外現場加購金額 2026-08-29T10:00:00Z】\n${n}\n【額外現場加購金額END】`;
 const addon = (total: number) => [{ addon_type: "加床", total }];
+/** 本檔案聚焦 V2（2026-08 之後下訂）公式；版本判定另見 commissionFormulaVersion.test.ts */
+const V2_DATE = "2026-08-16T08:20:00Z";
 
 /** 呼叫端既有 override 語意：tcp !== null && tcp !== final_price → 真正人工覆蓋 */
 function resolveBase(order: {
+  order_date?: string | null;
   final_price: number;
   custom_addon_details?: unknown;
   notes?: string | null;
@@ -19,27 +22,28 @@ function resolveBase(order: {
 }) {
   const tcp = order.team_commission_price;
   if (tcp !== null && tcp !== undefined && tcp !== order.final_price) return tcp;
-  return commissionBaseFromOrder(order);
+  return commissionBaseFromOrder({ order_date: V2_DATE, ...order });
 }
 
 describe("commission base — 基本公式 CASE A~F", () => {
   it("CASE A 只有住宿", () => {
-    expect(resolveBase({ final_price: 20000, custom_addon_details: [], notes: null })).toBe(20000);
+    expect(resolveBase({ order_date: V2_DATE, final_price: 20000, custom_addon_details: [], notes: null })).toBe(20000);
   });
   it("CASE B 只有 custom addon", () => {
-    expect(resolveBase({ final_price: 22000, custom_addon_details: addon(2000) })).toBe(20000);
+    expect(resolveBase({ order_date: V2_DATE, final_price: 22000, custom_addon_details: addon(2000) })).toBe(20000);
   });
   it("CASE C 只有 onsite", () => {
-    expect(resolveBase({ final_price: 23000, custom_addon_details: [], notes: onsiteNotes(3000) })).toBe(20000);
+    expect(resolveBase({ order_date: V2_DATE, final_price: 23000, custom_addon_details: [], notes: onsiteNotes(3000) })).toBe(20000);
   });
   it("CASE D 兩種 addon 都有", () => {
     expect(
-      resolveBase({ final_price: 25000, custom_addon_details: addon(2000), notes: onsiteNotes(3000) }),
+      resolveBase({ order_date: V2_DATE, final_price: 25000, custom_addon_details: addon(2000), notes: onsiteNotes(3000) }),
     ).toBe(20000);
   });
   it("CASE E 人工 override 不得再扣加購", () => {
     expect(
       resolveBase({
+        order_date: V2_DATE,
         final_price: 25000,
         custom_addon_details: addon(2000),
         notes: onsiteNotes(3000),
@@ -50,6 +54,7 @@ describe("commission base — 基本公式 CASE A~F", () => {
   it("CASE F tcp == final_price 視為非真正 override", () => {
     expect(
       resolveBase({
+        order_date: V2_DATE,
         final_price: 25000,
         custom_addon_details: addon(2000),
         notes: onsiteNotes(3000),
@@ -58,7 +63,7 @@ describe("commission base — 基本公式 CASE A~F", () => {
     ).toBe(20000);
   });
   it("永不為負", () => {
-    expect(commissionBaseFromOrder({ final_price: 1000, custom_addon_details: addon(2000) })).toBe(0);
+    expect(commissionBaseFromOrder({ order_date: V2_DATE, final_price: 1000, custom_addon_details: addon(2000) })).toBe(0);
   });
 });
 
@@ -86,14 +91,15 @@ describe("onsite notes parser contract", () => {
 
 describe("實單唯讀 regression fixtures", () => {
   it("QT7Z85E8 → 6266", () => {
-    expect(resolveBase({ final_price: 9916, custom_addon_details: [], notes: onsiteNotes(3650) })).toBe(6266);
+    expect(resolveBase({ order_date: V2_DATE, final_price: 9916, custom_addon_details: [], notes: onsiteNotes(3650) })).toBe(6266);
   });
   it("TR9L92F7 → 43500", () => {
-    expect(resolveBase({ final_price: 47100, custom_addon_details: [], notes: onsiteNotes(3600) })).toBe(43500);
+    expect(resolveBase({ order_date: V2_DATE, final_price: 47100, custom_addon_details: [], notes: onsiteNotes(3600) })).toBe(43500);
   });
   it("XH2B33F6（tcp == final）→ 60215", () => {
     expect(
       resolveBase({
+        order_date: V2_DATE,
         final_price: 64215,
         custom_addon_details: [],
         notes: onsiteNotes(4000),
@@ -104,6 +110,7 @@ describe("實單唯讀 regression fixtures", () => {
   it("US2F38X4（人工 tcp = final − onsite）維持人工值，不 double subtract", () => {
     expect(
       resolveBase({
+        order_date: V2_DATE,
         final_price: 26500,
         custom_addon_details: [],
         notes: onsiteNotes(7500),
