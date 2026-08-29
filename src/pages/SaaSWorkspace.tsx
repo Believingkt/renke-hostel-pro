@@ -543,6 +543,11 @@ export default function SaaSWorkspace() {
 
 
   const [codeHistory, setCodeHistory] = useState<CodeHistoryRow[]>(INITIAL_CODE_HISTORY);
+  // KOL 身份只看得到自己的折扣碼；總覽維持全站清單
+  const visibleCodeHistory = useMemo(
+    () => (isAdminView ? codeHistory : codeHistory.filter((h) => h.kolName === selectedKolName)),
+    [codeHistory, isAdminView, selectedKolName],
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [formKol, setFormKol] = useState(selectedKol);
   const [formVenue, setFormVenue] = useState("");
