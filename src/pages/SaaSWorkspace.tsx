@@ -121,8 +121,8 @@ type KolPanel = { orders: number; bonus: number; codeOrders: CodeOrder[]; bonusR
 /** 每位創作者一組獨立的前端假資料 */
 const KOL_PANELS: Record<string, KolPanel> = {
   "093330": {
-    orders: 9,
-    bonus: 11240,
+    orders: 3,
+    bonus: 2980,
     codeOrders: [
       { code: "093330", buyer: "陳O瑜", amount: 12800, status: "已成交" },
       { code: "093330", buyer: "何O芳", amount: 9600, status: "待確認" },
@@ -135,8 +135,8 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   DICKYLEMON22: {
-    orders: 6,
-    bonus: 7380,
+    orders: 2,
+    bonus: 1980,
     codeOrders: [
       { code: "DICKYLEMON22", buyer: "林O辰", amount: 8600, status: "待確認" },
       { code: "DICKYLEMON22", buyer: "邱O傑", amount: 11200, status: "已成交" },
@@ -147,19 +147,19 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   BRYAN1014: {
-    orders: 3,
-    bonus: 2960,
+    orders: 0,
+    bonus: 0,
     codeOrders: [
       { code: "BRYAN1014", buyer: "沈O瑋", amount: 6800, status: "已取消" },
-      { code: "BRYAN1014", buyer: "吳O瑄", amount: 9200, status: "已成交" },
+      { code: "BRYAN1014", buyer: "吳O瑄", amount: 9200, status: "已取消" },
     ],
     bonusRows: [
-      { orderNo: "H8N4V6R3", checkIn: "2026-09-11", amount: 9200, bonus: 920, status: "已入帳" },
+      { orderNo: "H8N4V6R3", checkIn: "2026-09-11", amount: 9200, bonus: 0, status: "已取消（不計入獎金）" },
     ],
   },
   MIKALLXX: {
-    orders: 4,
-    bonus: 4120,
+    orders: 2,
+    bonus: 1270,
     codeOrders: [
       { code: "MIKALLXX", buyer: "郭O安", amount: 7300, status: "已成交" },
       { code: "MIKALLXX", buyer: "許O筑", amount: 5400, status: "待確認" },
@@ -170,8 +170,8 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   XUANKEKE: {
-    orders: 11,
-    bonus: 14680,
+    orders: 3,
+    bonus: 3630,
     codeOrders: [
       { code: "XUANKEKE", buyer: "王O婷", amount: 15400, status: "已成交" },
       { code: "XUANKEKE", buyer: "蔡O妤", amount: 12100, status: "已成交" },
@@ -184,8 +184,8 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   SUESUE: {
-    orders: 5,
-    bonus: 5240,
+    orders: 2,
+    bonus: 1450,
     codeOrders: [
       { code: "SUESUE", buyer: "江O倫", amount: 6900, status: "已成交" },
       { code: "SUESUE", buyer: "簡O慈", amount: 7600, status: "待確認" },
@@ -196,8 +196,8 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   OREO0126: {
-    orders: 7,
-    bonus: 8460,
+    orders: 2,
+    bonus: 1950,
     codeOrders: [
       { code: "OREO0126", buyer: "張O豪", amount: 6200, status: "已取消" },
       { code: "OREO0126", buyer: "鍾O儀", amount: 10400, status: "已成交" },
@@ -209,8 +209,8 @@ const KOL_PANELS: Record<string, KolPanel> = {
     ],
   },
   STARMONARCH: {
-    orders: 8,
-    bonus: 9720,
+    orders: 2,
+    bonus: 2930,
     codeOrders: [
       { code: "STARMONARCH", buyer: "李O安", amount: 21000, status: "已成交" },
       { code: "STARMONARCH", buyer: "范O琳", amount: 8300, status: "待確認" },
@@ -329,7 +329,7 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
     level1: 1,
     level2: 1,
     conversions: 0,
-    monthlyBonus: 620,
+    monthlyBonus: 480,
     partners: [
       { name: "郭O筑", level: "第一層", orders: 0, bonus: 0 },
       { name: "許O傑", level: "第二層", orders: 0, bonus: 0 },
@@ -343,7 +343,7 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
     level1: 2,
     level2: 1,
     conversions: 0,
-    monthlyBonus: 480,
+    monthlyBonus: 720,
     partners: [
       { name: "蔡O慈", level: "第一層", orders: 0, bonus: 0 },
       { name: "周O倫", level: "第一層", orders: 0, bonus: 0 },
@@ -369,17 +369,18 @@ const GLOBAL_SPREAD = Object.values(MANAGER_PANELS).reduce(
   { total: 0, level1: 0, level2: 0, conversions: 0 },
 );
 
+const GLOBAL_MANAGER_BONUS = Object.values(MANAGER_PANELS).reduce((s, m) => s + m.monthlyBonus, 0);
+
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
   { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
-  { title: "本月台灣旅圖抽成金額", value: "NT$ 6,180", icon: LayoutDashboard, variant: "blue" as const },
-  { title: "本月人客多抽成金額", value: "NT$ 9,240", icon: Users, variant: "purple" as const },
+  { title: "本月台灣旅圖抽成金額", value: "NT$ 3,760", icon: LayoutDashboard, variant: "blue" as const },
+  { title: "本月人客多抽成金額", value: "NT$ 5,900", icon: Users, variant: "purple" as const },
 ];
 
 const PLATFORM_REVENUE_ROWS = [
-  { project: "多渠道創作者導流", lvtu: "2%", lakeze: "3%", amount: 8620 },
-  { project: "社群裂變推廣", lvtu: "2%", lakeze: "4%", amount: 5140 },
-  { project: "跨館聯合專案", lvtu: "4%", lakeze: "4%", amount: 1660 },
+  { project: "多渠道創作者導流", lvtu: "2%", lakeze: "3%", amount: 8100 },
+  { project: "社群裂變推廣", lvtu: "2%", lakeze: "4%", amount: 1560 },
 ];
 
 
@@ -1213,6 +1214,43 @@ export default function SaaSWorkspace() {
                     </Card>
                   )}
                 </div>
+                {isAdminView && !managerPanel && (
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>館別（社群管理員）</TableHead>
+                          <TableHead className="text-right">第一層人數</TableHead>
+                          <TableHead className="text-right">第二層人數</TableHead>
+                          <TableHead className="text-right">總擴散人數</TableHead>
+                          <TableHead className="text-right">本月管理員獎金</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {Object.entries(MANAGER_PANELS).map(([id, m]) => (
+                          <TableRow key={id}>
+                            <TableCell className="whitespace-nowrap">{m.venue}</TableCell>
+                            <TableCell className="text-right tabular-nums">{m.level1}</TableCell>
+                            <TableCell className="text-right tabular-nums">{m.level2}</TableCell>
+                            <TableCell className="text-right tabular-nums">{m.totalSpread}</TableCell>
+                            <TableCell className="text-right tabular-nums text-primary">
+                              NT$ {m.monthlyBonus.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        <TableRow className="font-medium">
+                          <TableCell className="whitespace-nowrap">全站合計</TableCell>
+                          <TableCell className="text-right tabular-nums">{GLOBAL_SPREAD.level1}</TableCell>
+                          <TableCell className="text-right tabular-nums">{GLOBAL_SPREAD.level2}</TableCell>
+                          <TableCell className="text-right tabular-nums">{GLOBAL_SPREAD.total}</TableCell>
+                          <TableCell className="text-right tabular-nums text-primary">
+                            NT$ {GLOBAL_MANAGER_BONUS.toLocaleString()}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
                 <ul className="space-y-2">
                   {spreadStats.levels.map((n) => (
                     <li
