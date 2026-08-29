@@ -268,11 +268,6 @@ const MOCK_INVITE_CODES = [
   { code: "LZ-D5T1", owner: "淞湘卉館 社群管理員", used: 2, createdAt: "2026-08-18", status: "啟用中" },
 ];
 
-const MOCK_SPREAD_TREE = [
-  { level: 1, label: "第一層擴散", people: 5, note: "由社群管理員直接邀請" },
-  { level: 2, label: "第二層擴散", people: 3, note: "由第一層成員再邀請" },
-];
-
 const MOCK_REWARD_TIERS = [
   { tier: "第一層", rate: "8%", condition: "被邀請人完成首筆入住" },
   { tier: "第二層", rate: "3%", condition: "第二層成員完成首筆入住" },
@@ -783,25 +778,30 @@ export default function SaaSWorkspace() {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
-                    <Select
-                      value={selectedKol}
-                      onValueChange={(v) => {
-                        setIdentity(v);
-                        setGeneratedCode(null);
-                      }}
-                    >
-
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MOCK_KOLS.map((k) => (
-                          <SelectItem key={k.cidCode} value={k.cidCode}>
-                            {k.name}（{k.igHandle}）
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {isAdminView ? (
+                      <Select
+                        value={selectedKol}
+                        onValueChange={(v) => {
+                          setIdentity(v);
+                          setGeneratedCode(null);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_KOLS.map((k) => (
+                            <SelectItem key={k.cidCode} value={k.cidCode}>
+                              {k.name}（{k.igHandle}）
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                        {selectedKolName}
+                      </div>
+                    )}
                   </div>
                   <Button onClick={openCreateDialog}>產生折扣碼</Button>
                 </div>
@@ -817,6 +817,13 @@ export default function SaaSWorkspace() {
 
                 <div className="space-y-2">
                   <p className="text-sm font-medium">歷史已建立折扣碼</p>
+                  {visibleCodeHistory.length === 0 ? (
+                    <Card>
+                      <CardContent className="p-8 text-center text-sm text-muted-foreground">
+                        尚無折扣碼紀錄
+                      </CardContent>
+                    </Card>
+                  ) : (
                   <div className="rounded-lg border">
                     <Table>
                       <TableHeader>
@@ -845,6 +852,7 @@ export default function SaaSWorkspace() {
                       </TableBody>
                     </Table>
                   </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -888,24 +896,30 @@ export default function SaaSWorkspace() {
                     <div className="space-y-4">
                       <div className="space-y-1">
                         <Label className="text-xs text-muted-foreground">KOL 姓名</Label>
-                        <Select
-                          value={formKol}
-                          onValueChange={(v) => {
-                            setFormKol(v);
-                            setFormVenue(KOL_VENUE_OPTIONS[v]?.[0] ?? "");
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {MOCK_KOLS.map((k) => (
-                              <SelectItem key={k.cidCode} value={k.cidCode}>
-                                {k.name}（{k.igHandle}）
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {isAdminView ? (
+                          <Select
+                            value={formKol}
+                            onValueChange={(v) => {
+                              setFormKol(v);
+                              setFormVenue(KOL_VENUE_OPTIONS[v]?.[0] ?? "");
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {MOCK_KOLS.map((k) => (
+                                <SelectItem key={k.cidCode} value={k.cidCode}>
+                                  {k.name}（{k.igHandle}）
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                            {formKolName}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-1">
