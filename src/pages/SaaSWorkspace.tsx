@@ -363,6 +363,17 @@ const MANAGER_PANELS: Record<string, ManagerPanel> = {
 };
 
 
+/** 全站彙總＝4 位社群管理員加總（避免與各館數字兜不起來） */
+const GLOBAL_SPREAD = Object.values(MANAGER_PANELS).reduce(
+  (acc, m) => ({
+    total: acc.total + m.totalSpread,
+    level1: acc.level1 + m.level1,
+    level2: acc.level2 + m.level2,
+    conversions: acc.conversions + m.conversions,
+  }),
+  { total: 0, level1: 0, level2: 0, conversions: 0 },
+);
+
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
   { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
@@ -501,7 +512,7 @@ export default function SaaSWorkspace() {
   const [signedIn, setSignedIn] = useState(false);
   const [accountName, setAccountName] = useState("");
 
-  const [identity, setIdentity] = useState(VIEW_IDENTITIES[0].value);
+  const [identity, setIdentity] = useState(ADMIN_IDENTITY);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -584,9 +595,12 @@ export default function SaaSWorkspace() {
         ],
       }
     : {
-        total: 8,
-        conversions: 2,
-        levels: MOCK_SPREAD_TREE,
+        total: GLOBAL_SPREAD.total,
+        conversions: GLOBAL_SPREAD.conversions,
+        levels: [
+          { level: 1, label: "第一層擴散", people: GLOBAL_SPREAD.level1, note: "由社群管理員直接邀請" },
+          { level: 2, label: "第二層擴散", people: GLOBAL_SPREAD.level2, note: "由第一層成員再邀請" },
+        ],
       };
 
   const conversionRate =
@@ -672,7 +686,13 @@ export default function SaaSWorkspace() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-end">
             <div className="flex flex-col gap-1">
               <Label className="text-xs text-muted-foreground">檢視身份</Label>
-              <Select value={identity} onValueChange={setIdentity}>
+              <Select
+                value={identity}
+                onValueChange={(v) => {
+                  setIdentity(v);
+                  setGeneratedCode(null);
+                }}
+              >
                 <SelectTrigger className="w-full sm:w-72">
                   <SelectValue />
                 </SelectTrigger>
