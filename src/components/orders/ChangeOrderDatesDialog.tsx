@@ -30,6 +30,12 @@ import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { KolQuotaConfirmDialog } from "./KolQuotaConfirmDialog";
+import {
+  precheckAmenityReschedule,
+  parseAmenityCapacityError,
+  isAmenityCapacityError,
+  type AmenityConflict,
+} from "@/lib/amenityRescheduleGuard";
 
 interface Props {
   open: boolean;
@@ -281,6 +287,14 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
 
   const [inventoryError, setInventoryError] = useState<string | null>(null);
 
+  // 備品 pre-check（UX 用；DB trigger 仍為最終保護）
+  const [amenityChecking, setAmenityChecking] = useState(false);
+  const [amenityConflicts, setAmenityConflicts] = useState<AmenityConflict[]>([]);
+  const [amenityCheckFailed, setAmenityCheckFailed] = useState(false);
+  const [amenityBlockError, setAmenityBlockError] = useState<
+    { name: string; date: string; total?: number; demand?: number } | null
+  >(null);
+
   const [kolConfirm, setKolConfirm] = useState<{
     open: boolean;
     yearMonth: string;
@@ -295,6 +309,9 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       setNewCheckOut(order.check_out_date);
       setReason("");
       setInventoryError(null);
+      setAmenityConflicts([]);
+      setAmenityCheckFailed(false);
+      setAmenityBlockError(null);
     }
   }, [open, order.check_in_date, order.check_out_date]);
 
@@ -315,9 +332,41 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
     return () => { cancelled = true; };
   }, [open, order.accommodation_id, today]);
 
+  // 備品 pre-check：日期實際變更時才跑
+  useEffect(() => {
+    if (!open) return;
+    const unchanged =
+      newCheckIn === order.check_in_date && newCheckOut === order.check_out_date;
+    if (unchanged || !newCheckIn || !newCheckOut || newCheckOut <= newCheckIn) {
+      setAmenityConflicts([]);
+      setAmenityCheckFailed(false);
+      return;
+    }
+    let cancelled = false;
+    setAmenityChecking(true);
+    setAmenityCheckFailed(false);
+    precheckAmenityReschedule({
+      orderId: order.id,
+      accommodationId: order.accommodation_id,
+      newCheckIn,
+      newCheckOut,
+    })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === "conflict") setAmenityConflicts(res.conflicts);
+        else setAmenityConflicts([]);
+        setAmenityCheckFailed(res.status === "error");
+      })
+      .finally(() => {
+        if (!cancelled) setAmenityChecking(false);
+      });
+    return () => { cancelled = true; };
+  }, [open, newCheckIn, newCheckOut, order.id, order.accommodation_id, order.check_in_date, order.check_out_date]);
+
   const invoke = async (force: boolean) => {
     setSubmitting(true);
     setInventoryError(null);
+    setAmenityBlockError(null);
     try {
       const { data, error } = await supabase.functions.invoke("change-order-dates", {
         body: {
@@ -368,9 +417,19 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       }
 
       if (error || payload?.success === false) {
+        const rawMsg = payload?.message || error?.message || "";
+        if (isAmenityCapacityError(rawMsg)) {
+          const parsed = parseAmenityCapacityError(rawMsg);
+          setAmenityBlockError(
+            parsed
+              ? { name: parsed.name, date: parsed.date, total: parsed.total, demand: parsed.demand }
+              : { name: "", date: "" },
+          );
+          return;
+        }
         toast({
           title: "改期失敗",
-          description: payload?.message || error?.message || "未知錯誤",
+          description: rawMsg || "未知錯誤",
           variant: "destructive",
         });
         return;
@@ -380,7 +439,17 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
       onOpenChange(false);
       onSuccess?.();
     } catch (e: any) {
-      toast({ title: "改期失敗", description: e?.message ?? "未知錯誤", variant: "destructive" });
+      const msg = e?.message ?? "";
+      if (isAmenityCapacityError(msg)) {
+        const parsed = parseAmenityCapacityError(msg);
+        setAmenityBlockError(
+          parsed
+            ? { name: parsed.name, date: parsed.date, total: parsed.total, demand: parsed.demand }
+            : { name: "", date: "" },
+        );
+      } else {
+        toast({ title: "改期失敗", description: msg || "未知錯誤", variant: "destructive" });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -451,6 +520,64 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
               minDate={today}
             />
 
+            {amenityChecking && (
+              <div className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                正在確認新日期的備品可用量…
+              </div>
+            )}
+
+            {!amenityChecking && amenityCheckFailed && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-1">
+                <div className="font-semibold">無法預先確認備品可用量</div>
+                <div className="text-muted-foreground">
+                  送出改期時系統仍會進行最終檢查。
+                </div>
+              </div>
+            )}
+
+            {!amenityChecking && amenityConflicts.length > 0 && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive space-y-2">
+                <div className="font-semibold">新日期備品不足</div>
+                <ul className="space-y-1 text-xs">
+                  {amenityConflicts.map((c) => (
+                    <li key={c.itemId} className="flex flex-wrap items-baseline gap-x-2">
+                      <span className="font-medium">{c.name}</span>
+                      <span className="tabular-nums">
+                        本訂單需要 {c.required}
+                        {c.unit ?? ""}
+                      </span>
+                      <span className="tabular-nums">
+                        ／新住宿日期期間可用 {c.available}
+                        {c.unit ?? ""}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="text-xs opacity-80">
+                  請先調整本訂單的備品分配，或確認其他訂單的備品配置後再改期。
+                </div>
+              </div>
+            )}
+
+            {amenityBlockError && (
+              <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive space-y-1">
+                <div className="font-semibold">無法改期：備品數量不足</div>
+                <div className="text-xs opacity-90">
+                  {amenityBlockError.name
+                    ? `${amenityBlockError.date} 的「${amenityBlockError.name}」目前數量不足，因此訂單日期沒有變更。`
+                    : "新日期的備品數量不足，因此訂單日期沒有變更。"}
+                  {typeof amenityBlockError.total === "number" &&
+                    typeof amenityBlockError.demand === "number" &&
+                    `（總數 ${amenityBlockError.total}，目前總需求 ${amenityBlockError.demand}）`}
+                </div>
+                <div className="text-xs opacity-80">
+                  請先調整本訂單的備品分配，或確認其他訂單的備品配置後再試。
+                </div>
+              </div>
+            )}
+
+
             <div>
               <Label className="text-xs">備註 (選填)</Label>
               <Textarea
@@ -472,7 +599,16 @@ export function ChangeOrderDatesDialog({ open, onOpenChange, order, mode, onSucc
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
               取消
             </Button>
-            <Button onClick={handleSubmit} disabled={submitting || !newCheckIn || !newCheckOut}>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                submitting ||
+                !newCheckIn ||
+                !newCheckOut ||
+                amenityChecking ||
+                amenityConflicts.length > 0
+              }
+            >
               {submitting ? "處理中…" : "確認改期"}
             </Button>
           </DialogFooter>
