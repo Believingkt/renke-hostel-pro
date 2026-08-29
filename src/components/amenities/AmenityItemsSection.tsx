@@ -131,6 +131,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     setEditing(null);
     setForm({ ...emptyForm });
     setPeak(IDLE_PEAK);
+    setLifecycle(IDLE_LIFECYCLE);
     setDialogOpen(true);
   };
 
@@ -149,8 +150,20 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     fetchAmenityFuturePeak({ accommodationId, amenityItemId: item.id })
       .then((res) => setPeak(res))
       .catch(() => setPeak(ERROR_PEAK));
+    // 停用 guard：今天＋未來是否仍有有效訂單使用
+    setLifecycle(LOADING_LIFECYCLE);
+    fetchAmenityLifecycle({ amenityItemId: item.id })
+      .then((res) => setLifecycle(res))
+      .catch(() => setLifecycle(ERROR_LIFECYCLE));
   };
 
+  const openDelete = (item: AmenityItem) => {
+    setDeleting(item);
+    setDeleteLifecycle(LOADING_LIFECYCLE);
+    fetchAmenityLifecycle({ amenityItemId: item.id })
+      .then((res) => setDeleteLifecycle(res))
+      .catch(() => setDeleteLifecycle(ERROR_LIFECYCLE));
+  };
 
   const totalCheck = checkTotalQuantityChange({
     isEditing: !!editing,
@@ -159,6 +172,15 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     peak,
   });
 
+  const deactivateCheck = checkDeactivation({
+    isEditing: !!editing,
+    wasActive: editing?.is_active ?? false,
+    nextActive: form.is_active,
+    lifecycle,
+  });
+
+  const deleteCheck = checkDelete(deleteLifecycle);
+
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast.error("請輸入備品名稱");
@@ -166,6 +188,10 @@ export function AmenityItemsSection({ accommodationId }: Props) {
     }
     if (!totalCheck.canSave) {
       toast.error(totalCheck.error ?? "無法確認目前備品分配量，請稍後再試。");
+      return;
+    }
+    if (!deactivateCheck.canSave) {
+      toast.error(deactivateCheck.error ?? "正在確認此備品是否仍有未來訂單使用…");
       return;
     }
     setSaving(true);
@@ -201,6 +227,11 @@ export function AmenityItemsSection({ accommodationId }: Props) {
 
   const handleDelete = async () => {
     if (!deleting) return;
+    // Lifecycle guard：只有「從未被任何訂單分配過」的備品才允許硬刪
+    if (!deleteCheck.canDelete) {
+      toast.error(deleteCheck.message ?? "無法刪除此備品。");
+      return;
+    }
     try {
       const { error } = await supabase.from("amenity_items").delete().eq("id", deleting.id);
       if (error) throw error;
@@ -212,6 +243,7 @@ export function AmenityItemsSection({ accommodationId }: Props) {
       toast.error("刪除失敗", { description: e.message });
     }
   };
+
 
   return (
     <div className="space-y-4">
