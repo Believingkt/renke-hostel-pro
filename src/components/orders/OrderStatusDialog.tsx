@@ -31,11 +31,13 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
   const [selectedStatus, setSelectedStatus] = useState("");
   const [reason, setReason] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [amenityError, setAmenityError] = useState<AmenityRestoreError | null>(null);
 
   useEffect(() => {
     if (open && order) {
       setSelectedStatus(order.order_status);
       setReason("");
+      setAmenityError(null);
     }
   }, [open, order]);
 
