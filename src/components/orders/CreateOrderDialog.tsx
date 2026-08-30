@@ -126,6 +126,55 @@ interface CreateOrderDialogProps {
   };
 }
 
+/**
+ * 建單流程的客戶同步：一律走 public.upsert_customer_for_order RPC
+ *（授權由後端依 orders 模組權限判定，前端不得改用 customers 直寫或 fallback）。
+ *
+ * 回傳 customer_id；同步失敗（權限不足、同館重複電話等）時回傳 null，
+ * 與舊流程一致：不中斷、不 rollback 已建立的訂單，只是不寫回 orders.customer_id。
+ */
+export async function syncCustomerForOrder(params: {
+  accommodationId: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  gender: string | null;
+  nationality: string | null;
+  firstOrderDate: string;
+  client?: Pick<typeof supabase, "rpc">;
+}): Promise<string | null> {
+  const client = params.client ?? supabase;
+  try {
+    const { data, error } = await client.rpc("upsert_customer_for_order", {
+      _accommodation_id: params.accommodationId,
+      _name: params.name,
+      _phone: params.phone,
+      _email: params.email,
+      _gender: params.gender,
+      _nationality: params.nationality,
+      _first_order_date: params.firstOrderDate,
+    });
+
+    if (error) {
+      console.warn("[create-order] customer sync failed:", error.message);
+      return null;
+    }
+
+    const row = Array.isArray(data) ? data[0] : (data as any);
+    const customerId = row?.customer_id ?? null;
+    const action = row?.action;
+    if (!customerId || (action !== "created" && action !== "updated")) {
+      console.warn("[create-order] customer sync returned invalid result:", data);
+      return null;
+    }
+    return customerId as string;
+  } catch (e) {
+    console.warn("[create-order] customer sync threw:", e);
+    return null;
+  }
+}
+
+
 export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }: CreateOrderDialogProps) {
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -1597,49 +1646,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         } catch { /* ignore */ }
       }
 
-      // Update or create customer record
+      // Update or create customer record（統一走 orders 權限的 RPC，不再直接寫 customers 表）
       const guestName = form.guest_name.trim();
       const guestPhone = form.guest_phone.trim();
       const guestEmail = form.guest_email.trim() || null;
 
-      const { data: existingCustomer } = await supabase
-        .from("customers")
-        .select("id, visit_count")
-        .eq("accommodation_id", currentAccommodationId)
-        .eq("phone", guestPhone)
-        .maybeSingle();
-
-      let customerId: string | null = null;
-      if (existingCustomer) {
-        await supabase
-          .from("customers")
-          .update({
-            name: guestName,
-            email: guestEmail,
-            gender: form.guest_gender || null,
-            nationality: form.guest_nationality.trim() || null,
-            visit_count: existingCustomer.visit_count + 1,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingCustomer.id);
-        customerId = existingCustomer.id;
-      } else {
-        const { data: newCustomer } = await supabase
-          .from("customers")
-          .insert({
-            accommodation_id: currentAccommodationId,
-            name: guestName,
-            phone: guestPhone,
-            email: guestEmail,
-            gender: form.guest_gender || null,
-            nationality: form.guest_nationality.trim() || null,
-            visit_count: 1,
-            first_order_date: form.check_in_date,
-          })
-          .select("id")
-          .single();
-        customerId = newCustomer?.id || null;
-      }
+      const customerId = await syncCustomerForOrder({
+        accommodationId: currentAccommodationId,
+        name: guestName,
+        phone: guestPhone,
+        email: guestEmail,
+        gender: form.guest_gender || null,
+        nationality: form.guest_nationality.trim() || null,
+        firstOrderDate: form.check_in_date,
+      });
 
       // Link order to customer
       if (customerId && orderData?.id) {

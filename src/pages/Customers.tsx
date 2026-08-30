@@ -23,6 +23,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { CustomerQuickPreview } from "@/components/customers/CustomerQuickPreview";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import { writeErrorMessage, writeWithRowCheck } from "@/lib/supabaseWriteGuard";
 
 // Validation schema for customer inputs
 const customerSchema = z.object({
@@ -69,6 +71,10 @@ interface Customer {
 const Customers = () => {
   const isMobile = useIsMobile();
   const { currentAccommodationId } = useAccommodation();
+  const { canEdit, isAdmin } = useStaffPermissions();
+  // customers=editable → 可新增/編輯；刪除永遠 admin-only（CUSTOMER_DELETE_DESIGN = ADMIN_ONLY）
+  const canEditCustomers = canEdit("customers");
+  const canDeleteCustomers = isAdmin;
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -195,6 +201,10 @@ const Customers = () => {
   };
 
   const handleOpenDialog = (customer?: Customer) => {
+    if (!canEditCustomers) {
+      toast.error("權限不足", { description: "您沒有編輯顧客資料的權限" });
+      return;
+    }
     if (customer) {
       setEditingCustomer(customer);
       setFormData({
@@ -224,6 +234,10 @@ const Customers = () => {
   };
 
   const handleSave = async () => {
+    if (!canEditCustomers) {
+      toast.error("權限不足", { description: "您沒有編輯顧客資料的權限" });
+      return;
+    }
     if (!currentAccommodationId) {
       toast.error("錯誤", { description: "無法取得住宿 ID" });
       return;
@@ -262,24 +276,28 @@ const Customers = () => {
       };
 
       if (editingCustomer) {
-        // Update existing customer
-        const { error: updateError } = await supabase
-          .from("customers")
-          .update(customerData)
-          .eq("id", editingCustomer.id);
-
-        if (updateError) throw updateError;
+        // Update existing customer（影響 0 筆時視為權限不足，不得顯示成功）
+        await writeWithRowCheck(
+          supabase
+            .from("customers")
+            .update(customerData)
+            .eq("id", editingCustomer.id)
+            .select("id"),
+          "更新顧客資料",
+        );
 
         toast.success("更新成功", {
           description: "顧客資料已更新",
         });
       } else {
-        // Create new customer
-        const { error: insertError } = await supabase
-          .from("customers")
-          .insert([customerData]);
-
-        if (insertError) throw insertError;
+        // Create new customer（必須確認真的建立成功）
+        await writeWithRowCheck(
+          supabase
+            .from("customers")
+            .insert([customerData])
+            .select("id"),
+          "新增顧客資料",
+        );
 
         toast.success("新增成功", {
           description: "已新增顧客資料",
@@ -291,7 +309,7 @@ const Customers = () => {
     } catch (err) {
       console.error("儲存顧客資料時發生錯誤:", err);
       toast.error("儲存失敗", {
-        description: "無法儲存顧客資料，請稍後再試",
+        description: writeErrorMessage(err),
       });
     } finally {
       setIsLoading(false);
@@ -300,14 +318,22 @@ const Customers = () => {
 
   const handleDelete = async () => {
     if (!deleteCustomerId) return;
+    if (!canDeleteCustomers) {
+      toast.error("權限不足", { description: "只有館主或系統管理員可以刪除顧客資料" });
+      setDeleteCustomerId(null);
+      return;
+    }
 
     try {
-      const { error: deleteError } = await supabase
-        .from("customers")
-        .delete()
-        .eq("id", deleteCustomerId);
-
-      if (deleteError) throw deleteError;
+      // 影響 0 筆（RLS 擋下）不得顯示刪除成功
+      await writeWithRowCheck(
+        supabase
+          .from("customers")
+          .delete()
+          .eq("id", deleteCustomerId)
+          .select("id"),
+        "刪除顧客資料",
+      );
 
       toast.success("刪除成功", {
         description: "已刪除顧客資料",
@@ -317,7 +343,7 @@ const Customers = () => {
     } catch (err) {
       console.error("刪除顧客時發生錯誤:", err);
       toast.error("刪除失敗", {
-        description: "無法刪除顧客資料，請稍後再試",
+        description: writeErrorMessage(err),
       });
     } finally {
       setDeleteCustomerId(null);
@@ -467,10 +493,12 @@ const Customers = () => {
             title="顧客資料"
             icon={Users}
             action={
-              <Button onClick={() => handleOpenDialog()} className="gap-2 h-11 sm:h-10 touch-manipulation">
-                <Plus className="h-4 w-4" />
-                <span>新增顧客</span>
-              </Button>
+              canEditCustomers ? (
+                <Button onClick={() => handleOpenDialog()} className="gap-2 h-11 sm:h-10 touch-manipulation">
+                  <Plus className="h-4 w-4" />
+                  <span>新增顧客</span>
+                </Button>
+              ) : undefined
             }
           />
 
@@ -565,10 +593,10 @@ const Customers = () => {
                     icon={Users}
                     title="歡迎使用顧客管理"
                     description="建立您的第一位顧客資料，開始追蹤客戶來訪記錄和偏好，提供更優質的服務體驗。"
-                    action={{
+                    action={canEditCustomers ? {
                       label: "新增第一位顧客",
                       onClick: () => handleOpenDialog()
-                    }}
+                    } : undefined}
                     suggestions={[
                       {
                         icon: Phone,
@@ -679,22 +707,26 @@ const Customers = () => {
                             >
                               <UserSearch className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(customer)}
-                              className="h-9 w-9 touch-manipulation"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canEditCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog(customer)}
+                                className="h-9 w-9 touch-manipulation"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteCustomerId(customer.id)}
+                                className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -749,22 +781,26 @@ const Customers = () => {
                             >
                               <UserSearch className="h-5 w-5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(customer)}
-                              className="h-10 w-10 touch-manipulation"
-                            >
-                              <Pencil className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-10 w-10 text-destructive hover:text-destructive touch-manipulation"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </Button>
+                            {canEditCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog(customer)}
+                                className="h-10 w-10 touch-manipulation"
+                              >
+                                <Pencil className="h-5 w-5" />
+                              </Button>
+                            )}
+                            {canDeleteCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteCustomerId(customer.id)}
+                                className="h-10 w-10 text-destructive hover:text-destructive touch-manipulation"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         
