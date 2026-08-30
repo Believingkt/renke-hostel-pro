@@ -15,6 +15,7 @@ import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
 import { toast } from "sonner";
 import { Send, Loader2, ClipboardEdit, FileCode } from "lucide-react";
 import { OwlTingRawEmailDialog } from "@/components/OwlTingRawEmailDialog";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 interface RawEmail {
   id: string;
@@ -111,6 +112,9 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function OwlTingEmailIngest() {
   const { currentAccommodationId } = useAccommodation();
+  const { isAdmin } = useStaffPermissions();
+  // Phase 2C：收件監控可 VIEW，但會觸發 Edge Function 的動作僅管理員可執行。
+  const canRunIngestActions = isAdmin;
   const [rows, setRows] = useState<RawEmail[]>([]);
   const [stagingMap, setStagingMap] = useState<Record<string, StagingLite>>({});
   const [loading, setLoading] = useState(true);
@@ -240,6 +244,7 @@ export default function OwlTingEmailIngest() {
   useEffect(() => { load(); }, [currentAccommodationId]);
 
   const sendFillupNotification = async (stagingId: string) => {
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
     setSendingId(stagingId);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-fillup-issue", {
@@ -265,6 +270,7 @@ export default function OwlTingEmailIngest() {
   };
 
   const linkSelfPush = async (stagingId: string) => {
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
     setLinkingId(stagingId);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-selfpush-link", {
@@ -294,6 +300,7 @@ export default function OwlTingEmailIngest() {
 
   const reparseDates = async () => {
     if (!currentAccommodationId) return;
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
     setReparsing(true);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-email-reparse-dates", {
@@ -326,10 +333,12 @@ export default function OwlTingEmailIngest() {
             >
               {showSelfPush ? "隱藏自家單" : "顯示自家單"}
             </Button>
-            <Button size="sm" variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
-              {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
-              回填日期
-            </Button>
+            {canRunIngestActions && (
+              <Button size="sm" variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
+                {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                回填日期
+              </Button>
+            )}
             <Button size="sm" variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>
           </div>
         }
@@ -495,7 +504,7 @@ export default function OwlTingEmailIngest() {
                         </Button>
                         {/* 固定寬度插槽：重發通知信 */}
                         <div className="w-[7.5rem] shrink-0 flex justify-end">
-                          {!noAction && !selfPush && canSend ? (
+                          {!noAction && !selfPush && canSend && canRunIngestActions ? (
                             <Button
                               size="sm"
                               variant="outline"
@@ -515,7 +524,7 @@ export default function OwlTingEmailIngest() {
                         {/* 固定寬度插槽：主要動作 */}
                         <div className="w-[8.5rem] shrink-0 flex justify-end">
                           {noAction ? null : selfPush ? (
-                            !alreadyLinked && st ? (
+                            !alreadyLinked && st && canRunIngestActions ? (
                               <Button
                                 size="sm"
                                 variant="default"
@@ -531,7 +540,7 @@ export default function OwlTingEmailIngest() {
                                 連結自家訂單
                               </Button>
                             ) : null
-                          ) : canSend ? (
+                          ) : canSend && canRunIngestActions ? (
                             <Button
                               size="sm"
                               variant="default"
@@ -621,13 +630,13 @@ export default function OwlTingEmailIngest() {
                         <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                       </Button>
                       {noAction ? null : selfPush ? (
-                        !alreadyLinked && st ? (
+                        !alreadyLinked && st && canRunIngestActions ? (
                           <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
                             {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
                             連結自家訂單
                           </Button>
                         ) : null
-                      ) : canSend ? (
+                      ) : canSend && canRunIngestActions ? (
                         <>
                           <Button size="sm" variant="outline" className="w-full h-10 justify-center" onClick={() => sendFillupNotification(st.id)} disabled={sendingId === st.id}>
                             {sendingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
@@ -649,7 +658,7 @@ export default function OwlTingEmailIngest() {
       </Card>
 
       <OwlTingFillupDialog
-        open={fillupOpen}
+        open={fillupOpen && canRunIngestActions}
         onOpenChange={setFillupOpen}
         stagingId={fillupStagingId}
         onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
