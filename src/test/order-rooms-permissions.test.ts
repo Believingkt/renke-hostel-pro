@@ -23,8 +23,11 @@ describe("Phase 3C-3B：order_rooms 寫入權限對齊（原始碼契約）", ()
     const idx = createOrder.indexOf("const handleSave = async () => {");
     const head = createOrder.slice(idx, idx + 400);
     expect(head).toContain("if (!canEditOrders)");
-    // guard 必須在第一個 supabase 寫入之前
-    expect(idx).toBeLessThan(createOrder.indexOf('.from("orders")\n        .insert'));
+    // guard 必須在 handleSave 內第一個寫入之前
+    const guardPos = createOrder.indexOf("if (!canEditOrders)", idx);
+    const firstInsert = createOrder.indexOf(".insert(", idx);
+    expect(guardPos).toBeGreaterThan(-1);
+    expect(guardPos).toBeLessThan(firstInsert);
   });
 
   it("CreateHoldOrderDialog handleSave 具權限守門", () => {
