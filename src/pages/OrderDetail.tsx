@@ -297,6 +297,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   // 一般訂單改期只允許：admin，或明確為此民宿 staff 且 orders 模組 editable。
   // 其他角色（closer/scout/無角色）不顯示按鈕，避免點下去被後端擋。
   const canEditOrders = isStaff && canEditModule("orders");
+  // 訂單（含 order_rooms structural write）唯一 write gate：
+  // canEditModule 已包含 hotel_admin / super_admin bypass，不會誤傷 Admin。
+  const canManageOrders = canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
