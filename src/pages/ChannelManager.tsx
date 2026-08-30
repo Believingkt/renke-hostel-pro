@@ -85,8 +85,12 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 export default function ChannelManager() {
   const { currentAccommodationId } = useAccommodation();
   const { toast } = useToast();
-  const { canEdit } = useStaffPermissions();
-  const canEditChannelManager = canEdit("channel_manager");
+  const { isAdmin } = useStaffPermissions();
+  // Phase 2C：通路管理（OTA / OwlTing / 台灣旅圖 credential・endpoint・mapping）
+  // 一律僅 hotel_admin / super_admin 可編輯。Staff 即使權限表殘留 channel_manager=editable
+  // 也只有唯讀能力，避免顯示按了才被 RLS 擋掉的假可編輯控制項。
+  const isChannelManagerAdminEditable = isAdmin;
+  const canEditChannelManager = isChannelManagerAdminEditable;
   const [channels, setChannels] = useState<OtaChannel[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<OtaChannel | null>(null);
@@ -161,7 +165,7 @@ export default function ChannelManager() {
 
   function requireCanEditChannelManager() {
     if (canEditChannelManager) return true;
-    toast({ title: "權限不足", description: "此帳號目前只有通路管理檢視權限，無法修改設定。", variant: "destructive" });
+    toast({ title: "權限不足", description: "通路管理整合設定僅管理員可修改。", variant: "destructive" });
     return false;
   }
 
@@ -219,6 +223,7 @@ export default function ChannelManager() {
 
   async function testTmConnection() {
     if (!accId) return;
+    if (!requireCanEditChannelManager()) return;
     setTmTesting(true);
     setTmResult(null);
     const start = Date.now();
@@ -622,12 +627,13 @@ export default function ChannelManager() {
       <OwlTingEmailStatsCards />
 
       <AccommodationOwnersManagement
+        readOnly={!isChannelManagerAdminEditable}
         accommodationId={accId}
         title="奧丁丁訂單接收 Email"
         description="此處設定的 Email 會收到本民宿奧丁丁訂單的 PII 補單通知。總部後台會同步顯示，亦可由總部新增 / 編輯。"
       />
 
-      <OwlTingAliasesEditor accommodationId={accId} />
+      <OwlTingAliasesEditor accommodationId={accId} readOnly={!isChannelManagerAdminEditable} />
 
 
 
@@ -651,9 +657,11 @@ export default function ChannelManager() {
               ) : (
                 <Badge variant="secondary">{tmMapping ? "已停用" : "尚未設定"}</Badge>
               )}
-              <Button size="sm" variant={tmMapping ? "outline" : "default"} onClick={openTmDialog}>
-                {tmMapping ? "編輯" : "設定"}
-              </Button>
+              {isChannelManagerAdminEditable && (
+                <Button size="sm" variant={tmMapping ? "outline" : "default"} onClick={openTmDialog}>
+                  {tmMapping ? "編輯" : "設定"}
+                </Button>
+              )}
             </div>
           </div>
 
@@ -685,10 +693,12 @@ export default function ChannelManager() {
                   以今日入住、明日退房試呼叫 SearchAll，驗證 IP 白名單與帳密設定。
                 </p>
               </div>
-              <Button size="sm" variant="outline" onClick={testTmConnection} disabled={tmTesting || !tmMapping?.is_enabled}>
-                {tmTesting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-                測試連線
-              </Button>
+              {isChannelManagerAdminEditable && (
+                <Button size="sm" variant="outline" onClick={testTmConnection} disabled={tmTesting || !tmMapping?.is_enabled}>
+                  {tmTesting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                  測試連線
+                </Button>
+              )}
             </div>
             {tmResult && (
               <div className={`flex items-start gap-2 text-xs ${tmResult.ok ? "text-primary" : "text-destructive"}`}>
@@ -704,7 +714,7 @@ export default function ChannelManager() {
       </Card>
 
       {/* 台灣旅圖設定 Dialog */}
-      <Dialog open={tmDialogOpen} onOpenChange={setTmDialogOpen}>
+      <Dialog open={tmDialogOpen && isChannelManagerAdminEditable} onOpenChange={setTmDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{tmMapping ? "編輯台灣旅圖設定" : "設定台灣旅圖"}</DialogTitle>
@@ -771,7 +781,7 @@ export default function ChannelManager() {
       </Dialog>
 
 
-      <Dialog open={credDialogOpen} onOpenChange={setCredDialogOpen}>
+      <Dialog open={credDialogOpen && isChannelManagerAdminEditable} onOpenChange={setCredDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{owlCred ? "輪替 OwlTing 認證" : "建立 OwlTing 認證"}</DialogTitle>
@@ -821,7 +831,7 @@ export default function ChannelManager() {
       </Dialog>
 
       {/* OwlTing ARI 端點 Dialog */}
-      <Dialog open={endpointDialogOpen} onOpenChange={setEndpointDialogOpen}>
+      <Dialog open={endpointDialogOpen && isChannelManagerAdminEditable} onOpenChange={setEndpointDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{owlEndpoint ? "編輯 ARI 推送端點" : "設定 ARI 推送端點"}</DialogTitle>
