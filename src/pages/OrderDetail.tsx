@@ -634,6 +634,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
   const startEditing = () => {
     if (!order) return;
+    // readonly / 無權限：不得進入編輯模式（房間新增、移除、rebuild 皆在編輯模式內）
+    if (!canManageOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組僅有檢視權限，無法編輯訂單。",
+        variant: "destructive",
+      });
+      return;
+    }
     // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
     // 逐行擷取「【包區/包棟房間配置】...」，動態解析各房型數量（兼容舊「雙人房/四人房」格式）
@@ -984,6 +993,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
   const handleSaveEdit = async () => {
     if (!order || isSavingEdit || savingEditRef.current) return;
+    // 硬守門：任何 orders / order_rooms 寫入前先擋掉無編輯權限者
+    if (!canManageOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組僅有檢視權限，無法儲存變更。",
+        variant: "destructive",
+      });
+      return;
+    }
     savingEditRef.current = true;
     try {
 
