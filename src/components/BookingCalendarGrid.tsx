@@ -16,6 +16,7 @@ import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
 import { PaymentHoldRows, PaymentHoldCard } from "@/components/booking-calendar/PaymentHoldRows";
 import type { PaymentHoldEvent } from "@/lib/paymentHoldEvents";
 import { compositionCellDisplay, compositionCellStriped } from "@/lib/compositionRowDisplay";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface BookingCalendarGridProps {
@@ -153,6 +154,9 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
 
 export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCalendarGridProps) {
   const navigate = useNavigate();
+  // 房間指派屬 orders 模組（canEdit 已含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
   const bodyScrollRef = useRef<HTMLDivElement | null>(null);
   const isSyncingScrollRef = useRef(false);
@@ -711,6 +715,11 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
 
   // Assign / unassign a calendar entry to a specific room unit
   const assignEntryToUnit = async (entry: CalendarEntry, newUnitId: string | null) => {
+    // 硬守門：readonly / 無權限者不得執行 order_rooms UPDATE 或 holder row INSERT
+    if (!canEditOrders) {
+      toast.error("權限不足：您對「訂單」模組僅有檢視權限，無法指派房間");
+      return;
+    }
     try {
       if (entry.orderRoomId) {
         const { data, error } = await supabase
@@ -1362,6 +1371,7 @@ export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCa
                                           return (
                                             <Select
                                               value={entry.room_unit_id || "__none__"}
+                                              disabled={!canEditOrders}
                                               onValueChange={(v) => assignEntryToUnit(entry, v === "__none__" ? null : v)}
                                             >
                                               <SelectTrigger

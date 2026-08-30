@@ -297,6 +297,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   // 一般訂單改期只允許：admin，或明確為此民宿 staff 且 orders 模組 editable。
   // 其他角色（closer/scout/無角色）不顯示按鈕，避免點下去被後端擋。
   const canEditOrders = isStaff && canEditModule("orders");
+  // 訂單（含 order_rooms structural write）唯一 write gate：
+  // canEditModule 已包含 hotel_admin / super_admin bypass，不會誤傷 Admin。
+  const canManageOrders = canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -631,6 +634,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
   const startEditing = () => {
     if (!order) return;
+    // readonly / 無權限：不得進入編輯模式（房間新增、移除、rebuild 皆在編輯模式內）
+    if (!canManageOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組僅有檢視權限，無法編輯訂單。",
+        variant: "destructive",
+      });
+      return;
+    }
     // Parse exclusive package room configs from notes (one line per 包棟)
     const notesStr = order.notes || "";
     // 逐行擷取「【包區/包棟房間配置】...」，動態解析各房型數量（兼容舊「雙人房/四人房」格式）
@@ -981,6 +993,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
   const handleSaveEdit = async () => {
     if (!order || isSavingEdit || savingEditRef.current) return;
+    // 硬守門：任何 orders / order_rooms 寫入前先擋掉無編輯權限者
+    if (!canManageOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組僅有檢視權限，無法儲存變更。",
+        variant: "destructive",
+      });
+      return;
+    }
     savingEditRef.current = true;
     try {
 
@@ -1305,11 +1326,20 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         if (roomsError) throw roomsError;
       } else {
         // If all rooms were removed in edit, also delete from DB
+        // 刪到 0 筆是合法情況（legacy / Hold 訂單本來就沒有 order_rooms），
+        // 所以不能用「至少刪到 1 筆」判斷；改用殘留列驗證抓 RLS silent deny。
         const { error: deleteError } = await supabase
           .from("order_rooms")
           .delete()
           .eq("order_id", order.id);
         if (deleteError) throw deleteError;
+        const { data: remainingAfterRemoveAll } = await supabase
+          .from("order_rooms")
+          .select("id")
+          .eq("order_id", order.id);
+        if (remainingAfterRemoveAll && remainingAfterRemoveAll.length > 0) {
+          throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
+        }
       }
 
       // Audit log
@@ -2259,9 +2289,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <CreditCard className="h-4 w-4 mr-2" />線上收款
                   </Button>
                 )}
-                <Button variant="outline" onClick={startEditing} className="text-sm">
-                  <Pencil className="h-4 w-4 mr-2" />編輯
-                </Button>
+                {canManageOrders && (
+                  <Button variant="outline" onClick={startEditing} className="text-sm">
+                    <Pencil className="h-4 w-4 mr-2" />編輯
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setShowMetaDrawer(true)} className="text-sm">
                   <Megaphone className="h-4 w-4 mr-2" />行銷／獎金
                 </Button>
@@ -2302,11 +2334,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <Button onClick={() => setShowPaymentDialog(true)} className="flex-1 text-sm h-11">
                     <CreditCard className="h-4 w-4 mr-1.5" />收款
                   </Button>
-                ) : (
+                ) : canManageOrders ? (
                   <Button variant="outline" onClick={startEditing} className="flex-1 text-sm h-11">
                     <Pencil className="h-4 w-4 mr-1.5" />編輯
                   </Button>
-                )}
+                ) : null}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="更多操作">
@@ -2314,7 +2346,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                    {canManageOrders && order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
                       <DropdownMenuItem onClick={startEditing} className="py-3">
                         <Pencil className="mr-2 h-4 w-4" />編輯訂單
                       </DropdownMenuItem>

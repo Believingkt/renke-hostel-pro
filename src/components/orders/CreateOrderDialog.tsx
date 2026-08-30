@@ -36,6 +36,7 @@ import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { translateOrderError } from "@/lib/orderErrorMessages";
 import { reportFrontendError } from "@/utils/errorReporter";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface RoomType {
@@ -179,6 +180,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  // 訂單模組唯一權限來源（含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const packageChannel = usePackageChannel(currentAccommodationId);
 
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
@@ -1210,6 +1214,15 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const getTotals = () => calculateTotalsForSelections(roomSelections);
 
   const handleSave = async () => {
+    // 權限硬守門：readonly / 無權限者即使繞過外層 UI 也不得產生任何寫入副作用
+    if (!canEditOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組沒有編輯權限，無法建立訂單。",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!form.guest_name.trim()) {
       toast({ title: "請輸入訂購人姓名", variant: "destructive" });
       return;

@@ -20,6 +20,7 @@ import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 import { translateOrderError } from "@/lib/orderErrorMessages";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface RoomType {
@@ -56,6 +57,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  // 訂單模組唯一權限來源（含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const packageChannel = usePackageChannel(currentAccommodationId);
 
   const { logAction } = useAuditLog();
@@ -279,6 +283,15 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   }, []);
 
   const handleSave = async () => {
+    // 權限硬守門：readonly / 無權限者即使繞過外層 UI 也不得建立保留單
+    if (!canEditOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組沒有編輯權限，無法建立保留單。",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!form.check_in_date || !form.check_out_date) {
       toast({ title: "請選擇入住和退房日期", variant: "destructive" });
       return;
@@ -294,6 +307,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     if (!currentAccommodationId) return;
     if (savingRef.current) return;
     savingRef.current = true;
+    // 房間資料寫入是否失敗（fail-soft，不 rollback 保留單，但需在 UI 明確告知）
+    let roomsWriteFailed = false;
+
 
     // 檢查對應方案（僅奧丁丁需要；hotelnabe 庫存推送不依方案）
     try {
@@ -426,7 +442,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         }
 
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
-        if (roomsError) console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
+        if (roomsError) {
+          // CREATE_HOLD_ROOM_FAILURE = PARTIAL_SUCCESS_WARNING
+          // 保留單本體維持成立（產品允許無 order_rooms 的保留單），但必須讓使用者看到房間資料寫入失敗
+          console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
+          roomsWriteFailed = true;
+        }
       }
 
       await logAction({
@@ -445,10 +466,19 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       });
 
       const totalRooms = 1 + extraSelections.reduce((s, e) => s + e.quantity, 0);
-      toast({
-        title: "保留單建立成功",
-        description: `已為 ${form.check_in_date} ~ ${form.check_out_date} 建立保留單${totalRooms > 1 ? `（共 ${totalRooms} 間/棟）` : ""}`,
-      });
+      if (roomsWriteFailed) {
+        // 單一 partial-success 提示，避免同時出現「全部成功」與警告互相矛盾
+        toast({
+          title: "保留單已建立，但房間資料寫入失敗",
+          description: "請至訂單詳情確認並補上房間資料，或聯繫管理員確認權限。",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "保留單建立成功",
+          description: `已為 ${form.check_in_date} ~ ${form.check_out_date} 建立保留單${totalRooms > 1 ? `（共 ${totalRooms} 間/棟）` : ""}`,
+        });
+      }
       onSuccess();
       onOpenChange(false);
     } catch (error) {
