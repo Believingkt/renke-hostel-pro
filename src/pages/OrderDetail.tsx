@@ -1326,11 +1326,20 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         if (roomsError) throw roomsError;
       } else {
         // If all rooms were removed in edit, also delete from DB
+        // 刪到 0 筆是合法情況（legacy / Hold 訂單本來就沒有 order_rooms），
+        // 所以不能用「至少刪到 1 筆」判斷；改用殘留列驗證抓 RLS silent deny。
         const { error: deleteError } = await supabase
           .from("order_rooms")
           .delete()
           .eq("order_id", order.id);
         if (deleteError) throw deleteError;
+        const { data: remainingAfterRemoveAll } = await supabase
+          .from("order_rooms")
+          .select("id")
+          .eq("order_id", order.id);
+        if (remainingAfterRemoveAll && remainingAfterRemoveAll.length > 0) {
+          throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
+        }
       }
 
       // Audit log
@@ -2280,9 +2289,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <CreditCard className="h-4 w-4 mr-2" />線上收款
                   </Button>
                 )}
-                <Button variant="outline" onClick={startEditing} className="text-sm">
-                  <Pencil className="h-4 w-4 mr-2" />編輯
-                </Button>
+                {canManageOrders && (
+                  <Button variant="outline" onClick={startEditing} className="text-sm">
+                    <Pencil className="h-4 w-4 mr-2" />編輯
+                  </Button>
+                )}
                 <Button variant="outline" onClick={() => setShowMetaDrawer(true)} className="text-sm">
                   <Megaphone className="h-4 w-4 mr-2" />行銷／獎金
                 </Button>
