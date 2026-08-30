@@ -13257,6 +13257,10 @@ export type Database = {
       }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
+      clear_order_room_pricing_template: {
+        Args: { _template_id: string }
+        Returns: number
+      }
       consume_trip_product_stock: { Args: { p_items: Json }; Returns: Json }
       convert_group_buy_payment_draft: {
         Args: {
