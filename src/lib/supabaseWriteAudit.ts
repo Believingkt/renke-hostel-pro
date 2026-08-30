@@ -74,8 +74,17 @@ export function installSupabaseWriteAudit() {
       builder[method] = (...args: any[]) => {
         const padded = [...args];
         while (padded.length < optionIndex) padded.push(undefined);
-        return wrapThenable(original(...withCount(padded, optionIndex)), relation, method);
+        // upsert(..., { ignoreDuplicates: true }) 的 0 筆屬正常 no-op，不可跳錯誤提示
+        const benignZero =
+          method === "upsert" && Boolean((padded[optionIndex] as any)?.ignoreDuplicates);
+        return wrapThenable(
+          original(...withCount(padded, optionIndex)),
+          relation,
+          method,
+          benignZero,
+        );
       };
+
     };
 
     patch("update", 1);
