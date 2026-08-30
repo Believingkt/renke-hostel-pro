@@ -22,3 +22,9 @@ type: constraint
   - `owlting-fillup-issue` / `owlting-selfpush-link` / `owlting-email-reparse-dates`
     server-side 允許 admin **或** staff `channel_manager=editable` → 仍比新產品規則寬。
   - `search-external-rooms`（台灣旅圖測試連線）**無** admin 授權檢查。
+
+## Phase 2D — Edge authorization (CODE ONLY, not deployed)
+- `owlting-fillup-issue` / `owlting-selfpush-link` / `owlting-email-reparse-dates`: interactive callers must be `super_admin` or the target accommodation's `hotel_admin`. Staff DENY (403 `此操作僅限管理員`) even with `channel_manager = editable`. Service-role backend callers stay allowed for fillup/selfpush.
+- `owlting-selfpush-link` with `staging.accommodation_id = null`: only `super_admin` / service-role.
+- `search-external-rooms` stays PUBLIC (booking page dependency). Admin "測試連線" now calls `test-external-rooms-connection` (admin-only) which shares `_shared/externalRoomsSearch.ts`.
+- PUBLIC_EXTERNAL_SEARCH_RATE_LIMIT_FOLLOWUP: no rate limiter / throttle / TTL cache exists on `search-external-rooms` or the VPS relay. Deferred.

@@ -2,7 +2,7 @@
 // link them back to the existing PMS order instead of creating a duplicate.
 // POST { staging_id: uuid }
 // Requires authenticated admin OR service-role.
-import { resolveCaller, canEditModule, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
+import { resolveCaller, isAccommodationAdmin, isSuperAdmin, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,8 +65,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (staging.accommodation_id && !(await canEditModule(ctx, staging.accommodation_id, "channel_manager"))) {
-      return forbiddenResponse(corsHeaders);
+    // Authorization (Phase 2D): admin only for interactive callers; Staff DENY.
+    // When staging.accommodation_id is null we can no longer scope the check to a
+    // venue, so only super_admin (or service-role) may proceed.
+    if (!ctx.isServiceRole) {
+      const allowed = staging.accommodation_id
+        ? await isAccommodationAdmin(ctx, staging.accommodation_id)
+        : isSuperAdmin(ctx);
+      if (!allowed) {
+        return forbiddenResponse(corsHeaders, "此操作僅限管理員");
+      }
     }
 
     if (!isSelfPushSource(staging.channel_source)) {

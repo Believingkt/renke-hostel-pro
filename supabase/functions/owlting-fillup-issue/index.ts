@@ -2,8 +2,8 @@
 // POST { staging_id: uuid, accommodation_id?: uuid (override), force?: boolean }
 // Requires authenticated admin (super_admin / hotel_admin).
 import {
-  canEditModule,
   forbiddenResponse,
+  isAccommodationAdmin,
   resolveCaller,
 } from "../_shared/authz.ts";
 
@@ -117,30 +117,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authorization: admin OR staff with channel_manager=editable on this accommodation
+    // Authorization (Phase 2D): admin only for interactive callers.
+    // Staff are READONLY on Channel Manager even when
+    // staff_module_permissions.channel_manager = 'editable'.
+    // Trusted service-role backend callers (owlting-email-ingest) stay allowed.
     if (!isServiceRole) {
-      const allowed = await canEditModule(authCtx, accId, "channel_manager");
-      console.log("[fillup-issue] authz check", {
-        user_id: callerUserId,
-        accommodation_id: accId,
-        staging_id: stagingId,
-        global_roles: authCtx.globalRoles,
-        allowed,
-      });
+      const allowed = await isAccommodationAdmin(authCtx, accId);
       if (!allowed) {
-        return new Response(
-          JSON.stringify({
-            error: "Forbidden",
-            detail: "缺少此民宿的通路管理編輯權限",
-            user_id: callerUserId,
-            accommodation_id: accId,
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
+        return forbiddenResponse(corsHeaders, "此操作僅限管理員");
       }
     }
-
-
 
     // Persist resolved acc on staging if missing
     if (!staging.accommodation_id) {

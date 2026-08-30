@@ -2,7 +2,7 @@
 // by re-running the HTML parser against owlting_email_orders_raw.html_body.
 // POST { accommodation_id: uuid, raw_email_id?: uuid (single), overwrite?: boolean }
 // Requires authenticated admin (super_admin / hotel_admin).
-import { resolveCaller, canEditModule, isSuperAdmin, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
+import { resolveCaller, isAccommodationAdmin, isSuperAdmin, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 
 const corsHeaders = {
@@ -51,11 +51,13 @@ Deno.serve(async (req) => {
         .maybeSingle();
       targetAccId = rawRow?.accommodation_id ?? null;
     }
-    if (targetAccId && !isSuperAdmin(ctx) && !(await canEditModule(ctx, targetAccId, "channel_manager"))) {
-      return forbiddenResponse(corsHeaders);
+    // Authorization (Phase 2D): super_admin, or hotel_admin of the target
+    // accommodation. Staff are DENY even with channel_manager = 'editable'.
+    if (targetAccId && !isSuperAdmin(ctx) && !(await isAccommodationAdmin(ctx, targetAccId))) {
+      return forbiddenResponse(corsHeaders, "此操作僅限管理員");
     }
     if (!targetAccId && !isSuperAdmin(ctx)) {
-      return forbiddenResponse(corsHeaders);
+      return forbiddenResponse(corsHeaders, "此操作僅限管理員");
     }
 
     let q = admin
