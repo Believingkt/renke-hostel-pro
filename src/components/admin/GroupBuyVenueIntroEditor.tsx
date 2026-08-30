@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { NO_ROWS_AFFECTED_MESSAGE } from "@/lib/supabaseWriteGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -155,6 +156,11 @@ export function GroupBuyVenueIntroEditor({ accommodationId }: Props) {
     setSaving(false);
     if (error) {
       toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (!data) {
+      // RLS 擋下時 upsert 不會回傳資料列，必須明確提示，避免假成功
+      toast({ title: "儲存失敗", description: NO_ROWS_AFFECTED_MESSAGE, variant: "destructive" });
       return;
     }
     const stored = ((data as any)?.gallery_urls ?? []) as string[];

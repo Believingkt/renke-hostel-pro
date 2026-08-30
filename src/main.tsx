@@ -12,6 +12,10 @@ applyLiffStateRewrite();
 import { initFormatDetection } from "./utils/imageFormatHelper";
 initFormatDetection();
 
+// 全域寫入守門員：RLS 擋下導致「影響 0 筆」時，顯示明確錯誤而非假成功
+import { installSupabaseWriteAudit } from "./lib/supabaseWriteAudit";
+installSupabaseWriteAudit();
+
 
 const queryClient = new QueryClient({
   defaultOptions: {

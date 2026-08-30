@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { writeWithRowCheck, writeErrorMessage } from "@/lib/supabaseWriteGuard";
 import { toast } from "@/hooks/use-toast";
 import { NotificationEmailListField } from "@/components/admin/NotificationEmailListField";
 import { normalizeNotificationEmails, validateNotificationEmails } from "@/lib/notificationEmails";
@@ -69,14 +70,20 @@ export function GroupBuyNotificationSettings({ campaignId, accommodationId }: Pr
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from("group_buy_campaign_notification_settings")
-      .upsert({ campaign_id: campaignId, notification_emails: normalized }, { onConflict: "campaign_id" });
-    setSaving(false);
-    if (error) {
-      toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
+    try {
+      await writeWithRowCheck(
+        supabase
+          .from("group_buy_campaign_notification_settings")
+          .upsert({ campaign_id: campaignId, notification_emails: normalized }, { onConflict: "campaign_id" })
+          .select("campaign_id"),
+        "儲存通知設定",
+      );
+    } catch (e) {
+      setSaving(false);
+      toast({ title: "儲存失敗", description: writeErrorMessage(e), variant: "destructive" });
       return;
     }
+    setSaving(false);
     setEmails(normalized);
     toast({ title: normalized.length > 0 ? "已儲存此活動通知信箱" : "已改為沿用民宿設定" });
   };
