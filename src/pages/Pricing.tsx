@@ -54,6 +54,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 interface SortableRoomCardProps {
   roomType: any;
@@ -151,6 +152,9 @@ const Pricing = () => {
     openBatchDialog: () => void;
   }>(null);
   const pricingTemplateRef = useRef<PricingTemplateManagerRef>(null);
+  // 房價專案（PricingTemplateManager）官方權限 = room_price，不受 pricing 權限影響
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditRoomPrice = canEditModule('room_price');
   
   const [roomTypes, setRoomTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -523,14 +527,17 @@ const Pricing = () => {
             title="房價價格設定"
             icon={DollarSign}
             action={
-              <Button onClick={() => pricingTemplateRef.current?.openAddDialog()} className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation">
-                <Plus className="h-4 w-4" />
-                新增專案
-              </Button>
+              canEditRoomPrice ? (
+                <Button onClick={() => pricingTemplateRef.current?.openAddDialog()} className="flex items-center gap-2 h-11 sm:h-10 touch-manipulation">
+                  <Plus className="h-4 w-4" />
+                  新增專案
+                </Button>
+              ) : undefined
             }
           />
           <PricingTemplateManager ref={pricingTemplateRef} accommodationId={currentAccommodationId || ""} />
         </TabsContent>
+
 
         <TabsContent value="holidays" className="space-y-4">
           <PageHeader
