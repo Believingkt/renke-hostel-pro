@@ -18,6 +18,9 @@ import { TIANSONG_ACCOMMODATION_ID, isTianSong, getRoomOverrides, getExtraDates,
 import { classifyDayTier } from "@/utils/templatePriceResolverPure";
 import { SeasonSegmentsEditor } from "@/components/SeasonSegmentsEditor";
 import { supabase } from "@/integrations/supabase/client";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import { writeWithRowCheck, writeErrorMessage } from "@/lib/supabaseWriteGuard";
+import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -115,6 +118,13 @@ const templateSchema = z.object({
 });
 
 export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, PricingTemplateManagerProps>(function PricingTemplateManager({ accommodationId }, ref) {
+  // 官方權限歸屬：PricingTemplateManager = room_price（不是 pricing）
+  const { canView, canEdit, isLoading: permissionsLoading } = useStaffPermissions();
+  const canViewRoomPrice = canView('room_price');
+  const canEditRoomPrice = canEdit('room_price');
+  const denyWrite = () => {
+    toast.error("權限不足", { description: "您沒有管理房價專案的權限" });
+  };
   const [templates, setTemplates] = useState<PricingTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -226,6 +236,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   }));
 
   const handleAddNew = () => {
+    if (!canEditRoomPrice) return denyWrite();
     setEditingTemplate(null);
     setFormData({
       template_name: "",
@@ -257,6 +268,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   };
 
   const handleEdit = (template: PricingTemplate) => {
+    if (!canEditRoomPrice) return denyWrite();
     setEditingTemplate(template);
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
@@ -559,6 +571,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   };
 
   const handleSubmit = async () => {
+    if (!canEditRoomPrice) return denyWrite();
     if (!validateForm()) {
       toast.error('請修正表單錯誤後再試');
       return;
@@ -713,11 +726,13 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   };
 
   const handleDelete = (template: PricingTemplate) => {
+    if (!canEditRoomPrice) return denyWrite();
     setDeletingTemplate(template);
     setDeleteDialogOpen(true);
   };
 
   const handleCopy = async (template: PricingTemplate) => {
+    if (!canEditRoomPrice) return denyWrite();
     try {
       const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
         ? template.room_type_ids
@@ -761,40 +776,44 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const confirmDelete = async () => {
     if (!deletingTemplate) return;
+    if (!canEditRoomPrice) {
+      toast.error("權限不足", { description: "您沒有管理房價專案的權限" });
+      setDeleteDialogOpen(false);
+      setDeletingTemplate(null);
+      return;
+    }
 
     try {
-      // Clear foreign key references in order_rooms first
-      await (supabase
-        .from('order_rooms')
-        .update({ template_id: null, template_name: null }) as any)
-        .eq('template_id', deletingTemplate.id);
+      // STEP 1：以專屬 RPC 清除 order_rooms 的 template 參照（後端以 room_price 權限驗證）
+      const { data: clearedCount, error: rpcError } = await (supabase as any).rpc(
+        'clear_order_room_pricing_template',
+        { _template_id: deletingTemplate.id },
+      );
 
-      // Also clear room_inventory_pricing references（先標記來源，再刪除以利 audit log 識別）
-      await (supabase
-        .from('room_inventory_pricing') as any)
-        .update({ last_change_source: 'template_clear' })
-        .eq('template_id', deletingTemplate.id);
-      await (supabase
-        .from('room_inventory_pricing') as any)
-        .delete()
-        .eq('template_id', deletingTemplate.id);
+      if (rpcError) {
+        throw new Error(`清除訂單房型參照失敗：${rpcError.message}`);
+      }
+      if (typeof clearedCount !== 'number' || !Number.isInteger(clearedCount) || clearedCount < 0) {
+        throw new Error('清除訂單房型參照失敗：回傳結果不正確');
+      }
 
-      const { error } = await supabase
-        .from('pricing_templates')
-        .delete()
-        .eq('id', deletingTemplate.id);
+      // STEP 2：刪除專案本身，並確認真正影響 1 筆
+      // 其餘關聯資料（room_inventory_pricing / availability / applications 等）由 FK CASCADE 處理
+      await writeWithRowCheck(
+        supabase.from('pricing_templates').delete().eq('id', deletingTemplate.id).select('id'),
+        '刪除專案',
+      );
 
-      if (error) throw error;
       toast.success('專案已刪除');
+      setDeleteDialogOpen(false);
+      setDeletingTemplate(null);
       loadTemplates();
     } catch (error) {
       console.error('刪除專案失敗:', error);
-      toast.error('刪除專案失敗');
-    } finally {
-      setDeleteDialogOpen(false);
-      setDeletingTemplate(null);
+      toast.error(writeErrorMessage(error));
     }
   };
+
 
   interface SortableTemplateCardProps {
     template: PricingTemplate;
@@ -837,6 +856,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       >
         {/* 房型標籤 */}
         <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+          {canEditRoomPrice && (
           <button
             className="cursor-grab active:cursor-grabbing touch-none opacity-40 group-hover:opacity-70 transition-opacity shrink-0"
             {...attributes}
@@ -844,6 +864,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
+          )}
           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full bg-muted/60 text-xs font-medium text-muted-foreground max-w-full truncate">
             {(() => {
               const ids = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
@@ -934,8 +955,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         </div>
 
         {/* 分隔線 */}
-        <div className="border-t border-border/40" />
-        
+        {canEditRoomPrice && <div className="border-t border-border/40" />}
+
+        {canEditRoomPrice && (
         <CardContent className="p-3">
           {/* 操作按鈕 */}
           <div className="flex items-center gap-2 justify-end">
@@ -966,6 +988,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             </Button>
           </div>
         </CardContent>
+        )}
+
       </Card>
     );
   };
@@ -978,6 +1002,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   );
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!canEditRoomPrice) return denyWrite();
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
@@ -994,11 +1019,15 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       setTemplates(updatedTemplates);
 
       try {
-        const updates = updatedTemplates.map((template) => 
-          supabase
-            .from('pricing_templates')
-            .update({ display_order: template.display_order })
-            .eq('id', template.id)
+        const updates = updatedTemplates.map((template) =>
+          writeWithRowCheck(
+            supabase
+              .from('pricing_templates')
+              .update({ display_order: template.display_order })
+              .eq('id', template.id)
+              .select('id'),
+            '更新專案順序',
+          )
         );
 
         await Promise.all(updates);
@@ -1007,13 +1036,28 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         if (import.meta.env.DEV) {
           console.error('Error updating template order:', error);
         }
-        toast.error("無法更新專案順序");
+        toast.error(writeErrorMessage(error));
         loadTemplates();
       }
     }
   };
 
+  if (permissionsLoading) return null;
+
+  if (!canViewRoomPrice) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center px-4">
+        <ShieldAlert className="h-12 w-12 text-muted-foreground mb-4" />
+        <h2 className="text-lg font-semibold mb-2">沒有存取權限</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          此頁面已被設定為不可見，請聯絡民宿管理員調整權限。
+        </p>
+      </div>
+    );
+  }
+
   if (loading) {
+
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -1640,10 +1684,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            {canEditRoomPrice && (
             <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
               {editingTemplate ? '更新' : '新增'}
             </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={() => {
