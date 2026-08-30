@@ -20,6 +20,7 @@ import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
 import { translateOrderError } from "@/lib/orderErrorMessages";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface RoomType {

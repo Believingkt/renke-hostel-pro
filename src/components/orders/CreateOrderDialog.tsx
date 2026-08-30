@@ -36,6 +36,7 @@ import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { translateOrderError } from "@/lib/orderErrorMessages";
 import { reportFrontendError } from "@/utils/errorReporter";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface RoomType {
