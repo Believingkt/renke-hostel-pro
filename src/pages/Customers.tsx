@@ -493,10 +493,12 @@ const Customers = () => {
             title="顧客資料"
             icon={Users}
             action={
-              <Button onClick={() => handleOpenDialog()} className="gap-2 h-11 sm:h-10 touch-manipulation">
-                <Plus className="h-4 w-4" />
-                <span>新增顧客</span>
-              </Button>
+              canEditCustomers ? (
+                <Button onClick={() => handleOpenDialog()} className="gap-2 h-11 sm:h-10 touch-manipulation">
+                  <Plus className="h-4 w-4" />
+                  <span>新增顧客</span>
+                </Button>
+              ) : undefined
             }
           />
 
@@ -591,10 +593,10 @@ const Customers = () => {
                     icon={Users}
                     title="歡迎使用顧客管理"
                     description="建立您的第一位顧客資料，開始追蹤客戶來訪記錄和偏好，提供更優質的服務體驗。"
-                    action={{
+                    action={canEditCustomers ? {
                       label: "新增第一位顧客",
                       onClick: () => handleOpenDialog()
-                    }}
+                    } : undefined}
                     suggestions={[
                       {
                         icon: Phone,
@@ -705,22 +707,26 @@ const Customers = () => {
                             >
                               <UserSearch className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(customer)}
-                              className="h-9 w-9 touch-manipulation"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {canEditCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog(customer)}
+                                className="h-9 w-9 touch-manipulation"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {canDeleteCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteCustomerId(customer.id)}
+                                className="h-9 w-9 text-destructive hover:text-destructive touch-manipulation"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -775,22 +781,26 @@ const Customers = () => {
                             >
                               <UserSearch className="h-5 w-5" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenDialog(customer)}
-                              className="h-10 w-10 touch-manipulation"
-                            >
-                              <Pencil className="h-5 w-5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setDeleteCustomerId(customer.id)}
-                              className="h-10 w-10 text-destructive hover:text-destructive touch-manipulation"
-                            >
-                              <Trash2 className="h-5 w-5" />
-                            </Button>
+                            {canEditCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleOpenDialog(customer)}
+                                className="h-10 w-10 touch-manipulation"
+                              >
+                                <Pencil className="h-5 w-5" />
+                              </Button>
+                            )}
+                            {canDeleteCustomers && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setDeleteCustomerId(customer.id)}
+                                className="h-10 w-10 text-destructive hover:text-destructive touch-manipulation"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         
