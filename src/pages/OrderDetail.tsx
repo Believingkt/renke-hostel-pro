@@ -2334,11 +2334,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <Button onClick={() => setShowPaymentDialog(true)} className="flex-1 text-sm h-11">
                     <CreditCard className="h-4 w-4 mr-1.5" />收款
                   </Button>
-                ) : (
+                ) : canManageOrders ? (
                   <Button variant="outline" onClick={startEditing} className="flex-1 text-sm h-11">
                     <Pencil className="h-4 w-4 mr-1.5" />編輯
                   </Button>
-                )}
+                ) : null}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="icon" className="h-11 w-11 shrink-0" aria-label="更多操作">
@@ -2346,7 +2346,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    {order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
+                    {canManageOrders && order.payment_status !== 'paid' && order.order_status !== 'cancelled' && (
                       <DropdownMenuItem onClick={startEditing} className="py-3">
                         <Pencil className="mr-2 h-4 w-4" />編輯訂單
                       </DropdownMenuItem>
