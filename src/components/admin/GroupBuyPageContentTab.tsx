@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { writeWithRowCheck, writeErrorMessage } from "@/lib/supabaseWriteGuard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -114,17 +115,20 @@ export function GroupBuyPageContentTab({
   const save = async () => {
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("group_buy_campaigns")
-        .update({ faq_item_ids: faqValue, booking_notice_keys: noticeValue } as any)
-        .eq("id", campaignId);
-      if (error) throw error;
+      await writeWithRowCheck(
+        supabase
+          .from("group_buy_campaigns")
+          .update({ faq_item_ids: faqValue, booking_notice_keys: noticeValue } as any)
+          .eq("id", campaignId)
+          .select("id"),
+        "儲存團購頁顯示設定",
+      );
       toast({ title: "已儲存團購頁顯示設定" });
       onSaved();
     } catch (e) {
       toast({
         title: "儲存失敗",
-        description: e instanceof Error ? e.message : "",
+        description: writeErrorMessage(e),
         variant: "destructive",
       });
     } finally {

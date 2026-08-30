@@ -34,6 +34,7 @@ import { FeaturedFacilityPicker, FeaturedPhotoPicker } from "@/components/admin/
 import { ensureGroupBuyVenueIntroDefaults } from "@/lib/groupBuyVenueIntro";
 import { CampaignWindowSummary } from "@/components/admin/CampaignWindowSummary";
 import { hasErrors, validateCampaignWindow } from "@/lib/groupBuyDateRules";
+import { writeWithRowCheck, writeErrorMessage } from "@/lib/supabaseWriteGuard";
 import { Checkbox } from "@/components/ui/checkbox";
 import { splitRefundFee } from "@/lib/refundFee";
 import { Banknote, Copy, CopyPlus, ExternalLink, History, Loader2, Megaphone, MoreHorizontal, Plus, RefreshCw, Trash2, Undo2 } from "lucide-react";
@@ -539,10 +540,17 @@ export default function AdminGroupBuy() {
     setSaving(true);
     try {
       const payload = { ...editing, accommodation_id: accommodationId } as any;
-      const { error } = editing.id
-        ? await supabase.from("group_buy_campaigns").update(payload).eq("id", editing.id)
-        : await supabase.from("group_buy_campaigns").insert(payload);
-      if (error) throw error;
+      if (editing.id) {
+        await writeWithRowCheck(
+          supabase.from("group_buy_campaigns").update(payload).eq("id", editing.id).select("id"),
+          "儲存團購活動",
+        );
+      } else {
+        await writeWithRowCheck(
+          supabase.from("group_buy_campaigns").insert(payload).select("id"),
+          "新增團購活動",
+        );
+      }
       if (!editing.id) {
         // 新活動：預設帶入官網介紹內容，之後可於「民宿介紹」分頁編輯
         await ensureGroupBuyVenueIntroDefaults(accommodationId);
@@ -575,14 +583,27 @@ export default function AdminGroupBuy() {
     // 主圖與多圖同步：image_url 保留為 image_urls[0]，避免其他未更新的讀取點壞掉
     const urls = row.image_urls ?? [];
     const { id, ...rest } = { ...row, image_url: urls.length > 0 ? urls[0] : row.image_url };
-    const { error } = await supabase.from("group_buy_campaign_packages").update(rest as any).eq("id", id);
-    if (error) toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
-    else toast({ title: "方案已更新" });
+    try {
+      await writeWithRowCheck(
+        supabase.from("group_buy_campaign_packages").update(rest as any).eq("id", id).select("id"),
+        "儲存方案",
+      );
+      toast({ title: "方案已更新" });
+    } catch (e) {
+      toast({ title: "儲存失敗", description: writeErrorMessage(e), variant: "destructive" });
+    }
     await loadDetails();
   };
 
   const deletePackage = async (id: string) => {
-    await supabase.from("group_buy_campaign_packages").delete().eq("id", id);
+    try {
+      await writeWithRowCheck(
+        supabase.from("group_buy_campaign_packages").delete().eq("id", id).select("id"),
+        "刪除方案",
+      );
+    } catch (e) {
+      toast({ title: "刪除失敗", description: writeErrorMessage(e), variant: "destructive" });
+    }
     await loadDetails();
   };
 
@@ -617,14 +638,27 @@ export default function AdminGroupBuy() {
 
   const saveBank = async (row: BankRow) => {
     const { id, ...rest } = row;
-    const { error } = await supabase.from("group_buy_bank_accounts").update(rest as any).eq("id", id);
-    if (error) toast({ title: "儲存失敗", description: error.message, variant: "destructive" });
-    else toast({ title: "匯款帳戶已更新" });
+    try {
+      await writeWithRowCheck(
+        supabase.from("group_buy_bank_accounts").update(rest as any).eq("id", id).select("id"),
+        "儲存匯款帳戶",
+      );
+      toast({ title: "匯款帳戶已更新" });
+    } catch (e) {
+      toast({ title: "儲存失敗", description: writeErrorMessage(e), variant: "destructive" });
+    }
     await loadDetails();
   };
 
   const deleteBank = async (id: string) => {
-    await supabase.from("group_buy_bank_accounts").delete().eq("id", id);
+    try {
+      await writeWithRowCheck(
+        supabase.from("group_buy_bank_accounts").delete().eq("id", id).select("id"),
+        "刪除匯款帳戶",
+      );
+    } catch (e) {
+      toast({ title: "刪除失敗", description: writeErrorMessage(e), variant: "destructive" });
+    }
     await loadDetails();
   };
 
@@ -948,17 +982,22 @@ export default function AdminGroupBuy() {
       const row = analyticsByOrderId.get(orderId);
       const rate = row?.commissionRate ?? (Number(activeCampaign?.commission_rate) || 0);
       const amount = value === "include" ? Math.round(((row?.revenueBase ?? 0) * rate) / 100) : 0;
-      const { error } = await supabase
-        .from("group_buy_commissions")
-        .update({
-          manual_eligibility: value,
-          manual_set_by: userData.user?.id ?? null,
-          manual_set_at: new Date().toISOString(),
-          commission_amount: amount,
-        } as any)
-        .eq("order_id", orderId);
-      if (error) {
-        toast({ title: "分潤判定儲存失敗", description: error.message, variant: "destructive" });
+      try {
+        await writeWithRowCheck(
+          supabase
+            .from("group_buy_commissions")
+            .update({
+              manual_eligibility: value,
+              manual_set_by: userData.user?.id ?? null,
+              manual_set_at: new Date().toISOString(),
+              commission_amount: amount,
+            } as any)
+            .eq("order_id", orderId)
+            .select("id"),
+          "分潤判定儲存",
+        );
+      } catch (e) {
+        toast({ title: "分潤判定儲存失敗", description: writeErrorMessage(e), variant: "destructive" });
         return;
       }
       await supabase.from("group_buy_payment_events").insert({
@@ -982,11 +1021,14 @@ export default function AdminGroupBuy() {
       if (!rateDialog || !editing?.id) return;
       setSaving(true);
       try {
-        const { error } = await supabase
-          .from("group_buy_campaigns")
-          .update({ ...(editing as any), commission_rate: rateDialog.newRate, accommodation_id: accommodationId })
-          .eq("id", editing.id);
-        if (error) throw error;
+        await writeWithRowCheck(
+          supabase
+            .from("group_buy_campaigns")
+            .update({ ...(editing as any), commission_rate: rateDialog.newRate, accommodation_id: accommodationId })
+            .eq("id", editing.id)
+            .select("id"),
+          "更新分潤比例",
+        );
 
         if (mode === "sync_pending") {
           const targets = analyticsRows.filter(
