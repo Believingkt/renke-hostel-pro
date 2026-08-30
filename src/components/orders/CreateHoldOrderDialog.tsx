@@ -439,7 +439,12 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
         }
 
         const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
-        if (roomsError) console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
+        if (roomsError) {
+          // CREATE_HOLD_ROOM_FAILURE = PARTIAL_SUCCESS_WARNING
+          // 保留單本體維持成立（產品允許無 order_rooms 的保留單），但必須讓使用者看到房間資料寫入失敗
+          console.error("[CreateHoldOrderDialog] order_rooms insert failed:", roomsError);
+          roomsWriteFailed = true;
+        }
       }
 
       await logAction({
