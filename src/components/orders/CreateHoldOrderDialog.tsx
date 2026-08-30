@@ -283,6 +283,15 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
   }, []);
 
   const handleSave = async () => {
+    // 權限硬守門：readonly / 無權限者即使繞過外層 UI 也不得建立保留單
+    if (!canEditOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組沒有編輯權限，無法建立保留單。",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!form.check_in_date || !form.check_out_date) {
       toast({ title: "請選擇入住和退房日期", variant: "destructive" });
       return;
