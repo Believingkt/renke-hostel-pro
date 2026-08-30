@@ -307,6 +307,9 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
     if (!currentAccommodationId) return;
     if (savingRef.current) return;
     savingRef.current = true;
+    // 房間資料寫入是否失敗（fail-soft，不 rollback 保留單，但需在 UI 明確告知）
+    let roomsWriteFailed = false;
+
 
     // 檢查對應方案（僅奧丁丁需要；hotelnabe 庫存推送不依方案）
     try {
