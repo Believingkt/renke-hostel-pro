@@ -180,6 +180,9 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const { currentAccommodationId } = useAccommodation();
+  // 訂單模組唯一權限來源（含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const packageChannel = usePackageChannel(currentAccommodationId);
 
   const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
