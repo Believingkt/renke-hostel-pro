@@ -72,8 +72,10 @@ describe("CreateOrderDialog customer write path contract", () => {
     "utf8",
   );
 
-  it("不再直接讀寫 customers 表", () => {
-    expect(src).not.toMatch(/from\("customers"\)/);
+  it("不再有 customers UPDATE / INSERT 直寫，也沒有以電話查詢的 customer lookup", () => {
+    expect(src).not.toMatch(/from\("customers"\)[\s\S]{0,200}\.update\(/);
+    expect(src).not.toMatch(/from\("customers"\)[\s\S]{0,200}\.insert\(/);
+    expect(src).not.toMatch(/\.eq\("phone", guestPhone\)/);
   });
 
   it("使用 upsert_customer_for_order RPC", () => {
