@@ -26,7 +26,12 @@ function withCount(args: any[], optionIndex: number) {
   return next;
 }
 
-function wrapThenable(builder: any, table: string, op: "update" | "upsert" | "delete") {
+function wrapThenable(
+  builder: any,
+  table: string,
+  op: "update" | "upsert" | "delete",
+  benignZero = false,
+) {
   if (!builder || typeof builder.then !== "function" || builder.__writeAudited) return builder;
   const originalThen = builder.then.bind(builder);
   builder.__writeAudited = true;
@@ -34,12 +39,13 @@ function wrapThenable(builder: any, table: string, op: "update" | "upsert" | "de
     originalThen((result: any) => {
       if (result && !result.error && result.count === 0) {
         const detail = `${table} 的 ${op} 影響 0 筆`;
-        if (op === "delete") {
-          console.warn(`[write-audit] ${detail}（可能為正常的無資料可刪）`);
+        if (op === "delete" || benignZero) {
+          // delete 無資料可刪、或 upsert ignoreDuplicates 的 no-op，皆屬正常情況
+          console.info(`[write-audit] ${detail}（視為正常 no-op）`);
         } else {
-          console.error(`[write-audit] ${detail}：可能被 RLS 權限擋下`);
+          console.warn(`[write-audit] ${detail}`);
           toast({
-            title: "資料未變更",
+            title: "儲存失敗",
             description: NO_ROWS_AFFECTED_MESSAGE,
             variant: "destructive",
           });
@@ -49,6 +55,7 @@ function wrapThenable(builder: any, table: string, op: "update" | "upsert" | "de
     }, onRejected);
   return builder;
 }
+
 
 /** 於 App 啟動時呼叫一次 */
 export function installSupabaseWriteAudit() {
