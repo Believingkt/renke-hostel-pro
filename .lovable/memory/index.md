@@ -20,3 +20,4 @@
 - [Settings Completeness Dashboard](mem://features/hq/settings-completeness-dashboard.md) — HQ 設定完整性檢查：單一 Tab 三個檢查群組，不新增 Tab。
 - [Booking Deposit SoT](mem://features/frontend/booking-deposit-sot.md) — 訂房訂金快照欄位、paymentSummary 共用摘要、ATM 信件改於開帳號後寄出。
 - [Channel Manager Staff Readonly](mem://security/channel-manager-staff-readonly.md) — 通路管理 Staff 一律唯讀（前端 isAdmin 判定）＋三項後端授權 follow-up（RLS/alias/Edge）。
+- [Team Sales Row Scope](mem://security/team-sales-row-scope.md) — franchise_orders/starlink_orders 一般 rep 只看 sold_by 自有列；manager/finance/admin 保留全視野；前端 scope 對齊待辦。
