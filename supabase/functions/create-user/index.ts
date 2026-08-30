@@ -79,13 +79,24 @@ serve(async (req) => {
 
     console.log('Request from user:', callerUserId, 'for accommodation:', accommodationId);
 
-    if (!(await isAccommodationAdmin(authRes.ctx, accommodationId))) {
-      console.error('Authorization failed: User', callerUserId, 'is not admin for accommodation', accommodationId);
+    // SECURITY (P0): authorize the REQUESTED ROLE, not just "is some admin".
+    // This runs before auth user creation / profile / user_roles / email, so a
+    // denied request leaves zero persistent side effects. Do not rely on RLS or
+    // the prevent_role_escalation trigger here: this function writes with a
+    // service-role client and bypasses both.
+    const grantDecision = authorizeRoleGrant(role, {
+      isServiceRole: authRes.ctx.isServiceRole,
+      isSuperAdmin: isSuperAdmin(authRes.ctx),
+      isTargetAccommodationAdmin: await isAccommodationAdmin(authRes.ctx, accommodationId),
+    });
+    if (!grantDecision.allowed) {
+      console.error('Authorization failed for requested role', role, 'accommodation', accommodationId);
       return new Response(
-        JSON.stringify({ success: false, error: '需要管理員權限' }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: grantDecision.error }),
+        { status: grantDecision.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     // Verify accommodationId exists
     const { data: accommodation, error: accommodationError } = await supabaseAdmin
