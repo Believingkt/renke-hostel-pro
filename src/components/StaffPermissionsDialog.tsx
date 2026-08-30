@@ -191,12 +191,23 @@ export function StaffPermissionsDialog({
             </div>
 
             <div className="space-y-3">
-              {STAFF_MODULES.map((m) => (
+              {STAFF_MODULES.map((m) => {
+                // Phase 2C：通路管理整合設定（credential / endpoint / mapping）僅管理員可修改，
+                // 不提供 Staff「可編輯」選項，避免設定了卻永遠不會生效。
+                const adminOnlyEdit = m.key === "channel_manager";
+                return (
                 <div
                   key={m.key}
                   className="flex items-center justify-between gap-3 rounded-md border p-3"
                 >
-                  <span className="text-sm font-medium">{m.label}</span>
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium">{m.label}</span>
+                    {adminOnlyEdit && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Channel Manager 整合設定僅管理員可修改
+                      </p>
+                    )}
+                  </div>
                   <Select
                     value={perms[m.key]}
                     onValueChange={(v: ModulePermissionLevel) => {
@@ -210,12 +221,16 @@ export function StaffPermissionsDialog({
                     <SelectContent>
                       <SelectItem value="hidden">{PERMISSION_LEVEL_LABEL.hidden}</SelectItem>
                       <SelectItem value="readonly">{PERMISSION_LEVEL_LABEL.readonly}</SelectItem>
-                      <SelectItem value="editable">{PERMISSION_LEVEL_LABEL.editable}</SelectItem>
+                      <SelectItem value="editable" disabled={adminOnlyEdit}>
+                        {PERMISSION_LEVEL_LABEL.editable}
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              ))}
+                );
+              })}
             </div>
+
           </div>
         )}
 

@@ -66,9 +66,11 @@ interface Props {
   title?: string;
   /** 自訂卡片描述 */
   description?: string;
+  /** 唯讀模式：隱藏新增／編輯／刪除控制項（Staff 於通路管理僅可檢視） */
+  readOnly?: boolean;
 }
 
-export function AccommodationOwnersManagement({ accommodationId, title, description }: Props = {}) {
+export function AccommodationOwnersManagement({ accommodationId, title, description, readOnly = false }: Props = {}) {
   const scoped = !!accommodationId;
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [owners, setOwners] = useState<OwnerRow[]>([]);
@@ -191,9 +193,11 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
               </SelectContent>
             </Select>
           )}
-          <Button onClick={openNew} disabled={!scoped && accommodations.length === 0}>
-            <Plus className="h-4 w-4 mr-1" /> 新增
-          </Button>
+          {!readOnly && (
+            <Button onClick={openNew} disabled={!scoped && accommodations.length === 0}>
+              <Plus className="h-4 w-4 mr-1" /> 新增
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -225,12 +229,18 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
                   {o.notes ?? "—"}
                 </TableCell>
                 <TableCell className="text-right space-x-1">
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(o)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(o)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {readOnly ? (
+                    <span className="text-xs text-muted-foreground">僅檢視</span>
+                  ) : (
+                    <>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(o)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setDeleteTarget(o)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -244,7 +254,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
           </TableBody>
         </Table>
 
-        <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <Dialog open={editOpen && !readOnly} onOpenChange={setEditOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{edit.id ? "編輯業主聯絡人" : "新增業主聯絡人"}</DialogTitle>
@@ -302,7 +312,7 @@ export function AccommodationOwnersManagement({ accommodationId, title, descript
           </DialogContent>
         </Dialog>
 
-        <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialog open={!!deleteTarget && !readOnly} onOpenChange={(o) => !o && setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>確認刪除？</AlertDialogTitle>

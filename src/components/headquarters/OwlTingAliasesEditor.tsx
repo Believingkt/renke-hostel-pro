@@ -15,6 +15,8 @@ interface Props {
   accommodationId?: string;
   title?: string;
   description?: string;
+  /** 唯讀模式：Staff 僅可檢視別名，不可新增／移除 */
+  readOnly?: boolean;
 }
 
 interface AccRow {
@@ -23,7 +25,7 @@ interface AccRow {
   owlting_aliases: string[] | null;
 }
 
-export function OwlTingAliasesEditor({ accommodationId, title, description }: Props) {
+export function OwlTingAliasesEditor({ accommodationId, title, description, readOnly = false }: Props) {
   const scoped = !!accommodationId;
   const [accs, setAccs] = useState<AccRow[]>([]);
   const [selectedId, setSelectedId] = useState<string>(accommodationId ?? "");
@@ -116,6 +118,7 @@ export function OwlTingAliasesEditor({ accommodationId, title, description }: Pr
               {aliases.map((a) => (
                 <Badge key={a} variant="secondary" className="gap-1 pr-1 text-sm">
                   {a}
+                  {!readOnly && (
                   <button
                     onClick={() => removeAlias(a)}
                     className="ml-1 rounded-sm hover:bg-muted-foreground/20 p-0.5"
@@ -124,10 +127,16 @@ export function OwlTingAliasesEditor({ accommodationId, title, description }: Pr
                   >
                     <X className="h-3 w-3" />
                   </button>
+                  )}
                 </Badge>
               ))}
             </div>
 
+            {readOnly ? (
+              <p className="text-xs text-muted-foreground">
+                OwlTing 別名屬於通路整合設定，僅管理員可修改。
+              </p>
+            ) : (
             <div className="flex items-center gap-2">
               <Input
                 value={draft}
@@ -140,6 +149,7 @@ export function OwlTingAliasesEditor({ accommodationId, title, description }: Pr
                 <Plus className="h-4 w-4 mr-1" /> 新增
               </Button>
             </div>
+            )}
           </>
         )}
 
