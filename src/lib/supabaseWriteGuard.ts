@@ -12,7 +12,8 @@
  */
 
 export const NO_ROWS_AFFECTED_MESSAGE =
-  "沒有任何資料被更新（0 筆）。可能是權限不足，或資料已被其他人變更／刪除。請重新整理後再試，或聯絡管理員確認此模組的編輯權限。";
+  "沒有資料被更新。可能是權限、資料已變更，或目前條件不再符合，請重新整理後再試。";
+
 
 export class NoRowsAffectedError extends Error {
   constructor(label?: string) {
