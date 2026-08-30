@@ -16,6 +16,7 @@ import { useActivePaymentHolds } from "@/hooks/use-active-payment-holds";
 import { PaymentHoldRows, PaymentHoldCard } from "@/components/booking-calendar/PaymentHoldRows";
 import type { PaymentHoldEvent } from "@/lib/paymentHoldEvents";
 import { compositionCellDisplay, compositionCellStriped } from "@/lib/compositionRowDisplay";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 
 interface BookingCalendarGridProps {
@@ -153,6 +154,9 @@ const getSourceLabel = (source: string, paymentMethod?: string) => {
 
 export function BookingCalendarGrid({ accommodationId, onOrderClick }: BookingCalendarGridProps) {
   const navigate = useNavigate();
+  // 房間指派屬 orders 模組（canEdit 已含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
   const bodyScrollRef = useRef<HTMLDivElement | null>(null);
   const isSyncingScrollRef = useRef(false);
