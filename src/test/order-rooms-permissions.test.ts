@@ -69,6 +69,15 @@ describe("Phase 3C-3B：order_rooms 寫入權限對齊（原始碼契約）", ()
     expect(calendar).toContain("disabled={!canEditOrders}");
   });
 
+  it("BookingCalendarGrid 沒有 drag/drop 或其他繞過守門的 order_rooms 寫入入口", () => {
+    // 目前唯一寫入路徑 = assignEntryToUnit（含 unassign 與 holder-row INSERT）
+    expect((calendar.match(/assignEntryToUnit\(/g) || []).length).toBe(1);
+    expect(calendar).not.toMatch(/draggable|onDragStart|onDrop|onDragOver|onDoubleClick|onContextMenu/);
+    // 除了 assign handler 內的 update / insert，不得有其他 order_rooms 寫入
+    const writes = calendar.match(/\.(update|insert|upsert|delete)\(\{/g) || [];
+    expect(writes.length).toBe(2);
+  });
+
   it("Orders.tsx 未被本 Phase 修改（仍沿用既有 gate）", () => {
     expect(orders).toContain("useStaffPermissions");
     expect(orders).not.toContain("canManageOrders");
