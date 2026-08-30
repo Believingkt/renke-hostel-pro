@@ -14,6 +14,12 @@ interface UseStaffPermissionsResult {
   isStaff: boolean;
   /** hotel_admin / super_admin / admin（僅角色判定，不受 staff_module_permissions 影響） */
   isAdmin: boolean;
+  /**
+   * 嚴格管理者：僅「當前館 hotel_admin」或「super_admin」。
+   * 不含舊版泛用 admin，用於需與後端 RLS（hotel_admin / super_admin only）完全對齊的操作，
+   * 例如 Customers DELETE。
+   */
+  isStrictAdmin: boolean;
   isLoading: boolean;
   getLevel: (moduleKey: string) => ModulePermissionLevel;
   canView: (moduleKey: string) => boolean;
@@ -25,6 +31,7 @@ interface StaffPermissionData {
   permissions: Record<string, ModulePermissionLevel>;
   isStaff: boolean;
   isAdmin: boolean;
+  isStrictAdmin: boolean;
   hasAccommodationRole: boolean;
   /** 全域唯讀角色（finance / am / am_manager）：僅指定模組可唯讀檢視 */
   isGlobalViewer: boolean;
@@ -34,6 +41,7 @@ const EMPTY_PERMISSIONS: StaffPermissionData = {
   permissions: {},
   isStaff: false,
   isAdmin: false,
+  isStrictAdmin: false,
   hasAccommodationRole: false,
   isGlobalViewer: false,
 };
@@ -113,11 +121,16 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         roles.includes("super_admin") ||
         roles.includes("admin") ||
         globalRoles.includes("super_admin");
+      // 與後端 RLS 對齊的嚴格判定：當前館 hotel_admin 或 super_admin（不含舊版泛用 admin）
+      const isStrictAdmin =
+        roles.includes("hotel_admin") ||
+        roles.includes("super_admin") ||
+        globalRoles.includes("super_admin");
       const isStaffOnly = !isAdmin && roles.includes("staff");
 
       if (isAdmin) {
         // admin → 全部 editable，不需再查模組權限表
-        return { ...EMPTY_PERMISSIONS, isAdmin: true, hasAccommodationRole: true };
+        return { ...EMPTY_PERMISSIONS, isAdmin: true, isStrictAdmin, hasAccommodationRole: true };
       }
 
       const isGlobalViewer = globalOnlyRoles.some((role) =>
@@ -135,6 +148,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
             permissions: map,
             isStaff: false,
             isAdmin: false,
+            isStrictAdmin: false,
             hasAccommodationRole: false,
             isGlobalViewer: true,
           };
@@ -159,6 +173,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
         permissions: map,
         isStaff: true,
         isAdmin: false,
+        isStrictAdmin: false,
         hasAccommodationRole: true,
         isGlobalViewer: false,
       };
@@ -168,6 +183,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   const permissions = data.permissions;
   const isStaff = data.isStaff;
   const isAdmin = data.isAdmin;
+  const isStrictAdmin = data.isStrictAdmin;
   const hasAccommodationRole = data.hasAccommodationRole;
   const isGlobalViewer = data.isGlobalViewer;
 
@@ -191,6 +207,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
     permissions,
     isStaff,
     isAdmin,
+    isStrictAdmin,
     // 館別尚未解析出來時仍視為載入中，避免誤判成「無權限」
     isLoading:
       !authResolved ||
