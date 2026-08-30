@@ -466,10 +466,19 @@ export function CreateHoldOrderDialog({ open, onOpenChange, onSuccess }: CreateH
       });
 
       const totalRooms = 1 + extraSelections.reduce((s, e) => s + e.quantity, 0);
-      toast({
-        title: "保留單建立成功",
-        description: `已為 ${form.check_in_date} ~ ${form.check_out_date} 建立保留單${totalRooms > 1 ? `（共 ${totalRooms} 間/棟）` : ""}`,
-      });
+      if (roomsWriteFailed) {
+        // 單一 partial-success 提示，避免同時出現「全部成功」與警告互相矛盾
+        toast({
+          title: "保留單已建立，但房間資料寫入失敗",
+          description: "請至訂單詳情確認並補上房間資料，或聯繫管理員確認權限。",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "保留單建立成功",
+          description: `已為 ${form.check_in_date} ~ ${form.check_out_date} 建立保留單${totalRooms > 1 ? `（共 ${totalRooms} 間/棟）` : ""}`,
+        });
+      }
       onSuccess();
       onOpenChange(false);
     } catch (error) {
