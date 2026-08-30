@@ -128,6 +128,8 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.tappay-refund-notify]
     verify_jwt = false
+  [functions.test-external-rooms-connection]
+    verify_jwt = false
   [functions.test-email]
     verify_jwt = true
   [functions.text-to-speech]

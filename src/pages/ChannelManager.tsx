@@ -230,7 +230,9 @@ export default function ChannelManager() {
     const today = new Date();
     const tomorrow = new Date(today.getTime() + 86400000);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    const { data, error } = await supabase.functions.invoke("search-external-rooms", {
+    // Admin maintenance path uses the admin-only test endpoint (Phase 2D).
+    // The public booking page keeps calling `search-external-rooms`.
+    const { data, error } = await supabase.functions.invoke("test-external-rooms-connection", {
       body: { accommodationId: accId, checkIn: fmt(today), checkOut: fmt(tomorrow) },
     });
     const elapsed_ms = Date.now() - start;
