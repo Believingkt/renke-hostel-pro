@@ -190,6 +190,7 @@ export function useStaffPermissions(): UseStaffPermissionsResult {
   return {
     permissions,
     isStaff,
+    isAdmin,
     // 館別尚未解析出來時仍視為載入中，避免誤判成「無權限」
     isLoading:
       !authResolved ||
