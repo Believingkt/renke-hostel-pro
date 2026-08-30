@@ -21,3 +21,4 @@
 - [Booking Deposit SoT](mem://features/frontend/booking-deposit-sot.md) — 訂房訂金快照欄位、paymentSummary 共用摘要、ATM 信件改於開帳號後寄出。
 - [Channel Manager Staff Readonly](mem://security/channel-manager-staff-readonly.md) — 通路管理 Staff 一律唯讀（前端 isAdmin 判定）＋三項後端授權 follow-up（RLS/alias/Edge）。
 - [Team Sales Row Scope](mem://security/team-sales-row-scope.md) — franchise_orders/starlink_orders 一般 rep 只看 sold_by 自有列；manager/finance/admin 保留全視野；前端 scope 對齊待辦。
+- [order_meta INSERT Scope](mem://security/order-meta-insert-scope.md) — order_meta 首次建立授權契約：privileged 全域；team roles 需 order→館別存取；禁用 payload 欄位當授權依據。
