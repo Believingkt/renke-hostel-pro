@@ -12,11 +12,14 @@ import { GLOBAL_VIEWER_ROLES, GLOBAL_VIEWER_MODULES } from "@/lib/globalViewerRo
 interface UseStaffPermissionsResult {
   permissions: Record<string, ModulePermissionLevel>;
   isStaff: boolean;
+  /** hotel_admin / super_admin / admin（僅角色判定，不受 staff_module_permissions 影響） */
+  isAdmin: boolean;
   isLoading: boolean;
   getLevel: (moduleKey: string) => ModulePermissionLevel;
   canView: (moduleKey: string) => boolean;
   canEdit: (moduleKey: string) => boolean;
 }
+
 
 interface StaffPermissionData {
   permissions: Record<string, ModulePermissionLevel>;
