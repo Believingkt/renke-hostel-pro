@@ -19,3 +19,4 @@
 - [人工退款手續費模型](mem://finance/manual-refund-fee-model.md) — 每館可設定 booking_settings.manual_refund_fee_amount；refunded_amount=實退旅客、refund_fee_amount=手續費，禁止寫死 30。
 - [Settings Completeness Dashboard](mem://features/hq/settings-completeness-dashboard.md) — HQ 設定完整性檢查：單一 Tab 三個檢查群組，不新增 Tab。
 - [Booking Deposit SoT](mem://features/frontend/booking-deposit-sot.md) — 訂房訂金快照欄位、paymentSummary 共用摘要、ATM 信件改於開帳號後寄出。
+- [Channel Manager Staff Readonly](mem://security/channel-manager-staff-readonly.md) — 通路管理 Staff 一律唯讀（前端 isAdmin 判定）＋三項後端授權 follow-up（RLS/alias/Edge）。
