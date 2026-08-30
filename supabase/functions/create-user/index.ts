@@ -2,7 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
-import { isAccommodationAdmin, resolveCaller } from "../_shared/authz.ts";
+import { isAccommodationAdmin, isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
+import { authorizeRoleGrant } from "./roleAuthorization.ts";
+
 
 // Simple in-memory rate limiter
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
