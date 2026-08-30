@@ -13608,6 +13608,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      upsert_customer_for_order: {
+        Args: {
+          _accommodation_id: string
+          _email?: string
+          _first_order_date?: string
+          _gender?: string
+          _name: string
+          _nationality?: string
+          _phone: string
+        }
+        Returns: {
+          action: string
+          customer_id: string
+        }[]
+      }
       upsert_owlting_credentials: {
         Args: {
           p_accommodation_id: string
