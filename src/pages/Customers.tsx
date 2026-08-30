@@ -71,10 +71,12 @@ interface Customer {
 const Customers = () => {
   const isMobile = useIsMobile();
   const { currentAccommodationId } = useAccommodation();
-  const { canEdit, isAdmin } = useStaffPermissions();
-  // customers=editable → 可新增/編輯；刪除永遠 admin-only（CUSTOMER_DELETE_DESIGN = ADMIN_ONLY）
+  const { canEdit, isStrictAdmin } = useStaffPermissions();
+  // customers=editable → 可新增/編輯；
+  // 刪除為 ADMIN_ONLY，且必須與後端 RLS 完全對齊：僅當前館 hotel_admin 或 super_admin
+  // （舊版泛用 admin 不得顯示刪除，避免 UI 可見但後端 DENY）
   const canEditCustomers = canEdit("customers");
-  const canDeleteCustomers = isAdmin;
+  const canDeleteCustomers = isStrictAdmin;
   const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);

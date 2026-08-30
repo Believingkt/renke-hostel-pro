@@ -8,7 +8,8 @@ describe("Customers 三態權限與假成功防護（原始碼契約）", () => 
   it("使用既有 useStaffPermissions helper，未自建權限系統", () => {
     expect(src).toContain('useStaffPermissions');
     expect(src).toContain('canEdit("customers")');
-    expect(src).toContain("const canDeleteCustomers = isAdmin;");
+    expect(src).toContain("const canDeleteCustomers = isStrictAdmin;");
+    expect(src).not.toMatch(/canDeleteCustomers = isAdmin\b/);
   });
 
   it("新增/編輯按鈕受 canEditCustomers 控制", () => {
@@ -42,5 +43,38 @@ describe("Customers 三態權限與假成功防護（原始碼契約）", () => 
     const payload = src.slice(src.indexOf("const customerData = {"), src.indexOf("if (editingCustomer)"));
     ["accommodation_id", "name", "phone", "email", "gender", "nationality", "first_order_date", "visit_count", "notes"]
       .forEach((f) => expect(payload).toContain(f));
+  });
+});
+
+describe("isStrictAdmin 與後端 customers DELETE RLS 對齊", () => {
+  const hook = fs.readFileSync(
+    path.resolve(__dirname, "../../hooks/use-staff-permissions.tsx"),
+    "utf8",
+  );
+
+  const strictExpr = hook.slice(
+    hook.indexOf("const isStrictAdmin ="),
+    hook.indexOf(";", hook.indexOf("const isStrictAdmin =")),
+  );
+
+  it("target hotel_admin 與 super_admin 納入", () => {
+    expect(strictExpr).toContain('roles.includes("hotel_admin")');
+    expect(strictExpr).toContain('roles.includes("super_admin")');
+    expect(strictExpr).toContain('globalRoles.includes("super_admin")');
+  });
+
+  it("舊版泛用 admin 不納入", () => {
+    expect(strictExpr).not.toContain('roles.includes("admin")');
+  });
+
+  it("staff（editable / readonly）一律 isStrictAdmin = false", () => {
+    const staffReturn = hook.slice(hook.indexOf("isStaff: true,"));
+    expect(staffReturn.slice(0, 200)).toContain("isStrictAdmin: false");
+  });
+
+  it("Customers 刪除 UI 與 handler 使用同一個 canDeleteCustomers", () => {
+    expect(src).toContain("{canDeleteCustomers && (");
+    const del = src.slice(src.indexOf("const handleDelete"));
+    expect(del).toContain("if (!canDeleteCustomers)");
   });
 });
