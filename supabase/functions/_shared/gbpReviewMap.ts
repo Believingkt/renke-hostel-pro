@@ -102,3 +102,18 @@ export function dedupRows(rows: CandidateRow[]): CandidateRow[] {
   for (const r of rows) map.set(r.review_name, r);
   return [...map.values()];
 }
+
+/**
+ * Sync target caps how many candidates we persist: 20 / 50 keep only the first
+ * N (Google returns `updateTime desc`), ALL keeps everything fetched.
+ * Trimming never deletes rows already in the candidate table — writes are
+ * UPSERT ONLY.
+ */
+export function trimToTarget(
+  rows: CandidateRow[],
+  syncTarget: string,
+): CandidateRow[] {
+  const limit = targetLimit(syncTarget);
+  return limit == null ? rows : rows.slice(0, limit);
+}
+
