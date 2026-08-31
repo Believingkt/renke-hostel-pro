@@ -108,6 +108,9 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [gbpRefreshKey, setGbpRefreshKey] = useState(0);
+  // 目前生效的評論同步來源；BUSINESS_PROFILE 時隱藏舊 Places 手動同步入口
+  const [reviewSource, setReviewSource] = useState<"PLACES" | "BUSINESS_PROFILE">("PLACES");
+
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
@@ -258,6 +261,29 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  // 讀取目前的評論同步來源（唯讀，僅影響 UI 顯示）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accommodationId) return;
+      const { data } = await supabase
+        .from("accommodation_google_business_profile")
+        .select("review_source")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+      if (cancelled) return;
+      setReviewSource(
+        ((data as { review_source?: string } | null)?.review_source as
+          | "PLACES"
+          | "BUSINESS_PROFILE") ?? "PLACES",
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId, gbpRefreshKey]);
+
 
   const toggleSelect = (key: string) => {
     setSelectedKeys((prev) =>
@@ -443,22 +469,27 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  按下「立即同步」以從 Google 手動抓取評論內容 · 同步來源：Google Places API（最多 5 則）
+                  {reviewSource === "BUSINESS_PROFILE"
+                    ? "目前同步來源：Google Business Profile · 請至下方「Google Business Profile」區塊同步評論"
+                    : "按下「立即同步」以從 Google 手動抓取評論內容 · 同步來源：Google Places API（最多 5 則）"}
                 </p>
 
               </div>
             </div>
-            <Button
-              type="button"
-              onClick={handleSync}
-              disabled={syncing || !placeId}
-              aria-busy={syncing}
-              aria-live="polite"
-              className="gap-2 min-w-[130px]"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "同步中,請稍候..." : "立即同步"}
-            </Button>
+            {reviewSource === "PLACES" && (
+              <Button
+                type="button"
+                onClick={handleSync}
+                disabled={syncing || !placeId}
+                aria-busy={syncing}
+                aria-live="polite"
+                className="gap-2 min-w-[130px]"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "同步中,請稍候..." : "立即同步"}
+              </Button>
+            )}
+
           </div>
         </CardHeader>
         <CardContent className="space-y-4">

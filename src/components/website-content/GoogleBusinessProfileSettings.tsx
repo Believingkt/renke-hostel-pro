@@ -263,18 +263,29 @@ export const GoogleBusinessProfileSettings = ({
   };
 
   const persist = async (patch: Record<string, unknown>) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("accommodation_google_business_profile")
       .upsert(
         { accommodation_id: accommodationId, ...patch },
         { onConflict: "accommodation_id" },
-      );
+      )
+      // 必須取回實際寫入的 row，避免 RLS / filter 造成 0-row 卻顯示成功
+      .select("accommodation_id");
     if (error) {
       toast.error("儲存失敗：" + error.message);
       return false;
     }
+    const rows = Array.isArray(data) ? data : data ? [data] : [];
+    const affected = rows.filter(
+      (r) => (r as { accommodation_id?: string } | null)?.accommodation_id === accommodationId,
+    );
+    if (affected.length !== 1) {
+      toast.error("儲存失敗：沒有任何資料被更新（可能沒有權限）");
+      return false;
+    }
     return true;
   };
+
 
   if (!visible || !loaded) return null;
 
@@ -428,9 +439,12 @@ export const GoogleBusinessProfileSettings = ({
                 disabled={readOnly}
                 onValueChange={async (v) => {
                   const next = v as "20" | "50" | "ALL";
+                  const prev = syncTarget;
                   setSyncTarget(next);
-                  await persist({ sync_target: next });
+                  const ok = await persist({ sync_target: next });
+                  if (!ok) setSyncTarget(prev);
                 }}
+
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />
@@ -452,10 +466,17 @@ export const GoogleBusinessProfileSettings = ({
                 value={reviewSource}
                 onValueChange={async (v) => {
                   const next = v as "PLACES" | "BUSINESS_PROFILE";
+                  const prev = reviewSource;
                   setReviewSource(next);
                   const ok = await persist({ review_source: next });
-                  if (ok) toast.success("已更新同步來源（前台精選不受影響）");
+                  if (!ok) {
+                    setReviewSource(prev);
+                    return;
+                  }
+                  toast.success("已更新同步來源（前台精選不受影響）");
+                  onConnectionChange?.();
                 }}
+
                 className="space-y-1"
               >
                 <div className="flex items-center gap-2">

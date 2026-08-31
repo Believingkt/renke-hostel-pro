@@ -33,9 +33,14 @@ vi.mock("@/integrations/supabase/client", () => ({
       select: () => ({
         eq: () => ({ maybeSingle: async () => ({ data: state.row, error: null }) }),
       }),
-      upsert: async (payload: Record<string, unknown>) => {
+      upsert: (payload: Record<string, unknown>) => {
         state.lastUpsertPayload = payload;
-        return { error: null };
+        return {
+          select: async () => ({
+            data: [{ accommodation_id: (payload as { accommodation_id?: string }).accommodation_id }],
+            error: null,
+          }),
+        };
       },
     }),
     functions: {
