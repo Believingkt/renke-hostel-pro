@@ -102,7 +102,7 @@ function GateVsAmountBar() {
       <div className="text-sm">
         <div className="font-medium">② 金額：決定「一筆算多少錢」</div>
         <p className="text-xs leading-relaxed text-muted-foreground">
-          業主月結規則扣除不列入抽成的增值服務後，得到分潤基準金額。改這裡不會改變筆數。
+          業主月結規則扣除該館勾選為「不列入抽成」的增值服務後，得到分潤基準金額（未設定＝全部列入抽成）。此彈性規則自 2026-09-10 成交日起正式生效（V3），之前成交的訂單不算 V3。改這裡不會改變筆數。
         </p>
       </div>
     </div>
