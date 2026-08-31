@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
  *   client_secret / access_token / refresh_token / authorization_code 欄位。
  *
  * SCHEMA NOTE：
- *   project_number 欄位尚未存在（migration proposal 待核准），本頁暫以唯讀 placeholder 呈現。
+ *   project_number 欄位已建立（text NULL），與其他非敏感欄位走同一 persistence flow。
  *   authorized_google_email / authorized_at 亦僅為 proposal，應由真實 OAuth response 產生。
  */
 
@@ -153,6 +153,7 @@ export const GoogleBusinessProfileSettings = ({
   const readOnly = !canEdit("website_content");
 
   const [projectId, setProjectId] = useState("");
+  const [projectNumber, setProjectNumber] = useState("");
   const [clientId, setClientId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [locationId, setLocationId] = useState("");
@@ -167,7 +168,7 @@ export const GoogleBusinessProfileSettings = ({
     const { data, error } = await supabase
       .from("accommodation_google_business_profile")
       .select(
-        "project_id, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
+        "project_id, project_number, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
       )
       .eq("accommodation_id", accommodationId)
       .maybeSingle();
@@ -178,6 +179,7 @@ export const GoogleBusinessProfileSettings = ({
     }
     // 無資料列 = 初始空狀態，不視為錯誤
     setProjectId(data?.project_id ?? "");
+    setProjectNumber(data?.project_number ?? "");
     setClientId(data?.oauth_client_id ?? "");
     setAccountId(data?.account_id ?? "");
     setLocationId(data?.location_id ?? "");
@@ -203,6 +205,7 @@ export const GoogleBusinessProfileSettings = ({
         {
           accommodation_id: accommodationId,
           project_id: projectId.trim() || null,
+          project_number: projectNumber.trim() || null,
           oauth_client_id: clientId.trim() || null,
           account_id: accountId.trim() || null,
           location_id: locationId.trim() || null,
@@ -318,15 +321,19 @@ export const GoogleBusinessProfileSettings = ({
               <Label htmlFor="bp-project-number">Google Cloud Project Number</Label>
               <Input
                 id="bp-project-number"
-                disabled
-                value=""
-                placeholder="欄位待 migration 核准後開放"
+                type="text"
+                inputMode="text"
+                disabled={readOnly}
+                value={projectNumber}
+                onChange={(e) => setProjectNumber(e.target.value)}
+                placeholder="例：123456789012"
                 className="h-11 text-base font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                目前資料表尚無 project_number 欄位，已提出 migration proposal，核准後開放填寫。
+                Google Cloud Console 專案資訊中的「專案編號」，以文字保存，可留空。
               </p>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="bp-client-id">OAuth Client ID</Label>
               <Input
