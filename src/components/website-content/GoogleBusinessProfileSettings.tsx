@@ -439,9 +439,12 @@ export const GoogleBusinessProfileSettings = ({
                 disabled={readOnly}
                 onValueChange={async (v) => {
                   const next = v as "20" | "50" | "ALL";
+                  const prev = syncTarget;
                   setSyncTarget(next);
-                  await persist({ sync_target: next });
+                  const ok = await persist({ sync_target: next });
+                  if (!ok) setSyncTarget(prev);
                 }}
+
               >
                 <SelectTrigger className="h-11">
                   <SelectValue />
