@@ -48,6 +48,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
 import { GoogleBusinessProfileSettings } from "./GoogleBusinessProfileSettings";
+import { GoogleBusinessProfileReviews } from "./GoogleBusinessProfileReviews";
 import { GoogleReviewsPreview } from "./GoogleReviewsPreview";
 
 const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
@@ -106,6 +107,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [savingDisplay, setSavingDisplay] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [gbpRefreshKey, setGbpRefreshKey] = useState(0);
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
@@ -412,8 +414,21 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       {/* 設定區塊(Google Places 基本串接 + 摘要) */}
       <GoogleReviewsSettings accommodationId={accommodationId} />
 
-      {/* Google Business Profile API 串接準備(PHASE 1：僅設定與狀態) */}
-      <GoogleBusinessProfileSettings accommodationId={accommodationId} />
+      {/* Google Business Profile 自助連線與同步 */}
+      <GoogleBusinessProfileSettings
+        accommodationId={accommodationId}
+        onConnectionChange={() => setGbpRefreshKey((k) => k + 1)}
+      />
+
+      {/* Business Profile 候選評論池（挑選後才會套用到前台） */}
+      <GoogleBusinessProfileReviews
+        accommodationId={accommodationId}
+        refreshKey={gbpRefreshKey}
+        onApplied={() => {
+          void load();
+          setPreviewRefreshKey((k) => k + 1);
+        }}
+      />
 
 
 
