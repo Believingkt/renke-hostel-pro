@@ -68,6 +68,20 @@ Deno.serve(async (req) => {
       return jsonResp({ error: "accommodation not found" }, 404);
     }
 
+    // Source isolation: when the accommodation is on Business Profile mode,
+    // Places must not fetch or write anything.
+    const { data: gbp } = await admin
+      .from("accommodation_google_business_profile")
+      .select("review_source")
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle();
+    if (gbp?.review_source === "BUSINESS_PROFILE") {
+      return jsonResp({
+        skipped: true,
+        reason: "review_source_business_profile",
+      });
+    }
+
     const placeId = placeIdOverride || acc.google_place_id;
     if (!placeId) {
       return jsonResp(

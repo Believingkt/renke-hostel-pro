@@ -234,14 +234,25 @@ export default function GoogleBusinessProfileApiHelp() {
       </Section>
 
       <Section id="step-09" title="09 回後台完成串接">
+        <p className="font-medium">平台只需要設定一次（總部 Super Admin）</p>
         <p>
-          回到「官網內容 → Google 評論 → Google Business Profile API」，填入 Project ID、OAuth Client ID。
+          到「總部 → Google 商家串接」填入 Project ID、Project Number、OAuth Client ID，
+          並在該頁單獨欄位輸入 OAuth Client Secret（Secret 僅送往後端加密保管，不會存進一般資料表，也不會再顯示）。
+          該頁同時提供必須貼回 Google Cloud 的 Redirect URI。
         </p>
-        <p>
-          之後待系統 OAuth 功能完成，再點「連結 Google 商家帳號」。
-          目前 OAuth 尚未實作，狀態顯示為 <Badge variant="outline">串接功能準備中</Badge>。
+        <p className="font-medium">各館自助連線（Hotel Admin / website_content 可編輯的員工）</p>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>到「官網內容 → Google 評論 → Google Business Profile」按「連結 Google 商家帳號」。</li>
+          <li>以擁有該商家管理權的 Google 帳號登入並同意授權。</li>
+          <li>回到後台後選擇 Google Business Account，再選擇對應的商家據點（不需手填 Account / Location ID）。</li>
+          <li>按「同步評論」把 20～50 則以上評論拉進候選池。</li>
+          <li>在候選清單勾選至少 4 則，按「套用至前台」。</li>
+        </ol>
+        <p className="text-muted-foreground">
+          可隨時「重新授權」或「解除連線」；解除連線不會刪除前台既有評論與候選評論。
         </p>
       </Section>
+
 
       <Section id="step-10" title="10 注意安全資訊">
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-2">
@@ -260,12 +271,16 @@ export default function GoogleBusinessProfileApiHelp() {
       </Section>
 
       <Section id="step-11" title="11 申請完成後，要回系統填什麼？">
-        <p>回到「官網內容 → Google 評論 → Google Business Profile API」，填入以下三項：</p>
+        <p>由總部 Super Admin 到「總部 → Google 商家串接」填入：</p>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Project ID</li>
           <li>Project Number</li>
           <li>OAuth Client ID</li>
+          <li>OAuth Client Secret（僅在該頁的專用欄位輸入，直接送往後端加密保管）</li>
         </ol>
+        <p className="text-muted-foreground">
+          各館不需要自行申請 Google Cloud 或填任何 ID，只要用自己的 Google 帳號授權即可。
+        </p>
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
           <div className="font-semibold text-destructive flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -277,7 +292,7 @@ export default function GoogleBusinessProfileApiHelp() {
             <li>Refresh Token</li>
           </ul>
           <p className="text-muted-foreground">
-            Client Secret 請保留在 Google Cloud，待 OAuth Backend 完成後再由後端安全設定。
+            Client Secret 只能由總部在「Google 商家串接」頁的專用欄位輸入；Refresh Token 由系統於授權後自動加密保管，任何人都無法在畫面上讀取。
           </p>
         </div>
       </Section>

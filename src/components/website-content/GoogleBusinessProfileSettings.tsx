@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -13,31 +11,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ExternalLink, ShieldCheck, Info, Lock, Copy, Check } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ExternalLink, Link2, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
-import { cn } from "@/lib/utils";
 
 /**
- * OAuth PHASE 2 Preparation UI（NO OAUTH YET）。
+ * 民宿端自助 Google Business Profile 連線。
  *
- * 本元件僅呈現「設定 / 狀態 / 進度」，不執行任何：
- *   - Google OAuth authorize / token exchange
- *   - refresh token 取得或保存
- *   - Business Profile API / Reviews API 呼叫
- *
- * DEVELOPER NOTE — Secret Architecture（Phase 2 才實作）：
- *   OAuth Client Secret 與 Refresh Token 必須存放於 server-side secret storage
- *   （Edge Function runtime secrets / vault），
- *   絕對不得放在：public table、frontend state、localStorage、sessionStorage、source code。
- *   實作前需另行進行 Security Design Audit。
- *   本 Phase 不建立任何 secret storage，資料表亦不得新增
- *   client_secret / access_token / refresh_token / authorization_code 欄位。
- *
- * SCHEMA NOTE：
- *   project_number 欄位已建立（text NULL），與其他非敏感欄位走同一 persistence flow。
- *   authorized_google_email / authorized_at 亦僅為 proposal，應由真實 OAuth response 產生。
+ * 架構：平台共用一組 OAuth App（由總部 Super Admin 於 /hq/integrations/google-business-profile
+ * 設定）。各館管理者只需按「連結 Google 商家帳號」，其餘 Account / Location 由 Google 授權後
+ * 自動取得，不需人工填 ID。所有憑證（Client Secret / Refresh Token）僅存在後端 Vault。
  */
 
 export type BusinessProfileConnectionStatus =
@@ -48,566 +42,458 @@ export type BusinessProfileConnectionStatus =
   | "TOKEN_EXPIRED"
   | "ERROR";
 
-export type BusinessProfileApplicationStatus =
-  | "NOT_STARTED"
-  | "PENDING"
-  | "APPROVED"
-  | "REJECTED";
-
 const STATUS_LABEL: Record<BusinessProfileConnectionStatus, string> = {
-  NOT_CONFIGURED: "未設定",
+  NOT_CONFIGURED: "未連線",
   APPLICATION_PENDING: "申請審核中",
-  READY_FOR_OAUTH: "待授權",
+  READY_FOR_OAUTH: "已授權，待選擇商家",
   CONNECTED: "已連線",
-  TOKEN_EXPIRED: "授權失效",
+  TOKEN_EXPIRED: "授權已失效",
   ERROR: "連線異常",
 };
 
-const APPLICATION_STATUS_LABEL: Record<BusinessProfileApplicationStatus, string> = {
-  NOT_STARTED: "未申請",
-  PENDING: "審核中",
-  APPROVED: "已核准",
-  REJECTED: "被拒絕",
-};
+interface GoogleAccount {
+  name: string;
+  accountName?: string;
+  type?: string;
+  role?: string;
+  verificationState?: string;
+}
 
-const CHECKLIST_ITEMS = [
-  "Google Cloud Project 已建立",
-  "已取得 Project Number",
-  "Business Profile API Access 已送審",
-  "Google 已核准 API Access",
-  "OAuth Client ID 已建立",
-  "Google 商家帳號已授權",
-  "Business Account 已綁定",
-  "Business Location 已綁定",
-];
+interface GoogleLocation {
+  name: string;
+  title?: string;
+  address?: string | null;
+}
 
-const FUTURE_CAPABILITIES = [
-  "同步 20～50+ 則評論",
-  "星等篩選",
-  "搜尋評論",
-  "從大量評論中挑選前台精選",
-  "不再受 Places API 5 則限制",
-];
-
-const STEPS = [
-  { no: 1, label: "Google Cloud 設定" },
-  { no: 2, label: "API 申請" },
-  { no: 3, label: "OAuth 串接" },
-  { no: 4, label: "Google 商家綁定" },
-];
-
-const isConnectionStatus = (v: unknown): v is BusinessProfileConnectionStatus =>
-  typeof v === "string" && v in STATUS_LABEL;
-
-const isApplicationStatus = (v: unknown): v is BusinessProfileApplicationStatus =>
-  typeof v === "string" && v in APPLICATION_STATUS_LABEL;
-
-const StepBadge = ({
-  current,
-  no,
-  label,
-}: {
-  current: number;
-  no: number;
-  label: string;
-}) => {
-  const done = no < current;
-  const active = no === current;
-  return (
-    <div
-      className={cn(
-        "flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm whitespace-nowrap",
-        active
-          ? "border-primary bg-primary/10 font-semibold text-primary"
-          : done
-            ? "border-primary/25 bg-card text-foreground"
-            : "border-border/60 bg-card text-muted-foreground",
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold tabular-nums",
-          done || active ? "bg-primary text-primary-foreground" : "bg-muted",
-        )}
-      >
-        {done ? <Check className="h-3 w-3" /> : `0${no}`}
-      </span>
-      {label}
-    </div>
-  );
-};
-
-const ReadonlyRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm">
-    <span className="font-medium">{label}</span>
-    <span className="text-muted-foreground">{value}</span>
-  </div>
-);
+interface Props {
+  accommodationId: string;
+  onConnectionChange?: () => void;
+}
 
 export const GoogleBusinessProfileSettings = ({
   accommodationId,
-}: {
-  accommodationId: string;
-}) => {
-  const { canEdit } = useStaffPermissions();
+  onConnectionChange,
+}: Props) => {
+  const { canEdit, canView } = useStaffPermissions();
   const readOnly = !canEdit("website_content");
+  const visible = canView("website_content");
 
-  const [projectId, setProjectId] = useState("");
-  const [projectNumber, setProjectNumber] = useState("");
-  const [clientId, setClientId] = useState("");
-  const [accountId, setAccountId] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [platformReady, setPlatformReady] = useState(false);
   const [status, setStatus] = useState<BusinessProfileConnectionStatus>("NOT_CONFIGURED");
-  const [applicationStatus, setApplicationStatus] =
-    useState<BusinessProfileApplicationStatus>("NOT_STARTED");
-  const [saving, setSaving] = useState(false);
+  const [connectedAt, setConnectedAt] = useState<string | null>(null);
+  const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<string | null>(null);
+  const [locationTitle, setLocationTitle] = useState<string | null>(null);
+  const [syncTarget, setSyncTarget] = useState<"20" | "50" | "ALL">("50");
+  const [reviewSource, setReviewSource] = useState<"PLACES" | "BUSINESS_PROFILE">("PLACES");
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [candidateCount, setCandidateCount] = useState(0);
+
+  const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
+  const [locations, setLocations] = useState<GoogleLocation[]>([]);
+  const [pickedAccount, setPickedAccount] = useState<string>("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const handledCallback = useRef(false);
 
   const load = useCallback(async () => {
     if (!accommodationId) return;
-    const { data, error } = await supabase
-      .from("accommodation_google_business_profile")
-      .select(
-        "project_id, project_number, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
-      )
-      .eq("accommodation_id", accommodationId)
-      .maybeSingle();
-
-    if (error) {
-      toast.error("讀取 Business Profile 設定失敗：" + error.message);
-      return;
-    }
-    // 無資料列 = 初始空狀態，不視為錯誤
-    setProjectId(data?.project_id ?? "");
-    setProjectNumber(data?.project_number ?? "");
-    setClientId(data?.oauth_client_id ?? "");
-    setAccountId(data?.account_id ?? "");
-    setLocationId(data?.location_id ?? "");
-    setStatus(
-      isConnectionStatus(data?.connection_status) ? data.connection_status : "NOT_CONFIGURED"
-    );
-    setApplicationStatus(
-      isApplicationStatus(data?.application_status) ? data.application_status : "NOT_STARTED"
-    );
-    setChecked((data?.checklist as Record<string, boolean>) ?? {});
+    const [{ data: ready }, { data }] = await Promise.all([
+      supabase.rpc("gbp_platform_ready"),
+      supabase
+        .from("accommodation_google_business_profile")
+        .select(
+          "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count",
+        )
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle(),
+    ]);
+    setPlatformReady(!!ready);
+    setStatus((data?.connection_status as BusinessProfileConnectionStatus) ?? "NOT_CONFIGURED");
+    setConnectedAt(data?.oauth_connected_at ?? null);
+    setSelectedAccount(data?.selected_account_name ?? null);
+    setSelectedLocation(data?.selected_location_name ?? null);
+    setLocationTitle(data?.selected_location_title ?? null);
+    setSyncTarget(((data?.sync_target as "20" | "50" | "ALL") ?? "50"));
+    setReviewSource(((data?.review_source as "PLACES" | "BUSINESS_PROFILE") ?? "PLACES"));
+    setLastSyncAt(data?.last_business_profile_sync_at ?? null);
+    setCandidateCount(data?.candidate_review_count ?? 0);
+    setLoaded(true);
   }, [accommodationId]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const handleSave = async () => {
-    if (!accommodationId || readOnly) return;
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("accommodation_google_business_profile")
-      .upsert(
-        {
-          accommodation_id: accommodationId,
-          project_id: projectId.trim() || null,
-          project_number: projectNumber.trim() || null,
-          oauth_client_id: clientId.trim() || null,
-          account_id: accountId.trim() || null,
-          location_id: locationId.trim() || null,
-          connection_status: status,
-          application_status: applicationStatus,
-          checklist: checked,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "accommodation_id" }
-      )
-      .select("accommodation_id");
+  const fetchAccounts = useCallback(async () => {
+    setBusy("accounts");
+    const { data, error } = await supabase.functions.invoke(
+      "google-business-profile-list-accounts",
+      { body: { accommodationId } },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      toast.error("讀取 Google 商家帳號失敗：" + (data?.error ?? error?.message));
+      return;
+    }
+    const list: GoogleAccount[] = data?.accounts ?? [];
+    setAccounts(list);
+    if (list.length === 1) setPickedAccount(list[0].name);
+  }, [accommodationId]);
 
-    setSaving(false);
-    if (error) {
-      toast.error("儲存失敗：" + error.message);
+  // OAuth 回跳處理
+  useEffect(() => {
+    if (!loaded || handledCallback.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("gbp_oauth");
+    if (!result) return;
+    handledCallback.current = true;
+    params.delete("gbp_oauth");
+    const q = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (q ? `?${q}` : ""));
+    if (result === "success") {
+      toast.success("Google 授權成功，請選擇要綁定的商家");
+      void fetchAccounts();
+    } else if (result === "denied") {
+      toast.error("已取消 Google 授權");
+    } else {
+      toast.error("Google 授權失敗，請重新嘗試");
+    }
+  }, [loaded, fetchAccounts]);
+
+  const handleConnect = async () => {
+    setBusy("connect");
+    const { data, error } = await supabase.functions.invoke(
+      "google-business-profile-oauth-start",
+      {
+        body: {
+          accommodationId,
+          returnUrl: window.location.origin + window.location.pathname,
+        },
+      },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      const code = data?.error ?? error?.message;
+      toast.error(
+        code === "GBP_PLATFORM_NOT_CONFIGURED"
+          ? "平台 Google API 尚未完成設定，請聯絡總部管理者"
+          : "無法開始授權：" + code,
+      );
       return;
     }
-    if (!data || data.length === 0) {
-      toast.error("儲存失敗：沒有任何資料被寫入（權限不足）");
-      return;
-    }
-    toast.success("已儲存 Business Profile 設定");
+    window.location.href = data.authorizationUrl;
   };
 
-  // 純顯示用的步驟推算（不會自動改寫 connection_status）
-  const currentStep =
-    applicationStatus !== "APPROVED"
-      ? projectId && clientId
-        ? 2
-        : 1
-      : status === "CONNECTED"
-        ? 4
-        : 3;
+  const handlePickAccount = async (accountName: string) => {
+    setPickedAccount(accountName);
+    setLocations([]);
+    setBusy("locations");
+    const { data, error } = await supabase.functions.invoke(
+      "google-business-profile-list-locations",
+      { body: { accommodationId, accountResourceName: accountName } },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      toast.error("讀取商家清單失敗：" + (data?.error ?? error?.message));
+      return;
+    }
+    setLocations(data?.locations ?? []);
+  };
+
+  const handlePickLocation = async (locationName: string) => {
+    setBusy("select");
+    const { data, error } = await supabase.functions.invoke(
+      "google-business-profile-select-location",
+      {
+        body: {
+          accommodationId,
+          accountResourceName: pickedAccount,
+          locationResourceName: locationName,
+        },
+      },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      toast.error("綁定商家失敗：" + (data?.error ?? error?.message));
+      return;
+    }
+    toast.success("已完成商家綁定");
+    setAccounts([]);
+    setLocations([]);
+    await load();
+    onConnectionChange?.();
+  };
+
+  const handleSync = async () => {
+    setBusy("sync");
+    const { data, error } = await supabase.functions.invoke(
+      "fetch-google-business-profile-reviews",
+      { body: { accommodationId } },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      toast.error("同步失敗：" + (data?.error ?? error?.message));
+      return;
+    }
+    toast.success(
+      `已同步 ${data.synced} 則評論，候選池共 ${data.candidateCount} 則` +
+        (data.partial ? "（已達安全上限，為部分同步）" : ""),
+    );
+    await load();
+    onConnectionChange?.();
+  };
+
+  const handleDisconnect = async () => {
+    setConfirmDisconnect(false);
+    setBusy("disconnect");
+    const { data, error } = await supabase.functions.invoke(
+      "google-business-profile-disconnect",
+      { body: { accommodationId } },
+    );
+    setBusy(null);
+    if (error || data?.error) {
+      toast.error("解除連線失敗：" + (data?.error ?? error?.message));
+      return;
+    }
+    toast.success("已解除 Google 商家連線，前台現有評論不會被刪除");
+    await load();
+    onConnectionChange?.();
+  };
+
+  const persist = async (patch: Record<string, unknown>) => {
+    const { error } = await supabase
+      .from("accommodation_google_business_profile")
+      .upsert(
+        { accommodation_id: accommodationId, ...patch },
+        { onConflict: "accommodation_id" },
+      );
+    if (error) {
+      toast.error("儲存失敗：" + error.message);
+      return false;
+    }
+    return true;
+  };
+
+  if (!visible || !loaded) return null;
+
+  const connected = status === "CONNECTED" && !!selectedLocation;
+  const awaitingSelection = !!connectedAt && !connected;
 
   return (
     <Card>
       <CardHeader className="pb-4">
-        <div className="flex items-start justify-between flex-wrap gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-1.5 bg-primary rounded-full" />
+            <div className="h-10 w-1.5 rounded-full bg-primary" />
             <div>
-              <CardTitle className="text-xl">Google Business Profile API</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                串接 Google 商家帳號後，可同步 20 則以上評論供前台挑選。
+              <CardTitle className="text-xl">Google Business Profile</CardTitle>
+              <p className="mt-1 text-sm text-muted-foreground">
+                連結自己的 Google 商家帳號後，可同步 20～50 則以上評論，自行挑選前台精選。
               </p>
             </div>
           </div>
           <Button asChild variant="outline" className="gap-2">
-            <a
-              href="/help/google-business-profile-api"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              查看申請教學
+            <a href="/help/google-business-profile-api" target="_blank" rel="noopener noreferrer">
+              使用教學
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* 進度 Stepper */}
-        <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex min-w-max items-center gap-2">
-            {STEPS.map((s, i) => (
-              <div key={s.no} className="flex items-center gap-2">
-                <StepBadge current={currentStep} no={s.no} label={s.label} />
-                {i < STEPS.length - 1 && (
-                  <span aria-hidden className="h-px w-4 shrink-0 bg-border" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 目前同步來源狀態 */}
-        <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">目前評論來源</span>
-            <Badge variant="secondary">Google Places API</Badge>
+      <CardContent className="space-y-5">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+          <span className="font-medium">連線狀態</span>
+          <Badge variant={connected ? "default" : "outline"}>{STATUS_LABEL[status]}</Badge>
+          {connected && locationTitle && (
+            <span className="text-muted-foreground">商家：{locationTitle}</span>
+          )}
+          {connected && (
             <span className="text-muted-foreground">
-              目前最多只能取得 Google 提供的 5 則代表性評論。
+              · 候選評論 {candidateCount} 則
+              {lastSyncAt && `，最後同步 ${new Date(lastSyncAt).toLocaleString("zh-TW")}`}
             </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="font-medium">Business Profile 連線狀態</span>
-            <Badge variant="outline">{STATUS_LABEL[status]}</Badge>
-            <span className="text-xs text-muted-foreground">
-              本階段僅顯示狀態，不會自動變更。
-            </span>
-          </div>
+          )}
         </div>
 
-        {/* STEP 1 */}
-        <section className="space-y-4">
-          <div className="text-sm font-semibold">STEP 1｜Google Cloud 設定</div>
-          <p className="text-xs text-muted-foreground">
-            Google 審核完成後，請準備：① Project ID ② Project Number ③ OAuth Client ID。
-          </p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="bp-project-id">Google Cloud Project ID</Label>
-              <Input
-                id="bp-project-id"
-                disabled={readOnly}
-                value={projectId}
-                onChange={(e) => setProjectId(e.target.value)}
-                placeholder="例：renke-google-reviews"
-                className="h-11 text-base font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bp-project-number">Google Cloud Project Number</Label>
-              <Input
-                id="bp-project-number"
-                type="text"
-                inputMode="text"
-                disabled={readOnly}
-                value={projectNumber}
-                onChange={(e) => setProjectNumber(e.target.value)}
-                placeholder="例：123456789012"
-                className="h-11 text-base font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                Google Cloud Console 專案資訊中的「專案編號」，以文字保存，可留空。
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bp-client-id">OAuth Client ID</Label>
-              <Input
-                id="bp-client-id"
-                disabled={readOnly}
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                placeholder="例：1234567890-xxxx.apps.googleusercontent.com"
-                className="h-11 text-base font-mono"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Lock className="h-4 w-4" />
-                OAuth Client Secret
-              </Label>
-              <div className="flex h-11 items-center rounded-md border bg-muted/40 px-3 text-sm text-muted-foreground">
-                🔒 尚未設定
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Client Secret 屬於敏感憑證，將透過後端安全儲存，不會保存在一般設定資料表，也不會於設定頁顯示。
-                請保留在 Google Cloud，不要貼入普通設定欄位。
-              </p>
-            </div>
+        {!platformReady && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            平台 Google API 尚未完成設定，請聯絡總部管理者完成平台串接後再進行連線。
           </div>
-        </section>
+        )}
 
-        {/* STEP 2 */}
-        <section className="space-y-3">
-          <div className="text-sm font-semibold">STEP 2｜Business Profile API Access 申請</div>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-2">
-              <Label>API Access 狀態</Label>
-              <Select
-                value={applicationStatus}
-                onValueChange={(v) =>
-                  setApplicationStatus(v as BusinessProfileApplicationStatus)
-                }
-                disabled={readOnly}
-              >
-                <SelectTrigger className="h-11 w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(
-                    Object.keys(APPLICATION_STATUS_LABEL) as BusinessProfileApplicationStatus[]
-                  ).map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {APPLICATION_STATUS_LABEL[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button asChild variant="outline" className="gap-2">
-              <a
-                href="/help/google-business-profile-api"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                查看申請教學
-                <ExternalLink className="h-4 w-4" />
-              </a>
+        {status === "TOKEN_EXPIRED" && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            Google 授權已失效，請重新連結。
+          </div>
+        )}
+
+        {/* 連線動作 */}
+        <div className="flex flex-wrap items-center gap-2">
+          {!connected ? (
+            <Button
+              onClick={handleConnect}
+              disabled={readOnly || !platformReady || busy === "connect"}
+              className="gap-2"
+            >
+              <Link2 className="h-4 w-4" />
+              {busy === "connect" ? "準備中…" : "連結 Google 商家帳號"}
             </Button>
-          </div>
-        </section>
-
-        {/* STEP 3 */}
-        <section className="space-y-3">
-          <div className="text-sm font-semibold">STEP 3｜OAuth 串接</div>
-          <div className="rounded-lg border p-3 text-sm space-y-2">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="font-medium">OAuth Redirect URI</div>
-              <Badge variant="outline">NOT_READY</Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Input
-                readOnly
-                disabled
-                value=""
-                placeholder="OAuth Backend 尚未建立（未來由系統自動產生）"
-                className="h-10 flex-1 min-w-[240px] font-mono text-sm"
-              />
-              <Button type="button" variant="outline" size="sm" disabled className="gap-2">
-                <Copy className="h-3.5 w-3.5" />
-                複製
+          ) : (
+            <>
+              <Button onClick={handleSync} disabled={readOnly || busy === "sync"} className="gap-2">
+                <RefreshCw className={`h-4 w-4 ${busy === "sync" ? "animate-spin" : ""}`} />
+                {busy === "sync" ? "同步中…" : "同步評論"}
               </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Redirect URI 不開放手動填寫，Phase 2 backend 建立後由系統產生正式 callback URL。
-            </p>
-          </div>
-
-          <div className="rounded-lg border p-3 text-sm space-y-2">
-            <div className="font-medium flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4" />
-              Google 商家帳號授權
-            </div>
-            <div className="text-muted-foreground">尚未授權</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" disabled>
-                連結 Google 商家帳號
+              <Button variant="outline" onClick={handleConnect} disabled={readOnly} className="gap-2">
+                <ShieldCheck className="h-4 w-4" />
+                重新授權
               </Button>
-              <span className="text-xs text-muted-foreground">OAuth 功能尚未啟用</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              授權憑證（Refresh Token）未來僅會保存在後端，不會出現在此頁面。
-            </p>
-          </div>
-        </section>
-
-        {/* STEP 4 */}
-        <section className="space-y-3">
-          <div className="text-sm font-semibold">STEP 4｜Google 商家綁定</div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="bp-account-id">Google Business Account ID</Label>
-              <Input
-                id="bp-account-id"
-                disabled={readOnly}
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                placeholder="例：accounts/1234567890"
-                className="h-11 text-base font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                未來由 Google 授權後自動取得（下拉選單，僅一個時自動選取），不需人工填寫。
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bp-location-id">Google Business Location ID</Label>
-              <Input
-                id="bp-location-id"
-                disabled={readOnly}
-                value={locationId}
-                onChange={(e) => setLocationId(e.target.value)}
-                placeholder="例：locations/1234567890"
-                className="h-11 text-base font-mono"
-              />
-              <p className="text-xs text-muted-foreground">
-                未來改為「Google 授權後選擇商家」（顯示商家名稱與地址），底層自動保存 Location ID。
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button type="button" onClick={handleSave} disabled={saving || readOnly}>
-            {saving ? "儲存中..." : "儲存設定"}
-          </Button>
-          <p className="text-xs text-muted-foreground flex items-start gap-2">
-            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            本階段僅儲存非敏感設定與申請進度，不會呼叫任何 Google API。
-            {readOnly && "（目前為唯讀權限，無法儲存）"}
-          </p>
-        </div>
-
-        {/* OAuth 後未來狀態 preview（唯讀 placeholder） */}
-        <div className="space-y-2">
-          <div className="text-sm font-semibold">OAuth 狀態（Phase 2 後啟用）</div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <ReadonlyRow label="授權 Google 帳號" value="尚未授權" />
-            <ReadonlyRow label="Google Business Account" value="尚未取得" />
-            <ReadonlyRow label="Google 商家 Location" value="尚未綁定" />
-            <ReadonlyRow label="OAuth 狀態" value="尚未建立" />
-            <ReadonlyRow label="最近授權時間" value="—" />
-            <ReadonlyRow label="最近 Token Refresh" value="—" />
-          </div>
-        </div>
-
-        {/* 串接準備進度 */}
-        <div className="space-y-3">
-          <div className="text-sm font-semibold">串接準備進度</div>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {CHECKLIST_ITEMS.map((item) => (
-              <label
-                key={item}
-                className="flex items-start gap-2 rounded-lg border p-3 text-sm cursor-pointer"
+              <Button
+                variant="outline"
+                onClick={() => setConfirmDisconnect(true)}
+                disabled={readOnly || busy === "disconnect"}
+                className="gap-2"
               >
-                <Checkbox
-                  disabled={readOnly}
-                  checked={!!checked[item]}
-                  onCheckedChange={(v) =>
-                    setChecked((prev) => ({ ...prev, [item]: v === true }))
-                  }
-                />
-                <span>{item}</span>
-              </label>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            此進度僅為管理用記錄，勾選不會呼叫任何 Google API。
-          </p>
+                <Unlink className="h-4 w-4" />
+                解除連線
+              </Button>
+            </>
+          )}
+          {readOnly && (
+            <span className="text-xs text-muted-foreground">唯讀權限僅能查看連線狀態。</span>
+          )}
         </div>
 
-        {/* 未來同步設定 preview（disabled） */}
-        <div className="rounded-lg border bg-muted/20 p-4 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="text-sm font-semibold">Business Profile 評論同步（預覽）</div>
-            <Badge variant="outline">尚未啟用</Badge>
+        {/* 授權後：選擇 Account / Location */}
+        {awaitingSelection && !readOnly && (
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="text-sm font-semibold">選擇要綁定的 Google 商家</div>
+            {accounts.length === 0 ? (
+              <Button variant="outline" onClick={fetchAccounts} disabled={busy === "accounts"}>
+                {busy === "accounts" ? "讀取中…" : "讀取我的 Google 商家帳號"}
+              </Button>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Google Business Account</Label>
+                  <Select value={pickedAccount} onValueChange={handlePickAccount}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="選擇帳號" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {accounts.map((a) => (
+                        <SelectItem key={a.name} value={a.name}>
+                          {a.accountName || a.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>選擇商家</Label>
+                  <Select
+                    disabled={locations.length === 0 || busy === "select"}
+                    onValueChange={handlePickLocation}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue
+                        placeholder={busy === "locations" ? "讀取中…" : "選擇商家據點"}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((l) => (
+                        <SelectItem key={l.name} value={l.name}>
+                          {l.title || l.name}
+                          {l.address ? `／${l.address}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* 同步設定 */}
+        {connected && (
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>每次同步評論數量</Label>
-              <Select value="50" disabled>
+              <Label>同步數量</Label>
+              <Select
+                value={syncTarget}
+                disabled={readOnly}
+                onValueChange={async (v) => {
+                  const next = v as "20" | "50" | "ALL";
+                  setSyncTarget(next);
+                  await persist({ sync_target: next });
+                }}
+              >
                 <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="20">20 則</SelectItem>
-                  <SelectItem value="50">50 則</SelectItem>
-                  <SelectItem value="all">全部可取得評論</SelectItem>
+                  <SelectItem value="20">最新 20 則</SelectItem>
+                  <SelectItem value="50">最新 50 則</SelectItem>
+                  <SelectItem value="ALL">全部（有安全上限）</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                同步數量與前台顯示數量互相獨立，同步只會更新候選池。
+              </p>
             </div>
+
             <div className="space-y-2">
-              <Label>同步排序策略</Label>
-              <Select value="latest" disabled>
-                <SelectTrigger className="h-11">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="latest">最新優先</SelectItem>
-                  <SelectItem value="rating">高星優先</SelectItem>
-                  <SelectItem value="rating_latest">高星＋最新</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>評論同步來源</Label>
+              <RadioGroup
+                value={reviewSource}
+                onValueChange={async (v) => {
+                  const next = v as "PLACES" | "BUSINESS_PROFILE";
+                  setReviewSource(next);
+                  const ok = await persist({ review_source: next });
+                  if (ok) toast.success("已更新同步來源（前台精選不受影響）");
+                }}
+                className="space-y-1"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="PLACES" id="src-places" disabled={readOnly} />
+                  <Label htmlFor="src-places" className="font-normal">
+                    Google Places（最多 5 則）
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem
+                    value="BUSINESS_PROFILE"
+                    id="src-gbp"
+                    disabled={readOnly || !connected}
+                  />
+                  <Label htmlFor="src-gbp" className="font-normal">
+                    Google Business Profile
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            此為「候選池同步策略」，不是只抓五星；Reviews API 取得資料後才在本地篩選／排序。
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Business Profile 啟用後候選評論池可達 20～50+ 則；前台顯示則沿用現有的「前台顯示則數」設定，兩者互相獨立。
-          </p>
-        </div>
-
-        {/* 未來能力 preview */}
-        <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
-          <div className="text-sm font-semibold">啟用後可使用</div>
-          <ul className="space-y-1 text-sm">
-            {FUTURE_CAPABILITIES.map((c) => (
-              <li key={c} className="text-muted-foreground">
-                ✓ {c}
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-muted-foreground">
-            功能將於 Google Business Profile API 完成授權後啟用。
-          </p>
-        </div>
-
-        {/* 未來模式切換 */}
-        <div className="space-y-2">
-          <div className="text-sm font-semibold">評論同步來源</div>
-          <RadioGroup value="places" className="space-y-2">
-            <div className="flex items-center gap-2 text-sm">
-              <RadioGroupItem value="places" id="src-places" />
-              <Label htmlFor="src-places" className="font-normal">
-                Google Places API
-              </Label>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <RadioGroupItem value="business" id="src-business" disabled />
-              <Label htmlFor="src-business" className="font-normal text-muted-foreground">
-                Google Business Profile API
-              </Label>
-              <span className="text-xs text-muted-foreground">
-                完成 Google 商家授權後可啟用
-              </span>
-            </div>
-          </RadioGroup>
-        </div>
+        )}
       </CardContent>
+
+      <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定解除 Google 商家連線？</AlertDialogTitle>
+            <AlertDialogDescription>
+              解除後將停止 Business Profile 自動同步，現有前台評論不會被刪除，候選評論也會保留。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDisconnect}>確定解除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

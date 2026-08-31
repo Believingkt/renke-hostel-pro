@@ -166,6 +166,7 @@ const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettin
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
 const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
 const HQBrandPartners = lazy(() => import("./pages/hq/HQBrandPartners"));
+const HQGoogleBusinessProfile = lazy(() => import("./pages/hq/HQGoogleBusinessProfile"));
 const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
 
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
@@ -815,6 +816,11 @@ function App() {
                       <Route path="/hq/bonus-settings" element={
                         <RequireHQRole allow={HQ_SETTINGS_ROLES}>
                           <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        </RequireHQRole>
+                      } />
+                      <Route path="/hq/integrations/google-business-profile" element={
+                        <RequireHQRole allow={["super_admin"]}>
+                          <Suspense fallback={<FormSkeleton fields={4} />}><HQGoogleBusinessProfile /></Suspense>
                         </RequireHQRole>
                       } />
                       <Route path="/hq/brand-partners" element={

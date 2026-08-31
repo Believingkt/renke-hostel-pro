@@ -33,6 +33,22 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = true
   [functions.delete-user]
     verify_jwt = true
+  [functions.google-business-profile-oauth-callback]
+    verify_jwt = false
+  [functions.google-business-profile-oauth-start]
+    verify_jwt = true
+  [functions.google-business-profile-list-accounts]
+    verify_jwt = true
+  [functions.google-business-profile-list-locations]
+    verify_jwt = true
+  [functions.google-business-profile-select-location]
+    verify_jwt = true
+  [functions.google-business-profile-disconnect]
+    verify_jwt = true
+  [functions.fetch-google-business-profile-reviews]
+    verify_jwt = false
+  [functions.save-google-business-profile-platform-secret]
+    verify_jwt = true
   [functions.fetch-google-reviews]
     verify_jwt = true
   [functions.fetch-taiwan-holidays]

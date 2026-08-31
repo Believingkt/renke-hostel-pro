@@ -32,8 +32,19 @@ Deno.serve(async (req) => {
       return jsonResp({ error: "query_failed", message: error.message }, 500);
     }
 
+    // Source routing: an accommodation is synced by exactly ONE source.
+    // BUSINESS_PROFILE accommodations must never be overwritten by Places.
+    const { data: gbpRows } = await admin
+      .from("accommodation_google_business_profile")
+      .select("accommodation_id, review_source, connection_status")
+      .eq("review_source", "BUSINESS_PROFILE");
+    const gbpIds = new Set(
+      (gbpRows || []).map((g) => g.accommodation_id as string)
+    );
+
     const now = Date.now();
     const eligible = (rows || []).filter((r) => {
+      if (gbpIds.has(r.id)) return false; // Business Profile mode → skip Places
       const interval =
         (r.google_reviews_auto_sync_interval_hours || 24) * 3600_000;
       if (!r.google_reviews_cached_at) return true;
@@ -42,10 +53,22 @@ Deno.serve(async (req) => {
 
     const results: Array<{ id: string; ok: boolean; message?: string }> = [];
 
-    for (const row of eligible) {
+    const gbpEligible = (gbpRows || []).filter(
+      (g) => g.connection_status === "CONNECTED"
+    );
+
+    const targets: Array<{ id: string; fn: string }> = [
+      ...eligible.map((r) => ({ id: r.id as string, fn: "fetch-google-reviews" })),
+      ...gbpEligible.map((g) => ({
+        id: g.accommodation_id as string,
+        fn: "fetch-google-business-profile-reviews",
+      })),
+    ];
+
+    for (const row of targets) {
       try {
         const r = await fetch(
-          `${supabaseUrl}/functions/v1/fetch-google-reviews`,
+          `${supabaseUrl}/functions/v1/${row.fn}`,
           {
             method: "POST",
             headers: {

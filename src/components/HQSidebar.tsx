@@ -28,6 +28,7 @@ import {
   Sparkles,
   Share2,
 } from "lucide-react";
+import { Star } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +68,7 @@ const menuItems = [
   { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { title: "合作夥伴", url: "/hq?tab=partners", icon: Handshake, tab: "partners" },
   { title: "品牌夥伴", url: "/hq/brand-partners", icon: Sparkles, tab: "brand-partners" },
+  { title: "Google 商家串接", url: "/hq/integrations/google-business-profile", icon: Star, tab: "gbp-integration" },
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
@@ -199,7 +201,8 @@ export function HQSidebar() {
     if (roles.some((r) => OWNER_SETTLEMENT_ONLY_ROLES.includes(r))) {
       return OWNER_SETTLEMENT_ONLY_MENU;
     }
-    return menuItems;
+    // 平台級 Google 商家串接僅限 super_admin / admin
+    return menuItems.filter((i) => i.tab !== "gbp-integration");
   }, [roles]);
 
 
