@@ -1,14 +1,22 @@
-// Builds the Google OAuth authorization URL for one accommodation.
-// Fails closed when the platform OAuth app is not fully configured.
+// Builds the Google OAuth authorization URL for ONE accommodation, using that
+// accommodation's own Google Cloud OAuth client (BYO project).
+//
+// SECURITY CONTRACT
+//  - Strict admin only: true super_admin, or hotel_admin of this accommodation.
+//    website_content staff (editable / readonly / hidden) are DENIED — OAuth
+//    connection management is credential ownership, not content editing.
+//  - Authorization happens BEFORE any Vault read, state INSERT or URL build.
+//  - No global fallback: the platform config table and PLATFORM_SECRET_NAME are
+//    never read on this path.
 // deno-lint-ignore-file no-explicit-any
+import { isAccommodationAdmin, resolveCaller } from "../_shared/authz.ts";
 import {
   adminClient,
-  authorizeAccommodation,
   callbackRedirectUri,
   corsHeaders,
+  getAccommodationOAuthConfig,
   GOOGLE_AUTH_ENDPOINT,
   GOOGLE_SCOPE,
-  getPlatformConfig,
   jsonResp,
 } from "../_shared/gbp.ts";
 
@@ -47,22 +55,35 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const accommodationId: string | undefined = body.accommodationId ??
       body.accommodation_id;
-    if (!accommodationId) return jsonResp({ error: "accommodationId required" }, 400);
-
-    const auth = await authorizeAccommodation(req, accommodationId);
-    if (!auth.ok) return jsonResp({ error: auth.error }, auth.status);
-    if (!auth.ctx.userId) return jsonResp({ error: "Unauthorized" }, 401);
-
-    const admin = adminClient();
-    const cfg = await getPlatformConfig(admin);
-    if (
-      !cfg?.oauth_client_id ||
-      !cfg.client_secret_configured ||
-      cfg.api_access_status === "REJECTED"
-    ) {
-      return jsonResp({ error: "GBP_PLATFORM_NOT_CONFIGURED" }, 400);
+    if (!accommodationId) {
+      return jsonResp({ error: "accommodationId required" }, 400);
     }
 
+    // 1) JWT + caller resolution. 2) strict admin authorization.
+    const resolved = await resolveCaller(req);
+    if (!resolved.ok) return jsonResp({ error: resolved.error }, resolved.status);
+    if (!resolved.ctx.userId) return jsonResp({ error: "Unauthorized" }, 401);
+    if (!(await isAccommodationAdmin(resolved.ctx, accommodationId))) {
+      return jsonResp({ error: "Forbidden" }, 403);
+    }
+
+    const admin = adminClient();
+
+    // 3) Per-accommodation configuration readiness (no global fallback).
+    const cfg = await getAccommodationOAuthConfig(admin, accommodationId);
+    if (!cfg?.oauth_client_id || cfg.oauth_client_id.trim() === "") {
+      return jsonResp({ error: "GBP_ACCOMMODATION_NOT_CONFIGURED" }, 400);
+    }
+    if (!cfg.client_secret_configured) {
+      return jsonResp({ error: "GBP_ACCOMMODATION_SECRET_NOT_CONFIGURED" }, 400);
+    }
+    // Owner-declared Google review outcome; it does NOT prove Google approval.
+    // Google itself remains the authority at token-exchange time.
+    if (cfg.application_status !== "APPROVED") {
+      return jsonResp({ error: "GBP_ACCOMMODATION_API_NOT_APPROVED" }, 400);
+    }
+
+    // 4) Only now create the one-time PKCE state.
     const state = randomToken();
     const codeVerifier = randomToken(48);
     const challenge = base64Url(
@@ -77,7 +98,7 @@ Deno.serve(async (req) => {
       .from("google_business_profile_oauth_states")
       .insert({
         state,
-        user_id: auth.ctx.userId,
+        user_id: resolved.ctx.userId,
         accommodation_id: accommodationId,
         code_verifier: codeVerifier,
         return_path: returnUrl,
@@ -85,9 +106,11 @@ Deno.serve(async (req) => {
       });
     if (stateErr) return jsonResp({ error: "state_create_failed" }, 500);
 
+    // 5) Authorization URL built from THIS accommodation's client id, with the
+    //    single shared callback URI every tenant registers in their own client.
     const url = new URL(GOOGLE_AUTH_ENDPOINT);
-    url.searchParams.set("client_id", cfg.oauth_client_id);
-    url.searchParams.set("redirect_uri", cfg.redirect_uri || callbackRedirectUri());
+    url.searchParams.set("client_id", cfg.oauth_client_id.trim());
+    url.searchParams.set("redirect_uri", callbackRedirectUri());
     url.searchParams.set("response_type", "code");
     url.searchParams.set("scope", GOOGLE_SCOPE);
     url.searchParams.set("state", state);

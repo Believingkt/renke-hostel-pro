@@ -100,8 +100,11 @@ describe("Phase 2F — token expiry contract", () => {
   it("rotates the refresh token in place without leaving duplicates", () => {
     expect(shared).toContain("json.refresh_token !== refreshToken");
     expect(shared).toContain("await vaultSet(");
-    expect(callback).toContain("refreshTokenSecretName(stateRow.accommodation_id)");
-    expect(callback).toContain("if (!tokens.refreshToken) {");
+    expect(callback).toContain("refreshTokenSecretName(accommodationId)");
+    expect(callback).toContain("if (tokens.refreshToken) {");
+    // 無新 token 時保留既有，不留重複、也不刪舊
+    expect(callback).toContain("const existing = await vaultGet(admin, refreshKey)");
+    expect(callback).not.toContain("vaultDelete");
   });
 });
 

@@ -116,6 +116,92 @@ export async function authorizeAccommodation(
   return { ok: true, ctx: resolved.ctx };
 }
 
+/* ───────────────────────── PER-ACCOMMODATION OAUTH (P3) ─────────────────────
+ * Every accommodation brings its own Google Cloud project / OAuth client.
+ * There is NO global fallback: a missing per-accommodation credential is an
+ * error, never a reason to read the platform config or PLATFORM_SECRET_NAME.
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/** Vault key for one accommodation's OAuth client secret. Server-derived only. */
+export const accommodationClientSecretName = (accommodationId: string) =>
+  `google_business_profile_oauth_client_secret_${accommodationId}`;
+
+export interface AccommodationOAuthConfig {
+  accommodation_id: string;
+  oauth_client_id: string | null;
+  client_secret_configured: boolean;
+  application_status: string | null;
+  /** metadata only — never used as an OAuth credential */
+  project_id: string | null;
+  /** metadata only — never used as an OAuth credential */
+  project_number: string | null;
+}
+
+/**
+ * Read one accommodation's OAuth metadata. Reads ONLY
+ * `accommodation_google_business_profile` — never the global platform config.
+ */
+export async function getAccommodationOAuthConfig(
+  admin: any,
+  accommodationId: string,
+): Promise<AccommodationOAuthConfig | null> {
+  const { data } = await admin
+    .from("accommodation_google_business_profile")
+    .select(
+      "accommodation_id, oauth_client_id, client_secret_configured, application_status, project_id, project_number",
+    )
+    .eq("accommodation_id", accommodationId)
+    .maybeSingle();
+  return (data as AccommodationOAuthConfig) ?? null;
+}
+
+/**
+ * Read one accommodation's OAuth client secret from Vault.
+ * Returns null when the accommodation has not configured a secret — the caller
+ * must fail closed. Never falls back to the platform secret or another tenant.
+ */
+export async function getAccommodationOAuthClientSecret(
+  admin: any,
+  accommodationId: string,
+  cfg?: AccommodationOAuthConfig | null,
+): Promise<string | null> {
+  const config = cfg ?? await getAccommodationOAuthConfig(admin, accommodationId);
+  if (!config?.client_secret_configured) return null;
+  const secret = await vaultGet(
+    admin,
+    accommodationClientSecretName(accommodationId),
+  );
+  return secret && secret.length > 0 ? secret : null;
+}
+
+/**
+ * Strict OAuth-management authorization for an arbitrary user id (used by the
+ * callback, which has no JWT and must re-check the state's user). Allowed:
+ * global `super_admin`, or `super_admin` / `hotel_admin` of that accommodation.
+ * Staff of any permission level are denied.
+ */
+export async function isStrictAccommodationAdminUser(
+  admin: any,
+  userId: string | null | undefined,
+  accommodationId: string,
+): Promise<boolean> {
+  if (!userId) return false;
+  const { data, error } = await admin
+    .from("user_roles")
+    .select("role, accommodation_id")
+    .eq("user_id", userId)
+    .in("role", ["super_admin", "hotel_admin"]);
+  if (error) return false;
+  const rows = (data ?? []) as Array<
+    { role: string; accommodation_id: string | null }
+  >;
+  return rows.some((r) =>
+    r.role === "super_admin"
+      ? true
+      : r.accommodation_id === accommodationId
+  );
+}
+
 export interface TokenResult {
   accessToken: string;
   refreshToken?: string | null;
