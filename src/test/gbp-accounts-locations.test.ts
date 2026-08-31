@@ -82,8 +82,9 @@ describe("token tenant isolation / fail-closed", () => {
   });
 
   it("platform misconfiguration fails closed before any Google call", () => {
-    const cfgIdx = shared.indexOf("GBP_PLATFORM_NOT_CONFIGURED");
-    const fetchIdx = shared.indexOf("GOOGLE_TOKEN_ENDPOINT, {");
+    const fn = shared.slice(shared.indexOf("export async function getGoogleBusinessProfileAccessToken"));
+    const cfgIdx = fn.indexOf("GBP_PLATFORM_NOT_CONFIGURED");
+    const fetchIdx = fn.indexOf("GOOGLE_TOKEN_ENDPOINT, {");
     expect(cfgIdx).toBeGreaterThan(-1);
     expect(cfgIdx).toBeLessThan(fetchIdx);
   });
