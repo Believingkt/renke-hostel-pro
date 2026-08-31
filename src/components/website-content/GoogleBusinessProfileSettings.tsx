@@ -149,6 +149,7 @@ export const GoogleBusinessProfileSettings = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
   const handledCallback = useRef(false);
 
   const load = useCallback(async () => {
