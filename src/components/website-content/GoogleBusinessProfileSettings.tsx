@@ -239,12 +239,13 @@ export const GoogleBusinessProfileSettings = ({
     if (error || data?.error) {
       const code = data?.error ?? error?.message;
       toast.error(
-        code === "GBP_PLATFORM_NOT_CONFIGURED"
-          ? "平台 Google API 尚未完成設定，請聯絡總部管理者"
+        code === "GBP_ACCOMMODATION_NOT_CONFIGURED"
+          ? "本館 Google Cloud 設定尚未完成，請確認 OAuth Client ID 與 Client Secret 已設定。"
           : "無法開始授權：" + code,
       );
       return;
     }
+
     window.location.href = data.authorizationUrl;
   };
 
