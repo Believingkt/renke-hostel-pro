@@ -19,8 +19,10 @@ vi.mock("@/hooks/use-staff-permissions", () => ({
   useStaffPermissions: () => ({
     canEdit: () => state.canEdit,
     canView: () => true,
+    isStrictAdmin: state.isStrictAdmin,
   }),
 }));
+
 
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
