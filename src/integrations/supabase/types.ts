@@ -266,39 +266,69 @@ export type Database = {
           accommodation_id: string
           account_id: string | null
           application_status: string
+          candidate_review_count: number
           checklist: Json
           connection_status: string
           created_at: string
+          last_business_profile_sync_at: string | null
+          last_business_profile_sync_error: string | null
+          last_business_profile_sync_status: string | null
           location_id: string | null
           oauth_client_id: string | null
+          oauth_connected_at: string | null
           project_id: string | null
           project_number: string | null
+          review_source: string
+          selected_account_name: string | null
+          selected_location_name: string | null
+          selected_location_title: string | null
+          sync_target: string
           updated_at: string
         }
         Insert: {
           accommodation_id: string
           account_id?: string | null
           application_status?: string
+          candidate_review_count?: number
           checklist?: Json
           connection_status?: string
           created_at?: string
+          last_business_profile_sync_at?: string | null
+          last_business_profile_sync_error?: string | null
+          last_business_profile_sync_status?: string | null
           location_id?: string | null
           oauth_client_id?: string | null
+          oauth_connected_at?: string | null
           project_id?: string | null
           project_number?: string | null
+          review_source?: string
+          selected_account_name?: string | null
+          selected_location_name?: string | null
+          selected_location_title?: string | null
+          sync_target?: string
           updated_at?: string
         }
         Update: {
           accommodation_id?: string
           account_id?: string | null
           application_status?: string
+          candidate_review_count?: number
           checklist?: Json
           connection_status?: string
           created_at?: string
+          last_business_profile_sync_at?: string | null
+          last_business_profile_sync_error?: string | null
+          last_business_profile_sync_status?: string | null
           location_id?: string | null
           oauth_client_id?: string | null
+          oauth_connected_at?: string | null
           project_id?: string | null
           project_number?: string | null
+          review_source?: string
+          selected_account_name?: string | null
+          selected_location_name?: string | null
+          selected_location_title?: string | null
+          sync_target?: string
           updated_at?: string
         }
         Relationships: [
@@ -306,6 +336,65 @@ export type Database = {
             foreignKeyName: "accommodation_google_business_profile_accommodation_id_fkey"
             columns: ["accommodation_id"]
             isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_google_business_reviews: {
+        Row: {
+          accommodation_id: string
+          account_name: string | null
+          comment: string | null
+          create_time: string | null
+          id: string
+          location_name: string | null
+          raw_metadata: Json | null
+          review_id: string | null
+          review_name: string
+          reviewer_name: string | null
+          reviewer_photo_url: string | null
+          star_rating: number | null
+          synced_at: string
+          update_time: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          account_name?: string | null
+          comment?: string | null
+          create_time?: string | null
+          id?: string
+          location_name?: string | null
+          raw_metadata?: Json | null
+          review_id?: string | null
+          review_name: string
+          reviewer_name?: string | null
+          reviewer_photo_url?: string | null
+          star_rating?: number | null
+          synced_at?: string
+          update_time?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          account_name?: string | null
+          comment?: string | null
+          create_time?: string | null
+          id?: string
+          location_name?: string | null
+          raw_metadata?: Json | null
+          review_id?: string | null
+          review_name?: string
+          reviewer_name?: string | null
+          reviewer_photo_url?: string | null
+          star_rating?: number | null
+          synced_at?: string
+          update_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_google_business_reviews_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
             referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
           },
@@ -4164,6 +4253,83 @@ export type Database = {
           url?: string | null
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      google_business_profile_oauth_states: {
+        Row: {
+          accommodation_id: string
+          code_verifier: string | null
+          created_at: string
+          expires_at: string
+          return_path: string | null
+          state: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          accommodation_id: string
+          code_verifier?: string | null
+          created_at?: string
+          expires_at: string
+          return_path?: string | null
+          state: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          accommodation_id?: string
+          code_verifier?: string | null
+          created_at?: string
+          expires_at?: string
+          return_path?: string | null
+          state?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_business_profile_oauth_states_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      google_business_profile_platform_config: {
+        Row: {
+          api_access_status: string
+          client_secret_configured: boolean
+          created_at: string
+          id: string
+          oauth_client_id: string | null
+          project_id: string | null
+          project_number: string | null
+          redirect_uri: string | null
+          updated_at: string
+        }
+        Insert: {
+          api_access_status?: string
+          client_secret_configured?: boolean
+          created_at?: string
+          id?: string
+          oauth_client_id?: string | null
+          project_id?: string | null
+          project_number?: string | null
+          redirect_uri?: string | null
+          updated_at?: string
+        }
+        Update: {
+          api_access_status?: string
+          client_secret_configured?: boolean
+          created_at?: string
+          id?: string
+          oauth_client_id?: string | null
+          project_id?: string | null
+          project_number?: string | null
+          redirect_uri?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -13353,6 +13519,12 @@ export type Database = {
         Returns: number
       }
       ensure_trip_share_slug: { Args: { p_trip_id: string }; Returns: string }
+      gbp_vault_delete: { Args: { p_name: string }; Returns: undefined }
+      gbp_vault_get: { Args: { p_name: string }; Returns: string }
+      gbp_vault_set: {
+        Args: { p_name: string; p_value: string }
+        Returns: undefined
+      }
       generate_order_number: { Args: never; Returns: string }
       get_adjusted_room_inventory: {
         Args: {
