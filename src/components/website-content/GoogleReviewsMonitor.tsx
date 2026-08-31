@@ -469,22 +469,27 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  按下「立即同步」以從 Google 手動抓取評論內容 · 同步來源：Google Places API（最多 5 則）
+                  {reviewSource === "BUSINESS_PROFILE"
+                    ? "目前同步來源：Google Business Profile · 請至下方「Google Business Profile」區塊同步評論"
+                    : "按下「立即同步」以從 Google 手動抓取評論內容 · 同步來源：Google Places API（最多 5 則）"}
                 </p>
 
               </div>
             </div>
-            <Button
-              type="button"
-              onClick={handleSync}
-              disabled={syncing || !placeId}
-              aria-busy={syncing}
-              aria-live="polite"
-              className="gap-2 min-w-[130px]"
-            >
-              <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-              {syncing ? "同步中,請稍候..." : "立即同步"}
-            </Button>
+            {reviewSource === "PLACES" && (
+              <Button
+                type="button"
+                onClick={handleSync}
+                disabled={syncing || !placeId}
+                aria-busy={syncing}
+                aria-live="polite"
+                className="gap-2 min-w-[130px]"
+              >
+                <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
+                {syncing ? "同步中,請稍候..." : "立即同步"}
+              </Button>
+            )}
+
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
