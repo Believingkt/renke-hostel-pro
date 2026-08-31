@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  COMMISSION_EXCLUSION_REVIEW_KIND,
+  useCommissionExclusionReviewNotifications,
+} from "@/hooks/use-commission-exclusion-review-notifications";
 import { useNavigate } from "react-router-dom";
 import {
   Bell,
@@ -107,6 +111,8 @@ export function TeamSettingsBell() {
 
 
   const { prefs, update } = useNotificationPrefs(userId, roles);
+  /** AM 設定完增值服務抽成後，提醒管理員審查（綠燈） */
+  const reviewItems = useCommissionExclusionReviewNotifications(roles);
 
   const settingsItems = useMemo<TeamNotification[]>(() => {
     const blocked = new Set(blockedChecks);
@@ -193,10 +199,10 @@ export function TeamSettingsBell() {
   }, [ragicRows, bonusVenueRows, bonusGlobalRows, blockedChecks, roles]);
 
   const allItems = useMemo<TeamNotification[]>(() => {
-    const merged = [...settingsItems, ...kolItems];
+    const merged = [...settingsItems, ...kolItems, ...reviewItems];
     const weight = (i: TeamNotification) => (i.severity === "error" ? 0 : 1);
     return merged.sort((a, b) => weight(a) - weight(b));
-  }, [settingsItems, kolItems]);
+  }, [settingsItems, kolItems, reviewItems]);
 
   const items = useMemo(
     () =>
@@ -866,9 +872,11 @@ export function TeamSettingsBell() {
                                       {!read && (
                                         <span
                                           className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                                            item.severity === "error"
-                                              ? "bg-destructive"
-                                              : "bg-amber-500"
+                                            item.kind === COMMISSION_EXCLUSION_REVIEW_KIND
+                                              ? "bg-emerald-500"
+                                              : item.severity === "error"
+                                                ? "bg-destructive"
+                                                : "bg-amber-500"
                                           }`}
                                         />
                                       )}
@@ -878,7 +886,11 @@ export function TeamSettingsBell() {
                                         }
                                         className="text-[11px] font-normal"
                                       >
-                                        {item.severity === "error" ? "嚴重" : "建議"}
+                                        {item.kind === COMMISSION_EXCLUSION_REVIEW_KIND
+                                          ? "已設定・待審查"
+                                          : item.severity === "error"
+                                            ? "嚴重"
+                                            : "建議"}
                                       </Badge>
                                       <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
                                         {CATEGORY_LABEL[item.category]}

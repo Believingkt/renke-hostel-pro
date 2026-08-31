@@ -3,13 +3,16 @@
  * MIRROR of src/lib/commissionFormulaVersion.ts —— contract 必須完全相同
  * （同一組 fixtures 有 parity 測試）。因 Deno / Vite build 邊界不同，刻意保留鏡像實作。
  *
- * cutoff：2026-08-01 00:00 Asia/Taipei，判斷 SoT = orders.order_date。
+ * LEGACY（< 2026-08-01 台北日）：final − custom addon
+ * V2    （2026-08-01 ~ 09-09）：再扣 notes 現場加購
+ * V3    （>= 2026-09-10）      ：notes 現場加購一律扣；custom addon 只扣館別設定為排除的項目
  * order_date 缺失／不可解析 → fail-safe LEGACY。
  */
 
-export type CommissionFormulaVersion = "LEGACY" | "V2";
+export type CommissionFormulaVersion = "LEGACY" | "V2" | "V3";
 
 export const COMMISSION_V2_CUTOFF_TAIPEI_DATE = "2026-08-01";
+export const COMMISSION_V3_CUTOFF_TAIPEI_DATE = "2026-09-10";
 
 const TZ = "Asia/Taipei";
 
@@ -30,5 +33,6 @@ export function getCommissionFormulaVersion(order: {
 }): CommissionFormulaVersion {
   const date = taipeiCalendarDate(order?.order_date ?? null);
   if (!date) return "LEGACY";
+  if (date >= COMMISSION_V3_CUTOFF_TAIPEI_DATE) return "V3";
   return date >= COMMISSION_V2_CUTOFF_TAIPEI_DATE ? "V2" : "LEGACY";
 }

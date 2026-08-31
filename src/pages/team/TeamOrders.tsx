@@ -48,6 +48,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { getCommissionStatus, getCommissionStatusShortLabel } from "@/lib/commissionStatus";
 import { extractAddonTotal } from "@/lib/ownerSettlement";
 import { commissionBaseFromOrder, getCommissionFormulaVersion } from "@/lib/ownerExempt";
+import { useCommissionExclusionResolver } from "@/hooks/use-commission-exclusion";
 import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
 
 interface Member {
@@ -124,6 +125,8 @@ const NONE = "__none__";
 
 export default function TeamOrders() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
+  // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+  const exclRule = useCommissionExclusionResolver(orders.map((o) => (o as any).accommodation_id));
   const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
   const [closers, setClosers] = useState<Member[]>([]);
   const [videos, setVideos] = useState<Member[]>([]);
@@ -788,7 +791,7 @@ export default function TeamOrders() {
       deposit_confirm_date: o.meta?.deposit_confirm_date ?? null,
       team_commission_price:
         o.meta?.team_commission_price ??
-        commissionBaseFromOrder(o as any),
+        commissionBaseFromOrder(o as any, exclRule(o.accommodation_id, o.order_date)),
       team_commission_price_is_manual: o.meta?.team_commission_price_is_manual ?? false,
       commission_price_confirmed_by: o.meta?.commission_price_confirmed_by ?? null,
       commission_price_confirmed_at: o.meta?.commission_price_confirmed_at ?? null,
@@ -815,7 +818,7 @@ export default function TeamOrders() {
       // Decide whether 分潤基準金額 changed → bump confirmed_by / confirmed_at
       const prevTcp =
         editOrder.meta?.team_commission_price ??
-        commissionBaseFromOrder(editOrder as any);
+        commissionBaseFromOrder(editOrder as any, exclRule(editOrder.accommodation_id, editOrder.order_date));
       const newTcpRaw = form.team_commission_price;
       const newTcp =
         newTcpRaw === null || newTcpRaw === undefined || (newTcpRaw as any) === ""
@@ -1227,7 +1230,7 @@ export default function TeamOrders() {
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-xs">
                         {(() => {
-                          const autoBase = commissionBaseFromOrder(o as any);
+                          const autoBase = commissionBaseFromOrder(o as any, exclRule(o.accommodation_id, o.order_date));
                           const status = getCommissionStatus({
                             checkOutDate: o.check_out_date,
                             teamCommissionPrice: o.meta?.team_commission_price ?? autoBase,
@@ -1532,10 +1535,10 @@ export default function TeamOrders() {
                   // 顯示用加購總額須與 versioned commission base 口徑一致
                   const addonTotal =
                     extractAddonTotal((editOrder as any).custom_addon_details) +
-                    (getCommissionFormulaVersion(editOrder as any) === "V2"
+                    (getCommissionFormulaVersion(editOrder as any) !== "LEGACY"
                       ? extraOnSiteAddonFromNotes((editOrder as any).notes)
                       : 0);
-                  const autoBase = commissionBaseFromOrder(editOrder as any);
+                  const autoBase = commissionBaseFromOrder(editOrder as any, exclRule(editOrder.accommodation_id, editOrder.order_date));
                   const isManual = !!form.team_commission_price_is_manual;
 
                   if (isEditing && canEdit) {

@@ -127,6 +127,9 @@ export default function OwnerSettlementSettings({
   const [saving, setSaving] = useState(false);
   
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
+  /** 增值服務抽成設定的審查狀態（最新一版） */
+  const [exclusionReviewedAt, setExclusionReviewedAt] = useState<string | null>(null);
+  const [markingReviewed, setMarkingReviewed] = useState(false);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
   const [accName, setAccName] = useState<string>("");
   const [usingFallback, setUsingFallback] = useState(false);
@@ -310,6 +313,7 @@ export default function OwnerSettlementSettings({
         ruleRow = data ?? null;
       }
       setCurrentRuleId(ruleRow?.id ?? null);
+      setExclusionReviewedAt((ruleRow as any)?.commission_exclusion_reviewed_at ?? null);
       setHistoryOpen(false);
       setHistoryLoaded(false);
       setHistoryRows([]);
@@ -529,8 +533,43 @@ export default function OwnerSettlementSettings({
     setSaving(false);
     setUsingFallback(false);
     setRuleCount((c) => c + 1);
+    // 新版本尚未審查 → 小鈴鐺會提醒管理員審查
+    setExclusionReviewedAt(null);
     if (historyLoaded) loadHistory();
     toast.success(`已儲存「${accName}」的設定`);
+  };
+
+  /** 管理員審查：把最新一版的增值服務抽成設定標記為已審查 */
+  const markExclusionReviewed = async () => {
+    if (!currentAccommodationId) return;
+    setMarkingReviewed(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: latest } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("id")
+      .eq("accommodation_id", currentAccommodationId)
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!latest?.id) {
+      setMarkingReviewed(false);
+      toast.error("找不到可審查的設定版本");
+      return;
+    }
+    const now = new Date().toISOString();
+    const { data: updated, error } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .update({ commission_exclusion_reviewed_at: now, commission_exclusion_reviewed_by: user?.id ?? null })
+      .eq("id", latest.id)
+      .select("id");
+    setMarkingReviewed(false);
+    if (error || !updated || updated.length === 0) {
+      toast.error(`標記失敗：${error?.message ?? "沒有可更新的資料（權限不足）"}`);
+      return;
+    }
+    setExclusionReviewedAt(now);
+    toast.success("已標記為已審查");
   };
 
   /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
@@ -777,13 +816,37 @@ export default function OwnerSettlementSettings({
         <CardHeader>
           <CardTitle>不抽成的增值服務</CardTitle>
           <CardDescription>
-            勾選＝不抽成，未勾選＝列入抽成。
+            勾選＝不抽成，未勾選＝列入抽成。未設定任何項目＝全部增值服務都列入抽成。
             <br />
-            此設定僅影響「業主月結」的「平台服務費」計算，不影響「團隊佣金」（星探／成交組／KOL 分潤一律排除所有增值服務，不受此設定影響）。
+            此設定同時影響「業主月結」的平台服務費，以及「團隊獎金」（星探／成交組／KOL 分潤）的分潤基準金額。
+            <br />
+            團隊獎金自 <strong>2026-09-10 成交日</strong>起適用本設定；2026-09-10 之前成交的訂單維持原本算法（分潤基準一律排除所有增值服務），歷史數字不變。
+            <br />
+            備註內的「額外現場加購金額」自 2026-08-01 成交日起一律不列入分潤基準，不受本設定影響。
           </CardDescription>
 
         </CardHeader>
         <CardContent className="space-y-4">
+          {currentAccommodationId && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
+              <span className={exclusionReviewedAt ? "text-emerald-600" : "text-muted-foreground"}>
+                {exclusionReviewedAt
+                  ? `已審查：${exclusionReviewedAt.slice(0, 10)}`
+                  : "尚未經管理員審查（團隊小鈴鐺會提醒審查）"}
+              </span>
+              {!exclusionReviewedAt && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={markingReviewed}
+                  onClick={markExclusionReviewed}
+                >
+                  標記已審查
+                </Button>
+              )}
+            </div>
+          )}
           {!currentAccommodationId && (
             <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿不抽成的增值服務。</p>
           )}

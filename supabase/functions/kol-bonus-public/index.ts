@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { commissionBaseFromOrder, extractAddonTotal } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver, type CommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,8 +17,16 @@ const INTERNAL_ROLES = ["super_admin", "hotel_admin", "scout_manager", "scout", 
  *      KOL 分潤只看訂單是否使用該 KOL 的折扣碼。
  */
 function resolveCommissionBase(
-  order: { final_price?: number | null; total_price?: number | null; custom_addon_details?: unknown; notes?: string | null },
+  order: {
+    final_price?: number | null;
+    total_price?: number | null;
+    custom_addon_details?: unknown;
+    notes?: string | null;
+    order_date?: string | null;
+    accommodation_id?: string | null;
+  },
   manualOverride: number | null | undefined,
+  exclRule?: CommissionExclusionResolver,
 ) {
   const gross = Number(order.final_price ?? order.total_price ?? 0) || 0;
   const addonTotal = extractAddonTotal(order.custom_addon_details);
@@ -27,7 +36,7 @@ function resolveCommissionBase(
   // final_price 缺值時退回 total_price，再扣加購
   const base = order.final_price === null || order.final_price === undefined
     ? Math.max(0, gross - addonTotal)
-    : commissionBaseFromOrder(order as any);
+    : commissionBaseFromOrder(order as any, exclRule?.(order.accommodation_id, order.order_date) ?? null);
   return { gross, addonTotal, base, manual: false };
 }
 
@@ -36,7 +45,7 @@ const ORDER_SELECT =
 
 type EnrichedOrder = Record<string, unknown>;
 
-function enrich(rows: any[], metaMap: Map<string, number | null>) {
+function enrich(rows: any[], metaMap: Map<string, number | null>, exclRule?: CommissionExclusionResolver) {
   const orders: EnrichedOrder[] = [];
   let nonTwdCount = 0;
   let addonExcludedTotal = 0;
@@ -47,7 +56,7 @@ function enrich(rows: any[], metaMap: Map<string, number | null>) {
       nonTwdCount += 1;
       continue;
     }
-    const { gross, addonTotal, base, manual } = resolveCommissionBase(o, metaMap.get(o.id));
+    const { gross, addonTotal, base, manual } = resolveCommissionBase(o, metaMap.get(o.id), exclRule);
     if (!manual) addonExcludedTotal += addonTotal;
     orders.push({
       id: o.id,
@@ -175,7 +184,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       if (ordErr) throw ordErr;
 
       const metaMap = await fetchMetaMap(admin, (rows ?? []).map((o: any) => o.id));
-      const { orders, nonTwdCount, addonExcludedTotal } = enrich(rows ?? [], metaMap);
+      const exclRule = await buildCommissionExclusionResolver(admin, (rows ?? []).map((o: any) => o.accommodation_id));
+      const { orders, nonTwdCount, addonExcludedTotal } = enrich(rows ?? [], metaMap, exclRule);
       await attachAccommodationNames(admin, orders);
 
 
@@ -299,7 +309,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
     );
 
     const metaMap = await fetchMetaMap(admin, filteredOrders.map((o: any) => o.id));
-    const { orders, nonTwdCount, addonExcludedTotal } = enrich(filteredOrders, metaMap);
+    const exclRule = await buildCommissionExclusionResolver(admin, filteredOrders.map((o: any) => o.accommodation_id));
+    const { orders, nonTwdCount, addonExcludedTotal } = enrich(filteredOrders, metaMap, exclRule);
     await attachAccommodationNames(admin, orders);
 
 

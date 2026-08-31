@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
 import { commissionBaseFromOrder } from "@/lib/ownerExempt";
+import { buildCommissionExclusionResolver } from "@/lib/commissionExclusionRule";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
 import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
@@ -342,10 +343,16 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setDisplayCurrency((existingMeta as any)?.display_currency ?? null);
       const fp = orderRowTyped?.final_price ?? null;
       setFinalPrice(fp);
+      const exclRule = await buildCommissionExclusionResolver(supabase as any, [
+        orderRowTyped?.accommodation_id ?? null,
+      ]);
       const autoTcp =
         fp === null
           ? null
-          : commissionBaseFromOrder(orderRow as any);
+          : commissionBaseFromOrder(
+            orderRow as any,
+            exclRule((orderRow as any)?.accommodation_id, (orderRow as any)?.order_date),
+          );
       setAutoTeamCommissionPrice(autoTcp);
 
       // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)

@@ -143,7 +143,8 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     name: "成交組分潤",
     category: "closer",
     formula: "訂單分潤基準金額 × 成交組費率 × 門檻係數",
-    basis: "以訂單為單位，分潤基準金額由系統自動計算（扣除不列入抽成的增值服務）",
+    basis:
+      "以訂單為單位，分潤基準金額由系統自動計算（2026-09-10 成交日起僅扣除該館設定為不列入抽成的增值服務，未設定＝全部列入；備註現場加購一律扣除）",
     gates: [GATE_PARTNERSHIP_CLOSER, GATE_STATUS, GATE_THRESHOLD, GATE_ACTIVE],
     usesVenueRevenue: false,
     anchorId: "bonus-closer",

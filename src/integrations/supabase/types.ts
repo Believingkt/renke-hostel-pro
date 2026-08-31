@@ -8779,6 +8779,8 @@ export type Database = {
           charges_marketing_fee: boolean
           commission_excluded_addon_ids: string[]
           commission_excluded_addon_types: string[]
+          commission_exclusion_reviewed_at: string | null
+          commission_exclusion_reviewed_by: string | null
           commission_rate: number
           commission_threshold: number
           created_at: string
@@ -8798,6 +8800,8 @@ export type Database = {
           charges_marketing_fee?: boolean
           commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
+          commission_exclusion_reviewed_at?: string | null
+          commission_exclusion_reviewed_by?: string | null
           commission_rate: number
           commission_threshold?: number
           created_at?: string
@@ -8817,6 +8821,8 @@ export type Database = {
           charges_marketing_fee?: boolean
           commission_excluded_addon_ids?: string[]
           commission_excluded_addon_types?: string[]
+          commission_exclusion_reviewed_at?: string | null
+          commission_exclusion_reviewed_by?: string | null
           commission_rate?: number
           commission_threshold?: number
           created_at?: string

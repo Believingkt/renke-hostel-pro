@@ -17,6 +17,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
 
@@ -185,6 +186,8 @@ serve(async (req) => {
 
     // 4) 與正式快照相同的三道 gate
     const isExempt = await buildExemptResolver(supabase, accIds);
+    // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+    const exclRule = await buildCommissionExclusionResolver(supabase, accIds);
     // 4b) 合作期間 gate：無合作期間／已暫停（bonus_policy='none'）的館別不採計
     const inPartnership = await buildPartnershipResolver(supabase, accIds);
     // 4c) 月營收抽成門檻 gate：未達門檻 → factor = 0（不採計）
@@ -215,7 +218,7 @@ serve(async (req) => {
       const tcp = meta.team_commission_price;
       const finalPrice = Number(o.final_price ?? 0);
       const base = tcp == null || Number(tcp) === finalPrice
-        ? commissionBaseFromOrder(o)
+        ? commissionBaseFromOrder(o, exclRule(o.accommodation_id as string, o.order_date as string))
         : Number(tcp);
 
       const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") * factor : 0;
