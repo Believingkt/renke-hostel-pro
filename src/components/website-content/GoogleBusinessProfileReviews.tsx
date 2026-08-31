@@ -111,10 +111,9 @@ export const GoogleBusinessProfileReviews = ({
     const { data, error } = await supabase
       .from("accommodation_info")
       .update({
-        google_reviews_cache: {
-          source: "BUSINESS_PROFILE",
-          reviews: payload.reviews,
-        },
+        google_reviews_cache: JSON.parse(
+          JSON.stringify({ source: "BUSINESS_PROFILE", reviews: payload.reviews }),
+        ),
         google_reviews_cached_at: new Date().toISOString(),
         google_reviews_selected_keys: payload.selectedKeys,
       })
