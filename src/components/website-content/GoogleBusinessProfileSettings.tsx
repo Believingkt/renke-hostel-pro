@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ExternalLink, ShieldCheck, Info, Lock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 /**
  * PHASE 1：Google Business Profile API 串接「準備設定」UI。
@@ -50,14 +53,82 @@ const FUTURE_CAPABILITIES = [
   "不再受 Places API 5 則限制",
 ];
 
-export const GoogleBusinessProfileSettings = () => {
+export const GoogleBusinessProfileSettings = ({
+  accommodationId,
+}: {
+  accommodationId: string;
+}) => {
+  const { canEdit } = useStaffPermissions();
+  const readOnly = !canEdit("website_content");
+
   const [projectId, setProjectId] = useState("");
   const [clientId, setClientId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [locationId, setLocationId] = useState("");
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [status, setStatus] = useState<BusinessProfileConnectionStatus>("NOT_CONFIGURED");
+  const [saving, setSaving] = useState(false);
 
-  const status: BusinessProfileConnectionStatus = "NOT_CONFIGURED";
+  const load = useCallback(async () => {
+    if (!accommodationId) return;
+    const { data, error } = await supabase
+      .from("accommodation_google_business_profile")
+      .select(
+        "project_id, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
+      )
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle();
+
+    if (error) {
+      toast.error("讀取 Business Profile 設定失敗：" + error.message);
+      return;
+    }
+    // 無資料列 = 初始空狀態，不視為錯誤
+    setProjectId(data?.project_id ?? "");
+    setClientId(data?.oauth_client_id ?? "");
+    setAccountId(data?.account_id ?? "");
+    setLocationId(data?.location_id ?? "");
+    setStatus(
+      (data?.connection_status as BusinessProfileConnectionStatus) ?? "NOT_CONFIGURED"
+    );
+    setChecked((data?.checklist as Record<string, boolean>) ?? {});
+  }, [accommodationId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const handleSave = async () => {
+    if (!accommodationId || readOnly) return;
+    setSaving(true);
+    const { data, error } = await supabase
+      .from("accommodation_google_business_profile")
+      .upsert(
+        {
+          accommodation_id: accommodationId,
+          project_id: projectId.trim() || null,
+          oauth_client_id: clientId.trim() || null,
+          account_id: accountId.trim() || null,
+          location_id: locationId.trim() || null,
+          connection_status: status,
+          checklist: checked,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "accommodation_id" }
+      )
+      .select("accommodation_id");
+
+    setSaving(false);
+    if (error) {
+      toast.error("儲存失敗：" + error.message);
+      return;
+    }
+    if (!data || data.length === 0) {
+      toast.error("儲存失敗：沒有任何資料被寫入（權限不足）");
+      return;
+    }
+    toast.success("已儲存 Business Profile 設定");
+  };
 
   return (
     <Card>
@@ -107,6 +178,7 @@ export const GoogleBusinessProfileSettings = () => {
             <Label htmlFor="bp-project-id">Google Cloud Project ID</Label>
             <Input
               id="bp-project-id"
+              disabled={readOnly}
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
               placeholder="例：renke-google-reviews"
@@ -117,6 +189,7 @@ export const GoogleBusinessProfileSettings = () => {
             <Label htmlFor="bp-client-id">OAuth Client ID</Label>
             <Input
               id="bp-client-id"
+              disabled={readOnly}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               placeholder="例：1234567890-xxxx.apps.googleusercontent.com"
@@ -127,6 +200,7 @@ export const GoogleBusinessProfileSettings = () => {
             <Label htmlFor="bp-account-id">Google Business Account ID</Label>
             <Input
               id="bp-account-id"
+              disabled={readOnly}
               value={accountId}
               onChange={(e) => setAccountId(e.target.value)}
               placeholder="例：accounts/1234567890"
@@ -137,6 +211,7 @@ export const GoogleBusinessProfileSettings = () => {
             <Label htmlFor="bp-location-id">Google Business Location ID</Label>
             <Input
               id="bp-location-id"
+              disabled={readOnly}
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
               placeholder="例：locations/1234567890"
@@ -145,10 +220,16 @@ export const GoogleBusinessProfileSettings = () => {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground flex items-start gap-2">
-          <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-          本階段僅為串接準備，欄位尚未連接資料庫儲存（等設定資料表確認後開放儲存）。
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="button" onClick={handleSave} disabled={saving || readOnly}>
+            {saving ? "儲存中..." : "儲存設定"}
+          </Button>
+          <p className="text-xs text-muted-foreground flex items-start gap-2">
+            <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            本階段僅儲存非敏感設定與申請進度，不會呼叫任何 Google API。
+            {readOnly && "（目前為唯讀權限，無法儲存）"}
+          </p>
+        </div>
 
         {/* Redirect URI / Secret / 授權狀態 */}
         <div className="space-y-3">
@@ -188,6 +269,7 @@ export const GoogleBusinessProfileSettings = () => {
                 className="flex items-start gap-2 rounded-lg border p-3 text-sm cursor-pointer"
               >
                 <Checkbox
+                  disabled={readOnly}
                   checked={!!checked[item]}
                   onCheckedChange={(v) =>
                     setChecked((prev) => ({ ...prev, [item]: v === true }))

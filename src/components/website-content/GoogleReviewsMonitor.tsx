@@ -413,7 +413,7 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
       <GoogleReviewsSettings accommodationId={accommodationId} />
 
       {/* Google Business Profile API 串接準備(PHASE 1：僅設定與狀態) */}
-      <GoogleBusinessProfileSettings />
+      <GoogleBusinessProfileSettings accommodationId={accommodationId} />
 
 
 
