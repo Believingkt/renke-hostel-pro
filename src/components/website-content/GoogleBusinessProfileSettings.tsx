@@ -626,8 +626,8 @@ export const GoogleBusinessProfileSettings = ({
 
         {status === "TOKEN_EXPIRED" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Google 授權已失效，請重新授權 Google 商家。重新授權即可恢復同步，不需要重新填寫
-            Account ID 或 Location ID。
+            {"Google 授權已失效，請重新授權 Google 商家。重新授權即可恢復同步，不需要重新填寫任何 ID。"}
+
             {!canManageCredentials && "（重新授權需由館主管理者操作）"}
           </div>
         )}
