@@ -408,8 +408,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   return (
     <div className="space-y-6">
-      {/* 設定區塊(Google 評論串接 + 摘要) */}
+      {/* 設定區塊(Google Places 基本串接 + 摘要) */}
       <GoogleReviewsSettings accommodationId={accommodationId} />
+
+      {/* Google Business Profile API 串接準備(PHASE 1：僅設定與狀態) */}
+      <GoogleBusinessProfileSettings />
+
+
 
       {/* 狀態總覽 */}
       <Card>
