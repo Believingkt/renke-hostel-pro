@@ -80,7 +80,8 @@ export const BONUS_SETTING_IMPACTS: Record<BonusSettingKey, BonusSettingImpact> 
   excluded_addons: {
     key: "excluded_addons",
     label: "不列入抽成的增值服務",
-    role: "從營收與分潤基準金額中扣除指定的加購項目。",
+    role:
+      "從營收與分潤基準金額中扣除該館勾選為「不列入抽成」的加購項目（各館獨立設定，未設定＝全部列入抽成）。團隊獎金自 2026-09-10 成交日起正式生效（V3），之前成交的訂單不算 V3，維持原算法（排除所有增值服務）；備註「額外現場加購金額」一律排除。",
     affects: [
       ...TEAM_REVENUE_BONUSES,
       "closer",
