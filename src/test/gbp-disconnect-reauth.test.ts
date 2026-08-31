@@ -123,7 +123,7 @@ describe("Phase 2F — auto-sync guard", () => {
   });
 
   it("never falls back to Places for BUSINESS_PROFILE accommodations", () => {
-    expect(autoSync).toContain("if (gbpIds.has(r.id)) return false;");
+    expect(autoSync).toContain('PLACES_SCHEDULED_SYNC = "DISABLED"');
   });
 
   it("does not write frontend caches itself", () => {
