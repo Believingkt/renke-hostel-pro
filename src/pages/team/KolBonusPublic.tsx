@@ -540,9 +540,8 @@ export default function KolBonusPublic() {
                 小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜分潤基準合計 {fmtMoney(completedTotals.base)}｜總分潤 <BoostedAmount amount={completedTotals.commission} multiplier={commissionMultiplier} />
               </div>
               <p className="text-xs text-muted-foreground">
-                分潤基準＝訂單金額扣除加購項目（如另有議定之基準金額則以該金額為準）。
                 {totals.addonExcludedTotal > 0
-                  ? `　本帳號累計已扣除加購項目 ${fmtMoney(totals.addonExcludedTotal)}。`
+                  ? `本帳號累計已扣除加購項目 ${fmtMoney(totals.addonExcludedTotal)}。`
                   : ""}
                 {totals.nonTwdCount > 0
                   ? `　另有 ${totals.nonTwdCount} 筆非台幣訂單未列入分潤計算。`
