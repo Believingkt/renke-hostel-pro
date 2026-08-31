@@ -81,13 +81,15 @@ describe("token tenant isolation / fail-closed", () => {
     expect(shared).not.toMatch(/refreshToken\s*\|\|\s*clientSecret/);
   });
 
-  it("platform misconfiguration fails closed before any Google call", () => {
+  it("per-accommodation misconfiguration fails closed before any Google call", () => {
     const fn = shared.slice(shared.indexOf("export async function getGoogleBusinessProfileAccessToken"));
-    const cfgIdx = fn.indexOf("GBP_PLATFORM_NOT_CONFIGURED");
+    const cfgIdx = fn.indexOf("GBP_ACCOMMODATION_NOT_CONFIGURED");
     const fetchIdx = fn.indexOf("GOOGLE_TOKEN_ENDPOINT, {");
     expect(cfgIdx).toBeGreaterThan(-1);
     expect(cfgIdx).toBeLessThan(fetchIdx);
+    expect(fn).not.toContain("GBP_PLATFORM_NOT_CONFIGURED");
   });
+
 });
 
 describe("no secret exposure", () => {
