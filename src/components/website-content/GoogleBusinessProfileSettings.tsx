@@ -519,8 +519,16 @@ export const GoogleBusinessProfileSettings = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>確定解除 Google 商家連線？</AlertDialogTitle>
-            <AlertDialogDescription>
-              解除後將停止 Business Profile 自動同步，現有前台評論不會被刪除，候選評論也會保留。
+            <AlertDialogDescription asChild>
+              <div className="space-y-1 text-sm">
+                <p>解除 Google Business Profile 連線後：</p>
+                <ul className="list-disc space-y-0.5 pl-5">
+                  <li>將停止新的 Business Profile 評論同步</li>
+                  <li>現有候選評論不會被刪除</li>
+                  <li>已套用至網站的評論不會消失</li>
+                  <li>可隨時重新連線</li>
+                </ul>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
