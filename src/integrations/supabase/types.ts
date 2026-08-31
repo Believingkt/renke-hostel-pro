@@ -272,6 +272,7 @@ export type Database = {
           location_id: string | null
           oauth_client_id: string | null
           project_id: string | null
+          project_number: string | null
           updated_at: string
         }
         Insert: {
@@ -284,6 +285,7 @@ export type Database = {
           location_id?: string | null
           oauth_client_id?: string | null
           project_id?: string | null
+          project_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -296,6 +298,7 @@ export type Database = {
           location_id?: string | null
           oauth_client_id?: string | null
           project_id?: string | null
+          project_number?: string | null
           updated_at?: string
         }
         Relationships: [
