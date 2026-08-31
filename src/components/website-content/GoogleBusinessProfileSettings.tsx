@@ -34,11 +34,17 @@ import { useStaffPermissions } from "@/hooks/use-staff-permissions";
  * 申請 Business Profile API、建立 OAuth Client，並在此填入 Project ID / Project Number /
  * OAuth Client ID。Client Secret 與 Refresh Token 僅存後端 Vault，永不顯示。
  *
- * P1 範圍：僅憑證 metadata 保存。實際 OAuth 連線（Connect）尚未改為館別憑證，維持停用。
+ * P5：OAuth runtime 已全面改為館別憑證，Connect 正式啟用；readiness 完全依本館設定判斷，
+ * 不讀任何平台共用設定。
  */
 
-/** P1：OAuth runtime 尚未改為館別憑證，Connect 一律停用，且不得 fallback 至平台共用設定。 */
-const OAUTH_RUNTIME_READY = false;
+/** P5：per-accommodation OAuth runtime 已就緒。真正能否 Connect 仍依本館憑證完整度判斷。 */
+const OAUTH_RUNTIME_READY = true;
+
+/** 所有館共用的 OAuth callback（各館把它加入自己的 OAuth Client 授權重新導向 URI）。 */
+const REDIRECT_URI =
+  "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/google-business-profile-oauth-callback";
+
 
 const APPLICATION_STATUS_LABEL: Record<string, string> = {
   NOT_STARTED: "尚未申請",
