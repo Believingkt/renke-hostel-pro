@@ -16,6 +16,11 @@ export const NOTIFICATION_KINDS = [
   { kind: "kol-qualification", label: "KOL 待勾選累積資格", category: "kol" as const },
   { kind: "kol-publish-overdue", label: "KOL 上片逾期", category: "kol" as const },
   { kind: "kol-cid-missing", label: "KOL 折扣碼／CID 未建立", category: "kol" as const },
+  {
+    kind: "commission-exclusion-review",
+    label: "增值服務抽成設定待審查",
+    category: "settings" as const,
+  },
 ] as const;
 
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number]["kind"];
