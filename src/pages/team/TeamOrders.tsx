@@ -872,15 +872,53 @@ export default function TeamOrders() {
 
       const exists = !!editOrder.meta;
       if (exists) {
-        const { error } = await supabase
-          .from("order_meta")
-          .update(payload as any)
-          .eq("order_id", editOrder.id);
-        if (error) throw error;
+        // 行銷資訊（含重新指派成交人）一律走 narrow RPC，原子儲存且不送整張 order_meta payload。
+        const { data: rpcOrderId, error: rpcError } = await supabase.rpc(
+          "update_team_order_marketing_info",
+          {
+            p_order_id: editOrder.id,
+            p_traffic_source: form.traffic_source ?? null,
+            p_booking_method: form.booking_method ?? null,
+            p_ad_id: form.ad_id ?? null,
+            p_closer_id: form.closer_id ?? null,
+          } as any,
+        );
+        if (rpcError) throw rpcError;
+        if (!rpcOrderId) throw new Error("沒有資料被更新，請重新整理後再試。");
+
+        // 其餘非行銷欄位（分潤／票券／加購／訂金等）維持既有 order_meta 權限，
+        // 僅在實際有變更時才寫入，且不再送出 closer/traffic/booking/ad 欄位。
+        const MARKETING_KEYS = new Set([
+          "order_id",
+          "accommodation_id",
+          "closer_id",
+          "traffic_source",
+          "booking_method",
+          "ad_id",
+        ]);
+        const restPayload: Record<string, any> = {};
+        for (const [k, v] of Object.entries(payload)) {
+          if (MARKETING_KEYS.has(k)) continue;
+          const prev = (editOrder.meta as any)?.[k] ?? null;
+          const next = v ?? null;
+          if (JSON.stringify(prev) !== JSON.stringify(next)) restPayload[k] = v;
+        }
+        if (Object.keys(restPayload).length > 0) {
+          const { data: restRows, error: restError } = await supabase
+            .from("order_meta")
+            .update(restPayload as any)
+            .eq("order_id", editOrder.id)
+            .select("order_id");
+          if (restError) throw restError;
+          if (!restRows || restRows.length === 0) {
+            throw new Error("沒有資料被更新。可能是權限不足，請重新整理後再試。");
+          }
+        }
       } else {
         const { error } = await supabase.from("order_meta").insert(payload as any);
         if (error) throw error;
       }
+
       toast.success("已儲存");
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
