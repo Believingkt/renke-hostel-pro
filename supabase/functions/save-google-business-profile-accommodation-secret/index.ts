@@ -4,7 +4,7 @@
 //  - Authorization happens BEFORE the client secret is read from the body.
 //  - Allowed: true super_admin (any accommodation) or hotel_admin of that
 //    accommodation. Staff (editable/readonly/hidden), other roles and anon
-//    are denied. `is_admin_or_super()` is deliberately NOT used.
+//    are denied. A broad "any admin" helper is deliberately NOT used.
 //  - The Vault secret name is derived server-side from the accommodation id.
 //  - The secret is never logged, never echoed, never written to a public table.
 // deno-lint-ignore-file no-explicit-any
