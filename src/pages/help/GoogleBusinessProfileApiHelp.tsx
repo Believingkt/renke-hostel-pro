@@ -221,17 +221,25 @@ export default function GoogleBusinessProfileApiHelp() {
 
       <Section id="step-08" title="08 建立 OAuth Client ID">
         <p>建立 OAuth Client ID → Web application，會取得 Client ID、Client Secret、Authorized Redirect URI。</p>
+        <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 space-y-2">
+          <div className="font-semibold">OAuth callback 已完成並上線（平台管理員專用）</div>
+          <p className="text-muted-foreground">
+            請將下列正式 Authorized redirect URI 原封不動加入 Google Cloud OAuth Client 的
+            「已授權的重新導向 URI」，不要自行猜測或改寫：
+          </p>
+          <code className="block break-all rounded bg-muted px-2 py-1 font-mono text-xs">
+            https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/google-business-profile-oauth-callback
+          </code>
+        </div>
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 flex gap-2">
           <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
-          <div className="space-y-1">
-            <div className="font-semibold text-destructive">Redirect URI 請不要自行猜測。</div>
-            <p className="text-muted-foreground">
-              目前系統尚未完成 OAuth callback。此步驟先取得 Client ID 與 Client Secret，
-              Client Secret 僅保留在安全位置，然後回到系統。請勿把 Secret 貼到本頁或任何文件。
-            </p>
-          </div>
+          <p className="text-muted-foreground">
+            Client Secret 僅保留在安全位置，並只在「總部 → Google 商家串接」頁的專用欄位輸入。
+            請勿把 Secret 貼到本頁或任何文件。
+          </p>
         </div>
       </Section>
+
 
       <Section id="step-09" title="09 回後台完成串接">
         <p className="font-medium">平台只需要設定一次（總部 Super Admin）</p>
