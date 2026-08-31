@@ -17,8 +17,10 @@ import {
   MAX_PAGES,
   PAGE_SIZE,
   shouldFetchMore,
+  trimToTarget,
   type CandidateRow,
 } from "../_shared/gbpReviewMap.ts";
+
 import { resolveCaller } from "../_shared/authz.ts";
 
 Deno.serve(async (req) => {
