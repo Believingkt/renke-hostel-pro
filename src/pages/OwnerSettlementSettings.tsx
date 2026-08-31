@@ -313,6 +313,7 @@ export default function OwnerSettlementSettings({
         ruleRow = data ?? null;
       }
       setCurrentRuleId(ruleRow?.id ?? null);
+      setExclusionReviewedAt((ruleRow as any)?.commission_exclusion_reviewed_at ?? null);
       setHistoryOpen(false);
       setHistoryLoaded(false);
       setHistoryRows([]);
@@ -532,6 +533,8 @@ export default function OwnerSettlementSettings({
     setSaving(false);
     setUsingFallback(false);
     setRuleCount((c) => c + 1);
+    // 新版本尚未審查 → 小鈴鐺會提醒管理員審查
+    setExclusionReviewedAt(null);
     if (historyLoaded) loadHistory();
     toast.success(`已儲存「${accName}」的設定`);
   };
