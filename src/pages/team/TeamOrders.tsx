@@ -1630,7 +1630,7 @@ export default function TeamOrders() {
                         if (status === "addon_mismatch") {
                           return (
                             <div className="text-xs text-amber-600">
-                              ⚠️ 增值服務異動（增值服務金額不計入分潤），分潤基準金額無須調整
+                              ⚠️ 增值服務異動（僅該館設定為不列入抽成的增值服務不計入分潤，未設定＝全部列入；2026-09-10 成交日起正式生效），分潤基準金額無須調整
                             </div>
                           );
                         }
