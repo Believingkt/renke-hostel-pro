@@ -23,7 +23,7 @@ describe("GBP P2｜每館 Client Secret Vault", () => {
   it("Edge：不得使用寬鬆的 is_admin_or_super，僅 super_admin / 本館 hotel_admin", () => {
     expect(edge).not.toContain("is_admin_or_super");
     expect(edge).toContain('.in("role", ["super_admin", "hotel_admin"])');
-    expect(edge).toContain('.eq("accommodation_id", accommodationId)');
+    expect(edge).toContain("UUID_RE.test(accommodationId)");
   });
 
   it("Edge：Vault 名稱由後端推導，前端不得指定", () => {

@@ -8,27 +8,11 @@
 //  - The Vault secret name is derived server-side from the accommodation id.
 //  - The secret is never logged, never echoed, never written to a public table.
 // deno-lint-ignore-file no-explicit-any
-import { resolveCaller } from "../_shared/authz.ts";
+import { isAccommodationAdmin, resolveCaller } from "../_shared/authz.ts";
 import { adminClient, corsHeaders, jsonResp } from "../_shared/gbp.ts";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export async function isAllowedSecretManager(
-  ctx: any,
-  accommodationId: string,
-): Promise<boolean> {
-  if (ctx.isServiceRole) return true;
-  if (!ctx.userId) return false;
-  if (ctx.globalRoles?.includes("super_admin")) return true;
-  const { data } = await ctx.admin
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", ctx.userId)
-    .eq("accommodation_id", accommodationId)
-    .in("role", ["super_admin", "hotel_admin"]);
-  return (data ?? []).length > 0;
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -48,7 +32,7 @@ Deno.serve(async (req) => {
     // 2) Authorization before any secret handling.
     const resolved = await resolveCaller(req);
     if (!resolved.ok) return jsonResp({ error: resolved.error }, resolved.status);
-    if (!(await isAllowedSecretManager(resolved.ctx, accommodationId))) {
+    if (!(await isAccommodationAdmin(resolved.ctx, accommodationId))) {
       return jsonResp({ error: "Forbidden" }, 403);
     }
 
