@@ -28,7 +28,6 @@ import {
   Sparkles,
   Share2,
 } from "lucide-react";
-import { Star } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
