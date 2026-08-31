@@ -230,7 +230,8 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     name: "KOL 訂單分潤",
     category: "kol",
     formula: "KOL 訂單分潤基準金額 × KOL 分潤費率",
-    basis: "排除增值服務與業主自帶／exempt 來源",
+    basis:
+      "2026-09-10 成交日起（V3 正式生效）僅排除該館設定為「不列入抽成」的增值服務，未設定＝全部列入；備註「額外現場加購金額」一律排除。2026-09-10 之前成交的訂單不適用 V3，維持排除所有增值服務。另排除業主自帶／exempt 來源",
     gates: [GATE_STATUS],
     usesVenueRevenue: false,
     anchorId: "bonus-kol_order_commission",
