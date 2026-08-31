@@ -546,33 +546,70 @@ export const GoogleBusinessProfileSettings = ({
           </div>
         )}
 
-        {!OAUTH_RUNTIME_READY && (
+        {canManageCredentials && (
+          <section className="space-y-2 rounded-lg border p-4">
+            <h3 className="text-base font-semibold">Authorized Redirect URI</h3>
+            <p className="text-sm text-muted-foreground">
+              各館的 Google Cloud 專案與 OAuth Client 皆為獨立，但因為都是串回人客多系統，
+              請把下列網址原封不動加入貴館 OAuth Web Client 的「已授權的重新導向 URI」。
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                readOnly
+                value={REDIRECT_URI}
+                className="h-11 min-w-[240px] flex-1 font-mono text-sm"
+              />
+              <Button type="button" variant="outline" className="gap-2" onClick={copyRedirect}>
+                {copiedRedirect ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                複製 Redirect URI
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {canManageCredentials && !connected && !oauthReady && (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            Google OAuth 串接設定尚未完成，連線功能暫時停用。請先完成本館 Google Cloud 設定與 API 審核。
+            <div className="font-medium">尚未可進行 Google 授權，請先完成本館設定：</div>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+              {readinessHints.map((h) => (
+                <li key={h}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {canManageCredentials && clientIdChangedNeedsSecret && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            OAuth Client ID 已變更，請重新設定 Client Secret。
+            {!!connectedAt && "完成新 Client Secret 設定後，請重新授權 Google 商家。"}
           </div>
         )}
 
         {status === "TOKEN_EXPIRED" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Google 授權已失效，請重新連結。重新授權即可恢復同步，不需要重新填寫任何 ID。
+            Google 授權已失效，請重新授權 Google 商家。重新授權即可恢復同步，不需要重新填寫
+            Account ID 或 Location ID。
+            {!canManageCredentials && "（重新授權需由館主管理者操作）"}
           </div>
         )}
 
         {status === "NOT_CONFIGURED" && (
           <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-            尚未連結 Google 商家帳號。完成本館 Google Cloud 設定與 API 審核後即可進行授權，現有前台評論不受影響。
+            尚未連結 Google 商家帳號。完成本館 Google Cloud 設定與 API 申請後即可自行授權，現有前台評論不受影響。
           </div>
         )}
 
-        {/* 連線動作 */}
+        {/* 連線動作：OAuth 憑證管理僅限館主管理者 */}
 
         <div className="flex flex-wrap items-center gap-2">
           {!connected ? (
+            canManageCredentials && (
             <Button
               onClick={handleConnect}
-              disabled={readOnly || !OAUTH_RUNTIME_READY || !platformReady || busy === "connect"}
+              disabled={readOnly || !OAUTH_RUNTIME_READY || !oauthReady || busy === "connect"}
               className="gap-2"
             >
+
 
               {status === "TOKEN_EXPIRED" ? (
                 <ShieldCheck className="h-4 w-4" />
