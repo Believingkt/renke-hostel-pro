@@ -10,6 +10,8 @@ const state = {
   platformReady: true,
   row: null as Record<string, unknown> | null,
   canEdit: true,
+  isStrictAdmin: true,
+
   invocations: [] as { name: string; body: unknown }[],
   invokeResult: {} as Record<string, { data?: unknown; error?: { message: string } }>,
   lastUpsertPayload: null as Record<string, unknown> | null,
