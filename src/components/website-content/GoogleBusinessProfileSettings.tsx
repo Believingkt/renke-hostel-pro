@@ -106,7 +106,7 @@ export const GoogleBusinessProfileSettings = ({
   /** 憑證 metadata 僅 super_admin / 本館 hotel_admin 可見可編輯（與 DB trigger 同步） */
   const canManageCredentials = !!isStrictAdmin;
 
-  const [platformReady, setPlatformReady] = useState(false);
+  
   const [status, setStatus] = useState<BusinessProfileConnectionStatus>("NOT_CONFIGURED");
   const [connectedAt, setConnectedAt] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
