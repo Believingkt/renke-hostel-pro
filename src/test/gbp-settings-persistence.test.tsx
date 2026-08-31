@@ -92,9 +92,9 @@ describe("GoogleBusinessProfileSettings self-service", () => {
     expect(state.invocations).toHaveLength(0);
   });
 
-  it("P1：OAuth 尚未完成，連線按鈕停用且顯示明確說明", async () => {
+  it("P5：本館憑證未齊，連線按鈕停用且列出缺少項目", async () => {
     setup();
-    await waitFor(() => expect(screen.getByText(/Google OAuth 串接設定尚未完成/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/尚未可進行 Google 授權/)).toBeTruthy());
     const btn = screen.getByRole("button", { name: /連結 Google 商家帳號/ }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
     expect(state.invocations).toHaveLength(0);
