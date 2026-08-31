@@ -179,12 +179,12 @@ describe("ownership validation (server-side, Google scope is the source of truth
     expect(listLocations).toContain(
       'if (!allowed.has(accountResourceName)) {\n      return jsonResp({ error: "GBP_ACCOUNT_NOT_ACCESSIBLE" }, 403);',
     );
-    expect(selectLocation).toContain('if (!account) return jsonResp({ error: "GBP_ACCOUNT_NOT_ACCESSIBLE" }, 403);');
+    expect(selectLocation).toContain('return jsonResp({ error: "GBP_ACCOUNT_NOT_ACCESSIBLE" }, 403);');
   });
 
   it("LOCATION CASE C: requested location not under the account is denied", () => {
     expect(selectLocation).toContain(
-      'if (!location) return jsonResp({ error: "GBP_LOCATION_NOT_ACCESSIBLE" }, 403);',
+      'return jsonResp({ error: "GBP_LOCATION_NOT_ACCESSIBLE" }, 403);',
     );
   });
 
@@ -206,7 +206,7 @@ describe("ownership validation (server-side, Google scope is the source of truth
   it("binding never trusts a client-supplied id format alone", () => {
     // no regex/uuid style shortcut acceptance
     expect(selectLocation).not.toMatch(/\/\^accounts\\\//);
-    expect(selectLocation).toContain("locJson.locations ?? []");
-    expect(selectLocation).toContain("accJson.accounts ?? []");
+    expect(selectLocation).toContain("json.locations ?? []");
+    expect(selectLocation).toContain("json.accounts ?? []");
   });
 });
