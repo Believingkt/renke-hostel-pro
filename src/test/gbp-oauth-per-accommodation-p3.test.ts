@@ -156,10 +156,14 @@ describe("P3｜shared helper 與凍結範圍", () => {
     expect(shared).toContain("if (!config?.client_secret_configured) return null;");
   });
 
-  it("getGoogleBusinessProfileAccessToken 維持 P2 行為未被修改（P4 才處理）", () => {
-    expect(shared).toContain("const cfg = await getPlatformConfig(admin);");
-    expect(shared).toContain("const clientSecret = await vaultGet(admin, PLATFORM_SECRET_NAME);");
+  it("getGoogleBusinessProfileAccessToken 已於 P4 切換為每館 credentials", () => {
+    const fn = shared.slice(shared.indexOf("export async function getGoogleBusinessProfileAccessToken"));
+    expect(fn).toContain("accommodationClientSecretName(accommodationId)");
+    expect(fn).toContain("refreshTokenSecretName(accommodationId)");
+    expect(fn).not.toContain("getPlatformConfig(admin)");
+    expect(fn).not.toContain("PLATFORM_SECRET_NAME");
   });
+
 
   it("Connect Google 前端仍為 DISABLED", () => {
     expect(ui).toContain("const OAUTH_RUNTIME_READY = false");
