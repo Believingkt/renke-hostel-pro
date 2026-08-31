@@ -17,8 +17,10 @@ import {
   MAX_PAGES,
   PAGE_SIZE,
   shouldFetchMore,
+  trimToTarget,
   type CandidateRow,
 } from "../_shared/gbpReviewMap.ts";
+
 import { resolveCaller } from "../_shared/authz.ts";
 
 Deno.serve(async (req) => {
@@ -106,9 +108,10 @@ Deno.serve(async (req) => {
       pages += 1;
     } while (shouldFetchMore(rows.length, syncTarget, !!pageToken, pages));
 
-    // Keep every review we already fetched — sync targets control how far we
-    // page, never how much we discard.
-    const finalRows = dedupRows(rows);
+    // Sync target caps how many candidates we persist (20 / 50 / ALL).
+    // Writes are UPSERT ONLY — existing candidates are never deleted here.
+    const finalRows = trimToTarget(dedupRows(rows), syncTarget);
+
 
     if (finalRows.length > 0) {
       const { error: upErr } = await admin
