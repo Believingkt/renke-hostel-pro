@@ -17,7 +17,6 @@ import {
   MAX_PAGES,
   PAGE_SIZE,
   shouldFetchMore,
-  targetLimit,
   type CandidateRow,
 } from "../_shared/gbpReviewMap.ts";
 import { resolveCaller } from "../_shared/authz.ts";
@@ -107,9 +106,9 @@ Deno.serve(async (req) => {
       pages += 1;
     } while (shouldFetchMore(rows.length, syncTarget, !!pageToken, pages));
 
-    const limit = targetLimit(syncTarget);
-    const deduped = dedupRows(rows);
-    const finalRows = limit != null ? deduped.slice(0, Math.max(limit, deduped.length >= limit ? limit : deduped.length)) : deduped;
+    // Keep every review we already fetched — sync targets control how far we
+    // page, never how much we discard.
+    const finalRows = dedupRows(rows);
 
     if (finalRows.length > 0) {
       const { error: upErr } = await admin
