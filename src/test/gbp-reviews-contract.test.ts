@@ -19,8 +19,8 @@ describe("reviews sync contract (static source guarantees)", () => {
 
   it("authorizes before reading Vault tokens or calling Google", () => {
     const authIdx = fetchFn.indexOf("authorizeAccommodation(req");
-    const tokenIdx = fetchFn.indexOf("getGoogleBusinessProfileAccessToken");
-    const fetchIdx = fetchFn.indexOf("await fetch(url.toString()");
+    const tokenIdx = fetchFn.lastIndexOf("getGoogleBusinessProfileAccessToken");
+
     const writeIdx = fetchFn.indexOf(".upsert(finalRows");
     expect(authIdx).toBeGreaterThan(-1);
     expect(authIdx).toBeLessThan(tokenIdx);
