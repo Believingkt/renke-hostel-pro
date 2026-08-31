@@ -47,6 +47,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
+import { GoogleBusinessProfileSettings } from "./GoogleBusinessProfileSettings";
 import { GoogleReviewsPreview } from "./GoogleReviewsPreview";
 
 const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
