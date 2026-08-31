@@ -814,7 +814,11 @@ export default function OwnerSettlementSettings({
 
       <Card>
         <CardHeader>
-          <CardTitle>不抽成的增值服務</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>不抽成的增值服務</CardTitle>
+            <CommissionExclusionInfoDialog />
+          </div>
+
           <CardDescription>
             勾選＝不抽成，未勾選＝列入抽成。未設定任何項目＝全部增值服務都列入抽成。
             <br />
