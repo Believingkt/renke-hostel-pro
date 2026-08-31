@@ -271,12 +271,16 @@ export default function GoogleBusinessProfileApiHelp() {
       </Section>
 
       <Section id="step-11" title="11 申請完成後，要回系統填什麼？">
-        <p>回到「官網內容 → Google 評論 → Google Business Profile API」，填入以下三項：</p>
+        <p>由總部 Super Admin 到「總部 → Google 商家串接」填入：</p>
         <ol className="list-decimal pl-5 space-y-1">
           <li>Project ID</li>
           <li>Project Number</li>
           <li>OAuth Client ID</li>
+          <li>OAuth Client Secret（僅在該頁的專用欄位輸入，直接送往後端加密保管）</li>
         </ol>
+        <p className="text-muted-foreground">
+          各館不需要自行申請 Google Cloud 或填任何 ID，只要用自己的 Google 帳號授權即可。
+        </p>
         <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
           <div className="font-semibold text-destructive flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
@@ -288,7 +292,7 @@ export default function GoogleBusinessProfileApiHelp() {
             <li>Refresh Token</li>
           </ul>
           <p className="text-muted-foreground">
-            Client Secret 請保留在 Google Cloud，待 OAuth Backend 完成後再由後端安全設定。
+            Client Secret 只能由總部在「Google 商家串接」頁的專用欄位輸入；Refresh Token 由系統於授權後自動加密保管，任何人都無法在畫面上讀取。
           </p>
         </div>
       </Section>
