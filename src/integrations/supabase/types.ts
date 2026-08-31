@@ -261,6 +261,53 @@ export type Database = {
           },
         ]
       }
+      accommodation_google_business_profile: {
+        Row: {
+          accommodation_id: string
+          account_id: string | null
+          application_status: string
+          checklist: Json
+          connection_status: string
+          created_at: string
+          location_id: string | null
+          oauth_client_id: string | null
+          project_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          account_id?: string | null
+          application_status?: string
+          checklist?: Json
+          connection_status?: string
+          created_at?: string
+          location_id?: string | null
+          oauth_client_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          account_id?: string | null
+          application_status?: string
+          checklist?: Json
+          connection_status?: string
+          created_at?: string
+          location_id?: string | null
+          oauth_client_id?: string | null
+          project_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_google_business_profile_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_hotelnabe_config: {
         Row: {
           accommodation_id: string
