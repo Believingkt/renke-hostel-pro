@@ -201,7 +201,8 @@ export function HQSidebar() {
     if (roles.some((r) => OWNER_SETTLEMENT_ONLY_ROLES.includes(r))) {
       return OWNER_SETTLEMENT_ONLY_MENU;
     }
-    return menuItems;
+    // 平台級 Google 商家串接僅限 super_admin / admin
+    return menuItems.filter((i) => i.tab !== "gbp-integration");
   }, [roles]);
 
 
