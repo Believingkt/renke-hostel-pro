@@ -36,7 +36,7 @@ import { cn } from "@/lib/utils";
  *   client_secret / access_token / refresh_token / authorization_code 欄位。
  *
  * SCHEMA NOTE：
- *   project_number 欄位尚未存在（migration proposal 待核准），本頁暫以唯讀 placeholder 呈現。
+ *   project_number 欄位已建立（text NULL），與其他非敏感欄位走同一 persistence flow。
  *   authorized_google_email / authorized_at 亦僅為 proposal，應由真實 OAuth response 產生。
  */
 
@@ -168,7 +168,7 @@ export const GoogleBusinessProfileSettings = ({
     const { data, error } = await supabase
       .from("accommodation_google_business_profile")
       .select(
-        "project_id, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
+        "project_id, project_number, oauth_client_id, account_id, location_id, connection_status, application_status, checklist"
       )
       .eq("accommodation_id", accommodationId)
       .maybeSingle();
@@ -179,6 +179,7 @@ export const GoogleBusinessProfileSettings = ({
     }
     // 無資料列 = 初始空狀態，不視為錯誤
     setProjectId(data?.project_id ?? "");
+    setProjectNumber(data?.project_number ?? "");
     setClientId(data?.oauth_client_id ?? "");
     setAccountId(data?.account_id ?? "");
     setLocationId(data?.location_id ?? "");
@@ -204,6 +205,7 @@ export const GoogleBusinessProfileSettings = ({
         {
           accommodation_id: accommodationId,
           project_id: projectId.trim() || null,
+          project_number: projectNumber.trim() || null,
           oauth_client_id: clientId.trim() || null,
           account_id: accountId.trim() || null,
           location_id: locationId.trim() || null,
