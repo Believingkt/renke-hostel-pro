@@ -318,15 +318,19 @@ export const GoogleBusinessProfileSettings = ({
               <Label htmlFor="bp-project-number">Google Cloud Project Number</Label>
               <Input
                 id="bp-project-number"
-                disabled
-                value=""
-                placeholder="欄位待 migration 核准後開放"
+                type="text"
+                inputMode="text"
+                disabled={readOnly}
+                value={projectNumber}
+                onChange={(e) => setProjectNumber(e.target.value)}
+                placeholder="例：123456789012"
                 className="h-11 text-base font-mono"
               />
               <p className="text-xs text-muted-foreground">
-                目前資料表尚無 project_number 欄位，已提出 migration proposal，核准後開放填寫。
+                Google Cloud Console 專案資訊中的「專案編號」，以文字保存，可留空。
               </p>
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="bp-client-id">OAuth Client ID</Label>
               <Input
