@@ -382,12 +382,35 @@ export const GoogleBusinessProfileSettings = ({
     await load();
   };
 
-
+  const copyRedirect = async () => {
+    try {
+      await navigator.clipboard.writeText(REDIRECT_URI);
+      setCopiedRedirect(true);
+      toast.success("已複製 Redirect URI");
+      setTimeout(() => setCopiedRedirect(false), 2000);
+    } catch {
+      toast.error("複製失敗，請手動選取文字");
+    }
+  };
 
   if (!visible || !loaded) return null;
 
   const connected = status === "CONNECTED" && !!selectedLocation;
   const awaitingSelection = !!connectedAt && !connected;
+
+  /** OAUTH_TECHNICALLY_READY：僅依本館憑證判斷，不含平台設定 */
+  const settingsSnapshot = {
+    project_id: projectId,
+    project_number: projectNumber,
+    oauth_client_id: savedClientId,
+    client_secret_configured: secretConfigured,
+    application_status: applicationStatus,
+    connection_status: status,
+  };
+  const oauthReady = isAccommodationGoogleOAuthReady(settingsSnapshot);
+  const readinessHints = gbpReadinessHints(settingsSnapshot);
+  const clientIdChangedNeedsSecret = !!savedClientId && !secretConfigured;
+
 
   return (
     <Card>
