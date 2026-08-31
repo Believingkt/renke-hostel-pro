@@ -21,18 +21,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Link2, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
+import { ExternalLink, Link2, Lock, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 
 /**
- * 民宿端自助 Google Business Profile 連線。
+ * 民宿端 Google Business Profile 設定。
  *
- * 架構：平台共用一組 OAuth App（由總部 Super Admin 於 /hq/integrations/google-business-profile
- * 設定）。各館管理者只需按「連結 Google 商家帳號」，其餘 Account / Location 由 Google 授權後
- * 自動取得，不需人工填 ID。所有憑證（Client Secret / Refresh Token）僅存在後端 Vault。
+ * 架構（PER-ACCOMMODATION / BYO Google Cloud Project）：每一館自行建立 Google Cloud 專案、
+ * 申請 Business Profile API、建立 OAuth Client，並在此填入 Project ID / Project Number /
+ * OAuth Client ID。Client Secret 與 Refresh Token 僅存後端 Vault，永不顯示。
+ *
+ * P1 範圍：僅憑證 metadata 保存。實際 OAuth 連線（Connect）尚未改為館別憑證，維持停用。
  */
+
+/** P1：OAuth runtime 尚未改為館別憑證，Connect 一律停用，且不得 fallback 至平台共用設定。 */
+const OAUTH_RUNTIME_READY = false;
+
+const APPLICATION_STATUS_LABEL: Record<string, string> = {
+  NOT_STARTED: "尚未申請",
+  PENDING: "審核中",
+  APPROVED: "已核准",
+  REJECTED: "未通過",
+};
+
+/** 空字串一律存成 null；Project Number 保持 TEXT，不做任何數字轉換 */
+const trimOrNull = (v: string) => {
+  const t = v.trim();
+  return t === "" ? null : t;
+};
+
 
 export type BusinessProfileConnectionStatus =
   | "NOT_CONFIGURED"
@@ -74,9 +94,11 @@ export const GoogleBusinessProfileSettings = ({
   accommodationId,
   onConnectionChange,
 }: Props) => {
-  const { canEdit, canView } = useStaffPermissions();
+  const { canEdit, canView, isStrictAdmin } = useStaffPermissions();
   const readOnly = !canEdit("website_content");
   const visible = canView("website_content");
+  /** 憑證 metadata 僅 super_admin / 本館 hotel_admin 可見可編輯（與 DB trigger 同步） */
+  const canManageCredentials = !!isStrictAdmin;
 
   const [platformReady, setPlatformReady] = useState(false);
   const [status, setStatus] = useState<BusinessProfileConnectionStatus>("NOT_CONFIGURED");
@@ -88,6 +110,14 @@ export const GoogleBusinessProfileSettings = ({
   const [reviewSource, setReviewSource] = useState<"PLACES" | "BUSINESS_PROFILE">("PLACES");
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [candidateCount, setCandidateCount] = useState(0);
+
+  // 館別憑證 metadata
+  const [projectId, setProjectId] = useState("");
+  const [projectNumber, setProjectNumber] = useState("");
+  const [oauthClientId, setOauthClientId] = useState("");
+  const [applicationStatus, setApplicationStatus] = useState("NOT_STARTED");
+  const [secretConfigured, setSecretConfigured] = useState(false);
+  const [savingCredentials, setSavingCredentials] = useState(false);
 
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [locations, setLocations] = useState<GoogleLocation[]>([]);
@@ -104,7 +134,7 @@ export const GoogleBusinessProfileSettings = ({
       supabase
         .from("accommodation_google_business_profile")
         .select(
-          "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count",
+          "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count, project_id, project_number, oauth_client_id, application_status, client_secret_configured",
         )
         .eq("accommodation_id", accommodationId)
         .maybeSingle(),
@@ -119,8 +149,15 @@ export const GoogleBusinessProfileSettings = ({
     setReviewSource(((data?.review_source as "PLACES" | "BUSINESS_PROFILE") ?? "PLACES"));
     setLastSyncAt(data?.last_business_profile_sync_at ?? null);
     setCandidateCount(data?.candidate_review_count ?? 0);
+    setProjectId(data?.project_id ?? "");
+    setProjectNumber(data?.project_number ?? "");
+    setOauthClientId(data?.oauth_client_id ?? "");
+    setApplicationStatus(data?.application_status ?? "NOT_STARTED");
+    setSecretConfigured(!!data?.client_secret_configured);
+
     setLoaded(true);
   }, [accommodationId]);
+
 
   useEffect(() => {
     void load();
@@ -286,6 +323,21 @@ export const GoogleBusinessProfileSettings = ({
     return true;
   };
 
+  /** 儲存本館 Google Cloud 憑證 metadata（不含 Client Secret） */
+  const handleSaveCredentials = async () => {
+    setSavingCredentials(true);
+    const ok = await persist({
+      project_id: trimOrNull(projectId),
+      project_number: trimOrNull(projectNumber),
+      oauth_client_id: trimOrNull(oauthClientId),
+      application_status: applicationStatus,
+    });
+    setSavingCredentials(false);
+    if (!ok) return;
+    toast.success("已儲存本館 Google Cloud 設定");
+    await load();
+  };
+
 
   if (!visible || !loaded) return null;
 
@@ -329,11 +381,106 @@ export const GoogleBusinessProfileSettings = ({
           )}
         </div>
 
-        {!platformReady && (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            平台 Google API 尚未完成設定，請聯絡總部管理者完成平台串接後再進行連線。
+        {/* 本館 Google Cloud 憑證（每館自帶專案；平台不提供共用憑證） */}
+        {canManageCredentials ? (
+          <section className="space-y-4 rounded-lg border p-4">
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold">本館 Google Cloud 設定</h3>
+              <p className="text-sm text-muted-foreground">
+                每一館需自行建立 Google Cloud 專案、申請 Business Profile API 並建立 OAuth Client。
+                人客多僅提供串接工具，不提供共用憑證。
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="gbp-project-id">Google Cloud Project ID</Label>
+                <Input
+                  id="gbp-project-id"
+                  value={projectId}
+                  onChange={(e) => setProjectId(e.target.value)}
+                  disabled={readOnly}
+                  placeholder="例：my-hotel-gbp"
+                  className="h-11 font-mono text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gbp-project-number">Google Cloud Project Number</Label>
+                <Input
+                  id="gbp-project-number"
+                  value={projectNumber}
+                  onChange={(e) => setProjectNumber(e.target.value)}
+                  disabled={readOnly}
+                  placeholder="例：0123456789012"
+                  className="h-11 font-mono text-base"
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="gbp-client-id">OAuth Client ID</Label>
+                <Input
+                  id="gbp-client-id"
+                  value={oauthClientId}
+                  onChange={(e) => setOauthClientId(e.target.value)}
+                  disabled={readOnly}
+                  placeholder="例：1234567890-xxxx.apps.googleusercontent.com"
+                  className="h-11 font-mono text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Business Profile API 審核狀態</Label>
+                <Select
+                  value={applicationStatus}
+                  onValueChange={setApplicationStatus}
+                  disabled={readOnly}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.keys(APPLICATION_STATUS_LABEL).map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {APPLICATION_STATUS_LABEL[k]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>OAuth Client Secret</Label>
+                <div className="flex h-11 items-center gap-2 rounded-md border bg-muted/30 px-3 text-sm">
+                  <Lock className="h-4 w-4 text-muted-foreground" />
+                  {secretConfigured ? (
+                    <span>🔒 已設定（僅後端保存，永不顯示）</span>
+                  ) : (
+                    <span className="text-muted-foreground">尚未設定（將於連線流程輸入）</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={handleSaveCredentials} disabled={readOnly || savingCredentials}>
+              {savingCredentials ? "儲存中…" : "儲存本館設定"}
+            </Button>
+          </section>
+        ) : (
+          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Google Cloud 憑證僅限館主管理者設定，如需修改請聯絡您的管理者。
           </div>
         )}
+
+        {!OAUTH_RUNTIME_READY && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            Google OAuth 串接設定尚未完成，連線功能暫時停用。請先完成本館 Google Cloud 設定與 API 審核。
+          </div>
+        )}
+
+        {status === "TOKEN_EXPIRED" && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+            Google 授權已失效，請重新連結。重新授權即可恢復同步，不需要重新填寫任何 ID。
+          </div>
+        )}
+
+
 
         {status === "TOKEN_EXPIRED" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">

@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.guard_accommodation_gbp_credentials() FROM PUBLIC, anon, authenticated;

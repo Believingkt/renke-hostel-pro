@@ -268,6 +268,7 @@ export type Database = {
           application_status: string
           candidate_review_count: number
           checklist: Json
+          client_secret_configured: boolean
           connection_status: string
           created_at: string
           last_business_profile_sync_at: string | null
@@ -291,6 +292,7 @@ export type Database = {
           application_status?: string
           candidate_review_count?: number
           checklist?: Json
+          client_secret_configured?: boolean
           connection_status?: string
           created_at?: string
           last_business_profile_sync_at?: string | null
@@ -314,6 +316,7 @@ export type Database = {
           application_status?: string
           candidate_review_count?: number
           checklist?: Json
+          client_secret_configured?: boolean
           connection_status?: string
           created_at?: string
           last_business_profile_sync_at?: string | null
