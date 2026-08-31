@@ -466,10 +466,17 @@ export const GoogleBusinessProfileSettings = ({
                 value={reviewSource}
                 onValueChange={async (v) => {
                   const next = v as "PLACES" | "BUSINESS_PROFILE";
+                  const prev = reviewSource;
                   setReviewSource(next);
                   const ok = await persist({ review_source: next });
-                  if (ok) toast.success("已更新同步來源（前台精選不受影響）");
+                  if (!ok) {
+                    setReviewSource(prev);
+                    return;
+                  }
+                  toast.success("已更新同步來源（前台精選不受影響）");
+                  onConnectionChange?.();
                 }}
+
                 className="space-y-1"
               >
                 <div className="flex items-center gap-2">
