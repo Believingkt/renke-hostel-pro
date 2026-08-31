@@ -78,6 +78,7 @@ describe("GoogleBusinessProfileSettings self-service", () => {
     state.platformReady = true;
     state.row = null;
     state.canEdit = true;
+    state.isStrictAdmin = true;
     state.invocations = [];
     state.invokeResult = {};
     state.lastUpsertPayload = null;
@@ -91,29 +92,46 @@ describe("GoogleBusinessProfileSettings self-service", () => {
     expect(state.invocations).toHaveLength(0);
   });
 
-  it("平台尚未設定時停用連線按鈕並提示聯絡總部", async () => {
-    state.platformReady = false;
+  it("P1：OAuth 尚未完成，連線按鈕停用且顯示明確說明", async () => {
     setup();
-    await waitFor(() => expect(screen.getByText(/平台 Google API 尚未完成設定/)).toBeTruthy());
+    await waitFor(() => expect(screen.getByText(/Google OAuth 串接設定尚未完成/)).toBeTruthy());
     const btn = screen.getByRole("button", { name: /連結 Google 商家帳號/ }) as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
+    expect(state.invocations).toHaveLength(0);
   });
 
-  it("按下連結會請求授權網址（不含任何 secret）", async () => {
-    state.invokeResult["google-business-profile-oauth-start"] = {
-      data: { authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth?x=1" },
-      error: null,
-    };
+  it("館主管理者可看到並儲存本館 Google Cloud 憑證（Project Number 保持文字）", async () => {
     setup();
-    await waitFor(() => screen.getByRole("button", { name: /連結 Google 商家帳號/ }));
-    fireEvent.click(screen.getByRole("button", { name: /連結 Google 商家帳號/ }));
-    await waitFor(() => expect(state.invocations).toHaveLength(1));
-    const call = state.invocations[0];
-    expect(call.name).toBe("google-business-profile-oauth-start");
-    const body = call.body as Record<string, string>;
-    expect(body.accommodationId).toBe("acc-1");
-    expect(JSON.stringify(body).toLowerCase()).not.toMatch(/secret|token/);
+    await waitFor(() => expect(screen.getByLabelText("Google Cloud Project ID")).toBeTruthy());
+    fireEvent.change(screen.getByLabelText("Google Cloud Project ID"), {
+      target: { value: " my-proj " },
+    });
+    fireEvent.change(screen.getByLabelText("Google Cloud Project Number"), {
+      target: { value: "0123456789012" },
+    });
+    fireEvent.change(screen.getByLabelText("OAuth Client ID"), { target: { value: "cid.apps" } });
+    fireEvent.click(screen.getByRole("button", { name: /儲存本館設定/ }));
+    await waitFor(() => expect(state.lastUpsertPayload).toBeTruthy());
+    expect(state.lastUpsertPayload).toMatchObject({
+      accommodation_id: "acc-1",
+      project_id: "my-proj",
+      project_number: "0123456789012",
+      oauth_client_id: "cid.apps",
+    });
+    // 絕不可送出 client_secret 相關欄位（僅後端可寫）
+    expect(Object.keys(state.lastUpsertPayload!)).not.toContain("client_secret_configured");
+    expect(JSON.stringify(state.lastUpsertPayload).toLowerCase()).not.toContain("secret");
   });
+
+  it("非館主管理者看不到憑證欄位", async () => {
+    state.isStrictAdmin = false;
+    setup();
+    await waitFor(() => expect(screen.getByText("未連線")).toBeTruthy());
+    expect(screen.queryByLabelText("Google Cloud Project ID")).toBeNull();
+    expect(screen.queryByLabelText("OAuth Client ID")).toBeNull();
+    expect(screen.getByText(/僅限館主管理者設定/)).toBeTruthy();
+  });
+
 
   it("已連線時顯示商家、候選數並提供同步 / 重新授權 / 解除連線", async () => {
     state.row = CONNECTED_ROW;
