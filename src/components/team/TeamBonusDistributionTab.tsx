@@ -113,11 +113,15 @@ export default function TeamBonusDistributionTab({ isAdmin }: Props) {
     if (!editTarget) return;
     setSavingEdit(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("closer_team_bonus_settings")
         .update({ note: editNote.trim() || null })
-        .eq("id", editTarget.id);
+        .eq("id", editTarget.id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error("沒有任何資料被更新（權限不足或資料已不存在）");
+      }
       toast.success("備註已更新");
       setEditTarget(null);
       await loadSettings();
