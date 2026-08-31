@@ -3,6 +3,7 @@ import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { isCommissionEligible } from "../_shared/commissionEligibility.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -131,6 +132,11 @@ serve(async (req) => {
         supabase,
         (orders ?? []).map((o) => o.accommodation_id as string),
       );
+      // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+      const exclRuleA = await buildCommissionExclusionResolver(
+        supabase,
+        (orders ?? []).map((o) => o.accommodation_id as string),
+      );
 
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
@@ -158,7 +164,7 @@ serve(async (req) => {
         const ordFinal = Number(ord.final_price ?? 0);
         const currentBase =
           tcp == null || Number(tcp) === ordFinal
-            ? commissionBaseFromOrder(ord)
+            ? commissionBaseFromOrder(ord, exclRuleA(ord.accommodation_id as string, ord.order_date as string))
             : Number(tcp);
         const snapBase = Number(s.final_price_snapshot ?? 0);
         if (currentBase === snapBase) continue;

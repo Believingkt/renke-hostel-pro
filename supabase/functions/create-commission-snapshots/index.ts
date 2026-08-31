@@ -3,6 +3,7 @@ import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { isCommissionEligible } from "../_shared/commissionEligibility.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
 import { resolvePayoutMonth } from "./payoutMonthResolver.ts";
@@ -211,6 +212,8 @@ serve(async (req) => {
 
       // 4b) 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
       const isExempt = await buildExemptResolver(supabase, accIds as string[]);
+      // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+      const exclRule = await buildCommissionExclusionResolver(supabase, accIds as string[]);
       // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
       const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
       // 4d) 月營收抽成門檻 gate：未達門檻 → factor = 0（不產生分潤）
@@ -247,7 +250,7 @@ serve(async (req) => {
         const finalPrice = Number(o.final_price ?? 0);
         const baseAmount =
           tcp == null || Number(tcp) === finalPrice
-            ? commissionBaseFromOrder(o as any)
+            ? commissionBaseFromOrder(o as any, exclRule(o.accommodation_id as string, o.order_date as string))
             : Number(tcp);
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
         const closerAmt = baseAmount * rates.closer * factor;
@@ -368,6 +371,7 @@ serve(async (req) => {
       };
 
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
+      const exclRuleR = await buildCommissionExclusionResolver(supabase, accIds as string[]);
       const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
       const thresholdFactorR = await buildThresholdFactorResolver(supabase, accIds as string[]);
 
@@ -481,7 +485,7 @@ serve(async (req) => {
         const finalPrice = Number(ord.final_price ?? 0);
         const baseAmount =
           tcp == null || Number(tcp) === finalPrice
-            ? commissionBaseFromOrder(ord)
+            ? commissionBaseFromOrder(ord, exclRuleR(ord.accommodation_id as string, ord.order_date as string))
             : Number(tcp);
 
         const rates = rateFor(ord.accommodation_id as string, ord.order_date as string);

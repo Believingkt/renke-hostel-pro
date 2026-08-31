@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { commissionBaseFromOrder, extractAddonTotal } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver, type CommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,14 +18,18 @@ const json = (body: unknown, status = 200) =>
   });
 
 /** 分潤基準金額：order_meta.team_commission_price 覆蓋值優先，否則 final_price − 加購 */
-function resolveBase(order: any, manual: number | null | undefined) {
+function resolveBase(
+  order: any,
+  manual: number | null | undefined,
+  exclRule?: CommissionExclusionResolver,
+) {
   const gross = Number(order.final_price ?? order.total_price ?? 0) || 0;
   const addon = extractAddonTotal(order.custom_addon_details);
   if (manual !== null && manual !== undefined) return { gross, addon, base: Number(manual) || 0 };
   const base =
     order.final_price === null || order.final_price === undefined
       ? Math.max(0, gross - addon)
-      : commissionBaseFromOrder(order);
+      : commissionBaseFromOrder(order, exclRule?.(order.accommodation_id, order.order_date) ?? null);
   return { gross, addon, base };
 }
 
@@ -91,6 +96,8 @@ async function summarizeByCode(admin: any, cidCode: string | null, getRate: (a: 
       String(o.currency_at_booking ?? "TWD").toUpperCase() === "TWD",
   );
   const metaMap = await fetchMetaMap(admin, rows.map((o: any) => o.id));
+  // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+  const exclRule = await buildCommissionExclusionResolver(admin, rows.map((o: any) => o.accommodation_id));
 
   const today = new Date().toISOString().slice(0, 10);
   const orders: any[] = [];
@@ -100,7 +107,7 @@ async function summarizeByCode(admin: any, cidCode: string | null, getRate: (a: 
   let settled = 0;
 
   for (const o of rows) {
-    const { gross: g, addon, base } = resolveBase(o, metaMap.get(o.id));
+    const { gross: g, addon, base } = resolveBase(o, metaMap.get(o.id), exclRule);
     const rate = getRate(o.accommodation_id, o.check_out_date);
     const commission = Math.round(base * (rate / 100));
     const isSettleable = !!o.check_out_date && o.check_out_date.slice(0, 10) < today;

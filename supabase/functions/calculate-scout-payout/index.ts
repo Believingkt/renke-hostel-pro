@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
+import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 import { dedupeByContractGroup } from "../_shared/contractGroup.ts";
 
 const corsHeaders = {
@@ -337,6 +338,11 @@ serve(async (req) => {
       supabase,
       (accsRes.data ?? []).map((a) => a.id as string),
     );
+    // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則，一次建立、逐筆查詢
+    const exclRule = await buildCommissionExclusionResolver(
+      supabase,
+      (accsRes.data ?? []).map((a) => a.id as string),
+    );
 
     for (const scout of profiles) {
       const scoutId = scout.user_id as string;
@@ -514,7 +520,10 @@ serve(async (req) => {
           // 業主月結免抽成來源（owner_direct / exempt_order_sources）不計入分潤
           if (isExempt(o as any)) continue;
           // 加購項目（清潔費、接機車資等）全額歸業主，不計入分潤基礎
-          kolCommission += commissionBaseFromOrder(o as any) * commissionRate;
+          kolCommission += commissionBaseFromOrder(
+            o as any,
+            exclRule(o.accommodation_id as string, o.order_date as string),
+          ) * commissionRate;
         }
         kolCommission = Math.round(kolCommission);
       }
@@ -663,7 +672,10 @@ serve(async (req) => {
           const cur = (o as { currency_at_booking?: string | null }).currency_at_booking;
           if (cur && cur !== "TWD") continue;
           if (isExempt(o as any)) continue;
-          const base = commissionBaseFromOrder(o as any);
+          const base = commissionBaseFromOrder(
+            o as any,
+            exclRule(o.accommodation_id as string, o.order_date as string),
+          );
 
           const legs: Array<{ role: "scout" | "closer"; recipient: string | null; rate: number }> =
             c.commission_type === "partner"

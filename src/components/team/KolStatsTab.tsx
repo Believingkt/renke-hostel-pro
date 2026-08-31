@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { buildExemptResolver, commissionBaseFromOrder } from "@/lib/ownerExempt";
+import { buildExemptResolver, buildCommissionExclusionResolver, commissionBaseFromOrder } from "@/lib/ownerExempt";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
 import { countsTowardTeamTarget, evaluateTeamAchievement } from "@/lib/scoutTeamAchievement";
@@ -459,13 +459,18 @@ export function KolStatsTab() {
             supabase as any,
             rawOrders.map((o) => o.accommodation_id).filter(Boolean),
           );
+          // V3（order_date >= 2026-09-10）：各館「增值服務是否列入抽成」規則
+          const exclRule = await buildCommissionExclusionResolver(
+            supabase as any,
+            rawOrders.map((o) => o.accommodation_id).filter(Boolean),
+          );
           for (const row of rawOrders) {
             if (!row.discount_code) continue;
             const key = String(row.discount_code).trim().toUpperCase();
             if (!cidUpperSet.has(key)) continue;
             if (row.currency_at_booking && row.currency_at_booking !== "TWD") continue;
             if (isExempt(row)) continue;
-            const base = commissionBaseFromOrder(row);
+            const base = commissionBaseFromOrder(row, exclRule(row.accommodation_id, row.order_date));
             const entry = orderMap.get(key) ?? { count: 0, total: 0, orders: [] };
             entry.count += 1;
             entry.total += base;

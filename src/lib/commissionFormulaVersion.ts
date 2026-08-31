@@ -1,21 +1,24 @@
 /**
  * Commission formula 版本化（frontend canonical）。
  *
- * 產品決策（2026-08）：
- * - cutoff：2026-08-01 00:00 Asia/Taipei
+ * 產品決策：
  * - 判斷 SoT：orders.order_date（timestamptz），依 Asia/Taipei 日曆日判定
  *   （不得使用 created_at / check_in_date / snapshot date / payment date）
- * - < cutoff → LEGACY V1：不排除 notes 內「額外現場加購金額」
- * - >= cutoff → V2：排除 onsite extra
+ * - < 2026-08-01            → LEGACY V1：final − custom addon（notes 現場加購不扣）
+ * - 2026-08-01 ~ 2026-09-09 → V2：再扣 notes 內「額外現場加購金額」
+ * - >= 2026-09-10           → V3：notes 現場加購一律扣除；custom addon 只扣
+ *   「該館 owner_settlement_pricing_rules 設定為排除」的項目，未設定＝全部列入抽成
  * - order_date 缺失／不可解析 → fail-safe LEGACY（無法證明屬新政策時，不得回溯降低 base）
  *
  * Edge mirror：supabase/functions/_shared/commissionFormulaVersion.ts（contract 必須完全相同）。
  */
 
-export type CommissionFormulaVersion = "LEGACY" | "V2";
+export type CommissionFormulaVersion = "LEGACY" | "V2" | "V3";
 
-/** 正式 cutoff（Asia/Taipei 日曆日，含當日） */
+/** V2 cutoff（Asia/Taipei 日曆日，含當日） */
 export const COMMISSION_V2_CUTOFF_TAIPEI_DATE = "2026-08-01";
+/** V3 cutoff（Asia/Taipei 日曆日，含當日） */
+export const COMMISSION_V3_CUTOFF_TAIPEI_DATE = "2026-09-10";
 
 const TZ = "Asia/Taipei";
 
@@ -38,5 +41,6 @@ export function getCommissionFormulaVersion(order: {
 }): CommissionFormulaVersion {
   const date = taipeiCalendarDate(order?.order_date ?? null);
   if (!date) return "LEGACY";
+  if (date >= COMMISSION_V3_CUTOFF_TAIPEI_DATE) return "V3";
   return date >= COMMISSION_V2_CUTOFF_TAIPEI_DATE ? "V2" : "LEGACY";
 }

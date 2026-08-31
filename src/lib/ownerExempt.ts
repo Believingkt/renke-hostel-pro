@@ -153,14 +153,24 @@ export async function buildExemptResolver(
 import { extractAddonTotal } from "./ownerSettlement";
 import { extraOnSiteAddonFromNotes } from "./orderAddonTotal";
 import { getCommissionFormulaVersion } from "./commissionFormulaVersion";
+import { excludedAddonTotal, type CommissionExclusionRule } from "./commissionExclusionRule";
 
-export { getCommissionFormulaVersion, taipeiCalendarDate, COMMISSION_V2_CUTOFF_TAIPEI_DATE } from "./commissionFormulaVersion";
+export { getCommissionFormulaVersion, taipeiCalendarDate, COMMISSION_V2_CUTOFF_TAIPEI_DATE, COMMISSION_V3_CUTOFF_TAIPEI_DATE } from "./commissionFormulaVersion";
 export type { CommissionFormulaVersion } from "./commissionFormulaVersion";
+export {
+  buildCommissionExclusionResolver,
+  excludedAddonTotal,
+} from "./commissionExclusionRule";
+export type { CommissionExclusionRule, CommissionExclusionResolver } from "./commissionExclusionRule";
 
 /**
  * 佣金/獎金計算基礎（canonical，前端唯一真相，版本化）：
  *   LEGACY（order_date 台北日 < 2026-08-01）：max(0, final_price − custom_addon 總額)
- *   V2    （order_date 台北日 >= 2026-08-01）：再扣 notes 內「額外現場加購金額」
+ *   V2    （2026-08-01 ~ 2026-09-09）        ：再扣 notes 內「額外現場加購金額」
+ *   V3    （>= 2026-09-10）                  ：notes 現場加購一律扣除；custom_addon
+ *          只扣「該館設定為排除抽成」的項目（rule 由呼叫端以
+ *          buildCommissionExclusionResolver() 解析後傳入）；未設定／查無規則
+ *          ＝全部列入抽成（不扣）。
  *   order_date 缺失／無效 → fail-safe LEGACY
  *
  * 與 supabase/functions/_shared/addonTotal.ts 的同名函式語意完全一致（mirror）。
@@ -170,15 +180,22 @@ export type { CommissionFormulaVersion } from "./commissionFormulaVersion";
  * 注意：本函式「不」用於業主月結（owner settlement 走
  * commission_excluded_addon_ids / types 的獨立規則），該口徑不受影響。
  */
-export function commissionBaseFromOrder(order: {
-  final_price?: number | string | null;
-  custom_addon_details?: unknown;
-  notes?: string | null;
-  order_date?: string | Date | null;
-}): number {
+export function commissionBaseFromOrder(
+  order: {
+    final_price?: number | string | null;
+    custom_addon_details?: unknown;
+    notes?: string | null;
+    order_date?: string | Date | null;
+  },
+  rule?: CommissionExclusionRule | null,
+): number {
   const final = Number(order.final_price ?? 0) || 0;
-  const custom = extractAddonTotal(order.custom_addon_details);
   const version = getCommissionFormulaVersion(order);
+  if (version === "V3") {
+    const excluded = excludedAddonTotal(order.custom_addon_details, rule ?? null);
+    return Math.max(0, final - excluded - extraOnSiteAddonFromNotes(order.notes));
+  }
+  const custom = extractAddonTotal(order.custom_addon_details);
   const onsite = version === "V2" ? extraOnSiteAddonFromNotes(order.notes) : 0;
   return Math.max(0, final - custom - onsite);
 }
