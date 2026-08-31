@@ -66,14 +66,21 @@ serve(async (req) => {
     }
 
     const admin = createClient(supabaseUrl, serviceKey);
-    const { data: hasAccess } = await userClient.rpc("user_has_access_to_accommodation", {
-      _user_id: userId, _accommodation_id: accommodation_id,
-    });
-    if (!hasAccess) {
+    // P0 authorization: create-key is SUPER ADMIN ONLY.
+    // Accommodation access (hotel_admin / staff) must NOT grant this ability,
+    // otherwise it bypasses the accommodation_ai_api_keys RLS contract.
+    const { data: superRoles } = await admin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "super_admin")
+      .limit(1);
+    if (!superRoles || superRoles.length === 0) {
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
     const plain = generateKey();
     const keyHash = await sha256Hex(plain);
