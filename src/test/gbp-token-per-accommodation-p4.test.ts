@@ -30,7 +30,7 @@ beforeAll(async () => {
   const js = transformSync(src, { loader: "ts", format: "cjs", target: "es2022" }).code;
   const exports: any = {};
   // deno-lint-ignore no-explicit-any
-  new Function("exports", "require", "Deno", js)(exports, () => ({}), {
+  new Function("exports", "module", "require", "Deno", js)(exports, { exports }, () => ({}), {
     env: { get: () => "http://localhost" },
   });
   mod = exports;
