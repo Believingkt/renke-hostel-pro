@@ -108,6 +108,9 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
   const [showPreview, setShowPreview] = useState(false);
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [gbpRefreshKey, setGbpRefreshKey] = useState(0);
+  // 目前生效的評論同步來源；BUSINESS_PROFILE 時隱藏舊 Places 手動同步入口
+  const [reviewSource, setReviewSource] = useState<"PLACES" | "BUSINESS_PROFILE">("PLACES");
+
 
   // 篩選 / 排序 state
   const [keyword, setKeyword] = useState("");
