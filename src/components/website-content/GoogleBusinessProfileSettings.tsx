@@ -153,6 +153,7 @@ export const GoogleBusinessProfileSettings = ({
   const readOnly = !canEdit("website_content");
 
   const [projectId, setProjectId] = useState("");
+  const [projectNumber, setProjectNumber] = useState("");
   const [clientId, setClientId] = useState("");
   const [accountId, setAccountId] = useState("");
   const [locationId, setLocationId] = useState("");
