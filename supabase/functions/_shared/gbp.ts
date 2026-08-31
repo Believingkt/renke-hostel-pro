@@ -246,21 +246,59 @@ export class GbpError extends Error {
 }
 
 /**
- * Resolve a short-lived access token for an accommodation.
- * Reads the refresh token from Vault, refreshes it against Google and rotates
- * the stored refresh token when Google returns a new one.
- * On `invalid_grant` the connection is marked TOKEN_EXPIRED.
+ * Resolve a short-lived access token for ONE accommodation (P4).
+ *
+ * Credential source is PER-ACCOMMODATION ONLY:
+ *   - oauth_client_id            → accommodation_google_business_profile
+ *   - client secret              → Vault google_business_profile_oauth_client_secret_<id>
+ *   - refresh token              → Vault google_business_profile_refresh_token_<id>
+ * There is NO global fallback: getPlatformConfig / PLATFORM_SECRET_NAME are
+ * never consulted here.
+ *
+ * `application_status` is NOT consulted — it is owner-maintained paperwork
+ * state, not Google runtime authority.
+ * Allowed runtime connection states: READY_FOR_OAUTH, CONNECTED.
+ * TOKEN_EXPIRED / NOT_CONFIGURED / ERROR fail closed.
+ *
+ * The access token is returned to the caller's memory only: never persisted,
+ * never logged, never sent to the frontend.
  */
+const REFRESH_ALLOWED_CONNECTION_STATES = new Set([
+  "READY_FOR_OAUTH",
+  "CONNECTED",
+]);
+
 export async function getGoogleBusinessProfileAccessToken(
   admin: any,
   accommodationId: string,
 ): Promise<string> {
-  const cfg = await getPlatformConfig(admin);
-  if (!cfg?.oauth_client_id || !cfg.client_secret_configured) {
-    throw new GbpError("GBP_PLATFORM_NOT_CONFIGURED", 400);
+  const { data: row } = await admin
+    .from("accommodation_google_business_profile")
+    .select("oauth_client_id, client_secret_configured, connection_status")
+    .eq("accommodation_id", accommodationId)
+    .maybeSingle();
+
+  if (!row) throw new GbpError("GBP_NOT_CONFIGURED", 400);
+
+  const status = row.connection_status ?? "NOT_CONFIGURED";
+  if (status === "TOKEN_EXPIRED") throw new GbpError("GBP_TOKEN_EXPIRED", 401);
+  if (!REFRESH_ALLOWED_CONNECTION_STATES.has(status)) {
+    throw new GbpError("GBP_NOT_CONNECTED", 400);
   }
-  const clientSecret = await vaultGet(admin, PLATFORM_SECRET_NAME);
-  if (!clientSecret) throw new GbpError("GBP_PLATFORM_NOT_CONFIGURED", 400);
+
+  // OAuth client id rotation resets client_secret_configured (P2) → fail closed
+  // BEFORE any Vault read or Google call.
+  if (!row.oauth_client_id || row.client_secret_configured !== true) {
+    throw new GbpError("GBP_ACCOMMODATION_NOT_CONFIGURED", 400);
+  }
+
+  const clientSecret = await vaultGet(
+    admin,
+    accommodationClientSecretName(accommodationId),
+  );
+  // configured=true but no Vault value is an inconsistent state: fail closed,
+  // never fall back to the platform secret or another tenant.
+  if (!clientSecret) throw new GbpError("GBP_CLIENT_SECRET_MISSING", 400);
 
   const refreshToken = await vaultGet(
     admin,
@@ -274,7 +312,7 @@ export async function getGoogleBusinessProfileAccessToken(
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: cfg.oauth_client_id,
+        client_id: row.oauth_client_id,
         client_secret: clientSecret,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
@@ -309,6 +347,8 @@ export async function getGoogleBusinessProfileAccessToken(
   }
 
   const json = await r.json();
+  // Rotation: overwrite ONLY this tenant's key when Google returns a new
+  // refresh token; absence never deletes the stored one.
   if (json.refresh_token && json.refresh_token !== refreshToken) {
     await vaultSet(
       admin,
@@ -319,3 +359,4 @@ export async function getGoogleBusinessProfileAccessToken(
   if (!json.access_token) throw new GbpError("GBP_TOKEN_REFRESH_FAILED", 502);
   return json.access_token as string;
 }
+
