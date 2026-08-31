@@ -90,8 +90,8 @@ describe("P3｜oauth-callback tenant binding 與權限重驗", () => {
     expect(callbackCode).toContain("isStrictAccommodationAdminUser(");
     expect(callbackCode).toContain("stateRow.user_id");
     expect(callbackCode).toContain('back("permission_changed")');
-    expect(callbackCode.indexOf("isStrictAccommodationAdminUser")).toBeLessThan(
-      callbackCode.indexOf("exchangeCode"),
+    expect(callbackCode.indexOf("isStrictAccommodationAdminUser(")).toBeLessThan(
+      callbackCode.indexOf("await exchangeCode({"),
     );
     expect(callbackCode).not.toContain("is_admin_or_super");
   });
