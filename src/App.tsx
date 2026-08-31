@@ -105,6 +105,7 @@ const DataDeletion = lazy(() => import("./pages/DataDeletion"));
 // 後台管理頁面 - lazy load
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const WebsiteContent = lazy(() => import("./pages/WebsiteContent"));
+const GoogleBusinessProfileApiHelp = lazy(() => import("./pages/help/GoogleBusinessProfileApiHelp"));
 const Faq = lazy(() => import("./pages/Faq"));
 const Orders = lazy(() => import("./pages/Orders"));
 const OrderDetail = lazy(() => import("./pages/OrderDetail"));
@@ -442,6 +443,11 @@ function App() {
                     <Route path="admin" element={
                       <RequireModule module="analytics">
                         <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="help/google-business-profile-api" element={
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><GoogleBusinessProfileApiHelp /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/website-content" element={
