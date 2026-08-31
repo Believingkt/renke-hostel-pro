@@ -16,6 +16,7 @@ const STEPS = [
   { id: "step-08", title: "08 建立 OAuth Client ID" },
   { id: "step-09", title: "09 回後台完成串接" },
   { id: "step-10", title: "10 注意安全資訊" },
+  { id: "step-11", title: "11 申請完成後要回填什麼" },
 ];
 
 const USE_CASE_TEXT =
@@ -258,7 +259,31 @@ export default function GoogleBusinessProfileApiHelp() {
         </div>
       </Section>
 
+      <Section id="step-11" title="11 申請完成後，要回系統填什麼？">
+        <p>回到「官網內容 → Google 評論 → Google Business Profile API」，填入以下三項：</p>
+        <ol className="list-decimal pl-5 space-y-1">
+          <li>Project ID</li>
+          <li>Project Number</li>
+          <li>OAuth Client ID</li>
+        </ol>
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 space-y-1">
+          <div className="font-semibold text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            不要將以下內容貼入普通欄位
+          </div>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Client Secret</li>
+            <li>Access Token</li>
+            <li>Refresh Token</li>
+          </ul>
+          <p className="text-muted-foreground">
+            Client Secret 請保留在 Google Cloud，待 OAuth Backend 完成後再由後端安全設定。
+          </p>
+        </div>
+      </Section>
+
       <Card>
+
         <CardHeader className="pb-3">
           <CardTitle className="text-base">官方文件</CardTitle>
         </CardHeader>
