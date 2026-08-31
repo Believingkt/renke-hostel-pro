@@ -262,6 +262,29 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
     load();
   }, [load]);
 
+  // 讀取目前的評論同步來源（唯讀，僅影響 UI 顯示）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!accommodationId) return;
+      const { data } = await supabase
+        .from("accommodation_google_business_profile")
+        .select("review_source")
+        .eq("accommodation_id", accommodationId)
+        .maybeSingle();
+      if (cancelled) return;
+      setReviewSource(
+        ((data as { review_source?: string } | null)?.review_source as
+          | "PLACES"
+          | "BUSINESS_PROFILE") ?? "PLACES",
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId, gbpRefreshKey]);
+
+
   const toggleSelect = (key: string) => {
     setSelectedKeys((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
