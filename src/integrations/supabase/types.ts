@@ -13523,6 +13523,10 @@ export type Database = {
       }
       ensure_trip_share_slug: { Args: { p_trip_id: string }; Returns: string }
       gbp_platform_ready: { Args: never; Returns: boolean }
+      gbp_save_accommodation_oauth_client_secret: {
+        Args: { p_accommodation_id: string; p_client_secret: string }
+        Returns: Json
+      }
       gbp_vault_delete: { Args: { p_name: string }; Returns: undefined }
       gbp_vault_get: { Args: { p_name: string }; Returns: string }
       gbp_vault_set: {

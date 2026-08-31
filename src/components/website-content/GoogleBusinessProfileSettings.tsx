@@ -115,9 +115,13 @@ export const GoogleBusinessProfileSettings = ({
   const [projectId, setProjectId] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
   const [oauthClientId, setOauthClientId] = useState("");
+  const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [applicationStatus, setApplicationStatus] = useState("NOT_STARTED");
   const [secretConfigured, setSecretConfigured] = useState(false);
+  const [secretInput, setSecretInput] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
   const [savingCredentials, setSavingCredentials] = useState(false);
+
 
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [locations, setLocations] = useState<GoogleLocation[]>([]);
@@ -152,8 +156,10 @@ export const GoogleBusinessProfileSettings = ({
     setProjectId(data?.project_id ?? "");
     setProjectNumber(data?.project_number ?? "");
     setOauthClientId(data?.oauth_client_id ?? "");
+    setSavedClientId(data?.oauth_client_id ?? null);
     setApplicationStatus(data?.application_status ?? "NOT_STARTED");
     setSecretConfigured(!!data?.client_secret_configured);
+
 
     setLoaded(true);
   }, [accommodationId]);
@@ -326,6 +332,7 @@ export const GoogleBusinessProfileSettings = ({
   /** 儲存本館 Google Cloud 憑證 metadata（不含 Client Secret） */
   const handleSaveCredentials = async () => {
     setSavingCredentials(true);
+    const clientIdChanged = trimOrNull(oauthClientId) !== (savedClientId || null);
     const ok = await persist({
       project_id: trimOrNull(projectId),
       project_number: trimOrNull(projectNumber),
@@ -335,8 +342,42 @@ export const GoogleBusinessProfileSettings = ({
     setSavingCredentials(false);
     if (!ok) return;
     toast.success("已儲存本館 Google Cloud 設定");
+    if (clientIdChanged && secretConfigured) {
+      toast.warning("OAuth Client ID 已變更，Client Secret 已失效，請重新輸入對應的新 Secret。");
+    }
     await load();
   };
+
+  /**
+   * Client Secret 只送往 Edge Function → Vault，永不寫入前端可讀欄位。
+   * 成功後立即清空輸入框，畫面只顯示鎖頭狀態。
+   */
+  const handleSaveSecret = async () => {
+    const value = secretInput;
+    if (value.trim().length < 8) {
+      toast.error("請輸入有效的 Client Secret");
+      return;
+    }
+    if (!trimOrNull(oauthClientId) || trimOrNull(oauthClientId) !== (savedClientId || null)) {
+      toast.error("請先儲存本館 OAuth Client ID，再設定 Client Secret。");
+      return;
+    }
+    setSavingSecret(true);
+    const { data, error } = await supabase.functions.invoke(
+      "save-google-business-profile-accommodation-secret",
+      { body: { accommodation_id: accommodationId, client_secret: value } },
+    );
+    setSavingSecret(false);
+    if (error || data?.error || data?.configured !== true) {
+      toast.error("Client Secret 儲存失敗：" + (data?.error ?? error?.message ?? "unknown"));
+      return;
+    }
+    setSecretInput("");
+    setSecretConfigured(true);
+    toast.success("Client Secret 已安全儲存（僅後端保存，永不顯示）");
+    await load();
+  };
+
 
 
   if (!visible || !loaded) return null;
@@ -446,13 +487,13 @@ export const GoogleBusinessProfileSettings = ({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>OAuth Client Secret</Label>
+                <Label>OAuth Client Secret 狀態</Label>
                 <div className="flex h-11 items-center gap-2 rounded-md border bg-muted/30 px-3 text-sm">
                   <Lock className="h-4 w-4 text-muted-foreground" />
                   {secretConfigured ? (
                     <span>🔒 已設定（僅後端保存，永不顯示）</span>
                   ) : (
-                    <span className="text-muted-foreground">尚未設定（將於連線流程輸入）</span>
+                    <span className="text-muted-foreground">尚未設定</span>
                   )}
                 </div>
               </div>
@@ -461,6 +502,39 @@ export const GoogleBusinessProfileSettings = ({
             <Button onClick={handleSaveCredentials} disabled={readOnly || savingCredentials}>
               {savingCredentials ? "儲存中…" : "儲存本館設定"}
             </Button>
+
+            {/* Client Secret：只送後端寫入 Vault，永不回讀 */}
+            <div className="space-y-3 rounded-md border border-dashed p-3">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="min-w-[240px] flex-1 space-y-2">
+                  <Label htmlFor="gbp-client-secret">
+                    {secretConfigured ? "更新 OAuth Client Secret" : "設定 OAuth Client Secret"}
+                  </Label>
+                  <Input
+                    id="gbp-client-secret"
+                    type="password"
+                    autoComplete="new-password"
+                    value={secretInput}
+                    onChange={(e) => setSecretInput(e.target.value)}
+                    disabled={readOnly}
+                    placeholder="GOCSPX-…"
+                    className="h-11 font-mono text-base"
+                  />
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleSaveSecret}
+                  disabled={readOnly || savingSecret || !secretInput.trim()}
+                >
+                  {savingSecret ? "儲存中…" : secretConfigured ? "更新 Secret" : "設定 Secret"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Secret 只會送往後端並加密保存於保險庫，永遠不會顯示或回傳前端。
+                更換 OAuth Client ID 後，舊 Secret 會自動失效，需重新輸入。
+              </p>
+            </div>
+
           </section>
         ) : (
           <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
