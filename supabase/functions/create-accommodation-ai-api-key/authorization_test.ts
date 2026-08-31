@@ -60,6 +60,6 @@ Deno.test("source guard: no accommodation-access authorization remains in the fu
   assertEquals(src.includes('.eq("role", "super_admin")'), true);
   // authorization must precede key generation and DB insert
   const authIdx = src.indexOf('.eq("role", "super_admin")');
-  assertEquals(authIdx > -1 && authIdx < src.indexOf("generateKey()"), true);
+  assertEquals(authIdx > -1 && authIdx < src.indexOf("const plain = generateKey()"), true);
   assertEquals(authIdx < src.indexOf("accommodation_ai_api_keys"), true);
 });
