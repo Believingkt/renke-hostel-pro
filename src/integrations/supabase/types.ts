@@ -13519,6 +13519,7 @@ export type Database = {
         Returns: number
       }
       ensure_trip_share_slug: { Args: { p_trip_id: string }; Returns: string }
+      gbp_platform_ready: { Args: never; Returns: boolean }
       gbp_vault_delete: { Args: { p_name: string }; Returns: undefined }
       gbp_vault_get: { Args: { p_name: string }; Returns: string }
       gbp_vault_set: {
