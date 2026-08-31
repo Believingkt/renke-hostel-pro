@@ -42,17 +42,17 @@ describe("PKCE", () => {
 });
 
 describe("oauth-start fail-closed ordering", () => {
-  it("validates platform config before creating any state row", () => {
-    const cfgIdx = oauthStart.indexOf("GBP_PLATFORM_NOT_CONFIGURED");
+  it("validates the accommodation config before creating any state row", () => {
+    const cfgIdx = oauthStart.indexOf("GBP_ACCOMMODATION_NOT_CONFIGURED");
     const insertIdx = oauthStart.indexOf(".insert({");
     expect(cfgIdx).toBeGreaterThan(-1);
     expect(cfgIdx).toBeLessThan(insertIdx);
   });
 
-  it("cross-accommodation / readonly callers are denied by authorizeAccommodation", () => {
-    expect(oauthStart).toContain("authorizeAccommodation(req, accommodationId)");
-    expect(shared).toContain('canEditModule(\n    resolved.ctx,\n    accommodationId,\n    "website_content",\n  )');
-    expect(shared).toContain('{ ok: false, status: 403, error: "Forbidden" }');
+  it("cross-accommodation / staff callers are denied by strict admin check", () => {
+    expect(oauthStart).toContain("isAccommodationAdmin(resolved.ctx, accommodationId)");
+    expect(oauthStart).not.toContain("authorizeAccommodation");
+    expect(oauthStart).toContain('jsonResp({ error: "Forbidden" }, 403)');
   });
 });
 

@@ -62,8 +62,8 @@ describe("save-google-business-profile-platform-secret", () => {
 });
 
 describe("google-business-profile-oauth-start fail-closed", () => {
-  it("returns GBP_PLATFORM_NOT_CONFIGURED before creating any state row", () => {
-    const guardIdx = oauthStart.indexOf("GBP_PLATFORM_NOT_CONFIGURED");
+  it("returns GBP_ACCOMMODATION_NOT_CONFIGURED before creating any state row", () => {
+    const guardIdx = oauthStart.indexOf("GBP_ACCOMMODATION_NOT_CONFIGURED");
     const insertIdx = oauthStart.indexOf(
       "google_business_profile_oauth_states",
     );
@@ -73,15 +73,15 @@ describe("google-business-profile-oauth-start fail-closed", () => {
     expect(guardIdx).toBeLessThan(googleUrlIdx);
   });
 
-  it("requires client id, configured secret and a non-rejected access status", () => {
+  it("requires this accommodation's client id, configured secret and APPROVED status", () => {
     expect(oauthStart).toContain("!cfg?.oauth_client_id");
     expect(oauthStart).toContain("!cfg.client_secret_configured");
-    expect(oauthStart).toContain('cfg.api_access_status === "REJECTED"');
+    expect(oauthStart).toContain('cfg.application_status !== "APPROVED"');
   });
 
-  it("authorizes the caller before touching platform config", () => {
-    const authIdx = oauthStart.indexOf("authorizeAccommodation(");
-    const cfgIdx = oauthStart.indexOf("getPlatformConfig(admin)");
+  it("authorizes the caller before reading any accommodation credential", () => {
+    const authIdx = oauthStart.indexOf("isAccommodationAdmin(");
+    const cfgIdx = oauthStart.indexOf("getAccommodationOAuthConfig(admin");
     expect(authIdx).toBeGreaterThan(-1);
     expect(authIdx).toBeLessThan(cfgIdx);
   });
