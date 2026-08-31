@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { parseOwnerSettlementFocus } from "@/lib/settingsGapLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import CommissionExclusionInfoDialog from "@/components/team/CommissionExclusionInfoDialog";
 import { AdminPageShell, AdminStickyActionBar } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -814,7 +815,11 @@ export default function OwnerSettlementSettings({
 
       <Card>
         <CardHeader>
-          <CardTitle>不抽成的增值服務</CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle>不抽成的增值服務</CardTitle>
+            <CommissionExclusionInfoDialog />
+          </div>
+
           <CardDescription>
             勾選＝不抽成，未勾選＝列入抽成。未設定任何項目＝全部增值服務都列入抽成。
             <br />
