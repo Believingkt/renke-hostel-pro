@@ -166,7 +166,7 @@ const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettin
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
 const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
 const HQBrandPartners = lazy(() => import("./pages/hq/HQBrandPartners"));
-const HQGoogleBusinessProfile = lazy(() => import("./pages/hq/HQGoogleBusinessProfile"));
+const HQGoogleBusinessProfileRetired = lazy(() => import("./pages/hq/HQGoogleBusinessProfileRetired"));
 const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
 
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
