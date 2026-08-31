@@ -42,9 +42,9 @@ describe("source isolation: Places must skip Business Profile accommodations", (
 });
 
 describe("auto-sync routing is mutually exclusive per accommodation", () => {
-  it("excludes BUSINESS_PROFILE accommodations from the Places target list", () => {
+  it("excludes Places entirely from the scheduled path (Places batch disabled)", () => {
     expect(autoSyncFn).toContain('.eq("review_source", "BUSINESS_PROFILE")');
-    expect(autoSyncFn).toContain("if (gbpIds.has(r.id)) return false");
+    expect(autoSyncFn).toContain('PLACES_SCHEDULED_SYNC = "DISABLED"');
   });
 
   it("routes connected Business Profile accommodations to the GBP function", () => {
