@@ -26,10 +26,20 @@ function toArr(v: unknown): string[] {
   return Array.isArray(v) ? v.map((x) => String(x)).filter(Boolean) : [];
 }
 
-/** 取日期的月初（YYYY-MM-01）；無效輸入回傳空字串 */
+/** 取「台北日曆日」的月初（YYYY-MM-01）；無效輸入回傳空字串 */
 export function ruleMonthStartOf(value: string | Date | null | undefined): string {
   if (!value) return "";
-  const s = value instanceof Date ? value.toISOString() : String(value);
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (!Number.isNaN(d.getTime())) {
+    const taipei = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Taipei",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+    return `${taipei.slice(0, 7)}-01`;
+  }
+  const s = String(value);
   const m = s.match(/^(\d{4})-(\d{2})/);
   return m ? `${m[1]}-${m[2]}-01` : "";
 }
