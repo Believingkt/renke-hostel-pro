@@ -479,7 +479,15 @@ export const GoogleBusinessProfileSettings = ({
             Google 授權已失效，請重新連結。重新授權即可恢復同步，不需要重新填寫任何 ID。
           </div>
         )}
+
+        {status === "NOT_CONFIGURED" && (
+          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+            尚未連結 Google 商家帳號。完成本館 Google Cloud 設定與 API 審核後即可進行授權，現有前台評論不受影響。
+          </div>
+        )}
+
         {/* 連線動作 */}
+
         <div className="flex flex-wrap items-center gap-2">
           {!connected ? (
             <Button
