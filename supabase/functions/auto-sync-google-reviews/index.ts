@@ -1,6 +1,16 @@
 // Edge Function: auto-sync-google-reviews
-// 由 pg_cron 每小時呼叫一次,掃描所有開啟「自動同步」且距上次同步已超過設定間隔的住宿,
-// 逐一觸發 fetch-google-reviews 進行更新。
+//
+// PRODUCT CONTRACT (2026-08):
+// - Places per-accommodation auto-sync settings were REMOVED from the product
+//   (columns google_reviews_auto_sync_enabled / _interval_hours were dropped
+//   on 2026-05-02). This function must therefore NOT read them.
+// - Places scheduled batch is DISABLED: the eligible set is intentionally empty.
+//   Manual Places sync via `fetch-google-reviews` is unchanged.
+// - Google Business Profile scheduled routing is retained: only accommodations
+//   with review_source = BUSINESS_PROFILE AND connection_status = CONNECTED are
+//   synced, and only into the GBP candidate pool (never the frontend cache).
+// - There is currently NO cron calling this function.
+// - Trusted callers only (service role / internal scheduler).
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,6 +20,25 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// Places scheduled auto-sync has been retired at product level.
+export const PLACES_SCHEDULED_SYNC = "DISABLED" as const;
+
+export function getGbpScheduledTargets(
+  gbpRows: Array<{
+    accommodation_id: string;
+    review_source: string | null;
+    connection_status: string | null;
+  }> | null
+): string[] {
+  return (gbpRows || [])
+    .filter(
+      (g) =>
+        g.review_source === "BUSINESS_PROFILE" &&
+        g.connection_status === "CONNECTED"
+    )
+    .map((g) => g.accommodation_id);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -18,57 +47,38 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: rows, error } = await admin
-      .from("accommodation_info")
-      .select(
-        "id, google_place_id, google_reviews_cached_at, google_reviews_auto_sync_interval_hours"
-      )
-      .eq("google_reviews_auto_sync_enabled", true)
-      .not("google_place_id", "is", null);
-
-    if (error) {
-      return jsonResp({ error: "query_failed", message: error.message }, 500);
+    // Trusted callers only: service role bearer token (scheduler / internal).
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token || token !== serviceKey) {
+      return jsonResp({ error: "unauthorized" }, 401);
     }
 
-    // Source routing: an accommodation is synced by exactly ONE source.
-    // BUSINESS_PROFILE accommodations must never be overwritten by Places.
-    const { data: gbpRows } = await admin
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // --- Places scheduled path: DISABLED (no eligible set, no fallback) ---
+    const placesScheduledSync = PLACES_SCHEDULED_SYNC;
+
+    // --- Business Profile scheduled path ---
+    const { data: gbpRows, error: gbpError } = await admin
       .from("accommodation_google_business_profile")
       .select("accommodation_id, review_source, connection_status")
       .eq("review_source", "BUSINESS_PROFILE");
-    const gbpIds = new Set(
-      (gbpRows || []).map((g) => g.accommodation_id as string)
-    );
 
-    const now = Date.now();
-    const eligible = (rows || []).filter((r) => {
-      if (gbpIds.has(r.id)) return false; // Business Profile mode → skip Places
-      const interval =
-        (r.google_reviews_auto_sync_interval_hours || 24) * 3600_000;
-      if (!r.google_reviews_cached_at) return true;
-      return now - new Date(r.google_reviews_cached_at).getTime() >= interval;
-    });
+    if (gbpError) {
+      return jsonResp({ error: "query_failed", message: gbpError.message }, 500);
+    }
+
+    const gbpTargets = getGbpScheduledTargets(gbpRows);
+    const skipped = (gbpRows || []).length - gbpTargets.length;
 
     const results: Array<{ id: string; ok: boolean; message?: string }> = [];
 
-    const gbpEligible = (gbpRows || []).filter(
-      (g) => g.connection_status === "CONNECTED"
-    );
-
-    const targets: Array<{ id: string; fn: string }> = [
-      ...eligible.map((r) => ({ id: r.id as string, fn: "fetch-google-reviews" })),
-      ...gbpEligible.map((g) => ({
-        id: g.accommodation_id as string,
-        fn: "fetch-google-business-profile-reviews",
-      })),
-    ];
-
-    for (const row of targets) {
+    for (const id of gbpTargets) {
       try {
         const r = await fetch(
-          `${supabaseUrl}/functions/v1/${row.fn}`,
+          `${supabaseUrl}/functions/v1/fetch-google-business-profile-reviews`,
           {
             method: "POST",
             headers: {
@@ -76,22 +86,22 @@ Deno.serve(async (req) => {
               apikey: serviceKey,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ accommodationId: row.id, force: true }),
+            body: JSON.stringify({ accommodationId: id, force: true }),
           }
         );
         const body = await r.json().catch(() => ({}));
         if (!r.ok || body?.error) {
           results.push({
-            id: row.id,
+            id,
             ok: false,
             message: body?.message || body?.error || `HTTP ${r.status}`,
           });
         } else {
-          results.push({ id: row.id, ok: true });
+          results.push({ id, ok: true });
         }
       } catch (e) {
         results.push({
-          id: row.id,
+          id,
           ok: false,
           message: e instanceof Error ? e.message : String(e),
         });
@@ -99,7 +109,9 @@ Deno.serve(async (req) => {
     }
 
     return jsonResp({
-      checked: rows?.length || 0,
+      placesScheduledSync,
+      checked: gbpTargets.length,
+      skipped,
       synced: results.filter((r) => r.ok).length,
       failed: results.filter((r) => !r.ok).length,
       results,
