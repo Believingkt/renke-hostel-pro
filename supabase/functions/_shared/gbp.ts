@@ -182,24 +182,37 @@ export async function getGoogleBusinessProfileAccessToken(
   );
   if (!refreshToken) throw new GbpError("GBP_NOT_CONNECTED", 400);
 
-  const r = await fetch(GOOGLE_TOKEN_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: cfg.oauth_client_id,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      grant_type: "refresh_token",
-    }),
-  });
+  let r: Response;
+  try {
+    r = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: cfg.oauth_client_id,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+  } catch {
+    // Network failure / timeout is transient — never a credential problem.
+    throw new GbpError("GBP_TOKEN_REFRESH_FAILED", 502);
+  }
 
   if (!r.ok) {
     let code = "token_refresh_failed";
+    let description = "";
     try {
       const err = await r.json();
       code = String(err?.error ?? code);
+      description = String(err?.error_description ?? "");
     } catch { /* ignore */ }
-    if (code === "invalid_grant") {
+    // ONLY an explicit credential-invalid response marks the connection
+    // expired. 429 / 5xx / timeouts stay transient.
+    const credentialInvalid = code === "invalid_grant" ||
+      code === "invalid_token" ||
+      /revoked|expired or revoked/i.test(description);
+    if (credentialInvalid && r.status < 500 && r.status !== 429) {
       await admin
         .from("accommodation_google_business_profile")
         .update({ connection_status: "TOKEN_EXPIRED" })

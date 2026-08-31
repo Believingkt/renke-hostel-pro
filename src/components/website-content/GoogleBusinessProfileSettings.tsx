@@ -337,7 +337,13 @@ export const GoogleBusinessProfileSettings = ({
 
         {status === "TOKEN_EXPIRED" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Google 授權已失效，請重新連結。
+            Google 授權已失效，請重新連結。重新授權即可恢復同步，不需要重新填寫任何 ID。
+          </div>
+        )}
+
+        {status === "NOT_CONFIGURED" && platformReady && (
+          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+            尚未連結 Google 商家帳號。按下方按鈕即可自助完成授權與商家選擇，現有前台評論不受影響。
           </div>
         )}
 
@@ -349,8 +355,16 @@ export const GoogleBusinessProfileSettings = ({
               disabled={readOnly || !platformReady || busy === "connect"}
               className="gap-2"
             >
-              <Link2 className="h-4 w-4" />
-              {busy === "connect" ? "準備中…" : "連結 Google 商家帳號"}
+              {status === "TOKEN_EXPIRED" ? (
+                <ShieldCheck className="h-4 w-4" />
+              ) : (
+                <Link2 className="h-4 w-4" />
+              )}
+              {busy === "connect"
+                ? "準備中…"
+                : status === "TOKEN_EXPIRED"
+                  ? "重新授權 Google 商家"
+                  : "連結 Google 商家帳號"}
             </Button>
           ) : (
             <>
