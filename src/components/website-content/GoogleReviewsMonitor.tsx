@@ -47,6 +47,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { GoogleReviewsSettings } from "./GoogleReviewsSettings";
+import { GoogleBusinessProfileSettings } from "./GoogleBusinessProfileSettings";
 import { GoogleReviewsPreview } from "./GoogleReviewsPreview";
 
 const reviewKey = (rv: { authorName: string; publishTime?: string | null }) =>
@@ -408,8 +409,13 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
 
   return (
     <div className="space-y-6">
-      {/* 設定區塊(Google 評論串接 + 摘要) */}
+      {/* 設定區塊(Google Places 基本串接 + 摘要) */}
       <GoogleReviewsSettings accommodationId={accommodationId} />
+
+      {/* Google Business Profile API 串接準備(PHASE 1：僅設定與狀態) */}
+      <GoogleBusinessProfileSettings />
+
+
 
       {/* 狀態總覽 */}
       <Card>
@@ -422,8 +428,9 @@ export const GoogleReviewsMonitor = ({ accommodationId }: Props) => {
                   Google 評論同步狀態 {statusBadge}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  按下「立即同步」以從 Google 手動抓取最新評論內容
+                  按下「立即同步」以從 Google 手動抓取評論內容 · 同步來源：Google Places API（最多 5 則）
                 </p>
+
               </div>
             </div>
             <Button

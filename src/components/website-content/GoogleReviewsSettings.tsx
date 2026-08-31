@@ -62,10 +62,11 @@ export const GoogleReviewsSettings = ({ accommodationId }: Props) => {
         <div className="flex items-center gap-3">
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
-            <CardTitle className="text-xl">Google 評論串接</CardTitle>
+            <CardTitle className="text-xl">Google Places 基本串接</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              填入 Google 地點 ID,系統自動抓取最新 5 則評論顯示於前台「旅客評價」區
+              目前使用 Google Place ID 同步 Google 提供的最多 5 則代表性評論。
             </p>
+
           </div>
         </div>
       </CardHeader>
