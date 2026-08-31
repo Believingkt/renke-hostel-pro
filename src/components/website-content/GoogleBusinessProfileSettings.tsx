@@ -115,9 +115,13 @@ export const GoogleBusinessProfileSettings = ({
   const [projectId, setProjectId] = useState("");
   const [projectNumber, setProjectNumber] = useState("");
   const [oauthClientId, setOauthClientId] = useState("");
+  const [savedClientId, setSavedClientId] = useState<string | null>(null);
   const [applicationStatus, setApplicationStatus] = useState("NOT_STARTED");
   const [secretConfigured, setSecretConfigured] = useState(false);
+  const [secretInput, setSecretInput] = useState("");
+  const [savingSecret, setSavingSecret] = useState(false);
   const [savingCredentials, setSavingCredentials] = useState(false);
+
 
   const [accounts, setAccounts] = useState<GoogleAccount[]>([]);
   const [locations, setLocations] = useState<GoogleLocation[]>([]);
@@ -326,6 +330,7 @@ export const GoogleBusinessProfileSettings = ({
   /** 儲存本館 Google Cloud 憑證 metadata（不含 Client Secret） */
   const handleSaveCredentials = async () => {
     setSavingCredentials(true);
+    const clientIdChanged = trimOrNull(oauthClientId) !== (savedClientId || null);
     const ok = await persist({
       project_id: trimOrNull(projectId),
       project_number: trimOrNull(projectNumber),
@@ -335,8 +340,42 @@ export const GoogleBusinessProfileSettings = ({
     setSavingCredentials(false);
     if (!ok) return;
     toast.success("已儲存本館 Google Cloud 設定");
+    if (clientIdChanged && secretConfigured) {
+      toast.warning("OAuth Client ID 已變更，Client Secret 已失效，請重新輸入對應的新 Secret。");
+    }
     await load();
   };
+
+  /**
+   * Client Secret 只送往 Edge Function → Vault，永不寫入前端可讀欄位。
+   * 成功後立即清空輸入框，畫面只顯示鎖頭狀態。
+   */
+  const handleSaveSecret = async () => {
+    const value = secretInput;
+    if (value.trim().length < 8) {
+      toast.error("請輸入有效的 Client Secret");
+      return;
+    }
+    if (!trimOrNull(oauthClientId) || trimOrNull(oauthClientId) !== (savedClientId || null)) {
+      toast.error("請先儲存本館 OAuth Client ID，再設定 Client Secret。");
+      return;
+    }
+    setSavingSecret(true);
+    const { data, error } = await supabase.functions.invoke(
+      "save-google-business-profile-accommodation-secret",
+      { body: { accommodation_id: accommodationId, client_secret: value } },
+    );
+    setSavingSecret(false);
+    if (error || data?.error || data?.configured !== true) {
+      toast.error("Client Secret 儲存失敗：" + (data?.error ?? error?.message ?? "unknown"));
+      return;
+    }
+    setSecretInput("");
+    setSecretConfigured(true);
+    toast.success("Client Secret 已安全儲存（僅後端保存，永不顯示）");
+    await load();
+  };
+
 
 
   if (!visible || !loaded) return null;
