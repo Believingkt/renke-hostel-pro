@@ -165,7 +165,8 @@ describe("P3｜shared helper 與凍結範圍", () => {
   });
 
 
-  it("Connect Google 前端仍為 DISABLED", () => {
-    expect(ui).toContain("const OAUTH_RUNTIME_READY = false");
+  it("Connect Google 已於 P5 啟用，且由每館 readiness 把關", () => {
+    expect(ui).toContain("const OAUTH_RUNTIME_READY = true");
+    expect(ui).toContain("isAccommodationGoogleOAuthReady");
   });
 });

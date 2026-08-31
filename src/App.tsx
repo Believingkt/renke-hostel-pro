@@ -166,7 +166,7 @@ const OwnerSettlementSettings = lazy(() => import("./pages/OwnerSettlementSettin
 const HQOwnerSettlementSettings = lazy(() => import("./pages/hq/HQOwnerSettlementSettings"));
 const HQBonusSettings = lazy(() => import("./pages/hq/HQBonusSettings"));
 const HQBrandPartners = lazy(() => import("./pages/hq/HQBrandPartners"));
-const HQGoogleBusinessProfile = lazy(() => import("./pages/hq/HQGoogleBusinessProfile"));
+const HQGoogleBusinessProfileRetired = lazy(() => import("./pages/hq/HQGoogleBusinessProfileRetired"));
 const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
 
 const PaymentAudit = lazy(() => import("./pages/PaymentAudit"));
@@ -818,11 +818,13 @@ function App() {
                           <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
                         </RequireHQRole>
                       } />
+                      {/* 已退休：Google 商家串接改為各館自主管理，僅保留停用說明頁 */}
                       <Route path="/hq/integrations/google-business-profile" element={
                         <RequireHQRole allow={["super_admin"]}>
-                          <Suspense fallback={<FormSkeleton fields={4} />}><HQGoogleBusinessProfile /></Suspense>
+                          <Suspense fallback={<FormSkeleton fields={2} />}><HQGoogleBusinessProfileRetired /></Suspense>
                         </RequireHQRole>
                       } />
+
                       <Route path="/hq/brand-partners" element={
                         <RequireHQRole allow={["super_admin"]}>
                           <Suspense fallback={<FormSkeleton fields={3} />}><HQBrandPartners /></Suspense>

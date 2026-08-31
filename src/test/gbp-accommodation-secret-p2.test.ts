@@ -52,7 +52,8 @@ describe("GBP P2｜每館 Client Secret Vault", () => {
     expect(ui).not.toMatch(/persist\(\{[^}]*client_secret/);
   });
 
-  it("UI：Connect Google 仍為 DISABLED（P2 尚未開放）", () => {
-    expect(ui).toContain("const OAUTH_RUNTIME_READY = false");
+  it("UI：P5 已啟用 OAuth，但仍由每館憑證 readiness 把關", () => {
+    expect(ui).toContain("const OAUTH_RUNTIME_READY = true");
+    expect(ui).toContain("isAccommodationGoogleOAuthReady");
   });
 });

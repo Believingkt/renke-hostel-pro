@@ -21,11 +21,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Link2, Lock, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Link2,
+  Lock,
+  RefreshCw,
+  ShieldCheck,
+  Unlink,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import {
+  gbpReadinessHints,
+  isAccommodationGoogleOAuthReady,
+} from "@/lib/gbpReadiness";
+
 
 /**
  * 民宿端 Google Business Profile 設定。
@@ -34,11 +48,17 @@ import { useStaffPermissions } from "@/hooks/use-staff-permissions";
  * 申請 Business Profile API、建立 OAuth Client，並在此填入 Project ID / Project Number /
  * OAuth Client ID。Client Secret 與 Refresh Token 僅存後端 Vault，永不顯示。
  *
- * P1 範圍：僅憑證 metadata 保存。實際 OAuth 連線（Connect）尚未改為館別憑證，維持停用。
+ * P5：OAuth runtime 已全面改為館別憑證，Connect 正式啟用；readiness 完全依本館設定判斷，
+ * 不讀任何平台共用設定。
  */
 
-/** P1：OAuth runtime 尚未改為館別憑證，Connect 一律停用，且不得 fallback 至平台共用設定。 */
-const OAUTH_RUNTIME_READY = false;
+/** P5：per-accommodation OAuth runtime 已就緒。真正能否 Connect 仍依本館憑證完整度判斷。 */
+const OAUTH_RUNTIME_READY = true;
+
+/** 所有館共用的 OAuth callback（各館把它加入自己的 OAuth Client 授權重新導向 URI）。 */
+const REDIRECT_URI =
+  "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/google-business-profile-oauth-callback";
+
 
 const APPLICATION_STATUS_LABEL: Record<string, string> = {
   NOT_STARTED: "尚未申請",
@@ -100,7 +120,7 @@ export const GoogleBusinessProfileSettings = ({
   /** 憑證 metadata 僅 super_admin / 本館 hotel_admin 可見可編輯（與 DB trigger 同步） */
   const canManageCredentials = !!isStrictAdmin;
 
-  const [platformReady, setPlatformReady] = useState(false);
+  
   const [status, setStatus] = useState<BusinessProfileConnectionStatus>("NOT_CONFIGURED");
   const [connectedAt, setConnectedAt] = useState<string | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null);
@@ -129,21 +149,20 @@ export const GoogleBusinessProfileSettings = ({
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [copiedRedirect, setCopiedRedirect] = useState(false);
   const handledCallback = useRef(false);
 
   const load = useCallback(async () => {
     if (!accommodationId) return;
-    const [{ data: ready }, { data }] = await Promise.all([
-      supabase.rpc("gbp_platform_ready"),
-      supabase
-        .from("accommodation_google_business_profile")
-        .select(
-          "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count, project_id, project_number, oauth_client_id, application_status, client_secret_configured",
-        )
-        .eq("accommodation_id", accommodationId)
-        .maybeSingle(),
-    ]);
-    setPlatformReady(!!ready);
+    // 只讀本館設定；不查詢任何平台/全域 Google 設定。
+    const { data } = await supabase
+      .from("accommodation_google_business_profile")
+      .select(
+        "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count, project_id, project_number, oauth_client_id, application_status, client_secret_configured",
+      )
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle();
+
     setStatus((data?.connection_status as BusinessProfileConnectionStatus) ?? "NOT_CONFIGURED");
     setConnectedAt(data?.oauth_connected_at ?? null);
     setSelectedAccount(data?.selected_account_name ?? null);
@@ -220,12 +239,13 @@ export const GoogleBusinessProfileSettings = ({
     if (error || data?.error) {
       const code = data?.error ?? error?.message;
       toast.error(
-        code === "GBP_PLATFORM_NOT_CONFIGURED"
-          ? "平台 Google API 尚未完成設定，請聯絡總部管理者"
+        code === "GBP_ACCOMMODATION_NOT_CONFIGURED"
+          ? "本館 Google Cloud 設定尚未完成，請確認 OAuth Client ID 與 Client Secret 已設定。"
           : "無法開始授權：" + code,
       );
       return;
     }
+
     window.location.href = data.authorizationUrl;
   };
 
@@ -378,12 +398,35 @@ export const GoogleBusinessProfileSettings = ({
     await load();
   };
 
-
+  const copyRedirect = async () => {
+    try {
+      await navigator.clipboard.writeText(REDIRECT_URI);
+      setCopiedRedirect(true);
+      toast.success("已複製 Redirect URI");
+      setTimeout(() => setCopiedRedirect(false), 2000);
+    } catch {
+      toast.error("複製失敗，請手動選取文字");
+    }
+  };
 
   if (!visible || !loaded) return null;
 
   const connected = status === "CONNECTED" && !!selectedLocation;
   const awaitingSelection = !!connectedAt && !connected;
+
+  /** OAUTH_TECHNICALLY_READY：僅依本館憑證判斷，不含平台設定 */
+  const settingsSnapshot = {
+    project_id: projectId,
+    project_number: projectNumber,
+    oauth_client_id: savedClientId,
+    client_secret_configured: secretConfigured,
+    application_status: applicationStatus,
+    connection_status: status,
+  };
+  const oauthReady = isAccommodationGoogleOAuthReady(settingsSnapshot);
+  const readinessHints = gbpReadinessHints(settingsSnapshot);
+  const clientIdChangedNeedsSecret = !!savedClientId && !secretConfigured;
+
 
   return (
     <Card>
@@ -542,33 +585,70 @@ export const GoogleBusinessProfileSettings = ({
           </div>
         )}
 
-        {!OAUTH_RUNTIME_READY && (
+        {canManageCredentials && (
+          <section className="space-y-2 rounded-lg border p-4">
+            <h3 className="text-base font-semibold">Authorized Redirect URI</h3>
+            <p className="text-sm text-muted-foreground">
+              各館的 Google Cloud 專案與 OAuth Client 皆為獨立，但因為都是串回人客多系統，
+              請把下列網址原封不動加入貴館 OAuth Web Client 的「已授權的重新導向 URI」。
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                readOnly
+                value={REDIRECT_URI}
+                className="h-11 min-w-[240px] flex-1 font-mono text-sm"
+              />
+              <Button type="button" variant="outline" className="gap-2" onClick={copyRedirect}>
+                {copiedRedirect ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                複製 Redirect URI
+              </Button>
+            </div>
+          </section>
+        )}
+
+        {canManageCredentials && !connected && !oauthReady && (
           <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
-            Google OAuth 串接設定尚未完成，連線功能暫時停用。請先完成本館 Google Cloud 設定與 API 審核。
+            <div className="font-medium">尚未可進行 Google 授權，請先完成本館設定：</div>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted-foreground">
+              {readinessHints.map((h) => (
+                <li key={h}>{h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {canManageCredentials && clientIdChangedNeedsSecret && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
+            OAuth Client ID 已變更，請重新設定 Client Secret。
+            {!!connectedAt && "完成新 Client Secret 設定後，請重新授權 Google 商家。"}
           </div>
         )}
 
         {status === "TOKEN_EXPIRED" && (
           <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Google 授權已失效，請重新連結。重新授權即可恢復同步，不需要重新填寫任何 ID。
+            {"Google 授權已失效，請重新授權 Google 商家。重新授權即可恢復同步，不需要重新填寫任何 ID。"}
+
+            {!canManageCredentials && "（重新授權需由館主管理者操作）"}
           </div>
         )}
 
         {status === "NOT_CONFIGURED" && (
           <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
-            尚未連結 Google 商家帳號。完成本館 Google Cloud 設定與 API 審核後即可進行授權，現有前台評論不受影響。
+            尚未連結 Google 商家帳號。完成本館 Google Cloud 設定與 API 申請後即可自行授權，現有前台評論不受影響。
           </div>
         )}
 
-        {/* 連線動作 */}
+        {/* 連線動作：OAuth 憑證管理僅限館主管理者 */}
 
         <div className="flex flex-wrap items-center gap-2">
           {!connected ? (
+            canManageCredentials && (
             <Button
               onClick={handleConnect}
-              disabled={readOnly || !OAUTH_RUNTIME_READY || !platformReady || busy === "connect"}
+              disabled={readOnly || !OAUTH_RUNTIME_READY || !oauthReady || busy === "connect"}
               className="gap-2"
             >
+
 
               {status === "TOKEN_EXPIRED" ? (
                 <ShieldCheck className="h-4 w-4" />
@@ -581,27 +661,38 @@ export const GoogleBusinessProfileSettings = ({
                   ? "重新授權 Google 商家"
                   : "連結 Google 商家帳號"}
             </Button>
+            )
           ) : (
             <>
               <Button onClick={handleSync} disabled={readOnly || busy === "sync"} className="gap-2">
                 <RefreshCw className={`h-4 w-4 ${busy === "sync" ? "animate-spin" : ""}`} />
                 {busy === "sync" ? "同步中…" : "同步評論"}
               </Button>
-              <Button variant="outline" onClick={handleConnect} disabled={readOnly} className="gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                重新授權
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDisconnect(true)}
-                disabled={readOnly || busy === "disconnect"}
-                className="gap-2"
-              >
-                <Unlink className="h-4 w-4" />
-                解除連線
-              </Button>
+              {canManageCredentials && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleConnect}
+                    disabled={readOnly || !oauthReady}
+                    className="gap-2"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    重新授權
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmDisconnect(true)}
+                    disabled={readOnly || busy === "disconnect"}
+                    className="gap-2"
+                  >
+                    <Unlink className="h-4 w-4" />
+                    解除連線
+                  </Button>
+                </>
+              )}
             </>
           )}
+
           {readOnly && (
             <span className="text-xs text-muted-foreground">唯讀權限僅能查看連線狀態。</span>
           )}

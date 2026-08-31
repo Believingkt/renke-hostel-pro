@@ -28,7 +28,6 @@ import {
   Sparkles,
   Share2,
 } from "lucide-react";
-import { Star } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +67,7 @@ const menuItems = [
   { title: "帳號管理", url: "/hq?tab=users", icon: Users, tab: "users" },
   { title: "合作夥伴", url: "/hq?tab=partners", icon: Handshake, tab: "partners" },
   { title: "品牌夥伴", url: "/hq/brand-partners", icon: Sparkles, tab: "brand-partners" },
-  { title: "Google 商家串接", url: "/hq/integrations/google-business-profile", icon: Star, tab: "gbp-integration" },
+  // Google 商家串接已改為「各館自主管理」（PER-ACCOMMODATION OAuth），HQ 全域入口已退休。
   { title: "會員管理", url: "/hq?tab=members", icon: UserCheck, tab: "members" },
   { title: "優惠券管理", url: "/hq?tab=coupons", icon: Ticket, tab: "coupons" },
   { title: "點數規則", url: "/hq?tab=point-rules", icon: Gift, tab: "point-rules" },
