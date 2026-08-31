@@ -29,11 +29,12 @@ beforeAll(async () => {
     .replace(/AuthContext/g, "any");
   const js = transformSync(src, { loader: "ts", format: "cjs", target: "es2022" }).code;
   const exports: any = {};
+  const m: any = { exports };
   // deno-lint-ignore no-explicit-any
-  new Function("exports", "module", "require", "Deno", js)(exports, { exports }, () => ({}), {
+  new Function("exports", "module", "require", "Deno", js)(exports, m, () => ({}), {
     env: { get: () => "http://localhost" },
   });
-  mod = exports;
+  mod = m.exports;
 });
 
 type Row = {
