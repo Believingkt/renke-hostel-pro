@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { parseOwnerSettlementFocus } from "@/lib/settingsGapLinks";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import CommissionExclusionInfoDialog from "@/components/team/CommissionExclusionInfoDialog";
 import { AdminPageShell, AdminStickyActionBar } from "@/components/admin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
