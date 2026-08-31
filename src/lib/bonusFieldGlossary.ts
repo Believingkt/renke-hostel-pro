@@ -87,7 +87,8 @@ export const BONUS_FIELD_GLOSSARY: Record<BonusFieldKey, BonusFieldMeta> = {
   excluded_addons: {
     key: "excluded_addons",
     label: "不列入抽成的增值服務",
-    meaning: "從營收與分潤基準金額中扣除的加購項目。",
+    meaning:
+      "從營收與分潤基準金額中扣除的加購項目（各館獨立設定）。未設定＝全部列入抽成。團隊獎金自 2026-09-10 成交日起適用此設定，之前成交的訂單維持原算法（排除所有增值服務）；備註內「額外現場加購金額」自 2026-08-01 起一律排除。",
     settingLabel: "業主月結抽成規則",
     href: HQ_OWNER,
   },

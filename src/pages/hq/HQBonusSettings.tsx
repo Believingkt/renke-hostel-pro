@@ -197,7 +197,7 @@ export default function HQBonusSettings() {
             <CardHeader>
               <CardTitle>基準金額規則 ｜ 業主月結設定（總部集中管理）</CardTitle>
               <CardDescription>
-                這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務，
+                這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務（各館彈性設定，未設定＝全部列入抽成；團隊獎金自 2026-09-10 成交日起適用），
                 就是獎金四步流程中「② 用多少金額當基準」的來源，會直接影響成交大師獎金與團隊獎金的基準金額。
                 每間民宿獨立設定，沒有全站預設值：請先選擇館別再{ownerSettlementReadOnly ? "檢視" : "編輯"}。
               </CardDescription>
