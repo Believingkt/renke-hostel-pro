@@ -622,27 +622,38 @@ export const GoogleBusinessProfileSettings = ({
                   ? "重新授權 Google 商家"
                   : "連結 Google 商家帳號"}
             </Button>
+            )
           ) : (
             <>
               <Button onClick={handleSync} disabled={readOnly || busy === "sync"} className="gap-2">
                 <RefreshCw className={`h-4 w-4 ${busy === "sync" ? "animate-spin" : ""}`} />
                 {busy === "sync" ? "同步中…" : "同步評論"}
               </Button>
-              <Button variant="outline" onClick={handleConnect} disabled={readOnly} className="gap-2">
-                <ShieldCheck className="h-4 w-4" />
-                重新授權
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setConfirmDisconnect(true)}
-                disabled={readOnly || busy === "disconnect"}
-                className="gap-2"
-              >
-                <Unlink className="h-4 w-4" />
-                解除連線
-              </Button>
+              {canManageCredentials && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleConnect}
+                    disabled={readOnly || !oauthReady}
+                    className="gap-2"
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    重新授權
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setConfirmDisconnect(true)}
+                    disabled={readOnly || busy === "disconnect"}
+                    className="gap-2"
+                  >
+                    <Unlink className="h-4 w-4" />
+                    解除連線
+                  </Button>
+                </>
+              )}
             </>
           )}
+
           {readOnly && (
             <span className="text-xs text-muted-foreground">唯讀權限僅能查看連線狀態。</span>
           )}
