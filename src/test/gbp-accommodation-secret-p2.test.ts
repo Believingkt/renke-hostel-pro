@@ -12,19 +12,22 @@ const ui = readFileSync(
 
 describe("GBP P2｜每館 Client Secret Vault", () => {
   it("Edge：授權在讀取 secret 之前完成", () => {
-    expect(edge.indexOf("resolveCaller")).toBeLessThan(
-      edge.indexOf("body.client_secret"),
-    );
-    expect(edge.indexOf("isAllowedSecretManager")).toBeLessThan(
-      edge.indexOf("body.client_secret"),
-    );
+    const authAt = edge.indexOf("isAccommodationAdmin(resolved.ctx");
+    const secretAt = edge.indexOf("body.client_secret");
+    expect(authAt).toBeGreaterThan(-1);
+    expect(secretAt).toBeGreaterThan(-1);
+    expect(edge.indexOf("resolveCaller(req)")).toBeLessThan(secretAt);
+    expect(authAt).toBeLessThan(secretAt);
   });
 
-  it("Edge：不得使用寬鬆的 is_admin_or_super，僅 super_admin / 本館 hotel_admin", () => {
+  it("Edge：僅 super_admin / 本館 hotel_admin，不用寬鬆 admin 判定", () => {
     expect(edge).not.toContain("is_admin_or_super");
-    expect(edge).toContain('.in("role", ["super_admin", "hotel_admin"])');
+    expect(edge).not.toContain("canEditModule");
+    expect(edge).toContain("isAccommodationAdmin(resolved.ctx, accommodationId)");
     expect(edge).toContain("UUID_RE.test(accommodationId)");
   });
+
+
 
   it("Edge：Vault 名稱由後端推導，前端不得指定", () => {
     expect(edge).not.toContain("body.secret_name");
