@@ -139,17 +139,15 @@ export const GoogleBusinessProfileSettings = ({
 
   const load = useCallback(async () => {
     if (!accommodationId) return;
-    const [{ data: ready }, { data }] = await Promise.all([
-      supabase.rpc("gbp_platform_ready"),
-      supabase
-        .from("accommodation_google_business_profile")
-        .select(
-          "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count, project_id, project_number, oauth_client_id, application_status, client_secret_configured",
-        )
-        .eq("accommodation_id", accommodationId)
-        .maybeSingle(),
-    ]);
-    setPlatformReady(!!ready);
+    // 只讀本館設定；不查詢任何平台/全域 Google 設定。
+    const { data } = await supabase
+      .from("accommodation_google_business_profile")
+      .select(
+        "connection_status, oauth_connected_at, selected_account_name, selected_location_name, selected_location_title, sync_target, review_source, last_business_profile_sync_at, candidate_review_count, project_id, project_number, oauth_client_id, application_status, client_secret_configured",
+      )
+      .eq("accommodation_id", accommodationId)
+      .maybeSingle();
+
     setStatus((data?.connection_status as BusinessProfileConnectionStatus) ?? "NOT_CONFIGURED");
     setConnectedAt(data?.oauth_connected_at ?? null);
     setSelectedAccount(data?.selected_account_name ?? null);
