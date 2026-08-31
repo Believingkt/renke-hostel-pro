@@ -70,6 +70,7 @@ describe("GoogleBusinessProfileSettings persistence", () => {
   it("載入既有設定與 checklist", async () => {
     state.row = {
       project_id: "proj-x",
+      project_number: "123456789012",
       oauth_client_id: "client-x",
       account_id: "accounts/1",
       location_id: "locations/2",
@@ -83,7 +84,18 @@ describe("GoogleBusinessProfileSettings persistence", () => {
         (screen.getByLabelText("Google Cloud Project ID") as HTMLInputElement).value
       ).toBe("proj-x");
     });
+    expect(
+      (screen.getByLabelText("Google Cloud Project Number") as HTMLInputElement).value
+    ).toBe("123456789012");
     expect(screen.getByText("申請審核中")).toBeTruthy();
+  });
+
+  it("project_number 空值時儲存為 null", async () => {
+    setup();
+    await waitFor(() => screen.getByText("儲存設定"));
+    fireEvent.click(screen.getByText("儲存設定"));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(state.lastUpsertPayload!.project_number).toBeNull();
   });
 
   it("儲存成功且 payload 不含任何 secret / token", async () => {
@@ -92,10 +104,14 @@ describe("GoogleBusinessProfileSettings persistence", () => {
     fireEvent.change(screen.getByLabelText("Google Cloud Project ID"), {
       target: { value: "proj-1" },
     });
+    fireEvent.change(screen.getByLabelText("Google Cloud Project Number"), {
+      target: { value: "  123456789012  " },
+    });
     fireEvent.click(screen.getByText("儲存設定"));
     await waitFor(() => expect(toast.success).toHaveBeenCalled());
     const payload = state.lastUpsertPayload!;
     expect(payload.project_id).toBe("proj-1");
+    expect(payload.project_number).toBe("123456789012");
     expect(Object.keys(payload).join(",")).not.toMatch(/secret|token/i);
   });
 
@@ -123,6 +139,9 @@ describe("GoogleBusinessProfileSettings persistence", () => {
     await waitFor(() => screen.getByText("儲存設定"));
     expect(
       (screen.getByLabelText("Google Cloud Project ID") as HTMLInputElement).disabled
+    ).toBe(true);
+    expect(
+      (screen.getByLabelText("Google Cloud Project Number") as HTMLInputElement).disabled
     ).toBe(true);
     expect((screen.getByText("儲存設定") as HTMLButtonElement).disabled).toBe(true);
   });
