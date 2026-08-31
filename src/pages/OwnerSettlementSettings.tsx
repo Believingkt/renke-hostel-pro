@@ -127,6 +127,9 @@ export default function OwnerSettlementSettings({
   const [saving, setSaving] = useState(false);
   
   const [config, setConfig] = useState<SettlementConfig>(DEFAULT_CONFIG);
+  /** 增值服務抽成設定的審查狀態（最新一版） */
+  const [exclusionReviewedAt, setExclusionReviewedAt] = useState<string | null>(null);
+  const [markingReviewed, setMarkingReviewed] = useState(false);
   const [groups, setGroups] = useState<AccommodationGroup[]>([]);
   const [accName, setAccName] = useState<string>("");
   const [usingFallback, setUsingFallback] = useState(false);
@@ -533,6 +536,39 @@ export default function OwnerSettlementSettings({
     toast.success(`已儲存「${accName}」的設定`);
   };
 
+  /** 管理員審查：把最新一版的增值服務抽成設定標記為已審查 */
+  const markExclusionReviewed = async () => {
+    if (!currentAccommodationId) return;
+    setMarkingReviewed(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: latest } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .select("id")
+      .eq("accommodation_id", currentAccommodationId)
+      .order("effective_from", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!latest?.id) {
+      setMarkingReviewed(false);
+      toast.error("找不到可審查的設定版本");
+      return;
+    }
+    const now = new Date().toISOString();
+    const { data: updated, error } = await supabase
+      .from("owner_settlement_pricing_rules")
+      .update({ commission_exclusion_reviewed_at: now, commission_exclusion_reviewed_by: user?.id ?? null })
+      .eq("id", latest.id)
+      .select("id");
+    setMarkingReviewed(false);
+    if (error || !updated || updated.length === 0) {
+      toast.error(`標記失敗：${error?.message ?? "沒有可更新的資料（權限不足）"}`);
+      return;
+    }
+    setExclusionReviewedAt(now);
+    toast.success("已標記為已審查");
+  };
+
   /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
   const fixEffectiveMonth = async (id: string, month: string) => {
     if (readOnly) return;
@@ -788,6 +824,26 @@ export default function OwnerSettlementSettings({
 
         </CardHeader>
         <CardContent className="space-y-4">
+          {currentAccommodationId && (
+            <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 p-2 text-xs">
+              <span className={exclusionReviewedAt ? "text-emerald-600" : "text-muted-foreground"}>
+                {exclusionReviewedAt
+                  ? `已審查：${exclusionReviewedAt.slice(0, 10)}`
+                  : "尚未經管理員審查（團隊小鈴鐺會提醒審查）"}
+              </span>
+              {!exclusionReviewedAt && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={markingReviewed}
+                  onClick={markExclusionReviewed}
+                >
+                  標記已審查
+                </Button>
+              )}
+            </div>
+          )}
           {!currentAccommodationId && (
             <p className="text-sm text-muted-foreground">請先於上方選擇民宿，才能設定該民宿不抽成的增值服務。</p>
           )}
