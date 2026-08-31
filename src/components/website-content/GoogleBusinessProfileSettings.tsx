@@ -21,11 +21,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Link2, Lock, RefreshCw, ShieldCheck, Unlink } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  Link2,
+  Lock,
+  RefreshCw,
+  ShieldCheck,
+  Unlink,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import {
+  gbpReadinessHints,
+  isAccommodationGoogleOAuthReady,
+} from "@/lib/gbpReadiness";
+
 
 /**
  * 民宿端 Google Business Profile 設定。
