@@ -1,13 +1,25 @@
 // Google OAuth redirect target. Cannot rely on a Supabase JWT — trust is
 // anchored on the one-time, short-lived state row created by oauth-start.
+//
+// SECURITY CONTRACT
+//  - The accommodation is derived from the validated state row ONLY. A client
+//    supplied accommodation id (query or body) is never honoured.
+//  - The state's user must STILL be super_admin / hotel_admin of that
+//    accommodation at callback time; revoked admins fail closed.
+//  - Credentials are that accommodation's own OAuth client id + Vault secret.
+//    No global platform config, no PLATFORM_SECRET_NAME, no cross-tenant
+//    fallback.
+//  - Redirect back to the app carries a coarse status only — never a code,
+//    state, client id, secret or token.
 // deno-lint-ignore-file no-explicit-any
 import {
   adminClient,
   callbackRedirectUri,
   corsHeaders,
   exchangeCode,
-  getPlatformConfig,
-  PLATFORM_SECRET_NAME,
+  getAccommodationOAuthClientSecret,
+  getAccommodationOAuthConfig,
+  isStrictAccommodationAdminUser,
   refreshTokenSecretName,
   vaultGet,
   vaultSet,
@@ -23,6 +35,18 @@ function fallbackPage(message: string) {
     { status: 400, headers: { "Content-Type": "text/html; charset=utf-8" } },
   );
 }
+
+/** Only these coarse statuses may ever reach the browser URL. */
+const SAFE_STATUS = [
+  "success",
+  "denied",
+  "error",
+  "failed",
+  "not_configured",
+  "permission_changed",
+  "no_refresh_token",
+] as const;
+type SafeStatus = typeof SAFE_STATUS[number];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,7 +83,10 @@ Deno.serve(async (req) => {
     return fallbackPage("授權失敗：此授權連結已使用過。");
   }
 
-  const back = (status: string) => {
+  // Tenant binding: everything below uses ONLY the state's accommodation.
+  const accommodationId: string = stateRow.accommodation_id;
+
+  const back = (status: SafeStatus) => {
     const target = stateRow.return_path;
     if (!target) {
       return fallbackPage(
@@ -71,43 +98,63 @@ Deno.serve(async (req) => {
     return redirect(`${target}?gbp_oauth=${status}`);
   };
 
+  // The authorization may have been granted minutes ago — re-verify that the
+  // initiating user is still a strict admin of this accommodation.
+  const stillAdmin = await isStrictAccommodationAdminUser(
+    admin,
+    stateRow.user_id,
+    accommodationId,
+  );
+  if (!stillAdmin) return back("permission_changed");
+
   if (!code) {
     await admin
       .from("accommodation_google_business_profile")
       .update({ connection_status: "ERROR" })
-      .eq("accommodation_id", stateRow.accommodation_id);
+      .eq("accommodation_id", accommodationId);
     return back("denied");
   }
 
   try {
-    const cfg = await getPlatformConfig(admin);
-    const clientSecret = await vaultGet(admin, PLATFORM_SECRET_NAME);
-    if (!cfg?.oauth_client_id || !clientSecret) return back("not_configured");
+    const cfg = await getAccommodationOAuthConfig(admin, accommodationId);
+    if (!cfg?.oauth_client_id || !cfg.client_secret_configured) {
+      return back("not_configured");
+    }
+    const clientSecret = await getAccommodationOAuthClientSecret(
+      admin,
+      accommodationId,
+      cfg,
+    );
+    if (!clientSecret) return back("not_configured");
 
+    // Fail closed on client-id / secret rotation races: Google rejects the
+    // exchange and we restart OAuth instead of falling back to old material.
     const tokens = await exchangeCode({
       code,
-      clientId: cfg.oauth_client_id,
+      clientId: cfg.oauth_client_id.trim(),
       clientSecret,
-      redirectUri: cfg.redirect_uri || callbackRedirectUri(),
+      redirectUri: callbackRedirectUri(),
       codeVerifier: stateRow.code_verifier,
     });
 
-    if (!tokens.refreshToken) {
-      // Without offline access we cannot sync later — fail closed.
-      return back("no_refresh_token");
+    const refreshKey = refreshTokenSecretName(accommodationId);
+    if (tokens.refreshToken) {
+      // Rotate in place — one active secret per accommodation, never a dupe.
+      await vaultSet(admin, refreshKey, tokens.refreshToken);
+    } else {
+      // Google omits refresh_token on some re-consents. Keep an existing valid
+      // token; on a first connect there is nothing to keep → fail closed.
+      const existing = await vaultGet(admin, refreshKey);
+      if (!existing) return back("no_refresh_token");
     }
 
-    await vaultSet(
-      admin,
-      refreshTokenSecretName(stateRow.accommodation_id),
-      tokens.refreshToken,
-    );
-
+    // Callback NEVER sets CONNECTED: account/location must still be validated
+    // server-side by select-location.
     await admin
       .from("accommodation_google_business_profile")
       .upsert(
         {
-          accommodation_id: stateRow.accommodation_id,
+          accommodation_id: accommodationId,
           connection_status: "READY_FOR_OAUTH",
           oauth_connected_at: new Date().toISOString(),
         },
