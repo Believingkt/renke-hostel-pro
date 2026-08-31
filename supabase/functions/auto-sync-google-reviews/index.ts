@@ -2,14 +2,13 @@
 //
 // PRODUCT CONTRACT (2026-08):
 // - Places per-accommodation auto-sync settings were REMOVED from the product
-//   (columns google_reviews_auto_sync_enabled / _interval_hours were dropped
-//   on 2026-05-02). This function must therefore NOT read them.
+//   (their columns were dropped on 2026-05-02). This function must not read them.
 // - Places scheduled batch is DISABLED: the eligible set is intentionally empty.
-//   Manual Places sync via `fetch-google-reviews` is unchanged.
+//   Manual Places sync via the Places fetch function is unchanged.
 // - Google Business Profile scheduled routing is retained: only accommodations
 //   with review_source = BUSINESS_PROFILE AND connection_status = CONNECTED are
 //   synced, and only into the GBP candidate pool (never the frontend cache).
-// - There is currently NO cron calling this function.
+// - No scheduler currently invokes this function.
 // - Trusted callers only (service role / internal scheduler).
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
