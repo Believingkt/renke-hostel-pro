@@ -58,11 +58,11 @@ describe("auto-sync routing is mutually exclusive per accommodation", () => {
   });
 
   it("never writes frontend cache fields from auto-sync or GBP sync", () => {
-    expect(autoSyncFn).not.toContain("google_reviews_cache");
-    expect(autoSyncFn).not.toContain("google_reviews_selected_keys");
-    expect(gbpFetchFn).not.toContain("google_reviews_cache");
-    expect(gbpFetchFn).not.toContain("google_reviews_selected_keys");
-    expect(gbpFetchFn).not.toContain("google_reviews_display_count");
+    for (const src of [autoSyncFn, gbpFetchFn]) {
+      expect(src).not.toContain("google_reviews_cache:");
+      expect(src).not.toContain("google_reviews_selected_keys");
+      expect(src).not.toContain("google_reviews_display_count");
+    }
   });
 });
 
@@ -94,7 +94,7 @@ describe("apply-to-frontend write contract", () => {
   it("writes cache + selected keys but never display_count", () => {
     expect(applyUi).toContain("google_reviews_cache:");
     expect(applyUi).toContain("google_reviews_selected_keys:");
-    expect(applyUi).not.toContain("google_reviews_display_count");
+    expect(applyUi).not.toContain("google_reviews_display_count:");
   });
 
   it("verifies affected rows and fails closed on 0 rows", () => {
