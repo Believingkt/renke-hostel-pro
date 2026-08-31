@@ -13612,6 +13612,16 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_team_order_marketing_info: {
+        Args: {
+          p_ad_id: string
+          p_booking_method: string
+          p_closer_id: string
+          p_order_id: string
+          p_traffic_source: string
+        }
+        Returns: string
+      }
       upsert_customer_for_order: {
         Args: {
           _accommodation_id: string
