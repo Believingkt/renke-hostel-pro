@@ -151,8 +151,13 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   const [paidPayoutIds, setPaidPayoutIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string }>>({});
-  const [newMonth, setNewMonth] = useState({ month: firstOfThisMonthTaipei().slice(0, 7), surplus: "", note: "" });
+  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string }>>({});
+  const [newMonth, setNewMonth] = useState({
+    month: prevYm(),
+    payout: defaultPayoutYm(),
+    surplus: "",
+    note: "",
+  });
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
@@ -168,7 +173,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
           .from("course_profit_share_rates")
@@ -176,7 +182,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           .order("effective_from", { ascending: false }),
         supabase
           .from("course_profit_payouts")
-          .select("id, month, user_id, amount, percent_snapshot"),
+          .select("id, month, payout_month, user_id, amount, percent_snapshot"),
+      ]);
       ]);
 
     const rolesByUser = new Map<string, string[]>();
