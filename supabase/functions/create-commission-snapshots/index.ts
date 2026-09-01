@@ -4,7 +4,6 @@ import { isCommissionEligible } from "../_shared/commissionEligibility.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
-import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
 import { resolvePayoutMonth } from "./payoutMonthResolver.ts";
 
@@ -216,8 +215,7 @@ serve(async (req) => {
       const exclRule = await buildCommissionExclusionResolver(supabase, accIds as string[]);
       // 4c) 合作期間 gate：無合作期間／已暫停的館別不產生分潤快照
       const inPartnership = await buildPartnershipResolver(supabase, accIds as string[]);
-      // 4d) 月營收抽成門檻 gate：未達門檻 → factor = 0（不產生分潤）
-      const thresholdFactor = await buildThresholdFactorResolver(supabase, accIds as string[]);
+      // 註：成交組獎金不套用「月營收抽成門檻」（門檻僅用於業主月結／管顧費等結算項目）
 
       // 5) Build snapshot rows
       const toInsert: any[] = [];
@@ -234,9 +232,6 @@ serve(async (req) => {
         if (!isCommissionEligible(o, meta, isExempt)) continue;
         // 訂單日不在館別合作期間內 → 不計入獎金
         if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
-        // 當月營收未達抽成門檻 → 不計入獎金
-        const factor = thresholdFactor(o.accommodation_id as string, o.check_in_date as string);
-        if (factor <= 0) continue;
         result.processed++;
 
         if (existingSet.has(o.id as string)) {
@@ -253,7 +248,7 @@ serve(async (req) => {
             ? commissionBaseFromOrder(o as any, exclRule(o.accommodation_id as string, o.order_date as string))
             : Number(tcp);
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
-        const closerAmt = baseAmount * rates.closer * factor;
+        const closerAmt = baseAmount * rates.closer;
         // 影音組分潤已停止使用：新快照一律不再產生影音金額（歷史快照保留可追溯）
         const videoAmt = 0;
 
@@ -373,7 +368,6 @@ serve(async (req) => {
       const isExemptR = await buildExemptResolver(supabase, accIds as string[]);
       const exclRuleR = await buildCommissionExclusionResolver(supabase, accIds as string[]);
       const inPartnershipR = await buildPartnershipResolver(supabase, accIds as string[]);
-      const thresholdFactorR = await buildThresholdFactorResolver(supabase, accIds as string[]);
 
       /**
        * 撤銷未發放快照：連同其補差與未發放標記一併移除（已發放者永不進入此流程）。
@@ -472,11 +466,6 @@ serve(async (req) => {
           await revokeSnapshot(s, "訂單日不在館別合作期間內（或合作政策為不採計）");
           continue;
         }
-        const factor = thresholdFactorR(ord.accommodation_id as string, ord.check_in_date as string);
-        if (factor <= 0) {
-          await revokeSnapshot(s, "當月營收未達抽成門檻");
-          continue;
-        }
 
         out.checked++;
 
@@ -491,7 +480,7 @@ serve(async (req) => {
         const rates = rateFor(ord.accommodation_id as string, ord.order_date as string);
         const closerRate = s.closer_rate == null ? rates.closer : Number(s.closer_rate);
 
-        const closerAmt = baseAmount * closerRate * factor;
+        const closerAmt = baseAmount * closerRate;
         // 影音組分潤已停止使用：重算時不再重新計算影音金額，維持既有快照值不變
         const videoAmt = Number(s.video_commission_amount ?? 0);
 
