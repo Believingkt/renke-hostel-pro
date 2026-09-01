@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isPayoutMarkDenied } from "@/lib/payoutMarkAccess";
 import { useTeam } from "@/components/team/TeamContext";
 import { TEAM_ROLES, type TeamRole } from "@/components/team/teamConfig";
 
@@ -137,7 +138,7 @@ const formatMoney = (n: number | null | undefined) =>
 
 
 export default function TeamCommission() {
-  const { roles } = useTeam();
+  const { roles, userId, email } = useTeam();
   const isAdmin = roles.includes("super_admin") || roles.includes("admin");
   const isFinance = roles.includes("finance");
   const showAdminTabs = isAdmin || isFinance;
@@ -147,8 +148,10 @@ export default function TeamCommission() {
   const canAccess = showAdminTabs || rulesOnly;
   // finance 在其他設定 Tab 仍為唯讀（不能新增/刪除規則、加倍活動）
   const financeReadOnly = isFinance && !isAdmin;
-  // 但在「發放管理」開放 finance 標記已發放（單筆 / 個人批次 / 一鍵全部）
-  const payoutsReadOnly = false;
+  // 「發放管理」預設開放 admin / finance 標記已發放（單筆 / 個人批次 / 一鍵全部），
+  // 但排除名單中的帳號僅能檢視金額與狀態，不顯示任何標記按鈕。
+  const payoutsReadOnly = isPayoutMarkDenied(userId, email);
+
   const initialTab =
     typeof window !== "undefined"
       ? new URLSearchParams(window.location.search).get("tab") || "payouts"
