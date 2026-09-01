@@ -24,6 +24,7 @@ import { ChevronsUpDown, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 interface MonthRow {
   id: string;
   month: string;
+  payout_month: string;
   surplus_amount: number;
   note: string | null;
   updated_at: string;
@@ -44,6 +45,7 @@ interface RateVersion {
 interface PayoutRow {
   id: string;
   month: string;
+  payout_month: string;
   user_id: string;
   amount: number;
   percent_snapshot: number;
@@ -114,6 +116,23 @@ function prevYm() {
   return d.toISOString().slice(0, 7);
 }
 
+/** 台北時區的下個月 YYYY-MM */
+function nextYm() {
+  const [y, m] = currentYm().split("-").map(Number);
+  return new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
+}
+
+/**
+ * 預設發放期別：目前尚未發放的當期 10 號。
+ * 台北時間 10 日（含）之前 → 本月 10 號期；11 日起 → 次月 10 號期。
+ */
+function defaultPayoutYm() {
+  const day = Number(todayTaipei().slice(8, 10));
+  return day <= 10 ? currentYm() : nextYm();
+}
+
+
+
 function fmtTime(iso: string) {
   const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
   return d.toISOString().slice(0, 16).replace("T", " ");
@@ -132,8 +151,13 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   const [paidPayoutIds, setPaidPayoutIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string }>>({});
-  const [newMonth, setNewMonth] = useState({ month: firstOfThisMonthTaipei().slice(0, 7), surplus: "", note: "" });
+  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string }>>({});
+  const [newMonth, setNewMonth] = useState({
+    month: prevYm(),
+    payout: defaultPayoutYm(),
+    surplus: "",
+    note: "",
+  });
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
@@ -149,7 +173,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
           .from("course_profit_share_rates")
@@ -157,7 +182,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           .order("effective_from", { ascending: false }),
         supabase
           .from("course_profit_payouts")
-          .select("id, month, user_id, amount, percent_snapshot"),
+          .select("id, month, payout_month, user_id, amount, percent_snapshot"),
       ]);
 
     const rolesByUser = new Map<string, string[]>();
@@ -239,14 +264,21 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     [members, selectedUserIds],
   );
 
+  /**
+   * 分潤 % 的採用基準＝「發放期別當月 1 日」（不是盈餘資料月），
+   * 這樣延遲對帳時仍會用發放當下的參與名單與比例。
+   */
+  const rateAsOf = `${defaultPayoutYm()}-01`;
+
   const currentPercent = (userId: string) => {
     const list = ratesByUser.get(userId) ?? [];
-    const eff = list.find((v) => v.effective_from <= today);
+    const eff = list.find((v) => v.effective_from <= rateAsOf);
     return eff ? Number(eff.percent) : null;
   };
 
-  const monthLocked = (month: string) =>
-    payouts.some((p) => p.month === month && paidPayoutIds.has(p.id));
+  /** 該發放期別是否已標記發放（同期別的所有盈餘列一起鎖定） */
+  const periodLocked = (payoutMonth: string) =>
+    payouts.some((p) => p.payout_month === payoutMonth && paidPayoutIds.has(p.id));
 
   const payoutsByMonth = useMemo(() => {
     const m = new Map<string, PayoutRow[]>();
@@ -258,20 +290,32 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     return m;
   }, [payouts]);
 
+  /** 依發放期別分組的盈餘列（同期別可掛多個資料月，卡片合計、明細分列） */
+  const monthsByPeriod = useMemo(() => {
+    const m = new Map<string, MonthRow[]>();
+    months.forEach((r) => {
+      const list = m.get(r.payout_month) ?? [];
+      list.push(r);
+      m.set(r.payout_month, list);
+    });
+    return m;
+  }, [months]);
+
   const totalCurrentPercent = selectedMembers.reduce((s, m) => s + (currentPercent(m.user_id) ?? 0), 0);
   const latestMonth = months[0];
 
   /* ---------------- 課程盈餘 ---------------- */
 
   const addMonth = async () => {
-    if (!newMonth.month || newMonth.surplus === "") {
-      toast({ title: "請輸入月份與盈餘金額", variant: "destructive" });
+    if (!newMonth.month || !newMonth.payout || newMonth.surplus === "") {
+      toast({ title: "請輸入盈餘月份、發放期別與金額", variant: "destructive" });
       return;
     }
     setSavingId("__new__");
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.from("course_profit_months").insert({
       month: `${newMonth.month}-01`,
+      payout_month: `${newMonth.payout}-01`,
       surplus_amount: Number(newMonth.surplus || 0),
       note: newMonth.note || null,
       created_by: userData?.user?.id ?? null,
@@ -288,7 +332,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: firstOfThisMonthTaipei().slice(0, 7), surplus: "", note: "" });
+    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "" });
     toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
     load();
   };
@@ -303,6 +347,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       .update({
         surplus_amount: Number(d.surplus || 0),
         note: d.note || null,
+        payout_month: `${d.payout}-01`,
         updated_by: userData?.user?.id ?? null,
         updated_by_email: userData?.user?.email ?? null,
       })
@@ -431,36 +476,59 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         <CardHeader>
           <CardTitle>課程盈餘（每月手動輸入）</CardTitle>
           <CardDescription>
-            一次瀏覽所有月份的課程結算盈餘。只要該月獎金尚未標記發放，金額與備註都可以隨時修改，
-            修改後 TeamHome 與發放管理的金額會自動重算；已發放的月份會鎖定不可再改。
+            每一筆盈餘都指定「發放期別（10 號）」，與盈餘所屬月份脫鉤：對帳延遲時，直接把較早月份的盈餘掛到目前未發放的當期即可。
+            同一個發放期別可以掛多個月份，TeamHome 卡片顯示合計、明細分列。
+            未標記發放前，金額、備註與期別都可修改或刪除；期別一旦標記發放即整期鎖定。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {!readOnly && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 p-3">
-              <Input
-                type="month"
-                value={newMonth.month}
-                onChange={(e) => setNewMonth((p) => ({ ...p, month: e.target.value }))}
-                className="h-9 w-40"
-              />
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newMonth.month === prevMonthYm ? "default" : "outline"}
-                  onClick={() => setNewMonth((p) => ({ ...p, month: prevMonthYm }))}
-                >
-                  上個月
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newMonth.month === currentMonthYm ? "default" : "outline"}
-                  onClick={() => setNewMonth((p) => ({ ...p, month: currentMonthYm }))}
-                >
-                  本月
-                </Button>
+            <div className="flex flex-wrap items-end gap-2 rounded-lg border bg-muted/30 p-3">
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">盈餘月份</div>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="month"
+                    value={newMonth.month}
+                    onChange={(e) => setNewMonth((p) => ({ ...p, month: e.target.value }))}
+                    className="h-9 w-40"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={newMonth.month === prevMonthYm ? "default" : "outline"}
+                    onClick={() => setNewMonth((p) => ({ ...p, month: prevMonthYm }))}
+                  >
+                    上個月
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={newMonth.month === currentMonthYm ? "default" : "outline"}
+                    onClick={() => setNewMonth((p) => ({ ...p, month: currentMonthYm }))}
+                  >
+                    本月
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <div className="text-xs text-muted-foreground">發放期別（10 號）</div>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="month"
+                    value={newMonth.payout}
+                    onChange={(e) => setNewMonth((p) => ({ ...p, payout: e.target.value }))}
+                    className="h-9 w-40"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={newMonth.payout === defaultPayoutYm() ? "default" : "outline"}
+                    onClick={() => setNewMonth((p) => ({ ...p, payout: defaultPayoutYm() }))}
+                  >
+                    當期
+                  </Button>
+                </div>
               </div>
               <Input
                 type="number"
@@ -482,7 +550,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 ) : (
                   <Plus className="mr-1 h-4 w-4" />
                 )}
-                新增月份
+                新增
               </Button>
             </div>
           )}
@@ -494,7 +562,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
               <Table className="table-fixed">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-28 whitespace-nowrap">月份</TableHead>
+                    <TableHead className="w-40 whitespace-nowrap">發放期別</TableHead>
+                    <TableHead className="w-28 whitespace-nowrap">盈餘月份</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">課程盈餘</TableHead>
                     <TableHead className="w-56 whitespace-nowrap">備註</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">分潤合計</TableHead>
@@ -504,13 +573,37 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 </TableHeader>
                 <TableBody>
                   {months.map((row) => {
-                    const locked = monthLocked(row.month);
+                    const locked = periodLocked(row.payout_month);
                     const d = monthDraft[row.id];
                     const rows = payoutsByMonth.get(row.month) ?? [];
                     const distributed = rows.reduce((s, p) => s + Number(p.amount), 0);
                     const dirty = !!d;
+                    const siblings = monthsByPeriod.get(row.payout_month) ?? [];
+                    const draftOf = (over: Partial<{ surplus: string; note: string; payout: string }>) => ({
+                      surplus: d?.surplus ?? String(Number(row.surplus_amount)),
+                      note: d?.note ?? (row.note ?? ""),
+                      payout: d?.payout ?? row.payout_month.slice(0, 7),
+                      ...over,
+                    });
                     return (
                       <TableRow key={row.id}>
+                        <TableCell className="whitespace-nowrap tabular-nums">
+                          {locked || readOnly ? (
+                            `${row.payout_month.slice(0, 7)}-10`
+                          ) : (
+                            <Input
+                              type="month"
+                              value={d ? d.payout : row.payout_month.slice(0, 7)}
+                              onChange={(e) =>
+                                setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ payout: e.target.value }) }))
+                              }
+                              className="h-9 w-36"
+                            />
+                          )}
+                          {siblings.length > 1 && (
+                            <div className="text-xs text-muted-foreground">同期 {siblings.length} 筆合計</div>
+                          )}
+                        </TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">{row.month.slice(0, 7)}</TableCell>
                         <TableCell className="tabular-nums">
                           {locked || readOnly ? (
@@ -521,13 +614,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                               inputMode="numeric"
                               value={d ? d.surplus : String(Number(row.surplus_amount))}
                               onChange={(e) =>
-                                setMonthDraft((p) => ({
-                                  ...p,
-                                  [row.id]: {
-                                    surplus: e.target.value,
-                                    note: d?.note ?? (row.note ?? ""),
-                                  },
-                                }))
+                                setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ surplus: e.target.value }) }))
                               }
                               className="h-9 w-32 tabular-nums"
                             />
@@ -540,13 +627,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                             <Input
                               value={d ? d.note : (row.note ?? "")}
                               onChange={(e) =>
-                                setMonthDraft((p) => ({
-                                  ...p,
-                                  [row.id]: {
-                                    surplus: d?.surplus ?? String(Number(row.surplus_amount)),
-                                    note: e.target.value,
-                                  },
-                                }))
+                                setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ note: e.target.value }) }))
                               }
                               className="h-9"
                             />

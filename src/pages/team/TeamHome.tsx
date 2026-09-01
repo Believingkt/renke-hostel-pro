@@ -399,7 +399,10 @@ export default function TeamHome() {
   // ===== 底薪（僅月結期顯示）=====
   const [salaryAmt, setSalaryAmt] = useState(0);
   /** 課程分潤（資料月手動輸入盈餘 × 個人分潤%，由後端 trigger 自動計算） */
-  const [courseProfit, setCourseProfit] = useState<{ amount: number; percent: number; surplus: number } | null>(null);
+  const [courseProfit, setCourseProfit] = useState<{
+    amount: number;
+    lines: Array<{ month: string; amount: number; percent: number; surplus: number }>;
+  } | null>(null);
 
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
@@ -484,8 +487,8 @@ export default function TeamHome() {
     };
   }, [db, viewUserId, isViewing, canSeeSalary, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
 
-  // 課程分潤：資料月的自動結算列（course_profit_payouts）。
-  // 只有本人（或有權代看者）能讀到自己的列；沒有列＝該月未參與，卡片不顯示。
+  // 課程分潤：依「發放期別」抓當期所有列（一期可掛多個盈餘月份，合計顯示、明細分列）。
+  // 只有本人（或有權代看者）能讀到自己的列；沒有列＝該期未參與，卡片不顯示。
   useEffect(() => {
     let cancelled = false;
     setCourseProfit(null);
@@ -494,22 +497,26 @@ export default function TeamHome() {
     (async () => {
       const { data } = await db
         .from("course_profit_payouts")
-        .select("amount, percent_snapshot, surplus_snapshot")
+        .select("month, amount, percent_snapshot, surplus_snapshot")
         .eq("user_id", viewUserId)
-        .eq("month", `${monthInfo.currentMonthKey}-01`)
-        .maybeSingle();
-      if (cancelled || !data) return;
-      const row = data as any;
+        .eq("payout_month", `${monthInfo.payoutMonthKey}-01`)
+        .order("month", { ascending: true });
+      if (cancelled || !data || data.length === 0) return;
+      const rows = data as any[];
       setCourseProfit({
-        amount: Number(row.amount ?? 0),
-        percent: Number(row.percent_snapshot ?? 0),
-        surplus: Number(row.surplus_snapshot ?? 0),
+        amount: rows.reduce((s, r) => s + Number(r.amount ?? 0), 0),
+        lines: rows.map((r) => ({
+          month: String(r.month ?? "").slice(0, 7),
+          amount: Number(r.amount ?? 0),
+          percent: Number(r.percent_snapshot ?? 0),
+          surplus: Number(r.surplus_snapshot ?? 0),
+        })),
       });
     })();
     return () => {
       cancelled = true;
     };
-  }, [db, viewUserId, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
+  }, [db, viewUserId, monthInfo.isMonthlyPayout, monthInfo.payoutMonthKey]);
 
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
@@ -2337,10 +2344,18 @@ export default function TeamHome() {
       baseAmount: courseProfit.amount,
       multiplier: 1,
       note: [
-        `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
-        `課程盈餘 $${Math.round(courseProfit.surplus).toLocaleString()} × ${courseProfit.percent}%`,
+        `${monthInfo.payoutLabel}`,
+        `${courseProfit.lines.length} 個盈餘月份合計`,
         "不列入加倍活動",
       ].join("・"),
+      lines: courseProfit.lines.map((l) => ({
+        label: `${l.month} 課程盈餘`,
+        revenue: Math.round(l.surplus),
+        amount: l.amount,
+        multiplier: 1,
+        rateNote: { main: `× ${l.percent}%` },
+      })),
+      alwaysShowLines: true,
     });
   }
 
