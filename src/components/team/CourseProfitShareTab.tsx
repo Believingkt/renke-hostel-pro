@@ -24,6 +24,7 @@ import { ChevronsUpDown, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 interface MonthRow {
   id: string;
   month: string;
+  payout_month: string;
   surplus_amount: number;
   note: string | null;
   updated_at: string;
@@ -44,6 +45,7 @@ interface RateVersion {
 interface PayoutRow {
   id: string;
   month: string;
+  payout_month: string;
   user_id: string;
   amount: number;
   percent_snapshot: number;
