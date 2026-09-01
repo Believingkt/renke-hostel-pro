@@ -19,7 +19,7 @@ interface AccOption {
   name: string;
 }
 
-type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers" | "rate-check";
+type SettingsTab = "bonus" | "owner-settlement" | "base-salary" | "venue-tiers" | "rate-check" | "course-profit";
 
 /**
  * HQ 整合頁：獎金設定 ＋ 業主月結設定（總部唯一可編輯入口）。
@@ -68,7 +68,9 @@ export default function HQBonusSettings() {
           ? "venue-tiers"
           : tabParam === "rate-check"
             ? "rate-check"
-            : "bonus";
+            : tabParam === "course-profit"
+              ? "course-profit"
+              : "bonus";
   const tab: SettingsTab = ownerSettlementOnly
     ? "owner-settlement"
     : rawTab;
@@ -98,6 +100,9 @@ export default function HQBonusSettings() {
       next.delete("acc");
     } else if (value === "rate-check") {
       next.set("tab", "rate-check");
+      next.delete("acc");
+    } else if (value === "course-profit") {
+      next.set("tab", "course-profit");
       next.delete("acc");
     } else {
       next.delete("tab");
