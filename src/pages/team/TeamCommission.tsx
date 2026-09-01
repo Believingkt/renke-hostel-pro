@@ -100,6 +100,7 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   kol_commission: "網紅營銷專利獎金(抽成)",
   kol_monthly: "網紅營銷專利獎金(月費)",
   venue_closing: "場域成交獎金",
+  // 課程分潤僅供結算規則顯示；不列入獎金加倍活動的可選類型
   course_profit: "課程分潤",
 };
 
@@ -411,6 +412,7 @@ const SOURCE_LABEL: Record<string, string> = {
   kol_commission: "網紅營銷專利獎金(抽成)",
   kol_monthly: "網紅營銷專利獎金(月費)",
   venue_closing: "場域成交獎金",
+  course_profit: "課程分潤",
 };
 
 
