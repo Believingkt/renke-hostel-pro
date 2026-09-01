@@ -5,7 +5,12 @@
  * 讓使用者不必讀文件也知道改動的後果。
  */
 
-import { BONUS_FORMULAS, getBonusFormula, type BonusFormula } from "./bonusFormulas";
+import {
+  BONUS_FORMULAS,
+  getBonusFormula,
+  isMultiplierApplicable,
+  type BonusFormula,
+} from "./bonusFormulas";
 
 /** 設定項目 key（對應前端各設定卡片／欄位） */
 export type BonusSettingKey =
@@ -118,8 +123,9 @@ export const BONUS_SETTING_IMPACTS: Record<BonusSettingKey, BonusSettingImpact> 
   bonus_multiplier: {
     key: "bonus_multiplier",
     label: "獎金加倍活動",
-    role: "在發放月套用倍率；已發放（paid）的快照不受影響。",
-    affects: BONUS_FORMULAS.map((f) => f.key),
+    role:
+      "在發放月套用倍率；已發放（paid）的快照不受影響。課程分潤不列入加倍活動，倍率恆為 1。",
+    affects: BONUS_FORMULAS.filter((f) => isMultiplierApplicable(f.key)).map((f) => f.key),
   },
 };
 

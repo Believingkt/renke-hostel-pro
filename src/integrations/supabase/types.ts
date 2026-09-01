@@ -2894,6 +2894,114 @@ export type Database = {
           },
         ]
       }
+      course_profit_months: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          id: string
+          month: string
+          note: string | null
+          surplus_amount: number
+          updated_at: string
+          updated_by: string | null
+          updated_by_email: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          month: string
+          note?: string | null
+          surplus_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          id?: string
+          month?: string
+          note?: string | null
+          surplus_amount?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_email?: string | null
+        }
+        Relationships: []
+      }
+      course_profit_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          month: string
+          percent_snapshot: number
+          surplus_snapshot: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month: string
+          percent_snapshot?: number
+          surplus_snapshot?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          month?: string
+          percent_snapshot?: number
+          surplus_snapshot?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      course_profit_share_rates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_email: string | null
+          effective_from: string
+          id: string
+          note: string | null
+          percent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          effective_from?: string
+          id?: string
+          note?: string | null
+          percent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_email?: string | null
+          effective_from?: string
+          id?: string
+          note?: string | null
+          percent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       custom_sections: {
         Row: {
           accommodation_id: string
@@ -13507,6 +13615,7 @@ export type Database = {
         }
         Returns: number
       }
+      course_profit_month_locked: { Args: { _month: string }; Returns: boolean }
       current_user_accommodation_ids: { Args: never; Returns: string[] }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -13789,6 +13898,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      recalc_course_profit_payouts: {
+        Args: { _month: string }
+        Returns: undefined
       }
       resolve_pricing_template_by_numeric_code: {
         Args: { p_accommodation_id: string; p_code: number }

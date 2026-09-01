@@ -398,6 +398,8 @@ export default function TeamHome() {
 
   // ===== 底薪（僅月結期顯示）=====
   const [salaryAmt, setSalaryAmt] = useState(0);
+  /** 課程分潤（資料月手動輸入盈餘 × 個人分潤%，由後端 trigger 自動計算） */
+  const [courseProfit, setCourseProfit] = useState<{ amount: number; percent: number; surplus: number } | null>(null);
 
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
@@ -481,6 +483,33 @@ export default function TeamHome() {
       cancelled = true;
     };
   }, [db, viewUserId, isViewing, canSeeSalary, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
+
+  // 課程分潤：資料月的自動結算列（course_profit_payouts）。
+  // 只有本人（或有權代看者）能讀到自己的列；沒有列＝該月未參與，卡片不顯示。
+  useEffect(() => {
+    let cancelled = false;
+    setCourseProfit(null);
+    if (!monthInfo.isMonthlyPayout) return;
+    if (!viewUserId) return;
+    (async () => {
+      const { data } = await db
+        .from("course_profit_payouts")
+        .select("amount, percent_snapshot, surplus_snapshot")
+        .eq("user_id", viewUserId)
+        .eq("month", `${monthInfo.currentMonthKey}-01`)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const row = data as any;
+      setCourseProfit({
+        amount: Number(row.amount ?? 0),
+        percent: Number(row.percent_snapshot ?? 0),
+        surplus: Number(row.surplus_snapshot ?? 0),
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [db, viewUserId, monthInfo.isMonthlyPayout, monthInfo.currentMonthKey]);
 
 
   const applyPayload = useCallback((p: TeamHomePayload) => {
@@ -2265,6 +2294,22 @@ export default function TeamHome() {
     cards.push({ key: "starlink", title: "星鏈", amount: roundBoosted(starlinkAmt, m), baseAmount: starlinkAmt, multiplier: m, note: monthlyNote() });
   }
 
+  // 課程分潤：獨立獎金線，明確不列入加倍活動（倍率恆為 1）
+  if (isMonthly && courseProfit && courseProfit.amount > 0) {
+    cards.push({
+      key: "course_profit",
+      title: "課程分潤",
+      amount: courseProfit.amount,
+      baseAmount: courseProfit.amount,
+      multiplier: 1,
+      note: [
+        `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
+        `課程盈餘 $${Math.round(courseProfit.surplus).toLocaleString()} × ${courseProfit.percent}%`,
+        "不列入加倍活動",
+      ].join("・"),
+    });
+  }
+
   // ===== 七種團隊獎金卡片 =====
   const rateNote = (key: string) => monthlyNote(missingRates[key] ? "尚未設定費率" : undefined);
 
@@ -2686,7 +2731,7 @@ export default function TeamHome() {
               </Card>
             );
 
-            const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink"];
+            const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink", "course"];
             const byCat = new Map<BonusCategory, typeof cards>();
             cards.forEach((c) => {
               const cat = (getBonusFormula(c.key)?.category ?? "team") as BonusCategory;

@@ -16,7 +16,8 @@ export type BonusCategory =
   | "scout"
   | "kol"
   | "franchise"
-  | "starlink";
+  | "starlink"
+  | "course";
 
 export interface BonusFormula {
   /** 對應 bonus_type / SOURCE_LABEL 的 key */
@@ -34,6 +35,8 @@ export interface BonusFormula {
   usesVenueRevenue: boolean;
   /** 結算規則說明 Tab 的錨點 id */
   anchorId: string;
+  /** 明確排除於「獎金加倍活動」之外（倍率恆為 1） */
+  excludedFromMultiplier?: boolean;
 }
 
 export const BONUS_CATEGORY_LABEL: Record<BonusCategory, string> = {
@@ -43,6 +46,7 @@ export const BONUS_CATEGORY_LABEL: Record<BonusCategory, string> = {
   kol: "四、KOL 分潤",
   franchise: "五、特許加盟",
   starlink: "六、星鏈",
+  course: "七、課程分潤",
 };
 
 const GATE_PARTNERSHIP = "館別合作期間內（採計團隊獎金）";
@@ -270,7 +274,32 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     usesVenueRevenue: false,
     anchorId: "bonus-starlink",
   },
+
+  // ── 七、課程分潤 ─────────────────────────────
+  {
+    key: "course_profit",
+    name: "課程分潤",
+    category: "course",
+    formula: "當月課程結算盈餘 × 個人分潤%",
+    basis:
+      "由總部於 HQ 手動輸入每月課程結算盈餘，乘上該月適用的個人分潤%版本；與館別營收、快照口徑完全無關",
+    gates: ["該月已填寫課程盈餘", "該月適用分潤% > 0"],
+    usesVenueRevenue: false,
+    anchorId: "bonus-course_profit",
+    excludedFromMultiplier: true,
+  },
 ];
+
+/** 明確不參與「獎金加倍活動」的獎金 key（倍率恆為 1） */
+export const MULTIPLIER_EXCLUDED_KEYS = new Set(
+  BONUS_FORMULAS.filter((f) => f.excludedFromMultiplier).map((f) => f.key),
+);
+
+/** 該獎金是否可套用加倍活動 */
+export function isMultiplierApplicable(key: string | null | undefined): boolean {
+  if (!key) return true;
+  return !MULTIPLIER_EXCLUDED_KEYS.has(String(key));
+}
 
 const BY_KEY: Record<string, BonusFormula> = Object.fromEntries(
   BONUS_FORMULAS.map((f) => [f.key, f]),
@@ -307,7 +336,7 @@ export function groupedBonusFormulas(): Array<{
   label: string;
   items: BonusFormula[];
 }> {
-  const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink"];
+  const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink", "course"];
   return order.map((category) => ({
     category,
     label: BONUS_CATEGORY_LABEL[category],

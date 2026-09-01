@@ -40,6 +40,10 @@ import { Plus, Trash2 } from "lucide-react";
  * - /team/commission →「獎金加倍活動」為唯讀鏡像
  */
 
+/**
+ * 可加倍的獎金類型。
+ * 注意：課程分潤（course_profit）明確不列入加倍活動，故不得加入此清單。
+ */
 export const BONUS_MULTIPLIER_TYPE_LABEL: Record<string, string> = {
   all: "全部獎金",
   closer: "成交組獎金",

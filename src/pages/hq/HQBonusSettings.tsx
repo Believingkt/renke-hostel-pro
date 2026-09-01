@@ -7,6 +7,7 @@ import { pmsHref } from "@/lib/appMode";
 import VenueBonusTierRulesTab from "@/components/team/VenueBonusTierRulesTab";
 import OwnerSettlementSettings from "@/pages/OwnerSettlementSettings";
 import TeamBaseSalaryTab from "@/components/team/TeamBaseSalaryTab";
+import CourseProfitShareTab from "@/components/team/CourseProfitShareTab";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -154,6 +155,7 @@ export default function HQBonusSettings() {
               {canSeeBonus && <TabsTrigger value="venue-tiers" className="whitespace-nowrap">館別獎金級距規則</TabsTrigger>}
               <TabsTrigger value="owner-settlement" className="whitespace-nowrap">基準金額規則（業主月結）</TabsTrigger>
               {canSeeBonus && <TabsTrigger value="base-salary" className="whitespace-nowrap">成員底薪</TabsTrigger>}
+              {canSeeBonus && <TabsTrigger value="course-profit" className="whitespace-nowrap">課程分潤</TabsTrigger>}
             </TabsList>
           </div>
         )}
@@ -236,6 +238,12 @@ export default function HQBonusSettings() {
         {canSeeBonus && (
           <TabsContent value="base-salary" className="space-y-4">
             <TeamBaseSalaryTab readOnly={!isHQAdmin} />
+          </TabsContent>
+        )}
+
+        {canSeeBonus && (
+          <TabsContent value="course-profit" className="space-y-4">
+            <CourseProfitShareTab readOnly={!isHQAdmin} />
           </TabsContent>
         )}
 
