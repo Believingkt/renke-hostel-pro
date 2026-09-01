@@ -1435,8 +1435,15 @@ export default function TeamHome() {
                 useExcl && l.amount_excl_owner !== null && l.amount_excl_owner !== undefined
                   ? Number(l.amount_excl_owner)
                   : Number(l.amount ?? 0);
+              const rawName = String(l.accommodation_name ?? "其他");
               arr.push({
-                name: String(l.accommodation_name ?? "其他"),
+                // 固定額型（如 AM場域獎金）後端以「旅行日系列合併一館」計算，
+                // 但快照存的是代表館名稱；顯示時統一還原成系列名（純顯示，不動金額）。
+                name:
+                  l.rate_kind === "fixed" && rawName.startsWith("旅行日")
+                    ? "旅行日系列"
+                    : rawName,
+
                 revenue: rev,
                 amount: amt,
                 rate: l.rate_value === null ? null : Number(l.rate_value),
@@ -2631,7 +2638,7 @@ export default function TeamHome() {
                   ) : null}
 
                   {!loading && c.lines && c.lines.length > 0
-                    ? c.lines.some((ln) => ln.revenue !== undefined)
+                    ? c.lines.some((ln) => ln.revenue !== undefined) || c.key === "am_venue_bonus"
                       ? (
                         <Button
                           variant="outline"
@@ -2642,6 +2649,7 @@ export default function TeamHome() {
                           各館別明細（{c.lines.length} 館）
                         </Button>
                       )
+
                       : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
                         ? (
                           <div className="mt-2 space-y-0.5">
