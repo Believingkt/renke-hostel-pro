@@ -100,6 +100,7 @@ const BONUS_TYPE_LABEL: Record<string, string> = {
   kol_commission: "網紅營銷專利獎金(抽成)",
   kol_monthly: "網紅營銷專利獎金(月費)",
   venue_closing: "場域成交獎金",
+  course_profit: "課程分潤",
 };
 
 // 結算規則用（不含「全部」）
@@ -339,6 +340,9 @@ function bonusTypeOf(source_table: string, role_key: string): string | null {
   // 逐館拆分的 role_key 形如 "am_manager#<idx|accId>"，取 "#" 前的獎金類型
   if (source_table === "teamcommission_bonus_snapshots") return role_key.split("#")[0];
 
+  // 課程分潤明確不列入加倍活動，回傳 null 讓倍率恆為 1
+  if (source_table === "course_profit_payouts") return null;
+
   // 補差需跟著原始分潤的倍率，否則加倍期間取消訂單會「發 1.5x、扣回 1x」造成多發
   if (source_table === "closer_commission_adjustments") {
     if (role_key === "closer") return "closer";
@@ -534,6 +538,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         { data: closerAdjustments },
         { data: accommodations },
         { data: bonusSetting },
+        { data: courseProfitRows },
         { data: multRows },
         { data: roleRows },
       ] = await Promise.all([
@@ -594,6 +599,10 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
           .order("effective_from", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        supabase
+          .from("course_profit_payouts")
+          .select("id, month, user_id, amount, percent_snapshot, surplus_snapshot")
+          .eq("month", prevMonthFirstDay),
         supabase
           .from("bonus_multiplier_settings")
           .select("bonus_type, multiplier, start_month, end_month")
