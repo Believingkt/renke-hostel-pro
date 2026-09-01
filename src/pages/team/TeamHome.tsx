@@ -2686,7 +2686,7 @@ export default function TeamHome() {
               </Card>
             );
 
-            const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink"];
+            const order: BonusCategory[] = ["team", "closer", "scout", "kol", "franchise", "starlink", "course"];
             const byCat = new Map<BonusCategory, typeof cards>();
             cards.forEach((c) => {
               const cat = (getBonusFormula(c.key)?.category ?? "team") as BonusCategory;
