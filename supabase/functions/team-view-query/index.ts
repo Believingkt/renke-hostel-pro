@@ -67,6 +67,9 @@ const ALLOWED_TABLES = new Set<string>([
   "scout_discount_code_payouts",
   "scout_monthly_payouts",
   "team_base_salaries",
+  // 課程分潤（依發放期別顯示於 TeamHome 卡片）；缺這張表時管理員代看他人會看不到卡片。
+  "course_profit_payouts",
+
 ]);
 
 /** 只允許 PostgREST 唯讀的鏈式方法 */
