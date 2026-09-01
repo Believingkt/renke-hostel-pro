@@ -2344,10 +2344,18 @@ export default function TeamHome() {
       baseAmount: courseProfit.amount,
       multiplier: 1,
       note: [
-        `${monthInfo.payoutLabel}（資料月 ${monthInfo.dataMonthLabel}）`,
-        `課程盈餘 $${Math.round(courseProfit.surplus).toLocaleString()} × ${courseProfit.percent}%`,
+        `${monthInfo.payoutLabel}`,
+        `${courseProfit.lines.length} 個盈餘月份合計`,
         "不列入加倍活動",
       ].join("・"),
+      lines: courseProfit.lines.map((l) => ({
+        label: `${l.month} 課程盈餘`,
+        revenue: Math.round(l.surplus),
+        amount: l.amount,
+        multiplier: 1,
+        rateNote: { main: `× ${l.percent}%` },
+      })),
+      alwaysShowLines: true,
     });
   }
 
