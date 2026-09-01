@@ -483,19 +483,20 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         </CardHeader>
         <CardContent className="space-y-4">
           {!readOnly && (
-            <div className="flex flex-wrap items-end gap-2 rounded-lg border bg-muted/30 p-3">
-              <div className="space-y-1">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 rounded-lg border bg-muted/30 p-3">
+              <div className="space-y-1 w-full sm:w-auto">
                 <div className="text-xs text-muted-foreground">盈餘月份</div>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Input
                     type="month"
                     value={newMonth.month}
                     onChange={(e) => setNewMonth((p) => ({ ...p, month: e.target.value }))}
-                    className="h-9 w-40"
+                    className="h-9 w-full sm:w-40 min-w-0"
                   />
                   <Button
                     type="button"
                     size="sm"
+                    className="flex-1 sm:flex-none"
                     variant={newMonth.month === prevMonthYm ? "default" : "outline"}
                     onClick={() => setNewMonth((p) => ({ ...p, month: prevMonthYm }))}
                   >
@@ -504,6 +505,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                   <Button
                     type="button"
                     size="sm"
+                    className="flex-1 sm:flex-none"
                     variant={newMonth.month === currentMonthYm ? "default" : "outline"}
                     onClick={() => setNewMonth((p) => ({ ...p, month: currentMonthYm }))}
                   >
@@ -511,18 +513,19 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                   </Button>
                 </div>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 w-full sm:w-auto">
                 <div className="text-xs text-muted-foreground">發放期別（10 號）</div>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Input
                     type="month"
                     value={newMonth.payout}
                     onChange={(e) => setNewMonth((p) => ({ ...p, payout: e.target.value }))}
-                    className="h-9 w-40"
+                    className="h-9 w-full sm:w-40 min-w-0"
                   />
                   <Button
                     type="button"
                     size="sm"
+                    className="flex-1 sm:flex-none"
                     variant={newMonth.payout === defaultPayoutYm() ? "default" : "outline"}
                     onClick={() => setNewMonth((p) => ({ ...p, payout: defaultPayoutYm() }))}
                   >
@@ -536,14 +539,15 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 placeholder="課程盈餘"
                 value={newMonth.surplus}
                 onChange={(e) => setNewMonth((p) => ({ ...p, surplus: e.target.value }))}
-                className="h-9 w-36 tabular-nums"
+                className="h-9 w-full sm:w-36 tabular-nums"
               />
               <Input
                 placeholder="備註（選填）"
                 value={newMonth.note}
                 onChange={(e) => setNewMonth((p) => ({ ...p, note: e.target.value }))}
-                className="h-9 min-w-[8rem] flex-1"
+                className="h-9 w-full sm:min-w-[8rem] sm:flex-1"
               />
+
               <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"}>
                 {savingId === "__new__" ? (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
