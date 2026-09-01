@@ -2902,6 +2902,7 @@ export type Database = {
           id: string
           month: string
           note: string | null
+          payout_month: string
           surplus_amount: number
           updated_at: string
           updated_by: string | null
@@ -2914,6 +2915,7 @@ export type Database = {
           id?: string
           month: string
           note?: string | null
+          payout_month: string
           surplus_amount?: number
           updated_at?: string
           updated_by?: string | null
@@ -2926,6 +2928,7 @@ export type Database = {
           id?: string
           month?: string
           note?: string | null
+          payout_month?: string
           surplus_amount?: number
           updated_at?: string
           updated_by?: string | null
@@ -2939,6 +2942,7 @@ export type Database = {
           created_at: string
           id: string
           month: string
+          payout_month: string
           percent_snapshot: number
           surplus_snapshot: number
           updated_at: string
@@ -2949,6 +2953,7 @@ export type Database = {
           created_at?: string
           id?: string
           month: string
+          payout_month: string
           percent_snapshot?: number
           surplus_snapshot?: number
           updated_at?: string
@@ -2959,6 +2964,7 @@ export type Database = {
           created_at?: string
           id?: string
           month?: string
+          payout_month?: string
           percent_snapshot?: number
           surplus_snapshot?: number
           updated_at?: string
@@ -13616,6 +13622,10 @@ export type Database = {
         Returns: number
       }
       course_profit_month_locked: { Args: { _month: string }; Returns: boolean }
+      course_profit_payout_period_locked: {
+        Args: { _payout_month: string }
+        Returns: boolean
+      }
       current_user_accommodation_ids: { Args: never; Returns: string[] }
       delete_email: {
         Args: { message_id: number; queue_name: string }
