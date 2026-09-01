@@ -2134,7 +2134,8 @@ export default function TeamHome() {
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
       label: d.name,
-      revenue: Math.round(d.revenue),
+      // 固定額類（如 AM場域獎金）沒有營收基準，不顯示 0 以免誤解
+      revenue: d.rateKind === "fixed" ? undefined : Math.round(d.revenue),
       amount: roundBoosted(d.amount, m),
       multiplier: m,
       rangeNote: d.rangeNote,
