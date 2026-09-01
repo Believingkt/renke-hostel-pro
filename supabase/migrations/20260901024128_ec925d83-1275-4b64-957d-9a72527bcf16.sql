@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.recalc_course_profit_payouts(date) FROM public, anon, authenticated;
