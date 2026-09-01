@@ -301,6 +301,61 @@ export default function ScoutDiscountCodesTab() {
         </p>
       )}
 
+      <Card className="border-primary/30 bg-primary/5">
+        <CardContent className="p-4">
+          <button
+            type="button"
+            onClick={() => setHelpOpen((o) => !o)}
+            className="flex w-full items-center justify-between gap-2 text-left"
+          >
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              <HelpCircle className="h-4 w-4 text-primary" />
+              使用說明：折扣碼申請 → 建立 → PMS 匹配 → 訂單歸戶
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${helpOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {helpOpen && (
+            <ol className="mt-3 space-y-2.5 text-sm leading-relaxed">
+              <li>
+                <span className="font-semibold">1. 星探提出申請</span>
+                <p className="text-muted-foreground">
+                  星探決定想使用的代碼字樣與適用館別，提供給星探主管或館別管理員。代碼建議英數字、辨識度高且不與現有代碼重複。
+                </p>
+              </li>
+              <li>
+                <span className="font-semibold">2. 主管／管理員在本頁建立</span>
+                <p className="text-muted-foreground">
+                  由星探主管、館別管理員或平台管理員按「新增折扣碼」，填入代碼、館別、負責星探與分潤方式（星探自行成交 5%／夥伴成交 2%+3%）。此頁只設定分潤，不會產生客人可用的代碼。
+                </p>
+              </li>
+              <li>
+                <span className="font-semibold">3. 館別管理員到 PMS 建立同名代碼</span>
+                <p className="text-muted-foreground">
+                  到該館 PMS →「折扣碼」建立完全相同的代碼並啟用。完成後本頁「PMS 匹配」欄會從「✗ 未建立」變成「✓ 已建立」，客人才真的能使用。
+                </p>
+              </li>
+              <li>
+                <span className="font-semibold">4. 訂單自動歸戶與分潤</span>
+                <p className="text-muted-foreground">
+                  客人下單時輸入該代碼，系統會自動歸戶到對應星探並計算分潤，呈現在「成交統計 / 發放管理」。此表的代碼不需再填寫「KOL星探邀約表」。
+                </p>
+              </li>
+              <li className="rounded-md bg-background/60 p-2.5">
+                <span className="font-semibold">你的角色可做的事</span>
+                <p className="text-muted-foreground">
+                  {canManage
+                    ? "你有管理權限，可直接在本頁新增、編輯與刪除折扣碼設定。"
+                    : "你目前為檢視權限，可查看所有折扣碼與分潤設定；需要新增或修改，請聯繫星探主管或館別管理員。"}
+                </p>
+              </li>
+            </ol>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       <Card>
         <CardContent className="p-4 space-y-4">
           <div className="flex items-center justify-between">
