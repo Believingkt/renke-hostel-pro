@@ -18,7 +18,6 @@ import { resolveCaller } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
-import { buildThresholdFactorResolver } from "../_shared/commissionThreshold.ts";
 import { buildPartnershipResolver } from "../_shared/partnershipGate.ts";
 
 
@@ -190,8 +189,7 @@ serve(async (req) => {
     const exclRule = await buildCommissionExclusionResolver(supabase, accIds);
     // 4b) 合作期間 gate：無合作期間／已暫停（bonus_policy='none'）的館別不採計
     const inPartnership = await buildPartnershipResolver(supabase, accIds);
-    // 4c) 月營收抽成門檻 gate：未達門檻 → factor = 0（不採計）
-    const thresholdFactor = await buildThresholdFactorResolver(supabase, accIds);
+    // 註：成交組獎金不套用「月營收抽成門檻」（門檻僅用於業主月結／管顧費等結算項目）
 
     const selfId = targetUserId ?? ctx.userId;
     let selfCloser = 0;
@@ -211,9 +209,6 @@ serve(async (req) => {
       if (isExempt(o)) continue;
       // 合作期間 gate（對齊 create-commission-snapshots）
       if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
-      // 月營收抽成門檻 gate（以 check_in_date 所屬月份判斷，對齊快照）
-      const factor = thresholdFactor(o.accommodation_id as string, o.check_in_date as string);
-      if (factor <= 0) continue;
 
       const tcp = meta.team_commission_price;
       const finalPrice = Number(o.final_price ?? 0);
@@ -221,7 +216,7 @@ serve(async (req) => {
         ? commissionBaseFromOrder(o, exclRule(o.accommodation_id as string, o.order_date as string))
         : Number(tcp);
 
-      const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") * factor : 0;
+      const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") : 0;
       // 影音組分潤已停止使用：試算不再計入影音金額
       const videoRate = 0;
       const closerAmt = meta.closer_id ? base * closerRate : 0;
