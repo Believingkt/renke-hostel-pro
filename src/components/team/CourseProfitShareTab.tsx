@@ -264,9 +264,15 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     [members, selectedUserIds],
   );
 
+  /**
+   * 分潤 % 的採用基準＝「發放期別當月 1 日」（不是盈餘資料月），
+   * 這樣延遲對帳時仍會用發放當下的參與名單與比例。
+   */
+  const rateAsOf = `${defaultPayoutYm()}-01`;
+
   const currentPercent = (userId: string) => {
     const list = ratesByUser.get(userId) ?? [];
-    const eff = list.find((v) => v.effective_from <= today);
+    const eff = list.find((v) => v.effective_from <= rateAsOf);
     return eff ? Number(eff.percent) : null;
   };
 
