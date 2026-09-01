@@ -184,7 +184,6 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           .from("course_profit_payouts")
           .select("id, month, payout_month, user_id, amount, percent_snapshot"),
       ]);
-      ]);
 
     const rolesByUser = new Map<string, string[]>();
     ((roleRows ?? []) as any[]).forEach((r) => {
