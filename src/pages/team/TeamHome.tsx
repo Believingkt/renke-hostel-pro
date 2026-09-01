@@ -2355,6 +2355,8 @@ export default function TeamHome() {
       baseAmount: amVenueBonusAmt,
       multiplier: mv,
       note: rateNote("am_venue_bonus"),
+      lines: venueLines("am_venue_bonus", mv),
+      alwaysShowLines: true,
     });
   }
   if (showCloser && isMonthly) {
