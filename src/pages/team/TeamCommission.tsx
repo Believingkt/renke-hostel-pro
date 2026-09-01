@@ -728,6 +728,13 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
 
 
 
+      // 課程分潤：後端已依「當月盈餘 × 個人分潤%」自動結算，這裡直接列出，不做二次計算
+      (courseProfitRows ?? []).forEach((r: any) => {
+        if (!(Number(r.amount) > 0)) return;
+        const detail = `課程盈餘 ${fmtInt(Number(r.surplus_snapshot ?? 0))} × ${Number(r.percent_snapshot ?? 0)}%`;
+        pushItem("course_profit_payouts", r.id, "course_profit", profileByUserId.get(r.user_id), SOURCE_LABEL.course_profit, detail, Number(r.amount));
+      });
+
       // 決定該筆特許加盟訂單是否屬於本次「發放月」：
       // - 有 early_payout_month → 該值 === prevMonthKey（期別月，即發放月-1）
       // - 無 → sold_at / signed_at 的 YYYY-MM === prevMonthKey（上月）
