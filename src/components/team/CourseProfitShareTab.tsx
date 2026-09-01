@@ -378,23 +378,54 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
 
   /* ---------------- 分潤 % 版本 ---------------- */
 
-  const addRate = async (userId: string) => {
+  /** 通過防呆檢查、等待二次確認的分潤版本 */
+  const [pendingRate, setPendingRate] = useState<{
+    userId: string;
+    memberName: string;
+    percent: number;
+    previousPercent: number | null;
+    effective_from: string;
+    note: string;
+  } | null>(null);
+
+  const requestAddRate = (userId: string) => {
     const d = rateDraft[userId];
-    if (!d || d.percent === "") {
-      toast({ title: "請先輸入分潤 %", variant: "destructive" });
+    const effective_from = d?.effective_from || firstOfThisMonthTaipei();
+    const result = checkRateChange({
+      percentRaw: d?.percent ?? "",
+      effectiveFrom: effective_from,
+      versions: ratesByUser.get(userId) ?? [],
+      periodLocked: periodLocked(`${effective_from.slice(0, 7)}-01`),
+    });
+    if (!result.ok) {
+      toast({ title: result.title ?? "無法新增版本", description: result.description, variant: "destructive" });
       return;
     }
+    setPendingRate({
+      userId,
+      memberName: members.find((m) => m.user_id === userId)?.display_name ?? "該成員",
+      percent: result.percent!,
+      previousPercent: result.previousPercent ?? null,
+      effective_from,
+      note: d?.note ?? "",
+    });
+  };
+
+  const confirmAddRate = async () => {
+    if (!pendingRate) return;
+    const { userId, percent, effective_from, note } = pendingRate;
     setSavingId(userId);
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.from("course_profit_share_rates").insert({
       user_id: userId,
-      percent: Number(d.percent || 0),
-      effective_from: d.effective_from || firstOfThisMonthTaipei(),
-      note: d.note || null,
+      percent,
+      effective_from,
+      note: note || null,
       created_by: userData?.user?.id ?? null,
       created_by_email: userData?.user?.email ?? null,
     });
     setSavingId(null);
+    setPendingRate(null);
     if (error) {
       toast({
         title: "新增失敗",
@@ -407,6 +438,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     toast({ title: "已新增分潤版本，獎金已自動重算" });
     load();
   };
+
 
   const removeRate = async (v: RateVersion) => {
     const { error } = await supabase.from("course_profit_share_rates").delete().eq("id", v.id);
