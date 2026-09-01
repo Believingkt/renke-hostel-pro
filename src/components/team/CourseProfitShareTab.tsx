@@ -102,6 +102,18 @@ function firstOfThisMonthTaipei() {
   return `${todayTaipei().slice(0, 7)}-01`;
 }
 
+/** 台北時區的本月 YYYY-MM */
+function currentYm() {
+  return todayTaipei().slice(0, 7);
+}
+
+/** 台北時區的上個月 YYYY-MM */
+function prevYm() {
+  const [y, m] = currentYm().split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return d.toISOString().slice(0, 7);
+}
+
 function fmtTime(iso: string) {
   const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
   return d.toISOString().slice(0, 16).replace("T", " ");
