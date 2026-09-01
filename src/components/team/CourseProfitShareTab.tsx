@@ -270,8 +270,9 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     return eff ? Number(eff.percent) : null;
   };
 
-  const monthLocked = (month: string) =>
-    payouts.some((p) => p.month === month && paidPayoutIds.has(p.id));
+  /** 該發放期別是否已標記發放（同期別的所有盈餘列一起鎖定） */
+  const periodLocked = (payoutMonth: string) =>
+    payouts.some((p) => p.payout_month === payoutMonth && paidPayoutIds.has(p.id));
 
   const payoutsByMonth = useMemo(() => {
     const m = new Map<string, PayoutRow[]>();
@@ -283,20 +284,32 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     return m;
   }, [payouts]);
 
+  /** 依發放期別分組的盈餘列（同期別可掛多個資料月，卡片合計、明細分列） */
+  const monthsByPeriod = useMemo(() => {
+    const m = new Map<string, MonthRow[]>();
+    months.forEach((r) => {
+      const list = m.get(r.payout_month) ?? [];
+      list.push(r);
+      m.set(r.payout_month, list);
+    });
+    return m;
+  }, [months]);
+
   const totalCurrentPercent = selectedMembers.reduce((s, m) => s + (currentPercent(m.user_id) ?? 0), 0);
   const latestMonth = months[0];
 
   /* ---------------- 課程盈餘 ---------------- */
 
   const addMonth = async () => {
-    if (!newMonth.month || newMonth.surplus === "") {
-      toast({ title: "請輸入月份與盈餘金額", variant: "destructive" });
+    if (!newMonth.month || !newMonth.payout || newMonth.surplus === "") {
+      toast({ title: "請輸入盈餘月份、發放期別與金額", variant: "destructive" });
       return;
     }
     setSavingId("__new__");
     const { data: userData } = await supabase.auth.getUser();
     const { error } = await supabase.from("course_profit_months").insert({
       month: `${newMonth.month}-01`,
+      payout_month: `${newMonth.payout}-01`,
       surplus_amount: Number(newMonth.surplus || 0),
       note: newMonth.note || null,
       created_by: userData?.user?.id ?? null,
@@ -313,7 +326,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: firstOfThisMonthTaipei().slice(0, 7), surplus: "", note: "" });
+    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "" });
     toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
     load();
   };
@@ -328,6 +341,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       .update({
         surplus_amount: Number(d.surplus || 0),
         note: d.note || null,
+        payout_month: `${d.payout}-01`,
         updated_by: userData?.user?.id ?? null,
         updated_by_email: userData?.user?.email ?? null,
       })
