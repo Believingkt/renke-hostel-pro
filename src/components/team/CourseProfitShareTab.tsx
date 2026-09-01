@@ -880,6 +880,41 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!pendingRate} onOpenChange={(o) => !o && setPendingRate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認新增分潤版本？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-1 text-sm">
+                <div>
+                  成員：<span className="font-medium text-foreground">{pendingRate?.memberName}</span>
+                </div>
+                <div className="tabular-nums">
+                  分潤 %：
+                  <span className="font-medium text-foreground">
+                    {pendingRate?.previousPercent === null ? "未設定" : `${pendingRate?.previousPercent}%`} →{" "}
+                    {pendingRate?.percent}%
+                  </span>
+                </div>
+                <div>
+                  生效日：<span className="font-medium text-foreground">{pendingRate?.effective_from}</span>
+                  （影響 {pendingRate?.effective_from.slice(0, 7)} 起、尚未發放的期別）
+                </div>
+                <div>備註：{pendingRate?.note || "無"}</div>
+                <div className="pt-1 text-muted-foreground">
+                  版本為 append-only，新增後不可修改；僅尚未生效的版本可刪除。獎金金額會立即自動重算。
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmAddRate}>確認新增</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
