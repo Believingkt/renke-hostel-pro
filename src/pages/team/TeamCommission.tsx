@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isPayoutMarkDenied } from "@/lib/payoutMarkAccess";
 import { useTeam } from "@/components/team/TeamContext";
 import { TEAM_ROLES, type TeamRole } from "@/components/team/teamConfig";
 
