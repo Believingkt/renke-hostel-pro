@@ -102,6 +102,18 @@ function firstOfThisMonthTaipei() {
   return `${todayTaipei().slice(0, 7)}-01`;
 }
 
+/** 台北時區的本月 YYYY-MM */
+function currentYm() {
+  return todayTaipei().slice(0, 7);
+}
+
+/** 台北時區的上個月 YYYY-MM */
+function prevYm() {
+  const [y, m] = currentYm().split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return d.toISOString().slice(0, 7);
+}
+
 function fmtTime(iso: string) {
   const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
   return d.toISOString().slice(0, 16).replace("T", " ");
@@ -126,6 +138,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
+  const currentMonthYm = currentYm();
+  const prevMonthYm = prevYm();
 
   const load = async () => {
     setLoading(true);
@@ -430,6 +444,24 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 onChange={(e) => setNewMonth((p) => ({ ...p, month: e.target.value }))}
                 className="h-9 w-40"
               />
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newMonth.month === prevMonthYm ? "default" : "outline"}
+                  onClick={() => setNewMonth((p) => ({ ...p, month: prevMonthYm }))}
+                >
+                  上個月
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newMonth.month === currentMonthYm ? "default" : "outline"}
+                  onClick={() => setNewMonth((p) => ({ ...p, month: currentMonthYm }))}
+                >
+                  本月
+                </Button>
+              </div>
               <Input
                 type="number"
                 inputMode="numeric"
