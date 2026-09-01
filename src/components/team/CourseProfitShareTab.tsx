@@ -548,7 +548,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 className="h-9 w-full sm:min-w-[8rem] sm:flex-1"
               />
 
-              <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"}>
+              <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"} className="w-full sm:w-auto">
                 {savingId === "__new__" ? (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                 ) : (
