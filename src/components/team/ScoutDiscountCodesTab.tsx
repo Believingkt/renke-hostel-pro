@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, Plus, ExternalLink, HelpCircle, ChevronDown } from "lucide-react";
 import { pmsHref } from "@/lib/appMode";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
@@ -96,6 +96,7 @@ export default function ScoutDiscountCodesTab() {
   const [accommodations, setAccommodations] = useState<AccommodationOpt[]>([]);
   const [pmsCodes, setPmsCodes] = useState<Map<string, PmsCode>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ScoutCode | null>(null);
