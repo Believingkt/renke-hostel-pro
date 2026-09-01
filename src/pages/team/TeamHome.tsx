@@ -399,7 +399,10 @@ export default function TeamHome() {
   // ===== 底薪（僅月結期顯示）=====
   const [salaryAmt, setSalaryAmt] = useState(0);
   /** 課程分潤（資料月手動輸入盈餘 × 個人分潤%，由後端 trigger 自動計算） */
-  const [courseProfit, setCourseProfit] = useState<{ amount: number; percent: number; surplus: number } | null>(null);
+  const [courseProfit, setCourseProfit] = useState<{
+    amount: number;
+    lines: Array<{ month: string; amount: number; percent: number; surplus: number }>;
+  } | null>(null);
 
   // ===== 期別（台北時間）=====
   // 可檢視期別：即將發放的下一期往回 6 個月（例：今日 8/7 → 最舊 2/10 期）
