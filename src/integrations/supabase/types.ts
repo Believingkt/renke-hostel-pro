@@ -13525,6 +13525,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: boolean
       }
+      can_manage_scout_discount_codes: { Args: never; Returns: boolean }
       can_unlock_paid_order_discount: {
         Args: { _accommodation_id: string; _user_id: string }
         Returns: boolean

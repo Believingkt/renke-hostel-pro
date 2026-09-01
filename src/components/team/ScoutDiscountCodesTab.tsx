@@ -88,7 +88,8 @@ export default function ScoutDiscountCodesTab() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }, []);
   const discountCodeMult = multiplierForPayoutMonth("scout_discount_code", currentPayoutMonth);
-  const canManage = ["scout_manager", "closer", "closer_manager", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
+  // 與資料庫 RLS (can_manage_scout_discount_codes) 對齊
+  const canManage = ["scout_manager", "hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const isAdmin = ["hotel_admin", "admin", "super_admin"].some((r) => roles.includes(r as any));
   const [rows, setRows] = useState<ScoutCode[]>([]);
   const [scouts, setScouts] = useState<MemberOpt[]>([]);
