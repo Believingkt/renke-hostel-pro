@@ -1626,8 +1626,28 @@ export default function TeamHome() {
 
             const vs = rateSettings.am_venue_bonus;
             if (!vs || vs.fixed_amount == null) missing.am_venue_bonus = true;
-            amVenueSum =
-              Number(vs?.fixed_amount ?? 0) * myManagedAccIdsExcludingTravelDays.length;
+            // 口徑對齊後端快照（create-team-bonus-snapshots.mergeTravelSeries）：
+            // 固定額類的「旅行日」系列合併只算一館，不可沿用 am_performance 的「全數排除」。
+            const travelManagedIds = myManagedAccIds.filter((id) =>
+              !myManagedAccIdsExcludingTravelDays.includes(id),
+            );
+            const amVenueIds = [
+              ...myManagedAccIdsExcludingTravelDays,
+              ...(travelManagedIds.length > 0 ? [travelManagedIds[0]] : []),
+            ];
+            const amVenueFixed = Number(vs?.fixed_amount ?? 0);
+            amVenueSum = amVenueFixed * amVenueIds.length;
+            breakdown.am_venue_bonus = amVenueIds.map((id) => {
+              const nm = allAccNameById.get(id) ?? accNameFallback.get(id) ?? "其他";
+              return {
+                name: nm.startsWith("旅行日") ? "旅行日系列" : nm,
+                revenue: 0,
+                amount: amVenueFixed,
+                rate: amVenueFixed,
+                rateKind: "fixed" as const,
+                rangeNote: rangeNoteOf(id),
+              };
+            });
           }
 
           // (2) 成交組績效獎金：全公司營收 × rate，由資料月底仍在職的成交組成員均分
@@ -2114,7 +2134,8 @@ export default function TeamHome() {
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
       label: d.name,
-      revenue: Math.round(d.revenue),
+      // 固定額類（如 AM場域獎金）沒有營收基準，不顯示 0 以免誤解
+      revenue: d.rateKind === "fixed" ? undefined : Math.round(d.revenue),
       amount: roundBoosted(d.amount, m),
       multiplier: m,
       rangeNote: d.rangeNote,
@@ -2334,6 +2355,8 @@ export default function TeamHome() {
       baseAmount: amVenueBonusAmt,
       multiplier: mv,
       note: rateNote("am_venue_bonus"),
+      lines: venueLines("am_venue_bonus", mv),
+      alwaysShowLines: true,
     });
   }
   if (showCloser && isMonthly) {
