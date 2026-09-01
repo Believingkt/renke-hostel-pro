@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_accommodation_partnership_start_date() FROM PUBLIC, anon, authenticated;
