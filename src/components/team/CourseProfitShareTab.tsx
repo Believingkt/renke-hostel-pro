@@ -474,7 +474,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       {/* A. 課程盈餘（月份總覽） */}
       <Card>
         <CardHeader>
-          <CardTitle>課程盈餘（每月手動輸入）</CardTitle>
+          <CardTitle>課程分潤獎金（每月手動輸入）</CardTitle>
           <CardDescription>
             每一筆盈餘都指定「發放期別（10 號）」，與盈餘所屬月份脫鉤：對帳延遲時，直接把較早月份的盈餘掛到目前未發放的當期即可。
             同一個發放期別可以掛多個月份，TeamHome 卡片顯示合計、明細分列。
