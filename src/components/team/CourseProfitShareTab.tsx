@@ -430,6 +430,24 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 onChange={(e) => setNewMonth((p) => ({ ...p, month: e.target.value }))}
                 className="h-9 w-40"
               />
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newMonth.month === prevMonthYm ? "default" : "outline"}
+                  onClick={() => setNewMonth((p) => ({ ...p, month: prevMonthYm }))}
+                >
+                  上個月
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newMonth.month === currentMonthYm ? "default" : "outline"}
+                  onClick={() => setNewMonth((p) => ({ ...p, month: currentMonthYm }))}
+                >
+                  本月
+                </Button>
+              </div>
               <Input
                 type="number"
                 inputMode="numeric"
