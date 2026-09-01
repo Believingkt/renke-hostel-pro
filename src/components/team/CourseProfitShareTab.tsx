@@ -138,6 +138,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
   const [pickerOpen, setPickerOpen] = useState(false);
+  const currentMonthYm = currentYm();
+  const prevMonthYm = prevYm();
 
   const load = async () => {
     setLoading(true);
