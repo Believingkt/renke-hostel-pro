@@ -2638,7 +2638,7 @@ export default function TeamHome() {
                   ) : null}
 
                   {!loading && c.lines && c.lines.length > 0
-                    ? c.lines.some((ln) => ln.revenue !== undefined)
+                    ? c.lines.some((ln) => ln.revenue !== undefined) || c.key === "am_venue_bonus"
                       ? (
                         <Button
                           variant="outline"
@@ -2649,6 +2649,7 @@ export default function TeamHome() {
                           各館別明細（{c.lines.length} 館）
                         </Button>
                       )
+
                       : c.lines.length > 1 || c.key === "venue_closing" || c.alwaysShowLines
                         ? (
                           <div className="mt-2 space-y-0.5">
