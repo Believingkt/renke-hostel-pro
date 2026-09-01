@@ -1958,9 +1958,28 @@ export default function TeamHome() {
             });
           }
 
-          closerVenueRows.push(
-            ...Array.from(bucket.values()).sort((a, b) => b.total - a.total),
-          );
+          // 顯示層合併：補差／扣回紀錄沒有費率（rate = null），會自成一列。
+          // 若同館別已存在「有費率」的列，將無費率列併入金額最大的那一列，
+          // 避免同一館別在明細中被拆成兩列。金額與單號完整保留（展開時仍標示「補差」）。
+          const merged = Array.from(bucket.values());
+          const rateless = merged.filter((r) => r.rate === null);
+          for (const r of rateless) {
+            const target = merged
+              .filter((x) => x !== r && x.accId === r.accId && x.rate !== null)
+              .sort((a, b) => Math.abs(b.total) - Math.abs(a.total))[0];
+            if (!target) continue;
+            target.current += r.current;
+            target.backfill += r.backfill;
+            target.adjust += r.adjust;
+            target.gross += r.gross;
+            target.total += r.total;
+            target.pendingClawback += r.pendingClawback;
+            target.orders.push(...r.orders);
+            merged.splice(merged.indexOf(r), 1);
+          }
+
+          closerVenueRows.push(...merged.sort((a, b) => b.total - a.total));
+
         }
 
 
