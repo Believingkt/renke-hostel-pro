@@ -830,7 +830,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           }
                           className="h-9 min-w-[8rem] flex-1"
                         />
-                        <Button size="sm" onClick={() => addRate(m.user_id)} disabled={savingId === m.user_id}>
+                        <Button size="sm" onClick={() => requestAddRate(m.user_id)} disabled={savingId === m.user_id}>
                           {savingId === m.user_id ? (
                             <Loader2 className="mr-1 h-4 w-4 animate-spin" />
                           ) : (
