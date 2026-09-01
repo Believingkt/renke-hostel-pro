@@ -116,6 +116,23 @@ function prevYm() {
   return d.toISOString().slice(0, 7);
 }
 
+/** 台北時區的下個月 YYYY-MM */
+function nextYm() {
+  const [y, m] = currentYm().split("-").map(Number);
+  return new Date(Date.UTC(y, m, 1)).toISOString().slice(0, 7);
+}
+
+/**
+ * 預設發放期別：目前尚未發放的當期 10 號。
+ * 台北時間 10 日（含）之前 → 本月 10 號期；11 日起 → 次月 10 號期。
+ */
+function defaultPayoutYm() {
+  const day = Number(todayTaipei().slice(8, 10));
+  return day <= 10 ? currentYm() : nextYm();
+}
+
+
+
 function fmtTime(iso: string) {
   const d = new Date(new Date(iso).getTime() + 8 * 3600 * 1000);
   return d.toISOString().slice(0, 16).replace("T", " ");
