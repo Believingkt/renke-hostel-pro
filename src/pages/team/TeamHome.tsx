@@ -2140,7 +2140,12 @@ export default function TeamHome() {
   /** 由館別營收明細組出卡片的「營收／獎金」列（已套用加倍倍率） */
   const venueLines = (bonusType: string, m: number) =>
     (revenueBreakdown[bonusType] ?? []).map((d) => ({
-      label: d.name,
+      // 固定額類（旅行日系列合併只算一館）：顯示層統一還原成系列名，
+      // 舊快取／舊快照存的是代表館名稱，這裡再收斂一次（純顯示，不動金額）。
+      label:
+        d.rateKind === "fixed" && (d.name ?? "").trim().startsWith("旅行日")
+          ? "旅行日系列"
+          : d.name,
       // 固定額類（如 AM場域獎金）沒有營收基準，不顯示 0 以免誤解
       revenue: d.rateKind === "fixed" ? undefined : Math.round(d.revenue),
       amount: roundBoosted(d.amount, m),
@@ -2148,6 +2153,7 @@ export default function TeamHome() {
       rangeNote: d.rangeNote,
       rateNote: rateNoteOf(d),
     }));
+
 
   if (showCloser && isMonthly) {
     const closerMult = multOf("closer");
