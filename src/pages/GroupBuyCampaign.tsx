@@ -474,7 +474,8 @@ export default function GroupBuyCampaign() {
     childEval.blockReason || pkgMaxGuestsError || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
 
   const guestCount = billableGuestCount(effectiveGuests);
-  const guestSummary = formatGuestComposition(effectiveGuests, childRules);
+  /** 顯示用人數文字；人數選擇器關閉時整列隱藏（內部計價／訂單仍使用 effectiveGuests） */
+  const guestSummary = showGuestSelector ? formatGuestComposition(effectiveGuests, childRules) : "";
 
   /** 逐晚計價（平日／旺日／假日；國定假日優先）。最終金額仍以後端重算為準 */
   const stayPrice = useMemo(
