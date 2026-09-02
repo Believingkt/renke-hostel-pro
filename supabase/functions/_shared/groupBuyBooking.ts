@@ -315,18 +315,36 @@ export async function validateAndPriceGroupBuyBooking(
     ((rtRows as any[]) ?? []).map((r) => [String(r.id), Number(r.capacity ?? 0)]),
   );
 
+  // 旅客自選房型：僅在方案開啟 show_room_type_selector 時採用，且必須在方案 mapping 內。
+  // selector OFF 時一律忽略 client 傳入的 room_type_id，沿用既有自動指派順序。
+  let requestedRoomTypeId: string | null = null;
+  if (showRoomTypeSelector) {
+    const raw = String(input.roomTypeId ?? "").trim();
+    if (raw) {
+      if (!candidateRoomTypeIds.includes(raw)) return fail("此方案不提供所選房型，請重新選擇");
+      const cap = capacityMap.get(raw) ?? 0;
+      if (cap > 0 && capacityHeadcount > cap) {
+        return fail("所選房型無法容納此入住人數，請調整入住人數或改選其他房型。");
+      }
+      requestedRoomTypeId = raw;
+    }
+  }
+
   let roomTypeId: string | null = null;
-  if (opts.forceRoomTypeId) {
+  const pinnedRoomTypeId = opts.forceRoomTypeId ?? requestedRoomTypeId;
+  if (pinnedRoomTypeId) {
+    // 房型庫存驗證 reuse 既有 group-buy inventory RPC 與同一把 lock，不另建第二套
     const rows = await groupBuyInventory(admin, {
-      roomTypeId: opts.forceRoomTypeId,
+      roomTypeId: pinnedRoomTypeId,
       dates,
       accommodationId: campaign.accommodation_id,
       excludeDraftId: opts.excludeDraftId,
     });
     const check = verifyInventory(rows, roomQuantity, false);
     if (!check.ok) return fail(check.message ?? ROOM_SELECT_MESSAGES.inventory, 409);
-    roomTypeId = opts.forceRoomTypeId;
+    roomTypeId = pinnedRoomTypeId;
   } else {
+
     const candidates = candidateRoomTypeIds.map((id) => ({ id, capacity: capacityMap.get(id) ?? 0 }));
     const selection = await selectRoomType(candidates, capacityHeadcount, async (rtId) => {
       const rows = await groupBuyInventory(admin, {
