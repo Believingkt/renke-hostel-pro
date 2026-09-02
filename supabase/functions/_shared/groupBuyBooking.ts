@@ -55,7 +55,7 @@ export interface GroupBuyBookingInput {
   guestNote?: string;
   /** 旅客選擇的付款方式（manual 流程：bank / atm）；由 server 依活動開關驗證 */
   paymentMethod?: string | null;
-  /** 旅客選擇的入住房型（僅當方案 show_room_type_selector = true 時採用） */
+  /** DEPRECATED：客人已無法自選房型，server 一律忽略此欄位（房型由系統自動指派） */
   roomTypeId?: string | null;
 }
 
