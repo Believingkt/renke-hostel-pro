@@ -243,7 +243,6 @@ export default function GroupBuyCampaign() {
   const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
   const [roomCaps, setRoomCaps] = useState<Array<{ id: string; capacity: number }>>([]);
   /** 旅客自選房型（僅方案開啟房型選擇器時使用；null＝維持系統自動指派） */
-  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
   const [roomTypeNames, setRoomTypeNames] = useState<Record<string, string>>({});
 
   const [guestName, setGuestName] = useState("");
