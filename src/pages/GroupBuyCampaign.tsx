@@ -89,6 +89,7 @@ interface Campaign {
   deposit_percentage: number;
   payment_deadline_hours: number;
   contact_note: string | null;
+  show_line_inquiry_button?: boolean | null;
   terms_html: string | null;
   /** 首屏顯示用（後台可設定，皆為選填） */
   highlight_points: string[] | null;
@@ -866,7 +867,10 @@ export default function GroupBuyCampaign() {
       ? accLineId
       : `https://line.me/R/ti/p/${accLineId.startsWith("@") ? accLineId : `@${accLineId}`}`
     : "";
-  const lineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
+  const rawLineUrl = officialLineUrl || (campaign.contact_note?.match(/https?:\/\/[^\s，、）)]+/)?.[0] ?? "");
+  // 團購後台開關；舊資料 null/undefined 一律視為顯示
+  const showLineInquiry = campaign.show_line_inquiry_button !== false;
+  const lineUrl = showLineInquiry ? rawLineUrl : "";
 
   /** 常見問題 / 訂房須知：館別開關 + 後台團購頁選取結果（選 0 項＝不顯示） */
   const showFaq = (accInfo as any)?.show_faq_section !== false && faqItems.length > 0;

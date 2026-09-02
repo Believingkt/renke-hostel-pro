@@ -4672,6 +4672,7 @@ export type Database = {
           public_token: string
           sale_end: string | null
           sale_start: string | null
+          show_line_inquiry_button: boolean
           slug: string
           status: string
           stay_end_date: string | null
@@ -4721,6 +4722,7 @@ export type Database = {
           public_token?: string
           sale_end?: string | null
           sale_start?: string | null
+          show_line_inquiry_button?: boolean
           slug: string
           status?: string
           stay_end_date?: string | null
@@ -4770,6 +4772,7 @@ export type Database = {
           public_token?: string
           sale_end?: string | null
           sale_start?: string | null
+          show_line_inquiry_button?: boolean
           slug?: string
           status?: string
           stay_end_date?: string | null
