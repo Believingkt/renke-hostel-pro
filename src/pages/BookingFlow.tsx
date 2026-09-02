@@ -3275,6 +3275,7 @@ const BookingFlow = () => {
             memberId: effectiveMemberId,
             customAddonDetails: buildCustomAddonLines().length > 0 ? buildCustomAddonLines() : null,
             tripId: tripCheckoutTripId,
+            adultsCount: contextGuests?.adults || 2,
             nights,
           };
 
