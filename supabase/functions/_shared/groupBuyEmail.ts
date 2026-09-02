@@ -333,6 +333,8 @@ export interface GroupBuyCancelInfo {
   venueContact?: VenueContact | null;
   /** ATM 未付款直接取消：提醒請勿再轉帳至原虛擬帳號 */
   atmNoTransferNotice?: boolean;
+  /** 信用卡已收款、但依取消政策計算退款金額為 0（非退款失敗） */
+  zeroRefundByPolicy?: boolean;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
@@ -346,6 +348,12 @@ const CARD_REFUND_CHANNEL = "原信用卡退刷（TapPay）";
 function cardRefundStatusBlock(info: GroupBuyCancelInfo): string {
   const remaining = Math.max(0, Math.round(info.paidAmount - info.refundedTotal));
   if (info.paidAmount <= 0) return `<p>此訂單尚未付款，無需退款。</p>`;
+  if (info.zeroRefundByPolicy) {
+    // 明確告知「依規則退款 0 元」，不得寫成退款失敗或退款處理中
+    return `<table class="info" style="margin:0 0 10px">
+        <tr><td class="k">依取消規則退款金額</td><td><strong>NT$0</strong></td></tr>
+      </table><p style="margin:0">依本活動取消規則，本次取消的退款金額為 NT$0；訂單已完成取消，如有疑問請與我們聯繫。</p>`;
+  }
   if (info.refundStatus === "refunded") {
     return `<table class="info" style="margin:0 0 10px">
         <tr><td class="k">退款方式</td><td>${CARD_REFUND_CHANNEL}</td></tr>

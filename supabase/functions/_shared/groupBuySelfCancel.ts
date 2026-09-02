@@ -65,3 +65,45 @@ export function resolveSelfCancelRefundAmount(input: {
   const policy = Math.max(0, Math.round(Number(input.policyRefundAmount) || 0));
   return { manualReview: false, refundAmount: Math.min(refundable, policy) };
 }
+
+// ---------------------------------------------------------------------------
+// 信用卡自助取消：TECHNICAL EXCEPTION（不是 business review）
+//
+// 正式契約：團購信用卡旅客自助取消，永遠不需要民宿／管理員「同意取消」。
+// 唯一允許人工介入的情況是「系統資料／設定異常導致無法安全計算金流」，
+// 此時記錄取消意圖 + 通知管理員處理付款異常，但絕不建立取消審核（approve/reject）。
+// ---------------------------------------------------------------------------
+
+export type CardSelfCancelExceptionReason =
+  | "missing_check_in_date"
+  | "unresolved_cancellation_policy"
+  | "invalid_paid_amount"
+  | "invalid_refund_amount";
+
+export const CARD_SELF_CANCEL_EXCEPTION_LABEL: Record<CardSelfCancelExceptionReason, string> = {
+  missing_check_in_date: "訂單缺少入住日期，無法計算取消政策級距",
+  unresolved_cancellation_policy: "無法判定此訂單適用的取消政策（付款方式／設定異常）",
+  invalid_paid_amount: "已收款金額異常，無法安全計算退款",
+  invalid_refund_amount: "退款金額計算結果異常",
+};
+
+/** 回傳 null = 可安全自動處理；非 null = TECHNICAL EXCEPTION（仍不得進 business review） */
+export function detectCardSelfCancelException(input: {
+  checkInDate?: string | null;
+  paidAmount?: number | null;
+  policyRequiresManualReview?: boolean;
+  policyRefundAmount?: number | null;
+}): CardSelfCancelExceptionReason | null {
+  const ci = String(input.checkInDate ?? "").trim();
+  if (!ci || Number.isNaN(new Date(ci).getTime())) return "missing_check_in_date";
+
+  const paid = Number(input.paidAmount);
+  if (!Number.isFinite(paid) || paid < 0) return "invalid_paid_amount";
+
+  if (input.policyRequiresManualReview) return "unresolved_cancellation_policy";
+
+  const refund = Number(input.policyRefundAmount);
+  if (!Number.isFinite(refund) || refund < 0) return "invalid_refund_amount";
+
+  return null;
+}

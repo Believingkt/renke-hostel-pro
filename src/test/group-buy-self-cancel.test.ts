@@ -7,6 +7,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   classifyGroupBuySelfCancel,
+  detectCardSelfCancelException,
   resolveSelfCancelRefundAmount,
 } from "../../supabase/functions/_shared/groupBuySelfCancel";
 
@@ -102,5 +103,69 @@ describe("server 流程保護", () => {
 
   it("自助取消不歸零 paid_amount", () => {
     expect(lookupSrc).not.toContain("paid_amount: 0");
+  });
+});
+
+describe("信用卡自助取消：technical exception（不得進人工取消審核）", () => {
+  const base = { checkInDate: "2026-12-01", paidAmount: 6000, policyRefundAmount: 4200 };
+
+  it("資料完整 → 可自動處理", () => {
+    expect(detectCardSelfCancelException({ ...base })).toBeNull();
+  });
+
+  it("缺入住日期 → missing_check_in_date", () => {
+    expect(detectCardSelfCancelException({ ...base, checkInDate: null }))
+      .toBe("missing_check_in_date");
+  });
+
+  it("政策無法判定 → unresolved_cancellation_policy（技術例外，非 business review）", () => {
+    expect(detectCardSelfCancelException({ ...base, policyRequiresManualReview: true }))
+      .toBe("unresolved_cancellation_policy");
+  });
+
+  it("已收款金額異常 → invalid_paid_amount", () => {
+    expect(detectCardSelfCancelException({ ...base, paidAmount: Number.NaN }))
+      .toBe("invalid_paid_amount");
+  });
+
+  it("退款金額異常 → invalid_refund_amount", () => {
+    expect(detectCardSelfCancelException({ ...base, policyRefundAmount: Number.NaN }))
+      .toBe("invalid_refund_amount");
+  });
+
+  it("政策 0 元 → 仍可自動處理（不呼叫退款 API 由 server 判斷）", () => {
+    expect(detectCardSelfCancelException({ ...base, policyRefundAmount: 0 })).toBeNull();
+    expect(resolveSelfCancelRefundAmount({ refundable: 6000, policyRefundAmount: 0 }).refundAmount)
+      .toBe(0);
+  });
+});
+
+describe("信用卡路徑不得建立 business review", () => {
+  it("technical exception 不寫 cancel_requested，改記 note + 管理員技術告警", () => {
+    const idx = lookupSrc.indexOf("if (selfCancel.isCardOrder && cardException) {");
+    expect(idx).toBeGreaterThan(-1);
+    const block = lookupSrc.slice(idx, idx + 2000);
+    expect(block).toContain("self_cancel_technical_exception");
+    expect(block).toContain("payment_exception");
+    expect(block).not.toContain('event_type: "cancel_requested"');
+    expect(block).not.toContain("等待審核");
+    expect(block).not.toContain("民宿正在審核");
+  });
+
+  it("信用卡不進人工審核分支（canAutoHandle 以 isCardOrder 判定）", () => {
+    expect(lookupSrc).toContain("selfCancel.isCardOrder && !cardException");
+  });
+
+  it("政策 0 元退款不呼叫 TapPay，直接取消", () => {
+    expect(lookupSrc).toContain("if (selfCancel.isCardOrder && autoRefund.refundAmount > 0) {");
+    expect(lookupSrc).toContain("zeroRefundByPolicy");
+  });
+
+  it("退款成功後才作廢分潤（sequencing）", () => {
+    const refundIdx = lookupSrc.indexOf("refundPayment(");
+    const cancelIdx = lookupSrc.indexOf('order_status: "cancelled"', refundIdx);
+    const commissionIdx = lookupSrc.indexOf("group_buy_commissions", refundIdx);
+    expect(cancelIdx).toBeGreaterThan(refundIdx);
+    expect(commissionIdx).toBeGreaterThan(cancelIdx);
   });
 });

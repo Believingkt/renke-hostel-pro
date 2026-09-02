@@ -14,7 +14,12 @@ import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_sh
 import { quoteCancellation, resolveCancellationPolicy, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { paymentMethodKind, paymentMethodLabel, refundChannelLabel } from "../_shared/paymentMethodKind.ts";
 import { loadManualRefundFee, remainingRefundableWithFee } from "../_shared/refundFee.ts";
-import { classifyGroupBuySelfCancel, resolveSelfCancelRefundAmount } from "../_shared/groupBuySelfCancel.ts";
+import {
+  CARD_SELF_CANCEL_EXCEPTION_LABEL,
+  classifyGroupBuySelfCancel,
+  detectCardSelfCancelException,
+  resolveSelfCancelRefundAmount,
+} from "../_shared/groupBuySelfCancel.ts";
 import { getPaymentAdapter, refundStatusAfterRefund } from "../_shared/paymentAdapter.ts";
 
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
@@ -208,8 +213,11 @@ Deno.serve(async (req) => {
 
     // ── 旅客自助取消訂單 ──
     // A. 未收款（ATM 未付款／匯款未匯）→ 直接取消 + 釋放庫存 + 隱藏虛擬帳號，不需審核
-    // B. 信用卡已收款 → 依取消政策級距自動原卡退刷（refund-first），成功後才取消
-    // C. 其餘（ATM／銀行匯款已收款）或政策無法自動判定 → 維持現行人工審核流程
+    // B. 信用卡（一律即時請款；本平台不存在 authorized-only 狀態）
+    //    → 依取消政策級距自動原卡退刷（refund-first）；政策退款 0 元則不呼叫退款 API 直接取消
+    //    → 永遠沒有 business review（不建立 cancel_requested / 待審核）
+    //    → 僅在「資料／設定異常」時走 TECHNICAL EXCEPTION：記錄取消意圖 + 管理員技術告警
+    // C. ATM／銀行匯款「已收款」→ 維持現行人工退款審核流程（不在本輪變更）
     if (action === "request_cancel") {
       if (order.order_status === "cancelled") return json({ error: "此訂單已取消" }, 400);
       if (cancelRequestedEvent) return json({ error: "您已送出取消申請，我們正在處理中" }, 400);
@@ -225,14 +233,59 @@ Deno.serve(async (req) => {
         cancellationDate: taipeiToday(),
         alreadyRefunded: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
       });
+
+      /** 信用卡自助取消：資料／設定異常 → technical exception（不是人工取消審核） */
+      const cardException = selfCancel.isCardOrder
+        ? detectCardSelfCancelException({
+          checkInDate: order.check_in_date,
+          paidAmount: (order as any).paid_amount,
+          policyRequiresManualReview: policyQuote.requiresManualReview,
+          policyRefundAmount: policyQuote.refundAmount,
+        })
+        : null;
+
       const autoRefund = resolveSelfCancelRefundAmount({
         refundable: selfCancel.refundable,
         policyRefundAmount: policyQuote.refundAmount,
-        requiresManualReview: policyQuote.requiresManualReview,
+        requiresManualReview: false,
       });
 
+      // 信用卡（含已全額退款、政策 0 元退款）一律自動處理，不進 business review
       const canAutoHandle = selfCancel.mode === "direct_cancel" ||
-        (selfCancel.mode === "card_auto_refund" && !autoRefund.manualReview);
+        (selfCancel.isCardOrder && !cardException);
+
+      // ── 信用卡 TECHNICAL EXCEPTION：不取消、不假裝完成、不建立取消審核 ──
+      if (selfCancel.isCardOrder && cardException) {
+        await admin.from("group_buy_payment_events").insert({
+          campaign_id: campaign?.id ?? null,
+          order_id: order.id,
+          event_type: "note",
+          actor_label: "system",
+          note: `self_cancel_technical_exception／reason:${cardException}／${
+            CARD_SELF_CANCEL_EXCEPTION_LABEL[cardException]
+          }${reason ? `／旅客原因:${reason}` : ""}`,
+        });
+        try {
+          await admin.from("notifications").insert({
+            accommodation_id: accIdForCancel,
+            order_id: order.id,
+            type: "payment_exception",
+            title: "⚠️ 團購信用卡自助取消：系統無法自動處理",
+            description:
+              `訂單 ${order.order_number} 的旅客已提出取消，但${CARD_SELF_CANCEL_EXCEPTION_LABEL[cardException]}，` +
+              `系統未執行退款也未取消訂單。這是技術／設定異常，請至「金流稽核」修正後完成處理（技術異常，非人工同意取消）。`,
+            is_read: false,
+          });
+        } catch (e) {
+          console.error("[group-buy-order-lookup] technical exception alert failed", e);
+        }
+        return json({
+          success: true,
+          processing: true,
+          mode: "technical_processing",
+          message: "系統正在處理您的取消，完成後將另行通知。",
+        });
+      }
 
       if (canAutoHandle) {
         const nowIso = new Date().toISOString();
@@ -241,11 +294,13 @@ Deno.serve(async (req) => {
         const alreadyRefunded = Math.max(0, Math.round(Number((order as any).refunded_amount) || 0));
         const alreadyRefundFee = Math.max(0, Math.round(Number((order as any).refund_fee_amount) || 0));
         const isAtm = String((order as any).payment_method ?? "") === "atm" || !!(order as any).atm_vacc_no;
+        /** 信用卡且政策計算結果 0 元 → 不呼叫 TapPay，直接取消 */
+        const zeroRefundByPolicy = selfCancel.isCardOrder && paid > 0 && autoRefund.refundAmount <= 0;
 
         // ── B：refund-first，TapPay 失敗即中止，訂單維持未取消 ──
         let refundAmount = 0;
         let refundRecTradeId: string | null = null;
-        if (selfCancel.mode === "card_auto_refund" && autoRefund.refundAmount > 0) {
+        if (selfCancel.isCardOrder && autoRefund.refundAmount > 0) {
           const settle = await getPaymentAdapter(order as any).refundPayment({
             order: { ...(order as any), id: order.id },
             amount: autoRefund.refundAmount,
@@ -273,7 +328,10 @@ Deno.serve(async (req) => {
 
         const totalRefunded = alreadyRefunded + refundAmount;
         const totalSettled = totalRefunded + alreadyRefundFee;
-        const refundStatus = paid <= 0 ? "none" : refundStatusAfterRefund(paid, totalSettled);
+        // 政策 0 元退款＝金流已「依規則處理完畢」，不得標記為退款處理中（none = 不進行退款）
+        const refundStatus = paid <= 0 || zeroRefundByPolicy
+          ? "none"
+          : refundStatusAfterRefund(paid, totalSettled);
         const paymentStatusPatch = totalSettled <= 0
           ? {}
           : { payment_status: totalSettled >= paid ? "refunded" : "partial_refunded" };
@@ -285,6 +343,8 @@ Deno.serve(async (req) => {
             ? `退款處理：已完成原信用卡退刷 NT$${refundAmount.toLocaleString("en-US")}（TapPay${
               refundRecTradeId ? ` ${refundRecTradeId}` : ""
             }）`
+            : zeroRefundByPolicy
+            ? "退款處理：依取消政策，本次退款金額 NT$0（未呼叫退款 API，已收款金額保留為金流事實）"
             : paid > 0
             ? "退款處理：依取消政策不予退款"
             : "退款處理：未收款，不需退款",
@@ -410,6 +470,7 @@ Deno.serve(async (req) => {
               refundStatus,
               reason: reason || null,
               atmNoTransferNotice: isAtm && paid <= 0,
+              zeroRefundByPolicy,
             }),
           );
           await admin.from("group_buy_payment_events").insert({
@@ -471,8 +532,11 @@ Deno.serve(async (req) => {
           refundAmount,
           refundedTotal: totalRefunded,
           refundStatus,
+          zeroRefundByPolicy,
           message: refundAmount > 0
             ? "訂單已取消，退款已送回原付款信用卡（實際入帳依發卡銀行作業時間，約 3～7 個工作天）。"
+            : zeroRefundByPolicy
+            ? "訂單已取消。依取消規則，本次退款金額為 NT$0。"
             : "訂單已取消。",
         });
       }
@@ -850,24 +914,33 @@ Deno.serve(async (req) => {
           isCardOrder: isCard,
         };
       })(),
-      /** 旅客自助取消分流（前台文案用）：direct_cancel / card_auto_refund / manual_review */
+      /**
+       * 旅客自助取消分流（前台文案用）：
+       * direct_cancel / card_auto_refund / technical_processing / manual_review
+       * 信用卡永遠不會回 manual_review（不存在人工取消審核）。
+       */
       selfCancel: (() => {
         const cls = classifyGroupBuySelfCancel(order as any);
-        if (cls.mode === "card_auto_refund") {
+        if (cls.isCardOrder) {
           const q = quoteCancellation({
             order: order as any,
             checkInDate: String(order.check_in_date),
             cancellationDate: taipeiToday(),
             alreadyRefunded: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
           });
+          const exception = detectCardSelfCancelException({
+            checkInDate: order.check_in_date,
+            paidAmount: (order as any).paid_amount,
+            policyRequiresManualReview: q.requiresManualReview,
+            policyRefundAmount: q.refundAmount,
+          });
+          if (exception) return { mode: "technical_processing", estimatedRefund: 0 };
           const r = resolveSelfCancelRefundAmount({
             refundable: cls.refundable,
             policyRefundAmount: q.refundAmount,
-            requiresManualReview: q.requiresManualReview,
+            requiresManualReview: false,
           });
-          return r.manualReview
-            ? { mode: "manual_review", estimatedRefund: 0 }
-            : { mode: "card_auto_refund", estimatedRefund: r.refundAmount };
+          return { mode: "card_auto_refund", estimatedRefund: r.refundAmount };
         }
         return { mode: cls.mode, estimatedRefund: 0 };
       })(),
