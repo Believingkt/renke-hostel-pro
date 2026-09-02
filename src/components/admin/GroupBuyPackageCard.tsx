@@ -263,7 +263,7 @@ export function GroupBuyPackageCard({
               checked={p.show_guest_selector !== false}
               onCheckedChange={(v) => onPatch({ show_guest_selector: v })}
             />
-            <span className="text-sm">團購頁顯示「入住人數」選擇器（關閉＝以方案固定人數成行）</span>
+            <span className="text-sm">團購頁顯示「入住人數」選擇器（關閉＝團購頁不顯示入住人數）</span>
           </div>
           <div className="flex items-center gap-2 md:col-span-2">
             <Switch

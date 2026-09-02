@@ -68,12 +68,14 @@ export function GroupBuySummaryCard({
             {nights} 晚 × {roomQuantity} 棟
           </span>
         </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-muted-foreground">
-            <Users className="mr-1 inline h-4 w-4" />人數
-          </span>
-          <span className="text-right">{guestSummary}</span>
-        </div>
+        {!!guestSummary && (
+          <div className="flex justify-between gap-4">
+            <span className="text-muted-foreground">
+              <Users className="mr-1 inline h-4 w-4" />人數
+            </span>
+            <span className="text-right">{guestSummary}</span>
+          </div>
+        )}
       </div>
 
       <Separator className="my-3 bg-border/70" />

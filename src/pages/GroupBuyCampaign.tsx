@@ -1448,7 +1448,7 @@ export default function GroupBuyCampaign() {
                 )}
 
                 <div className="mt-4">
-                  {showGuestSelector ? (
+                  {showGuestSelector && (
                     <GroupBuyGuestPicker
                       value={guests}
                       onChange={setGuests}
@@ -1456,18 +1456,11 @@ export default function GroupBuyCampaign() {
                       visibility={childVisibility}
                       blockReason={guestError}
                     />
-                  ) : (
-                    <div className="rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3">
-                      <p className="text-sm font-medium text-foreground">入住人數</p>
-                      <p className="mt-0.5 text-base font-semibold text-foreground">
-                        {includedGuestCount ? `${includedGuestCount} 人（方案固定人數）` : "依方案設定"}
-                      </p>
-                    </div>
                   )}
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                  <p className={`${showGuestSelector ? "mt-1.5" : ""} text-xs leading-relaxed text-muted-foreground`}>
                     每筆訂單固定下訂 1 棟包棟（如需多棟請另外再下一單）。
                   </p>
-                  {showChildTiers && childEval.extraFeePerNight > 0 && (
+                  {showGuestSelector && showChildTiers && childEval.extraFeePerNight > 0 && (
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
                       兒童加價每晚 NT$
                       {childEval.extraFeePerNight.toLocaleString("en-US")}。
