@@ -131,10 +131,10 @@ export async function validateAndPriceGroupBuyBooking(
   const checkOutDate = String(input.checkOutDate ?? "").trim();
   const roomQuantity = 1; // 團購訂單一次固定 1 間
   const adultCount = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
-  const childCount = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
-  const toddlerCount = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
-  const infantCount = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
-  const guestCount = adultCount + childCount + toddlerCount;
+  const childCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
+  const toddlerCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
+  const infantCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
+
   const guestName = String(input.guestName ?? "").trim();
   const guestPhone = String(input.guestPhone ?? "").trim();
   const guestEmail = String(input.guestEmail ?? "").trim();
