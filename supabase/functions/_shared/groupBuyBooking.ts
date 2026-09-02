@@ -20,6 +20,8 @@ import {
   evaluateChildSelection,
   resolveChildRules,
 } from "./groupBuyChildRules.ts";
+import { parseChildTierVisibility } from "./groupBuyChildVisibility.ts";
+
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
 import {
   GROUP_BUY_DAY_TYPE_LABEL,
