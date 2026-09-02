@@ -850,6 +850,27 @@ Deno.serve(async (req) => {
           isCardOrder: isCard,
         };
       })(),
+      /** 旅客自助取消分流（前台文案用）：direct_cancel / card_auto_refund / manual_review */
+      selfCancel: (() => {
+        const cls = classifyGroupBuySelfCancel(order as any);
+        if (cls.mode === "card_auto_refund") {
+          const q = quoteCancellation({
+            order: order as any,
+            checkInDate: String(order.check_in_date),
+            cancellationDate: taipeiToday(),
+            alreadyRefunded: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
+          });
+          const r = resolveSelfCancelRefundAmount({
+            refundable: cls.refundable,
+            policyRefundAmount: q.refundAmount,
+            requiresManualReview: q.requiresManualReview,
+          });
+          return r.manualReview
+            ? { mode: "manual_review", estimatedRefund: 0 }
+            : { mode: "card_auto_refund", estimatedRefund: r.refundAmount };
+        }
+        return { mode: cls.mode, estimatedRefund: 0 };
+      })(),
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);
