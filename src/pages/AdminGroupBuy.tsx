@@ -595,6 +595,11 @@ export default function AdminGroupBuy() {
   };
 
   const savePackage = async (row: PackageRow) => {
+    // 正式 contract：顯示「入住房型」時，固定文字不得為空（trim 後）
+    if (row.show_room_type_display === true && !String(row.room_type_display_text ?? "").trim()) {
+      toast({ title: "請填寫入住房型內容", description: "已開啟「顯示入住房型」，固定文字不可空白。", variant: "destructive" });
+      return;
+    }
     // 主圖與多圖同步：image_url 保留為 image_urls[0]，避免其他未更新的讀取點壞掉
     const urls = row.image_urls ?? [];
     const { id, ...rest } = { ...row, image_url: urls.length > 0 ? urls[0] : row.image_url };
