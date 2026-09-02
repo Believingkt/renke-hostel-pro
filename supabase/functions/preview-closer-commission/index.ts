@@ -1,7 +1,7 @@
 // 成交組分潤「本月預估」即時試算（只計算、不寫入任何表）
 //
 // 與 create-commission-snapshots 使用完全相同的公式：
-//   base = order_meta.team_commission_price（人工指定時）
+//   base = order_meta.team_commission_price（team_commission_price_is_manual = true 時）
 //        ?? commissionBaseFromOrder(final_price − 加購)
 //   排除：cancelled / order_meta.is_excluded / 非台幣 / isExempt(owner_direct、exempt_order_sources)
 //   費率：accommodation_commission_settings 取 effective_from <= order_date 的最新一筆
@@ -159,7 +159,7 @@ serve(async (req) => {
       const chunk = orderIds.slice(i, i + 500);
       const { data: metas, error: metaErr } = await supabase
         .from("order_meta")
-        .select("order_id, closer_id, video_creator_id, team_commission_price, is_excluded")
+        .select("order_id, closer_id, video_creator_id, team_commission_price, team_commission_price_is_manual, is_excluded")
         .in("order_id", chunk);
       if (metaErr) throw metaErr;
       for (const m of metas ?? []) metaMap.set(m.order_id as string, m);
@@ -210,11 +210,17 @@ serve(async (req) => {
       // 合作期間 gate（對齊 create-commission-snapshots）
       if (!inPartnership(o.accommodation_id as string, o.order_date as string)) continue;
 
+      // 人工覆蓋判定一律以 team_commission_price_is_manual 旗標為準；
+      // 舊資料（旗標為 null）沿用「有值且 != final_price」的相容判定。
       const tcp = meta.team_commission_price;
       const finalPrice = Number(o.final_price ?? 0);
-      const base = tcp == null || Number(tcp) === finalPrice
-        ? commissionBaseFromOrder(o, exclRule(o.accommodation_id as string, o.order_date as string))
-        : Number(tcp);
+      const manualFlag = meta.team_commission_price_is_manual;
+      const isManualOverride =
+        tcp != null &&
+        (manualFlag === true || (manualFlag == null && Number(tcp) !== finalPrice));
+      const base = isManualOverride
+        ? Number(tcp)
+        : commissionBaseFromOrder(o, exclRule(o.accommodation_id as string, o.order_date as string));
 
       const closerRate = meta.closer_id ? rateFor(o.accommodation_id, o.order_date, "closer_rate") : 0;
       // 影音組分潤已停止使用：試算不再計入影音金額
