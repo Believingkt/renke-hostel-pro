@@ -240,6 +240,10 @@ export default function GroupBuyCampaign() {
   /** 方案對應的兒童規則覆寫與房型容量（依既有民宿設定，不建立第二套資料） */
   const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
   const [roomCaps, setRoomCaps] = useState<Array<{ id: string; capacity: number }>>([]);
+  /** 旅客自選房型（僅方案開啟房型選擇器時使用；null＝維持系統自動指派） */
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
+  const [roomTypeNames, setRoomTypeNames] = useState<Record<string, string>>({});
+
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
