@@ -368,21 +368,14 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           .from("user_roles")
           .select("role, accommodation_id")
           .eq("user_id", uid);
-        const rows = (roleRows ?? []) as Array<{ role: string; accommodation_id: string | null }>;
-        const isSuper = rows.some((r) => r.role === "super_admin");
-        const teamRoles = rows.filter((r) => r.accommodation_id === null).map((r) => r.role);
-        const hasTeamRole = (role: string) => isSuper || teamRoles.includes(role);
-        setIsFinancialAdmin(
-          isSuper || hasTeamRole("admin") || hasTeamRole("finance"),
+        const flags = resolveTeamRoleFlags(
+          (roleRows ?? []) as Array<{ role: string; accommodation_id: string | null }>,
         );
-        setIsCloserRole(hasTeamRole("closer") || hasTeamRole("closer_manager"));
-        setIsSuperAdmin(isSuper);
-        setCanForceCommission(
-          isSuper ||
-            hasTeamRole("admin") ||
-            hasTeamRole("finance") ||
-            hasTeamRole("closer_manager"),
-        );
+        setIsFinancialAdmin(flags.isFinancialAdmin);
+        setIsCloserRole(flags.isCloserRole);
+        setIsSuperAdmin(flags.isSuperAdmin);
+        setCanForceCommission(flags.canForceCommission);
+
       } else {
 
         setIsFinancialAdmin(false);
