@@ -470,6 +470,7 @@ Deno.serve(async (req) => {
               refundStatus,
               reason: reason || null,
               atmNoTransferNotice: isAtm && paid <= 0,
+              zeroRefundByPolicy,
             }),
           );
           await admin.from("group_buy_payment_events").insert({
