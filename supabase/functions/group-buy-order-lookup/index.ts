@@ -202,12 +202,278 @@ Deno.serve(async (req) => {
 
     const cancelRequestedEvent = (events ?? []).find((e: any) => e.event_type === "cancel_requested") ?? null;
 
-    // ── 旅客提交取消訂單（退款）申請 ──
+    // ── 旅客自助取消訂單 ──
+    // A. 未收款（ATM 未付款／匯款未匯）→ 直接取消 + 釋放庫存 + 隱藏虛擬帳號，不需審核
+    // B. 信用卡已收款 → 依取消政策級距自動原卡退刷（refund-first），成功後才取消
+    // C. 其餘（ATM／銀行匯款已收款）或政策無法自動判定 → 維持現行人工審核流程
     if (action === "request_cancel") {
       if (order.order_status === "cancelled") return json({ error: "此訂單已取消" }, 400);
       if (cancelRequestedEvent) return json({ error: "您已送出取消申請，我們正在處理中" }, 400);
 
       const reason = String(body.reason ?? "").trim().slice(0, 300);
+      const selfCancel = classifyGroupBuySelfCancel(order as any);
+      const accIdForCancel = (order as any).accommodation_id ?? campaign?.accommodation_id ?? null;
+
+      // 政策級距（一律 server 計算，前端不得傳入金額）
+      const policyQuote = quoteCancellation({
+        order: order as any,
+        checkInDate: String(order.check_in_date),
+        cancellationDate: taipeiToday(),
+        alreadyRefunded: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
+      });
+      const autoRefund = resolveSelfCancelRefundAmount({
+        refundable: selfCancel.refundable,
+        policyRefundAmount: policyQuote.refundAmount,
+        requiresManualReview: policyQuote.requiresManualReview,
+      });
+
+      const canAutoHandle = selfCancel.mode === "direct_cancel" ||
+        (selfCancel.mode === "card_auto_refund" && !autoRefund.manualReview);
+
+      if (canAutoHandle) {
+        const nowIso = new Date().toISOString();
+        const cancelledAtText = formatTaipei(new Date(nowIso));
+        const paid = selfCancel.paid;
+        const alreadyRefunded = Math.max(0, Math.round(Number((order as any).refunded_amount) || 0));
+        const alreadyRefundFee = Math.max(0, Math.round(Number((order as any).refund_fee_amount) || 0));
+        const isAtm = String((order as any).payment_method ?? "") === "atm" || !!(order as any).atm_vacc_no;
+
+        // ── B：refund-first，TapPay 失敗即中止，訂單維持未取消 ──
+        let refundAmount = 0;
+        let refundRecTradeId: string | null = null;
+        if (selfCancel.mode === "card_auto_refund" && autoRefund.refundAmount > 0) {
+          const settle = await getPaymentAdapter(order as any).refundPayment({
+            order: { ...(order as any), id: order.id },
+            amount: autoRefund.refundAmount,
+            note: reason || "旅客自助取消",
+            supabase: admin,
+            triggerSource: "group_buy_self_cancel",
+          });
+          if (!settle.ok) {
+            await admin.from("group_buy_payment_events").insert({
+              campaign_id: campaign?.id ?? null,
+              order_id: order.id,
+              event_type: "note",
+              actor_label: "system",
+              note: `self_cancel_refund_failed／${settle.error ?? "unknown"}／${settle.message ?? ""}`,
+            });
+            return json({
+              error: settle.needsReconciliation
+                ? "退款結果尚待金流確認，請稍後再試或聯繫客服，我們會盡快為您處理。"
+                : (settle.message ?? "目前無法完成自動退款，請聯繫客服協助處理。"),
+            }, 400);
+          }
+          refundAmount = autoRefund.refundAmount;
+          refundRecTradeId = settle.recTradeId ?? null;
+        }
+
+        const totalRefunded = alreadyRefunded + refundAmount;
+        const totalSettled = totalRefunded + alreadyRefundFee;
+        const refundStatus = paid <= 0 ? "none" : refundStatusAfterRefund(paid, totalSettled);
+        const paymentStatusPatch = totalSettled <= 0
+          ? {}
+          : { payment_status: totalSettled >= paid ? "refunded" : "partial_refunded" };
+
+        const noteLines = [
+          order.notes ?? "",
+          `【取消】${cancelledAtText} 由旅客自助取消（團購訂單查詢頁）`,
+          refundAmount > 0
+            ? `退款處理：已完成原信用卡退刷 NT$${refundAmount.toLocaleString("en-US")}（TapPay${
+              refundRecTradeId ? ` ${refundRecTradeId}` : ""
+            }）`
+            : paid > 0
+            ? "退款處理：依取消政策不予退款"
+            : "退款處理：未收款，不需退款",
+          `取消政策：${policyQuote.policy}（${policyQuote.policyReason}）／距入住 ${policyQuote.daysBefore} 天／比例 ${policyQuote.refundPercent}%／已付 NT$${
+            paid.toLocaleString("en-US")
+          }／本次退款 NT$${refundAmount.toLocaleString("en-US")}`,
+          reason ? `原因：${reason}` : null,
+        ].filter(Boolean).join("\n");
+
+        // 併發保護：付款狀態若在此期間變動（例如遲到入帳）則中止，改走人工
+        const { data: updated, error: uErr } = await admin
+          .from("orders")
+          .update({
+            order_status: "cancelled",
+            cancelled_at: (order as any).cancelled_at ?? nowIso,
+            refunded_amount: totalRefunded,
+            refunded_at: refundAmount > 0 ? nowIso : (order as any).refunded_at,
+            refund_status: refundStatus,
+            ...paymentStatusPatch,
+            notes: noteLines,
+            updated_at: nowIso,
+          })
+          .eq("id", order.id)
+          .eq("payment_status", order.payment_status)
+          .neq("order_status", "cancelled")
+          .select("id");
+        if (uErr) throw uErr;
+        if (!updated || updated.length === 0) {
+          return json({ error: "訂單狀態剛剛有更新，請重新查詢後再試一次。" }, 409);
+        }
+
+        // 分潤作廢
+        const { data: commissionRow } = await admin
+          .from("group_buy_commissions")
+          .select("id")
+          .eq("order_id", order.id)
+          .maybeSingle();
+        if (commissionRow?.id) {
+          await admin.from("group_buy_commissions").update({ status: "void" }).eq("id", commissionRow.id);
+        }
+
+        await admin.from("group_buy_payment_events").insert([
+          {
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: "cancelled",
+            actor_label: order.guest_name,
+            note: [
+              reason ? `旅客自助取消訂單：${reason}` : "旅客自助取消訂單",
+              `退款狀態 ${refundStatus}`,
+            ].join("／"),
+          },
+          ...(refundAmount > 0
+            ? [{
+              campaign_id: campaign?.id ?? null,
+              order_id: order.id,
+              event_type: "refunded",
+              amount: refundAmount,
+              actor_label: "system",
+              note: [
+                "退款方式：原信用卡退刷（TapPay）",
+                refundRecTradeId ? `交易編號 ${refundRecTradeId}` : null,
+                `本次退款 NT$${refundAmount.toLocaleString("en-US")}`,
+                `累計實退 NT$${totalRefunded.toLocaleString("en-US")}`,
+                `已收 NT$${paid.toLocaleString("en-US")}`,
+              ].filter(Boolean).join("／"),
+            }]
+            : []),
+        ]);
+
+        await admin.from("audit_logs").insert({
+          accommodation_id: accIdForCancel,
+          user_id: null,
+          user_email: order.guest_email ?? null,
+          action_type: "cancel_order",
+          action_category: "group_buy",
+          entity_type: "order",
+          entity_id: order.id,
+          entity_name: order.order_number,
+          details: {
+            source: "group_buy_self_cancel",
+            mode: selfCancel.mode,
+            paid_amount: paid,
+            refund_amount: refundAmount,
+            total_refunded_amount: totalRefunded,
+            refund_status: refundStatus,
+            rec_trade_id: refundRecTradeId,
+            policy: policyQuote.policy,
+            policy_reason: policyQuote.policyReason,
+            policy_refund_percent: policyQuote.refundPercent,
+            operator: "guest",
+            timestamp: nowIso,
+            reason: reason || null,
+          },
+        });
+
+        // 通知（寄信失敗不影響取消結果）
+        try {
+          const { data: accRow } = accIdForCancel
+            ? await admin.from("accommodation_info").select("name").eq("id", accIdForCancel).maybeSingle()
+            : { data: null as any };
+          const baseEmailOrder = buildEmailOrder({
+            order,
+            campaign: campaign ?? { title: "團購活動", deposit_percentage: depositPct, payment_deadline_hours: 72 },
+            accommodationName: (accRow as any)?.name ?? null,
+            packageName: null,
+            frontendOrigin: typeof body.origin === "string" ? body.origin : null,
+          });
+          const emailOrder = {
+            ...baseEmailOrder,
+            isCardOrder: selfCancel.isCardOrder,
+            paymentMethodText: paymentMethodLabel(order as any),
+            refundChannelText: refundChannelLabel(order as any, selfCancel.isCardOrder),
+          } as any;
+
+          const guestMail = await sendGroupBuyEmail(
+            order.guest_email,
+            renderOrderCancelled(emailOrder, {
+              cancelledAtText,
+              paidAmount: paid,
+              refundedTotal: totalRefunded,
+              refundFeeTotal: alreadyRefundFee,
+              refundStatus,
+              reason: reason || null,
+              atmNoTransferNotice: isAtm && paid <= 0,
+            }),
+          );
+          await admin.from("group_buy_payment_events").insert({
+            campaign_id: campaign?.id ?? null,
+            order_id: order.id,
+            event_type: guestMail.ok ? "email_sent" : "email_failed",
+            actor_label: "system",
+            note: `recipient_type:guest／template_type:guest_self_cancelled${
+              guestMail.ok ? "／recipient_count:1" : `／reason:${guestMail.reason ?? "unknown"}`
+            }`,
+          });
+
+          const { emails: venueEmails, source: venueSource } = await resolveOrderNotifyEmails(admin, {
+            accommodationId: accIdForCancel,
+            campaignId: campaign?.id ?? null,
+          });
+          if (venueEmails.length > 0) {
+            const venueMail = await sendGroupBuyEmail(
+              venueEmails,
+              renderVenueOrderSelfCancelled(
+                {
+                  ...emailOrder,
+                  guestPhone: order.guest_phone ?? null,
+                  guestEmail: order.guest_email ?? null,
+                  adminUrl: buildAdminGroupBuyUrl({
+                    accommodationId: accIdForCancel,
+                    campaignId: campaign?.id ?? null,
+                    orderNumber: order.order_number,
+                  }),
+                },
+                {
+                  cancelledAtText,
+                  reason: reason || null,
+                  paidAmount: paid,
+                  refundedAmount: refundAmount,
+                  refundStatus,
+                  refundChannelText: selfCancel.isCardOrder ? "原信用卡退刷（TapPay）" : "未收款，不需退款",
+                },
+              ),
+            );
+            await admin.from("group_buy_payment_events").insert({
+              campaign_id: campaign?.id ?? null,
+              order_id: order.id,
+              event_type: venueMail.ok ? "email_sent" : "email_failed",
+              actor_label: "system",
+              note: `recipient_type:venue／template_type:venue_self_cancelled／recipient_count:${venueEmails.length}／source:${venueSource}${
+                venueMail.ok ? "" : `／reason:${venueMail.reason ?? "unknown"}`
+              }`,
+            });
+          }
+        } catch (notifyErr) {
+          console.error("[group-buy-order-lookup] self-cancel notify threw", notifyErr);
+        }
+
+        return json({
+          success: true,
+          cancelled: true,
+          mode: selfCancel.mode,
+          refundAmount,
+          refundedTotal: totalRefunded,
+          refundStatus,
+          message: refundAmount > 0
+            ? "訂單已取消，退款已送回原付款信用卡（實際入帳依發卡銀行作業時間，約 3～7 個工作天）。"
+            : "訂單已取消。",
+        });
+      }
+
+      // ── C：維持人工審核流程 ──
       await admin.from("group_buy_payment_events").insert({
         campaign_id: campaign?.id ?? null,
         order_id: order.id,
