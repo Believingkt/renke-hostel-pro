@@ -68,6 +68,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import { GroupBuyCampaignDangerZone } from "@/components/admin/GroupBuyCampaignDangerZone";
 import GroupBuyPackageCard from "@/components/admin/GroupBuyPackageCard";
+import GroupBuyChildRulesCard from "@/components/admin/GroupBuyChildRulesCard";
 import GroupBuyAnalyticsTab from "@/components/admin/GroupBuyAnalyticsTab";
 import GroupBuyCommissionStatusPanel from "@/components/admin/GroupBuyCommissionStatusPanel";
 import GroupBuyCommissionRateDialog, { type CommissionRateApplyMode } from "@/components/admin/GroupBuyCommissionRateDialog";
