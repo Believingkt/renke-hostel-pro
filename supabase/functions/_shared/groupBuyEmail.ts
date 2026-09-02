@@ -278,6 +278,38 @@ export function renderExpiredCancelled(o: GroupBuyEmailOrder): { subject: string
   };
 }
 
+/**
+ * ATM 新制：本地付款期限逾期，訂單已自動取消的旅客通知信。
+ * 禁止出現：虛擬帳號、可繼續付款 CTA、「請盡快付款」，
+ * 也不得宣稱 TapPay provider 虛擬帳號已技術失效。
+ */
+export function renderAtmDeadlineExpired(
+  o: GroupBuyEmailOrder,
+  deadlineText: string,
+): { subject: string; html: string } {
+  return {
+    subject: `【付款期限已過】您的團購訂單已自動取消（${o.orderNumber}）`,
+    html: layout(
+      "付款期限已過，訂單已自動取消",
+      `訂單 ${o.orderNumber} 因未於付款期限內完成付款已自動取消`,
+      `<h1>付款期限已過，訂單已自動取消</h1>
+       <p>${esc(o.guestName)} 您好，您的訂單因未於指定付款期限內完成訂金繳付，系統已自動取消此筆訂單。</p>
+       <table class="info">
+         <tr><td class="k">訂單編號</td><td>${esc(o.orderNumber)}</td></tr>
+         <tr><td class="k">住宿名稱</td><td>${esc(o.accommodationName ?? o.campaignTitle)}</td></tr>
+         <tr><td class="k">入住日期</td><td>${esc(o.checkInDate)}</td></tr>
+         <tr><td class="k">退房日期</td><td>${esc(o.checkOutDate)}</td></tr>
+         <tr><td class="k">應付訂金</td><td>NT$ ${Number(o.depositAmount || 0).toLocaleString()}</td></tr>
+         <tr><td class="k">付款期限</td><td>${esc(deadlineText)}</td></tr>
+         <tr><td class="k">訂單狀態</td><td>已取消</td></tr>
+       </table>
+       <div class="box"><h2>⚠️ 付款期限已過，請勿再轉帳</h2>
+       <p style="margin:0">付款期限已過，請勿再轉帳至原 ATM 虛擬帳號。</p></div>
+       <p>如仍有入住需求，請重新進行訂購，以取得最新房況及付款資訊。謝謝。</p>`,
+    ),
+  };
+}
+
 /* ─────────────────────────────────────────────────────────────
  * 取消 / 退款通知（民宿端人工操作後由 server 端寄出）
  * 金額一律由呼叫端以 orders 最新資料帶入，此處只負責呈現。
