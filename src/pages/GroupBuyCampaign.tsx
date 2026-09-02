@@ -53,7 +53,7 @@ import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/Group
 import { taipeiToday } from "@/lib/taipeiToday";
 import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
 
-import { evaluateChildSelection } from "@/lib/child-rules";
+import { evaluateGroupBuyChildSelection } from "@/lib/groupBuyIncludedCapacity";
 import {
   DEFAULT_GUEST_COUNTS,
   billableGuestCount,
@@ -127,9 +127,14 @@ interface CampaignPackage {
   max_quantity: number | null;
   /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
   max_guests: number | null;
-  /** 團購專用年齡層顯示設定；null＝三種全顯示（既有活動相容） */
-
-
+  /** 團購專用兒童分齡規則（PER PACKAGE，正式 SoT）；null＝沿用活動層／民宿規則 */
+  child_age_rules: unknown | null;
+  /** 是否顯示「入住人數」選擇器；false＝以方案固定人數成行 */
+  show_guest_selector: boolean | null;
+  /** 是否顯示「入住房型」選擇器；false＝維持系統自動指派 */
+  show_room_type_selector: boolean | null;
+  /** 方案售價已包含的入住人數；null＝沿用 max_guests */
+  included_guest_count: number | null;
   room_type_id: string | null;
   room_type_ids: string[] | null;
   package_id: string | null;
@@ -395,18 +400,29 @@ export default function GroupBuyCampaign() {
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
   /**
-   * 團購兒童分齡規則：以活動層（campaign）設定為唯一來源，所有方案共用。
-   * campaign.child_age_rules 尚未設定時，fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+   * 團購兒童分齡規則：正式 SoT = 方案層（group_buy_campaign_packages.child_age_rules）。
+   * 方案尚未設定時 fallback 活動層（過渡期），再 fallback 民宿規則 + 方案覆寫。
    */
   const childRules = useMemo(
     () =>
-      resolveGroupBuyChildRules(
+      resolveGroupBuyPackageChildRules(
+        (selectedPkg as any)?.child_age_rules,
         (campaign as any)?.child_age_rules,
         (accInfo as any)?.child_age_rules,
         pkgChildOverride,
       ),
-    [campaign, accInfo, pkgChildOverride],
+    [selectedPkg, campaign, accInfo, pkgChildOverride],
   );
+  /** 方案顯示設定（後端會以同一份方案設定再驗一次） */
+  const showGuestSelector = (selectedPkg as any)?.show_guest_selector !== false;
+  const showRoomTypeSelector = (selectedPkg as any)?.show_room_type_selector === true;
+  /** 方案售價已包含人數；null＝沿用 max_guests（未設定則無 included capacity 折抵） */
+  const includedGuestCount = useMemo(() => {
+    const inc = Number((selectedPkg as any)?.included_guest_count ?? 0);
+    if (inc > 0) return inc;
+    const mx = Number((selectedPkg as any)?.max_guests ?? 0);
+    return mx > 0 ? mx : null;
+  }, [selectedPkg]);
   const childVisibility = childRules.tier_visibility;
   const showChildTiers = anyGroupBuyTierVisible(childRules);
 
@@ -416,11 +432,18 @@ export default function GroupBuyCampaign() {
     [guests, childVisibility],
   );
   const childEval = useMemo(
-    () => evaluateChildSelection(childRules, toChildSelection(effectiveGuests), Math.max(1, nights), effectiveGuests.adults),
-    [childRules, effectiveGuests, nights],
+    () =>
+      evaluateGroupBuyChildSelection(
+        childRules,
+        toChildSelection(effectiveGuests),
+        Math.max(1, nights),
+        effectiveGuests.adults,
+        includedGuestCount,
+      ),
+    [childRules, effectiveGuests, nights, includedGuestCount],
   );
   /** 房型容量檢查：成人＋計入容量的兒童（與後端同一套規則） */
-  const capacityHeadcount = effectiveGuests.adults + childEval.capacityHeadcount;
+  const capacityHeadcount = childEval.capacityHeadcount;
 
   /** 容量足夠的候選房型（capacity <= 0 視為未設限）；順序與後端分配順序一致 */
   const fittingRoomTypeIds = useMemo(
@@ -706,6 +729,7 @@ export default function GroupBuyCampaign() {
           childCount: effectiveGuests.children,
           toddlerCount: effectiveGuests.toddlers,
           infantCount: effectiveGuests.infants,
+          roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
           guestName,
           guestPhone,
           guestEmail,
@@ -1822,6 +1846,7 @@ export default function GroupBuyCampaign() {
             childCount: effectiveGuests.children,
             toddlerCount: effectiveGuests.toddlers,
             infantCount: effectiveGuests.infants,
+            roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
             guestName,
             guestPhone,
             guestEmail,
