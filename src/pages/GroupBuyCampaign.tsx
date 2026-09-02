@@ -551,7 +551,7 @@ export default function GroupBuyCampaign() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setSelectedRoomTypeId(null);
+      
       if (!selectedPkg) {
         setPkgChildOverride(null);
         setRoomCaps([]);
