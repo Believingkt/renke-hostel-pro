@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
           email: order.guest_email || "noreply@lakeze.com",
           phoneNumber: order.guest_phone || "",
         },
-        expireInDays: 3,
+        expireInDays,
       }),
     });
     const result = await resp.json().catch(() => ({} as any));
@@ -286,7 +286,7 @@ Deno.serve(async (req) => {
         event_type: "atm_created",
         amount: dueAmount,
         actor_label: "system",
-        note: `provider:tappay／payment_type:atm／已開立虛擬帳號 ${result.bankCode ?? ""}-${result.vaccNo}／到期 ${result.expireAt}`,
+        note: `provider:tappay／payment_type:atm／已開立虛擬帳號 ${result.bankCode ?? ""}-${result.vaccNo}／provider 到期 ${result.expireAt}／付款期限 ${localDeadlineIso}`,
       });
     }
 
@@ -296,6 +296,8 @@ Deno.serve(async (req) => {
       vaccNo: result.vaccNo,
       bankCode: result.bankCode ?? null,
       expireAt: result.expireAt,
+      // 前台顯示一律以本地商業付款期限為準（provider 期限僅供金流稽核）
+      localDeadline: localDeadlineIso,
       amount: dueAmount,
     });
   } catch (e) {
