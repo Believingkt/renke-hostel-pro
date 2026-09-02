@@ -3136,6 +3136,7 @@ const BookingFlow = () => {
               customAddonDetails: buildCustomAddonLines(),
               tripId: tripCheckoutTripId,
               childSelection,
+              adultsCount: contextGuests?.adults || 2,
               childExtraTotal: childEval.extraFeeTotal,
               guestEmail: guestInfo.email || null,
             },

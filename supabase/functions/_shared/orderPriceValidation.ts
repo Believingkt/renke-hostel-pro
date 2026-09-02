@@ -18,6 +18,7 @@ export interface PriceValidationInput {
   petPlanPrice?: number;
   customAddonDetails?: unknown;
   childSelection?: unknown;
+  adultsCount?: number;
   childExtraTotal?: number;
   tripId?: string | null;
   guestEmail?: string | null;
@@ -58,6 +59,7 @@ export async function validateOrderPrices(
         petPlanPrice: input.petPlanPrice || 0,
         customAddonDetails: input.customAddonDetails ?? null,
         childSelection: input.childSelection ?? null,
+        adultsCount: input.adultsCount ?? 0,
         childExtraTotal: input.childExtraTotal ?? 0,
         tripId: input.tripId ?? null,
         guestEmail: input.guestEmail ?? null,

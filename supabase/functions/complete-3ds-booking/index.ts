@@ -239,6 +239,7 @@ Deno.serve(async (req) => {
         petPlanPrice: body.petPlanPrice || 0,
         customAddonDetails: (body as any).customAddonDetails ?? null,
         childSelection: (body as any).childSelection ?? null,
+        adultsCount: Number((body as any).adultsCount ?? (body as any).adults ?? 0) || 0,
         childExtraTotal: (body as any).childExtraTotal ?? 0,
       };
 
