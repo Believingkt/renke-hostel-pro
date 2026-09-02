@@ -132,7 +132,7 @@ export async function validateAndPriceGroupBuyBooking(
   const checkInDate = String(input.checkInDate ?? "").trim();
   const checkOutDate = String(input.checkOutDate ?? "").trim();
   const roomQuantity = 1; // 團購訂單一次固定 1 間
-  const adultCount = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
+  const adultCountRaw = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
   const childCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
   const toddlerCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
   const infantCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
@@ -194,24 +194,43 @@ export async function validateAndPriceGroupBuyBooking(
   if (pErr) throw pErr;
   if (!pkg || !pkg.is_active) return fail("此方案已停售");
 
-  // 團購專用：活動層（campaign-level）兒童分齡規則 —— 所有方案共用同一套。
-  // campaign.child_age_rules 為 NULL 時 fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+  // 團購專用兒童分齡規則：正式 SoT = PER PACKAGE（group_buy_campaign_packages.child_age_rules）。
+  // package 為 NULL 時過渡期 fallback campaign（DEPRECATED），再 fallback 民宿規則 + 方案覆寫。
   const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
     admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
     pkg.package_id
       ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
       : Promise.resolve({ data: null } as any),
   ]);
-  const childRules = resolveGroupBuyChildRules(
+  const childRules = resolveGroupBuyPackageChildRules(
+    (pkg as any).child_age_rules,
     (campaign as any).child_age_rules,
     (accInfoRow as any)?.child_age_rules,
     (accPkgRow as any)?.child_age_rules_override ?? null,
   );
   const childVisibility = childRules.tier_visibility;
-  const childCount = childVisibility.child ? childCountRaw : 0;
-  const toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
-  const infantCount = childVisibility.infant ? infantCountRaw : 0;
+
+  // Server 端一律重讀方案 selector 設定，不信任 client payload
+  const showGuestSelector = (pkg as any).show_guest_selector !== false;
+  const showRoomTypeSelector = (pkg as any).show_room_type_selector === true;
+  const includedGuestCount = packageIncludedGuestCount(pkg as any);
+
+  let adultCount = adultCountRaw;
+  let childCount = childVisibility.child ? childCountRaw : 0;
+  let toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
+  let infantCount = childVisibility.infant ? infantCountRaw : 0;
+  if (!showGuestSelector) {
+    // 人數選擇器關閉：使用方案正式固定人數（included → max_guests），不接受任意 client 人數
+    if (includedGuestCount == null) {
+      return fail("此方案尚未設定固定入住人數，請聯繫客服");
+    }
+    adultCount = includedGuestCount;
+    childCount = 0;
+    toddlerCount = 0;
+    infantCount = 0;
+  }
   const guestCount = adultCount + childCount + toddlerCount;
+
 
 
   if (pkg.max_quantity && roomQuantity > pkg.max_quantity) {
