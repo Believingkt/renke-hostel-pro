@@ -587,12 +587,18 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
    * - closer / closer_manager：僅限「自己負責」的訂單（order_meta.closer_id = 自己）
    * - hotel_admin：無明確既有 contract → DENY
    */
-  const canEditCommissionPrice = useMemo(() => {
-    if (isFinancialAdmin) return true;
-    if (!isCloserRole || !currentUserId) return false;
-    const ownerOk = existingCloserId === null || existingCloserId === currentUserId;
-    return ownerOk && closerId === currentUserId;
-  }, [isFinancialAdmin, isCloserRole, currentUserId, existingCloserId, closerId]);
+  const canEditCommissionPrice = useMemo(
+    () =>
+      canEditCommissionBase({
+        isFinancialAdmin,
+        isCloserRole,
+        currentUserId,
+        existingCloserId,
+        nextCloserId: closerId !== NONE ? closerId : null,
+      }),
+    [isFinancialAdmin, isCloserRole, currentUserId, existingCloserId, closerId],
+  );
+
 
   /** 目前可辨識的計獎基準（僅供顯示，不等於正式獎金） */
   const commissionBaseForDisplay = useMemo(() => {
