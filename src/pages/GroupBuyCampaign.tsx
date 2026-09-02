@@ -106,6 +106,8 @@ interface Campaign {
   enable_bank_transfer?: boolean | null;
   enable_atm?: boolean | null;
   enable_credit_card?: boolean | null;
+  /** 團購活動層兒童分齡規則（所有方案共用）；NULL＝沿用既有行為 */
+  child_age_rules?: unknown;
 }
 
 interface CampaignPackage {
@@ -126,7 +128,6 @@ interface CampaignPackage {
   /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
   max_guests: number | null;
   /** 團購專用年齡層顯示設定；null＝三種全顯示（既有活動相容） */
-  child_tier_visibility?: unknown;
 
 
   room_type_id: string | null;
