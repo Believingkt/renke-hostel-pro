@@ -50,6 +50,8 @@ import { extractAddonTotal } from "@/lib/ownerSettlement";
 import { commissionBaseFromOrder, getCommissionFormulaVersion } from "@/lib/ownerExempt";
 import { useCommissionExclusionResolver } from "@/hooks/use-commission-exclusion";
 import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
+import { canEditCommissionBase, resolveTeamRoleFlags } from "@/lib/commissionBaseAccess";
+
 
 interface Member {
   user_id: string;
@@ -175,6 +177,10 @@ export default function TeamOrders() {
   const [isCloser, setIsCloser] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // 分潤基準金額專用旗標（對齊 DB trigger 語意，不影響既有 isAdmin/isCloser 的其他用途）
+  const [isFinancialAdmin, setIsFinancialAdmin] = useState(false);
+  const [isCloserTeamRole, setIsCloserTeamRole] = useState(false);
+
   const [confirmerNameMap, setConfirmerNameMap] = useState<Record<string, string>>({});
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
@@ -295,12 +301,18 @@ export default function TeamOrders() {
         setCurrentUserId(uid);
         const { data: roles } = await supabase
           .from("user_roles")
-          .select("role")
+          .select("role, accommodation_id")
           .eq("user_id", uid);
         const roleList = (roles ?? []).map((r: any) => r.role);
+        const flags = resolveTeamRoleFlags(
+          (roles ?? []) as Array<{ role: string; accommodation_id: string | null }>,
+        );
+        setIsFinancialAdmin(flags.isFinancialAdmin);
+        setIsCloserTeamRole(flags.isCloserRole);
         const admin = roleList.some(
           (r: string) => r === "hotel_admin" || r === "super_admin",
         );
+
         const scout = roleList.some(
           (r: string) => r === "scout" || r === "scout_manager",
         );
@@ -826,6 +838,15 @@ export default function TeamOrders() {
           : Number(newTcpRaw);
       const tcpChanged = Number(prevTcp ?? NaN) !== Number(newTcp ?? NaN);
 
+      // 分潤基準金額／費率為受保護欄位：無權限時完全不送出，避免 DB trigger 擋下整筆儲存
+      const canEditTcp = canEditCommissionBase({
+        isFinancialAdmin,
+        isCloserRole: isCloserTeamRole,
+        currentUserId,
+        existingCloserId: (editOrder.meta as any)?.closer_id ?? null,
+        nextCloserId: form.closer_id ?? null,
+      });
+
       const payload: Record<string, any> = {
         order_id: editOrder.id,
         accommodation_id: editOrder.accommodation_id,
@@ -838,8 +859,6 @@ export default function TeamOrders() {
 
         is_excluded: !!form.is_excluded,
         closer_assisted: !!form.closer_assisted,
-        scout_commission_rate: form.scout_commission_rate,
-        closer_commission_rate: form.closer_commission_rate,
         exclusion_note: form.exclusion_note,
         franchise_project: form.franchise_project,
         member_number: form.member_number,
@@ -852,18 +871,26 @@ export default function TeamOrders() {
         addon_amount: form.addon_amount ?? 0,
         nickname: form.nickname ?? null,
         deposit_confirm_date: form.deposit_confirm_date ?? null,
-        team_commission_price: newTcp,
-        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
-        team_commission_price_is_manual: tcpChanged
-          ? true
-          : !!form.team_commission_price_is_manual,
       };
-      if (tcpChanged) {
-        payload.commission_price_confirmed_by = currentUserId;
-        payload.commission_price_confirmed_at = new Date().toISOString();
-        payload.last_confirmed_commission_price = newTcp;
-        payload.last_confirmed_final_price = editOrder.final_price ?? null;
+      // 費率欄位：僅管理層可送出（DB：非管理層一律 DENY）
+      if (isFinancialAdmin) {
+        payload.scout_commission_rate = form.scout_commission_rate;
+        payload.closer_commission_rate = form.closer_commission_rate;
       }
+      if (canEditTcp) {
+        payload.team_commission_price = newTcp;
+        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
+        payload.team_commission_price_is_manual = tcpChanged
+          ? true
+          : !!form.team_commission_price_is_manual;
+        if (tcpChanged) {
+          payload.commission_price_confirmed_by = currentUserId;
+          payload.commission_price_confirmed_at = new Date().toISOString();
+          payload.last_confirmed_commission_price = newTcp;
+          payload.last_confirmed_final_price = editOrder.final_price ?? null;
+        }
+      }
+
       const depositDateChanged =
         (form.deposit_confirm_date || null) !==
         (editOrder.meta?.deposit_confirm_date || null);
@@ -922,10 +949,29 @@ export default function TeamOrders() {
         if (error) throw error;
       }
 
+      // Persist verification：以 DB 實際保存值為準，杜絕假成功
+      if (canEditTcp && tcpChanged) {
+        const { data: persisted, error: verifyErr } = await supabase
+          .from("order_meta")
+          .select("team_commission_price")
+          .eq("order_id", editOrder.id)
+          .maybeSingle();
+        if (verifyErr) throw verifyErr;
+        const savedTcp =
+          (persisted as any)?.team_commission_price === null ||
+          (persisted as any)?.team_commission_price === undefined
+            ? null
+            : Number((persisted as any).team_commission_price);
+        if (Number(savedTcp ?? NaN) !== Number(newTcp ?? NaN)) {
+          throw new Error("分潤基準金額未成功儲存（權限不足或資料已變更），請重新整理後再試。");
+        }
+      }
+
       toast.success("已儲存");
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
-      if (tcpChanged) {
+      if (canEditTcp && tcpChanged) {
+
         void notifyOrderAmountChanged({
           orderNumber: editOrder.order_number,
           guestName: editOrder.guest_name,
@@ -1525,7 +1571,15 @@ export default function TeamOrders() {
 
                 {/* ===== 分潤基準金額 ===== */}
                 {(() => {
-                  const canEdit = isAdmin || isCloser;
+                  // 與 DB trigger 一致：管理層全域；closer / closer_manager 僅限自己負責的訂單
+                  const canEdit = canEditCommissionBase({
+                    isFinancialAdmin,
+                    isCloserRole: isCloserTeamRole,
+                    currentUserId,
+                    existingCloserId: (editOrder.meta as any)?.closer_id ?? null,
+                    nextCloserId: form.closer_id ?? null,
+                  });
+
                   const tcp =
                     form.team_commission_price ?? editOrder.final_price ?? 0;
                   const fp = editOrder.final_price ?? 0;
