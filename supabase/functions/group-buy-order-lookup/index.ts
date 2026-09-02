@@ -4,6 +4,8 @@ import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { bankToInfo, buildAdminGroupBuyUrl, buildEmailOrder, formatTaipei, paymentDeadline, splitDeposit } from "../_shared/groupBuy.ts";
 import {
   renderGuestCancelRequested,
+  renderOrderCancelled,
+  renderVenueOrderSelfCancelled,
   renderVenueCancelRequested,
   renderVenueTransferReported,
   sendGroupBuyEmail,
@@ -12,6 +14,8 @@ import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_sh
 import { quoteCancellation, resolveCancellationPolicy, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { paymentMethodKind, paymentMethodLabel, refundChannelLabel } from "../_shared/paymentMethodKind.ts";
 import { loadManualRefundFee, remainingRefundableWithFee } from "../_shared/refundFee.ts";
+import { classifyGroupBuySelfCancel, resolveSelfCancelRefundAmount } from "../_shared/groupBuySelfCancel.ts";
+import { getPaymentAdapter, refundStatusAfterRefund } from "../_shared/paymentAdapter.ts";
 
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
 
@@ -393,7 +397,7 @@ Deno.serve(async (req) => {
             ...baseEmailOrder,
             isCardOrder: selfCancel.isCardOrder,
             paymentMethodText: paymentMethodLabel(order as any),
-            refundChannelText: refundChannelLabel(order as any, selfCancel.isCardOrder),
+            refundChannelText: refundChannelLabel(selfCancel.isCardOrder),
           } as any;
 
           const guestMail = await sendGroupBuyEmail(
