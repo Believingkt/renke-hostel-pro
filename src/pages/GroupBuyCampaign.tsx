@@ -393,17 +393,22 @@ export default function GroupBuyCampaign() {
     };
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
-  /** 兒童分齡規則：完全沿用民宿設定，方案有覆寫時以覆寫為準 */
+  /**
+   * 團購兒童分齡規則：以活動層（campaign）設定為唯一來源，所有方案共用。
+   * campaign.child_age_rules 尚未設定時，fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+   */
   const childRules = useMemo(
-    () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
-    [accInfo, pkgChildOverride],
+    () =>
+      resolveGroupBuyChildRules(
+        (campaign as any)?.child_age_rules,
+        (accInfo as any)?.child_age_rules,
+        pkgChildOverride,
+      ),
+    [campaign, accInfo, pkgChildOverride],
   );
-  /** 團購專用：方案層年齡層顯示設定（不寫回一般訂房規則） */
-  const childVisibility = useMemo(
-    () => parseChildTierVisibility((selectedPkg as any)?.child_tier_visibility),
-    [selectedPkg],
-  );
-  const showChildTiers = anyChildTierVisible(childVisibility);
+  const childVisibility = childRules.tier_visibility;
+  const showChildTiers = anyGroupBuyTierVisible(childRules);
+
   /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
   const effectiveGuests = useMemo(
     () => applyVisibilityToGuests(guests, childVisibility),
