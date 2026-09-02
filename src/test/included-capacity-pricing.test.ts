@@ -25,8 +25,8 @@ describe("共用 included capacity 計價 contract", () => {
   });
 
   it("超出方案含人數才收費，且不重複收 package extra fee", () => {
-    const r = evaluateIncludedCapacityPricing(rules, { infants: 0, toddlers: 1, children: 2 }, 2, 10, 12);
-    // included 12 - 10 成人 = 2 名額，先吃便宜的幼兒(500)再吃一位兒童(800)，剩 1 位兒童收費
+    const r = evaluateIncludedCapacityPricing(rules, { infants: 0, toddlers: 1, children: 2 }, 2, 9, 11);
+    // included 11 - 9 成人 = 2 名額，先吃便宜的幼兒(500)再吃一位兒童(800)，剩 1 位兒童收費
     expect(r.overflow).toBe(1);
     expect(r.extraFeePerNight).toBe(800);
     expect(r.extraFeeTotal).toBe(1600);
