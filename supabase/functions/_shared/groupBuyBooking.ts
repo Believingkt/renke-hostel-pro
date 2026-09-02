@@ -380,24 +380,27 @@ export async function validateAndPriceGroupBuyBooking(
 
   const childDetailLines = childEval.breakdown.flatMap((b) => {
     const head = `　${b.label} ${b.count} 位`;
-    if (b.free) return [head, "　　免費"];
+    if (b.free) {
+      return [head, includedGuestCount != null ? "　　免費（方案已含人數）" : "　　免費"];
+    }
     const parts: string[] = [];
-    if (b.base_count > 0 && b.fee_per_night > 0) {
+    if (b.charged_base_count > 0 && b.fee_per_night > 0) {
       parts.push(
-        `　　${twdInt(b.fee_per_night)} × ${b.base_count} 位 × ${b.nights} 晚 = ${
-          twdInt(b.fee_per_night * b.base_count * b.nights)
+        `　　${twdInt(b.fee_per_night)} × ${b.charged_base_count} 位 × ${b.nights} 晚 = ${
+          twdInt(b.fee_per_night * b.charged_base_count * b.nights)
         }`,
       );
     }
-    if (b.over_count > 0) {
+    if (b.charged_over_count > 0) {
       parts.push(
-        `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.over_count} 位 × ${b.nights} 晚 = ${
-          twdInt(b.over_limit_fee_per_night * b.over_count * b.nights)
+        `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.charged_over_count} 位 × ${b.nights} 晚 = ${
+          twdInt(b.over_limit_fee_per_night * b.charged_over_count * b.nights)
         }`,
       );
     }
     return [head, ...parts];
   });
+
 
   const noteLines = [
     `【團購】${campaign.title}`,
