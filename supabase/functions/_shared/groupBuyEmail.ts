@@ -440,6 +440,12 @@ export function renderOrderCancelled(
        </table>
        <div class="box"><h2>退款說明</h2>${refundStatusBlock(info, isCard)}</div>
        ${
+      info.atmNoTransferNotice
+        ? `<div class="box"><h2>⚠️ 訂單已取消，請勿再轉帳</h2>
+       <p style="margin:0">此訂單已取消，原 ATM 虛擬帳號請勿再轉帳；若仍完成轉帳，款項需另行人工退還。</p></div>`
+        : ""
+    }
+       ${
       // 人工退款申請說明：僅 ATM／銀行匯款且尚有款項待退時顯示；信用卡原卡退刷不適用
       !isCard && info.paidAmount > 0 &&
         info.refundStatus !== "refunded" && info.refundStatus !== "none"
