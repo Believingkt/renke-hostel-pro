@@ -331,6 +331,8 @@ export interface GroupBuyCancelInfo {
   refundFeeTotal?: number;
   /** 館別客服／官方 LINE（人工退款申請引導用；信用卡不適用） */
   venueContact?: VenueContact | null;
+  /** ATM 未付款直接取消：提醒請勿再轉帳至原虛擬帳號 */
+  atmNoTransferNotice?: boolean;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
