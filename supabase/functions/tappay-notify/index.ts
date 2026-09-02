@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { notifyGroupBuyPaymentReceived } from "../_shared/groupBuyPaymentNotify.ts";
 import { completeGroupBuyCreditOrder } from "../_shared/groupBuyCreditCompletion.ts";
+import { isLatePaymentOnCancelledOrder, recordLatePaymentException } from "../_shared/latePayment.ts";
 
 
 // CORS headers for webhook (TapPay backend calls)
@@ -164,7 +165,7 @@ Deno.serve(async (req) => {
     let order = null;
     let orderSource = '';
 
-    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, order_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method, order_source';
+    const SELECT_COLS = 'id, accommodation_id, order_number, final_price, paid_amount, payment_status, order_status, notes, deposit_method, deposit_status, atm_rec_trade_id, payment_method, order_source, cancelled_at';
 
     if (order_number) {
       const { data, error } = await supabase
@@ -345,6 +346,41 @@ Deno.serve(async (req) => {
         );
       }
 
+      // ===== P0 FAIL-SAFE：已取消訂單收到逾期款項 =====
+      // 必須在任何 order confirmation / inventory / 正常成功通知之前攔截。
+      if (isLatePaymentOnCancelledOrder(order, isSuccess)) {
+        const isAtmLate = order.atm_rec_trade_id === rec_trade_id
+          || order.payment_method === 'atm'
+          || verifiedRecord?.acquirer === 'TW_TAPPAY_ATM'
+          || verifiedRecord?.pay_info != null;
+        const late = await recordLatePaymentException(supabase, {
+          orderId: order.id,
+          accommodationId: order.accommodation_id ?? null,
+          orderNumber: order.order_number,
+          amount,
+          recTradeId: rec_trade_id,
+          bankTransactionId: body.bank_transaction_id ?? null,
+          paymentMethodLabel: isAtmLate ? 'ATM 虛擬帳號' : '信用卡',
+          cancelledAt: order.cancelled_at ?? null,
+          currentPaidAmount: Number(order.paid_amount || 0),
+          currentNotes: order.notes ?? null,
+          raw: { webhook: body, verified: verifiedRecord },
+        });
+        console.warn('[tappay-notify] LATE PAYMENT on cancelled order', {
+          orderNumber: order.order_number,
+          rec_trade_id,
+          duplicate: late.duplicate,
+        });
+        return new Response(
+          JSON.stringify({
+            status: 'ok',
+            flow: 'late_payment_after_cancellation',
+            order_number: order.order_number,
+            duplicate: late.duplicate,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
 
       if (isSuccess) {
         // 偵測是否為 ATM 入帳

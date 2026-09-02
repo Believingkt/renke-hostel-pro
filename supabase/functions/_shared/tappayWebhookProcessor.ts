@@ -7,6 +7,7 @@ import {
   isStaleRefund,
   signatureFromRaw,
 } from "./tappayEventDedupe.ts";
+import { isLatePaymentOnCancelledOrder, recordLatePaymentException } from "./latePayment.ts";
 
 
 
@@ -43,7 +44,7 @@ export function nextRetryAt(retryCount: number): string | null {
 }
 
 const ORDER_FIELDS =
-  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount";
+  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount, cancelled_at";
 
 export interface ProcessResult {
   matched: boolean;
@@ -146,6 +147,38 @@ export async function processTapPayEvent(
 
   if (!order) {
     return { matched: false, ok, eventType, reason: "找不到對應訂單" };
+  }
+
+  // ===== P0 FAIL-SAFE：已取消訂單收到逾期成功扣款 =====
+  // 在任何 orders 狀態同步、履約、推播之前攔截；退款事件不受影響（取消後退款屬正常流程）。
+  if (eventType === "charge" && isLatePaymentOnCancelledOrder(order, ok)) {
+    const late = await recordLatePaymentException(supabase, {
+      orderId: order.id,
+      accommodationId: order.accommodation_id ?? null,
+      orderNumber: order.order_number,
+      amount: Math.abs(amount ?? 0),
+      recTradeId,
+      bankTransactionId: (payload.bank_transaction_id as string) || null,
+      paymentMethodLabel: "TapPay",
+      cancelledAt: order.cancelled_at ?? null,
+      currentPaidAmount: Number(order.paid_amount || 0),
+      currentNotes: order.notes ?? null,
+      raw: payload,
+    });
+    console.warn("[tappay] LATE PAYMENT on cancelled order", {
+      orderNumber: order.order_number,
+      recTradeId,
+      duplicate: late.duplicate,
+    });
+    return {
+      matched: true,
+      ok,
+      orderId: order.id,
+      orderNumber: order.order_number,
+      eventType,
+      reason: "late_payment_after_cancellation",
+      duplicate: late.duplicate || undefined,
+    };
   }
 
   // 同步 deposit_charges（金流稽核流水）
