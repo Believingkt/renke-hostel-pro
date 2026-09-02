@@ -338,6 +338,8 @@ Deno.serve(async (req) => {
             ? `退款處理：已完成原信用卡退刷 NT$${refundAmount.toLocaleString("en-US")}（TapPay${
               refundRecTradeId ? ` ${refundRecTradeId}` : ""
             }）`
+            : zeroRefundByPolicy
+            ? "退款處理：依取消政策，本次退款金額 NT$0（未呼叫退款 API，已收款金額保留為金流事實）"
             : paid > 0
             ? "退款處理：依取消政策不予退款"
             : "退款處理：未收款，不需退款",
