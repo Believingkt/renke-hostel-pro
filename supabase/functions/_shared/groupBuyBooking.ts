@@ -423,9 +423,11 @@ export async function validateAndPriceGroupBuyBooking(
     capacity_guest_count: capacityHeadcount,
     overflow_guest_count: childEval.overflow,
     show_guest_selector: showGuestSelector,
-    show_room_type_selector: showRoomTypeSelector,
-    selected_room_type_id: roomTypeId,
-    room_type_selected_by: requestedRoomTypeId ? "guest" : "auto",
+    // 入住房型：純顯示文字 snapshot（管理員日後修改文案不影響既有訂單）
+    show_room_type_display: showRoomTypeDisplay,
+    room_type_display_text: showRoomTypeDisplay ? roomTypeDisplayText : null,
+    assigned_room_type_id: roomTypeId,
+    room_type_selected_by: "system",
 
     grand_total: total,
     deposit_percentage: campaign.deposit_percentage,
