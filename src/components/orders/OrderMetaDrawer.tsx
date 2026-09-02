@@ -720,11 +720,11 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
 
-      // Persist verification：確認 DB 實際保存值與送出值一致（防止假成功）
-      if (canEditCommissionPrice && tcpChanged) {
+      // Persist verification：一律以 DB 實際保存值為準（防止假成功）
+      {
         const { data: persisted, error: verifyErr } = await supabase
           .from("order_meta")
-          .select("team_commission_price")
+          .select("team_commission_price, team_commission_price_is_manual, force_commission_eligible, force_commission_reason, closer_id")
           .eq("order_id", orderId)
           .maybeSingle();
         if (verifyErr) throw verifyErr;
@@ -733,10 +733,24 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           (persisted as any)?.team_commission_price === undefined
             ? null
             : Number((persisted as any).team_commission_price);
-        if (savedTcp !== nextTcp) {
+        if (canEditCommissionPrice && tcpChanged && savedTcp !== nextTcp) {
           throw new Error("分潤基準金額未成功儲存（權限不足或資料已變更），請重新整理後再試。");
         }
+        // 以 DB 值同步本地表單狀態，避免畫面停留在未持久化的 local state
+        if (persisted) {
+          setTeamCommissionPrice(savedTcp);
+          setInitialTeamCommissionPrice(savedTcp);
+          setTcpIsManual(Boolean((persisted as any).team_commission_price_is_manual));
+          const savedForce = Boolean((persisted as any).force_commission_eligible);
+          setForceEligible(savedForce);
+          setInitialForceEligible(savedForce);
+          const savedReason = ((persisted as any).force_commission_reason as string) ?? "";
+          setForceReason(savedReason);
+          setInitialForceReason(savedReason);
+          setExistingCloserId(((persisted as any).closer_id as string) ?? null);
+        }
       }
+
 
       // 寫入變更紀錄（行銷/分潤欄位）
       try {
