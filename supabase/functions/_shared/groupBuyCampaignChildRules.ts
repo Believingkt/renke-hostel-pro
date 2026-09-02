@@ -39,6 +39,21 @@ export function resolveGroupBuyChildRules(
   };
 }
 
+/**
+ * 正式 SoT = PER PACKAGE（group_buy_campaign_packages.child_age_rules）。
+ * package 未設定時，過渡期 fallback 至 campaign（DEPRECATED），再 fallback 民宿規則。
+ */
+export function resolveGroupBuyPackageChildRules(
+  packageRaw: unknown,
+  campaignRaw: unknown,
+  accommodationRules: unknown,
+  packageOverride?: unknown,
+): GroupBuyChildRules {
+  if (packageRaw && typeof packageRaw === "object") return parseGroupBuyChildRules(packageRaw);
+  return resolveGroupBuyChildRules(campaignRaw, accommodationRules, packageOverride);
+}
+
+
 export function anyGroupBuyTierVisible(rules: GroupBuyChildRules): boolean {
   return TIER_ORDER.some((k: ChildTierKey) => rules.tier_visibility[k] !== false);
 }

@@ -52,6 +52,23 @@ export function resolveGroupBuyChildRules(
   };
 }
 
+/**
+ * 正式 SoT = PER PACKAGE（group_buy_campaign_packages.child_age_rules）。
+ * package 未設定時，過渡期 fallback 至 campaign（DEPRECATED），再 fallback 民宿規則。
+ */
+export function resolveGroupBuyPackageChildRules(
+  packageRaw: unknown,
+  campaignRaw: unknown,
+  accommodationRules: unknown,
+  packageOverride?: unknown,
+): GroupBuyChildRules {
+  if (packageRaw && typeof packageRaw === "object") {
+    return parseGroupBuyChildRules(packageRaw);
+  }
+  return resolveGroupBuyChildRules(campaignRaw, accommodationRules, packageOverride);
+}
+
+
 /** 初始化（COPY ONCE）：由一般訂房規則複製為團購自己的 snapshot */
 export function initGroupBuyChildRulesFrom(accommodationRules: unknown): GroupBuyChildRules {
   return {
