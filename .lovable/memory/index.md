@@ -4,6 +4,7 @@
 - [PMS 後台網域入口](mem://features/platform/pms-domain-entry.md) — pms.lakeze.com 模式判斷、/login 三欄登入、舊網域搬家轉址、重設密碼 redirect。
 - [Hold Order Detection](mem://features/admin/hold-order-detection.md) — 保留單一律以 order_status = 'hold' 判斷；禁用 guest_name = '保留單'。
 - [Marketing Analytics Tab](mem://features/admin/marketing-analytics.md) — 行銷數據分析頁籤：歸因口徑、Meta 每日同步排程、UTM 規範、預算建議規則。
+- [Group Buy Self Cancel](mem://features/platform/group-buy-self-cancel.md) — 團購自助取消三路分流；退款依政策級距，ATM 已收款仍走人工。
 - [Group Buy Module](mem://features/platform/group-buy-module.md) — 網紅團購頁路由、匯款對帳、72h 逾期取消、分潤與既有團隊獎金隔離。
 - [全區／全棟綁定](mem://features/admin/block-all-inventory-binding.md) — blocks_all_inventory 主控房型與範圍房型雙向整天鎖定，主控之間不互鎖。
 - [Discount Scope Mode](mem://features/admin/discount-scope-mode.md) — 折扣碼適用範圍：館別可選房型或房價方案判斷（舊三家維持房型）。

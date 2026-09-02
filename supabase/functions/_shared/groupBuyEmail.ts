@@ -331,6 +331,8 @@ export interface GroupBuyCancelInfo {
   refundFeeTotal?: number;
   /** 館別客服／官方 LINE（人工退款申請引導用；信用卡不適用） */
   venueContact?: VenueContact | null;
+  /** ATM 未付款直接取消：提醒請勿再轉帳至原虛擬帳號 */
+  atmNoTransferNotice?: boolean;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
@@ -437,6 +439,12 @@ export function renderOrderCancelled(
          ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
        </table>
        <div class="box"><h2>退款說明</h2>${refundStatusBlock(info, isCard)}</div>
+       ${
+      info.atmNoTransferNotice
+        ? `<div class="box"><h2>⚠️ 訂單已取消，請勿再轉帳</h2>
+       <p style="margin:0">此訂單已取消，原 ATM 虛擬帳號請勿再轉帳；若仍完成轉帳，款項需另行人工退還。</p></div>`
+        : ""
+    }
        ${
       // 人工退款申請說明：僅 ATM／銀行匯款且尚有款項待退時顯示；信用卡原卡退刷不適用
       !isCard && info.paidAmount > 0 &&
@@ -733,6 +741,39 @@ export function renderVenueCancelRequested(
          ${info.paidAmount ? `<tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>` : ""}
        </table>
        ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台處理取消</a></p>` : ""}`,
+    ),
+  };
+}
+
+/** 寄給民宿／管理者：旅客自助取消，訂單已即時取消（不需人工審核） */
+export function renderVenueOrderSelfCancelled(
+  o: VenueNotifyOrder,
+  info: {
+    cancelledAtText: string;
+    reason?: string | null;
+    paidAmount: number;
+    refundedAmount: number;
+    refundStatus: string;
+    refundChannelText: string;
+  },
+): { subject: string; html: string } {
+  return {
+    subject: `【訂單已取消】${o.campaignTitle}／訂單 ${o.orderNumber}`,
+    html: layout(
+      "旅客自助取消訂單",
+      `訂單 ${o.orderNumber} 已由旅客自助取消`,
+      `<h1>旅客已自助取消訂單</h1>
+       <p>此訂單已即時取消並釋出房間，無需人工審核。</p>
+       <table class="info">
+         ${venueBaseRows(o)}
+         <tr><td class="k">取消時間</td><td>${esc(info.cancelledAtText)}</td></tr>
+         ${info.reason ? `<tr><td class="k">取消原因</td><td>${esc(info.reason)}</td></tr>` : ""}
+         <tr><td class="k">已收款金額</td><td>${money(info.paidAmount)}</td></tr>
+         <tr><td class="k">本次退款</td><td>${money(info.refundedAmount)}</td></tr>
+         <tr><td class="k">退款方式</td><td>${esc(info.refundChannelText)}</td></tr>
+         <tr><td class="k">退款狀態</td><td>${esc(info.refundStatus)}</td></tr>
+       </table>
+       ${o.adminUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.adminUrl)}">前往後台查看</a></p>` : ""}`,
     ),
   };
 }
