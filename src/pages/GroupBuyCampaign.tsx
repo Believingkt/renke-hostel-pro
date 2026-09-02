@@ -62,7 +62,7 @@ import {
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
 import { applyVisibilityToGuests } from "@/lib/groupBuyChildVisibility";
-import { anyGroupBuyTierVisible, resolveGroupBuyChildRules } from "@/lib/groupBuyChildRules";
+import { anyGroupBuyTierVisible, resolveGroupBuyPackageChildRules } from "@/lib/groupBuyChildRules";
 
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
