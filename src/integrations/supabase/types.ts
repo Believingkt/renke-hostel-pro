@@ -4535,6 +4535,7 @@ export type Database = {
       group_buy_campaign_packages: {
         Row: {
           campaign_id: string
+          child_age_rules: Json | null
           child_tier_visibility: Json | null
           created_at: string
           description: string | null
@@ -4546,6 +4547,7 @@ export type Database = {
           id: string
           image_url: string | null
           image_urls: string[]
+          included_guest_count: number | null
           is_active: boolean
           max_guests: number | null
           max_quantity: number | null
@@ -4555,12 +4557,15 @@ export type Database = {
           room_type_id: string | null
           room_type_ids: string[]
           short_summary: string | null
+          show_guest_selector: boolean
+          show_room_type_selector: boolean
           sort_order: number
           updated_at: string
           weekday_price: number | null
         }
         Insert: {
           campaign_id: string
+          child_age_rules?: Json | null
           child_tier_visibility?: Json | null
           created_at?: string
           description?: string | null
@@ -4572,6 +4577,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: string[]
+          included_guest_count?: number | null
           is_active?: boolean
           max_guests?: number | null
           max_quantity?: number | null
@@ -4581,12 +4587,15 @@ export type Database = {
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
+          show_guest_selector?: boolean
+          show_room_type_selector?: boolean
           sort_order?: number
           updated_at?: string
           weekday_price?: number | null
         }
         Update: {
           campaign_id?: string
+          child_age_rules?: Json | null
           child_tier_visibility?: Json | null
           created_at?: string
           description?: string | null
@@ -4598,6 +4607,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           image_urls?: string[]
+          included_guest_count?: number | null
           is_active?: boolean
           max_guests?: number | null
           max_quantity?: number | null
@@ -4607,6 +4617,8 @@ export type Database = {
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
+          show_guest_selector?: boolean
+          show_room_type_selector?: boolean
           sort_order?: number
           updated_at?: string
           weekday_price?: number | null
