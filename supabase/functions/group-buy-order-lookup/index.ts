@@ -362,6 +362,8 @@ Deno.serve(async (req) => {
             cancelled_at: (order as any).cancelled_at ?? nowIso,
             refunded_amount: totalRefunded,
             refunded_at: refundAmount > 0 ? nowIso : (order as any).refunded_at,
+            // 供後台「同步 TapPay 退款狀態」沿用同一組 provider 交易編號做對帳（不另建 sync 流程）
+            ...(refundRecTradeId ? { refund_rec_trade_id: refundRecTradeId } : {}),
             refund_status: refundStatus,
             ...paymentStatusPatch,
             notes: noteLines,
