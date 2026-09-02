@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { checkOrderRateLimit, recordOrderAttempt, getClientIp } from "../_shared/orderRateLimit.ts";
+import { evaluateIncludedCapacityPricing, resolveIncludedGuestCount } from "../_shared/includedCapacityPricing.ts";
+import { parseChildAgeRules as parseSharedChildAgeRules } from "../_shared/groupBuyChildRules.ts";
 
 interface CustomAddonInput {
   addon_type: string;
@@ -513,26 +515,33 @@ serve(async (req) => {
         .select("child_age_rules")
         .eq("id", accommodationId)
         .maybeSingle();
-      const rules = parseChildAgeRules((accInfo as any)?.child_age_rules);
-      const sel = {
-        infant: Math.max(0, Number(childSelection.infants) || 0),
-        toddler: Math.max(0, Number(childSelection.toddlers) || 0),
-        child: Math.max(0, Number(childSelection.children) || 0),
-      };
-      for (const key of TIER_ORDER) {
-        const tier = rules.tiers[key];
-        const count = sel[key];
-        if (count <= 0) continue;
-        if (!tier.allowed) {
-          errors.push(`Child tier not allowed: ${tier.label} (${count})`);
-          continue;
-        }
-        if (tier.max_count !== null && count > tier.max_count) {
-          errors.push(`Child tier over limit: ${tier.label} ${count}/${tier.max_count}`);
-          continue;
-        }
-        calculatedChildExtraTotal += (tier.fee_per_night || 0) * count * nights;
+      const rules = parseSharedChildAgeRules((accInfo as any)?.child_age_rules);
+      // 方案售價已包含人數（SHARED INCLUDED CAPACITY CONTRACT；無方案 → null）
+      let includedGuestCount: number | null = null;
+      if (packageId) {
+        const { data: pkgRow } = await supabase
+          .from("accommodation_packages")
+          .select("guest_count")
+          .eq("id", packageId)
+          .maybeSingle();
+        includedGuestCount = resolveIncludedGuestCount((pkgRow as any)?.guest_count);
       }
+      const adultsForEval = Math.max(0, Number((body as any)?.adultsCount ?? (body as any)?.adults ?? 0) || 0);
+      const evaluation = evaluateIncludedCapacityPricing(
+        rules,
+        {
+          infants: Math.max(0, Number(childSelection.infants) || 0),
+          toddlers: Math.max(0, Number(childSelection.toddlers) || 0),
+          children: Math.max(0, Number(childSelection.children) || 0),
+        },
+        nights,
+        adultsForEval,
+        includedGuestCount,
+      );
+      if (evaluation.blocked) {
+        errors.push(evaluation.blockReason || "Child selection not allowed");
+      }
+      calculatedChildExtraTotal = evaluation.extraFeeTotal;
       const childDiff = Math.abs((childExtraTotal || 0) - calculatedChildExtraTotal);
       if (childDiff > 2) {
         errors.push(`Child extra total mismatch: client=${childExtraTotal}, server=${calculatedChildExtraTotal}`);
