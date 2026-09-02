@@ -430,11 +430,13 @@ export default function GroupBuyCampaign() {
   const childVisibility = childRules.tier_visibility;
   const showChildTiers = anyGroupBuyTierVisible(childRules);
 
-  /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
-  const effectiveGuests = useMemo(
-    () => applyVisibilityToGuests(guests, childVisibility),
-    [guests, childVisibility],
-  );
+  /** 被隱藏的年齡層一律歸零後才進入計價／驗證；人數選擇器關閉時改用方案固定人數 */
+  const effectiveGuests = useMemo(() => {
+    if (!showGuestSelector) {
+      return { adults: includedGuestCount ?? guests.adults, children: 0, toddlers: 0, infants: 0 };
+    }
+    return applyVisibilityToGuests(guests, childVisibility);
+  }, [guests, childVisibility, showGuestSelector, includedGuestCount]);
   const childEval = useMemo(
     () =>
       evaluateGroupBuyChildSelection(
@@ -548,9 +550,11 @@ export default function GroupBuyCampaign() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setSelectedRoomTypeId(null);
       if (!selectedPkg) {
         setPkgChildOverride(null);
         setRoomCaps([]);
+        setRoomTypeNames({});
         return;
       }
       const [overrideRes, capRes] = await Promise.all([
@@ -562,12 +566,13 @@ export default function GroupBuyCampaign() {
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
         candidateRoomTypeIds.length > 0
-          ? supabase.from("room_types").select("id, capacity").in("id", candidateRoomTypeIds)
+          ? supabase.from("room_types").select("id, capacity, name").in("id", candidateRoomTypeIds)
           : Promise.resolve({ data: [] } as any),
       ]);
       if (cancelled) return;
       setPkgChildOverride(((overrideRes as any)?.data?.child_age_rules_override as unknown) ?? null);
-      const rows = ((capRes as any)?.data ?? []) as Array<{ id: string; capacity: number | null }>;
+      const rows = ((capRes as any)?.data ?? []) as Array<{ id: string; capacity: number | null; name?: string | null }>;
+      setRoomTypeNames(Object.fromEntries(rows.map((r) => [String(r.id), String(r.name ?? "房型")])));
       // 依候選順序排列，與後端分配順序一致
       setRoomCaps(
         candidateRoomTypeIds
@@ -1431,14 +1436,52 @@ export default function GroupBuyCampaign() {
                   <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
                 )}
 
+                {showRoomTypeSelector && fittingRoomTypeIds.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-foreground">入住房型</p>
+                    <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                      {fittingRoomTypeIds.map((rtId) => {
+                        const active = selectedRoomTypeId === rtId;
+                        return (
+                          <button
+                            key={rtId}
+                            type="button"
+                            onClick={() => setSelectedRoomTypeId(active ? null : rtId)}
+                            aria-pressed={active}
+                            className={`rounded-xl border px-3.5 py-3 text-left text-base transition ${
+                              active
+                                ? "border-primary bg-primary/5 font-medium text-foreground"
+                                : "border-border/70 bg-card text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            {roomTypeNames[rtId] ?? "房型"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      未選擇時將由系統依可訂狀況自動安排房型。
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-4">
-                  <GroupBuyGuestPicker
-                    value={guests}
-                    onChange={setGuests}
-                    rules={childRules}
-                    visibility={childVisibility}
-                    blockReason={guestError}
-                  />
+                  {showGuestSelector ? (
+                    <GroupBuyGuestPicker
+                      value={guests}
+                      onChange={setGuests}
+                      rules={childRules}
+                      visibility={childVisibility}
+                      blockReason={guestError}
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3">
+                      <p className="text-sm font-medium text-foreground">入住人數</p>
+                      <p className="mt-0.5 text-base font-semibold text-foreground">
+                        {includedGuestCount ? `${includedGuestCount} 人（方案固定人數）` : "依方案設定"}
+                      </p>
+                    </div>
+                  )}
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     每筆訂單固定下訂 1 棟包棟（如需多棟請另外再下一單）。
                   </p>
