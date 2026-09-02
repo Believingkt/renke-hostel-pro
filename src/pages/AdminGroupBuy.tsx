@@ -171,6 +171,7 @@ interface Campaign {
   enable_credit_card?: boolean | null;
   commission_rate: number;
   contact_note: string | null;
+  show_line_inquiry_button?: boolean | null;
   terms_html: string | null;
   terms_highlights: string[] | null;
   highlight_points: string[] | null;
@@ -1858,6 +1859,18 @@ export default function AdminGroupBuy() {
                 <Input
                   value={editing.contact_note ?? ""}
                   onChange={(e) => setEditing({ ...editing, contact_note: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2 flex items-start justify-between gap-4 rounded-lg border border-border/70 p-3">
+                <div>
+                  <Label>顯示 LINE 詢問按鈕</Label>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    關閉後，團購前台將不顯示 LINE 詢問按鈕（電話與其他聯絡資訊不受影響）。
+                  </p>
+                </div>
+                <Switch
+                  checked={editing.show_line_inquiry_button !== false}
+                  onCheckedChange={(v) => setEditing({ ...editing, show_line_inquiry_button: v })}
                 />
               </div>
             </div>
