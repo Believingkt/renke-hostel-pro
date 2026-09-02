@@ -194,12 +194,25 @@ export async function validateAndPriceGroupBuyBooking(
   if (pErr) throw pErr;
   if (!pkg || !pkg.is_active) return fail("此方案已停售");
 
-  // 團購專用：方案層「兒童分齡顯示設定」，未顯示的年齡層一律不計入（不影響一般訂房規則）
-  const childVisibility = parseChildTierVisibility((pkg as any).child_tier_visibility);
+  // 團購專用：活動層（campaign-level）兒童分齡規則 —— 所有方案共用同一套。
+  // campaign.child_age_rules 為 NULL 時 fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+  const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
+    admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
+    pkg.package_id
+      ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
+      : Promise.resolve({ data: null } as any),
+  ]);
+  const childRules = resolveGroupBuyChildRules(
+    (campaign as any).child_age_rules,
+    (accInfoRow as any)?.child_age_rules,
+    (accPkgRow as any)?.child_age_rules_override ?? null,
+  );
+  const childVisibility = childRules.tier_visibility;
   const childCount = childVisibility.child ? childCountRaw : 0;
   const toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
   const infantCount = childVisibility.infant ? infantCountRaw : 0;
   const guestCount = adultCount + childCount + toddlerCount;
+
 
   if (pkg.max_quantity && roomQuantity > pkg.max_quantity) {
     return fail(`此方案單筆最多預訂 ${pkg.max_quantity} 間`);
