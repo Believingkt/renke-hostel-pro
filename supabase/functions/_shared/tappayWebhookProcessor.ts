@@ -148,6 +148,38 @@ export async function processTapPayEvent(
     return { matched: false, ok, eventType, reason: "找不到對應訂單" };
   }
 
+  // ===== P0 FAIL-SAFE：已取消訂單收到逾期成功扣款 =====
+  // 在任何 orders 狀態同步、履約、推播之前攔截；退款事件不受影響（取消後退款屬正常流程）。
+  if (eventType === "charge" && isLatePaymentOnCancelledOrder(order, ok)) {
+    const late = await recordLatePaymentException(supabase, {
+      orderId: order.id,
+      accommodationId: order.accommodation_id ?? null,
+      orderNumber: order.order_number,
+      amount: Math.abs(amount ?? 0),
+      recTradeId,
+      bankTransactionId: (payload.bank_transaction_id as string) || null,
+      paymentMethodLabel: "TapPay",
+      cancelledAt: order.cancelled_at ?? null,
+      currentPaidAmount: Number(order.paid_amount || 0),
+      currentNotes: order.notes ?? null,
+      raw: payload,
+    });
+    console.warn("[tappay] LATE PAYMENT on cancelled order", {
+      orderNumber: order.order_number,
+      recTradeId,
+      duplicate: late.duplicate,
+    });
+    return {
+      matched: true,
+      ok,
+      orderId: order.id,
+      orderNumber: order.order_number,
+      eventType,
+      reason: "late_payment_after_cancellation",
+      duplicate: late.duplicate || undefined,
+    };
+  }
+
   // 同步 deposit_charges（金流稽核流水）
   let chargeRow: any = null;
   if (recTradeId) {
