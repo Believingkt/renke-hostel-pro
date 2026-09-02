@@ -1207,6 +1207,7 @@ const BookingFlow = () => {
     applicable_tiers: string[] | null;
     /** 方案售價已包含的入住人數（SHARED INCLUDED CAPACITY CONTRACT） */
     guest_count: number | null;
+    included_guest_count: number | null;
   } | null>(null);
 
   useEffect(() => {
@@ -1218,7 +1219,7 @@ const BookingFlow = () => {
     (async () => {
       const { data } = await supabase
         .from("accommodation_packages")
-        .select("name, subtitle, room_allocation, room_type_allocation, includes, sale_price, original_price, tier_prices, applicable_tiers, guest_count")
+        .select("name, subtitle, room_allocation, room_type_allocation, includes, sale_price, original_price, tier_prices, applicable_tiers, guest_count, included_guest_count")
         .eq("id", selectedPackageId)
         .maybeSingle();
       if (cancelled || !data) return;
@@ -1238,6 +1239,8 @@ const BookingFlow = () => {
         tier_prices: d.tier_prices && typeof d.tier_prices === "object" ? d.tier_prices : null,
         applicable_tiers: Array.isArray(d.applicable_tiers) ? d.applicable_tiers : null,
         guest_count: d.guest_count != null ? Number(d.guest_count) : null,
+        included_guest_count:
+          (d as any).included_guest_count != null ? Number((d as any).included_guest_count) : null,
       });
     })();
     return () => {
@@ -2277,7 +2280,7 @@ const BookingFlow = () => {
   });
 
   /** 方案售價已包含人數（無方案時 null → 沿用既有行為） */
-  const includedGuestCount = resolveIncludedGuestCount(selectedPackage?.guest_count);
+  const includedGuestCount = resolveIncludedGuestCount(selectedPackage?.included_guest_count);
 
   const evaluateChildren = () =>
     evaluateIncludedCapacityPricing(

@@ -521,10 +521,14 @@ serve(async (req) => {
       if (packageId) {
         const { data: pkgRow } = await supabase
           .from("accommodation_packages")
-          .select("guest_count")
+          .select("included_guest_count")
           .eq("id", packageId)
           .maybeSingle();
-        includedGuestCount = resolveIncludedGuestCount((pkgRow as any)?.guest_count);
+        includedGuestCount = resolveIncludedGuestCount((pkgRow as any)?.included_guest_count);
+        if (includedGuestCount == null) {
+          // FAIL CLOSED：不得回退使用語意模糊的 guest_count
+          errors.push("方案設定錯誤：未設定「方案價格包含人數」，請聯繫客服");
+        }
       }
       const adultsForEval = Math.max(0, Number((body as any)?.adultsCount ?? (body as any)?.adults ?? 0) || 0);
       const evaluation = evaluateIncludedCapacityPricing(
