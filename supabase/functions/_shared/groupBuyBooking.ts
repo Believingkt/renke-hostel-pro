@@ -214,9 +214,11 @@ export async function validateAndPriceGroupBuyBooking(
   );
   const childVisibility = childRules.tier_visibility;
 
-  // Server 端一律重讀方案 selector 設定，不信任 client payload
+  // Server 端一律重讀方案顯示設定，不信任 client payload
   const showGuestSelector = (pkg as any).show_guest_selector !== false;
-  const showRoomTypeSelector = (pkg as any).show_room_type_selector === true;
+  // 入住房型為純顯示文字（客人不可選）
+  const showRoomTypeDisplay = (pkg as any).show_room_type_display === true;
+  const roomTypeDisplayText = String((pkg as any).room_type_display_text ?? "").trim() || null;
   const includedGuestCount = packageIncludedGuestCount(pkg as any);
 
   let adultCount = adultCountRaw;
