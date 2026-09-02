@@ -361,26 +361,30 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       setAutoTeamCommissionPrice(autoTcp);
 
       // 分潤基準金額權限：財務管理層全域；closer / closer_manager 僅限自己負責的訂單
+      // ⚠️ 與 DB 的 public.user_has_team_role() 語意對齊：
+      //    團隊角色僅認 accommodation_id IS NULL 的列；super_admin 則不分館皆成立。
       if (uid) {
         const { data: roleRows } = await supabase
           .from("user_roles")
-          .select("role")
+          .select("role, accommodation_id")
           .eq("user_id", uid);
-        const roles = ((roleRows ?? []) as Array<{ role: string }>).map((r) => r.role);
+        const rows = (roleRows ?? []) as Array<{ role: string; accommodation_id: string | null }>;
+        const isSuper = rows.some((r) => r.role === "super_admin");
+        const teamRoles = rows.filter((r) => r.accommodation_id === null).map((r) => r.role);
+        const hasTeamRole = (role: string) => isSuper || teamRoles.includes(role);
         setIsFinancialAdmin(
-          roles.includes("super_admin") ||
-            roles.includes("admin") ||
-            roles.includes("finance"),
+          isSuper || hasTeamRole("admin") || hasTeamRole("finance"),
         );
-        setIsCloserRole(roles.includes("closer") || roles.includes("closer_manager"));
-        setIsSuperAdmin(roles.includes("super_admin"));
+        setIsCloserRole(hasTeamRole("closer") || hasTeamRole("closer_manager"));
+        setIsSuperAdmin(isSuper);
         setCanForceCommission(
-          roles.includes("super_admin") ||
-            roles.includes("admin") ||
-            roles.includes("finance") ||
-            roles.includes("closer_manager"),
+          isSuper ||
+            hasTeamRole("admin") ||
+            hasTeamRole("finance") ||
+            hasTeamRole("closer_manager"),
         );
       } else {
+
         setIsFinancialAdmin(false);
         setIsCloserRole(false);
         setIsSuperAdmin(false);
