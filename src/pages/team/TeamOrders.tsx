@@ -50,6 +50,8 @@ import { extractAddonTotal } from "@/lib/ownerSettlement";
 import { commissionBaseFromOrder, getCommissionFormulaVersion } from "@/lib/ownerExempt";
 import { useCommissionExclusionResolver } from "@/hooks/use-commission-exclusion";
 import { extraOnSiteAddonFromNotes } from "@/lib/orderAddonTotal";
+import { canEditCommissionBase, resolveTeamRoleFlags } from "@/lib/commissionBaseAccess";
+
 
 interface Member {
   user_id: string;
