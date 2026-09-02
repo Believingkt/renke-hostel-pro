@@ -1461,9 +1461,14 @@ export default function AdminGroupBuy() {
 
 
           <TabsContent value="packages" className="space-y-3">
+            <GroupBuyChildRulesCard
+              campaignId={activeCampaign?.id ?? null}
+              accommodationId={accommodationId}
+            />
             <Button size="sm" onClick={addPackage}>
               <Plus className="mr-1 h-4 w-4" /> 新增方案
             </Button>
+
             {packages.map((p, idx) => (
               <GroupBuyPackageCard
                 key={p.id}
