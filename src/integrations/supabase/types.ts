@@ -1075,7 +1075,7 @@ export type Database = {
           guest_count_label?: string | null
           guest_count_max?: number | null
           id?: string
-          included_guest_count?: number
+          included_guest_count: number
           includes?: Json
           name: string
           numeric_code?: number | null
