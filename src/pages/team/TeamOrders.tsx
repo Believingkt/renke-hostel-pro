@@ -949,10 +949,29 @@ export default function TeamOrders() {
         if (error) throw error;
       }
 
+      // Persist verification：以 DB 實際保存值為準，杜絕假成功
+      if (canEditTcp && tcpChanged) {
+        const { data: persisted, error: verifyErr } = await supabase
+          .from("order_meta")
+          .select("team_commission_price")
+          .eq("order_id", editOrder.id)
+          .maybeSingle();
+        if (verifyErr) throw verifyErr;
+        const savedTcp =
+          (persisted as any)?.team_commission_price === null ||
+          (persisted as any)?.team_commission_price === undefined
+            ? null
+            : Number((persisted as any).team_commission_price);
+        if (Number(savedTcp ?? NaN) !== Number(newTcp ?? NaN)) {
+          throw new Error("分潤基準金額未成功儲存（權限不足或資料已變更），請重新整理後再試。");
+        }
+      }
+
       toast.success("已儲存");
 
       // 分潤基準金額有變動 → 推 LINE 通知（失敗不影響儲存）
-      if (tcpChanged) {
+      if (canEditTcp && tcpChanged) {
+
         void notifyOrderAmountChanged({
           orderNumber: editOrder.order_number,
           guestName: editOrder.guest_name,
