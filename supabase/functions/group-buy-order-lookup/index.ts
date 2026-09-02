@@ -323,7 +323,10 @@ Deno.serve(async (req) => {
 
         const totalRefunded = alreadyRefunded + refundAmount;
         const totalSettled = totalRefunded + alreadyRefundFee;
-        const refundStatus = paid <= 0 ? "none" : refundStatusAfterRefund(paid, totalSettled);
+        // 政策 0 元退款＝金流已「依規則處理完畢」，不得標記為退款處理中（none = 不進行退款）
+        const refundStatus = paid <= 0 || zeroRefundByPolicy
+          ? "none"
+          : refundStatusAfterRefund(paid, totalSettled);
         const paymentStatusPatch = totalSettled <= 0
           ? {}
           : { payment_status: totalSettled >= paid ? "refunded" : "partial_refunded" };
