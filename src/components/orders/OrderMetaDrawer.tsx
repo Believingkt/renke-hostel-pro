@@ -129,7 +129,12 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
   const [commissionConfirmerName, setCommissionConfirmerName] = useState<string | null>(null);
   const [lastConfirmedCommissionPrice, setLastConfirmedCommissionPrice] = useState<number | null>(null);
   const [lastConfirmedFinalPrice, setLastConfirmedFinalPrice] = useState<number | null>(null);
-  const [canEditCommissionPrice, setCanEditCommissionPrice] = useState(false);
+  /** super_admin / admin / finance：既有財務管理權限 */
+  const [isFinancialAdmin, setIsFinancialAdmin] = useState(false);
+  /** closer / closer_manager：僅能改「自己負責」的分潤基準金額 */
+  const [isCloserRole, setIsCloserRole] = useState(false);
+  /** DB 現況的成交人（ownership SoT：order_meta.closer_id） */
+  const [existingCloserId, setExistingCloserId] = useState<string | null>(null);
   /** 例外：即使來源屬免抽成清單，仍計入成交組獎金 */
   const [forceEligible, setForceEligible] = useState(false);
   const [initialForceEligible, setInitialForceEligible] = useState(false);
@@ -355,19 +360,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
           );
       setAutoTeamCommissionPrice(autoTcp);
 
-      // Determine if current user can edit 分潤基準金額 (closer / hotel_admin / super_admin)
+      // 分潤基準金額權限：財務管理層全域；closer / closer_manager 僅限自己負責的訂單
       if (uid) {
         const { data: roleRows } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", uid);
         const roles = ((roleRows ?? []) as Array<{ role: string }>).map((r) => r.role);
-        setCanEditCommissionPrice(
-          roles.includes("closer") ||
-            roles.includes("closer_manager") ||
-            roles.includes("hotel_admin") ||
-            roles.includes("super_admin"),
+        setIsFinancialAdmin(
+          roles.includes("super_admin") ||
+            roles.includes("admin") ||
+            roles.includes("finance"),
         );
+        setIsCloserRole(roles.includes("closer") || roles.includes("closer_manager"));
         setIsSuperAdmin(roles.includes("super_admin"));
         setCanForceCommission(
           roles.includes("super_admin") ||
@@ -376,7 +381,8 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
             roles.includes("closer_manager"),
         );
       } else {
-        setCanEditCommissionPrice(false);
+        setIsFinancialAdmin(false);
+        setIsCloserRole(false);
         setIsSuperAdmin(false);
         setCanForceCommission(false);
       }
@@ -400,6 +406,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
       if (existingMeta) {
         const m = existingMeta as Record<string, unknown>;
         setCloserId((m.closer_id as string) ?? NONE);
+        setExistingCloserId((m.closer_id as string) ?? null);
         setVideoCreatorId((m.video_creator_id as string) ?? NONE);
         setTrafficSource((m.traffic_source as string) ?? NONE);
         setBookingMethod((m.booking_method as string) ?? NONE);
@@ -460,6 +467,7 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         }
       } else {
         setTcpIsManual(false);
+        setExistingCloserId(null);
         setTeamCommissionPrice(autoTcp);
         setInitialTeamCommissionPrice(autoTcp);
         setCommissionConfirmedBy(null);
@@ -574,6 +582,19 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
     }
   };
 
+  /**
+   * 分潤基準金額編輯權限（UX 層；DB trigger 才是最終權威）
+   * - super_admin / admin / finance：維持既有管理權限
+   * - closer / closer_manager：僅限「自己負責」的訂單（order_meta.closer_id = 自己）
+   * - hotel_admin：無明確既有 contract → DENY
+   */
+  const canEditCommissionPrice = useMemo(() => {
+    if (isFinancialAdmin) return true;
+    if (!isCloserRole || !currentUserId) return false;
+    const ownerOk = existingCloserId === null || existingCloserId === currentUserId;
+    return ownerOk && closerId === currentUserId;
+  }, [isFinancialAdmin, isCloserRole, currentUserId, existingCloserId, closerId]);
+
   /** 目前可辨識的計獎基準（僅供顯示，不等於正式獎金） */
   const commissionBaseForDisplay = useMemo(() => {
     const base = teamCommissionPrice ?? autoTeamCommissionPrice;
@@ -650,24 +671,25 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         addon_amount: Number.isFinite(addonAmount) ? addonAmount : 0,
         nickname: nickname.trim() || null,
         deposit_confirm_date: depositConfirmDate || null,
-        team_commission_price:
-          teamCommissionPrice === null || teamCommissionPrice === undefined
-            ? null
-            : Number(teamCommissionPrice),
-        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
-        team_commission_price_is_manual: tcpChanged ? true : tcpIsManual,
         import_source: "manual",
         filled_by: currentUserId,
         filled_at: new Date().toISOString(),
       };
-      if (tcpChanged) {
-        payload.commission_price_confirmed_by = currentUserId;
-        payload.commission_price_confirmed_at = new Date().toISOString();
-        payload.last_confirmed_commission_price =
-          teamCommissionPrice === null || teamCommissionPrice === undefined
-            ? null
-            : Number(teamCommissionPrice);
-        payload.last_confirmed_final_price = finalPrice ?? null;
+      // 受保護的分潤欄位：僅在具編輯權限時送出，避免無權角色因其他欄位更新被 trigger 擋下
+      const nextTcp =
+        teamCommissionPrice === null || teamCommissionPrice === undefined
+          ? null
+          : Number(teamCommissionPrice);
+      if (canEditCommissionPrice) {
+        payload.team_commission_price = nextTcp;
+        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
+        payload.team_commission_price_is_manual = tcpChanged ? true : tcpIsManual;
+        if (tcpChanged) {
+          payload.commission_price_confirmed_by = currentUserId;
+          payload.commission_price_confirmed_at = new Date().toISOString();
+          payload.last_confirmed_commission_price = nextTcp;
+          payload.last_confirmed_final_price = finalPrice ?? null;
+        }
       }
       if (canForceCommission) {
         const forceChanged =
@@ -693,6 +715,24 @@ export function OrderMetaDrawer({ orderId, open, onClose }: Props) {
         .from("order_meta")
         .upsert(payload as any, { onConflict: "order_id" });
       if (error) throw error;
+
+      // Persist verification：確認 DB 實際保存值與送出值一致（防止假成功）
+      if (canEditCommissionPrice && tcpChanged) {
+        const { data: persisted, error: verifyErr } = await supabase
+          .from("order_meta")
+          .select("team_commission_price")
+          .eq("order_id", orderId)
+          .maybeSingle();
+        if (verifyErr) throw verifyErr;
+        const savedTcp =
+          (persisted as any)?.team_commission_price === null ||
+          (persisted as any)?.team_commission_price === undefined
+            ? null
+            : Number((persisted as any).team_commission_price);
+        if (savedTcp !== nextTcp) {
+          throw new Error("分潤基準金額未成功儲存（權限不足或資料已變更），請重新整理後再試。");
+        }
+      }
 
       // 寫入變更紀錄（行銷/分潤欄位）
       try {
