@@ -177,6 +177,10 @@ export default function TeamOrders() {
   const [isCloser, setIsCloser] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // 分潤基準金額專用旗標（對齊 DB trigger 語意，不影響既有 isAdmin/isCloser 的其他用途）
+  const [isFinancialAdmin, setIsFinancialAdmin] = useState(false);
+  const [isCloserTeamRole, setIsCloserTeamRole] = useState(false);
+
   const [confirmerNameMap, setConfirmerNameMap] = useState<Record<string, string>>({});
   const [trafficSources, setTrafficSources] = useState<
     { id: string; name: string; is_active: boolean; sort_order: number | null }[]
