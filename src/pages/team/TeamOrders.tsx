@@ -301,12 +301,18 @@ export default function TeamOrders() {
         setCurrentUserId(uid);
         const { data: roles } = await supabase
           .from("user_roles")
-          .select("role")
+          .select("role, accommodation_id")
           .eq("user_id", uid);
         const roleList = (roles ?? []).map((r: any) => r.role);
+        const flags = resolveTeamRoleFlags(
+          (roles ?? []) as Array<{ role: string; accommodation_id: string | null }>,
+        );
+        setIsFinancialAdmin(flags.isFinancialAdmin);
+        setIsCloserTeamRole(flags.isCloserRole);
         const admin = roleList.some(
           (r: string) => r === "hotel_admin" || r === "super_admin",
         );
+
         const scout = roleList.some(
           (r: string) => r === "scout" || r === "scout_manager",
         );
