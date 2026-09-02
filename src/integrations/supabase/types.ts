@@ -4554,10 +4554,12 @@ export type Database = {
           original_price: number | null
           package_id: string | null
           peak_price: number | null
+          room_type_display_text: string | null
           room_type_id: string | null
           room_type_ids: string[]
           short_summary: string | null
           show_guest_selector: boolean
+          show_room_type_display: boolean
           show_room_type_selector: boolean
           sort_order: number
           updated_at: string
@@ -4584,10 +4586,12 @@ export type Database = {
           original_price?: number | null
           package_id?: string | null
           peak_price?: number | null
+          room_type_display_text?: string | null
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
           show_guest_selector?: boolean
+          show_room_type_display?: boolean
           show_room_type_selector?: boolean
           sort_order?: number
           updated_at?: string
@@ -4614,10 +4618,12 @@ export type Database = {
           original_price?: number | null
           package_id?: string | null
           peak_price?: number | null
+          room_type_display_text?: string | null
           room_type_id?: string | null
           room_type_ids?: string[]
           short_summary?: string | null
           show_guest_selector?: boolean
+          show_room_type_display?: boolean
           show_room_type_selector?: boolean
           sort_order?: number
           updated_at?: string

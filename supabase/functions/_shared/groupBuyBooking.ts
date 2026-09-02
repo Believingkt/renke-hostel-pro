@@ -55,7 +55,7 @@ export interface GroupBuyBookingInput {
   guestNote?: string;
   /** 旅客選擇的付款方式（manual 流程：bank / atm）；由 server 依活動開關驗證 */
   paymentMethod?: string | null;
-  /** 旅客選擇的入住房型（僅當方案 show_room_type_selector = true 時採用） */
+  /** DEPRECATED：客人已無法自選房型，server 一律忽略此欄位（房型由系統自動指派） */
   roomTypeId?: string | null;
 }
 
@@ -214,9 +214,11 @@ export async function validateAndPriceGroupBuyBooking(
   );
   const childVisibility = childRules.tier_visibility;
 
-  // Server 端一律重讀方案 selector 設定，不信任 client payload
+  // Server 端一律重讀方案顯示設定，不信任 client payload
   const showGuestSelector = (pkg as any).show_guest_selector !== false;
-  const showRoomTypeSelector = (pkg as any).show_room_type_selector === true;
+  // 入住房型為純顯示文字（客人不可選）
+  const showRoomTypeDisplay = (pkg as any).show_room_type_display === true;
+  const roomTypeDisplayText = String((pkg as any).room_type_display_text ?? "").trim() || null;
   const includedGuestCount = packageIncludedGuestCount(pkg as any);
 
   let adultCount = adultCountRaw;
@@ -315,23 +317,10 @@ export async function validateAndPriceGroupBuyBooking(
     ((rtRows as any[]) ?? []).map((r) => [String(r.id), Number(r.capacity ?? 0)]),
   );
 
-  // 旅客自選房型：僅在方案開啟 show_room_type_selector 時採用，且必須在方案 mapping 內。
-  // selector OFF 時一律忽略 client 傳入的 room_type_id，沿用既有自動指派順序。
-  let requestedRoomTypeId: string | null = null;
-  if (showRoomTypeSelector) {
-    const raw = String(input.roomTypeId ?? "").trim();
-    if (raw) {
-      if (!candidateRoomTypeIds.includes(raw)) return fail("此方案不提供所選房型，請重新選擇");
-      const cap = capacityMap.get(raw) ?? 0;
-      if (cap > 0 && capacityHeadcount > cap) {
-        return fail("所選房型無法容納此入住人數，請調整入住人數或改選其他房型。");
-      }
-      requestedRoomTypeId = raw;
-    }
-  }
-
+  // 正式產品需求：客人不可選房型。room_type_ids 僅作 INTERNAL CONFIG（capacity + 庫存自動指派）。
+  // client 傳入的 roomTypeId 一律忽略（DEPRECATED payload）。
+  const pinnedRoomTypeId = opts.forceRoomTypeId ?? null;
   let roomTypeId: string | null = null;
-  const pinnedRoomTypeId = opts.forceRoomTypeId ?? requestedRoomTypeId;
   if (pinnedRoomTypeId) {
     // 房型庫存驗證 reuse 既有 group-buy inventory RPC 與同一把 lock，不另建第二套
     const rows = await groupBuyInventory(admin, {
@@ -434,9 +423,11 @@ export async function validateAndPriceGroupBuyBooking(
     capacity_guest_count: capacityHeadcount,
     overflow_guest_count: childEval.overflow,
     show_guest_selector: showGuestSelector,
-    show_room_type_selector: showRoomTypeSelector,
-    selected_room_type_id: roomTypeId,
-    room_type_selected_by: requestedRoomTypeId ? "guest" : "auto",
+    // 入住房型：純顯示文字 snapshot（管理員日後修改文案不影響既有訂單）
+    show_room_type_display: showRoomTypeDisplay,
+    room_type_display_text: showRoomTypeDisplay ? roomTypeDisplayText : null,
+    assigned_room_type_id: roomTypeId,
+    room_type_selected_by: "system",
 
     grand_total: total,
     deposit_percentage: campaign.deposit_percentage,

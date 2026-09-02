@@ -131,8 +131,10 @@ interface CampaignPackage {
   child_age_rules: unknown | null;
   /** 是否顯示「入住人數」選擇器；false＝以方案固定人數成行 */
   show_guest_selector: boolean | null;
-  /** 是否顯示「入住房型」選擇器；false＝維持系統自動指派 */
-  show_room_type_selector: boolean | null;
+  /** 是否顯示「入住房型」固定文字（純顯示，客人不可選） */
+  show_room_type_display: boolean | null;
+  /** 「入住房型」固定顯示文字，例如「雙人房 2 間＋四人房 2 間」 */
+  room_type_display_text: string | null;
   /** 方案售價已包含的入住人數；null＝沿用 max_guests */
   included_guest_count: number | null;
   room_type_id: string | null;
@@ -241,7 +243,6 @@ export default function GroupBuyCampaign() {
   const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
   const [roomCaps, setRoomCaps] = useState<Array<{ id: string; capacity: number }>>([]);
   /** 旅客自選房型（僅方案開啟房型選擇器時使用；null＝維持系統自動指派） */
-  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
   const [roomTypeNames, setRoomTypeNames] = useState<Record<string, string>>({});
 
   const [guestName, setGuestName] = useState("");
@@ -419,7 +420,9 @@ export default function GroupBuyCampaign() {
   );
   /** 方案顯示設定（後端會以同一份方案設定再驗一次） */
   const showGuestSelector = (selectedPkg as any)?.show_guest_selector !== false;
-  const showRoomTypeSelector = (selectedPkg as any)?.show_room_type_selector === true;
+  /** 入住房型：純顯示文字（客人不可選；房型仍由系統自動指派） */
+  const showRoomTypeDisplay = (selectedPkg as any)?.show_room_type_display === true;
+  const roomTypeDisplayText = String((selectedPkg as any)?.room_type_display_text ?? "").trim();
   /** 方案售價已包含人數；null＝沿用 max_guests（未設定則無 included capacity 折抵） */
   const includedGuestCount = useMemo(() => {
     const inc = Number((selectedPkg as any)?.included_guest_count ?? 0);
@@ -550,7 +553,7 @@ export default function GroupBuyCampaign() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setSelectedRoomTypeId(null);
+      
       if (!selectedPkg) {
         setPkgChildOverride(null);
         setRoomCaps([]);
@@ -738,7 +741,6 @@ export default function GroupBuyCampaign() {
           childCount: effectiveGuests.children,
           toddlerCount: effectiveGuests.toddlers,
           infantCount: effectiveGuests.infants,
-          roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
           guestName,
           guestPhone,
           guestEmail,
@@ -1436,31 +1438,11 @@ export default function GroupBuyCampaign() {
                   <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
                 )}
 
-                {showRoomTypeSelector && fittingRoomTypeIds.length > 0 && (
+                {showRoomTypeDisplay && !!roomTypeDisplayText && (
                   <div className="mt-4">
                     <p className="text-sm font-medium text-foreground">入住房型</p>
-                    <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                      {fittingRoomTypeIds.map((rtId) => {
-                        const active = selectedRoomTypeId === rtId;
-                        return (
-                          <button
-                            key={rtId}
-                            type="button"
-                            onClick={() => setSelectedRoomTypeId(active ? null : rtId)}
-                            aria-pressed={active}
-                            className={`rounded-xl border px-3.5 py-3 text-left text-base transition ${
-                              active
-                                ? "border-primary bg-primary/5 font-medium text-foreground"
-                                : "border-border/70 bg-card text-muted-foreground hover:border-primary/50"
-                            }`}
-                          >
-                            {roomTypeNames[rtId] ?? "房型"}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                      未選擇時將由系統依可訂狀況自動安排房型。
+                    <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-muted-foreground">
+                      {roomTypeDisplayText}
                     </p>
                   </div>
                 )}
@@ -1893,7 +1875,6 @@ export default function GroupBuyCampaign() {
             childCount: effectiveGuests.children,
             toddlerCount: effectiveGuests.toddlers,
             infantCount: effectiveGuests.infants,
-            roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
             guestName,
             guestPhone,
             guestEmail,

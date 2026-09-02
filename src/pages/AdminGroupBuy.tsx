@@ -199,7 +199,8 @@ interface PackageRow {
   max_quantity: number | null;
   included_guest_count: number | null;
   show_guest_selector: boolean | null;
-  show_room_type_selector: boolean | null;
+  show_room_type_display: boolean | null;
+  room_type_display_text: string | null;
   child_age_rules: unknown | null;
   /** 方案最多入住人數；NULL＝沿用房型 capacity */
   max_guests: number | null;
