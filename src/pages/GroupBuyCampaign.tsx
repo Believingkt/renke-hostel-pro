@@ -420,7 +420,9 @@ export default function GroupBuyCampaign() {
   );
   /** 方案顯示設定（後端會以同一份方案設定再驗一次） */
   const showGuestSelector = (selectedPkg as any)?.show_guest_selector !== false;
-  const showRoomTypeSelector = (selectedPkg as any)?.show_room_type_selector === true;
+  /** 入住房型：純顯示文字（客人不可選；房型仍由系統自動指派） */
+  const showRoomTypeDisplay = (selectedPkg as any)?.show_room_type_display === true;
+  const roomTypeDisplayText = String((selectedPkg as any)?.room_type_display_text ?? "").trim();
   /** 方案售價已包含人數；null＝沿用 max_guests（未設定則無 included capacity 折抵） */
   const includedGuestCount = useMemo(() => {
     const inc = Number((selectedPkg as any)?.included_guest_count ?? 0);
