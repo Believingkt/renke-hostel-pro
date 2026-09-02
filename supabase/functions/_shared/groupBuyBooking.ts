@@ -14,12 +14,14 @@ import {
   splitDeposit,
   verifyInventory,
 } from "./groupBuy.ts";
+import { type ChildAgeRules } from "./groupBuyChildRules.ts";
+import { resolveGroupBuyPackageChildRules } from "./groupBuyCampaignChildRules.ts";
 import {
-  type ChildAgeRules,
-  type ChildEvaluation,
-  evaluateChildSelection,
-} from "./groupBuyChildRules.ts";
-import { resolveGroupBuyChildRules } from "./groupBuyCampaignChildRules.ts";
+  evaluateGroupBuyChildSelection,
+  type GroupBuyChildEvaluation,
+  packageIncludedGuestCount,
+} from "./groupBuyIncludedCapacity.ts";
+
 
 
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
