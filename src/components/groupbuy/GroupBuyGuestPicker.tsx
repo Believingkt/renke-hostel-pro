@@ -4,14 +4,22 @@ import { Button } from "@/components/ui/button";
 import type { ChildAgeRules, ChildTierKey } from "@/lib/child-rules";
 import { TIER_ORDER } from "@/lib/child-rules";
 import { formatGuestComposition, type GuestCounts } from "@/lib/groupBuyGuests";
+import {
+  DEFAULT_CHILD_TIER_VISIBILITY,
+  anyChildTierVisible,
+  type ChildTierVisibility,
+} from "@/lib/groupBuyChildVisibility";
 
 interface Props {
   value: GuestCounts;
   onChange: (next: GuestCounts) => void;
   rules: ChildAgeRules;
+  /** 團購方案層的年齡層顯示設定；未傳＝三種全顯示 */
+  visibility?: ChildTierVisibility;
   /** 規則不符時的提示（由 evaluateChildSelection 產生） */
   blockReason?: string;
 }
+
 
 function tierField(key: ChildTierKey): keyof GuestCounts {
   if (key === "infant") return "infants";
