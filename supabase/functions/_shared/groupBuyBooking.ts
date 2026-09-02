@@ -264,16 +264,19 @@ export async function validateAndPriceGroupBuyBooking(
   const n = calcNights(checkInDate, checkOutDate);
   const dates = nightDates(checkInDate, n);
 
-  // 4) 兒童規則（已於上方以 campaign-level 規則解析）
+  // 4) 兒童規則（per-package）＋ Package Included Capacity 計價
+  //    方案已包含的人頭不得因兒童分類再被二次加價；硬限制維持既有 contract。
 
-  const childEval = evaluateChildSelection(
+  const childEval = evaluateGroupBuyChildSelection(
     childRules,
     { infants: infantCount, toddlers: toddlerCount, children: childCount },
     n,
     adultCount,
+    includedGuestCount,
   );
   if (childEval.blocked) return fail(childEval.blockReason ?? "入住人數不符合民宿規定");
-  const capacityHeadcount = adultCount + childEval.capacityHeadcount;
+  const capacityHeadcount = childEval.capacityHeadcount;
+
 
   const pkgMaxGuests = pkg.max_guests == null ? null : Number(pkg.max_guests);
   if (pkgMaxGuests && pkgMaxGuests > 0 && capacityHeadcount > pkgMaxGuests) {
