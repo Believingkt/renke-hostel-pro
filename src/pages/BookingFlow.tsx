@@ -13,6 +13,10 @@ import { qualifyReferral } from "@/lib/referral";
 
 import { fetchRoomScopeAmenities } from "@/lib/roomScopeFacilities";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  evaluateIncludedCapacityPricing,
+  resolveIncludedGuestCount,
+} from "@/lib/includedCapacityPricing";
 import { FULL_PREPAYMENT_CHARGE_NOTICE, FULL_PREPAYMENT_POLICY_LINES } from "@/lib/cancellation-policy";
 import { atmAmountLimitMessage, isAtmAmountAllowed } from "@/lib/atmLimits";
 import { getDepositBreakdown } from "@/lib/bookingDeposit";
@@ -1201,6 +1205,8 @@ const BookingFlow = () => {
     original_price: number | null;
     tier_prices: Record<string, { sale?: number; original?: number }> | null;
     applicable_tiers: string[] | null;
+    /** 方案售價已包含的入住人數（SHARED INCLUDED CAPACITY CONTRACT） */
+    guest_count: number | null;
   } | null>(null);
 
   useEffect(() => {
@@ -1212,7 +1218,7 @@ const BookingFlow = () => {
     (async () => {
       const { data } = await supabase
         .from("accommodation_packages")
-        .select("name, subtitle, room_allocation, room_type_allocation, includes, sale_price, original_price, tier_prices, applicable_tiers")
+        .select("name, subtitle, room_allocation, room_type_allocation, includes, sale_price, original_price, tier_prices, applicable_tiers, guest_count")
         .eq("id", selectedPackageId)
         .maybeSingle();
       if (cancelled || !data) return;
@@ -1231,6 +1237,7 @@ const BookingFlow = () => {
         original_price: d.original_price != null ? Number(d.original_price) : null,
         tier_prices: d.tier_prices && typeof d.tier_prices === "object" ? d.tier_prices : null,
         applicable_tiers: Array.isArray(d.applicable_tiers) ? d.applicable_tiers : null,
+        guest_count: d.guest_count != null ? Number(d.guest_count) : null,
       });
     })();
     return () => {
@@ -2269,12 +2276,16 @@ const BookingFlow = () => {
     children: contextGuests?.children || 0,
   });
 
+  /** 方案售價已包含人數（無方案時 null → 沿用既有行為） */
+  const includedGuestCount = resolveIncludedGuestCount(selectedPackage?.guest_count);
+
   const evaluateChildren = () =>
-    evaluateChildSelection(
+    evaluateIncludedCapacityPricing(
       childRules,
       getChildSelection(),
       calculateNights(),
       contextGuests?.adults || 2,
+      includedGuestCount,
     );
 
 
@@ -2990,11 +3001,12 @@ const BookingFlow = () => {
 
     // 兒童分齡：阻擋不接受的年齡層或超過上限的選擇
     const childSelection = getChildSelection();
-    const childEval = evaluateChildSelection(
+    const childEval = evaluateIncludedCapacityPricing(
       childRules,
       childSelection,
       calculateNights(),
       contextGuests?.adults || 2,
+      includedGuestCount,
     );
     if (childEval.blocked) {
       toast({
