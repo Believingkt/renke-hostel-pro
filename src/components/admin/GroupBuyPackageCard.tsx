@@ -36,8 +36,10 @@ export interface PackageCardRow {
   included_guest_count: number | null;
   /** 團購頁是否顯示「入住人數」選擇器 */
   show_guest_selector: boolean | null;
-  /** 團購頁是否顯示「入住房型」選擇器 */
-  show_room_type_selector: boolean | null;
+  /** 團購頁是否顯示「入住房型」固定文字 */
+  show_room_type_display: boolean | null;
+  /** 「入住房型」固定顯示文字 */
+  room_type_display_text: string | null;
   /** 方案層兒童分齡規則（PER PACKAGE，正式 SoT） */
   child_age_rules: unknown | null;
   is_active: boolean;
