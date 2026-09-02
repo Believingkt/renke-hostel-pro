@@ -27,12 +27,15 @@ serve(async (req) => {
   // 寬限期：銀行入帳／TapPay 回呼可能延遲，逾期後再等 GRACE_MINUTES 才取消
   const GRACE_MINUTES = 3;
   const cutoffIso = new Date(Date.now() - GRACE_MINUTES * 60_000).toISOString();
+  // LEGACY CONTRACT：group_buy_payment_deadline_at IS NULL 的訂單，一律沿用原本
+  // 「TapPay provider VA 期限（atm_expire_at）」的取消生命週期，行為完全不變。
   const { data: expired, error } = await supabase
     .from('orders')
     .select('id, order_number, accommodation_id, atm_expire_at, paid_amount, notes')
     .eq('payment_status', 'pending_payment')
     .not('atm_vacc_no', 'is', null)
     .neq('order_status', 'cancelled')
+    .is('group_buy_payment_deadline_at', null)
     .lt('atm_expire_at', cutoffIso)
     .limit(200);
 
