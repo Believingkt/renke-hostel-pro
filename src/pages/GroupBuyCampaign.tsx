@@ -131,8 +131,10 @@ interface CampaignPackage {
   child_age_rules: unknown | null;
   /** 是否顯示「入住人數」選擇器；false＝以方案固定人數成行 */
   show_guest_selector: boolean | null;
-  /** 是否顯示「入住房型」選擇器；false＝維持系統自動指派 */
-  show_room_type_selector: boolean | null;
+  /** 是否顯示「入住房型」固定文字（純顯示，客人不可選） */
+  show_room_type_display: boolean | null;
+  /** 「入住房型」固定顯示文字，例如「雙人房 2 間＋四人房 2 間」 */
+  room_type_display_text: string | null;
   /** 方案售價已包含的入住人數；null＝沿用 max_guests */
   included_guest_count: number | null;
   room_type_id: string | null;
