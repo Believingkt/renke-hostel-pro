@@ -11,10 +11,7 @@ import { ChevronDown, CopyPlus, Trash2 } from "lucide-react";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
-import { TIER_ORDER, type ChildTierKey } from "@/lib/child-rules";
-import { parseChildTierVisibility } from "@/lib/groupBuyChildVisibility";
 
-const TIER_LABEL: Record<ChildTierKey, string> = { infant: "嬰兒", toddler: "幼兒", child: "兒童" };
 
 export interface PackageCardRow {
   id: string;
