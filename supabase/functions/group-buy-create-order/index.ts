@@ -95,12 +95,35 @@ Deno.serve(async (req) => {
     const requestedMethod = typeof body.paymentMethod === "string" ? body.paymentMethod : null;
     const isAtm = requestedMethod === "atm" || !bankEnabled;
 
+    // ATM 新制：本地付款期限必須能被 TapPay provider 期限覆蓋（>168h 一律不得建立 ATM 訂單）
+    if (isAtm && exceedsAtmDeadlineLimit(campaign.payment_deadline_hours)) {
+      return json({ error: ATM_DEADLINE_TOO_LONG_MESSAGE }, 400);
+    }
+
     const created = await createGroupBuyOrderCore(admin, plan, {
       paymentProvider: campaignPayment.provider,
       paymentMethod: isAtm ? "atm" : campaignPayment.paymentMethod,
     });
     if (!created.ok) return json({ error: created.error }, created.status);
     const order = created.order;
+
+    /**
+     * ATM NEW CONTRACT：寫入本地商業付款期限（絕對時間，之後活動改設定也不重算）。
+     * 只寫新訂單、只在欄位仍為 NULL 時寫入；不得碰 atm_expire_at（provider 期限）。
+     */
+    let localDeadline: Date | null = null;
+    if (isAtm) {
+      localDeadline = computeLocalDeadline(
+        order.created_at ?? order.order_date ?? new Date().toISOString(),
+        campaign.payment_deadline_hours,
+      );
+      const { error: dlErr } = await admin
+        .from("orders")
+        .update({ group_buy_payment_deadline_at: localDeadline.toISOString() })
+        .eq("id", order.id)
+        .is("group_buy_payment_deadline_at", null);
+      if (dlErr) console.error(`[${FN}] write local deadline failed`, dlErr);
+    }
 
     const total = plan.total;
     const deposit = plan.deposit;
