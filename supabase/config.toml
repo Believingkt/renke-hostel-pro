@@ -170,4 +170,6 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.create-trip-order]
     verify_jwt = false
+  [functions.team-view-query]
+    verify_jwt = false
 

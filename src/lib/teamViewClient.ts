@@ -65,12 +65,20 @@ function createQueue(viewUserId?: string | null) {
       const chunk = items.slice(i, i + BATCH_SIZE);
       void (async () => {
         try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const accessToken = sessionData?.session?.access_token;
+          if (!accessToken) {
+            chunk.forEach((c) => c.resolve({ data: null, error: { message: "尚未登入或連線階段已過期，請重新登入" } }));
+            return;
+          }
           const { data, error } = await supabase.functions.invoke("team-view-query", {
+            headers: { Authorization: `Bearer ${accessToken}` },
             body: {
               viewUserId: viewUserId ?? null,
               batch: chunk.map((c) => ({ table: c.table, ops: c.ops })),
             },
           });
+
           if (error) {
             chunk.forEach((c) => c.resolve({ data: null, error: { message: error.message } }));
             return;
