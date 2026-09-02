@@ -427,6 +427,17 @@ export async function validateAndPriceGroupBuyBooking(
     base_accommodation_total: baseTotal,
     child_extra_total: childExtraTotal,
     child_breakdown: childEval.breakdown,
+    // 團購方案「已包含人數」計價輸入（immutable snapshot；日後管理員修改方案設定不影響既有訂單）
+    child_rules_scope: (pkg as any).child_age_rules ? "package" : "campaign_fallback",
+    child_rules_snapshot: childRules,
+    included_guest_count: includedGuestCount,
+    capacity_guest_count: capacityHeadcount,
+    overflow_guest_count: childEval.overflow,
+    show_guest_selector: showGuestSelector,
+    show_room_type_selector: showRoomTypeSelector,
+    selected_room_type_id: roomTypeId,
+    room_type_selected_by: requestedRoomTypeId ? "guest" : "auto",
+
     grand_total: total,
     deposit_percentage: campaign.deposit_percentage,
     deposit,
