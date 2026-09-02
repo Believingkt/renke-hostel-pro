@@ -43,7 +43,7 @@ export function nextRetryAt(retryCount: number): string | null {
 }
 
 const ORDER_FIELDS =
-  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount";
+  "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, room_charge_status, room_charge_rec_trade_id, notes, refunded_amount, cancellation_fee_amount, cancelled_at";
 
 export interface ProcessResult {
   matched: boolean;
