@@ -199,6 +199,8 @@ interface PackageRow {
   max_quantity: number | null;
   /** 方案最多入住人數；NULL＝沿用房型 capacity */
   max_guests: number | null;
+  /** 團購頁年齡層顯示設定；NULL＝三種全顯示 */
+  child_tier_visibility?: unknown;
 
   sort_order: number;
   is_active: boolean;
