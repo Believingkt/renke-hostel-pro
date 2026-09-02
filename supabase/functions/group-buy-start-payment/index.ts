@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
     const { data: campaign } = commission?.campaign_id
       ? await admin
         .from("group_buy_campaigns")
-        .select("id, title, enable_atm, deposit_percentage")
+        .select("id, title, enable_atm, deposit_percentage, payment_deadline_hours")
         .eq("id", commission.campaign_id)
         .maybeSingle()
       : { data: null as any };
@@ -223,10 +223,31 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "此活動未開放 ATM 虛擬帳號付款" }, 400);
     }
 
+    // ── 2.5) ATM NEW CONTRACT：本地商業付款期限 ＋ provider 天數 ──
+    const deadlineHours = Number(campaign.payment_deadline_hours ?? 72);
+    if (exceedsAtmDeadlineLimit(deadlineHours)) {
+      return json({ success: false, error: ATM_DEADLINE_TOO_LONG_MESSAGE }, 400);
+    }
+    // 已寫入者永不重算；僅在仍為 NULL 時以 server 端建單時間補寫（新訂單保險絲）
+    let localDeadlineIso: string | null = (order as any).group_buy_payment_deadline_at ?? null;
+    if (!localDeadlineIso) {
+      localDeadlineIso = computeLocalDeadline(
+        (order as any).created_at ?? (order as any).order_date ?? new Date().toISOString(),
+        deadlineHours,
+      ).toISOString();
+      await admin
+        .from("orders")
+        .update({ group_buy_payment_deadline_at: localDeadlineIso })
+        .eq("id", order.id)
+        .is("group_buy_payment_deadline_at", null);
+    }
+    const expireInDays = providerExpireDays(deadlineHours);
+
     // ── 3) 應收金額：唯一 SoT = orders.deposit_amount（不再 fallback 重算） ──
     const due = resolveGroupBuyAtmDue(order);
     if (!due.ok) return json({ success: false, error: due.error }, due.status);
     const dueAmount = due.dueAmount;
+
 
 
     // ── 4) 共用既有正式 ATM 函式（含既有 reuse／上限／驗價行為） ──
