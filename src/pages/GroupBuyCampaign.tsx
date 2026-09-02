@@ -61,6 +61,11 @@ import {
   toChildSelection,
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
+import {
+  anyChildTierVisible,
+  applyVisibilityToGuests,
+  parseChildTierVisibility,
+} from "@/lib/groupBuyChildVisibility";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
@@ -432,8 +437,8 @@ export default function GroupBuyCampaign() {
   const guestError =
     childEval.blockReason || pkgMaxGuestsError || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
 
-  const guestCount = billableGuestCount(guests);
-  const guestSummary = formatGuestComposition(guests, childRules);
+  const guestCount = billableGuestCount(effectiveGuests);
+  const guestSummary = formatGuestComposition(effectiveGuests, childRules);
 
   /** 逐晚計價（平日／旺日／假日；國定假日優先）。最終金額仍以後端重算為準 */
   const stayPrice = useMemo(
@@ -693,10 +698,10 @@ export default function GroupBuyCampaign() {
           checkOutDate: checkOut,
           roomQuantity,
           guestCount,
-          adultCount: guests.adults,
-          childCount: guests.children,
-          toddlerCount: guests.toddlers,
-          infantCount: guests.infants,
+          adultCount: effectiveGuests.adults,
+          childCount: effectiveGuests.children,
+          toddlerCount: effectiveGuests.toddlers,
+          infantCount: effectiveGuests.infants,
           guestName,
           guestPhone,
           guestEmail,
@@ -1399,6 +1404,7 @@ export default function GroupBuyCampaign() {
                     value={guests}
                     onChange={setGuests}
                     rules={childRules}
+                    visibility={childVisibility}
                     blockReason={guestError}
                   />
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
@@ -1808,10 +1814,10 @@ export default function GroupBuyCampaign() {
             campaignPackageId: selectedPkg.id,
             checkInDate: checkIn,
             checkOutDate: checkOut,
-            adultCount: guests.adults,
-            childCount: guests.children,
-            toddlerCount: guests.toddlers,
-            infantCount: guests.infants,
+            adultCount: effectiveGuests.adults,
+            childCount: effectiveGuests.children,
+            toddlerCount: effectiveGuests.toddlers,
+            infantCount: effectiveGuests.infants,
             guestName,
             guestPhone,
             guestEmail,
