@@ -148,7 +148,8 @@ describe("信用卡路徑不得建立 business review", () => {
     expect(block).toContain("self_cancel_technical_exception");
     expect(block).toContain("payment_exception");
     expect(block).not.toContain('event_type: "cancel_requested"');
-    expect(block).not.toContain("審核");
+    expect(block).not.toContain("等待審核");
+    expect(block).not.toContain("民宿正在審核");
   });
 
   it("信用卡不進人工審核分支（canAutoHandle 以 isCardOrder 判定）", () => {

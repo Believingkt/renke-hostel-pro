@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
             title: "⚠️ 團購信用卡自助取消：系統無法自動處理",
             description:
               `訂單 ${order.order_number} 的旅客已提出取消，但${CARD_SELF_CANCEL_EXCEPTION_LABEL[cardException]}，` +
-              `系統未執行退款也未取消訂單。這是技術／設定異常，請至「金流稽核」修正後完成處理（非取消審核）。`,
+              `系統未執行退款也未取消訂單。這是技術／設定異常，請至「金流稽核」修正後完成處理（技術異常，非人工同意取消）。`,
             is_read: false,
           });
         } catch (e) {
