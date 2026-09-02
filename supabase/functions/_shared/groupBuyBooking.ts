@@ -245,17 +245,8 @@ export async function validateAndPriceGroupBuyBooking(
   const n = calcNights(checkInDate, checkOutDate);
   const dates = nightDates(checkInDate, n);
 
-  // 4) 兒童規則
-  const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
-    admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
-    pkg.package_id
-      ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
-      : Promise.resolve({ data: null } as any),
-  ]);
-  const childRules = resolveChildRules(
-    (accInfoRow as any)?.child_age_rules,
-    (accPkgRow as any)?.child_age_rules_override ?? null,
-  );
+  // 4) 兒童規則（已於上方以 campaign-level 規則解析）
+
   const childEval = evaluateChildSelection(
     childRules,
     { infants: infantCount, toddlers: toddlerCount, children: childCount },
