@@ -53,7 +53,7 @@ import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/Group
 import { taipeiToday } from "@/lib/taipeiToday";
 import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
 
-import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
+import { evaluateChildSelection } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
   billableGuestCount,
@@ -61,11 +61,9 @@ import {
   toChildSelection,
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
-import {
-  anyChildTierVisible,
-  applyVisibilityToGuests,
-  parseChildTierVisibility,
-} from "@/lib/groupBuyChildVisibility";
+import { applyVisibilityToGuests } from "@/lib/groupBuyChildVisibility";
+import { anyGroupBuyTierVisible, resolveGroupBuyChildRules } from "@/lib/groupBuyChildRules";
+
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
@@ -108,6 +106,8 @@ interface Campaign {
   enable_bank_transfer?: boolean | null;
   enable_atm?: boolean | null;
   enable_credit_card?: boolean | null;
+  /** 團購活動層兒童分齡規則（所有方案共用）；NULL＝沿用既有行為 */
+  child_age_rules?: unknown;
 }
 
 interface CampaignPackage {
@@ -128,7 +128,6 @@ interface CampaignPackage {
   /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
   max_guests: number | null;
   /** 團購專用年齡層顯示設定；null＝三種全顯示（既有活動相容） */
-  child_tier_visibility?: unknown;
 
 
   room_type_id: string | null;
@@ -395,17 +394,22 @@ export default function GroupBuyCampaign() {
     };
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
-  /** 兒童分齡規則：完全沿用民宿設定，方案有覆寫時以覆寫為準 */
+  /**
+   * 團購兒童分齡規則：以活動層（campaign）設定為唯一來源，所有方案共用。
+   * campaign.child_age_rules 尚未設定時，fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+   */
   const childRules = useMemo(
-    () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
-    [accInfo, pkgChildOverride],
+    () =>
+      resolveGroupBuyChildRules(
+        (campaign as any)?.child_age_rules,
+        (accInfo as any)?.child_age_rules,
+        pkgChildOverride,
+      ),
+    [campaign, accInfo, pkgChildOverride],
   );
-  /** 團購專用：方案層年齡層顯示設定（不寫回一般訂房規則） */
-  const childVisibility = useMemo(
-    () => parseChildTierVisibility((selectedPkg as any)?.child_tier_visibility),
-    [selectedPkg],
-  );
-  const showChildTiers = anyChildTierVisible(childVisibility);
+  const childVisibility = childRules.tier_visibility;
+  const showChildTiers = anyGroupBuyTierVisible(childRules);
+
   /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
   const effectiveGuests = useMemo(
     () => applyVisibilityToGuests(guests, childVisibility),

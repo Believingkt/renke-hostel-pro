@@ -11,10 +11,7 @@ import { ChevronDown, CopyPlus, Trash2 } from "lucide-react";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
-import { TIER_ORDER, type ChildTierKey } from "@/lib/child-rules";
-import { parseChildTierVisibility } from "@/lib/groupBuyChildVisibility";
 
-const TIER_LABEL: Record<ChildTierKey, string> = { infant: "嬰兒", toddler: "幼兒", child: "兒童" };
 
 export interface PackageCardRow {
   id: string;
@@ -35,7 +32,6 @@ export interface PackageCardRow {
   max_quantity: number | null;
   max_guests: number | null;
   /** 團購頁年齡層顯示設定（僅影響團購頁顯示，不動民宿兒童分齡規則） */
-  child_tier_visibility?: unknown;
   is_active: boolean;
 }
 
@@ -234,29 +230,6 @@ export function GroupBuyPackageCard({
               onChange={(e) => onPatch({ max_guests: e.target.value === "" ? null : Number(e.target.value) })}
             />
             <p className="mt-1 text-xs text-muted-foreground">留空則依房型原本人數上限。</p>
-          </div>
-          <div className="md:col-span-2 rounded-md border p-3">
-            <Label>兒童分齡規則（團購頁顯示）</Label>
-            <p className="mb-2 mt-1 text-xs text-muted-foreground">
-              只控制本團購方案的人數選項是否顯示，不會修改民宿的兒童分齡規則，也不影響一般訂房頁。
-              關閉不會刪除原設定；三個全部關閉時，團購頁只會顯示成人。
-            </p>
-            <div className="space-y-2">
-              {[...TIER_ORDER].reverse().map((key) => {
-                const vis = parseChildTierVisibility(p.child_tier_visibility);
-                return (
-                  <div key={key} className="flex items-center gap-2">
-                    <Switch
-                      checked={vis[key]}
-                      onCheckedChange={(v) =>
-                        onPatch({ child_tier_visibility: { ...vis, [key]: v } })
-                      }
-                    />
-                    <span className="text-sm">{TIER_LABEL[key]}｜團購頁顯示</span>
-                  </div>
-                );
-              })}
-            </div>
           </div>
           <div className="flex items-center gap-2 md:col-span-2">
             <Switch checked={p.is_active} onCheckedChange={(v) => onPatch({ is_active: v })} />

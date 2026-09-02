@@ -68,6 +68,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import { GroupBuyCampaignDangerZone } from "@/components/admin/GroupBuyCampaignDangerZone";
 import GroupBuyPackageCard from "@/components/admin/GroupBuyPackageCard";
+import GroupBuyChildRulesCard from "@/components/admin/GroupBuyChildRulesCard";
 import GroupBuyAnalyticsTab from "@/components/admin/GroupBuyAnalyticsTab";
 import GroupBuyCommissionStatusPanel from "@/components/admin/GroupBuyCommissionStatusPanel";
 import GroupBuyCommissionRateDialog, { type CommissionRateApplyMode } from "@/components/admin/GroupBuyCommissionRateDialog";
@@ -200,7 +201,6 @@ interface PackageRow {
   /** 方案最多入住人數；NULL＝沿用房型 capacity */
   max_guests: number | null;
   /** 團購頁年齡層顯示設定；NULL＝三種全顯示 */
-  child_tier_visibility?: unknown;
 
   sort_order: number;
   is_active: boolean;
@@ -1462,9 +1462,14 @@ export default function AdminGroupBuy() {
 
 
           <TabsContent value="packages" className="space-y-3">
+            <GroupBuyChildRulesCard
+              campaignId={activeCampaign?.id ?? null}
+              accommodationId={accommodationId}
+            />
             <Button size="sm" onClick={addPackage}>
               <Plus className="mr-1 h-4 w-4" /> 新增方案
             </Button>
+
             {packages.map((p, idx) => (
               <GroupBuyPackageCard
                 key={p.id}
