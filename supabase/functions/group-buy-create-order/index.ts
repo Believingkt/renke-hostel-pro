@@ -221,7 +221,8 @@ Deno.serve(async (req) => {
       console.error(`[${FN}] venue notify threw`, venueErr);
     }
 
-    const deadline = paymentDeadline(
+    // ATM 新制：一律回傳已寫入訂單的本地付款期限（與 ATM 區塊完全一致）
+    const deadline = localDeadline ?? paymentDeadline(
       order.created_at ?? order.order_date ?? new Date().toISOString(),
       campaign.payment_deadline_hours,
     );
