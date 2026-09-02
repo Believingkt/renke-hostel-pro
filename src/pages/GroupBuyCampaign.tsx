@@ -53,7 +53,7 @@ import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/Group
 import { taipeiToday } from "@/lib/taipeiToday";
 import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
 
-import { evaluateChildSelection, resolveChildRules } from "@/lib/child-rules";
+import { evaluateChildSelection } from "@/lib/child-rules";
 import {
   DEFAULT_GUEST_COUNTS,
   billableGuestCount,
@@ -61,11 +61,9 @@ import {
   toChildSelection,
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
-import {
-  anyChildTierVisible,
-  applyVisibilityToGuests,
-  parseChildTierVisibility,
-} from "@/lib/groupBuyChildVisibility";
+import { applyVisibilityToGuests } from "@/lib/groupBuyChildVisibility";
+import { anyGroupBuyTierVisible, resolveGroupBuyChildRules } from "@/lib/groupBuyChildRules";
+
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
