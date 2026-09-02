@@ -91,7 +91,11 @@ Deno.serve(async (req) => {
       Number(order.final_price ?? order.total_price ?? 0),
       depositPct,
     );
-    const deadline = paymentDeadline(order.order_date ?? new Date().toISOString(), campaign?.payment_deadline_hours ?? 72);
+    // NEW CONTRACT：已寫入 group_buy_payment_deadline_at 者，前台顯示一律以它為準；
+    // LEGACY（NULL）維持原本以 order_date + payment_deadline_hours 推算。
+    const deadline = (order as any).group_buy_payment_deadline_at
+      ? new Date((order as any).group_buy_payment_deadline_at)
+      : paymentDeadline(order.order_date ?? new Date().toISOString(), campaign?.payment_deadline_hours ?? 72);
 
     const { data: events } = await admin
       .from("group_buy_payment_events")
