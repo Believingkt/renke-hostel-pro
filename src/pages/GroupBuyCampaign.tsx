@@ -1436,31 +1436,11 @@ export default function GroupBuyCampaign() {
                   <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
                 )}
 
-                {showRoomTypeSelector && fittingRoomTypeIds.length > 0 && (
+                {showRoomTypeDisplay && !!roomTypeDisplayText && (
                   <div className="mt-4">
                     <p className="text-sm font-medium text-foreground">入住房型</p>
-                    <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                      {fittingRoomTypeIds.map((rtId) => {
-                        const active = selectedRoomTypeId === rtId;
-                        return (
-                          <button
-                            key={rtId}
-                            type="button"
-                            onClick={() => setSelectedRoomTypeId(active ? null : rtId)}
-                            aria-pressed={active}
-                            className={`rounded-xl border px-3.5 py-3 text-left text-base transition ${
-                              active
-                                ? "border-primary bg-primary/5 font-medium text-foreground"
-                                : "border-border/70 bg-card text-muted-foreground hover:border-primary/50"
-                            }`}
-                          >
-                            {roomTypeNames[rtId] ?? "房型"}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                      未選擇時將由系統依可訂狀況自動安排房型。
+                    <p className="mt-1 whitespace-pre-line text-base leading-relaxed text-muted-foreground">
+                      {roomTypeDisplayText}
                     </p>
                   </div>
                 )}
