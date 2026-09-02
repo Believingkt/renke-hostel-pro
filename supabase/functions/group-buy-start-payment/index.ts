@@ -8,6 +8,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { resolveGroupBuyAtmDue } from "../_shared/groupBuyAtmDue.ts";
+import {
+  ATM_DEADLINE_TOO_LONG_MESSAGE,
+  computeLocalDeadline,
+  exceedsAtmDeadlineLimit,
+  providerExpireDays,
+} from "../_shared/groupBuyAtmDeadline.ts";
 
 const FN = "group-buy-start-payment";
 
@@ -183,7 +189,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, order_source, order_status, payment_status, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount",
+        "id, order_number, order_source, order_status, payment_status, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, created_at, order_date, group_buy_payment_deadline_at",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
@@ -208,7 +214,7 @@ Deno.serve(async (req) => {
     const { data: campaign } = commission?.campaign_id
       ? await admin
         .from("group_buy_campaigns")
-        .select("id, title, enable_atm, deposit_percentage")
+        .select("id, title, enable_atm, deposit_percentage, payment_deadline_hours")
         .eq("id", commission.campaign_id)
         .maybeSingle()
       : { data: null as any };
@@ -217,10 +223,31 @@ Deno.serve(async (req) => {
       return json({ success: false, error: "此活動未開放 ATM 虛擬帳號付款" }, 400);
     }
 
+    // ── 2.5) ATM NEW CONTRACT：本地商業付款期限 ＋ provider 天數 ──
+    const deadlineHours = Number(campaign.payment_deadline_hours ?? 72);
+    if (exceedsAtmDeadlineLimit(deadlineHours)) {
+      return json({ success: false, error: ATM_DEADLINE_TOO_LONG_MESSAGE }, 400);
+    }
+    // 已寫入者永不重算；僅在仍為 NULL 時以 server 端建單時間補寫（新訂單保險絲）
+    let localDeadlineIso: string | null = (order as any).group_buy_payment_deadline_at ?? null;
+    if (!localDeadlineIso) {
+      localDeadlineIso = computeLocalDeadline(
+        (order as any).created_at ?? (order as any).order_date ?? new Date().toISOString(),
+        deadlineHours,
+      ).toISOString();
+      await admin
+        .from("orders")
+        .update({ group_buy_payment_deadline_at: localDeadlineIso })
+        .eq("id", order.id)
+        .is("group_buy_payment_deadline_at", null);
+    }
+    const expireInDays = providerExpireDays(deadlineHours);
+
     // ── 3) 應收金額：唯一 SoT = orders.deposit_amount（不再 fallback 重算） ──
     const due = resolveGroupBuyAtmDue(order);
     if (!due.ok) return json({ success: false, error: due.error }, due.status);
     const dueAmount = due.dueAmount;
+
 
 
     // ── 4) 共用既有正式 ATM 函式（含既有 reuse／上限／驗價行為） ──
@@ -240,7 +267,7 @@ Deno.serve(async (req) => {
           email: order.guest_email || "noreply@lakeze.com",
           phoneNumber: order.guest_phone || "",
         },
-        expireInDays: 3,
+        expireInDays,
       }),
     });
     const result = await resp.json().catch(() => ({} as any));
@@ -259,7 +286,7 @@ Deno.serve(async (req) => {
         event_type: "atm_created",
         amount: dueAmount,
         actor_label: "system",
-        note: `provider:tappay／payment_type:atm／已開立虛擬帳號 ${result.bankCode ?? ""}-${result.vaccNo}／到期 ${result.expireAt}`,
+        note: `provider:tappay／payment_type:atm／已開立虛擬帳號 ${result.bankCode ?? ""}-${result.vaccNo}／provider 到期 ${result.expireAt}／付款期限 ${localDeadlineIso}`,
       });
     }
 
@@ -269,6 +296,8 @@ Deno.serve(async (req) => {
       vaccNo: result.vaccNo,
       bankCode: result.bankCode ?? null,
       expireAt: result.expireAt,
+      // 前台顯示一律以本地商業付款期限為準（provider 期限僅供金流稽核）
+      localDeadline: localDeadlineIso,
       amount: dueAmount,
     });
   } catch (e) {

@@ -79,11 +79,13 @@ interface Props {
   createEndpoint?: string;
   /** 附加於 request body 的欄位（例如團購的身分驗證 phoneLast4） */
   extraBody?: Record<string, unknown>;
+  /** 期限說明文案覆寫（團購新制以本地商業付款期限為準，非 provider 天數） */
+  deadlineLabel?: string;
 }
 
 export function AtmPaymentPanel({
   orderId, orderNumber, amount, cardholder, amountLabel = "轉帳金額", initialAtmInfo, expireInMinutes, expireInDays = 3, paid = false, paidAmount, onCreated,
-  createEndpoint = "tappay-atm-create", extraBody,
+  createEndpoint = "tappay-atm-create", extraBody, deadlineLabel,
 }: Props) {
   const { config, loading: configLoading, error: configError } = useTapPayConfig(true);
   const [sdkReady, setSdkReady] = useState(false);
@@ -193,7 +195,8 @@ export function AtmPaymentPanel({
       const info: AtmInfo = {
         vaccNo: data.vaccNo,
         bankCode: data.bankCode,
-        expireAt: data.expireAt,
+        // 顯示與倒數一律以本地商業付款期限優先（provider 期限僅供金流稽核）
+        expireAt: data.localDeadline ?? data.expireAt,
         amount: data.amount ?? amount,
       };
       setAtmInfo(info);
@@ -318,7 +321,7 @@ export function AtmPaymentPanel({
           ATM 虛擬帳號轉帳
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 {expireInMinutes ? `${expireInMinutes} 分鐘` : `${expireInDays} 天`}），金額為 NT$ {amount.toLocaleString()}，請勿更改匯款金額。
+          系統將自動指派轉帳銀行代碼，並為此筆訂單開立專屬虛擬帳號（繳費期限 {deadlineLabel ?? (expireInMinutes ? `${expireInMinutes} 分鐘` : `${expireInDays} 天`)}），金額為 NT$ {amount.toLocaleString()}，請勿更改匯款金額。
         </p>
       </div>
       {(configLoading || !sdkReady) && !configError && !error && (

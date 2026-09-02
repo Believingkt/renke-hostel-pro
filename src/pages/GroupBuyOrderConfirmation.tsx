@@ -313,6 +313,7 @@ export default function GroupBuyOrderConfirmation() {
                 createEndpoint="group-buy-start-payment"
                 extraBody={{ phoneLast4, paymentType: "atm" }}
                 expireInDays={3}
+                deadlineLabel={deadlineText ?? undefined}
               />
             </div>
           ) : (
