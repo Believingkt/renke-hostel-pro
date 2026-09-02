@@ -78,9 +78,12 @@ function Stepper({
 }
 
 /** 團購專用入住人數選擇器：成人／兒童／幼兒／嬰兒，規則文字全部依 child_age_rules 動態產生 */
-export function GroupBuyGuestPicker({ value, onChange, rules, blockReason }: Props) {
+export function GroupBuyGuestPicker({ value, onChange, rules, visibility, blockReason }: Props) {
   const [open, setOpen] = useState(false);
+  const vis = visibility ?? DEFAULT_CHILD_TIER_VISIBILITY;
+  const showChildTiers = anyChildTierVisible(vis);
   const summary = formatGuestComposition(value, rules) || "1 成人";
+
 
   const tierHint = (key: ChildTierKey) => {
     const t = rules.tiers[key];
