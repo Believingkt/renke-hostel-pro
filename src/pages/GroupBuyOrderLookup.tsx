@@ -131,10 +131,17 @@ export default function GroupBuyOrderLookup() {
         toast({ title: "取消申請失敗", description: toGuestMessage(payload?.error, "目前無法送出取消申請，請稍後再試或聯繫客服。"), variant: "destructive" });
         return;
       }
-      toast({
-        title: "已收到您的取消申請",
-        description: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
-      });
+      if (payload?.cancelled) {
+        toast({
+          title: "訂單已取消",
+          description: payload?.message ?? "訂單已取消，房間已釋出。",
+        });
+      } else {
+        toast({
+          title: "已收到您的取消申請",
+          description: `${CANCEL_REQUEST_RECEIVED_TEXT}${REFUND_PENDING_REVIEW_TEXT}`,
+        });
+      }
       setCancelOpen(false);
       setCancelReason("");
       await lookup();
@@ -144,6 +151,13 @@ export default function GroupBuyOrderLookup() {
   };
 
   const order = data?.order;
+  /** 自助取消分流（server 判定，前端只負責文案） */
+  const selfCancelMode: "direct_cancel" | "card_auto_refund" | "manual_review" =
+    (data as any)?.selfCancel?.mode ?? "manual_review";
+  const selfCancelEstimatedRefund = Math.max(
+    0,
+    Math.round(Number((data as any)?.selfCancel?.estimatedRefund) || 0),
+  );
   const reported = (data?.events ?? []).some((e: any) => e.event_type === "guest_reported");
   /**
    * 已收款判定 SoT＝orders.payment_status（後端 depositPaid）。
@@ -483,11 +497,17 @@ export default function GroupBuyOrderLookup() {
                 ) : cancelOpen ? (
                   <div className="space-y-3">
                     <p className="text-muted-foreground">
-                      {fullPayment
-                        ? "退款由民宿審核後處理，款項將退回原信用卡。"
-                        : isAtmOrder
-                          ? "此筆為 ATM 虛擬帳號付款，退款需由民宿人工匯回您的帳戶；申請送出後將由民宿審核。"
-                          : "團購訂單為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿審核。"}
+                      {selfCancelMode === "direct_cancel"
+                        ? "此訂單尚未收款，送出後將立即取消並釋出房間，無需退款；取消後請勿再轉帳至原虛擬帳號。"
+                        : selfCancelMode === "card_auto_refund"
+                          ? `送出後將立即取消訂單，並依取消政策自動退回原付款信用卡${
+                              selfCancelEstimatedRefund > 0
+                                ? `（預計退款 NT$${selfCancelEstimatedRefund.toLocaleString("en-US")}）`
+                                : ""
+                            }，實際入帳依發卡銀行作業時間約 3～7 個工作天。`
+                          : isAtmOrder
+                            ? "此筆為 ATM 虛擬帳號付款且已收款，退款需由民宿人工匯回您的帳戶；申請送出後將由民宿處理。"
+                            : "此筆為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿處理。"}
                     </p>
                     <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
                     <div>
@@ -508,7 +528,7 @@ export default function GroupBuyOrderLookup() {
                         disabled={cancelSubmitting}
                       >
                         {cancelSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                        送出取消申請
+                        {selfCancelMode === "manual_review" ? "送出取消申請" : "確認取消訂單"}
                       </Button>
                       <Button variant="outline" onClick={() => setCancelOpen(false)} disabled={cancelSubmitting}>
                         返回
@@ -517,10 +537,14 @@ export default function GroupBuyOrderLookup() {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-muted-foreground">需要取消這筆訂房嗎？送出申請後由民宿審核。</p>
+                    <p className="text-muted-foreground">
+                      {selfCancelMode === "manual_review"
+                        ? "需要取消這筆訂房嗎？送出申請後由民宿處理退款。"
+                        : "需要取消這筆訂房嗎？送出後將立即完成取消。"}
+                    </p>
                     <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
-                      我要申請取消訂單
+                      {selfCancelMode === "manual_review" ? "我要申請取消訂單" : "我要取消訂單"}
                     </Button>
                   </div>
                 )}
