@@ -18,9 +18,9 @@ import {
   type ChildAgeRules,
   type ChildEvaluation,
   evaluateChildSelection,
-  resolveChildRules,
 } from "./groupBuyChildRules.ts";
-import { parseChildTierVisibility } from "./groupBuyChildVisibility.ts";
+import { resolveGroupBuyChildRules } from "./groupBuyCampaignChildRules.ts";
+
 
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
 import {
