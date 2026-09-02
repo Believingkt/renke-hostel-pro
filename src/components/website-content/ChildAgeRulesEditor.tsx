@@ -12,6 +12,7 @@ import {
   DEFAULT_CHILD_AGE_RULES,
   parseChildAgeRules,
 } from "@/lib/child-rules";
+import type { ChildTierVisibility } from "@/lib/groupBuyChildVisibility";
 
 interface Props {
   value: ChildAgeRules | null | undefined;
@@ -24,6 +25,13 @@ interface Props {
     onToggle: (enabled: boolean) => void;
     defaultRulesPreview: ChildAgeRules;
   };
+  /** 團購活動層專用：各年齡層「團購頁顯示」開關（與「接受訂房」是不同 contract） */
+  visibility?: {
+    value: ChildTierVisibility;
+    onChange: (next: ChildTierVisibility) => void;
+  };
+  /** 備註欄位說明文字 */
+  noteLabel?: string;
 }
 
 const TIER_DESC: Record<ChildTierKey, string> = {
@@ -37,6 +45,8 @@ const ChildAgeRulesEditor = ({
   onChange,
   showNote = true,
   overrideToggle,
+  visibility,
+  noteLabel = "備註（顯示於訂房頁）",
 }: Props) => {
   const rules = useMemo(
     () => parseChildAgeRules(value ?? DEFAULT_CHILD_AGE_RULES),
@@ -91,13 +101,27 @@ const ChildAgeRulesEditor = ({
                     {TIER_DESC[key]}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Label className="text-xs text-muted-foreground">接受訂房</Label>
-                  <Switch
-                    checked={t.allowed}
-                    onCheckedChange={(allowed) => update(key, { allowed })}
-                    disabled={disabled}
-                  />
+                <div className="flex items-center gap-3">
+                  {visibility && (
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs text-muted-foreground">團購頁顯示</Label>
+                      <Switch
+                        checked={visibility.value[key] !== false}
+                        onCheckedChange={(v) =>
+                          visibility.onChange({ ...visibility.value, [key]: v })
+                        }
+                        disabled={disabled}
+                      />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground">接受訂房</Label>
+                    <Switch
+                      checked={t.allowed}
+                      onCheckedChange={(allowed) => update(key, { allowed })}
+                      disabled={disabled}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -245,7 +269,7 @@ const ChildAgeRulesEditor = ({
 
       {showNote && (
         <div>
-          <Label className="text-xs text-muted-foreground">備註（顯示於訂房頁）</Label>
+          <Label className="text-xs text-muted-foreground">{noteLabel}</Label>
           <Textarea
             value={rules.note}
             onChange={(e) => onChange({ ...rules, note: e.target.value })}
