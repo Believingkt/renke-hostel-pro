@@ -175,7 +175,7 @@ serve(async (req) => {
       // 2) order_meta for these orders
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
-        .select("order_id, closer_id, video_creator_id, team_commission_price, is_excluded, force_commission_eligible")
+        .select("order_id, closer_id, video_creator_id, team_commission_price, team_commission_price_is_manual, is_excluded, force_commission_eligible")
         .in("order_id", orderIds);
       if (metasErr) throw metasErr;
       const metaMap = new Map<string, any>();
@@ -239,14 +239,15 @@ serve(async (req) => {
           continue;
         }
 
-        // team_commission_price 若未設定或等於 final_price（代表未人工調整），
-        // 則以 final_price − 加購項目 為基礎；已人工指定則沿用人工值，不再扣加購。
+        // 人工覆蓋判定一律以 team_commission_price_is_manual 旗標為準；
+        // 舊資料（旗標為 null）沿用「有值且 != final_price」的相容判定。
         const tcp = meta.team_commission_price;
         const finalPrice = Number(o.final_price ?? 0);
+        const manualFlag = (meta as any).team_commission_price_is_manual;
         const baseAmount =
-          tcp == null || Number(tcp) === finalPrice
-            ? commissionBaseFromOrder(o as any, exclRule(o.accommodation_id as string, o.order_date as string))
-            : Number(tcp);
+          tcp != null && (manualFlag === true || (manualFlag == null && Number(tcp) !== finalPrice))
+            ? Number(tcp)
+            : commissionBaseFromOrder(o as any, exclRule(o.accommodation_id as string, o.order_date as string));
         const rates = rateFor(o.accommodation_id as string, o.order_date as string);
         const closerAmt = baseAmount * rates.closer;
         // 影音組分潤已停止使用：新快照一律不再產生影音金額（歷史快照保留可追溯）
@@ -345,7 +346,7 @@ serve(async (req) => {
 
       const { data: metas, error: metaErr } = await supabase
         .from("order_meta")
-        .select("order_id, team_commission_price, video_creator_id, force_commission_eligible")
+        .select("order_id, team_commission_price, team_commission_price_is_manual, video_creator_id, force_commission_eligible")
         .in("order_id", orderIds);
       if (metaErr) throw metaErr;
       const metaMap = new Map<string, any>();
@@ -472,10 +473,11 @@ serve(async (req) => {
         const meta = metaMap.get(s.order_id as string);
         const tcp = meta?.team_commission_price;
         const finalPrice = Number(ord.final_price ?? 0);
+        const manualFlagR = (meta as any)?.team_commission_price_is_manual;
         const baseAmount =
-          tcp == null || Number(tcp) === finalPrice
-            ? commissionBaseFromOrder(ord, exclRuleR(ord.accommodation_id as string, ord.order_date as string))
-            : Number(tcp);
+          tcp != null && (manualFlagR === true || (manualFlagR == null && Number(tcp) !== finalPrice))
+            ? Number(tcp)
+            : commissionBaseFromOrder(ord, exclRuleR(ord.accommodation_id as string, ord.order_date as string));
 
         const rates = rateFor(ord.accommodation_id as string, ord.order_date as string);
         const closerRate = s.closer_rate == null ? rates.closer : Number(s.closer_rate);

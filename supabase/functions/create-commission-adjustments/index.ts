@@ -140,7 +140,7 @@ serve(async (req) => {
 
       const { data: metas, error: metasErr } = await supabase
         .from("order_meta")
-        .select("order_id, team_commission_price, force_commission_eligible")
+        .select("order_id, team_commission_price, team_commission_price_is_manual, force_commission_eligible")
         .in("order_id", orderIds);
       if (metasErr) throw metasErr;
       const metaMap = new Map<string, any>();
@@ -162,10 +162,11 @@ serve(async (req) => {
 
         const tcp = meta?.team_commission_price;
         const ordFinal = Number(ord.final_price ?? 0);
+        const manualFlagA = (meta as any)?.team_commission_price_is_manual;
         const currentBase =
-          tcp == null || Number(tcp) === ordFinal
-            ? commissionBaseFromOrder(ord, exclRuleA(ord.accommodation_id as string, ord.order_date as string))
-            : Number(tcp);
+          tcp != null && (manualFlagA === true || (manualFlagA == null && Number(tcp) !== ordFinal))
+            ? Number(tcp)
+            : commissionBaseFromOrder(ord, exclRuleA(ord.accommodation_id as string, ord.order_date as string));
         const snapBase = Number(s.final_price_snapshot ?? 0);
         if (currentBase === snapBase) continue;
 
