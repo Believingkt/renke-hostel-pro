@@ -532,8 +532,11 @@ Deno.serve(async (req) => {
           refundAmount,
           refundedTotal: totalRefunded,
           refundStatus,
+          zeroRefundByPolicy,
           message: refundAmount > 0
             ? "訂單已取消，退款已送回原付款信用卡（實際入帳依發卡銀行作業時間，約 3～7 個工作天）。"
+            : zeroRefundByPolicy
+            ? "訂單已取消。依取消規則，本次退款金額為 NT$0。"
             : "訂單已取消。",
         });
       }
