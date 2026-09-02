@@ -1,0 +1,1 @@
+ALTER TABLE public.accommodation_packages ALTER COLUMN included_guest_count DROP DEFAULT;
