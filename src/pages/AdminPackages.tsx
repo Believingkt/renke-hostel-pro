@@ -81,6 +81,7 @@ interface FormState {
   name: string;
   subtitle: string;
   guest_count: number;
+  included_guest_count: number;
   guest_count_max: number | null;
   child_count_max: number | null;
   child_age_note: string;
@@ -104,6 +105,7 @@ const emptyForm = (): FormState => ({
   name: "",
   subtitle: "",
   guest_count: 2,
+  included_guest_count: 2,
   guest_count_max: null,
   child_count_max: null,
   child_age_note: "",
@@ -395,6 +397,7 @@ const AdminPackages = () => {
       name: pkg.name,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      included_guest_count: Number((pkg as any).included_guest_count ?? pkg.guest_count) || 1,
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
@@ -430,6 +433,7 @@ const AdminPackages = () => {
       name: `${pkg.name} - 複製`,
       subtitle: pkg.subtitle ?? "",
       guest_count: pkg.guest_count,
+      included_guest_count: Number((pkg as any).included_guest_count ?? pkg.guest_count) || 1,
       guest_count_max: pkg.guest_count_max,
       child_count_max: pkg.child_count_max,
       child_age_note: pkg.child_age_note ?? "",
@@ -478,12 +482,17 @@ const AdminPackages = () => {
       toast({ title: "請至少勾選一個適用日", variant: "destructive" });
       return;
     }
+    if (!Number.isInteger(form.included_guest_count) || form.included_guest_count <= 0) {
+      toast({ title: "請輸入正確的「方案價格包含人數」", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     const payload = {
       accommodation_id: currentAccommodationId,
       name: form.name.trim(),
       subtitle: form.subtitle.trim() || null,
       guest_count: form.guest_count,
+      included_guest_count: form.included_guest_count,
       guest_count_max: form.guest_count_max,
       child_count_max: form.child_count_max,
       child_age_note: form.child_age_note.trim() || null,
@@ -892,6 +901,20 @@ const AdminPackages = () => {
                     setForm({ ...form, guest_count: parseInt(e.target.value, 10) || 1 })
                   }
                 />
+              </div>
+              <div>
+                <Label>方案價格包含人數 *</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  value={form.included_guest_count}
+                  onChange={(e) =>
+                    setForm({ ...form, included_guest_count: parseInt(e.target.value, 10) || 1 })
+                  }
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  此方案售價已包含的入住人數。超過此人數後，才依成人／兒童額外人數規則計價。
+                </p>
               </div>
               <div>
                 <Label>人數上限（選填）</Label>
