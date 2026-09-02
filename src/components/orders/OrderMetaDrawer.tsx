@@ -24,6 +24,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getCommissionStatus } from "@/lib/commissionStatus";
+import { canEditCommissionBase, resolveTeamRoleFlags } from "@/lib/commissionBaseAccess";
+
 import { commissionBaseFromOrder } from "@/lib/ownerExempt";
 import { buildCommissionExclusionResolver } from "@/lib/commissionExclusionRule";
 import { notifyOrderAmountChanged } from "@/lib/notifyOrderAmountChanged";
