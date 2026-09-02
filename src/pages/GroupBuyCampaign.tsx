@@ -61,6 +61,11 @@ import {
   toChildSelection,
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
+import {
+  anyChildTierVisible,
+  applyVisibilityToGuests,
+  parseChildTierVisibility,
+} from "@/lib/groupBuyChildVisibility";
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
 
@@ -122,6 +127,9 @@ interface CampaignPackage {
   max_quantity: number | null;
   /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
   max_guests: number | null;
+  /** 團購專用年齡層顯示設定；null＝三種全顯示（既有活動相容） */
+  child_tier_visibility?: unknown;
+
 
   room_type_id: string | null;
   room_type_ids: string[] | null;
@@ -392,12 +400,24 @@ export default function GroupBuyCampaign() {
     () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
     [accInfo, pkgChildOverride],
   );
+  /** 團購專用：方案層年齡層顯示設定（不寫回一般訂房規則） */
+  const childVisibility = useMemo(
+    () => parseChildTierVisibility((selectedPkg as any)?.child_tier_visibility),
+    [selectedPkg],
+  );
+  const showChildTiers = anyChildTierVisible(childVisibility);
+  /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
+  const effectiveGuests = useMemo(
+    () => applyVisibilityToGuests(guests, childVisibility),
+    [guests, childVisibility],
+  );
   const childEval = useMemo(
-    () => evaluateChildSelection(childRules, toChildSelection(guests), Math.max(1, nights), guests.adults),
-    [childRules, guests, nights],
+    () => evaluateChildSelection(childRules, toChildSelection(effectiveGuests), Math.max(1, nights), effectiveGuests.adults),
+    [childRules, effectiveGuests, nights],
   );
   /** 房型容量檢查：成人＋計入容量的兒童（與後端同一套規則） */
-  const capacityHeadcount = guests.adults + childEval.capacityHeadcount;
+  const capacityHeadcount = effectiveGuests.adults + childEval.capacityHeadcount;
+
   /** 容量足夠的候選房型（capacity <= 0 視為未設限）；順序與後端分配順序一致 */
   const fittingRoomTypeIds = useMemo(
     () => roomCaps.filter((r) => r.capacity <= 0 || capacityHeadcount <= r.capacity).map((r) => r.id),
@@ -417,8 +437,8 @@ export default function GroupBuyCampaign() {
   const guestError =
     childEval.blockReason || pkgMaxGuestsError || capacityError || (guests.adults < 1 ? "至少需 1 位成人" : "");
 
-  const guestCount = billableGuestCount(guests);
-  const guestSummary = formatGuestComposition(guests, childRules);
+  const guestCount = billableGuestCount(effectiveGuests);
+  const guestSummary = formatGuestComposition(effectiveGuests, childRules);
 
   /** 逐晚計價（平日／旺日／假日；國定假日優先）。最終金額仍以後端重算為準 */
   const stayPrice = useMemo(
@@ -678,10 +698,10 @@ export default function GroupBuyCampaign() {
           checkOutDate: checkOut,
           roomQuantity,
           guestCount,
-          adultCount: guests.adults,
-          childCount: guests.children,
-          toddlerCount: guests.toddlers,
-          infantCount: guests.infants,
+          adultCount: effectiveGuests.adults,
+          childCount: effectiveGuests.children,
+          toddlerCount: effectiveGuests.toddlers,
+          infantCount: effectiveGuests.infants,
           guestName,
           guestPhone,
           guestEmail,
@@ -1384,12 +1404,13 @@ export default function GroupBuyCampaign() {
                     value={guests}
                     onChange={setGuests}
                     rules={childRules}
+                    visibility={childVisibility}
                     blockReason={guestError}
                   />
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     每筆訂單固定下訂 1 棟包棟（如需多棟請另外再下一單）。
                   </p>
-                  {childEval.extraFeePerNight > 0 && (
+                  {showChildTiers && childEval.extraFeePerNight > 0 && (
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
                       兒童加價每晚 NT$
                       {childEval.extraFeePerNight.toLocaleString("en-US")}。
@@ -1793,10 +1814,10 @@ export default function GroupBuyCampaign() {
             campaignPackageId: selectedPkg.id,
             checkInDate: checkIn,
             checkOutDate: checkOut,
-            adultCount: guests.adults,
-            childCount: guests.children,
-            toddlerCount: guests.toddlers,
-            infantCount: guests.infants,
+            adultCount: effectiveGuests.adults,
+            childCount: effectiveGuests.children,
+            toddlerCount: effectiveGuests.toddlers,
+            infantCount: effectiveGuests.infants,
             guestName,
             guestPhone,
             guestEmail,

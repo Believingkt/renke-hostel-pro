@@ -4,14 +4,22 @@ import { Button } from "@/components/ui/button";
 import type { ChildAgeRules, ChildTierKey } from "@/lib/child-rules";
 import { TIER_ORDER } from "@/lib/child-rules";
 import { formatGuestComposition, type GuestCounts } from "@/lib/groupBuyGuests";
+import {
+  DEFAULT_CHILD_TIER_VISIBILITY,
+  anyChildTierVisible,
+  type ChildTierVisibility,
+} from "@/lib/groupBuyChildVisibility";
 
 interface Props {
   value: GuestCounts;
   onChange: (next: GuestCounts) => void;
   rules: ChildAgeRules;
+  /** 團購方案層的年齡層顯示設定；未傳＝三種全顯示 */
+  visibility?: ChildTierVisibility;
   /** 規則不符時的提示（由 evaluateChildSelection 產生） */
   blockReason?: string;
 }
+
 
 function tierField(key: ChildTierKey): keyof GuestCounts {
   if (key === "infant") return "infants";
@@ -70,9 +78,12 @@ function Stepper({
 }
 
 /** 團購專用入住人數選擇器：成人／兒童／幼兒／嬰兒，規則文字全部依 child_age_rules 動態產生 */
-export function GroupBuyGuestPicker({ value, onChange, rules, blockReason }: Props) {
+export function GroupBuyGuestPicker({ value, onChange, rules, visibility, blockReason }: Props) {
   const [open, setOpen] = useState(false);
+  const vis = visibility ?? DEFAULT_CHILD_TIER_VISIBILITY;
+  const showChildTiers = anyChildTierVisible(vis);
   const summary = formatGuestComposition(value, rules) || "1 成人";
+
 
   const tierHint = (key: ChildTierKey) => {
     const t = rules.tiers[key];
@@ -111,29 +122,32 @@ export function GroupBuyGuestPicker({ value, onChange, rules, blockReason }: Pro
             min={1}
             onChange={(v) => onChange({ ...value, adults: v })}
           />
-          {[...TIER_ORDER].reverse().map((key) => {
-            const t = rules.tiers[key];
-            const field = tierField(key);
-            return (
-              <div key={key} className="border-t border-border/60">
-                <Stepper
-                  label={`${t.label} ${t.min_age}–${t.max_age} 歲`}
-                  hint={tierHint(key)}
-                  value={value[field]}
-                  disabled={!t.allowed}
-                  onChange={(v) => onChange({ ...value, [field]: v })}
-                />
-              </div>
-            );
-          })}
-          {rules.max_total_guests != null && rules.max_total_guests > 0 && (
+          {showChildTiers &&
+            [...TIER_ORDER].reverse().map((key) => {
+              if (!vis[key]) return null;
+              const t = rules.tiers[key];
+              const field = tierField(key);
+              return (
+                <div key={key} className="border-t border-border/60">
+                  <Stepper
+                    label={`${t.label} ${t.min_age}–${t.max_age} 歲`}
+                    hint={tierHint(key)}
+                    value={value[field]}
+                    disabled={!t.allowed}
+                    onChange={(v) => onChange({ ...value, [field]: v })}
+                  />
+                </div>
+              );
+            })}
+          {showChildTiers && rules.max_total_guests != null && rules.max_total_guests > 0 && (
             <p className="border-t border-border/60 py-2 text-xs text-muted-foreground">
               入住總人數上限 {rules.max_total_guests} 位（依民宿設定，嬰兒是否計入以民宿規則為準）。
             </p>
           )}
-          {rules.note && (
+          {showChildTiers && rules.note && (
             <p className="whitespace-pre-line pb-2 text-xs leading-relaxed text-muted-foreground">{rules.note}</p>
           )}
+
 
         </div>
       )}

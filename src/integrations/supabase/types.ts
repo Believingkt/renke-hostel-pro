@@ -4535,6 +4535,7 @@ export type Database = {
       group_buy_campaign_packages: {
         Row: {
           campaign_id: string
+          child_tier_visibility: Json | null
           created_at: string
           description: string | null
           disabled_date_types: Database["public"]["Enums"]["group_buy_day_type"][]
@@ -4560,6 +4561,7 @@ export type Database = {
         }
         Insert: {
           campaign_id: string
+          child_tier_visibility?: Json | null
           created_at?: string
           description?: string | null
           disabled_date_types?: Database["public"]["Enums"]["group_buy_day_type"][]
@@ -4585,6 +4587,7 @@ export type Database = {
         }
         Update: {
           campaign_id?: string
+          child_tier_visibility?: Json | null
           created_at?: string
           description?: string | null
           disabled_date_types?: Database["public"]["Enums"]["group_buy_day_type"][]

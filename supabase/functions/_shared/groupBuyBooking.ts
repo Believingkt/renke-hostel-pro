@@ -20,6 +20,8 @@ import {
   evaluateChildSelection,
   resolveChildRules,
 } from "./groupBuyChildRules.ts";
+import { parseChildTierVisibility } from "./groupBuyChildVisibility.ts";
+
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
 import {
   GROUP_BUY_DAY_TYPE_LABEL,
@@ -131,10 +133,10 @@ export async function validateAndPriceGroupBuyBooking(
   const checkOutDate = String(input.checkOutDate ?? "").trim();
   const roomQuantity = 1; // 團購訂單一次固定 1 間
   const adultCount = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
-  const childCount = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
-  const toddlerCount = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
-  const infantCount = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
-  const guestCount = adultCount + childCount + toddlerCount;
+  const childCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
+  const toddlerCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
+  const infantCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
+
   const guestName = String(input.guestName ?? "").trim();
   const guestPhone = String(input.guestPhone ?? "").trim();
   const guestEmail = String(input.guestEmail ?? "").trim();
@@ -191,6 +193,14 @@ export async function validateAndPriceGroupBuyBooking(
     .maybeSingle();
   if (pErr) throw pErr;
   if (!pkg || !pkg.is_active) return fail("此方案已停售");
+
+  // 團購專用：方案層「兒童分齡顯示設定」，未顯示的年齡層一律不計入（不影響一般訂房規則）
+  const childVisibility = parseChildTierVisibility((pkg as any).child_tier_visibility);
+  const childCount = childVisibility.child ? childCountRaw : 0;
+  const toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
+  const infantCount = childVisibility.infant ? infantCountRaw : 0;
+  const guestCount = adultCount + childCount + toddlerCount;
+
   if (pkg.max_quantity && roomQuantity > pkg.max_quantity) {
     return fail(`此方案單筆最多預訂 ${pkg.max_quantity} 間`);
   }
