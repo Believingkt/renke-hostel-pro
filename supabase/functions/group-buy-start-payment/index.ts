@@ -189,7 +189,7 @@ Deno.serve(async (req) => {
     const { data: order, error: oErr } = await admin
       .from("orders")
       .select(
-        "id, order_number, order_source, order_status, payment_status, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount",
+        "id, order_number, order_source, order_status, payment_status, guest_name, guest_phone, guest_email, total_price, final_price, deposit_amount, paid_amount, created_at, order_date, group_buy_payment_deadline_at",
       )
       .eq("order_number", orderNumber)
       .eq("order_source", "group_buy")
