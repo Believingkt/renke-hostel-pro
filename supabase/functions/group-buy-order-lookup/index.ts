@@ -14,7 +14,12 @@ import { CANCEL_REQUEST_RECEIVED_TEXT, REFUND_PENDING_REVIEW_TEXT } from "../_sh
 import { quoteCancellation, resolveCancellationPolicy, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { paymentMethodKind, paymentMethodLabel, refundChannelLabel } from "../_shared/paymentMethodKind.ts";
 import { loadManualRefundFee, remainingRefundableWithFee } from "../_shared/refundFee.ts";
-import { classifyGroupBuySelfCancel, resolveSelfCancelRefundAmount } from "../_shared/groupBuySelfCancel.ts";
+import {
+  CARD_SELF_CANCEL_EXCEPTION_LABEL,
+  classifyGroupBuySelfCancel,
+  detectCardSelfCancelException,
+  resolveSelfCancelRefundAmount,
+} from "../_shared/groupBuySelfCancel.ts";
 import { getPaymentAdapter, refundStatusAfterRefund } from "../_shared/paymentAdapter.ts";
 
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
