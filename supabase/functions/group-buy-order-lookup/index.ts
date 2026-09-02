@@ -914,24 +914,33 @@ Deno.serve(async (req) => {
           isCardOrder: isCard,
         };
       })(),
-      /** 旅客自助取消分流（前台文案用）：direct_cancel / card_auto_refund / manual_review */
+      /**
+       * 旅客自助取消分流（前台文案用）：
+       * direct_cancel / card_auto_refund / technical_processing / manual_review
+       * 信用卡永遠不會回 manual_review（不存在人工取消審核）。
+       */
       selfCancel: (() => {
         const cls = classifyGroupBuySelfCancel(order as any);
-        if (cls.mode === "card_auto_refund") {
+        if (cls.isCardOrder) {
           const q = quoteCancellation({
             order: order as any,
             checkInDate: String(order.check_in_date),
             cancellationDate: taipeiToday(),
             alreadyRefunded: Math.max(0, Math.round(Number((order as any).refunded_amount) || 0)),
           });
+          const exception = detectCardSelfCancelException({
+            checkInDate: order.check_in_date,
+            paidAmount: (order as any).paid_amount,
+            policyRequiresManualReview: q.requiresManualReview,
+            policyRefundAmount: q.refundAmount,
+          });
+          if (exception) return { mode: "technical_processing", estimatedRefund: 0 };
           const r = resolveSelfCancelRefundAmount({
             refundable: cls.refundable,
             policyRefundAmount: q.refundAmount,
-            requiresManualReview: q.requiresManualReview,
+            requiresManualReview: false,
           });
-          return r.manualReview
-            ? { mode: "manual_review", estimatedRefund: 0 }
-            : { mode: "card_auto_refund", estimatedRefund: r.refundAmount };
+          return { mode: "card_auto_refund", estimatedRefund: r.refundAmount };
         }
         return { mode: cls.mode, estimatedRefund: 0 };
       })(),
