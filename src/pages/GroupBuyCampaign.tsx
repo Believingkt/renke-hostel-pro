@@ -395,12 +395,24 @@ export default function GroupBuyCampaign() {
     () => resolveChildRules((accInfo as any)?.child_age_rules, pkgChildOverride),
     [accInfo, pkgChildOverride],
   );
+  /** 團購專用：方案層年齡層顯示設定（不寫回一般訂房規則） */
+  const childVisibility = useMemo(
+    () => parseChildTierVisibility((selectedPkg as any)?.child_tier_visibility),
+    [selectedPkg],
+  );
+  const showChildTiers = anyChildTierVisible(childVisibility);
+  /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
+  const effectiveGuests = useMemo(
+    () => applyVisibilityToGuests(guests, childVisibility),
+    [guests, childVisibility],
+  );
   const childEval = useMemo(
-    () => evaluateChildSelection(childRules, toChildSelection(guests), Math.max(1, nights), guests.adults),
-    [childRules, guests, nights],
+    () => evaluateChildSelection(childRules, toChildSelection(effectiveGuests), Math.max(1, nights), effectiveGuests.adults),
+    [childRules, effectiveGuests, nights],
   );
   /** 房型容量檢查：成人＋計入容量的兒童（與後端同一套規則） */
-  const capacityHeadcount = guests.adults + childEval.capacityHeadcount;
+  const capacityHeadcount = effectiveGuests.adults + childEval.capacityHeadcount;
+
   /** 容量足夠的候選房型（capacity <= 0 視為未設限）；順序與後端分配順序一致 */
   const fittingRoomTypeIds = useMemo(
     () => roomCaps.filter((r) => r.capacity <= 0 || capacityHeadcount <= r.capacity).map((r) => r.id),
