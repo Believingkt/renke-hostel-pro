@@ -62,6 +62,7 @@ const ACTION_LABELS: Record<string, string> = {
   cancellation_fee: "取消手續費",
   refund: "退款",
   deposit: "押金扣款",
+  late_payment_after_cancellation: "⚠️ 取消後逾期入帳",
 };
 
 const STATUS_LABELS: Record<string, string> = {
