@@ -515,7 +515,10 @@ export default function GroupBuyOrderLookup() {
                             ? "此筆為 ATM 虛擬帳號付款且已收款，退款需由民宿人工匯回您的帳戶；申請送出後將由民宿處理。"
                             : "此筆為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿處理。"}
                     </p>
-                    <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
+                    {/* 未收款直接取消：無退款、無手續費，不顯示退款規則說明 */}
+                    {selfCancelMode !== "direct_cancel" && (
+                      <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
+                    )}
                     <div>
                       <Label htmlFor="cancel-reason">取消原因（選填）</Label>
                       <Textarea
@@ -546,9 +549,14 @@ export default function GroupBuyOrderLookup() {
                     <p className="text-muted-foreground">
                       {selfCancelMode === "manual_review"
                         ? "需要取消這筆訂房嗎？送出申請後由民宿處理退款。"
-                        : "需要取消這筆訂房嗎？送出後將立即完成取消。"}
+                        : selfCancelMode === "direct_cancel"
+                          ? "需要取消這筆訂房嗎？此訂單尚未收款，送出後將立即完成取消，無需退款。"
+                          : "需要取消這筆訂房嗎？送出後將立即完成取消。"}
                     </p>
-                    <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
+                    {/* 未收款直接取消：無退款、無手續費，不顯示退款規則說明 */}
+                    {selfCancelMode !== "direct_cancel" && (
+                      <CancellationRefundNotice variant={refundVariant} handlingFee={manualRefundFee} className="rounded-lg bg-muted/60 p-3" />
+                    )}
                     <Button variant="outline" className="w-full" onClick={() => setCancelOpen(true)}>
                       {selfCancelMode === "manual_review" ? "我要申請取消訂單" : "我要取消訂單"}
                     </Button>
