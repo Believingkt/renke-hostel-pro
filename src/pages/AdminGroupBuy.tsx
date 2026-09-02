@@ -504,17 +504,25 @@ export default function AdminGroupBuy() {
     void loadDetails();
   }, [loadDetails]);
 
+  /** 方案尚未設定兒童規則時的 COPY ONCE 來源（民宿一般規則；唯讀，不回寫） */
+  const [accChildRules, setAccChildRules] = useState<unknown>(null);
+
   useEffect(() => {
     if (!accommodationId) return;
     (async () => {
-      const { data } = await supabase
-        .from("room_types")
-        .select("id, name")
-        .eq("accommodation_id", accommodationId)
-        .order("name");
+      const [{ data }, { data: acc }] = await Promise.all([
+        supabase
+          .from("room_types")
+          .select("id, name")
+          .eq("accommodation_id", accommodationId)
+          .order("name"),
+        supabase.from("accommodation_info").select("child_age_rules").eq("id", accommodationId).maybeSingle(),
+      ]);
       setRoomTypes((data ?? []) as { id: string; name: string }[]);
+      setAccChildRules((acc as any)?.child_age_rules ?? null);
     })();
   }, [accommodationId]);
+
 
   const saveCampaign = async () => {
     if (!editing || !accommodationId) return;
