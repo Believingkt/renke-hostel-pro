@@ -1571,7 +1571,15 @@ export default function TeamOrders() {
 
                 {/* ===== 分潤基準金額 ===== */}
                 {(() => {
-                  const canEdit = isAdmin || isCloser;
+                  // 與 DB trigger 一致：管理層全域；closer / closer_manager 僅限自己負責的訂單
+                  const canEdit = canEditCommissionBase({
+                    isFinancialAdmin,
+                    isCloserRole: isCloserTeamRole,
+                    currentUserId,
+                    existingCloserId: (editOrder.meta as any)?.closer_id ?? null,
+                    nextCloserId: form.closer_id ?? null,
+                  });
+
                   const tcp =
                     form.team_commission_price ?? editOrder.final_price ?? 0;
                   const fp = editOrder.final_price ?? 0;
