@@ -265,11 +265,28 @@ export function GroupBuyPackageCard({
           </div>
           <div className="flex items-center gap-2 md:col-span-2">
             <Switch
-              checked={p.show_room_type_selector === true}
-              onCheckedChange={(v) => onPatch({ show_room_type_selector: v })}
+              checked={p.show_room_type_display === true}
+              onCheckedChange={(v) => onPatch({ show_room_type_display: v })}
             />
-            <span className="text-sm">團購頁顯示「入住房型」選擇器（關閉＝系統自動指派房型）</span>
+            <span className="text-sm">團購頁顯示「入住房型」（固定文字，客人不可修改）</span>
           </div>
+          {p.show_room_type_display === true && (
+            <div className="md:col-span-2">
+              <Label>入住房型（固定顯示文字）</Label>
+              <Textarea
+                rows={2}
+                value={p.room_type_display_text ?? ""}
+                onChange={(e) => onPatch({ room_type_display_text: e.target.value })}
+                placeholder="例如：雙人房 2 間＋四人房 2 間"
+              />
+              {!String(p.room_type_display_text ?? "").trim() && (
+                <p className="mt-1 text-xs text-destructive">請填寫入住房型內容。</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">
+                純顯示文字，不影響庫存、計價與系統自動指派的房型。
+              </p>
+            </div>
+          )}
           <div className="flex items-center gap-2 md:col-span-2">
             <Switch checked={p.is_active} onCheckedChange={(v) => onPatch({ is_active: v })} />
             <span className="text-sm">上架販售</span>
