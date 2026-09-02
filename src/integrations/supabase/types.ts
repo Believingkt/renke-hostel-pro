@@ -4641,6 +4641,7 @@ export type Database = {
           archived_at: string | null
           archived_by: string | null
           booking_notice_keys: string[] | null
+          child_age_rules: Json | null
           commission_note: string | null
           commission_rate: number
           contact_note: string | null
@@ -4691,6 +4692,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           booking_notice_keys?: string[] | null
+          child_age_rules?: Json | null
           commission_note?: string | null
           commission_rate?: number
           contact_note?: string | null
@@ -4741,6 +4743,7 @@ export type Database = {
           archived_at?: string | null
           archived_by?: string | null
           booking_notice_keys?: string[] | null
+          child_age_rules?: Json | null
           commission_note?: string | null
           commission_rate?: number
           contact_note?: string | null
