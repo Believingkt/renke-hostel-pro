@@ -55,6 +55,8 @@ export interface GroupBuyBookingInput {
   guestNote?: string;
   /** 旅客選擇的付款方式（manual 流程：bank / atm）；由 server 依活動開關驗證 */
   paymentMethod?: string | null;
+  /** 旅客選擇的入住房型（僅當方案 show_room_type_selector = true 時採用） */
+  roomTypeId?: string | null;
 }
 
 export interface GroupBuyValidateOptions {
@@ -77,7 +79,7 @@ export interface GroupBuyBookingPlan {
   nights: number;
   holidays: Set<string>;
   childRules: ChildAgeRules;
-  childEval: ChildEvaluation;
+  childEval: GroupBuyChildEvaluation;
   stay: GroupBuyStayPrice;
   baseTotal: number;
   childExtraTotal: number;
