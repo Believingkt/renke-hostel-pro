@@ -136,6 +136,12 @@ export default function GroupBuyOrderLookup() {
           title: "訂單已取消",
           description: payload?.message ?? "訂單已取消，房間已釋出。",
         });
+      } else if (payload?.processing) {
+        // 技術處理中（非人工審核）：系統尚無法安全完成金流處理，完成後另行通知
+        toast({
+          title: "取消處理中",
+          description: payload?.message ?? "系統正在處理您的取消，完成後將另行通知。",
+        });
       } else {
         toast({
           title: "已收到您的取消申請",
@@ -152,7 +158,7 @@ export default function GroupBuyOrderLookup() {
 
   const order = data?.order;
   /** 自助取消分流（server 判定，前端只負責文案） */
-  const selfCancelMode: "direct_cancel" | "card_auto_refund" | "manual_review" =
+  const selfCancelMode: "direct_cancel" | "card_auto_refund" | "technical_processing" | "manual_review" =
     (data as any)?.selfCancel?.mode ?? "manual_review";
   const selfCancelEstimatedRefund = Math.max(
     0,
@@ -500,12 +506,12 @@ export default function GroupBuyOrderLookup() {
                       {selfCancelMode === "direct_cancel"
                         ? "此訂單尚未收款，送出後將立即取消並釋出房間，無需退款；取消後請勿再轉帳至原虛擬帳號。"
                         : selfCancelMode === "card_auto_refund"
-                          ? `送出後將立即取消訂單，並依取消政策自動退回原付款信用卡${
-                              selfCancelEstimatedRefund > 0
-                                ? `（預計退款 NT$${selfCancelEstimatedRefund.toLocaleString("en-US")}）`
-                                : ""
-                            }，實際入帳依發卡銀行作業時間約 3～7 個工作天。`
-                          : isAtmOrder
+                          ? selfCancelEstimatedRefund > 0
+                            ? `送出後將立即取消訂單，並依取消規則自動退回原付款信用卡（預計退款 NT$${selfCancelEstimatedRefund.toLocaleString("en-US")}），實際入帳依發卡銀行作業時間約 3～7 個工作天。`
+                            : "送出後將立即取消訂單；依取消規則，本次退款金額為 NT$0。"
+                          : selfCancelMode === "technical_processing"
+                            ? "送出後系統將立即為您處理取消，完成後會另行通知（無需民宿同意）。"
+                            : isAtmOrder
                             ? "此筆為 ATM 虛擬帳號付款且已收款，退款需由民宿人工匯回您的帳戶；申請送出後將由民宿處理。"
                             : "此筆為銀行匯款收款，退款由民宿人工處理；申請送出後將由民宿處理。"}
                     </p>
