@@ -381,13 +381,15 @@ export default function TeamCommissionStatsTab() {
   const validAxisTip = useMemo(
     () => (
       <div className="space-y-1">
-        <p className="font-semibold">有效訂單口徑（依下單日 order_date）</p>
+        <p className="font-semibold">分潤基準金額口徑（依下單日 order_date）</p>
         <p>
           下單日落在本區間、且<strong>狀態非「已取消」</strong>的訂單，取消單不會計入此欄。
         </p>
         <p className="text-muted-foreground">
           另排除：已標記排除的訂單、保留中（hold）訂單、金額 ≤ 0、非台幣／免抽成／不在合作期間／未達抽成門檻者。
-          金額為抽成基準額（已扣加購），非訂單成交價。
+          此欄金額為<strong>分潤基準金額</strong>（乘上抽成費率的基準），並非訂單成交總額（final_price）：
+          預設會依當期公式扣除增值服務／現場加購，因此通常小於訂單列表的「訂單總金額」。
+          若該筆訂單已在訂單明細人工指定分潤基準金額（is_manual），則一律採用人工值、不再扣加購。
         </p>
       </div>
     ),
@@ -1143,7 +1145,7 @@ export default function TeamCommissionStatsTab() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{r.name}</div>
                       <div className="mt-0.5 text-[11px] text-muted-foreground tabular-nums">
-                        有效訂單 {r.validCount} 筆・{fmtMoney(r.validAmount)}
+                        有效訂單 {r.validCount} 筆・分潤基準 {fmtMoney(r.validAmount)}
                       </div>
                     </div>
                     {isOpen ? (
@@ -1295,7 +1297,7 @@ export default function TeamCommissionStatsTab() {
                                 {b.accName}（{pct(b.rate)}）
                               </span>
                               <span className="mt-0.5 block text-[11px] text-muted-foreground tabular-nums">
-                                有效 {b.validCount} 筆・{fmtMoney(b.validAmount)}
+                                有效 {b.validCount} 筆・分潤基準 {fmtMoney(b.validAmount)}
                               </span>
                             </span>
                             <span className="shrink-0 text-right">
@@ -1330,7 +1332,7 @@ export default function TeamCommissionStatsTab() {
                 </TableHead>
                 <TableHead className="whitespace-nowrap tabular-nums">
                   <AxisTooltip content={validAxisTip}>
-                    有效訂單總金額
+                    有效訂單分潤基準金額
                     <Info className="h-3 w-3 text-muted-foreground" />
                   </AxisTooltip>
                 </TableHead>
@@ -1810,7 +1812,7 @@ export default function TeamCommissionStatsTab() {
                   </TableHead>
                   <TableHead className="whitespace-nowrap tabular-nums">
                     <AxisTooltip content={validAxisTip}>
-                      有效訂單總金額
+                      有效訂單分潤基準金額
                       <Info className="h-3 w-3 text-muted-foreground" />
                     </AxisTooltip>
                   </TableHead>
