@@ -122,29 +122,32 @@ export function GroupBuyGuestPicker({ value, onChange, rules, visibility, blockR
             min={1}
             onChange={(v) => onChange({ ...value, adults: v })}
           />
-          {[...TIER_ORDER].reverse().map((key) => {
-            const t = rules.tiers[key];
-            const field = tierField(key);
-            return (
-              <div key={key} className="border-t border-border/60">
-                <Stepper
-                  label={`${t.label} ${t.min_age}–${t.max_age} 歲`}
-                  hint={tierHint(key)}
-                  value={value[field]}
-                  disabled={!t.allowed}
-                  onChange={(v) => onChange({ ...value, [field]: v })}
-                />
-              </div>
-            );
-          })}
-          {rules.max_total_guests != null && rules.max_total_guests > 0 && (
+          {showChildTiers &&
+            [...TIER_ORDER].reverse().map((key) => {
+              if (!vis[key]) return null;
+              const t = rules.tiers[key];
+              const field = tierField(key);
+              return (
+                <div key={key} className="border-t border-border/60">
+                  <Stepper
+                    label={`${t.label} ${t.min_age}–${t.max_age} 歲`}
+                    hint={tierHint(key)}
+                    value={value[field]}
+                    disabled={!t.allowed}
+                    onChange={(v) => onChange({ ...value, [field]: v })}
+                  />
+                </div>
+              );
+            })}
+          {showChildTiers && rules.max_total_guests != null && rules.max_total_guests > 0 && (
             <p className="border-t border-border/60 py-2 text-xs text-muted-foreground">
               入住總人數上限 {rules.max_total_guests} 位（依民宿設定，嬰兒是否計入以民宿規則為準）。
             </p>
           )}
-          {rules.note && (
+          {showChildTiers && rules.note && (
             <p className="whitespace-pre-line pb-2 text-xs leading-relaxed text-muted-foreground">{rules.note}</p>
           )}
+
 
         </div>
       )}
