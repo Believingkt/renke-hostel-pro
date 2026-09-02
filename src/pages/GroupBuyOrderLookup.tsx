@@ -286,9 +286,11 @@ export default function GroupBuyOrderLookup() {
                 <div className="flex justify-between py-1">
                   <span className="text-muted-foreground">{isAtmOrder ? "ATM 繳費期限" : "匯款期限"}</span>
                   <span className="font-semibold">
-                    {isAtmOrder && order.atm?.expireAt
-                      ? new Date(order.atm.expireAt).toLocaleString("zh-TW")
-                      : order.paymentDeadlineText}
+                    {isAtmOrder && order.atm?.localDeadline
+                      ? new Date(order.atm.localDeadline).toLocaleString("zh-TW")
+                      : isAtmOrder && order.atm?.expireAt
+                        ? new Date(order.atm.expireAt).toLocaleString("zh-TW")
+                        : order.paymentDeadlineText}
                   </span>
                 </div>
               )}
@@ -343,7 +345,13 @@ export default function GroupBuyOrderLookup() {
                 <CheckCircle2 className="h-4 w-4" /> 訂金已確認入帳，訂房完成。
               </p>
             ) : order.orderStatus === "cancelled" ? (
-              <p className="text-muted-foreground">此訂單已取消。若已完成匯款，請直接與我們聯繫。</p>
+              isAtmOrder ? (
+                <p className="font-medium text-destructive">
+                  付款期限已過，請勿再轉帳。此訂單已取消；若已完成轉帳，請直接與我們聯繫。
+                </p>
+              ) : (
+                <p className="text-muted-foreground">此訂單已取消。若已完成匯款，請直接與我們聯繫。</p>
+              )
             ) : isAtmOrder ? (
               <p className="text-muted-foreground">請於期限前以 ATM／網銀轉入上方虛擬帳號，入帳後系統會自動更新。</p>
             ) : reported ? (

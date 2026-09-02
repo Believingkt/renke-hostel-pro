@@ -436,6 +436,8 @@ Deno.serve(async (req) => {
             vaccNo: (order as any).atm_vacc_no,
             bankCode: (order as any).atm_vacc_bank_code ?? null,
             expireAt: (order as any).atm_expire_at ?? null,
+            // 本地商業付款期限（新制）；NULL = legacy，前台沿用 provider 期限顯示
+            localDeadline: (order as any).group_buy_payment_deadline_at ?? null,
             amount: Number(order.deposit_amount) > 0 ? Number(order.deposit_amount) : deposit,
           }
           : null,
