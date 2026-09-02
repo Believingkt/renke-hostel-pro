@@ -73,7 +73,6 @@ Deno.serve(async (req) => {
         childCount: Number(body.childCount ?? 0),
         toddlerCount: Number(body.toddlerCount ?? 0),
         infantCount: Number(body.infantCount ?? 0),
-        roomTypeId: typeof body.roomTypeId === "string" ? body.roomTypeId : null,
         guestName: String(body.guestName ?? ""),
         guestPhone: String(body.guestPhone ?? ""),
         guestEmail: String(body.guestEmail ?? ""),
