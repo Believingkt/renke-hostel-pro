@@ -68,7 +68,6 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import { GroupBuyCampaignDangerZone } from "@/components/admin/GroupBuyCampaignDangerZone";
 import GroupBuyPackageCard from "@/components/admin/GroupBuyPackageCard";
-import GroupBuyChildRulesCard from "@/components/admin/GroupBuyChildRulesCard";
 import GroupBuyAnalyticsTab from "@/components/admin/GroupBuyAnalyticsTab";
 import GroupBuyCommissionStatusPanel from "@/components/admin/GroupBuyCommissionStatusPanel";
 import GroupBuyCommissionRateDialog, { type CommissionRateApplyMode } from "@/components/admin/GroupBuyCommissionRateDialog";
@@ -198,6 +197,10 @@ interface PackageRow {
   excluded_dates: string[] | null;
   original_price: number | null;
   max_quantity: number | null;
+  included_guest_count: number | null;
+  show_guest_selector: boolean | null;
+  show_room_type_selector: boolean | null;
+  child_age_rules: unknown | null;
   /** 方案最多入住人數；NULL＝沿用房型 capacity */
   max_guests: number | null;
   /** 團購頁年齡層顯示設定；NULL＝三種全顯示 */
@@ -1462,10 +1465,6 @@ export default function AdminGroupBuy() {
 
 
           <TabsContent value="packages" className="space-y-3">
-            <GroupBuyChildRulesCard
-              campaignId={activeCampaign?.id ?? null}
-              accommodationId={accommodationId}
-            />
             <Button size="sm" onClick={addPackage}>
               <Plus className="mr-1 h-4 w-4" /> 新增方案
             </Button>
@@ -1478,6 +1477,7 @@ export default function AdminGroupBuy() {
                 accommodationId={accommodationId}
                 stayStart={activeCampaign?.stay_start_date ?? null}
                 stayEnd={activeCampaign?.stay_end_date ?? null}
+                fallbackChildRules={(activeCampaign as any)?.child_age_rules ?? accChildRules}
                 onPatch={(patch) => setPackages((prev) => prev.map((x, i) => (i === idx ? { ...x, ...patch } : x)))}
                 onSave={() => void savePackage(p)}
                 onDuplicate={() => void duplicatePackage(p)}

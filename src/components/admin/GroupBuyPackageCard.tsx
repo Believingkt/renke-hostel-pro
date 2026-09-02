@@ -97,6 +97,7 @@ export function GroupBuyPackageCard({
   onSave,
   onDuplicate,
   onDelete,
+  fallbackChildRules,
   defaultExpanded = false,
 }: Props) {
   /** 整張方案卡收合：僅隱藏（非 unmount），未儲存的編輯狀態完整保留 */
