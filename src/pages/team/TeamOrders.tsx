@@ -838,6 +838,15 @@ export default function TeamOrders() {
           : Number(newTcpRaw);
       const tcpChanged = Number(prevTcp ?? NaN) !== Number(newTcp ?? NaN);
 
+      // 分潤基準金額／費率為受保護欄位：無權限時完全不送出，避免 DB trigger 擋下整筆儲存
+      const canEditTcp = canEditCommissionBase({
+        isFinancialAdmin,
+        isCloserRole: isCloserTeamRole,
+        currentUserId,
+        existingCloserId: (editOrder.meta as any)?.closer_id ?? null,
+        nextCloserId: form.closer_id ?? null,
+      });
+
       const payload: Record<string, any> = {
         order_id: editOrder.id,
         accommodation_id: editOrder.accommodation_id,
@@ -850,8 +859,6 @@ export default function TeamOrders() {
 
         is_excluded: !!form.is_excluded,
         closer_assisted: !!form.closer_assisted,
-        scout_commission_rate: form.scout_commission_rate,
-        closer_commission_rate: form.closer_commission_rate,
         exclusion_note: form.exclusion_note,
         franchise_project: form.franchise_project,
         member_number: form.member_number,
@@ -864,18 +871,26 @@ export default function TeamOrders() {
         addon_amount: form.addon_amount ?? 0,
         nickname: form.nickname ?? null,
         deposit_confirm_date: form.deposit_confirm_date ?? null,
-        team_commission_price: newTcp,
-        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
-        team_commission_price_is_manual: tcpChanged
-          ? true
-          : !!form.team_commission_price_is_manual,
       };
-      if (tcpChanged) {
-        payload.commission_price_confirmed_by = currentUserId;
-        payload.commission_price_confirmed_at = new Date().toISOString();
-        payload.last_confirmed_commission_price = newTcp;
-        payload.last_confirmed_final_price = editOrder.final_price ?? null;
+      // 費率欄位：僅管理層可送出（DB：非管理層一律 DENY）
+      if (isFinancialAdmin) {
+        payload.scout_commission_rate = form.scout_commission_rate;
+        payload.closer_commission_rate = form.closer_commission_rate;
       }
+      if (canEditTcp) {
+        payload.team_commission_price = newTcp;
+        // 人工調整過此欄位即標記為人工覆蓋，系統不再自動重算
+        payload.team_commission_price_is_manual = tcpChanged
+          ? true
+          : !!form.team_commission_price_is_manual;
+        if (tcpChanged) {
+          payload.commission_price_confirmed_by = currentUserId;
+          payload.commission_price_confirmed_at = new Date().toISOString();
+          payload.last_confirmed_commission_price = newTcp;
+          payload.last_confirmed_final_price = editOrder.final_price ?? null;
+        }
+      }
+
       const depositDateChanged =
         (form.deposit_confirm_date || null) !==
         (editOrder.meta?.deposit_confirm_date || null);
