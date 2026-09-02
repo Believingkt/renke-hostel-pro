@@ -53,7 +53,7 @@ import { GroupBuyQuickNav, type QuickNavItem } from "@/components/groupbuy/Group
 import { taipeiToday } from "@/lib/taipeiToday";
 import { coverImageStyle, resolveCoverFocus } from "@/lib/coverFocus";
 
-import { evaluateChildSelection } from "@/lib/child-rules";
+import { evaluateGroupBuyChildSelection } from "@/lib/groupBuyIncludedCapacity";
 import {
   DEFAULT_GUEST_COUNTS,
   billableGuestCount,
@@ -62,7 +62,7 @@ import {
   type GuestCounts,
 } from "@/lib/groupBuyGuests";
 import { applyVisibilityToGuests } from "@/lib/groupBuyChildVisibility";
-import { anyGroupBuyTierVisible, resolveGroupBuyChildRules } from "@/lib/groupBuyChildRules";
+import { anyGroupBuyTierVisible, resolveGroupBuyPackageChildRules } from "@/lib/groupBuyChildRules";
 
 import { CalendarDays, CheckCircle2, Clock, Images, Loader2, MessageCircle, Plus, Wallet } from "lucide-react";
 
@@ -127,9 +127,14 @@ interface CampaignPackage {
   max_quantity: number | null;
   /** 方案最多入住人數；null＝沿用房型 capacity（行為與過去相同） */
   max_guests: number | null;
-  /** 團購專用年齡層顯示設定；null＝三種全顯示（既有活動相容） */
-
-
+  /** 團購專用兒童分齡規則（PER PACKAGE，正式 SoT）；null＝沿用活動層／民宿規則 */
+  child_age_rules: unknown | null;
+  /** 是否顯示「入住人數」選擇器；false＝以方案固定人數成行 */
+  show_guest_selector: boolean | null;
+  /** 是否顯示「入住房型」選擇器；false＝維持系統自動指派 */
+  show_room_type_selector: boolean | null;
+  /** 方案售價已包含的入住人數；null＝沿用 max_guests */
+  included_guest_count: number | null;
   room_type_id: string | null;
   room_type_ids: string[] | null;
   package_id: string | null;
@@ -235,6 +240,10 @@ export default function GroupBuyCampaign() {
   /** 方案對應的兒童規則覆寫與房型容量（依既有民宿設定，不建立第二套資料） */
   const [pkgChildOverride, setPkgChildOverride] = useState<unknown | null>(null);
   const [roomCaps, setRoomCaps] = useState<Array<{ id: string; capacity: number }>>([]);
+  /** 旅客自選房型（僅方案開啟房型選擇器時使用；null＝維持系統自動指派） */
+  const [selectedRoomTypeId, setSelectedRoomTypeId] = useState<string | null>(null);
+  const [roomTypeNames, setRoomTypeNames] = useState<Record<string, string>>({});
+
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -395,32 +404,52 @@ export default function GroupBuyCampaign() {
     return `${fmt(checkIn)} → ${fmt(checkOut)}`;
   }, [checkIn, checkOut]);
   /**
-   * 團購兒童分齡規則：以活動層（campaign）設定為唯一來源，所有方案共用。
-   * campaign.child_age_rules 尚未設定時，fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+   * 團購兒童分齡規則：正式 SoT = 方案層（group_buy_campaign_packages.child_age_rules）。
+   * 方案尚未設定時 fallback 活動層（過渡期），再 fallback 民宿規則 + 方案覆寫。
    */
   const childRules = useMemo(
     () =>
-      resolveGroupBuyChildRules(
+      resolveGroupBuyPackageChildRules(
+        (selectedPkg as any)?.child_age_rules,
         (campaign as any)?.child_age_rules,
         (accInfo as any)?.child_age_rules,
         pkgChildOverride,
       ),
-    [campaign, accInfo, pkgChildOverride],
+    [selectedPkg, campaign, accInfo, pkgChildOverride],
   );
+  /** 方案顯示設定（後端會以同一份方案設定再驗一次） */
+  const showGuestSelector = (selectedPkg as any)?.show_guest_selector !== false;
+  const showRoomTypeSelector = (selectedPkg as any)?.show_room_type_selector === true;
+  /** 方案售價已包含人數；null＝沿用 max_guests（未設定則無 included capacity 折抵） */
+  const includedGuestCount = useMemo(() => {
+    const inc = Number((selectedPkg as any)?.included_guest_count ?? 0);
+    if (inc > 0) return inc;
+    const mx = Number((selectedPkg as any)?.max_guests ?? 0);
+    return mx > 0 ? mx : null;
+  }, [selectedPkg]);
   const childVisibility = childRules.tier_visibility;
   const showChildTiers = anyGroupBuyTierVisible(childRules);
 
-  /** 被隱藏的年齡層一律歸零後才進入計價／驗證 */
-  const effectiveGuests = useMemo(
-    () => applyVisibilityToGuests(guests, childVisibility),
-    [guests, childVisibility],
-  );
+  /** 被隱藏的年齡層一律歸零後才進入計價／驗證；人數選擇器關閉時改用方案固定人數 */
+  const effectiveGuests = useMemo(() => {
+    if (!showGuestSelector) {
+      return { adults: includedGuestCount ?? guests.adults, children: 0, toddlers: 0, infants: 0 };
+    }
+    return applyVisibilityToGuests(guests, childVisibility);
+  }, [guests, childVisibility, showGuestSelector, includedGuestCount]);
   const childEval = useMemo(
-    () => evaluateChildSelection(childRules, toChildSelection(effectiveGuests), Math.max(1, nights), effectiveGuests.adults),
-    [childRules, effectiveGuests, nights],
+    () =>
+      evaluateGroupBuyChildSelection(
+        childRules,
+        toChildSelection(effectiveGuests),
+        Math.max(1, nights),
+        effectiveGuests.adults,
+        includedGuestCount,
+      ),
+    [childRules, effectiveGuests, nights, includedGuestCount],
   );
   /** 房型容量檢查：成人＋計入容量的兒童（與後端同一套規則） */
-  const capacityHeadcount = effectiveGuests.adults + childEval.capacityHeadcount;
+  const capacityHeadcount = childEval.capacityHeadcount;
 
   /** 容量足夠的候選房型（capacity <= 0 視為未設限）；順序與後端分配順序一致 */
   const fittingRoomTypeIds = useMemo(
@@ -521,9 +550,11 @@ export default function GroupBuyCampaign() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setSelectedRoomTypeId(null);
       if (!selectedPkg) {
         setPkgChildOverride(null);
         setRoomCaps([]);
+        setRoomTypeNames({});
         return;
       }
       const [overrideRes, capRes] = await Promise.all([
@@ -535,12 +566,13 @@ export default function GroupBuyCampaign() {
               .maybeSingle()
           : Promise.resolve({ data: null } as any),
         candidateRoomTypeIds.length > 0
-          ? supabase.from("room_types").select("id, capacity").in("id", candidateRoomTypeIds)
+          ? supabase.from("room_types").select("id, capacity, name").in("id", candidateRoomTypeIds)
           : Promise.resolve({ data: [] } as any),
       ]);
       if (cancelled) return;
       setPkgChildOverride(((overrideRes as any)?.data?.child_age_rules_override as unknown) ?? null);
-      const rows = ((capRes as any)?.data ?? []) as Array<{ id: string; capacity: number | null }>;
+      const rows = ((capRes as any)?.data ?? []) as Array<{ id: string; capacity: number | null; name?: string | null }>;
+      setRoomTypeNames(Object.fromEntries(rows.map((r) => [String(r.id), String(r.name ?? "房型")])));
       // 依候選順序排列，與後端分配順序一致
       setRoomCaps(
         candidateRoomTypeIds
@@ -706,6 +738,7 @@ export default function GroupBuyCampaign() {
           childCount: effectiveGuests.children,
           toddlerCount: effectiveGuests.toddlers,
           infantCount: effectiveGuests.infants,
+          roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
           guestName,
           guestPhone,
           guestEmail,
@@ -1403,14 +1436,52 @@ export default function GroupBuyCampaign() {
                   <p className="mt-1 text-sm text-destructive">{disabledTypeError}</p>
                 )}
 
+                {showRoomTypeSelector && fittingRoomTypeIds.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-sm font-medium text-foreground">入住房型</p>
+                    <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                      {fittingRoomTypeIds.map((rtId) => {
+                        const active = selectedRoomTypeId === rtId;
+                        return (
+                          <button
+                            key={rtId}
+                            type="button"
+                            onClick={() => setSelectedRoomTypeId(active ? null : rtId)}
+                            aria-pressed={active}
+                            className={`rounded-xl border px-3.5 py-3 text-left text-base transition ${
+                              active
+                                ? "border-primary bg-primary/5 font-medium text-foreground"
+                                : "border-border/70 bg-card text-muted-foreground hover:border-primary/50"
+                            }`}
+                          >
+                            {roomTypeNames[rtId] ?? "房型"}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      未選擇時將由系統依可訂狀況自動安排房型。
+                    </p>
+                  </div>
+                )}
+
                 <div className="mt-4">
-                  <GroupBuyGuestPicker
-                    value={guests}
-                    onChange={setGuests}
-                    rules={childRules}
-                    visibility={childVisibility}
-                    blockReason={guestError}
-                  />
+                  {showGuestSelector ? (
+                    <GroupBuyGuestPicker
+                      value={guests}
+                      onChange={setGuests}
+                      rules={childRules}
+                      visibility={childVisibility}
+                      blockReason={guestError}
+                    />
+                  ) : (
+                    <div className="rounded-xl border border-border/70 bg-muted/40 px-3.5 py-3">
+                      <p className="text-sm font-medium text-foreground">入住人數</p>
+                      <p className="mt-0.5 text-base font-semibold text-foreground">
+                        {includedGuestCount ? `${includedGuestCount} 人（方案固定人數）` : "依方案設定"}
+                      </p>
+                    </div>
+                  )}
                   <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
                     每筆訂單固定下訂 1 棟包棟（如需多棟請另外再下一單）。
                   </p>
@@ -1822,6 +1893,7 @@ export default function GroupBuyCampaign() {
             childCount: effectiveGuests.children,
             toddlerCount: effectiveGuests.toddlers,
             infantCount: effectiveGuests.infants,
+            roomTypeId: showRoomTypeSelector ? selectedRoomTypeId : null,
             guestName,
             guestPhone,
             guestEmail,

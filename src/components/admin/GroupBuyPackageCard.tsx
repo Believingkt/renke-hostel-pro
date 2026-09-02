@@ -11,6 +11,7 @@ import { ChevronDown, CopyPlus, Trash2 } from "lucide-react";
 import GroupBuyPackagePricingFields from "@/components/groupbuy/GroupBuyPackagePricingFields";
 import GroupBuyExcludedDatesField from "@/components/groupbuy/GroupBuyExcludedDatesField";
 import MultiImageUploadField from "@/components/admin/MultiImageUploadField";
+import GroupBuyPackageChildRulesSection from "@/components/admin/GroupBuyPackageChildRulesSection";
 
 
 export interface PackageCardRow {
@@ -31,7 +32,14 @@ export interface PackageCardRow {
   original_price: number | null;
   max_quantity: number | null;
   max_guests: number | null;
-  /** 團購頁年齡層顯示設定（僅影響團購頁顯示，不動民宿兒童分齡規則） */
+  /** 方案售價已包含的入住人數；null＝沿用最多入住人數 */
+  included_guest_count: number | null;
+  /** 團購頁是否顯示「入住人數」選擇器 */
+  show_guest_selector: boolean | null;
+  /** 團購頁是否顯示「入住房型」選擇器 */
+  show_room_type_selector: boolean | null;
+  /** 方案層兒童分齡規則（PER PACKAGE，正式 SoT） */
+  child_age_rules: unknown | null;
   is_active: boolean;
 }
 
@@ -45,6 +53,8 @@ interface Props {
   onSave: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** 方案尚未設定兒童規則時的 COPY ONCE 來源（活動層或民宿規則） */
+  fallbackChildRules?: unknown;
   /** 新建立／正在編輯的方案可預設展開；其餘預設收合 */
   defaultExpanded?: boolean;
 }
@@ -87,6 +97,7 @@ export function GroupBuyPackageCard({
   onSave,
   onDuplicate,
   onDelete,
+  fallbackChildRules,
   defaultExpanded = false,
 }: Props) {
   /** 整張方案卡收合：僅隱藏（非 unmount），未儲存的編輯狀態完整保留 */
@@ -231,10 +242,47 @@ export function GroupBuyPackageCard({
             />
             <p className="mt-1 text-xs text-muted-foreground">留空則依房型原本人數上限。</p>
           </div>
+          <div>
+            <Label>方案售價已包含人數（可留空）</Label>
+            <Input
+              type="number"
+              min={1}
+              value={p.included_guest_count ?? ""}
+              onChange={(e) =>
+                onPatch({ included_guest_count: e.target.value === "" ? null : Number(e.target.value) })
+              }
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              售價已包含的人頭數。此人數內的兒童／幼兒不再另收加價，超出才依兒童分齡規則計價。留空則沿用「最多入住人數」。
+            </p>
+          </div>
+          <div className="flex items-center gap-2 md:col-span-2">
+            <Switch
+              checked={p.show_guest_selector !== false}
+              onCheckedChange={(v) => onPatch({ show_guest_selector: v })}
+            />
+            <span className="text-sm">團購頁顯示「入住人數」選擇器（關閉＝以方案固定人數成行）</span>
+          </div>
+          <div className="flex items-center gap-2 md:col-span-2">
+            <Switch
+              checked={p.show_room_type_selector === true}
+              onCheckedChange={(v) => onPatch({ show_room_type_selector: v })}
+            />
+            <span className="text-sm">團購頁顯示「入住房型」選擇器（關閉＝系統自動指派房型）</span>
+          </div>
           <div className="flex items-center gap-2 md:col-span-2">
             <Switch checked={p.is_active} onCheckedChange={(v) => onPatch({ is_active: v })} />
             <span className="text-sm">上架販售</span>
           </div>
+        </Section>
+
+        {/* 1.5 兒童分齡規則（方案層） */}
+        <Section title="兒童分齡規則（本方案）">
+          <GroupBuyPackageChildRulesSection
+            value={p.child_age_rules}
+            fallbackRaw={fallbackChildRules}
+            onChange={(rules) => onPatch({ child_age_rules: rules })}
+          />
         </Section>
 
         {/* 2. 價格與適用日期 */}

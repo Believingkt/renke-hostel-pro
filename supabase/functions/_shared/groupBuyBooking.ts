@@ -14,12 +14,14 @@ import {
   splitDeposit,
   verifyInventory,
 } from "./groupBuy.ts";
+import { type ChildAgeRules } from "./groupBuyChildRules.ts";
+import { resolveGroupBuyPackageChildRules } from "./groupBuyCampaignChildRules.ts";
 import {
-  type ChildAgeRules,
-  type ChildEvaluation,
-  evaluateChildSelection,
-} from "./groupBuyChildRules.ts";
-import { resolveGroupBuyChildRules } from "./groupBuyCampaignChildRules.ts";
+  evaluateGroupBuyChildSelection,
+  type GroupBuyChildEvaluation,
+  packageIncludedGuestCount,
+} from "./groupBuyIncludedCapacity.ts";
+
 
 
 import { ROOM_SELECT_MESSAGES, selectRoomType } from "./groupBuyRoomSelect.ts";
@@ -53,6 +55,8 @@ export interface GroupBuyBookingInput {
   guestNote?: string;
   /** 旅客選擇的付款方式（manual 流程：bank / atm）；由 server 依活動開關驗證 */
   paymentMethod?: string | null;
+  /** 旅客選擇的入住房型（僅當方案 show_room_type_selector = true 時採用） */
+  roomTypeId?: string | null;
 }
 
 export interface GroupBuyValidateOptions {
@@ -75,7 +79,7 @@ export interface GroupBuyBookingPlan {
   nights: number;
   holidays: Set<string>;
   childRules: ChildAgeRules;
-  childEval: ChildEvaluation;
+  childEval: GroupBuyChildEvaluation;
   stay: GroupBuyStayPrice;
   baseTotal: number;
   childExtraTotal: number;
@@ -132,7 +136,7 @@ export async function validateAndPriceGroupBuyBooking(
   const checkInDate = String(input.checkInDate ?? "").trim();
   const checkOutDate = String(input.checkOutDate ?? "").trim();
   const roomQuantity = 1; // 團購訂單一次固定 1 間
-  const adultCount = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
+  const adultCountRaw = Math.max(1, Math.min(30, Math.round(Number(input.adultCount ?? 2) || 2)));
   const childCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.childCount ?? 0) || 0)));
   const toddlerCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.toddlerCount ?? 0) || 0)));
   const infantCountRaw = Math.max(0, Math.min(30, Math.round(Number(input.infantCount ?? 0) || 0)));
@@ -194,24 +198,43 @@ export async function validateAndPriceGroupBuyBooking(
   if (pErr) throw pErr;
   if (!pkg || !pkg.is_active) return fail("此方案已停售");
 
-  // 團購專用：活動層（campaign-level）兒童分齡規則 —— 所有方案共用同一套。
-  // campaign.child_age_rules 為 NULL 時 fallback 既有行為（民宿規則 + 方案覆寫、全部顯示）。
+  // 團購專用兒童分齡規則：正式 SoT = PER PACKAGE（group_buy_campaign_packages.child_age_rules）。
+  // package 為 NULL 時過渡期 fallback campaign（DEPRECATED），再 fallback 民宿規則 + 方案覆寫。
   const [{ data: accInfoRow }, { data: accPkgRow }] = await Promise.all([
     admin.from("accommodation_info").select("child_age_rules").eq("id", campaign.accommodation_id).maybeSingle(),
     pkg.package_id
       ? admin.from("accommodation_packages").select("child_age_rules_override").eq("id", pkg.package_id).maybeSingle()
       : Promise.resolve({ data: null } as any),
   ]);
-  const childRules = resolveGroupBuyChildRules(
+  const childRules = resolveGroupBuyPackageChildRules(
+    (pkg as any).child_age_rules,
     (campaign as any).child_age_rules,
     (accInfoRow as any)?.child_age_rules,
     (accPkgRow as any)?.child_age_rules_override ?? null,
   );
   const childVisibility = childRules.tier_visibility;
-  const childCount = childVisibility.child ? childCountRaw : 0;
-  const toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
-  const infantCount = childVisibility.infant ? infantCountRaw : 0;
+
+  // Server 端一律重讀方案 selector 設定，不信任 client payload
+  const showGuestSelector = (pkg as any).show_guest_selector !== false;
+  const showRoomTypeSelector = (pkg as any).show_room_type_selector === true;
+  const includedGuestCount = packageIncludedGuestCount(pkg as any);
+
+  let adultCount = adultCountRaw;
+  let childCount = childVisibility.child ? childCountRaw : 0;
+  let toddlerCount = childVisibility.toddler ? toddlerCountRaw : 0;
+  let infantCount = childVisibility.infant ? infantCountRaw : 0;
+  if (!showGuestSelector) {
+    // 人數選擇器關閉：使用方案正式固定人數（included → max_guests），不接受任意 client 人數
+    if (includedGuestCount == null) {
+      return fail("此方案尚未設定固定入住人數，請聯繫客服");
+    }
+    adultCount = includedGuestCount;
+    childCount = 0;
+    toddlerCount = 0;
+    infantCount = 0;
+  }
   const guestCount = adultCount + childCount + toddlerCount;
+
 
 
   if (pkg.max_quantity && roomQuantity > pkg.max_quantity) {
@@ -245,16 +268,19 @@ export async function validateAndPriceGroupBuyBooking(
   const n = calcNights(checkInDate, checkOutDate);
   const dates = nightDates(checkInDate, n);
 
-  // 4) 兒童規則（已於上方以 campaign-level 規則解析）
+  // 4) 兒童規則（per-package）＋ Package Included Capacity 計價
+  //    方案已包含的人頭不得因兒童分類再被二次加價；硬限制維持既有 contract。
 
-  const childEval = evaluateChildSelection(
+  const childEval = evaluateGroupBuyChildSelection(
     childRules,
     { infants: infantCount, toddlers: toddlerCount, children: childCount },
     n,
     adultCount,
+    includedGuestCount,
   );
   if (childEval.blocked) return fail(childEval.blockReason ?? "入住人數不符合民宿規定");
-  const capacityHeadcount = adultCount + childEval.capacityHeadcount;
+  const capacityHeadcount = childEval.capacityHeadcount;
+
 
   const pkgMaxGuests = pkg.max_guests == null ? null : Number(pkg.max_guests);
   if (pkgMaxGuests && pkgMaxGuests > 0 && capacityHeadcount > pkgMaxGuests) {
@@ -289,18 +315,36 @@ export async function validateAndPriceGroupBuyBooking(
     ((rtRows as any[]) ?? []).map((r) => [String(r.id), Number(r.capacity ?? 0)]),
   );
 
+  // 旅客自選房型：僅在方案開啟 show_room_type_selector 時採用，且必須在方案 mapping 內。
+  // selector OFF 時一律忽略 client 傳入的 room_type_id，沿用既有自動指派順序。
+  let requestedRoomTypeId: string | null = null;
+  if (showRoomTypeSelector) {
+    const raw = String(input.roomTypeId ?? "").trim();
+    if (raw) {
+      if (!candidateRoomTypeIds.includes(raw)) return fail("此方案不提供所選房型，請重新選擇");
+      const cap = capacityMap.get(raw) ?? 0;
+      if (cap > 0 && capacityHeadcount > cap) {
+        return fail("所選房型無法容納此入住人數，請調整入住人數或改選其他房型。");
+      }
+      requestedRoomTypeId = raw;
+    }
+  }
+
   let roomTypeId: string | null = null;
-  if (opts.forceRoomTypeId) {
+  const pinnedRoomTypeId = opts.forceRoomTypeId ?? requestedRoomTypeId;
+  if (pinnedRoomTypeId) {
+    // 房型庫存驗證 reuse 既有 group-buy inventory RPC 與同一把 lock，不另建第二套
     const rows = await groupBuyInventory(admin, {
-      roomTypeId: opts.forceRoomTypeId,
+      roomTypeId: pinnedRoomTypeId,
       dates,
       accommodationId: campaign.accommodation_id,
       excludeDraftId: opts.excludeDraftId,
     });
     const check = verifyInventory(rows, roomQuantity, false);
     if (!check.ok) return fail(check.message ?? ROOM_SELECT_MESSAGES.inventory, 409);
-    roomTypeId = opts.forceRoomTypeId;
+    roomTypeId = pinnedRoomTypeId;
   } else {
+
     const candidates = candidateRoomTypeIds.map((id) => ({ id, capacity: capacityMap.get(id) ?? 0 }));
     const selection = await selectRoomType(candidates, capacityHeadcount, async (rtId) => {
       const rows = await groupBuyInventory(admin, {
@@ -336,24 +380,27 @@ export async function validateAndPriceGroupBuyBooking(
 
   const childDetailLines = childEval.breakdown.flatMap((b) => {
     const head = `　${b.label} ${b.count} 位`;
-    if (b.free) return [head, "　　免費"];
+    if (b.free) {
+      return [head, includedGuestCount != null ? "　　免費（方案已含人數）" : "　　免費"];
+    }
     const parts: string[] = [];
-    if (b.base_count > 0 && b.fee_per_night > 0) {
+    if (b.charged_base_count > 0 && b.fee_per_night > 0) {
       parts.push(
-        `　　${twdInt(b.fee_per_night)} × ${b.base_count} 位 × ${b.nights} 晚 = ${
-          twdInt(b.fee_per_night * b.base_count * b.nights)
+        `　　${twdInt(b.fee_per_night)} × ${b.charged_base_count} 位 × ${b.nights} 晚 = ${
+          twdInt(b.fee_per_night * b.charged_base_count * b.nights)
         }`,
       );
     }
-    if (b.over_count > 0) {
+    if (b.charged_over_count > 0) {
       parts.push(
-        `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.over_count} 位 × ${b.nights} 晚 = ${
-          twdInt(b.over_limit_fee_per_night * b.over_count * b.nights)
+        `　　超出人數加價 ${twdInt(b.over_limit_fee_per_night)} × ${b.charged_over_count} 位 × ${b.nights} 晚 = ${
+          twdInt(b.over_limit_fee_per_night * b.charged_over_count * b.nights)
         }`,
       );
     }
     return [head, ...parts];
   });
+
 
   const noteLines = [
     `【團購】${campaign.title}`,
@@ -380,6 +427,17 @@ export async function validateAndPriceGroupBuyBooking(
     base_accommodation_total: baseTotal,
     child_extra_total: childExtraTotal,
     child_breakdown: childEval.breakdown,
+    // 團購方案「已包含人數」計價輸入（immutable snapshot；日後管理員修改方案設定不影響既有訂單）
+    child_rules_scope: (pkg as any).child_age_rules ? "package" : "campaign_fallback",
+    child_rules_snapshot: childRules,
+    included_guest_count: includedGuestCount,
+    capacity_guest_count: capacityHeadcount,
+    overflow_guest_count: childEval.overflow,
+    show_guest_selector: showGuestSelector,
+    show_room_type_selector: showRoomTypeSelector,
+    selected_room_type_id: roomTypeId,
+    room_type_selected_by: requestedRoomTypeId ? "guest" : "auto",
+
     grand_total: total,
     deposit_percentage: campaign.deposit_percentage,
     deposit,
