@@ -165,8 +165,21 @@ serve(async (req) => {
       return json({ success: false, reason: "apns_not_configured" }, 200);
     }
 
+    // App icon 角標：累加該會員未讀訊息數（含本次推播），背景收到時也會正確顯示
+    let badge: number | undefined;
+    try {
+      const { data: badgeCount, error: badgeError } = await supabase.rpc(
+        "increment_member_push_badge",
+        { _user_id: userId, _delta: 1 },
+      );
+      if (badgeError) throw badgeError;
+      if (typeof badgeCount === "number") badge = badgeCount;
+    } catch (e) {
+      console.warn("[send-push] badge increment failed", e);
+    }
+
     const results = await Promise.all(
-      tokens.map((t) => sendApnsToToken(t.token, { title, body, data }, jwt)),
+      tokens.map((t) => sendApnsToToken(t.token, { title, body, data, badge }, jwt)),
     );
 
     const invalid = results.filter((r) => r.invalidToken).map((r) => r.token);
