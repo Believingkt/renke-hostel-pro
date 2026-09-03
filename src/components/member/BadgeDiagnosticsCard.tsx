@@ -144,7 +144,7 @@ const BadgeDiagnosticsCard = () => {
           <div className="text-muted-foreground mb-1">最近一次自動同步 Badge.set</div>
           <div className="rounded-md border bg-background p-2 font-mono whitespace-pre-wrap break-all">
             {lastSync
-              ? `${new Date(lastSync.timestamp).toLocaleString()} | count=${lastSync.count} | ${lastSync.success ? "成功" : "錯誤"} | ${lastSync.message}`
+              ? `${new Date(lastSync.timestamp).toLocaleString()} | ${lastSync.reason ?? "-"} | count=${lastSync.count} | ${lastSync.success ? "成功" : "錯誤"} | ${lastSync.message}`
               : "尚無同步紀錄"}
           </div>
         </div>
