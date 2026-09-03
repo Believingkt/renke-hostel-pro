@@ -1,6 +1,7 @@
 // App icon 角標（未讀訊息數）。僅在 Capacitor 原生環境作用，網頁版全部 no-op。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
+import { getMessagesUnreadTotal, markCategoriesRead } from "@/lib/messagesUnread";
 
 const LOCAL_KEY = "push_unread_count";
 const BADGE_EVENT = "lakeze:badge-changed";
@@ -15,6 +16,32 @@ async function loadPlugin() {
     return null;
   }
 }
+
+/** 診斷：插件是否註冊、是否支援、權限狀態（必要時請求權限） */
+export async function logBadgeDiagnostics(): Promise<void> {
+  if (!isNativeApp()) {
+    console.log("[badge] web environment — badge disabled");
+    return;
+  }
+  const Badge = await loadPlugin();
+  if (!Badge) {
+    console.error("[badge] plugin NOT registered (檢查 iOS Package.swift / packageClassList 是否含 BadgePlugin，並執行 npx cap sync ios)");
+    return;
+  }
+  try {
+    const supported = await Badge.isSupported();
+    console.log("[badge] isSupported =", supported);
+    let perm = await Badge.checkPermissions();
+    console.log("[badge] checkPermissions =", perm);
+    if (perm.display !== "granted") {
+      perm = await Badge.requestPermissions();
+      console.log("[badge] requestPermissions =", perm);
+    }
+  } catch (e) {
+    console.error("[badge] diagnostics failed", e);
+  }
+}
+
 
 /** 本地快取的未讀數（畫面即時顯示用） */
 export function getLocalUnreadCount(): number {
@@ -54,8 +81,13 @@ export async function setAppBadge(count: number): Promise<void> {
     const perm = await Badge.checkPermissions();
     if (perm.display !== "granted") {
       const req = await Badge.requestPermissions();
-      if (req.display !== "granted") return;
+      console.log("[badge] requestPermissions =", req);
+      if (req.display !== "granted") {
+        console.warn("[badge] permission denied, skip set", safe);
+        return;
+      }
     }
+    console.log("[badge] Badge.set count =", safe);
     if (safe > 0) await Badge.set({ count: safe });
     else await Badge.clear();
   } catch (e) {
@@ -89,23 +121,54 @@ export async function fetchServerUnreadCount(): Promise<number | null> {
   }
 }
 
-/** 由伺服器未讀數同步角標（App 啟動 / 回前景） */
+/** 訊息頁未讀總數（分類未讀 + 推播未讀）並同步角標（啟動 / 回前景 / 進背景） */
 export async function syncBadgeFromServer(): Promise<number> {
   const remote = await fetchServerUnreadCount();
-  const count = remote ?? getLocalUnreadCount();
-  await setAppBadge(count);
-  return count;
+  const push = remote ?? getLocalPushUnread();
+  const total = getMessagesUnreadTotal(push);
+  try {
+    localStorage.setItem(PUSH_KEY, String(push));
+  } catch {
+    /* ignore */
+  }
+  console.log("[badge] sync", { pushUnread: push, total });
+  await setAppBadge(total);
+  return total;
+}
+
+const PUSH_KEY = "push_unread_only";
+
+function getLocalPushUnread(): number {
+  try {
+    const n = Number(localStorage.getItem(PUSH_KEY) ?? "0");
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+  } catch {
+    return 0;
+  }
 }
 
 /** 前景收到推播：未讀 +1 並更新角標 */
 export async function bumpUnreadCount(delta = 1): Promise<number> {
-  const next = Math.max(0, getLocalUnreadCount() + delta);
-  await setAppBadge(next);
-  return next;
+  const push = Math.max(0, getLocalPushUnread() + delta);
+  try {
+    localStorage.setItem(PUSH_KEY, String(push));
+  } catch {
+    /* ignore */
+  }
+  const total = getMessagesUnreadTotal(push);
+  await setAppBadge(total);
+  return total;
 }
 
 /** 全部已讀：伺服器與本地同時歸零 */
 export async function markAllMessagesRead(): Promise<void> {
+  markCategoriesRead();
+  try {
+    localStorage.setItem(PUSH_KEY, "0");
+  } catch {
+    /* ignore */
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {

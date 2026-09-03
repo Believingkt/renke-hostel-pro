@@ -17,6 +17,8 @@ import {
   subscribeUnreadCount,
   syncBadgeFromServer,
 } from "@/lib/appBadge";
+import { getCategoryUnread, type MessageCategory } from "@/lib/messagesUnread";
+
 
 import {
   MessageSquare,
@@ -37,22 +39,23 @@ import {
 
 type TabKey = "all" | "chat" | "order" | "reward" | "promo" | "interact";
 
-const tabs: { key: TabKey; label: string; badge?: number; dot?: boolean }[] = [
+const tabs: { key: TabKey; label: string; category?: MessageCategory }[] = [
   { key: "all", label: "全部" },
-  { key: "chat", label: "對話", badge: 3 },
-  { key: "order", label: "訂單", dot: true },
-  { key: "reward", label: "獎勵", dot: true },
-  { key: "promo", label: "優惠", dot: true },
-  { key: "interact", label: "互動", dot: true },
+  { key: "chat", label: "對話", category: "chat" },
+  { key: "order", label: "訂單", category: "order" },
+  { key: "reward", label: "獎勵", category: "reward" },
+  { key: "promo", label: "優惠", category: "promo" },
+  { key: "interact", label: "互動", category: "interact" },
 ];
 
 const quickTiles = [
-  { key: "chat" as TabKey, label: "對話", icon: MessageSquare, badge: 3, tone: "bg-orange-100 text-orange-600" },
-  { key: "order" as TabKey, label: "訂單", icon: ClipboardList, dot: true, tone: "bg-blue-100 text-blue-600" },
-  { key: "reward" as TabKey, label: "獎勵", icon: Coins, dot: true, tone: "bg-amber-100 text-amber-600" },
-  { key: "promo" as TabKey, label: "優惠", icon: Gift, dot: true, tone: "bg-pink-100 text-pink-600" },
-  { key: "interact" as TabKey, label: "互動", icon: Sparkles, dot: true, tone: "bg-purple-100 text-purple-600" },
+  { key: "chat" as TabKey, label: "對話", icon: MessageSquare, category: "chat" as MessageCategory, tone: "bg-orange-100 text-orange-600" },
+  { key: "order" as TabKey, label: "訂單", icon: ClipboardList, category: "order" as MessageCategory, tone: "bg-blue-100 text-blue-600" },
+  { key: "reward" as TabKey, label: "獎勵", icon: Coins, category: "reward" as MessageCategory, tone: "bg-amber-100 text-amber-600" },
+  { key: "promo" as TabKey, label: "優惠", icon: Gift, category: "promo" as MessageCategory, tone: "bg-pink-100 text-pink-600" },
+  { key: "interact" as TabKey, label: "互動", icon: Sparkles, category: "interact" as MessageCategory, tone: "bg-purple-100 text-purple-600" },
 ];
+
 
 const chatItems = [
   { icon: Phone, iconTone: "bg-blue-50 text-blue-500", title: "客服通話紀錄", subtitle: "[去電] 您已撥打至 Lakeze 客服", time: "昨天" },
@@ -302,7 +305,9 @@ const MemberMessages = () => {
       {/* Quick tiles */}
       <Card className="p-4 shadow-sm">
         <div className="grid grid-cols-5 gap-2">
-          {quickTiles.map((t) => (
+          {quickTiles.map((t) => {
+            const n = getCategoryUnread(t.category);
+            return (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
@@ -310,17 +315,18 @@ const MemberMessages = () => {
             >
               <div className={`relative h-12 w-12 rounded-full flex items-center justify-center ${t.tone}`}>
                 <t.icon className="h-6 w-6" />
-                {t.badge ? (
+                {n > 1 ? (
                   <span className="absolute -top-0.5 -right-0.5 text-[10px] bg-orange-500 text-white rounded-full px-1 min-w-[18px] h-[18px] flex items-center justify-center">
-                    {t.badge}
+                    {n}
                   </span>
-                ) : t.dot ? (
+                ) : n === 1 ? (
                   <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
                 ) : null}
               </div>
               <span className="text-xs font-medium">{t.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
@@ -328,6 +334,7 @@ const MemberMessages = () => {
       <div className="flex gap-4 overflow-x-auto -mx-1 px-1 border-b">
         {tabs.map((t) => {
           const active = activeTab === t.key;
+          const n = t.category ? getCategoryUnread(t.category) : 0;
           return (
             <button
               key={t.key}
@@ -337,13 +344,14 @@ const MemberMessages = () => {
               }`}
             >
               {t.label}
-              {t.badge ? (
+              {n > 1 ? (
                 <span className="ml-1 inline-flex items-center justify-center text-[10px] bg-orange-500 text-white rounded-full px-1 min-w-[16px] h-[16px] align-middle">
-                  {t.badge}
+                  {n}
                 </span>
-              ) : t.dot ? (
+              ) : n === 1 ? (
                 <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-orange-500 align-middle" />
               ) : null}
+
               {active && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-orange-500 rounded-full" />}
             </button>
           );
