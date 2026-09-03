@@ -10,7 +10,7 @@ import { TableSkeleton } from "@/components/skeletons/TableSkeleton";
 import { FormSkeleton } from "@/components/skeletons/FormSkeleton";
 import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
-import { NetworkIndicator } from "@/components/NetworkIndicator";
+
 import { PageTransition } from "@/components/PageTransition";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
@@ -209,7 +209,6 @@ function App() {
         <HQDomainRedirect>
         <BookingDomainRedirect>
         <PmsDomainGuard>
-          <NetworkIndicator />
           <PageTransition>
             <ChunkErrorBoundary>
               {(() => {
