@@ -48,7 +48,9 @@ const MemberLayout = () => {
 
     const ensureMember = async (user: any) => {
       if (!user) return;
+      clearManualLogoutFlag();
       const { data: existing } = await supabase
+
         .from("platform_members")
         .select("id, name")
         .eq("user_id", user.id)
