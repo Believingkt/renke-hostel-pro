@@ -46,16 +46,32 @@ const DeleteAccountSection = () => {
         return;
       }
 
-      await disableBiometricLogin();
-      await clearAppBadge();
-      await supabase.auth.signOut();
+      setManualLogoutFlag();
+      try {
+        await disableBiometricLogin();
+      } catch (err) {
+        console.error("[delete-account] disableBiometricLogin failed", err);
+      }
+      try {
+        await supabase.auth.signOut();
+      } catch (err) {
+        console.error("[delete-account] signOut failed", err);
+        toast({ title: "登出失敗", description: "帳號已刪除，請手動重新整理", variant: "destructive" });
+      }
+      try {
+        await clearAppBadge();
+      } catch (err) {
+        console.error("[delete-account] clearAppBadge failed", err);
+      }
       try {
         localStorage.clear();
       } catch {
         /* ignore */
       }
+      setManualLogoutFlag();
       toast({ title: "帳號已刪除", description: "感謝您曾經使用人客多，期待再相見。" });
       navigate("/", { replace: true });
+
     } catch (e) {
       setBlockedMsg((e as Error).message || "刪除失敗，請聯絡客服 service@lakeze.com");
       setBusy(false);
