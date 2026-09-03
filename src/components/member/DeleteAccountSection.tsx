@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { disableBiometricLogin } from "@/lib/biometricAuth";
 
 const CONFIRM_WORD = "刪除";
 
