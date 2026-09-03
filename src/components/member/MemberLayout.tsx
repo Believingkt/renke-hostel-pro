@@ -72,6 +72,8 @@ const MemberLayout = () => {
       }
       // 原生 App：登入後請求推播權限並註冊 device token（網頁版會直接略過）
       initPushNotifications().catch(() => {});
+      // 已啟用 Face ID 時，同步最新的 refresh token 到 Keychain
+      refreshStoredBiometricToken().catch(() => {});
     };
 
     const checkAuth = async () => {
