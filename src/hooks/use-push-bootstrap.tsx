@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
 import { bootstrapPushForExistingSession, initPushNotifications } from "@/lib/pushNotifications";
 import { clearAppBadge, logBadgeDiagnostics, syncBadgeFromServer } from "@/lib/appBadge";
+import { initMessagesUnread, subscribeMessagesUnread } from "@/lib/messagesUnread";
 
 /**
  * App 啟動時檢查通知權限：
@@ -15,11 +16,16 @@ export function usePushBootstrap() {
   useEffect(() => {
     if (!isNativeApp()) return;
 
-    void logBadgeDiagnostics().then(() => syncBadgeFromServer());
+    // 啟動就把分類未讀載入全域 store（不依賴訊息頁）
+    initMessagesUnread();
+    void logBadgeDiagnostics().then(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      await syncBadgeFromServer(session?.user ? "startup" : "startup-anon");
+    });
     void bootstrapPushForExistingSession();
 
     const onVisible = () => {
-      if (document.visibilityState === "visible") void syncBadgeFromServer();
+      if (document.visibilityState === "visible") void syncBadgeFromServer("visibilitychange");
     };
     document.addEventListener("visibilitychange", onVisible);
 
@@ -29,13 +35,13 @@ export function usePushBootstrap() {
       try {
         const { App } = await import("@capacitor/app");
         const handle = await App.addListener("resume", () => {
-          void syncBadgeFromServer();
+          void syncBadgeFromServer("resume");
         });
         removeResume = () => void handle.remove();
         // 進入背景／inactive 時再寫一次，確保桌面 icon 顯示最新未讀數
         const stateHandle = await App.addListener("appStateChange", ({ isActive }) => {
-          void syncBadgeFromServer();
           console.log("[badge] appStateChange isActive =", isActive);
+          void syncBadgeFromServer(isActive ? "foreground" : "background");
         });
         removeState = () => void stateHandle.remove();
       } catch {
@@ -47,13 +53,19 @@ export function usePushBootstrap() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
         void initPushNotifications();
-        void syncBadgeFromServer();
+        void syncBadgeFromServer("signed-in");
       }
       if (event === "SIGNED_OUT") {
         void clearAppBadge();
       }
     });
+    // 訊息未讀變動時同步
+    const unsubscribeUnread = subscribeMessagesUnread(() => {
+      void syncBadgeFromServer("unread-changed");
+    });
+
     return () => {
+      unsubscribeUnread();
       subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
       removeResume?.();
