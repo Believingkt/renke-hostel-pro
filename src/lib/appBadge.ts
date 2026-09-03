@@ -242,6 +242,7 @@ export async function getBadgeUnreadCounts(): Promise<{ pushUnread: number; tota
 
 /** 前景收到推播：未讀 +1 並更新角標 */
 export async function bumpUnreadCount(delta = 1): Promise<number> {
+  lastSyncReason = "push-received";
   const push = Math.max(0, getLocalPushUnread() + delta);
   try {
     localStorage.setItem(PUSH_KEY, String(push));
