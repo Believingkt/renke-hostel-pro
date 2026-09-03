@@ -20,6 +20,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/pushNotifications";
+import BiometricEnrollPrompt from "@/components/member/BiometricEnrollPrompt";
+import { disableBiometricLogin, refreshStoredBiometricToken } from "@/lib/biometricAuth";
 
 
 const navItems = [
