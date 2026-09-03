@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle, Home, RotateCw, ClipboardList, Calendar, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
