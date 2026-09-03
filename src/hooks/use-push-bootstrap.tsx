@@ -57,6 +57,8 @@ export function usePushBootstrap() {
       subscription.unsubscribe();
       document.removeEventListener("visibilitychange", onVisible);
       removeResume?.();
+      removeState?.();
+
     };
   }, []);
 }
