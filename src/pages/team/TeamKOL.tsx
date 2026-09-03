@@ -1013,14 +1013,18 @@ function InvitationsTab({
       q = q.or(orParts.join(","));
     }
 
-    const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
+    const { data, count, error } = await q
+      .order("created_at", { ascending: false })
+      .range(from, to)
+      .abortSignal(controller.signal);
 
-
+    if (isStale()) return;
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
+
     // 補撈本頁主檔底下的附屬記錄（子檔），讓列表／搜尋看得到（例如同住夥伴）
     const primaryRows = ((data ?? []) as any[]);
     let childRowsData: any[] = [];
