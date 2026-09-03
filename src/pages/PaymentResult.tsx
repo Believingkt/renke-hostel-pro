@@ -62,6 +62,7 @@ interface PendingBookingData {
 
 interface BookingOrderResult {
   orderNumber: string;
+  accommodationId?: string;
   roomName: string;
   checkInDate: string;
   checkOutDate: string;
@@ -220,6 +221,7 @@ export default function PaymentResult() {
 
               setBookingResult({
                 orderNumber: orderResult.order.order_number,
+                accommodationId: pendingPaidOrder.accommodationId,
                 roomName: pendingPaidOrder.selectedRoom?.name || '',
                 checkInDate: orderResult.order.check_in_date || pendingPaidOrder.checkInDate,
                 checkOutDate: orderResult.order.check_out_date || pendingPaidOrder.checkOutDate,
@@ -257,6 +259,7 @@ export default function PaymentResult() {
               if (orderResult.success) {
                 setBookingResult({
                   orderNumber: orderResult.order.order_number,
+                  accommodationId: pendingBooking.accommodationId,
                   roomName: orderResult.order.room_name || pendingBooking.selectedRoom.name,
                   checkInDate: orderResult.order.check_in_date || pendingBooking.checkInDate,
                   checkOutDate: orderResult.order.check_out_date || pendingBooking.checkOutDate,
@@ -465,6 +468,15 @@ export default function PaymentResult() {
               </div>
             )}
             
+            <AddToCalendarButton
+              className="w-full"
+              size="lg"
+              orderNumber={bookingResult.orderNumber}
+              accommodationId={bookingResult.accommodationId}
+              checkInDate={bookingResult.checkInDate}
+              checkOutDate={bookingResult.checkOutDate}
+            />
+
             <Button onClick={handleHome} className="w-full" size="lg">
               <Home className="h-4 w-4 mr-2" />
               返回首頁
