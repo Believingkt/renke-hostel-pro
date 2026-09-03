@@ -413,34 +413,47 @@ export default function OrderPayment() {
   }, [tappayConfigError]);
 
   // Setup TapPay card form
+  // 必須等到「刷卡步驟」的三個欄位實際渲染後再呼叫 card.setup()，
+  // 否則 SDK 會回 "Cannot find element for card-number"。
+  const canSetupCardFields =
+    isTapPayReady && emailConfirmed && !orderInfo?.isAtm;
+
   useEffect(() => {
-    if (!isTapPayReady) return;
+    // 返回上一步（或切換為 ATM）時重置旗標，重新進入刷卡步驟可再次 setup
+    if (!canSetupCardFields) {
+      cardSetupDoneRef.current = false;
+      return;
+    }
+    if (cardSetupDoneRef.current) return;
+    if (!window.TPDirect) return;
 
-    const timer = setTimeout(() => {
-      if (!window.TPDirect) return;
-      try {
-        window.TPDirect.card.setup({
-          fields: {
-            number: { element: "#order-card-number", placeholder: "**** **** **** ****" },
-            expirationDate: { element: "#order-card-expiry", placeholder: "MM / YY" },
-            ccv: { element: "#order-card-ccv", placeholder: "CVV" },
-          },
-          styles: {
-            input: { "font-size": "16px", color: "#1a1a1a" },
-            ".valid": { color: "#16a34a" },
-            ".invalid": { color: "#dc2626" },
-          },
-        });
-        window.TPDirect.card.onUpdate((update: any) => {
-          setCardValid(update.canGetPrime);
-        });
-      } catch (error) {
-        console.error("TapPay setup error:", error);
-      }
-    }, 200);
+    // useEffect 在 render commit 後執行，但保險起見仍確認元素存在
+    const numberEl = document.getElementById("order-card-number");
+    const expiryEl = document.getElementById("order-card-expiry");
+    const ccvEl = document.getElementById("order-card-ccv");
+    if (!numberEl || !expiryEl || !ccvEl) return;
 
-    return () => clearTimeout(timer);
-  }, [isTapPayReady]);
+    try {
+      window.TPDirect.card.setup({
+        fields: {
+          number: { element: "#order-card-number", placeholder: "**** **** **** ****" },
+          expirationDate: { element: "#order-card-expiry", placeholder: "MM / YY" },
+          ccv: { element: "#order-card-ccv", placeholder: "CVV" },
+        },
+        styles: {
+          input: { "font-size": "16px", color: "#1a1a1a" },
+          ".valid": { color: "#16a34a" },
+          ".invalid": { color: "#dc2626" },
+        },
+      });
+      window.TPDirect.card.onUpdate((update: any) => {
+        setCardValid(update.canGetPrime);
+      });
+      cardSetupDoneRef.current = true;
+    } catch (error) {
+      console.error("TapPay setup error:", error);
+    }
+  }, [canSetupCardFields]);
 
   const handlePayment = async () => {
     if (!window.TPDirect || !cardValid || !tappayConfig || !orderInfo) return;
