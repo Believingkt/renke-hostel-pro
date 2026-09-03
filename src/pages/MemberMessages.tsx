@@ -217,6 +217,7 @@ const MemberMessages = () => {
     if (activeTab === "order" && hasNewPush) {
       markPushRead();
       setHasNewPush(false);
+      void markAllMessagesRead().then(() => setUnreadCount(0));
     }
   }, [activeTab, hasNewPush]);
 
