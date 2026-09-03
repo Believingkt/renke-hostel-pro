@@ -159,6 +159,8 @@ function emitReceived(payload: ReceivedPush) {
   } catch {
     /* ignore */
   }
+  // App icon 角標 +1（背景時由 APNs payload 的 aps.badge 負責）
+  void bumpUnreadCount(1);
   window.dispatchEvent(new CustomEvent<ReceivedPush>(PUSH_EVENT, { detail: payload }));
 }
 
