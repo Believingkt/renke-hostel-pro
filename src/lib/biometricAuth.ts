@@ -122,7 +122,9 @@ export async function enableBiometricLogin(): Promise<void> {
   } catch {
     /* ignore */
   }
+  clearManualLogoutFlag();
 }
+
 
 /** 每次成功換發 session 後同步最新 refresh token（已啟用時才做） */
 export async function refreshStoredBiometricToken(): Promise<void> {
