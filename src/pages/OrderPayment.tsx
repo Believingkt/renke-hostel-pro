@@ -493,7 +493,9 @@ export default function OrderPayment() {
             email: emailInput.trim(),
           },
           details: `訂單 ${orderNumber} 付款`,
-          frontendRedirectUrl: `https://booking.lakeze.com/`,
+          // 3DS 完成後回到「發起付款的同一個網域」的付款結果頁（民宿子網域亦然），
+          // 這樣 sessionStorage 的 pending_payment 才讀得到，也不會被導到首頁。
+          frontendRedirectUrl: `${baseUrl}/payment-result?source=admin&order_number=${encodeURIComponent(orderNumber)}`,
           bindCard: orderInfo.needsCardBinding,
         },
       });
