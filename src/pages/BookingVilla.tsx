@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getVillaFeatureIcon } from "@/lib/villa-feature-icons";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
+import { shareStay } from "@/lib/nativeShare";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { getThemeClass } from "@/constants/themes";
 import { SEOHead } from "@/components/SEOHead";
