@@ -29,6 +29,7 @@ export function markCategoriesRead(): void {
   } catch {
     /* ignore */
   }
+  refreshMessagesUnread();
 }
 
 /** 單一分類目前未讀數（已全部已讀則為 0） */
@@ -45,7 +46,7 @@ export function getCategoriesUnreadTotal(): number {
 /** 訊息頁未讀總數 = 分類未讀 + 推播未讀 */
 export function getMessagesUnreadTotal(pushUnread: number): number {
   const push = Number.isFinite(pushUnread) && pushUnread > 0 ? Math.floor(pushUnread) : 0;
-  return getCategoriesUnreadTotal() + push;
+  return getStoredCategoriesUnread() + push;
 }
 
 // ---------------------------------------------------------------------------
