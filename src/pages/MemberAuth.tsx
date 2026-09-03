@@ -126,7 +126,22 @@ const MemberAuth = () => {
   // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
   useEffect(() => {
     const checkExisting = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      // session 已失效且已啟用 Face ID → 先生物辨識，成功則以 Keychain refresh token 恢復登入
+      if (!user && isBiometricEnabled()) {
+        setBiometricRestoring(true);
+        try {
+          const ok = await tryBiometricRestoreSession();
+          if (ok) {
+            user = (await supabase.auth.getUser()).data.user;
+            if (user) toast.success("Face ID 登入成功");
+          }
+        } catch {
+          /* 失敗或取消 → 停留在一般登入頁 */
+        } finally {
+          setBiometricRestoring(false);
+        }
+      }
       if (user) {
         const { data: member } = await supabase
           .from("platform_members")
