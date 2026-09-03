@@ -458,7 +458,8 @@ export default function OrderPayment() {
 
   const handlePayment = async () => {
     if (!window.TPDirect || !cardValid || !tappayConfig || !orderInfo) return;
-    if (!isAuthed) {
+    // 後台產生的付款連結（src=admin）允許未登入付款；一般客人流程仍要求登入
+    if (!skipAuthGate && !isAuthed) {
       toast.error("請先以 Facebook 或 LINE 登入再進行付款");
       return;
     }
