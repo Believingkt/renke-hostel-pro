@@ -876,10 +876,56 @@ function InvitationsTab({
     toast.success("已新增標籤");
   };
 
-  const fetchRows = useCallback(async () => {
+  // 只有「最新一次請求」可以寫入結果（避免快慢請求競態覆蓋）
+  const fetchSeqRef = useRef(0);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  // 分頁 + 篩選條件快取（60 秒），切換館別／換頁時不必重打整頁
+  const rowsCacheRef = useRef<
+    Map<string, { ts: number; rows: KolRow[]; count: number; pmsCodes: Set<string> }>
+  >(new Map());
+  const CACHE_TTL_MS = 60_000;
+
+  const runFetchRows = useCallback(async (force: boolean) => {
+    const cacheKey = JSON.stringify([
+      page,
+      search.trim(),
+      [...filterAccs].sort(),
+      [...filterRarity].sort(),
+      [...filterTags].sort(),
+      filterScout,
+      filterYear,
+      filterMonth,
+      filterQualified,
+      filterProgress,
+      filterAccOptions.length,
+    ]);
+
+    if (force) {
+      rowsCacheRef.current.clear();
+    } else {
+      const hit = rowsCacheRef.current.get(cacheKey);
+      if (hit && Date.now() - hit.ts < CACHE_TTL_MS) {
+        fetchSeqRef.current += 1;
+        fetchAbortRef.current?.abort();
+        fetchAbortRef.current = null;
+        setRows(hit.rows);
+        setTotalCount(hit.count);
+        setPmsCodesSet(hit.pmsCodes);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const reqId = ++fetchSeqRef.current;
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    const isStale = () => reqId !== fetchSeqRef.current || controller.signal.aborted;
+
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
+
 
     let q = supabase
       .from("kol_profiles_with_progress" as any)
