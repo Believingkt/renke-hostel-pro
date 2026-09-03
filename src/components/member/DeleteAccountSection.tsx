@@ -47,6 +47,7 @@ const DeleteAccountSection = () => {
       }
 
       await disableBiometricLogin();
+      await clearAppBadge();
       await supabase.auth.signOut();
       try {
         localStorage.clear();
