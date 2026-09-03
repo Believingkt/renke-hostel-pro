@@ -11,6 +11,44 @@ import { supabase } from "@/integrations/supabase/client";
 const SERVER = "com.lakeze.booking.member";
 const ENABLED_KEY = "biometric_login_enabled";
 const ASKED_KEY = "biometric_login_prompt_asked";
+const MANUAL_LOGOUT_KEY = "member_manual_logout";
+
+/** 使用者主動登出旗標：設定後禁止任何自動還原 session */
+export function setManualLogoutFlag(): void {
+  try {
+    localStorage.setItem(MANUAL_LOGOUT_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearManualLogoutFlag(): void {
+  try {
+    localStorage.removeItem(MANUAL_LOGOUT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isManualLogout(): boolean {
+  try {
+    return localStorage.getItem(MANUAL_LOGOUT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Keychain 是否還有可用憑證 */
+export async function hasStoredBiometricCredentials(): Promise<boolean> {
+  if (!isBiometricPlatform()) return false;
+  try {
+    const creds = await NativeBiometric.getCredentials({ server: SERVER });
+    return !!creds?.password;
+  } catch {
+    return false;
+  }
+}
+
 
 /** 只在原生 iOS App 內提供 */
 export function isBiometricPlatform(): boolean {
@@ -84,7 +122,9 @@ export async function enableBiometricLogin(): Promise<void> {
   } catch {
     /* ignore */
   }
+  clearManualLogoutFlag();
 }
+
 
 /** 每次成功換發 session 後同步最新 refresh token（已啟用時才做） */
 export async function refreshStoredBiometricToken(): Promise<void> {
@@ -122,8 +162,16 @@ export async function disableBiometricLogin(): Promise<void> {
  * 成功回 true；不支援／未啟用／使用者取消／token 失效回 false（由呼叫端導回一般登入頁）。
  */
 export async function tryBiometricRestoreSession(): Promise<boolean> {
+  // 使用者主動登出後，絕不自動還原
+  if (isManualLogout()) return false;
   if (!isBiometricEnabled()) return false;
   if (!(await isBiometricAvailable())) return false;
+  if (!(await hasStoredBiometricCredentials())) {
+    await disableBiometricLogin();
+    return false;
+  }
+
+
 
   try {
     await NativeBiometric.verifyIdentity({
