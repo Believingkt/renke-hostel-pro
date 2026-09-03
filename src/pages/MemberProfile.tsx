@@ -265,6 +265,8 @@ const MemberProfile = () => {
       {/* App 推播通知（僅原生 App 顯示） */}
       <PushNotificationCard />
 
+      <BiometricLoginCard />
+
 
 
 
