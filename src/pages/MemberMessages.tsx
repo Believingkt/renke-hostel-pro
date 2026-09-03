@@ -11,6 +11,12 @@ import {
   markPushRead,
   type ReceivedPush,
 } from "@/lib/pushNotifications";
+import {
+  getLocalUnreadCount,
+  markAllMessagesRead,
+  subscribeUnreadCount,
+  syncBadgeFromServer,
+} from "@/lib/appBadge";
 
 import {
   MessageSquare,
