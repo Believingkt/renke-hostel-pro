@@ -145,6 +145,22 @@ const MemberMessages = () => {
     { title: string; subtitle: string; time: string; unread: boolean }[]
   >([]);
   const [hasNewPush, setHasNewPush] = useState(() => hasUnreadPush());
+  const [unreadCount, setUnreadCount] = useState(() => getLocalUnreadCount());
+
+  /** 進入訊息頁：以伺服器未讀數校正角標與畫面 */
+  useEffect(() => {
+    void syncBadgeFromServer().then(setUnreadCount);
+    return subscribeUnreadCount(setUnreadCount);
+  }, []);
+
+  /** 全部已讀：伺服器 + 本地 + App icon 角標歸零 */
+  const handleMarkAllRead = async () => {
+    markPushRead();
+    setHasNewPush(false);
+    await markAllMessagesRead();
+    setUnreadCount(0);
+    toast.success("已將全部訊息標示為已讀");
+  };
 
   /** 統一狀態來源：pushNotifications.isPushEnabled（與「我的帳號」共用） */
   const refreshNotify = async (retries = 0, silent = true) => {
