@@ -11,6 +11,12 @@ import {
   markPushRead,
   type ReceivedPush,
 } from "@/lib/pushNotifications";
+import {
+  getLocalUnreadCount,
+  markAllMessagesRead,
+  subscribeUnreadCount,
+  syncBadgeFromServer,
+} from "@/lib/appBadge";
 
 import {
   MessageSquare,
@@ -145,6 +151,22 @@ const MemberMessages = () => {
     { title: string; subtitle: string; time: string; unread: boolean }[]
   >([]);
   const [hasNewPush, setHasNewPush] = useState(() => hasUnreadPush());
+  const [unreadCount, setUnreadCount] = useState(() => getLocalUnreadCount());
+
+  /** 進入訊息頁：以伺服器未讀數校正角標與畫面 */
+  useEffect(() => {
+    void syncBadgeFromServer().then(setUnreadCount);
+    return subscribeUnreadCount(setUnreadCount);
+  }, []);
+
+  /** 全部已讀：伺服器 + 本地 + App icon 角標歸零 */
+  const handleMarkAllRead = async () => {
+    markPushRead();
+    setHasNewPush(false);
+    await markAllMessagesRead();
+    setUnreadCount(0);
+    toast.success("已將全部訊息標示為已讀");
+  };
 
   /** 統一狀態來源：pushNotifications.isPushEnabled（與「我的帳號」共用） */
   const refreshNotify = async (retries = 0, silent = true) => {
@@ -195,6 +217,7 @@ const MemberMessages = () => {
     if (activeTab === "order" && hasNewPush) {
       markPushRead();
       setHasNewPush(false);
+      void markAllMessagesRead().then(() => setUnreadCount(0));
     }
   }, [activeTab, hasNewPush]);
 
@@ -238,9 +261,20 @@ const MemberMessages = () => {
     <div className="space-y-4">
       {/* Page title */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           訊息<span className="text-orange-500">.</span>
+          {unreadCount > 0 && (
+            <span className="text-[11px] font-semibold bg-orange-500 text-white rounded-full px-2 h-5 flex items-center">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
         </h1>
+        <button
+          onClick={handleMarkAllRead}
+          className="text-xs text-orange-500 font-medium"
+        >
+          全部已讀
+        </button>
       </div>
 
       {/* Notify banner */}

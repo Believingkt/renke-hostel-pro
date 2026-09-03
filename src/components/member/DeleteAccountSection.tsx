@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { disableBiometricLogin } from "@/lib/biometricAuth";
+import { clearAppBadge } from "@/lib/appBadge";
 
 const CONFIRM_WORD = "刪除";
 
@@ -46,6 +47,7 @@ const DeleteAccountSection = () => {
       }
 
       await disableBiometricLogin();
+      await clearAppBadge();
       await supabase.auth.signOut();
       try {
         localStorage.clear();

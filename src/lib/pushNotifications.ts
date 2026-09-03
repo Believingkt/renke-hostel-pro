@@ -2,6 +2,7 @@
 // 網頁版完全不受影響：所有動作都會先檢查是否在原生 App 環境。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
+import { bumpUnreadCount } from "@/lib/appBadge";
 
 /** 內部除錯紀錄：只寫 console，不打擾使用者 */
 function debugLog(label: string, e: unknown) {
@@ -158,6 +159,8 @@ function emitReceived(payload: ReceivedPush) {
   } catch {
     /* ignore */
   }
+  // App icon 角標 +1（背景時由 APNs payload 的 aps.badge 負責）
+  void bumpUnreadCount(1);
   window.dispatchEvent(new CustomEvent<ReceivedPush>(PUSH_EVENT, { detail: payload }));
 }
 
