@@ -5,6 +5,40 @@ import { getMessagesUnreadTotal, markCategoriesRead } from "@/lib/messagesUnread
 
 const LOCAL_KEY = "push_unread_count";
 const BADGE_EVENT = "lakeze:badge-changed";
+const BADGE_DIAGNOSTIC_EVENT = "lakeze:badge-diagnostic-changed";
+
+export interface BadgeSyncDiagnostic {
+  timestamp: string;
+  count: number;
+  success: boolean;
+  message: string;
+}
+
+let lastBadgeSyncDiagnostic: BadgeSyncDiagnostic | null = null;
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.stack || error.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function publishBadgeSyncDiagnostic(diagnostic: BadgeSyncDiagnostic) {
+  lastBadgeSyncDiagnostic = diagnostic;
+  window.dispatchEvent(new CustomEvent<BadgeSyncDiagnostic>(BADGE_DIAGNOSTIC_EVENT, { detail: diagnostic }));
+}
+
+export function getLastBadgeSyncDiagnostic(): BadgeSyncDiagnostic | null {
+  return lastBadgeSyncDiagnostic;
+}
+
+export function subscribeBadgeSyncDiagnostic(handler: (diagnostic: BadgeSyncDiagnostic) => void): () => void {
+  const listener = (event: Event) => handler((event as CustomEvent<BadgeSyncDiagnostic>).detail);
+  window.addEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
+  return () => window.removeEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
+}
 
 async function loadPlugin() {
   if (!isNativeApp()) return null;
@@ -76,7 +110,15 @@ export async function setAppBadge(count: number): Promise<void> {
   const safe = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   persistLocal(safe);
   const Badge = await loadPlugin();
-  if (!Badge) return;
+  if (!Badge) {
+    publishBadgeSyncDiagnostic({
+      timestamp: new Date().toISOString(),
+      count: safe,
+      success: false,
+      message: "Badge plugin unavailable",
+    });
+    return;
+  }
   try {
     const perm = await Badge.checkPermissions();
     if (perm.display !== "granted") {
@@ -84,14 +126,32 @@ export async function setAppBadge(count: number): Promise<void> {
       console.log("[badge] requestPermissions =", req);
       if (req.display !== "granted") {
         console.warn("[badge] permission denied, skip set", safe);
+        publishBadgeSyncDiagnostic({
+          timestamp: new Date().toISOString(),
+          count: safe,
+          success: false,
+          message: `Permission not granted: ${JSON.stringify(req)}`,
+        });
         return;
       }
     }
     console.log("[badge] Badge.set count =", safe);
     if (safe > 0) await Badge.set({ count: safe });
     else await Badge.clear();
+    publishBadgeSyncDiagnostic({
+      timestamp: new Date().toISOString(),
+      count: safe,
+      success: true,
+      message: safe > 0 ? "Badge.set succeeded" : "Badge.clear succeeded",
+    });
   } catch (e) {
     console.warn("[badge] set failed", e);
+    publishBadgeSyncDiagnostic({
+      timestamp: new Date().toISOString(),
+      count: safe,
+      success: false,
+      message: errorMessage(e),
+    });
   }
 }
 
@@ -123,9 +183,7 @@ export async function fetchServerUnreadCount(): Promise<number | null> {
 
 /** 訊息頁未讀總數（分類未讀 + 推播未讀）並同步角標（啟動 / 回前景 / 進背景） */
 export async function syncBadgeFromServer(): Promise<number> {
-  const remote = await fetchServerUnreadCount();
-  const push = remote ?? getLocalPushUnread();
-  const total = getMessagesUnreadTotal(push);
+  const { pushUnread: push, total } = await getBadgeUnreadCounts();
   try {
     localStorage.setItem(PUSH_KEY, String(push));
   } catch {
@@ -138,13 +196,19 @@ export async function syncBadgeFromServer(): Promise<number> {
 
 const PUSH_KEY = "push_unread_only";
 
-function getLocalPushUnread(): number {
+export function getLocalPushUnread(): number {
   try {
     const n = Number(localStorage.getItem(PUSH_KEY) ?? "0");
     return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
   } catch {
     return 0;
   }
+}
+
+export async function getBadgeUnreadCounts(): Promise<{ pushUnread: number; total: number }> {
+  const remote = await fetchServerUnreadCount();
+  const pushUnread = remote ?? getLocalPushUnread();
+  return { pushUnread, total: getMessagesUnreadTotal(pushUnread) };
 }
 
 /** 前景收到推播：未讀 +1 並更新角標 */

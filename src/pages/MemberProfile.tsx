@@ -25,6 +25,7 @@ import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } fro
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
 import PushNotificationCard from "@/components/member/PushNotificationCard";
 import BiometricLoginCard from "@/components/member/BiometricLoginCard";
+import BadgeDiagnosticsCard from "@/components/member/BadgeDiagnosticsCard";
 
 import DeleteAccountSection from "@/components/member/DeleteAccountSection";
 
@@ -290,6 +291,9 @@ const MemberProfile = () => {
 
       {/* 刪除帳號（Apple Guideline 5.1.1） */}
       <DeleteAccountSection />
+
+      {/* 臨時：原生 App icon 角標診斷 */}
+      <BadgeDiagnosticsCard />
 
       <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
         <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
