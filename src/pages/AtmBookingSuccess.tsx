@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -564,10 +565,17 @@ export default function AtmBookingSuccess() {
         </Card>
 
         <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <AddToCalendarButton
+            orderNumber={order.order_number}
+            accommodationId={order.accommodation_id || accId || null}
+            checkInDate={order.check_in_date}
+            checkOutDate={order.check_out_date}
+          />
           <Button variant="outline" onClick={() => navigate("/")}>
             <Home className="h-4 w-4 mr-2" />
             回首頁
           </Button>
+
           {accId && (
             <Button variant="ghost" onClick={() => navigate(`/member/orders`)}>
               查看我的訂單

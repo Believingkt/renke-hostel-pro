@@ -23,6 +23,7 @@
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@ebarooni/capacitor-calendar": "^8.5.0",
     "@hookform/resolvers": "^3.10.0",
     "@lovable.dev/cloud-auth-js": "^1.2.0",
     "@lovable.dev/mcp-js": "^0.25.0",

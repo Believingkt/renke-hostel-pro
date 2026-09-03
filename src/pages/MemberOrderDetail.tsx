@@ -54,6 +54,7 @@ import {
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 
 import { zhTW } from "date-fns/locale";
+import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
 import { toast } from "sonner";
 import { isAtmExpired } from "@/lib/atmPayment";
 import { resolvePaymentSummary } from "@/lib/paymentSummary";
@@ -740,7 +741,20 @@ const MemberOrderDetail = () => {
             {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
             重新傳送信件
           </button>
+          {!cancelled && (
+            <div className="mt-3">
+              <AddToCalendarButton
+                size="sm"
+                orderNumber={order.order_number}
+                accommodationName={order.accommodation_name}
+                address={order.accommodation_address}
+                checkInDate={order.check_in_date}
+                checkOutDate={order.check_out_date}
+              />
+            </div>
+          )}
         </div>
+
 
         {!cancelled && (
           <>
