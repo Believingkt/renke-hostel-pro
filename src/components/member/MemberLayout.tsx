@@ -139,6 +139,8 @@ const MemberLayout = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 一次性提示：啟用 Face ID 快速登入（僅 iOS App） */}
+      <BiometricEnrollPrompt />
 
       {/* Desktop top nav */}
       {!isMobile && (
