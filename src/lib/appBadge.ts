@@ -10,43 +10,6 @@ import {
 
 const LOCAL_KEY = "push_unread_count";
 const BADGE_EVENT = "lakeze:badge-changed";
-const BADGE_DIAGNOSTIC_EVENT = "lakeze:badge-diagnostic-changed";
-
-export interface BadgeSyncDiagnostic {
-  timestamp: string;
-  count: number;
-  success: boolean;
-  message: string;
-  reason?: string;
-}
-
-let lastSyncReason = "manual";
-
-let lastBadgeSyncDiagnostic: BadgeSyncDiagnostic | null = null;
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.stack || error.message;
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
-}
-
-function publishBadgeSyncDiagnostic(diagnostic: BadgeSyncDiagnostic) {
-  lastBadgeSyncDiagnostic = diagnostic;
-  window.dispatchEvent(new CustomEvent<BadgeSyncDiagnostic>(BADGE_DIAGNOSTIC_EVENT, { detail: diagnostic }));
-}
-
-export function getLastBadgeSyncDiagnostic(): BadgeSyncDiagnostic | null {
-  return lastBadgeSyncDiagnostic;
-}
-
-export function subscribeBadgeSyncDiagnostic(handler: (diagnostic: BadgeSyncDiagnostic) => void): () => void {
-  const listener = (event: Event) => handler((event as CustomEvent<BadgeSyncDiagnostic>).detail);
-  window.addEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
-  return () => window.removeEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
-}
 
 async function loadPlugin() {
   if (!isNativeApp()) return null;
