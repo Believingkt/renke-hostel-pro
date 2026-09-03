@@ -10,43 +10,6 @@ import {
 
 const LOCAL_KEY = "push_unread_count";
 const BADGE_EVENT = "lakeze:badge-changed";
-const BADGE_DIAGNOSTIC_EVENT = "lakeze:badge-diagnostic-changed";
-
-export interface BadgeSyncDiagnostic {
-  timestamp: string;
-  count: number;
-  success: boolean;
-  message: string;
-  reason?: string;
-}
-
-let lastSyncReason = "manual";
-
-let lastBadgeSyncDiagnostic: BadgeSyncDiagnostic | null = null;
-
-function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.stack || error.message;
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return String(error);
-  }
-}
-
-function publishBadgeSyncDiagnostic(diagnostic: BadgeSyncDiagnostic) {
-  lastBadgeSyncDiagnostic = diagnostic;
-  window.dispatchEvent(new CustomEvent<BadgeSyncDiagnostic>(BADGE_DIAGNOSTIC_EVENT, { detail: diagnostic }));
-}
-
-export function getLastBadgeSyncDiagnostic(): BadgeSyncDiagnostic | null {
-  return lastBadgeSyncDiagnostic;
-}
-
-export function subscribeBadgeSyncDiagnostic(handler: (diagnostic: BadgeSyncDiagnostic) => void): () => void {
-  const listener = (event: Event) => handler((event as CustomEvent<BadgeSyncDiagnostic>).detail);
-  window.addEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
-  return () => window.removeEventListener(BADGE_DIAGNOSTIC_EVENT, listener);
-}
 
 async function loadPlugin() {
   if (!isNativeApp()) return null;
@@ -119,13 +82,6 @@ export async function setAppBadge(count: number): Promise<void> {
   persistLocal(safe);
   const Badge = await loadPlugin();
   if (!Badge) {
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: false,
-      message: "Badge plugin unavailable",
-      reason: lastSyncReason,
-    });
     return;
   }
   try {
@@ -135,35 +91,14 @@ export async function setAppBadge(count: number): Promise<void> {
       console.log("[badge] requestPermissions =", req);
       if (req.display !== "granted") {
         console.warn("[badge] permission denied, skip set", safe);
-        publishBadgeSyncDiagnostic({
-          timestamp: new Date().toISOString(),
-          count: safe,
-          success: false,
-          message: `Permission not granted: ${JSON.stringify(req)}`,
-          reason: lastSyncReason,
-        });
         return;
       }
     }
     console.log("[badge] Badge.set count =", safe);
     if (safe > 0) await Badge.set({ count: safe });
     else await Badge.clear();
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: true,
-      message: safe > 0 ? "Badge.set succeeded" : "Badge.clear succeeded",
-      reason: lastSyncReason,
-    });
   } catch (e) {
     console.warn("[badge] set failed", e);
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: false,
-      message: errorMessage(e),
-      reason: lastSyncReason,
-    });
   }
 }
 
@@ -195,7 +130,6 @@ export async function fetchServerUnreadCount(): Promise<number | null> {
 
 /** 訊息頁未讀總數（分類未讀 + 推播未讀）並同步角標（啟動 / 回前景 / 進背景 / 未讀變動 / 收到推播） */
 export async function syncBadgeFromServer(reason = "manual"): Promise<number> {
-  lastSyncReason = reason;
   // 確保分類未讀在 App 啟動時就有值，不依賴訊息頁先被開啟
   if (!isMessagesUnreadLoaded()) initMessagesUnread();
 
@@ -209,13 +143,6 @@ export async function syncBadgeFromServer(reason = "manual"): Promise<number> {
 
   if (total === 0 && !isMessagesUnreadLoaded()) {
     // 資料尚未載入，不要先寫 0 蓋掉既有角標
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: 0,
-      success: false,
-      message: "Skipped: unread data not loaded yet",
-      reason,
-    });
     return total;
   }
 
@@ -242,7 +169,6 @@ export async function getBadgeUnreadCounts(): Promise<{ pushUnread: number; tota
 
 /** 前景收到推播：未讀 +1 並更新角標 */
 export async function bumpUnreadCount(delta = 1): Promise<number> {
-  lastSyncReason = "push-received";
   const push = Math.max(0, getLocalPushUnread() + delta);
   try {
     localStorage.setItem(PUSH_KEY, String(push));
