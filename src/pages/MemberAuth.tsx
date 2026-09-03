@@ -82,6 +82,7 @@ const MemberAuth = () => {
   const [fbLoading, setFbLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [biometricRestoring, setBiometricRestoring] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
