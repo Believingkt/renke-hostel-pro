@@ -162,8 +162,16 @@ export async function disableBiometricLogin(): Promise<void> {
  * 成功回 true；不支援／未啟用／使用者取消／token 失效回 false（由呼叫端導回一般登入頁）。
  */
 export async function tryBiometricRestoreSession(): Promise<boolean> {
+  // 使用者主動登出後，絕不自動還原
+  if (isManualLogout()) return false;
   if (!isBiometricEnabled()) return false;
   if (!(await isBiometricAvailable())) return false;
+  if (!(await hasStoredBiometricCredentials())) {
+    await disableBiometricLogin();
+    return false;
+  }
+
+
 
   try {
     await NativeBiometric.verifyIdentity({
