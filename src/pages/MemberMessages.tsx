@@ -17,6 +17,8 @@ import {
   subscribeUnreadCount,
   syncBadgeFromServer,
 } from "@/lib/appBadge";
+import { getCategoryUnread, type MessageCategory } from "@/lib/messagesUnread";
+
 
 import {
   MessageSquare,
