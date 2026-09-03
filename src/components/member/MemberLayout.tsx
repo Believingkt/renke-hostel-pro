@@ -96,13 +96,44 @@ const MemberLayout = () => {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await deactivateCurrentDeviceTokens();
-    await disableBiometricLogin();
-    await clearAppBadge();
-    await supabase.auth.signOut();
+    // 1. 先立旗標：任何自動還原（Face ID）都必須跳過
+    setManualLogoutFlag();
+
+    // 2. 清除 Keychain 憑證 + 關閉 Face ID 開關（失敗不可中斷登出）
+    try {
+      await disableBiometricLogin();
+    } catch (e) {
+      console.error("[logout] disableBiometricLogin failed", e);
+      toast.error("Face ID 憑證清除失敗，仍會繼續登出");
+    }
+
+    try {
+      await deactivateCurrentDeviceTokens();
+    } catch (e) {
+      console.error("[logout] deactivateCurrentDeviceTokens failed", e);
+    }
+
+    // 3. 登出
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    } catch (e) {
+      console.error("[logout] signOut failed", e);
+      toast.error("登出失敗，請再試一次");
+      return;
+    }
+
+    // 4. 清角標
+    try {
+      await clearAppBadge();
+    } catch (e) {
+      console.error("[logout] clearAppBadge failed", e);
+    }
+
     toast.success("已登出");
-    navigate("/booking");
+    navigate("/booking", { replace: true });
   };
+
 
 
   return (
