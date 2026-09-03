@@ -11,6 +11,44 @@ import { supabase } from "@/integrations/supabase/client";
 const SERVER = "com.lakeze.booking.member";
 const ENABLED_KEY = "biometric_login_enabled";
 const ASKED_KEY = "biometric_login_prompt_asked";
+const MANUAL_LOGOUT_KEY = "member_manual_logout";
+
+/** 使用者主動登出旗標：設定後禁止任何自動還原 session */
+export function setManualLogoutFlag(): void {
+  try {
+    localStorage.setItem(MANUAL_LOGOUT_KEY, "1");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearManualLogoutFlag(): void {
+  try {
+    localStorage.removeItem(MANUAL_LOGOUT_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isManualLogout(): boolean {
+  try {
+    return localStorage.getItem(MANUAL_LOGOUT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Keychain 是否還有可用憑證 */
+export async function hasStoredBiometricCredentials(): Promise<boolean> {
+  if (!isBiometricPlatform()) return false;
+  try {
+    const creds = await NativeBiometric.getCredentials({ server: SERVER });
+    return !!creds?.password;
+  } catch {
+    return false;
+  }
+}
+
 
 /** 只在原生 iOS App 內提供 */
 export function isBiometricPlatform(): boolean {
