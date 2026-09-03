@@ -2,21 +2,21 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
 import { bootstrapPushForExistingSession, initPushNotifications } from "@/lib/pushNotifications";
-import { clearAppBadge, syncBadgeFromServer } from "@/lib/appBadge";
+import { clearAppBadge, logBadgeDiagnostics, syncBadgeFromServer } from "@/lib/appBadge";
 
 /**
  * App 啟動時檢查通知權限：
  * - 只要有既有會員 session（不限剛登入）就初始化 → 未詢問過會跳出系統權限詢問
  * - 已允許則每次啟動 register()，重新 upsert device token（token 可能輪替）
- * - 啟動、回前景時同步 App icon 角標未讀數；登出歸零
+ * - 啟動、回前景、進背景時同步 App icon 角標未讀數；登出歸零
  * - 網頁版完全不執行
  */
 export function usePushBootstrap() {
   useEffect(() => {
     if (!isNativeApp()) return;
 
+    void logBadgeDiagnostics().then(() => syncBadgeFromServer());
     void bootstrapPushForExistingSession();
-    void syncBadgeFromServer();
 
     const onVisible = () => {
       if (document.visibilityState === "visible") void syncBadgeFromServer();
@@ -24,6 +24,7 @@ export function usePushBootstrap() {
     document.addEventListener("visibilitychange", onVisible);
 
     let removeResume: (() => void) | undefined;
+    let removeState: (() => void) | undefined;
     void (async () => {
       try {
         const { App } = await import("@capacitor/app");
@@ -31,10 +32,17 @@ export function usePushBootstrap() {
           void syncBadgeFromServer();
         });
         removeResume = () => void handle.remove();
+        // 進入背景／inactive 時再寫一次，確保桌面 icon 顯示最新未讀數
+        const stateHandle = await App.addListener("appStateChange", ({ isActive }) => {
+          void syncBadgeFromServer();
+          console.log("[badge] appStateChange isActive =", isActive);
+        });
+        removeState = () => void stateHandle.remove();
       } catch {
         /* 無 App plugin 時僅靠 visibilitychange */
       }
     })();
+
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
