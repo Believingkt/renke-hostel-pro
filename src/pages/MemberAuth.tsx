@@ -7,6 +7,7 @@ import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referra
 
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 import AppleSignInButton from "@/components/auth/AppleSignInButton";
+import { isBiometricEnabled, tryBiometricRestoreSession } from "@/lib/biometricAuth";
 import { signInWithAppleNative } from "@/lib/appleSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
