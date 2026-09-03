@@ -82,13 +82,6 @@ export async function setAppBadge(count: number): Promise<void> {
   persistLocal(safe);
   const Badge = await loadPlugin();
   if (!Badge) {
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: false,
-      message: "Badge plugin unavailable",
-      reason: lastSyncReason,
-    });
     return;
   }
   try {
@@ -98,35 +91,14 @@ export async function setAppBadge(count: number): Promise<void> {
       console.log("[badge] requestPermissions =", req);
       if (req.display !== "granted") {
         console.warn("[badge] permission denied, skip set", safe);
-        publishBadgeSyncDiagnostic({
-          timestamp: new Date().toISOString(),
-          count: safe,
-          success: false,
-          message: `Permission not granted: ${JSON.stringify(req)}`,
-          reason: lastSyncReason,
-        });
         return;
       }
     }
     console.log("[badge] Badge.set count =", safe);
     if (safe > 0) await Badge.set({ count: safe });
     else await Badge.clear();
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: true,
-      message: safe > 0 ? "Badge.set succeeded" : "Badge.clear succeeded",
-      reason: lastSyncReason,
-    });
   } catch (e) {
     console.warn("[badge] set failed", e);
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: safe,
-      success: false,
-      message: errorMessage(e),
-      reason: lastSyncReason,
-    });
   }
 }
 
