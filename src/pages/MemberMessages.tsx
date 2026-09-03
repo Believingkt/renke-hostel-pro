@@ -37,22 +37,23 @@ import {
 
 type TabKey = "all" | "chat" | "order" | "reward" | "promo" | "interact";
 
-const tabs: { key: TabKey; label: string; badge?: number; dot?: boolean }[] = [
+const tabs: { key: TabKey; label: string; category?: MessageCategory }[] = [
   { key: "all", label: "全部" },
-  { key: "chat", label: "對話", badge: 3 },
-  { key: "order", label: "訂單", dot: true },
-  { key: "reward", label: "獎勵", dot: true },
-  { key: "promo", label: "優惠", dot: true },
-  { key: "interact", label: "互動", dot: true },
+  { key: "chat", label: "對話", category: "chat" },
+  { key: "order", label: "訂單", category: "order" },
+  { key: "reward", label: "獎勵", category: "reward" },
+  { key: "promo", label: "優惠", category: "promo" },
+  { key: "interact", label: "互動", category: "interact" },
 ];
 
 const quickTiles = [
-  { key: "chat" as TabKey, label: "對話", icon: MessageSquare, badge: 3, tone: "bg-orange-100 text-orange-600" },
-  { key: "order" as TabKey, label: "訂單", icon: ClipboardList, dot: true, tone: "bg-blue-100 text-blue-600" },
-  { key: "reward" as TabKey, label: "獎勵", icon: Coins, dot: true, tone: "bg-amber-100 text-amber-600" },
-  { key: "promo" as TabKey, label: "優惠", icon: Gift, dot: true, tone: "bg-pink-100 text-pink-600" },
-  { key: "interact" as TabKey, label: "互動", icon: Sparkles, dot: true, tone: "bg-purple-100 text-purple-600" },
+  { key: "chat" as TabKey, label: "對話", icon: MessageSquare, category: "chat" as MessageCategory, tone: "bg-orange-100 text-orange-600" },
+  { key: "order" as TabKey, label: "訂單", icon: ClipboardList, category: "order" as MessageCategory, tone: "bg-blue-100 text-blue-600" },
+  { key: "reward" as TabKey, label: "獎勵", icon: Coins, category: "reward" as MessageCategory, tone: "bg-amber-100 text-amber-600" },
+  { key: "promo" as TabKey, label: "優惠", icon: Gift, category: "promo" as MessageCategory, tone: "bg-pink-100 text-pink-600" },
+  { key: "interact" as TabKey, label: "互動", icon: Sparkles, category: "interact" as MessageCategory, tone: "bg-purple-100 text-purple-600" },
 ];
+
 
 const chatItems = [
   { icon: Phone, iconTone: "bg-blue-50 text-blue-500", title: "客服通話紀錄", subtitle: "[去電] 您已撥打至 Lakeze 客服", time: "昨天" },
