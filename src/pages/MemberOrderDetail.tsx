@@ -55,6 +55,7 @@ import { format, differenceInCalendarDays, addDays } from "date-fns";
 
 import { zhTW } from "date-fns/locale";
 import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
+import ShareStayButton from "@/components/booking/ShareStayButton";
 import { toast } from "sonner";
 import { isAtmExpired } from "@/lib/atmPayment";
 import { resolvePaymentSummary } from "@/lib/paymentSummary";
@@ -741,8 +742,8 @@ const MemberOrderDetail = () => {
             {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
             重新傳送信件
           </button>
-          {!cancelled && (
-            <div className="mt-3">
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {!cancelled && (
               <AddToCalendarButton
                 size="sm"
                 orderNumber={order.order_number}
@@ -751,8 +752,14 @@ const MemberOrderDetail = () => {
                 checkInDate={order.check_in_date}
                 checkOutDate={order.check_out_date}
               />
-            </div>
-          )}
+            )}
+            {/* 只分享民宿頁連結，不含任何訂單個資 */}
+            <ShareStayButton
+              size="sm"
+              accommodationId={order.accommodation_id}
+              accommodationName={order.accommodation_name}
+            />
+          </div>
         </div>
 
 

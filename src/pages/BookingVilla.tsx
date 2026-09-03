@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getVillaFeatureIcon } from "@/lib/villa-feature-icons";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { useAccommodationCache } from "@/hooks/use-accommodation-cache";
+import { shareStay } from "@/lib/nativeShare";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { getThemeClass } from "@/constants/themes";
 import { SEOHead } from "@/components/SEOHead";
@@ -764,45 +765,14 @@ const BookingVilla = () => {
 
 
   const handleShare = async () => {
-    const url = window.location.href;
-    // 1) 原生分享（手機 Safari/Chrome）
-    if (typeof navigator !== "undefined" && (navigator as any).share) {
-      try {
-        await (navigator as any).share({
-          title: info.name,
-          text: info.description || info.name,
-          url,
-        });
-        return;
-      } catch (err: any) {
-        if (err?.name === "AbortError") return; // 使用者取消
-        // 其他失敗（iframe 沒授權 web-share 等）→ 走複製 fallback
-      }
-    }
-    // 2) Clipboard API
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url);
-        toast.success("已複製連結");
-        return;
-      }
-    } catch {}
-    // 3) execCommand fallback（iframe 內最後手段）
-    try {
-      const ta = document.createElement("textarea");
-      ta.value = url;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(ta);
-      if (ok) {
-        toast.success("已複製連結");
-        return;
-      }
-    } catch {}
-    toast.error("無法分享，請手動複製網址");
+    const res = await shareStay({
+      accommodationId: info.id,
+      customDomain: (info as any).custom_domain,
+      accommodationName: info.name,
+      description: (info as any).seo_description || info.og_description || info.description,
+    });
+    if (res.status === "copied") toast.success("已複製連結");
+    else if (res.status === "error") toast.error("無法分享，請手動複製網址");
   };
 
   const region =
