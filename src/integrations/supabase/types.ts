@@ -6818,6 +6818,24 @@ export type Database = {
           },
         ]
       }
+      member_push_badges: {
+        Row: {
+          unread_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          unread_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          unread_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       member_recent_views: {
         Row: {
           accommodation_id: string
@@ -13848,6 +13866,10 @@ export type Database = {
           out_order_id: string
           out_was_update: boolean
         }[]
+      }
+      increment_member_push_badge: {
+        Args: { _delta?: number; _user_id: string }
+        Returns: number
       }
       is_admin: { Args: { user_id_param: string }; Returns: boolean }
       is_admin_or_super: { Args: never; Returns: boolean }
