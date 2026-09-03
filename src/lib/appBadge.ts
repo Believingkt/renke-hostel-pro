@@ -1,6 +1,7 @@
 // App icon 角標（未讀訊息數）。僅在 Capacitor 原生環境作用，網頁版全部 no-op。
 import { supabase } from "@/integrations/supabase/client";
 import { isNativeApp } from "@/lib/appMode";
+import { getMessagesUnreadTotal, markCategoriesRead } from "@/lib/messagesUnread";
 
 const LOCAL_KEY = "push_unread_count";
 const BADGE_EVENT = "lakeze:badge-changed";
@@ -15,6 +16,32 @@ async function loadPlugin() {
     return null;
   }
 }
+
+/** 診斷：插件是否註冊、是否支援、權限狀態（必要時請求權限） */
+export async function logBadgeDiagnostics(): Promise<void> {
+  if (!isNativeApp()) {
+    console.log("[badge] web environment — badge disabled");
+    return;
+  }
+  const Badge = await loadPlugin();
+  if (!Badge) {
+    console.error("[badge] plugin NOT registered (檢查 iOS Package.swift / packageClassList 是否含 BadgePlugin，並執行 npx cap sync ios)");
+    return;
+  }
+  try {
+    const supported = await Badge.isSupported();
+    console.log("[badge] isSupported =", supported);
+    let perm = await Badge.checkPermissions();
+    console.log("[badge] checkPermissions =", perm);
+    if (perm.display !== "granted") {
+      perm = await Badge.requestPermissions();
+      console.log("[badge] requestPermissions =", perm);
+    }
+  } catch (e) {
+    console.error("[badge] diagnostics failed", e);
+  }
+}
+
 
 /** 本地快取的未讀數（畫面即時顯示用） */
 export function getLocalUnreadCount(): number {
