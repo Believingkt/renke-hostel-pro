@@ -415,6 +415,7 @@ export default function OrderPayment() {
   // Setup TapPay card form
   // 必須等到「刷卡步驟」的三個欄位實際渲染後再呼叫 card.setup()，
   // 否則 SDK 會回 "Cannot find element for card-number"。
+  const cardSetupDoneRef = useRef(false);
   const canSetupCardFields =
     isTapPayReady && emailConfirmed && !orderInfo?.isAtm;
 
