@@ -794,28 +794,54 @@ function InvitationsTab({
   const [unlinkTarget, setUnlinkTarget] = useState<KolRow | null>(null);
   const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
-  // 載入下拉資料
+  // 載入下拉資料（館別／場域優先，讓篩選選項先出現）
   useEffect(() => {
+    // 1) 先用上次的快取立即渲染篩選選項，避免空白等待
+    try {
+      const cached = sessionStorage.getItem("team_kol_venue_options_v1");
+      if (cached) {
+        const parsed = JSON.parse(cached) as { accommodations: Accommodation[]; venues: KolVenue[] };
+        if (Array.isArray(parsed?.accommodations) && Array.isArray(parsed?.venues)) {
+          setAccommodations(parsed.accommodations);
+          setVenues(parsed.venues);
+        }
+      }
+    } catch { /* ignore cache errors */ }
+
+    // 2) 所有請求同時發出，但館別／場域先到先渲染，不等其他查詢
+    const accP = supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name");
+    const venueP = supabase
+      .from("kol_venues" as any)
+      .select("id, name, type, is_active, accommodation_id, room_type_id")
+      .order("name");
+    const scoutP = supabase.rpc("get_team_role_members", { p_role: "scout" });
+    const scoutMgrP = supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any });
+    const rarP = supabase
+      .from("kol_rarity_settings" as any)
+      .select("rarity, fan_range_desc, bonus_amount, effective_from")
+      .order("effective_from", { ascending: false });
+    const tagP = supabase
+      .from("kol_tags" as any)
+      .select("name")
+      .order("name");
+
     (async () => {
-      const [accRes, venueRes, scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([
-        supabase.from("accommodation_info").select("id, name, booking_type, short_url_alias, is_active").order("name"),
-        supabase
-          .from("kol_venues" as any)
-          .select("id, name, type, is_active, accommodation_id, room_type_id")
-          .order("name"),
-        supabase.rpc("get_team_role_members", { p_role: "scout" }),
-        supabase.rpc("get_team_role_members", { p_role: "scout_manager" as any }),
-        supabase
-          .from("kol_rarity_settings" as any)
-          .select("rarity, fan_range_desc, bonus_amount, effective_from")
-          .order("effective_from", { ascending: false }),
-        supabase
-          .from("kol_tags" as any)
-          .select("name")
-          .order("name"),
-      ]);
+      const [accRes, venueRes] = await Promise.all([accP, venueP]);
       if (accRes.data) setAccommodations(accRes.data as Accommodation[]);
       if (venueRes.data) setVenues(venueRes.data as unknown as KolVenue[]);
+      if (accRes.data && venueRes.data) {
+        try {
+          sessionStorage.setItem(
+            "team_kol_venue_options_v1",
+            JSON.stringify({ accommodations: accRes.data, venues: venueRes.data }),
+          );
+        } catch { /* ignore quota errors */ }
+      }
+    })();
+
+    (async () => {
+      const [scoutRes, scoutMgrRes, rarRes, tagRes] = await Promise.all([scoutP, scoutMgrP, rarP, tagP]);
+
 
       {
         const seen = new Set<string>();
