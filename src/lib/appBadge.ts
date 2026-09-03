@@ -130,7 +130,6 @@ export async function fetchServerUnreadCount(): Promise<number | null> {
 
 /** 訊息頁未讀總數（分類未讀 + 推播未讀）並同步角標（啟動 / 回前景 / 進背景 / 未讀變動 / 收到推播） */
 export async function syncBadgeFromServer(reason = "manual"): Promise<number> {
-  lastSyncReason = reason;
   // 確保分類未讀在 App 啟動時就有值，不依賴訊息頁先被開啟
   if (!isMessagesUnreadLoaded()) initMessagesUnread();
 
@@ -144,13 +143,6 @@ export async function syncBadgeFromServer(reason = "manual"): Promise<number> {
 
   if (total === 0 && !isMessagesUnreadLoaded()) {
     // 資料尚未載入，不要先寫 0 蓋掉既有角標
-    publishBadgeSyncDiagnostic({
-      timestamp: new Date().toISOString(),
-      count: 0,
-      success: false,
-      message: "Skipped: unread data not loaded yet",
-      reason,
-    });
     return total;
   }
 
