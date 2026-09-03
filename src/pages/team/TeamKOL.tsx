@@ -876,10 +876,56 @@ function InvitationsTab({
     toast.success("已新增標籤");
   };
 
-  const fetchRows = useCallback(async () => {
+  // 只有「最新一次請求」可以寫入結果（避免快慢請求競態覆蓋）
+  const fetchSeqRef = useRef(0);
+  const fetchAbortRef = useRef<AbortController | null>(null);
+  // 分頁 + 篩選條件快取（60 秒），切換館別／換頁時不必重打整頁
+  const rowsCacheRef = useRef<
+    Map<string, { ts: number; rows: KolRow[]; count: number; pmsCodes: Set<string> }>
+  >(new Map());
+  const CACHE_TTL_MS = 60_000;
+
+  const runFetchRows = useCallback(async (force: boolean) => {
+    const cacheKey = JSON.stringify([
+      page,
+      search.trim(),
+      [...filterAccs].sort(),
+      [...filterRarity].sort(),
+      [...filterTags].sort(),
+      filterScout,
+      filterYear,
+      filterMonth,
+      filterQualified,
+      filterProgress,
+      filterAccOptions.length,
+    ]);
+
+    if (force) {
+      rowsCacheRef.current.clear();
+    } else {
+      const hit = rowsCacheRef.current.get(cacheKey);
+      if (hit && Date.now() - hit.ts < CACHE_TTL_MS) {
+        fetchSeqRef.current += 1;
+        fetchAbortRef.current?.abort();
+        fetchAbortRef.current = null;
+        setRows(hit.rows);
+        setTotalCount(hit.count);
+        setPmsCodesSet(hit.pmsCodes);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const reqId = ++fetchSeqRef.current;
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+    const isStale = () => reqId !== fetchSeqRef.current || controller.signal.aborted;
+
     setLoading(true);
     const from = (page - 1) * PAGE_SIZE;
     const to = from + PAGE_SIZE - 1;
+
 
     let q = supabase
       .from("kol_profiles_with_progress" as any)
@@ -967,14 +1013,18 @@ function InvitationsTab({
       q = q.or(orParts.join(","));
     }
 
-    const { data, count, error } = await q.order("created_at", { ascending: false }).range(from, to);
+    const { data, count, error } = await q
+      .order("created_at", { ascending: false })
+      .range(from, to)
+      .abortSignal(controller.signal);
 
-
+    if (isStale()) return;
     if (error) {
       toast.error(error.message);
       setLoading(false);
       return;
     }
+
     // 補撈本頁主檔底下的附屬記錄（子檔），讓列表／搜尋看得到（例如同住夥伴）
     const primaryRows = ((data ?? []) as any[]);
     let childRowsData: any[] = [];
@@ -1049,6 +1099,7 @@ function InvitationsTab({
       _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
       _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
     })) as KolRow[];
+    if (isStale()) return;
     setRows(enriched);
     // 搜尋命中子檔時，自動展開對應主檔，避免使用者以為搜不到
     if (matchedParentIds.length > 0) {
@@ -1061,6 +1112,7 @@ function InvitationsTab({
 
     // 取得 PMS 已建立的折扣碼集合
     const { data: pmsCodes } = await supabase.from("discount_codes").select("code");
+    if (isStale()) return;
     const codesSet = new Set<string>(
       (pmsCodes ?? [])
         .map((c: any) => (c.code ?? "").trim().toUpperCase())
@@ -1069,11 +1121,24 @@ function InvitationsTab({
     setPmsCodesSet(codesSet);
     setTotalCount(count ?? 0);
     setLoading(false);
-  }, [accommodations, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
+    rowsCacheRef.current.set(cacheKey, {
+      ts: Date.now(),
+      rows: enriched,
+      count: count ?? 0,
+      pmsCodes: codesSet,
+    });
+  }, [accommodations, venues, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
+
+  /** 手動刷新（新增／編輯後呼叫）：清空快取並強制重打 */
+  const fetchRows = useCallback(
+    () => runFetchRows(true).catch(() => {}),
+    [runFetchRows],
+  );
 
   useEffect(() => {
-    if (accommodations.length > 0) fetchRows();
-  }, [fetchRows, accommodations.length]);
+    if (accommodations.length > 0) runFetchRows(false).catch(() => {});
+  }, [runFetchRows, accommodations.length]);
+
 
   // 篩選條件變更時，重置到第一頁
   useEffect(() => {
