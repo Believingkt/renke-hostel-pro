@@ -54,6 +54,7 @@ import {
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 
 import { zhTW } from "date-fns/locale";
+import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
 import { toast } from "sonner";
 import { isAtmExpired } from "@/lib/atmPayment";
 import { resolvePaymentSummary } from "@/lib/paymentSummary";
