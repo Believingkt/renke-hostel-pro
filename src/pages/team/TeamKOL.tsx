@@ -1130,10 +1130,13 @@ function InvitationsTab({
   }, [accommodations, venues, page, search, filterAccs, filterAccOptions, filterRarity, filterTags, filterScout, filterYear, filterMonth, filterQualified, filterProgress]);
 
   /** 手動刷新（新增／編輯後呼叫）：清空快取並強制重打 */
-  const fetchRows = useCallback(() => runFetchRows(true), [runFetchRows]);
+  const fetchRows = useCallback(
+    () => runFetchRows(true).catch(() => {}),
+    [runFetchRows],
+  );
 
   useEffect(() => {
-    if (accommodations.length > 0) runFetchRows(false);
+    if (accommodations.length > 0) runFetchRows(false).catch(() => {});
   }, [runFetchRows, accommodations.length]);
 
 
