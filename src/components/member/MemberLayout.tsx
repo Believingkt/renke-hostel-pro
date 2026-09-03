@@ -20,6 +20,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/pushNotifications";
+import BiometricEnrollPrompt from "@/components/member/BiometricEnrollPrompt";
+import { disableBiometricLogin, refreshStoredBiometricToken } from "@/lib/biometricAuth";
 
 
 const navItems = [
@@ -70,6 +72,8 @@ const MemberLayout = () => {
       }
       // 原生 App：登入後請求推播權限並註冊 device token（網頁版會直接略過）
       initPushNotifications().catch(() => {});
+      // 已啟用 Face ID 時，同步最新的 refresh token 到 Keychain
+      refreshStoredBiometricToken().catch(() => {});
     };
 
     const checkAuth = async () => {
@@ -92,6 +96,7 @@ const MemberLayout = () => {
 
   const handleLogout = async () => {
     await deactivateCurrentDeviceTokens();
+    await disableBiometricLogin();
     await supabase.auth.signOut();
     toast.success("已登出");
     navigate("/booking");
@@ -134,6 +139,8 @@ const MemberLayout = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* 一次性提示：啟用 Face ID 快速登入（僅 iOS App） */}
+      <BiometricEnrollPrompt />
 
       {/* Desktop top nav */}
       {!isMobile && (

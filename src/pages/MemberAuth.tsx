@@ -7,6 +7,7 @@ import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referra
 
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
 import AppleSignInButton from "@/components/auth/AppleSignInButton";
+import { isBiometricEnabled, tryBiometricRestoreSession } from "@/lib/biometricAuth";
 import { signInWithAppleNative } from "@/lib/appleSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,6 +83,7 @@ const MemberAuth = () => {
   const [fbLoading, setFbLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [biometricRestoring, setBiometricRestoring] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -126,7 +128,22 @@ const MemberAuth = () => {
   // 監聯 auth 狀態，已登入且有會員資料時自動跳轉
   useEffect(() => {
     const checkExisting = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      let { data: { user } } = await supabase.auth.getUser();
+      // session 已失效且已啟用 Face ID → 先生物辨識，成功則以 Keychain refresh token 恢復登入
+      if (!user && isBiometricEnabled()) {
+        setBiometricRestoring(true);
+        try {
+          const ok = await tryBiometricRestoreSession();
+          if (ok) {
+            user = (await supabase.auth.getUser()).data.user;
+            if (user) toast.success("Face ID 登入成功");
+          }
+        } catch {
+          /* 失敗或取消 → 停留在一般登入頁 */
+        } finally {
+          setBiometricRestoring(false);
+        }
+      }
       if (user) {
         const { data: member } = await supabase
           .from("platform_members")
@@ -742,6 +759,13 @@ const MemberAuth = () => {
               </div>
             </div>
             */}
+
+            {biometricRestoring && (
+              <div className="mb-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                正在以 Face ID 登入…
+              </div>
+            )}
 
             {/* Social login buttons */}
             <div className="mb-2">
