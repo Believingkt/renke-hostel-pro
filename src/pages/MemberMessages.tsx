@@ -305,7 +305,9 @@ const MemberMessages = () => {
       {/* Quick tiles */}
       <Card className="p-4 shadow-sm">
         <div className="grid grid-cols-5 gap-2">
-          {quickTiles.map((t) => (
+          {quickTiles.map((t) => {
+            const n = getCategoryUnread(t.category);
+            return (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
@@ -313,17 +315,18 @@ const MemberMessages = () => {
             >
               <div className={`relative h-12 w-12 rounded-full flex items-center justify-center ${t.tone}`}>
                 <t.icon className="h-6 w-6" />
-                {t.badge ? (
+                {n > 1 ? (
                   <span className="absolute -top-0.5 -right-0.5 text-[10px] bg-orange-500 text-white rounded-full px-1 min-w-[18px] h-[18px] flex items-center justify-center">
-                    {t.badge}
+                    {n}
                   </span>
-                ) : t.dot ? (
+                ) : n === 1 ? (
                   <span className="absolute top-0 right-0 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
                 ) : null}
               </div>
               <span className="text-xs font-medium">{t.label}</span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
@@ -331,6 +334,7 @@ const MemberMessages = () => {
       <div className="flex gap-4 overflow-x-auto -mx-1 px-1 border-b">
         {tabs.map((t) => {
           const active = activeTab === t.key;
+          const n = t.category ? getCategoryUnread(t.category) : 0;
           return (
             <button
               key={t.key}
@@ -340,13 +344,14 @@ const MemberMessages = () => {
               }`}
             >
               {t.label}
-              {t.badge ? (
+              {n > 1 ? (
                 <span className="ml-1 inline-flex items-center justify-center text-[10px] bg-orange-500 text-white rounded-full px-1 min-w-[16px] h-[16px] align-middle">
-                  {t.badge}
+                  {n}
                 </span>
-              ) : t.dot ? (
+              ) : n === 1 ? (
                 <span className="ml-1 inline-block h-1.5 w-1.5 rounded-full bg-orange-500 align-middle" />
               ) : null}
+
               {active && <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-orange-500 rounded-full" />}
             </button>
           );
