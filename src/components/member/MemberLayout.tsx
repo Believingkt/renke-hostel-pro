@@ -96,6 +96,7 @@ const MemberLayout = () => {
 
   const handleLogout = async () => {
     await deactivateCurrentDeviceTokens();
+    await disableBiometricLogin();
     await supabase.auth.signOut();
     toast.success("已登出");
     navigate("/booking");
