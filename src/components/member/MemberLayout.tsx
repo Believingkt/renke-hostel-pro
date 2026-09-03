@@ -21,7 +21,7 @@ import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/pushNotifications";
 import BiometricEnrollPrompt from "@/components/member/BiometricEnrollPrompt";
-import { disableBiometricLogin, refreshStoredBiometricToken } from "@/lib/biometricAuth";
+import { clearManualLogoutFlag, disableBiometricLogin, refreshStoredBiometricToken, setManualLogoutFlag } from "@/lib/biometricAuth";
 import { clearAppBadge } from "@/lib/appBadge";
 
 
