@@ -6,6 +6,8 @@ import { lovable } from "@/integrations/lovable/index";
 import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referral";
 
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
+import AppleSignInButton from "@/components/auth/AppleSignInButton";
+import { signInWithAppleNative } from "@/lib/appleSignIn";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -79,6 +81,7 @@ const MemberAuth = () => {
   const [loading, setLoading] = useState(false);
   const [fbLoading, setFbLoading] = useState(false);
   const [lineLoading, setLineLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("auth");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -324,6 +327,28 @@ const MemberAuth = () => {
     } catch (error: any) {
       toast.error(error.message || `${provider === "google" ? "Google" : "Apple"} 登入失敗`);
       setLoading(false);
+    }
+  };
+
+  // ----- Sign in with Apple (native iOS, ID token flow) -----
+  const handleAppleLogin = async () => {
+    if (appleLoading || fbLoading || lineLoading || loading) return;
+    logLoginAttempt("attempt", "apple");
+    setAppleLoading(true);
+    try {
+      await signInWithAppleNative();
+      await ensureMemberProfile();
+      logLoginAttempt("success", "apple");
+      toast.success("登入成功");
+      navigate(redirectTo);
+    } catch (error: any) {
+      const msg = String(error?.message || "Apple 登入失敗");
+      const cancelled = /cancel/i.test(msg) || /1001/.test(msg);
+      if (!cancelled) {
+        toast.error(msg);
+        logLoginAttempt("failure", "apple", { error: msg });
+      }
+      setAppleLoading(false);
     }
   };
 
@@ -719,11 +744,19 @@ const MemberAuth = () => {
             */}
 
             {/* Social login buttons */}
+            <div className="mb-2">
+              <AppleSignInButton
+                onClick={handleAppleLogin}
+                loading={appleLoading}
+                disabled={loading || fbLoading || lineLoading || appleLoading}
+              />
+            </div>
+
             <Button
               variant="outline"
               className="w-full mb-2 border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
               onClick={handleFacebookLogin}
-              disabled={loading || fbLoading || lineLoading}
+              disabled={loading || fbLoading || lineLoading || appleLoading}
             >
               {fbLoading ? (
                 <>
@@ -744,7 +777,7 @@ const MemberAuth = () => {
               variant="outline"
               className="w-full mb-4 border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
               onClick={handleLineLogin}
-              disabled={loading || fbLoading || lineLoading}
+              disabled={loading || fbLoading || lineLoading || appleLoading}
             >
               {lineLoading ? (
                 <>
@@ -791,7 +824,7 @@ const MemberAuth = () => {
                   type="submit"
                   variant="outline"
                   className="w-full border-[hsl(24,100%,50%)]/40 text-foreground hover:bg-[hsl(24,100%,50%)]/10 hover:text-foreground"
-                  disabled={otpLoading || loading || fbLoading || lineLoading}
+                  disabled={otpLoading || loading || fbLoading || lineLoading || appleLoading}
                 >
                   {otpLoading ? (
                     <>

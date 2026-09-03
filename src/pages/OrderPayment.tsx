@@ -16,6 +16,8 @@ import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, isSameOriginIgnoringWww } from "@/utils/paymentDomain";
 import { buildRedirectWithSessionHandoff } from "@/utils/oauthCallbackHandler";
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
+import AppleSignInButton from "@/components/auth/AppleSignInButton";
+import { signInWithAppleNative } from "@/lib/appleSignIn";
 
 interface PaymentError {
   message: string;
@@ -61,6 +63,7 @@ export default function OrderPayment() {
   // Auth gate state
   const [authChecked, setAuthChecked] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
   
@@ -124,6 +127,21 @@ export default function OrderPayment() {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  const handleAppleLogin = async () => {
+    if (appleLoading) return;
+    setAppleLoading(true);
+    try {
+      await signInWithAppleNative();
+      setIsAuthed(true);
+      toast.success("Apple 登入成功");
+    } catch (e: any) {
+      const msg = String(e?.message || "");
+      if (!/cancel/i.test(msg) && !/1001/.test(msg)) toast.error(msg || "Apple 登入失敗");
+    } finally {
+      setAppleLoading(false);
+    }
+  };
 
   const startSocialLogin = (provider: "facebook" | "line") => {
     try {
@@ -603,7 +621,7 @@ export default function OrderPayment() {
               <LogIn className="h-5 w-5" />
               請先登入會員
             </CardTitle>
-            <CardDescription>為確保訂單安全，付款前請以 Facebook 或 LINE 登入</CardDescription>
+            <CardDescription>為確保訂單安全，付款前請先登入會員</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4 space-y-2 text-sm">
@@ -620,6 +638,8 @@ export default function OrderPayment() {
                 <span className="text-primary">NT$ {amount.toLocaleString()}</span>
               </div>
             </div>
+
+            <AppleSignInButton onClick={handleAppleLogin} loading={appleLoading} />
 
             <Button
               variant="outline"
