@@ -131,7 +131,7 @@ serve(async (req) => {
 
     // Send email via Resend
     try {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+      const resend = new Resend(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"));
 
       await resend.emails.send({
         from: "森山寫照 <noreply@sensaninn.lakeze.com>",

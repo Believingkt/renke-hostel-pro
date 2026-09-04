@@ -5,7 +5,7 @@ import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const resend = new Resend(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,7 +81,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const rawSource = order.order_source ?? "";
     const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
-    if (!Deno.env.get("RESEND_API_KEY")) {
+    if (!Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY")) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email");
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
@@ -149,7 +149,7 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const rawSource = order.order_source ?? "";
     const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
-    if (!Deno.env.get("RESEND_API_KEY")) {
+    if (!Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY")) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
       return { success: false, error: "RESEND_API_KEY not configured" };
     }

@@ -281,7 +281,7 @@ serve(async (req) => {
 
     // Send email notification
     try {
-      const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+      const resend = new Resend(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"));
       
       if (isNewUser && inviteLink) {
         // New user - send invitation email with password setup link
