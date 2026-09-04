@@ -97,6 +97,23 @@ const zh = {
   "booking.villa.ladder.scrollLeft": "向左滑動",
   "booking.villa.ladder.scrollRight": "向右滑動",
 
+  "booking.villa.ladder.empty.all": "目前沒有可預訂的方案",
+  "booking.villa.ladder.empty.tier": "此時段目前沒有可預訂的方案",
+  "booking.villa.ladder.roomAllocation.kicker": "ROOM ALLOCATION",
+  "booking.villa.ladder.perks.title": "尊榮禮遇",
+  "booking.villa.ladder.childFee.title": "兒童加價明細",
+  "booking.villa.ladder.childFee.rules": "您選擇的兒童年齡層規則",
+  "booking.villa.ladder.childFee.total": "合計",
+  "booking.villa.ladder.details.expand": "展開詳細計算",
+  "booking.villa.ladder.details.collapse": "收合詳細計算",
+  "booking.villa.ladder.cta.book": "預約這段專屬假期",
+  "booking.villa.ladder.childBlocked.toastTitle": "兒童人數不符合此民宿規範",
+  "booking.villa.ladder.childBlocked.toastDesc": "請點選上方搜尋條調整人數後再試。",
+  "booking.villa.ladder.tag.earlyBird": "早鳥優惠",
+  "booking.villa.ladder.tag.mealIncluded": "一泊二食",
+  "booking.villa.ladder.tag.fewPeople": "少人數包棟",
+
+
   "booking.villa.searchSheet.decrease": "減少",
   "booking.villa.searchSheet.increase": "增加",
 } as const;
