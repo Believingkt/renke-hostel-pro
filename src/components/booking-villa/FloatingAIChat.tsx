@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "react-router-dom";
 import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 type Msg = { id?: string; role: "user" | "assistant"; content: string };
 
@@ -30,8 +31,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
   const location = useLocation();
+  const { t } = useBookingLocale();
 
-  const HINT_TEXT = "有疑問，請點我 👉";
+  const HINT_TEXT = t("booking.villa.ai.hint");
 
   // 停留 5 秒後顯示提示氣泡
   useEffect(() => {
@@ -135,9 +137,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
       if (!res.ok || !res.body) {
         const errText = await res.text().catch(() => "");
-        if (res.status === 429) toast({ title: "請稍候", description: "詢問太頻繁，請稍後再試", variant: "destructive" });
-        else if (res.status === 402) toast({ title: "AI 服務暫時不可用", description: "請改用真人客服", variant: "destructive" });
-        else toast({ title: "對話失敗", description: errText.slice(0, 120) || "請稍後再試", variant: "destructive" });
+        if (res.status === 429) toast({ title: t("booking.villa.ai.toast.rateLimit"), description: t("booking.villa.ai.toast.rateLimit.desc"), variant: "destructive" });
+        else if (res.status === 402) toast({ title: t("booking.villa.ai.toast.unavailable"), description: t("booking.villa.ai.toast.unavailable.desc"), variant: "destructive" });
+        else toast({ title: t("booking.villa.ai.toast.failed"), description: errText.slice(0, 120) || t("booking.villa.ai.toast.retry"), variant: "destructive" });
         setLoading(false);
         return;
       }
@@ -183,7 +185,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         setStreaming("");
       }
     } catch (e: any) {
-      toast({ title: "連線失敗", description: e?.message || "請稍後再試", variant: "destructive" });
+      toast({ title: t("booking.villa.ai.toast.network"), description: e?.message || t("booking.villa.ai.toast.retry"), variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -221,7 +223,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                   setShowHint(false);
                   setHintDismissed(true);
                 }}
-                aria-label="關閉提示"
+                aria-label={t("booking.villa.ai.hint.close")}
                 className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-muted text-muted-foreground hover:bg-muted-foreground/20 flex items-center justify-center text-[10px] leading-none border border-border shadow-sm"
               >
                 ✕
@@ -238,7 +240,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               setHintDismissed(true);
               setOpen(true);
             }}
-            aria-label="開啟 AI 管家"
+            aria-label={t("booking.villa.ai.open")}
             className="relative rounded-full shadow-lg flex items-center justify-center text-white active:scale-95 hover:opacity-100 transition-opacity w-11 h-11 md:w-14 md:h-14"
             style={{
               opacity: 0.85,
@@ -271,15 +273,15 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 <Sparkles className="w-4 h-4" />
               </div>
               <div>
-                <SheetTitle className="text-base">AI 管家</SheetTitle>
+                <SheetTitle className="text-base">{t("booking.villa.ai.title")}</SheetTitle>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  {accommodationName || "民宿"}・回答基本問題
+                  {accommodationName || "民宿"}{t("booking.villa.ai.subtitle")}
                 </p>
               </div>
             </div>
             <div className="relative z-10 flex items-center gap-1 mr-12">
               {messages.length > 0 && userId && (
-                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={clearHistory} aria-label="清除對話">
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={clearHistory} aria-label={t("booking.villa.ai.clear")}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               )}
@@ -336,7 +338,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                     className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground hover:text-foreground py-1"
                   >
                     <Headphones className="w-3.5 h-3.5" />
-                    需要真人協助？點此轉接客服
+                    {t("booking.villa.ai.human")}
                   </a>
                 </div>
               )}
@@ -352,7 +354,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="輸入您的問題…"
+                  placeholder={t("booking.villa.ai.placeholder")}
                   disabled={loading}
                   className="flex-1"
                   style={{ fontSize: 16 }}

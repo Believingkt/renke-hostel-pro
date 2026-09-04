@@ -71,6 +71,24 @@ const zh = {
   "booking.villa.location.tabs.driving": "自行開車",
   "booking.villa.location.tabs.landmark": "週邊景點",
   "booking.villa.location.empty": "暫無相關資訊",
+
+  "booking.villa.ai.hint": "有疑問，請點我 👉",
+  "booking.villa.ai.hint.close": "關閉提示",
+  "booking.villa.ai.open": "開啟 AI 管家",
+  "booking.villa.ai.clear": "清除對話",
+  "booking.villa.ai.title": "AI 管家",
+  "booking.villa.ai.subtitle": "・回答基本問題",
+  "booking.villa.ai.human": "需要真人協助？點此轉接客服",
+  "booking.villa.ai.placeholder": "輸入您的問題…",
+  "booking.villa.ai.toast.rateLimit": "請稍候",
+  "booking.villa.ai.toast.rateLimit.desc": "詢問太頻繁，請稍後再試",
+  "booking.villa.ai.toast.unavailable": "AI 服務暫時不可用",
+  "booking.villa.ai.toast.unavailable.desc": "請改用真人客服",
+  "booking.villa.ai.toast.failed": "對話失敗",
+  "booking.villa.ai.toast.network": "連線失敗",
+  "booking.villa.ai.toast.retry": "請稍後再試",
+
+  "booking.villa.similar.title": "您可能也喜歡",
 } as const;
 
 export type BookingI18nKey = keyof typeof zh;
@@ -127,6 +145,24 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.location.tabs.driving": "Driving",
   "booking.villa.location.tabs.landmark": "Nearby Attractions",
   "booking.villa.location.empty": "No information available",
+
+  "booking.villa.ai.hint": "Questions? Tap here 👉",
+  "booking.villa.ai.hint.close": "Dismiss hint",
+  "booking.villa.ai.open": "Open AI concierge",
+  "booking.villa.ai.clear": "Clear conversation",
+  "booking.villa.ai.title": "AI Concierge",
+  "booking.villa.ai.subtitle": "・Answers general questions",
+  "booking.villa.ai.human": "Need a human? Contact our team",
+  "booking.villa.ai.placeholder": "Type your question…",
+  "booking.villa.ai.toast.rateLimit": "Please wait",
+  "booking.villa.ai.toast.rateLimit.desc": "Too many requests. Please try again later.",
+  "booking.villa.ai.toast.unavailable": "AI service is temporarily unavailable",
+  "booking.villa.ai.toast.unavailable.desc": "Please contact our human support instead",
+  "booking.villa.ai.toast.failed": "Conversation failed",
+  "booking.villa.ai.toast.network": "Connection failed",
+  "booking.villa.ai.toast.retry": "Please try again later",
+
+  "booking.villa.similar.title": "You may also like",
 };
 
 const DICTS: Record<BookingLang, Record<string, string>> = {
