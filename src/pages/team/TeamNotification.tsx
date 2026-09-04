@@ -354,7 +354,7 @@ export default function TeamNotification() {
         <TabsList>
           <TabsTrigger value="settings">通報設定</TabsTrigger>
           <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
-          <TabsTrigger value="cron">排程健康檢查</TabsTrigger>
+          <TabsTrigger value="cron">功能狀態查詢</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings" className="space-y-6">

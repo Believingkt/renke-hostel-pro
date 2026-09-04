@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -169,9 +169,8 @@ export default function CronHealthTab() {
                 const isOpen = expanded === r.jobid;
                 const rec = history[r.jobid];
                 return (
-                  <>
+                  <Fragment key={r.jobid}>
                     <TableRow
-                      key={r.jobid}
                       className="cursor-pointer"
                       onClick={() => void toggleHistory(r)}
                     >
@@ -211,7 +210,7 @@ export default function CronHealthTab() {
                       </TableCell>
                     </TableRow>
                     {isOpen && (
-                      <TableRow key={`${r.jobid}-h`}>
+                      <TableRow>
                         <TableCell colSpan={6} className="bg-muted/40">
                           {historyLoading && !rec ? (
                             <span className="text-sm text-muted-foreground">載入紀錄中…</span>
@@ -248,7 +247,7 @@ export default function CronHealthTab() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
