@@ -153,6 +153,22 @@ function fmtTime(iso: string) {
   return d.toISOString().slice(0, 16).replace("T", " ");
 }
 
+/** 匯款日期欄位的說明 tooltip */
+function RemittanceTooltip() {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-56 text-xs">
+          是從有風課程收到款項的日期
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function primaryRole(roles: string[]) {
   for (const r of ROLE_ORDER) if (roles.includes(r)) return r as string;
   return "unknown";
