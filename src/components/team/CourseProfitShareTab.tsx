@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DateField } from "@/components/admin/DateFields";
 import { toast } from "@/hooks/use-toast";
 import { checkRateChange } from "@/lib/courseProfitRateValidation";
 import {
@@ -18,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronsUpDown, Loader2, Lock, Plus, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Info, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 
 
 /**
@@ -39,6 +41,7 @@ interface MonthRow {
   payout_month: string;
   surplus_amount: number;
   note: string | null;
+  remittance_date: string | null;
   updated_at: string;
   updated_by_email: string | null;
   created_by_email: string | null;
@@ -150,6 +153,22 @@ function fmtTime(iso: string) {
   return d.toISOString().slice(0, 16).replace("T", " ");
 }
 
+/** 匯款日期欄位的說明 tooltip */
+function RemittanceTooltip() {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-56 text-xs">
+          是從有風課程收到款項的日期
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function primaryRole(roles: string[]) {
   for (const r of ROLE_ORDER) if (roles.includes(r)) return r as string;
   return "unknown";
@@ -163,12 +182,13 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   const [paidPayoutIds, setPaidPayoutIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string }>>({});
+  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string; remittance: string | null }>>({});
   const [newMonth, setNewMonth] = useState({
     month: prevYm(),
     payout: defaultPayoutYm(),
     surplus: "",
     note: "",
+    remittance: null as string | null,
   });
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
@@ -185,7 +205,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, payout_month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email")
           .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
@@ -330,11 +350,12 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       payout_month: `${newMonth.payout}-01`,
       surplus_amount: Number(newMonth.surplus || 0),
       note: newMonth.note || null,
+      remittance_date: newMonth.remittance || null,
       created_by: userData?.user?.id ?? null,
       created_by_email: userData?.user?.email ?? null,
       updated_by: userData?.user?.id ?? null,
       updated_by_email: userData?.user?.email ?? null,
-    });
+    } as any);
     setSavingId(null);
     if (error) {
       toast({
@@ -344,7 +365,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "" });
+    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "", remittance: null });
     toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
     load();
   };
@@ -360,9 +381,10 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         surplus_amount: Number(d.surplus || 0),
         note: d.note || null,
         payout_month: `${d.payout}-01`,
+        remittance_date: d.remittance || null,
         updated_by: userData?.user?.id ?? null,
         updated_by_email: userData?.user?.email ?? null,
-      })
+      } as any)
       .eq("id", row.id);
     setSavingId(null);
     if (error) {
@@ -591,6 +613,19 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 onChange={(e) => setNewMonth((p) => ({ ...p, note: e.target.value }))}
                 className="h-9 w-full sm:min-w-[8rem] sm:flex-1"
               />
+              <div className="space-y-1 w-full sm:w-auto">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  匯款日期
+                  <RemittanceTooltip />
+                </div>
+                <DateField
+                  value={newMonth.remittance}
+                  onChange={(v) => setNewMonth((p) => ({ ...p, remittance: v }))}
+                  placeholder="選擇匯款日期"
+                  className="h-9 w-full sm:w-44"
+                />
+              </div>
+
 
               <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"} className="w-full sm:w-auto">
                 {savingId === "__new__" ? (
@@ -613,6 +648,12 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                     <TableHead className="w-40 whitespace-nowrap">發放期別</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">盈餘月份</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">課程盈餘</TableHead>
+                    <TableHead className="w-44 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        匯款日期
+                        <RemittanceTooltip />
+                      </span>
+                    </TableHead>
                     <TableHead className="w-56 whitespace-nowrap">備註</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">分潤合計</TableHead>
                     <TableHead className="w-56 whitespace-nowrap">狀態 / 最後修改</TableHead>
@@ -627,10 +668,11 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                     const distributed = rows.reduce((s, p) => s + Number(p.amount), 0);
                     const dirty = !!d;
                     const siblings = monthsByPeriod.get(row.payout_month) ?? [];
-                    const draftOf = (over: Partial<{ surplus: string; note: string; payout: string }>) => ({
+                    const draftOf = (over: Partial<{ surplus: string; note: string; payout: string; remittance: string | null }>) => ({
                       surplus: d?.surplus ?? String(Number(row.surplus_amount)),
                       note: d?.note ?? (row.note ?? ""),
                       payout: d?.payout ?? row.payout_month.slice(0, 7),
+                      remittance: d ? d.remittance : (row.remittance_date ?? null),
                       ...over,
                     });
                     return (
@@ -665,6 +707,20 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                                 setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ surplus: e.target.value }) }))
                               }
                               className="h-9 w-32 tabular-nums"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap tabular-nums">
+                          {locked || readOnly ? (
+                            <span className="text-sm">{row.remittance_date ?? "—"}</span>
+                          ) : (
+                            <DateField
+                              value={d ? d.remittance : (row.remittance_date ?? null)}
+                              onChange={(v) =>
+                                setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ remittance: v }) }))
+                              }
+                              placeholder="選擇日期"
+                              className="h-9 w-40"
                             />
                           )}
                         </TableCell>
