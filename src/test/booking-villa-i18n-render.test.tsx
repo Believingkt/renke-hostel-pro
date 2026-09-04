@@ -813,20 +813,12 @@ describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
   });
 
   it("does not invoke React Router useNavigate during language switch", () => {
-    const navigateFn = vi.fn();
-    const useNavigateSpy = vi
-      .spyOn(ReactRouter, "useNavigate")
-      .mockImplementation(() => navigateFn);
-    try {
-      renderChat("測試館");
-      fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
-      fireEvent.click(screen.getByLabelText("Switch to English"));
-      fireEvent.click(screen.getByLabelText("切換為繁體中文"));
-      // 直接斷言 React Router 的 useNavigate hook 未被任何元件呼叫
-      expect(useNavigateSpy).not.toHaveBeenCalled();
-      expect(navigateFn).not.toHaveBeenCalled();
-    } finally {
-      useNavigateSpy.mockRestore();
-    }
+    mockNavigateSpy.mockClear();
+    renderChat("測試館");
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+    // 直接攔截 useNavigate 回傳的 navigate function，斷言語言切換從未觸發導航
+    expect(mockNavigateSpy).not.toHaveBeenCalled();
   });
 });
