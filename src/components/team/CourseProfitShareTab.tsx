@@ -719,7 +719,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">
-                          {locked || readOnly ? (
+                          {readOnly ? (
                             <span className="text-sm">{row.remittance_date ?? "—"}</span>
                           ) : (
                             <DateField
@@ -763,9 +763,9 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
-                          {!locked && !readOnly && (
+                          {!readOnly && (
                             <div className="flex items-center gap-1">
-                              <Button size="sm" disabled={!dirty || savingId === row.id} onClick={() => saveMonth(row)}>
+                              <Button size="sm" disabled={!dirty || savingId === row.id} onClick={() => saveMonth(row, locked)}>
                                 {savingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "儲存"}
                               </Button>
                               <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => removeMonth(row)}>
