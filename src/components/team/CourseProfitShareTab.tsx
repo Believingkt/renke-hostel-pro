@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DateField } from "@/components/admin/DateFields";
 import { toast } from "@/hooks/use-toast";
 import { checkRateChange } from "@/lib/courseProfitRateValidation";
 import {
@@ -18,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ChevronsUpDown, Loader2, Lock, Plus, Trash2 } from "lucide-react";
+import { ChevronsUpDown, Info, Loader2, Lock, Plus, Trash2 } from "lucide-react";
 
 
 /**
@@ -39,6 +41,7 @@ interface MonthRow {
   payout_month: string;
   surplus_amount: number;
   note: string | null;
+  remittance_date: string | null;
   updated_at: string;
   updated_by_email: string | null;
   created_by_email: string | null;
@@ -163,12 +166,13 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
   const [paidPayoutIds, setPaidPayoutIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
-  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string }>>({});
+  const [monthDraft, setMonthDraft] = useState<Record<string, { surplus: string; note: string; payout: string; remittance: string | null }>>({});
   const [newMonth, setNewMonth] = useState({
     month: prevYm(),
     payout: defaultPayoutYm(),
     surplus: "",
     note: "",
+    remittance: null as string | null,
   });
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
@@ -185,7 +189,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, payout_month, surplus_amount, note, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email")
           .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
