@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import * as ReactRouter from "react-router-dom";
 import { BookingLocaleProvider } from "@/contexts/BookingLocaleContext";
 import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
 import SectionTabsNav from "@/components/booking-villa/SectionTabsNav";
