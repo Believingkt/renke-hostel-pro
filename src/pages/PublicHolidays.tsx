@@ -151,16 +151,62 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [copyOk, setCopyOk] = useState(false);
 
+  // 新增模式：單日 / 區間
+  const [addMode, setAddMode] = useState<"single" | "range">("single");
+  const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
+  const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
+  const [isRangeStartPickerOpen, setIsRangeStartPickerOpen] = useState(false);
+  const [isRangeEndPickerOpen, setIsRangeEndPickerOpen] = useState(false);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+
+  // 列表複選 / 批次刪除
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [accommodationName, setAccommodationName] = useState<string>("");
+
+  const MAX_RANGE_DAYS = 366;
+
+  const resetAddDialogState = () => {
+    setNewHoliday({ name: "", date: undefined, type: 'holiday' });
+    setRangeStart(undefined);
+    setRangeEnd(undefined);
+    setAddMode("single");
+    setIsRangeStartPickerOpen(false);
+    setIsRangeEndPickerOpen(false);
+  };
 
   // Reset list immediately when switching accommodation to prevent cross-tenant flash
   useEffect(() => {
     setHolidays([]);
+    setSelectedIds(new Set());
   }, [accommodationId]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [selectedYear, viewMode]);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
     loadHolidays();
   }, [accommodationId, subdomainLoading]);
+
+  useEffect(() => {
+    if (!accommodationId) {
+      setAccommodationName("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("name")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      if (!cancelled) setAccommodationName((data as { name?: string } | null)?.name || "");
+    })();
+    return () => { cancelled = true; };
+  }, [accommodationId]);
 
   const loadHolidays = async () => {
     if (!accommodationId) return;
@@ -170,7 +216,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       setError(null);
       const { data, error } = await supabase
         .from("public_holidays")
-        .select("id, holiday_date, holiday_name, holiday_type, created_at, updated_at")
+        .select("id, holiday_date, holiday_name, holiday_type, is_custom, created_at, updated_at")
         .eq("accommodation_id", accommodationId)
         .order("holiday_date", { ascending: true });
 
@@ -181,6 +227,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         holiday_type: (h.holiday_type as HolidayType) || 'holiday'
       }));
       setHolidays(holidaysWithType);
+      setSelectedIds(new Set());
     } catch (error) {
       console.error("Error loading holidays:", error);
       setError(error instanceof Error ? error.message : "載入假日資料失敗");
