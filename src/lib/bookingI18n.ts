@@ -112,6 +112,15 @@ const zh = {
   "booking.villa.ladder.tag.earlyBird": "早鳥優惠",
   "booking.villa.ladder.tag.mealIncluded": "一泊二食",
   "booking.villa.ladder.tag.fewPeople": "少人數包棟",
+  "booking.villa.ladder.summary.capacity.prefix": "可入住",
+  "booking.villa.ladder.summary.capacity.rangeSeparator": "~",
+  "booking.villa.ladder.summary.capacity.unit": "位",
+  "booking.villa.ladder.summary.price.singleNight": "單晚總價",
+  "booking.villa.ladder.summary.price.multipleNights": "{nights} 晚總價",
+  "booking.villa.ladder.childFee.included": "含兒童加價 +NT${amount}",
+  "booking.villa.ladder.childFee.line": "{label} × {count} 位",
+  "booking.villa.ladder.childFee.nightMultiplier": "× {nights} 晚",
+  "booking.villa.ladder.childFee.breakdownTotal": "合計（{breakdownNights} 晚）",
 
 
   "booking.villa.searchSheet.decrease": "減少",
@@ -215,6 +224,15 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.ladder.tag.earlyBird": "Early Bird Offer",
   "booking.villa.ladder.tag.mealIncluded": "Two Meals Included",
   "booking.villa.ladder.tag.fewPeople": "Private Stay for Small Groups",
+  "booking.villa.ladder.summary.capacity.prefix": "Sleeps",
+  "booking.villa.ladder.summary.capacity.rangeSeparator": "–",
+  "booking.villa.ladder.summary.capacity.unit": "guests",
+  "booking.villa.ladder.summary.price.singleNight": "Total for 1 night",
+  "booking.villa.ladder.summary.price.multipleNights": "{nights}-night total",
+  "booking.villa.ladder.childFee.included": "Includes child surcharge +NT${amount}",
+  "booking.villa.ladder.childFee.line": "{label} × {count}",
+  "booking.villa.ladder.childFee.nightMultiplier": "× {nights} nights",
+  "booking.villa.ladder.childFee.breakdownTotal": "Total ({breakdownNights}-night stay)",
 
 
   "booking.villa.searchSheet.decrease": "Decrease",

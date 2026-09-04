@@ -482,10 +482,13 @@ const CapacityPriceLadder = ({
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     <Users className="inline h-3 w-3 mr-0.5 -mt-0.5" />
-                    可入住 {opt.guestCount}
+                    {t("booking.villa.ladder.summary.capacity.prefix")} {opt.guestCount}
                     {activeTier_.guestCountMax && activeTier_.guestCountMax > opt.guestCount && (
-                      <span>~{activeTier_.guestCountMax}</span>
-                    )} 位
+                      <span>
+                        {t("booking.villa.ladder.summary.capacity.rangeSeparator")}
+                        {activeTier_.guestCountMax}
+                      </span>
+                    )} {t("booking.villa.ladder.summary.capacity.unit")}
                     {checkIn && nights > 0 && (
                       <>
                         {"｜"}
@@ -496,7 +499,9 @@ const CapacityPriceLadder = ({
                     )}
                     {"｜"}
                     <span className="font-bold text-foreground">
-                      {nights > 1 ? `${nights} 晚總價` : "單晚總價"}
+                      {nights > 1
+                        ? t("booking.villa.ladder.summary.price.multipleNights", { nights })
+                        : t("booking.villa.ladder.summary.price.singleNight")}
                     </span>
                   </p>
                   <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
@@ -521,7 +526,11 @@ const CapacityPriceLadder = ({
                           className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium focus:outline-none"
                           style={{ color: "hsl(15, 78%, 48%)" }}
                         >
-                          <span>含兒童加價 +NT${childExtraTotal.toLocaleString()}</span>
+                          <span>
+                            {t("booking.villa.ladder.childFee.included", {
+                              amount: childExtraTotal.toLocaleString(),
+                            })}
+                          </span>
                           <Info className="h-3 w-3 opacity-70" />
                         </button>
                       </PopoverTrigger>
@@ -553,8 +562,13 @@ const CapacityPriceLadder = ({
                             {childExtraBreakdown.map((b) => (
                               <li key={b.key} className="flex justify-between gap-3 text-muted-foreground">
                                 <span>
-                                  {b.label} × {b.count} 位
-                                  {nights > 1 ? ` × ${nights} 晚` : ""}
+                                  {t("booking.villa.ladder.childFee.line", {
+                                    label: b.label,
+                                    count: b.count,
+                                  })}
+                                  {nights > 1
+                                    ? ` ${t("booking.villa.ladder.childFee.nightMultiplier", { nights })}`
+                                    : ""}
                                 </span>
                                 <span className="font-medium text-foreground tabular-nums">
                                   +NT${b.subtotal.toLocaleString()}
@@ -625,7 +639,11 @@ const CapacityPriceLadder = ({
                                   </div>
                                 ))}
                                 <div className="flex items-baseline justify-between gap-2 pt-0.5 mt-0.5 border-t border-[#EADFCB]/70 font-semibold">
-                                  <span>合計（{opt.breakdown.length} 晚）</span>
+                                  <span>
+                                    {t("booking.villa.ladder.childFee.breakdownTotal", {
+                                      breakdownNights: opt.breakdown.length,
+                                    })}
+                                  </span>
                                   <span>
                                     NT${opt.breakdown.reduce((s, b) => s + b.sale, 0).toLocaleString()}
                                   </span>
