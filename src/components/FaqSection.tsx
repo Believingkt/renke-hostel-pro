@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
 import { looksLikeHtml, toPlainTextBlocks } from "@/lib/plainTextFormat";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { FileQuestion } from "lucide-react";
 
 export interface FaqItem {
@@ -63,6 +64,7 @@ const FaqSection = ({
 }: FaqSectionProps) => {
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [showAllMobile, setShowAllMobile] = useState(false);
+  const { t } = useBookingLocale();
 
   useEffect(() => {
     if (items) return;
@@ -103,9 +105,9 @@ const FaqSection = ({
           <div className="text-center mb-6 md:mb-12 lg:mb-16">
             <div className="flex items-center justify-center gap-2 mb-2 md:mb-3">
               <FileQuestion className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{customTitle || '常見問題'}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{customTitle || t('booking.villa.faq.title')}</h2>
             </div>
-            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || '以下是住客最常詢問的問題，希望能幫助您更了解我們'}</p>
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || t('booking.villa.faq.subtitle')}</p>
           </div>
 
           {/* 手機版：精簡扁平 Accordion，單一卡片內以分隔線分項 */}
@@ -131,7 +133,7 @@ const FaqSection = ({
               onClick={() => setShowAllMobile(true)}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 md:hidden"
             >
-              查看全部 {list.length} 個常見問題
+              {t('booking.villa.faq.viewAll', { total: list.length })}
             </button>
           )}
 

@@ -10,6 +10,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { createSanitizedHtml } from "@/utils/sanitizeHtml";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import type { LucideIcon } from "lucide-react";
 import {
   applyVisibleKeys,
@@ -66,6 +67,7 @@ const BookingInfoSection = ({
 }: BookingInfoSectionProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
+  const { t } = useBookingLocale();
 
   const openDialog = (title: string, content: string) => {
     setDialogContent({ title, content });
@@ -88,10 +90,10 @@ const BookingInfoSection = ({
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 md:mb-12 lg:mb-16">
             <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-3 lg:mb-4">
-              {customTitle || "訂房須知"}
+              {customTitle || t("booking.villa.bookingInfo.title")}
             </h2>
             <p className="text-muted-foreground text-base md:text-base lg:text-lg max-w-2xl mx-auto">
-              {customSubtitle || "為確保愉快的住宿體驗，請詳閱以下相關資訊"}
+              {customSubtitle || t("booking.villa.bookingInfo.subtitle")}
             </p>
           </div>
 
@@ -210,7 +212,7 @@ const BookingInfoSection = ({
                             className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
                             onClick={() => openDialog(panel.title, panel.html!)}
                           >
-                            查看完整內容
+                            {t("booking.villa.bookingInfo.viewFull")}
                           </Button>
                         )}
                       </div>
