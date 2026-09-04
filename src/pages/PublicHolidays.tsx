@@ -564,6 +564,91 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     });
   }, [holidays, selectedYear]);
 
+  // ===== 列表複選 =====
+  const visibleIds = useMemo(() => filteredHolidays.map((h) => h.id), [filteredHolidays]);
+  const selectedVisible = useMemo(
+    () => filteredHolidays.filter((h) => selectedIds.has(h.id)),
+    [filteredHolidays, selectedIds],
+  );
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length;
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected;
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds(() => (checked ? new Set(visibleIds) : new Set<string>()));
+  };
+
+  // 批次刪除摘要（僅目前可見且已勾選者）
+  const batchDeleteSummary = useMemo(() => {
+    const rows = selectedVisible;
+    const dates = rows.map((r) => r.holiday_date).sort();
+    const typeCounts: Record<string, number> = {};
+    rows.forEach((r) => {
+      const label = HOLIDAY_TYPE_CONFIG[r.holiday_type || 'holiday']?.label || r.holiday_type;
+      typeCounts[label] = (typeCounts[label] || 0) + 1;
+    });
+    const govCount = rows.filter((r) => r.is_custom === false).length;
+    const customCount = rows.filter((r) => r.is_custom === true).length;
+    return {
+      count: rows.length,
+      minDate: dates[0],
+      maxDate: dates[dates.length - 1],
+      typeCounts,
+      govCount,
+      customCount,
+    };
+  }, [selectedVisible]);
+
+  const handleBatchDelete = async () => {
+    if (isDeleting) return;
+    if (!accommodationId) return;
+    const ids = selectedVisible.map((r) => r.id);
+    if (ids.length === 0) return;
+
+    try {
+      setIsDeleting(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .delete()
+        .in("id", ids)
+        .eq("accommodation_id", accommodationId)
+        .select("id");
+
+      if (error) throw error;
+
+      const deleted = (data || []).length;
+      toast({
+        title: deleted === ids.length ? "批次刪除成功" : "批次刪除完成（部分資料已不存在）",
+        description:
+          deleted === ids.length
+            ? `已刪除 ${deleted} 筆假日`
+            : `選取 ${ids.length} 筆，實際刪除 ${deleted} 筆；其餘可能已被其他操作刪除`,
+      });
+
+      setIsBatchDeleteOpen(false);
+      setSelectedIds(new Set());
+      loadHolidays();
+    } catch (error) {
+      console.error("Error batch deleting holidays:", error);
+      toast({
+        title: "批次刪除失敗",
+        description: error instanceof Error ? error.message : "無法刪除選取的假日",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+
   // 暴露方法給父組件
   useImperativeHandle(ref, () => ({
     openAddDialog: () => setIsAddDialogOpen(true),
