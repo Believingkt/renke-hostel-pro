@@ -666,3 +666,140 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * 1B-2A：AI 開場歡迎卡顯示翻譯（僅測試檔；產品程式 0 修改於本批測試之外的白名單內）
+ * 涵蓋：開場白 zh/en、動態 accommodationName 保留、fallback「本民宿」/「this property」、
+ * 切換語言不動 messages/input/chips、chip click 仍寫入原始中文、AI request 0、
+ * 不 navigate、不改 search params、不呼叫 Supabase mutation。
+ * suggestion chips 永久排除翻譯。
+ */
+describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
+  const CHIP_TEXTS = ["有哪些房型？", "可以帶寵物嗎？", "有附停車場嗎？", "幾點可以入住？"];
+  // <br /> 會把開場白拆成多個 text node，改以 <p> textContent 比對
+  const expectGreeting = (text: string) =>
+    expect(
+      screen.getByText((_c, el) => el?.tagName === "P" && (el.textContent ?? "").includes(text)),
+    ).toBeInTheDocument();
+  const queryGreeting = (text: string) =>
+    screen.queryByText((_c, el) => el?.tagName === "P" && (el.textContent ?? "").includes(text));
+  let savedMessages: typeof mockState.villaMessages;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockState.mutations.length = 0;
+    savedMessages = mockState.villaMessages;
+    mockState.villaMessages = []; // 強制 messages.length === 0，顯示開場歡迎卡
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+  });
+
+  afterEach(() => {
+    mockState.villaMessages = savedMessages;
+  });
+
+  const renderChat = (name?: string) =>
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <FloatingAIChat
+            accommodationId="acc-1"
+            accommodationName={name}
+            contactHref="https://example.com/contact"
+          />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+
+  it("renders greeting card in zh-TW with dynamic accommodationName", () => {
+    renderChat("測試館");
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    expectGreeting("您好，我是 測試館 的 AI 管家，");
+    expectGreeting("可以回答房型、價格、設施等基本問題。");
+    // suggestion chips 維持原中文
+    CHIP_TEXTS.forEach((q) => expect(screen.getByText(q)).toBeInTheDocument());
+  });
+
+  it("renders greeting card in English with identical dynamic accommodationName", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    renderChat("測試館");
+    fireEvent.click(screen.getByLabelText("Open AI concierge"));
+    expectGreeting("Hello, I'm the AI concierge of 測試館,");
+    expectGreeting("I can answer basic questions about room types, prices, and facilities.");
+    // 館名原文不翻譯、不替換
+    expect(screen.queryByText(/Test Property/i)).not.toBeInTheDocument();
+  });
+
+  it("uses zh-TW fallback「本民宿」when accommodationName is missing", () => {
+    renderChat(undefined);
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    expectGreeting("您好，我是 本民宿 的 AI 管家，");
+  });
+
+  it("uses English fallback「this property」when accommodationName is missing", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    renderChat(undefined);
+    fireEvent.click(screen.getByLabelText("Open AI concierge"));
+    expectGreeting("Hello, I'm the AI concierge of this property,");
+  });
+
+  it("keeps chat state, input draft, chips and no AI request across language switch", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    try {
+      renderChat("測試館");
+      fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+
+      // 開場白 zh-TW
+      expectGreeting("您好，我是 測試館 的 AI 管家，");
+
+      // chip click 只寫入原始中文 input，不送 AI request
+      fireEvent.click(screen.getByRole("button", { name: "可以帶寵物嗎？" }));
+      const input = screen.getByPlaceholderText("輸入您的問題…") as HTMLInputElement;
+      expect(input.value).toBe("可以帶寵物嗎？");
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // chips 文字與順序快照（切換前）
+      const chipsBefore = CHIP_TEXTS.map((q) => screen.getByRole("button", { name: q }).textContent);
+
+      // 切換語言
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+
+      // chat 仍開啟，開場白改為英文（messages 仍為空，未被建立/修改）
+      expectGreeting("Hello, I'm the AI concierge of 測試館,");
+      expect(queryGreeting("mock 歷史訊息一")).not.toBeInTheDocument();
+
+      // input draft 完全相同（仍為原始中文 chip 值）
+      const inputEn = screen.getByPlaceholderText("Type your question…") as HTMLInputElement;
+      expect(inputEn.value).toBe("可以帶寵物嗎？");
+
+      // chips 中文文字、順序完全相同
+      CHIP_TEXTS.forEach((q, i) => {
+        const chip = screen.getByRole("button", { name: q });
+        expect(chip.textContent).toBe(chipsBefore[i]);
+      });
+
+      // 切換後 chip click 仍寫入原始中文、不送 AI request
+      fireEvent.click(screen.getByRole("button", { name: "有附停車場嗎？" }));
+      expect((screen.getByPlaceholderText("Type your question…") as HTMLInputElement).value).toBe("有附停車場嗎？");
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // human-contact destination 不變
+      const human = screen.getByText("Need a human? Contact our team");
+      expect(human.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+
+      // URL / search params 不變、無 mutation
+      expect(window.location.href).toBe(urlBefore);
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(mockState.mutations).toEqual([]);
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+      vi.unstubAllGlobals();
+    }
+  });
+});

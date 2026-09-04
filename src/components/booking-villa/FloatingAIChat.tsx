@@ -294,8 +294,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 {messages.length === 0 && !streaming && (
                   <div className="text-center pt-6 space-y-3">
                     <p className="text-sm text-muted-foreground">
-                      您好，我是 {accommodationName || "本民宿"} 的 AI 管家，<br />
-                      可以回答房型、價格、設施等基本問題。
+                      {t("booking.villa.ai.greeting", { name: accommodationName || t("booking.villa.ai.fallbackName") })}<br />
+                      {t("booking.villa.ai.greetingSub")}
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center pt-2">
                       {[
