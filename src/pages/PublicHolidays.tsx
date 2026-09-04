@@ -1312,6 +1312,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   <Card key={holiday.id} className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
+                        <Checkbox
+                          className="mt-1 flex-shrink-0"
+                          checked={selectedIds.has(holiday.id)}
+                          onCheckedChange={(v) => toggleSelectOne(holiday.id, v === true)}
+                          aria-label={`選取 ${holiday.holiday_name}`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-semibold text-sm truncate">{holiday.holiday_name}</h4>
