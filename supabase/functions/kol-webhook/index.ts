@@ -81,7 +81,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const rawSource = order.order_source ?? "";
     const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
-    if (!Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY")) {
+    if (!(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"))) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping internal email");
       return { success: false, error: "RESEND_API_KEY not configured" };
     }
@@ -149,7 +149,7 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const rawSource = order.order_source ?? "";
     const sourceLabel = sourceMap[rawSource] ?? rawSource;
 
-    if (!Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY")) {
+    if (!(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"))) {
       console.error("[KOL-Webhook] RESEND_API_KEY not configured, skipping correction email");
       return { success: false, error: "RESEND_API_KEY not configured" };
     }

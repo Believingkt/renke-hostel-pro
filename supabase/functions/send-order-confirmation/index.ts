@@ -114,7 +114,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+        from: "人客多通知 <noreply@lakeze.com>",
         to: [built.to],
         subject: built.subject,
         html: built.html,
