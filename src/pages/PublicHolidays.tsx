@@ -46,7 +46,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Calendar, Plus, Trash2, CalendarDays, Edit, Download, Filter, TrendingUp, LayoutGrid, List, Home, Loader2, Globe, Briefcase, RefreshCw } from "lucide-react";
-import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths } from "date-fns";
+import { format, getYear, startOfYear, endOfYear, isSameDay, addMonths, subMonths, addDays, differenceInCalendarDays } from "date-fns";
+import { Checkbox } from "@/components/ui/checkbox";
 import { zhTW } from "date-fns/locale";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -74,6 +75,7 @@ interface PublicHoliday {
   holiday_date: string;
   holiday_name: string;
   holiday_type: HolidayType;
+  is_custom?: boolean | null;
   created_at: string;
   updated_at?: string;
 }
@@ -149,16 +151,62 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [copyOk, setCopyOk] = useState(false);
 
+  // 新增模式：單日 / 區間
+  const [addMode, setAddMode] = useState<"single" | "range">("single");
+  const [rangeStart, setRangeStart] = useState<Date | undefined>(undefined);
+  const [rangeEnd, setRangeEnd] = useState<Date | undefined>(undefined);
+  const [isRangeStartPickerOpen, setIsRangeStartPickerOpen] = useState(false);
+  const [isRangeEndPickerOpen, setIsRangeEndPickerOpen] = useState(false);
+  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
+
+  // 列表複選 / 批次刪除
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBatchDeleteOpen, setIsBatchDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [accommodationName, setAccommodationName] = useState<string>("");
+
+  const MAX_RANGE_DAYS = 366;
+
+  const resetAddDialogState = () => {
+    setNewHoliday({ name: "", date: undefined, type: 'holiday' });
+    setRangeStart(undefined);
+    setRangeEnd(undefined);
+    setAddMode("single");
+    setIsRangeStartPickerOpen(false);
+    setIsRangeEndPickerOpen(false);
+  };
 
   // Reset list immediately when switching accommodation to prevent cross-tenant flash
   useEffect(() => {
     setHolidays([]);
+    setSelectedIds(new Set());
   }, [accommodationId]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [selectedYear, viewMode]);
 
   useEffect(() => {
     if (subdomainLoading || !accommodationId) return;
     loadHolidays();
   }, [accommodationId, subdomainLoading]);
+
+  useEffect(() => {
+    if (!accommodationId) {
+      setAccommodationName("");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("name")
+        .eq("id", accommodationId)
+        .maybeSingle();
+      if (!cancelled) setAccommodationName((data as { name?: string } | null)?.name || "");
+    })();
+    return () => { cancelled = true; };
+  }, [accommodationId]);
 
   const loadHolidays = async () => {
     if (!accommodationId) return;
@@ -168,7 +216,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       setError(null);
       const { data, error } = await supabase
         .from("public_holidays")
-        .select("id, holiday_date, holiday_name, holiday_type, created_at, updated_at")
+        .select("id, holiday_date, holiday_name, holiday_type, is_custom, created_at, updated_at")
         .eq("accommodation_id", accommodationId)
         .order("holiday_date", { ascending: true });
 
@@ -179,6 +227,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         holiday_type: (h.holiday_type as HolidayType) || 'holiday'
       }));
       setHolidays(holidaysWithType);
+      setSelectedIds(new Set());
     } catch (error) {
       console.error("Error loading holidays:", error);
       setError(error instanceof Error ? error.message : "載入假日資料失敗");
@@ -193,11 +242,19 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   };
 
   const handleAddHoliday = async () => {
+    if (isSubmittingAdd) return;
+    if (!accommodationId) return;
+
     if (!newHoliday.name.trim()) {
       toast({
         title: "請輸入假日名稱",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (addMode === "range") {
+      await handleAddHolidayRange();
       return;
     }
 
@@ -210,11 +267,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     }
 
     try {
+      setIsSubmittingAdd(true);
       const { error } = await supabase.from("public_holidays").insert({
         accommodation_id: accommodationId,
         holiday_name: newHoliday.name.trim(),
         holiday_date: format(newHoliday.date, "yyyy-MM-dd"),
         holiday_type: newHoliday.type,
+        is_custom: true,
       });
 
       if (error) throw error;
@@ -225,7 +284,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       });
 
       setIsAddDialogOpen(false);
-      setNewHoliday({ name: "", date: undefined, type: 'holiday' });
+      resetAddDialogState();
       loadHolidays();
     } catch (error) {
       console.error("Error adding holiday:", error);
@@ -234,8 +293,75 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         description: "無法新增國定假日",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
+
+  // 區間新增（起訖皆含，一天一筆，已存在日期保留不覆蓋）
+  const handleAddHolidayRange = async () => {
+    if (!accommodationId) return;
+
+    if (!rangeStart || !rangeEnd) {
+      toast({ title: "請選擇開始與結束日期", variant: "destructive" });
+      return;
+    }
+
+    const diff = differenceInCalendarDays(rangeEnd, rangeStart);
+    if (diff < 0) {
+      toast({ title: "開始日期不得晚於結束日期", variant: "destructive" });
+      return;
+    }
+    const totalDays = diff + 1;
+    if (totalDays > MAX_RANGE_DAYS) {
+      toast({
+        title: "區間過長",
+        description: `一次最多新增 ${MAX_RANGE_DAYS} 天，目前選取 ${totalDays} 天，請縮小範圍`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const rows = Array.from({ length: totalDays }, (_, i) => ({
+      accommodation_id: accommodationId,
+      holiday_name: newHoliday.name.trim(),
+      holiday_date: format(addDays(rangeStart, i), "yyyy-MM-dd"),
+      holiday_type: newHoliday.type,
+      is_custom: true,
+    }));
+
+    try {
+      setIsSubmittingAdd(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .upsert(rows, { onConflict: "accommodation_id,holiday_date", ignoreDuplicates: true })
+        .select("id, holiday_date");
+
+      if (error) throw error;
+
+      const insertedCount = (data || []).length;
+      const skippedCount = totalDays - insertedCount;
+
+      toast({
+        title: "區間新增完成",
+        description: `已新增 ${insertedCount} 天，略過 ${skippedCount} 天已存在日期`,
+      });
+
+      setIsAddDialogOpen(false);
+      resetAddDialogState();
+      loadHolidays();
+    } catch (error) {
+      console.error("Error adding holiday range:", error);
+      toast({
+        title: "區間新增失敗",
+        description: error instanceof Error ? error.message : "無法新增區間假日",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingAdd(false);
+    }
+  };
+
 
   const handleEditHoliday = async () => {
     if (!selectedHoliday) return;
@@ -437,6 +563,91 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       return year === parseInt(selectedYear);
     });
   }, [holidays, selectedYear]);
+
+  // ===== 列表複選 =====
+  const visibleIds = useMemo(() => filteredHolidays.map((h) => h.id), [filteredHolidays]);
+  const selectedVisible = useMemo(
+    () => filteredHolidays.filter((h) => selectedIds.has(h.id)),
+    [filteredHolidays, selectedIds],
+  );
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length;
+  const someVisibleSelected = selectedVisible.length > 0 && !allVisibleSelected;
+
+  const toggleSelectOne = (id: string, checked: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisible = (checked: boolean) => {
+    setSelectedIds(() => (checked ? new Set(visibleIds) : new Set<string>()));
+  };
+
+  // 批次刪除摘要（僅目前可見且已勾選者）
+  const batchDeleteSummary = useMemo(() => {
+    const rows = selectedVisible;
+    const dates = rows.map((r) => r.holiday_date).sort();
+    const typeCounts: Record<string, number> = {};
+    rows.forEach((r) => {
+      const label = HOLIDAY_TYPE_CONFIG[r.holiday_type || 'holiday']?.label || r.holiday_type;
+      typeCounts[label] = (typeCounts[label] || 0) + 1;
+    });
+    const govCount = rows.filter((r) => r.is_custom === false).length;
+    const customCount = rows.filter((r) => r.is_custom === true).length;
+    return {
+      count: rows.length,
+      minDate: dates[0],
+      maxDate: dates[dates.length - 1],
+      typeCounts,
+      govCount,
+      customCount,
+    };
+  }, [selectedVisible]);
+
+  const handleBatchDelete = async () => {
+    if (isDeleting) return;
+    if (!accommodationId) return;
+    const ids = selectedVisible.map((r) => r.id);
+    if (ids.length === 0) return;
+
+    try {
+      setIsDeleting(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .delete()
+        .in("id", ids)
+        .eq("accommodation_id", accommodationId)
+        .select("id");
+
+      if (error) throw error;
+
+      const deleted = (data || []).length;
+      toast({
+        title: deleted === ids.length ? "批次刪除成功" : "批次刪除完成（部分資料已不存在）",
+        description:
+          deleted === ids.length
+            ? `已刪除 ${deleted} 筆假日`
+            : `選取 ${ids.length} 筆，實際刪除 ${deleted} 筆；其餘可能已被其他操作刪除`,
+      });
+
+      setIsBatchDeleteOpen(false);
+      setSelectedIds(new Set());
+      loadHolidays();
+    } catch (error) {
+      console.error("Error batch deleting holidays:", error);
+      toast({
+        title: "批次刪除失敗",
+        description: error instanceof Error ? error.message : "無法刪除選取的假日",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   // 暴露方法給父組件
   useImperativeHandle(ref, () => ({
@@ -958,11 +1169,43 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   />
               ) : (
             <>
+            {/* 批次操作列 */}
+            <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="selectAllHolidays"
+                  checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleSelectAllVisible(v === true)}
+                  aria-label="全選目前篩選結果"
+                />
+                <Label htmlFor="selectAllHolidays" className="text-xs sm:text-sm text-muted-foreground">
+                  全選目前篩選結果（{visibleIds.length} 筆）
+                </Label>
+              </div>
+              <span className="text-xs sm:text-sm text-muted-foreground">已選 {selectedVisible.length} 筆</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedVisible.length === 0 || isDeleting}
+                onClick={() => setIsBatchDeleteOpen(true)}
+                className="gap-1"
+              >
+                <Trash2 className="h-4 w-4" />
+                批次刪除
+              </Button>
+            </div>
             {/* 桌面版表格 */}
             <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                        onCheckedChange={(v) => toggleSelectAllVisible(v === true)}
+                        aria-label="全選"
+                      />
+                    </TableHead>
                     <TableHead className="text-foreground text-sm">假日名稱</TableHead>
                     <TableHead className="text-foreground text-sm">類型</TableHead>
                     <TableHead className="text-foreground text-sm">日期</TableHead>
@@ -980,6 +1223,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                     
                     return (
                       <TableRow key={holiday.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="w-10">
+                          <Checkbox
+                            checked={selectedIds.has(holiday.id)}
+                            onCheckedChange={(v) => toggleSelectOne(holiday.id, v === true)}
+                            aria-label={`選取 ${holiday.holiday_name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium text-sm">
                           <div className="flex items-center gap-2">
                             {holiday.holiday_name}
@@ -1062,6 +1312,12 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   <Card key={holiday.id} className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
+                        <Checkbox
+                          className="mt-1 flex-shrink-0"
+                          checked={selectedIds.has(holiday.id)}
+                          onCheckedChange={(v) => toggleSelectOne(holiday.id, v === true)}
+                          aria-label={`選取 ${holiday.holiday_name}`}
+                        />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h4 className="font-semibold text-sm truncate">{holiday.holiday_name}</h4>
@@ -1276,7 +1532,14 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         </Card>
 
       {/* 新增假日對話框 */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog
+        open={isAddDialogOpen}
+        onOpenChange={(open) => {
+          if (isSubmittingAdd) return;
+          setIsAddDialogOpen(open);
+          if (!open) resetAddDialogState();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新增國定假日</DialogTitle>
@@ -1285,6 +1548,15 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>新增方式</Label>
+              <Tabs value={addMode} onValueChange={(v) => setAddMode(v as "single" | "range")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="single">單日</TabsTrigger>
+                  <TabsTrigger value="range">日期區間</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="holidayName">假日名稱</Label>
               <Input
@@ -1296,40 +1568,114 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label>假日日期</Label>
-              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !newHoliday.date && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {newHoliday.date ? (
-                      format(newHoliday.date, "PPP", { locale: zhTW })
-                    ) : (
-                      <span>選擇日期</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={newHoliday.date}
-                    defaultMonth={newHoliday.date}
-                    onSelect={(date) => {
-                      setNewHoliday({ ...newHoliday, date });
-                      setIsDatePickerOpen(false);
-                    }}
-                    locale={zhTW}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            {addMode === "single" ? (
+              <div className="space-y-2">
+                <Label>假日日期</Label>
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newHoliday.date && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {newHoliday.date ? (
+                        format(newHoliday.date, "PPP", { locale: zhTW })
+                      ) : (
+                        <span>選擇日期</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newHoliday.date}
+                      defaultMonth={newHoliday.date}
+                      onSelect={(date) => {
+                        setNewHoliday({ ...newHoliday, date });
+                        setIsDatePickerOpen(false);
+                      }}
+                      locale={zhTW}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>開始日期</Label>
+                    <Popover open={isRangeStartPickerOpen} onOpenChange={setIsRangeStartPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-full justify-start text-left font-normal", !rangeStart && "text-muted-foreground")}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {rangeStart ? format(rangeStart, "yyyy/MM/dd", { locale: zhTW }) : <span>選擇開始日期</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={rangeStart}
+                          defaultMonth={rangeStart}
+                          onSelect={(date) => {
+                            setRangeStart(date);
+                            setIsRangeStartPickerOpen(false);
+                          }}
+                          locale={zhTW}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>結束日期</Label>
+                    <Popover open={isRangeEndPickerOpen} onOpenChange={setIsRangeEndPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-full justify-start text-left font-normal", !rangeEnd && "text-muted-foreground")}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {rangeEnd ? format(rangeEnd, "yyyy/MM/dd", { locale: zhTW }) : <span>選擇結束日期</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={rangeEnd}
+                          defaultMonth={rangeEnd ?? rangeStart}
+                          onSelect={(date) => {
+                            setRangeEnd(date);
+                            setIsRangeEndPickerOpen(false);
+                          }}
+                          locale={zhTW}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                {rangeStart && rangeEnd && (
+                  differenceInCalendarDays(rangeEnd, rangeStart) < 0 ? (
+                    <p className="text-xs text-destructive">開始日期不得晚於結束日期</p>
+                  ) : differenceInCalendarDays(rangeEnd, rangeStart) + 1 > MAX_RANGE_DAYS ? (
+                    <p className="text-xs text-destructive">
+                      一次最多新增 {MAX_RANGE_DAYS} 天，目前選取 {differenceInCalendarDays(rangeEnd, rangeStart) + 1} 天，請縮小範圍
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      將新增 {differenceInCalendarDays(rangeEnd, rangeStart) + 1} 天（起訖日皆包含）；已存在的日期會自動略過，不覆蓋原內容。
+                    </p>
+                  )
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>類型</Label>
               <Select
@@ -1357,13 +1703,86 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmittingAdd}>
               取消
             </Button>
-            <Button onClick={handleAddHoliday}>新增</Button>
+            <Button
+              onClick={handleAddHoliday}
+              disabled={
+                isSubmittingAdd ||
+                (addMode === "range" &&
+                  (!rangeStart ||
+                    !rangeEnd ||
+                    differenceInCalendarDays(rangeEnd, rangeStart) < 0 ||
+                    differenceInCalendarDays(rangeEnd, rangeStart) + 1 > MAX_RANGE_DAYS))
+              }
+            >
+              {isSubmittingAdd ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  處理中…
+                </>
+              ) : (
+                "新增"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 批次刪除確認 */}
+      <AlertDialog
+        open={isBatchDeleteOpen}
+        onOpenChange={(open) => {
+          if (isDeleting) return;
+          setIsBatchDeleteOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認批次刪除假日？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>館別：{accommodationName || "（目前館別）"}</div>
+                <div>已選日期數：{batchDeleteSummary.count} 天</div>
+                <div>
+                  日期範圍：{batchDeleteSummary.minDate || "-"} ～ {batchDeleteSummary.maxDate || "-"}
+                </div>
+                <div>
+                  類型統計：
+                  {Object.entries(batchDeleteSummary.typeCounts)
+                    .map(([label, n]) => `${label} ${n}`)
+                    .join("、") || "-"}
+                </div>
+                <div>
+                  政府同步資料（is_custom=false）：{batchDeleteSummary.govCount} 筆；自訂資料（is_custom=true）：
+                  {batchDeleteSummary.customCount} 筆
+                </div>
+                {batchDeleteSummary.govCount > 0 && (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-destructive">
+                    選取內容包含政府同步日期；刪除後，未來重新同步政府開放資料時可能再次出現。
+                  </div>
+                )}
+                <div>此操作無法復原。</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBatchDelete();
+              }}
+              disabled={isDeleting || batchDeleteSummary.count === 0}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "刪除中…" : `刪除 ${batchDeleteSummary.count} 筆`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* 編輯對話框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
