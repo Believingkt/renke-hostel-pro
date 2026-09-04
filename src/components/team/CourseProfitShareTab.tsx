@@ -334,11 +334,12 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       payout_month: `${newMonth.payout}-01`,
       surplus_amount: Number(newMonth.surplus || 0),
       note: newMonth.note || null,
+      remittance_date: newMonth.remittance || null,
       created_by: userData?.user?.id ?? null,
       created_by_email: userData?.user?.email ?? null,
       updated_by: userData?.user?.id ?? null,
       updated_by_email: userData?.user?.email ?? null,
-    });
+    } as any);
     setSavingId(null);
     if (error) {
       toast({
@@ -348,7 +349,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "" });
+    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "", remittance: null });
     toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
     load();
   };
@@ -364,9 +365,10 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         surplus_amount: Number(d.surplus || 0),
         note: d.note || null,
         payout_month: `${d.payout}-01`,
+        remittance_date: d.remittance || null,
         updated_by: userData?.user?.id ?? null,
         updated_by_email: userData?.user?.email ?? null,
-      })
+      } as any)
       .eq("id", row.id);
     setSavingId(null);
     if (error) {
