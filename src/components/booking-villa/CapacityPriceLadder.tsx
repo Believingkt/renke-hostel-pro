@@ -132,11 +132,19 @@ const DEFAULT_PLAN_INCLUDES = [
   { icon: <UtensilsCrossed className="h-3.5 w-3.5" />, label: "精緻早餐" },
 ];
 
+/** 顯示用：stable tag enum key → stable i18n key（business enum key 不變） */
+const TAG_I18N_KEYS: Record<string, string> = {
+  early_bird: "booking.villa.ladder.tag.earlyBird",
+  meal_included: "booking.villa.ladder.tag.mealIncluded",
+  few_people: "booking.villa.ladder.tag.fewPeople",
+};
+
 const TIER_LABELS: Record<PricingTier, { short: string; full: string; hint: string; emoji: string }> = {
   weekday: { short: "平日", full: "週一 ~ 週四", hint: "含少人包區早鳥優惠", emoji: "💼" },
   friday_sunday: { short: "旺日", full: "週五、週日", hint: "標準包區方案", emoji: "✨" },
   weekend: { short: "假日", full: "週六、國定假日", hint: "假日包區方案", emoji: "🎉" },
 };
+
 
 function detectTierByDate(
   date: Date | null | undefined,
