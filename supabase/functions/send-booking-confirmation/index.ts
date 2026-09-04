@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 
 // Simple in-memory rate limiter by email
 const emailRateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -186,7 +186,7 @@ const handler = async (req: Request): Promise<Response> => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+        from: "人客多通知 <noreply@lakeze.com>",
         to: [guestEmail],
         subject: `${accommodationName ? `【${accommodationName}】` : ''}訂房確認通知 - 訂單編號 ${orderNumber}`,
         html: `
