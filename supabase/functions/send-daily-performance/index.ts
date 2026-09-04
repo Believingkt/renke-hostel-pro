@@ -272,11 +272,17 @@ Deno.serve(async (req) => {
         }];
       }
     } else {
-      const { data: settingsRows, error: sErr } = await supabase
+      let q = supabase
         .from("performance_notification_settings")
         .select("*")
-        .eq("enabled", true)
-        .eq("notify_time", hhmm);
+        .eq("enabled", true);
+      // 補發模式：忽略 notify_time（可指定單一館別）
+      if (backfill) {
+        if (backfillAccId) q = q.eq("accommodation_id", backfillAccId);
+      } else {
+        q = q.eq("notify_time", hhmm);
+      }
+      const { data: settingsRows, error: sErr } = await q;
       if (sErr) throw sErr;
       settings = settingsRows ?? [];
       if (settings.length === 0) {
@@ -286,6 +292,7 @@ Deno.serve(async (req) => {
         );
       }
     }
+
 
     const results: Array<{ accommodation_id: string; ok: boolean; error?: string }> = [];
 
