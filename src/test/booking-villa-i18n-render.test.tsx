@@ -92,6 +92,15 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
+const mockNavigateSpy = vi.hoisted(() => vi.fn());
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigateSpy,
+  };
+});
+
 /** BookingVilla 實際傳入 SectionTabsNav 的 section id（不得因語言改變） */
 const SECTION_IDS = [
   "capacity-price-section",
