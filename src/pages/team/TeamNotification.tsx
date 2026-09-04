@@ -584,6 +584,56 @@ export default function TeamNotification() {
         </Card>
       </div>
 
+      {/* 手動補發 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">手動補發業績通報</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            指定日期區間，重新寄送（含 LINE 推播）該日各館業績通報。已成功送出的日期／館別會自動略過，不會重複發送。
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label>起始日期</Label>
+              <Input type="date" value={backfillFrom} onChange={(e) => setBackfillFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>結束日期</Label>
+              <Input type="date" value={backfillTo} onChange={(e) => setBackfillTo(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>範圍</Label>
+              <Select value={backfillScope} onValueChange={setBackfillScope}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部啟用館別</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={runBackfill} disabled={backfilling} className="w-full">
+                {backfilling ? "補發中..." : "開始補發"}
+              </Button>
+            </div>
+          </div>
+          {backfillLog.length > 0 && (
+            <div className="rounded-md border p-3 text-sm space-y-1 max-h-60 overflow-auto">
+              {backfillLog.map((l, i) => (
+                <div key={i} className="tabular-nums">{l}</div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
+
       {/* Flags table */}
       <Card>
         <CardHeader>
