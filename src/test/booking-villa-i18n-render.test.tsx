@@ -1060,8 +1060,14 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
       </BookingLocaleProvider>,
     );
 
-  const openChildPopover = () => {
-    fireEvent.click(screen.getByText("含兒童加價 +NT$12,345"));
+  const openChildPopover = (lang: "zh-TW" | "en" = "zh-TW") => {
+    fireEvent.click(
+      screen.getByText(
+        lang === "en"
+          ? "Includes child surcharge +NT$12,345"
+          : "含兒童加價 +NT$12,345",
+      ),
+    );
   };
 
   it("renders all 15 fixed strings in zh-TW", () => {
@@ -1144,7 +1150,7 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
     fireEvent.click(screen.getByText("Hide breakdown"));
     expect(screen.getByText("Book this stay")).toBeInTheDocument();
 
-    openChildPopover();
+    openChildPopover("en");
     expect(screen.getByText("Child surcharge details")).toBeInTheDocument();
     expect(screen.getByText("Rules for the selected child age groups")).toBeInTheDocument();
     expect(screen.getByText("Total")).toBeInTheDocument();
@@ -1170,7 +1176,7 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
       fireEvent.click(screen.getByLabelText("Switch to English"));
       expect(screen.getByText("Book this stay")).toBeInTheDocument();
       expect(screen.getByText("Hide breakdown")).toBeInTheDocument(); // 展開狀態不變
-      expect(screen.getByText("含兒童加價 +NT$12,345")).toBeInTheDocument();
+      expect(screen.getByText("Includes child surcharge +NT$12,345")).toBeInTheDocument();
       expect(priceOf()).toEqual(zhPrices);
       expect(guestLine()).toBe(zhGuest);
 
