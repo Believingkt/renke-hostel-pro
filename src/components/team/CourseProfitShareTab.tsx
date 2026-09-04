@@ -768,9 +768,11 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                               <Button size="sm" disabled={!dirty || savingId === row.id} onClick={() => saveMonth(row, locked)}>
                                 {savingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "儲存"}
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => removeMonth(row)}>
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {!locked && (
+                                <Button variant="ghost" size="sm" className="h-8 px-1" onClick={() => removeMonth(row)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           )}
                         </TableCell>
