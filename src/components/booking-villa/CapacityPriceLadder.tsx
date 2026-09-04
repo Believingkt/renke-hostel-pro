@@ -173,6 +173,7 @@ const CapacityPriceLadder = ({
   childBlocked = false,
   childBlockReason,
 }: Props) => {
+  const { t } = useBookingLocale();
   const TERM = isSensan ? "包區" : "包棟";
   const TIER_HINT: Record<PricingTier, string> = {
     weekday: isSensan ? "含少人包區早鳥優惠" : "標準銷售方案",
@@ -275,7 +276,7 @@ const CapacityPriceLadder = ({
   if (roomTypes.length === 0) {
     return (
       <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-        目前沒有可預訂的方案
+        {t("booking.villa.ladder.empty.all")}
       </div>
     );
   }
@@ -296,7 +297,7 @@ const CapacityPriceLadder = ({
         if (allTiers.length === 0) {
           return (
             <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-              此時段目前沒有可預訂的方案
+              {t("booking.villa.ladder.empty.tier")}
             </div>
           );
         }
@@ -379,7 +380,7 @@ const CapacityPriceLadder = ({
                 {(activeTier_.roomAllocation || roomBreakdown) && (
                   <div>
                     <p className="text-[10px] font-bold tracking-[0.18em] text-muted-foreground/80">
-                      ROOM ALLOCATION
+                      {t("booking.villa.ladder.roomAllocation.kicker")}
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
                       <span className="mr-1" aria-hidden>👆</span>
@@ -396,17 +397,13 @@ const CapacityPriceLadder = ({
                       {activeTier_.tags
                         .filter((t) => t !== "best_value")
                         .map((tag) => {
-                          const map: Record<string, string> = {
-                            early_bird: "早鳥優惠",
-                            meal_included: "一泊二食",
-                            few_people: "少人數包棟",
-                          };
+                          const i18nKey = TAG_I18N_KEYS[tag];
                           return (
                             <span
                               key={tag}
                               className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-[#E5DDD3] text-[#A98467]"
                             >
-                              {map[tag] || tag}
+                              {i18nKey ? t(i18nKey) : tag}
                             </span>
                           );
                         })}
@@ -422,7 +419,7 @@ const CapacityPriceLadder = ({
                         {/* 禮遇標題 + 獨享 Badge */}
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-[14px] font-bold text-foreground">
-                            {activeTier_.subtitle || "尊榮禮遇"}
+                            {activeTier_.subtitle || t("booking.villa.ladder.perks.title")}
                           </p>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
                             <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
@@ -533,10 +530,10 @@ const CapacityPriceLadder = ({
                         align="start"
                         className="w-[280px] p-3 text-[12px] leading-relaxed"
                       >
-                        <p className="font-semibold mb-2 text-foreground">兒童加價明細</p>
+                        <p className="font-semibold mb-2 text-foreground">{t("booking.villa.ladder.childFee.title")}</p>
                         {childRuleLines.length > 0 && (
                           <>
-                            <p className="text-[11px] text-muted-foreground mb-1">您選擇的兒童年齡層規則</p>
+                            <p className="text-[11px] text-muted-foreground mb-1">{t("booking.villa.ladder.childFee.rules")}</p>
                             <ul className="space-y-1 mb-2">
                               {childRuleLines.map((r) => (
                                 <li key={`rule-${r.key}`} className="flex items-start gap-1.5 text-muted-foreground">
@@ -567,7 +564,7 @@ const CapacityPriceLadder = ({
                           </ul>
                         )}
                         <div className="mt-2 pt-2 border-t border-border/60 flex justify-between gap-3">
-                          <span className="text-foreground font-semibold">合計</span>
+                          <span className="text-foreground font-semibold">{t("booking.villa.ladder.childFee.total")}</span>
                           <span className="font-bold tabular-nums" style={{ color: "hsl(15, 78%, 48%)" }}>
                             +NT${childExtraTotal.toLocaleString()}
                           </span>
@@ -612,7 +609,7 @@ const CapacityPriceLadder = ({
                                   showDetails ? "rotate-0" : "-rotate-90"
                                 )}
                               />
-                              <span>{showDetails ? "收合詳細計算" : "展開詳細計算"}</span>
+                              <span>{showDetails ? t("booking.villa.ladder.details.collapse") : t("booking.villa.ladder.details.expand")}</span>
                             </button>
                             {showDetails && (
                               <div className="mt-1 space-y-0.5 font-mono tabular-nums">
@@ -705,8 +702,8 @@ const CapacityPriceLadder = ({
                     data-book-cta="true"
                     onClick={() => {
                       if (childBlocked) {
-                        toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
-                          description: "請點選上方搜尋條調整人數後再試。",
+                        toast.error(childBlockReason || t("booking.villa.ladder.childBlocked.toastTitle"), {
+                          description: t("booking.villa.ladder.childBlocked.toastDesc"),
                         });
                         return;
                       }
@@ -719,7 +716,7 @@ const CapacityPriceLadder = ({
                     style={{ backgroundColor: "#F08A3E" }}
                   >
                     <Zap className="h-4 w-4" fill="currentColor" strokeWidth={0} />
-                    預約這段專屬假期
+                    {t("booking.villa.ladder.cta.book")}
                   </button>
 
                   {childBlocked && childBlockReason && (
