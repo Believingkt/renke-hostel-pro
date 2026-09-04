@@ -1169,11 +1169,43 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                   />
               ) : (
             <>
+            {/* 批次操作列 */}
+            <div className="mb-3 flex flex-wrap items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="selectAllHolidays"
+                  checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                  onCheckedChange={(v) => toggleSelectAllVisible(v === true)}
+                  aria-label="全選目前篩選結果"
+                />
+                <Label htmlFor="selectAllHolidays" className="text-xs sm:text-sm text-muted-foreground">
+                  全選目前篩選結果（{visibleIds.length} 筆）
+                </Label>
+              </div>
+              <span className="text-xs sm:text-sm text-muted-foreground">已選 {selectedVisible.length} 筆</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedVisible.length === 0 || isDeleting}
+                onClick={() => setIsBatchDeleteOpen(true)}
+                className="gap-1"
+              >
+                <Trash2 className="h-4 w-4" />
+                批次刪除
+              </Button>
+            </div>
             {/* 桌面版表格 */}
             <div className="hidden md:block table-scroll-container overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allVisibleSelected ? true : someVisibleSelected ? "indeterminate" : false}
+                        onCheckedChange={(v) => toggleSelectAllVisible(v === true)}
+                        aria-label="全選"
+                      />
+                    </TableHead>
                     <TableHead className="text-foreground text-sm">假日名稱</TableHead>
                     <TableHead className="text-foreground text-sm">類型</TableHead>
                     <TableHead className="text-foreground text-sm">日期</TableHead>
@@ -1191,6 +1223,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                     
                     return (
                       <TableRow key={holiday.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="w-10">
+                          <Checkbox
+                            checked={selectedIds.has(holiday.id)}
+                            onCheckedChange={(v) => toggleSelectOne(holiday.id, v === true)}
+                            aria-label={`選取 ${holiday.holiday_name}`}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium text-sm">
                           <div className="flex items-center gap-2">
                             {holiday.holiday_name}
