@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, ChevronDown, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 
 interface CronHealthRow {
@@ -27,8 +27,28 @@ interface CronHealthRow {
   failures_24h: number;
 }
 
-/** 重點關注的排程（排在最前面） */
-const PRIORITY_JOBS = ["send-daily-performance", "notify-order-status-change"];
+interface CronHistoryRow {
+  start_time: string | null;
+  end_time: string | null;
+  status: string | null;
+  return_message: string | null;
+}
+
+/** 只顯示與「業績通報」相關的功能；其他系統排程一律不在此頁呈現 */
+const FEATURE_LABELS: Array<{ match: string; label: string; desc: string }> = [
+  {
+    match: "send-daily-performance",
+    label: "每日業績通報",
+    desc: "每天定時把各館業績整理後推播到 LINE 群",
+  },
+  {
+    match: "notify-order-status-change",
+    label: "訂單狀態即時通報",
+    desc: "訂單成立、付款或取消時即時推播通知",
+  },
+];
+
+const featureOf = (jobname: string) => FEATURE_LABELS.find((f) => jobname.includes(f.match));
 
 const fmt = (v: string | null) => {
   if (!v) return "—";
@@ -49,6 +69,10 @@ export default function CronHealthTab() {
   const [rows, setRows] = useState<CronHealthRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [history, setHistory] = useState<Record<number, CronHistoryRow[]>>({});
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyUnavailable, setHistoryUnavailable] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -56,21 +80,43 @@ export default function CronHealthTab() {
     setLoading(false);
     setLoaded(true);
     if (error) {
-      toast.error("讀取排程狀態失敗：" + error.message);
+      toast.error("讀取功能狀態失敗：" + error.message);
       return;
     }
-    const list = ((data ?? []) as CronHealthRow[]).slice().sort((a, b) => {
-      const ai = PRIORITY_JOBS.findIndex((k) => a.jobname.includes(k));
-      const bi = PRIORITY_JOBS.findIndex((k) => b.jobname.includes(k));
-      if (ai !== bi) return (ai < 0 ? 99 : ai) - (bi < 0 ? 99 : bi);
-      return a.jobname.localeCompare(b.jobname);
-    });
+    const list = ((data ?? []) as CronHealthRow[])
+      .filter((r) => !!featureOf(r.jobname))
+      .slice()
+      .sort((a, b) => {
+        const ai = FEATURE_LABELS.findIndex((f) => a.jobname.includes(f.match));
+        const bi = FEATURE_LABELS.findIndex((f) => b.jobname.includes(f.match));
+        return ai - bi;
+      });
     setRows(list);
   };
 
   useEffect(() => {
     void load();
   }, []);
+
+  const toggleHistory = async (r: CronHealthRow) => {
+    if (expanded === r.jobid) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(r.jobid);
+    if (history[r.jobid]) return;
+    setHistoryLoading(true);
+    const { data, error } = await (supabase as any).rpc("team_cron_history", {
+      _jobid: r.jobid,
+      _limit: 20,
+    });
+    setHistoryLoading(false);
+    if (error) {
+      setHistoryUnavailable(true);
+      return;
+    }
+    setHistory((prev) => ({ ...prev, [r.jobid]: (data ?? []) as CronHistoryRow[] }));
+  };
 
   const statusOf = (r: CronHealthRow) => {
     if (!r.active) return { label: "已停用", variant: "secondary" as const };
@@ -87,7 +133,7 @@ export default function CronHealthTab() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-2">
-        <CardTitle className="text-base">排程健康檢查</CardTitle>
+        <CardTitle className="text-base">功能狀態查詢</CardTitle>
         <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-2">
           <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
           重新整理
@@ -95,13 +141,13 @@ export default function CronHealthTab() {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3">
-          時間為台北時間。「疑似中斷」表示超過 48 小時未執行，通常代表排程曾被暫停。
+          時間為台北時間。此處僅顯示與業績通報相關的功能。點開任一列可查看過去的執行紀錄，功能即使被關閉，先前的紀錄仍會保留。
         </p>
         <div className="overflow-x-auto">
           <Table className="fixed-table">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[280px]">排程</TableHead>
+                <TableHead className="w-[300px]">功能項目</TableHead>
                 <TableHead className="w-[140px]">週期</TableHead>
                 <TableHead className="w-[110px]">狀態</TableHead>
                 <TableHead className="w-[170px]">最後執行</TableHead>
@@ -110,28 +156,99 @@ export default function CronHealthTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {rows.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-sm text-muted-foreground">
+                    目前沒有可顯示的業績通報功能
+                  </TableCell>
+                </TableRow>
+              )}
               {rows.map((r) => {
                 const s = statusOf(r);
+                const f = featureOf(r.jobname);
+                const isOpen = expanded === r.jobid;
+                const rec = history[r.jobid];
                 return (
-                  <TableRow key={r.jobid}>
-                    <TableCell className="font-medium whitespace-nowrap">{r.jobname}</TableCell>
-                    <TableCell className="font-mono text-xs whitespace-nowrap">
-                      {r.schedule}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={s.variant}>{s.label}</Badge>
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums">
-                      {fmt(r.last_start)}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm">
-                      {r.last_status ?? "—"}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums text-sm">
-                      {r.runs_24h} 次
-                      {r.failures_24h > 0 ? `（失敗 ${r.failures_24h}）` : ""}
-                    </TableCell>
-                  </TableRow>
+                  <>
+                    <TableRow
+                      key={r.jobid}
+                      className="cursor-pointer"
+                      onClick={() => void toggleHistory(r)}
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-start gap-1.5">
+                          {isOpen ? (
+                            <ChevronDown className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+                          )}
+                          <div className="min-w-0">
+                            <div>{f?.label ?? r.jobname}</div>
+                            <div className="text-xs text-muted-foreground break-words">
+                              {f?.desc}
+                            </div>
+                            <div className="font-mono text-[11px] text-muted-foreground break-all">
+                              {r.jobname}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-mono text-xs whitespace-nowrap">
+                        {r.schedule}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={s.variant}>{s.label}</Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums">
+                        {fmt(r.last_start)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {r.last_status ?? "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        {r.runs_24h} 次
+                        {r.failures_24h > 0 ? `（失敗 ${r.failures_24h}）` : ""}
+                      </TableCell>
+                    </TableRow>
+                    {isOpen && (
+                      <TableRow key={`${r.jobid}-h`}>
+                        <TableCell colSpan={6} className="bg-muted/40">
+                          {historyLoading && !rec ? (
+                            <span className="text-sm text-muted-foreground">載入紀錄中…</span>
+                          ) : historyUnavailable && !rec ? (
+                            <span className="text-sm text-muted-foreground">
+                              歷史紀錄查詢將於此次調整套用後開放。
+                            </span>
+                          ) : rec && rec.length > 0 ? (
+                            <div className="space-y-1">
+                              {rec.map((h, i) => (
+                                <div
+                                  key={i}
+                                  className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm"
+                                >
+                                  <span className="tabular-nums">{fmt(h.start_time)}</span>
+                                  <Badge
+                                    variant={
+                                      h.status === "succeeded" ? "secondary" : "destructive"
+                                    }
+                                  >
+                                    {h.status === "succeeded" ? "成功" : h.status ?? "未知"}
+                                  </Badge>
+                                  {h.return_message && (
+                                    <span className="text-xs text-muted-foreground break-all">
+                                      {h.return_message}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">尚無執行紀錄</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 );
               })}
             </TableBody>
