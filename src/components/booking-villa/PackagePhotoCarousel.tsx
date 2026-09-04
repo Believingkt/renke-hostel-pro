@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 export interface PackagePhoto {
   url: string;
@@ -11,6 +12,7 @@ interface Props {
 }
 
 const PackagePhotoCarousel = ({ photos }: Props) => {
+  const { t } = useBookingLocale();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const dragState = useRef<{ startX: number; startScroll: number; moved: boolean } | null>(null);
@@ -73,7 +75,7 @@ const PackagePhotoCarousel = ({ photos }: Props) => {
           <div key={`${p.url}-${i}`} className="relative shrink-0 w-full h-full snap-start overflow-hidden">
             <img
               src={p.url}
-              alt={p.rtName}
+              alt={p.rtName || t("booking.villa.photos.alt", { index: i + 1 })}
               loading={i === 0 ? "eager" : "lazy"}
               className="w-full h-full object-cover"
               draggable={false}
@@ -94,7 +96,7 @@ const PackagePhotoCarousel = ({ photos }: Props) => {
           {/* Desktop nav: left */}
           <div
             role="button"
-            aria-label="上一張"
+            aria-label={t("booking.villa.photos.prev")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
@@ -116,7 +118,7 @@ const PackagePhotoCarousel = ({ photos }: Props) => {
           {/* Desktop nav: right */}
           <div
             role="button"
-            aria-label="下一張"
+            aria-label={t("booking.villa.photos.next")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {

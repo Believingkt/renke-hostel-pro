@@ -10,6 +10,11 @@ import { shareStay } from "@/lib/nativeShare";
 import { usePageAnalytics } from "@/hooks/use-page-analytics";
 import { getThemeClass } from "@/constants/themes";
 import { SEOHead } from "@/components/SEOHead";
+import {
+  BookingLocaleProvider,
+  useBookingLocale,
+} from "@/contexts/BookingLocaleContext";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
 import { buildAccommodationCanonical } from "@/lib/canonicalUrl";
 
 import { StructuredData } from "@/components/StructuredData";
@@ -119,7 +124,8 @@ export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
 };
 export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
 
-const BookingVilla = () => {
+const BookingVillaContent = () => {
+  const { t } = useBookingLocale();
   // 黏頂列高度動態量測（避免硬寫 px 造成重疊）
   const [isDesktopSearch, setIsDesktopSearch] = useState(
     typeof window !== "undefined" ? window.matchMedia("(min-width: 640px)").matches : false,
@@ -632,13 +638,13 @@ const BookingVilla = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center px-6">
           <p className="text-lg font-semibold text-destructive mb-2">
-            {dataError || "無法載入資料"}
+            {dataError || t("booking.villa.error.title")}
           </p>
           <button
             onClick={refetch}
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            重新整理
+            {t("booking.villa.error.retry")}
           </button>
         </div>
       </div>
@@ -771,8 +777,8 @@ const BookingVilla = () => {
       accommodationName: info.name,
       description: (info as any).seo_description || info.og_description || info.description,
     });
-    if (res.status === "copied") toast.success("已複製連結");
-    else if (res.status === "error") toast.error("無法分享，請手動複製網址");
+    if (res.status === "copied") toast.success(t("booking.villa.header.shareCopied"));
+    else if (res.status === "error") toast.error(t("booking.villa.header.shareError"));
   };
 
   const region =
@@ -829,24 +835,25 @@ const BookingVilla = () => {
             size="icon"
             onClick={() => navigate(-1)}
             className="h-9 w-9 shrink-0"
-            aria-label="返回"
+            aria-label={t("booking.villa.header.back")}
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <Link to="/booking" className="flex items-center gap-1.5 min-w-0 flex-1 justify-center overflow-hidden">
             <img
               src={lokezeLogo}
-              alt="Lakeze 人客多"
+              alt={t("booking.villa.header.logoAlt")}
               className="h-20 sm:h-16 md:h-24 max-h-full max-w-full w-auto object-contain"
             />
           </Link>
           <div className="flex items-center gap-0.5 shrink-0">
+            <BookingLanguageSwitch className="mr-0.5" />
             <Button
               variant="ghost"
               size="icon"
               onClick={handleShare}
               className="h-9 w-9"
-              aria-label="分享"
+              aria-label={t("booking.villa.header.share")}
             >
               <Share2 className="h-4.5 w-4.5" />
             </Button>
@@ -856,7 +863,7 @@ const BookingVilla = () => {
                 size="icon"
                 onClick={() => navigate("/member/profile")}
                 className="h-9 w-9"
-                aria-label={memberName || "會員中心"}
+                aria-label={memberName || t("booking.villa.header.member")}
               >
                 <User className="h-5 w-5" />
               </Button>
@@ -868,7 +875,7 @@ const BookingVilla = () => {
                 style={{ background: "hsl(25, 70%, 55%)" }}
               >
                 <LogIn className="h-3.5 w-3.5" />
-                登入
+                {t("booking.villa.header.login")}
               </Button>
             )}
           </div>
@@ -967,14 +974,14 @@ const BookingVilla = () => {
       {/* ── Section Anchor Tabs（Trip.com 風格橫向頁籤） ── */}
       <SectionTabsNav
         tabs={[
-          { id: "capacity-price-section", label: "入住方案" },
-          { id: "facilities", label: "設施" },
-          { id: "location", label: "交通建議" },
-          { id: "reviews", label: "Google 評論" },
-          { id: "faq", label: "常見問題" },
-          { id: "about", label: "描述" },
-          { id: "policy", label: "訂房須知" },
-          { id: "similar", label: "鄰近住宿" },
+          { id: "capacity-price-section", label: t("booking.villa.tabs.plans") },
+          { id: "facilities", label: t("booking.villa.tabs.facilities") },
+          { id: "location", label: t("booking.villa.tabs.location") },
+          { id: "reviews", label: t("booking.villa.tabs.reviews") },
+          { id: "faq", label: t("booking.villa.tabs.faq") },
+          { id: "about", label: t("booking.villa.tabs.about") },
+          { id: "policy", label: t("booking.villa.tabs.policy") },
+          { id: "similar", label: t("booking.villa.tabs.similar") },
         ]}
       />
 
@@ -1620,5 +1627,11 @@ const BookingVilla = () => {
     </div>
   );
 };
+
+const BookingVilla = () => (
+  <BookingLocaleProvider>
+    <BookingVillaContent />
+  </BookingLocaleProvider>
+);
 
 export default BookingVilla;

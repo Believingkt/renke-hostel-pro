@@ -1,4 +1,5 @@
 import { Home, Users, Maximize2, MapPin } from "lucide-react";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 export interface VillaOverviewLabels {
   rooms?: string | null;
@@ -29,10 +30,11 @@ const VillaOverviewBar = ({
   region,
   labels,
 }: Props) => {
-  const roomsLabel = labels?.rooms || "三代同堂剛剛好";
-  const capacityLabel = labels?.capacity || "人都住得下";
-  const sizeLabel = labels?.size || "坪・烤肉派對 ok";
-  const regionLabel = labels?.region || "景觀環繞";
+  const { t } = useBookingLocale();
+  const roomsLabel = labels?.rooms || t("booking.villa.overview.rooms");
+  const capacityLabel = labels?.capacity || t("booking.villa.overview.capacity");
+  const sizeLabel = labels?.size || t("booking.villa.overview.size");
+  const regionLabel = labels?.region || t("booking.villa.overview.region");
 
   return (
     <div className="px-4 py-3 bg-card border-b border-border/40">
