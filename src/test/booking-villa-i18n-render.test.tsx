@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { BookingLocaleProvider } from "@/contexts/BookingLocaleContext";
 import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
@@ -14,13 +14,28 @@ import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarouse
 import { translate } from "@/lib/bookingI18n";
 
 // 1B-1：mock Supabase client（僅本測試檔，避免網路呼叫；不改任何 global mock）
+// coverage remediation：在同一 mock 內補上登入使用者、聊天歷史、帶價方案，
+// 並記錄所有 mutating method（insert/update/delete/upsert）呼叫，供 invariant 斷言。
+const mockState = vi.hoisted(() => ({
+  mutations: [] as string[],
+  villaMessages: [
+    { id: "m1", role: "user", content: "mock 歷史訊息一" },
+    { id: "m2", role: "assistant", content: "mock 歷史回覆一" },
+  ],
+  packagePrice: 12345,
+}));
+
 vi.mock("@/integrations/supabase/client", () => {
-  const chain = (result: any): any => {
+  const MUTATING = new Set(["insert", "update", "delete", "upsert"]);
+  const chain = (result: any, table: string): any => {
     const self: any = new Proxy(function () {}, {
       get: (_t, prop) => {
         if (prop === "then")
           return (resolve: any, reject: any) =>
             Promise.resolve(result).then(resolve, reject);
+        if (typeof prop === "string" && MUTATING.has(prop)) {
+          mockState.mutations.push(`${table}.${String(prop)}`);
+        }
         return () => self;
       },
       apply: () => self,
@@ -30,27 +45,49 @@ vi.mock("@/integrations/supabase/client", () => {
   return {
     supabase: {
       auth: {
-        getUser: () => Promise.resolve({ data: { user: null } }),
-        getSession: () => Promise.resolve({ data: { session: null } }),
+        getUser: () => Promise.resolve({ data: { user: { id: "user-1" } } }),
+        getSession: () =>
+          Promise.resolve({
+            data: { session: { access_token: "tok", user: { id: "user-1" } } },
+          }),
         onAuthStateChange: () => ({
           data: { subscription: { unsubscribe() {} } },
         }),
       },
       from: (table: string) =>
-        chain({
-          data:
-            table === "accommodation_info"
-              ? [
-                  {
-                    id: "acc-near-1",
-                    name: "鄰近測試館",
-                    region_1: "宜蘭",
-                    google_reviews_cache: null,
-                    og_image_url: null,
-                  },
-                ]
-              : [],
-        }),
+        chain(
+          {
+            data:
+              table === "accommodation_info"
+                ? [
+                    {
+                      id: "acc-near-1",
+                      name: "鄰近測試館",
+                      region_1: "宜蘭",
+                      google_reviews_cache: null,
+                      og_image_url: null,
+                    },
+                  ]
+                : table === "accommodation_packages"
+                  ? [
+                      {
+                        accommodation_id: "acc-near-1",
+                        guest_count: 2,
+                        guest_count_max: 4,
+                        sale_price: mockState.packagePrice,
+                        original_price: 15000,
+                        enabled: true,
+                        applicable_tiers: null,
+                        tier_prices: null,
+                        excluded_date_ranges: null,
+                      },
+                    ]
+                  : table === "villa_chat_messages"
+                    ? mockState.villaMessages
+                    : [],
+          },
+          table,
+        ),
     },
   };
 });
@@ -316,6 +353,7 @@ describe("booking villa i18n phase 1A-2: media + location display", () => {
 describe("booking villa i18n phase 1B-1: AI chat static UI + similar stays title", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    mockState.mutations.length = 0;
     Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
   });
 
@@ -410,5 +448,221 @@ describe("booking villa i18n phase 1B-1: AI chat static UI + similar stays title
     // 卡片資料與順序不變
     expect(screen.getByText("鄰近測試館")).toBeInTheDocument();
     expect(window.location.href).toBe(urlBefore);
+  });
+});
+
+/**
+ * 1B-1 TEST COVERAGE REMEDIATION（僅測試檔；產品程式 0 修改）
+ * 明確覆蓋原指令 17 項 targeted invariants：
+ *  1. AI 固定 UI zh-TW   2. AI 固定 UI en   3. 開啟按鈕 aria 雙語
+ *  4. 關閉提示／清除對話 aria 雙語   5. placeholder 雙語
+ *  6. Similar 標題 zh   7. Similar 標題 en   8. 切換後 chat 保持開啟
+ *  9. chat messages mock 不變   10. input draft 不變   11. human-contact href 不變
+ * 12. Similar 卡片價格/評論/順序不變   13. 不呼叫 AI API   14. 不呼叫 navigate
+ * 15. 不改 search params   16. 不呼叫 Supabase mutation   17. 價格 mock 值不變
+ */
+describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockState.mutations.length = 0;
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  const renderAI = () =>
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <FloatingAIChat
+            accommodationId="acc-1"
+            accommodationName="測試館"
+            contactHref="https://example.com/contact"
+          />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+
+  const renderSimilar = () =>
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <SimilarStaysCarousel excludeId="acc-self" region="宜蘭" />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+
+  it("items 1+3+5: AI fixed UI, open-button aria and placeholder in zh-TW", () => {
+    renderAI();
+    // item 3 (zh)：開啟按鈕 aria-label
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    // item 1 (zh)：固定 UI
+    expect(screen.getByText("AI 管家")).toBeInTheDocument();
+    expect(screen.getByText("測試館・回答基本問題")).toBeInTheDocument();
+    expect(screen.getByText("需要真人協助？點此轉接客服")).toBeInTheDocument();
+    // item 5 (zh)：placeholder
+    expect(screen.getByPlaceholderText("輸入您的問題…")).toBeInTheDocument();
+  });
+
+  it("items 2+3+5: AI fixed UI, open-button aria and placeholder in en", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    renderAI();
+    // item 3 (en)
+    fireEvent.click(screen.getByLabelText("Open AI concierge"));
+    // item 2 (en)
+    expect(screen.getByText("AI Concierge")).toBeInTheDocument();
+    expect(screen.getByText("測試館・Answers general questions")).toBeInTheDocument();
+    expect(screen.getByText("Need a human? Contact our team")).toBeInTheDocument();
+    // item 5 (en)
+    expect(screen.getByPlaceholderText("Type your question…")).toBeInTheDocument();
+  });
+
+  it("item 4: hint close aria-label in both languages", async () => {
+    vi.useFakeTimers();
+    try {
+      renderAI();
+      // 提示氣泡於 5 秒後出現
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(screen.getByLabelText("關閉提示")).toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+      expect(screen.getByLabelText("Dismiss hint")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("item 4: clear-history aria-label in both languages (mocked history)", async () => {
+    renderAI();
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    // 等待 mock 歷史訊息載入 → 清除按鈕出現
+    expect(await screen.findByLabelText("清除對話")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    expect(await screen.findByLabelText("Clear conversation")).toBeInTheDocument();
+  });
+
+  it("items 8+9+10+11+13+14+15+16: full AI chat state invariants across switch", async () => {
+    const urlBefore = window.location.href;
+    const searchBefore = window.location.search;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    try {
+      renderAI();
+      fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+
+      // item 9：mock 歷史訊息載入（切換前）
+      expect(await screen.findByText("mock 歷史訊息一")).toBeInTheDocument();
+      expect(screen.getByText("mock 歷史回覆一")).toBeInTheDocument();
+
+      // item 10：輸入草稿（切換前）
+      const input = screen.getByPlaceholderText("輸入您的問題…") as HTMLInputElement;
+      fireEvent.change(input, { target: { value: "可以帶寵物嗎？" } });
+      expect(input.value).toBe("可以帶寵物嗎？");
+
+      // item 11：human-contact href（切換前）
+      const humanZh = screen.getByText("需要真人協助？點此轉接客服");
+      expect(humanZh.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+
+      // item 8：chat 仍保持開啟
+      expect(screen.getByText("AI Concierge")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Type your question…")).toBeInTheDocument();
+
+      // item 9：messages mock 切換前後完全相同
+      expect(screen.getByText("mock 歷史訊息一")).toBeInTheDocument();
+      expect(screen.getByText("mock 歷史回覆一")).toBeInTheDocument();
+
+      // item 10：input draft 切換前後完全相同
+      const inputEn = screen.getByPlaceholderText("Type your question…") as HTMLInputElement;
+      expect(inputEn.value).toBe("可以帶寵物嗎？");
+
+      // item 11：human-contact href 切換前後完全相同
+      const humanEn = screen.getByText("Need a human? Contact our team");
+      expect(humanEn.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+
+      // item 13：切換語言不呼叫 AI API、不送出新 chat request
+      expect(fetchSpy).not.toHaveBeenCalled();
+
+      // item 14：不呼叫 navigate（history 無任何寫入）
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+
+      // item 15：search params 不變
+      expect(window.location.search).toBe(searchBefore);
+      expect(window.location.href).toBe(urlBefore);
+
+      // item 16：整個流程不呼叫任何 Supabase mutation
+      expect(mockState.mutations).toEqual([]);
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
+  });
+
+  it("items 6+7+12+14+15+16+17: similar stays invariants across switch", async () => {
+    const urlBefore = window.location.href;
+    const searchBefore = window.location.search;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    try {
+      renderSimilar();
+
+      // item 6：標題 zh-TW
+      expect(await screen.findByText("您可能也喜歡")).toBeInTheDocument();
+
+      // 卡片資料快照（切換前）：名稱、價格、順序
+      const cardsBefore = screen
+        .getAllByRole("button")
+        .map((b) => b.textContent)
+        .filter((txt) => txt && txt.includes("鄰近測試館"));
+      expect(cardsBefore).toHaveLength(1);
+      expect(cardsBefore[0]).toContain("NT$12,345"); // item 17：價格 mock 值
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+
+      // item 7：標題 en
+      expect(await screen.findByText("You may also like")).toBeInTheDocument();
+
+      // item 12 + 17：卡片價格 / 內容 / 順序切換前後完全相同
+      const cardsAfter = screen
+        .getAllByRole("button")
+        .map((b) => b.textContent)
+        .filter((txt) => txt && txt.includes("鄰近測試館"));
+      expect(cardsAfter).toEqual(cardsBefore);
+      expect(cardsAfter[0]).toContain("NT$12,345");
+
+      // item 14：不呼叫 navigate
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+
+      // item 15：search params 不變
+      expect(window.location.search).toBe(searchBefore);
+      expect(window.location.href).toBe(urlBefore);
+
+      // item 16：不呼叫 Supabase mutation
+      expect(mockState.mutations).toEqual([]);
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
+  });
+
+  it("item 13: language switch alone never triggers an AI API request", () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    renderAI();
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
