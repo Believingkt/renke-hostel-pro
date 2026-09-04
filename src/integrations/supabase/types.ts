@@ -14034,6 +14034,15 @@ export type Database = {
           schedule: string
         }[]
       }
+      team_cron_history: {
+        Args: { _jobid: number; _limit?: number }
+        Returns: {
+          end_time: string
+          return_message: string
+          start_time: string
+          status: string
+        }[]
+      }
       update_kol_quota_config: {
         Args: {
           p_accommodation_id: string
