@@ -75,6 +75,7 @@ interface PublicHoliday {
   holiday_date: string;
   holiday_name: string;
   holiday_type: HolidayType;
+  is_custom?: boolean | null;
   created_at: string;
   updated_at?: string;
 }
