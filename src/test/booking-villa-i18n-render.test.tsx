@@ -1272,3 +1272,223 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * Phase 1C-2C：CapacityPriceLadder 插值顯示模板（9 keys）
+ * 僅驗證顯示層；價格 / 日期 / 人數 / 兒童金額 / breakdown 來源 / payload / URL 全部 invariant。
+ */
+const LADDER_TABLE_2C: any = {
+  weekday: [
+    {
+      guestCount: 6,
+      guestCountMax: 8,
+      original: 20000,
+      sale: 15000,
+      roomAllocation: "雙人房 3 間",
+    },
+  ],
+  friday_sunday: [
+    { guestCount: 12, original: 30000, sale: 25000, planName: "旺日方案" },
+  ],
+  weekend: [],
+};
+
+describe("booking villa i18n phase 1C-2C: interpolated display templates", () => {
+  let fetchSpy: any;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockState.mutations.length = 0;
+    mockNavigateSpy.mockClear();
+    toastErrorSpy.mockClear();
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+    Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || (() => {});
+    (window as any).ResizeObserver =
+      (window as any).ResizeObserver ||
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    (globalThis as any).ResizeObserver = (window as any).ResizeObserver;
+    fetchSpy = vi.spyOn(globalThis, "fetch" as any).mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any),
+    );
+  });
+
+  afterEach(() => {
+    fetchSpy?.mockRestore();
+  });
+
+  const renderLadder2C = (overrides: Record<string, any> = {}) =>
+    render(
+      <BookingLocaleProvider>
+        <BookingLanguageSwitch />
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={overrides.onSelect ?? (() => {})}
+          nights={overrides.nights ?? 2}
+          checkIn={CHECK_IN}
+          pricingTable={LADDER_TABLE_2C}
+          childExtraTotal={1200}
+          childExtraBreakdown={[{ key: "kid", label: "幼兒", count: 2, subtotal: 1200 }]}
+          {...overrides}
+        />
+      </BookingLocaleProvider>,
+    );
+
+  const capacityLine = (container: HTMLElement) =>
+    (container.querySelector("h3")?.parentElement?.nextElementSibling as HTMLElement) || null;
+
+  it("renders capacity range / night total / child surcharge in zh-TW without changing values", () => {
+    const { container } = renderLadder2C();
+    const line = capacityLine(container)!;
+    expect(line.textContent).toContain("可入住 6~8 位");
+    // 既有內層 span 保留
+    const innerSpans = Array.from(line.querySelectorAll("span")).map((s) => s.textContent);
+    expect(innerSpans).toContain("~8");
+    expect(screen.getByText("2 晚總價")).toBeInTheDocument();
+    expect(screen.getByText("含兒童加價 +NT$1,200")).toBeInTheDocument();
+
+    openChild2C("zh-TW");
+    const li = screen.getByText(/幼兒 × 2 位/);
+    expect(li.textContent).toBe("幼兒 × 2 位 × 2 晚");
+    expect(li.textContent).not.toContain("（× 2 晚）");
+    expect(container.textContent).not.toContain("（× 2 晚）");
+  });
+
+  const openChild2C = (lang: "zh-TW" | "en") =>
+    fireEvent.click(
+      screen.getByText(
+        lang === "en" ? "Includes child surcharge +NT$1,200" : "含兒童加價 +NT$1,200",
+      ),
+    );
+
+  it("renders capacity exact / single night in zh-TW", () => {
+    const { container } = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={() => {}}
+          nights={1}
+          checkIn={CHECK_IN}
+          pricingTable={{
+            weekday: [{ guestCount: 6, original: 20000, sale: 15000 }],
+            friday_sunday: [],
+            weekend: [],
+          } as any}
+        />
+      </BookingLocaleProvider>,
+    );
+    expect(capacityLine(container)!.textContent).toContain("可入住 6 位");
+    expect(screen.getByText("單晚總價")).toBeInTheDocument();
+  });
+
+  it("renders capacity exact / single night in English", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    const { container } = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={() => {}}
+          nights={1}
+          checkIn={CHECK_IN}
+          pricingTable={{
+            weekday: [{ guestCount: 6, original: 20000, sale: 15000 }],
+            friday_sunday: [],
+            weekend: [],
+          } as any}
+        />
+      </BookingLocaleProvider>,
+    );
+    expect(capacityLine(container)!.textContent).toContain("Sleeps 6 guests");
+    expect(screen.getByText("Total for 1 night")).toBeInTheDocument();
+  });
+
+  it("renders capacity range / multi-night / child lines in English", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    const { container } = renderLadder2C();
+    const line = capacityLine(container)!;
+    expect(line.textContent).toContain("Sleeps 6–8 guests");
+    expect(Array.from(line.querySelectorAll("span")).map((s) => s.textContent)).toContain("–8");
+    expect(screen.getByText("2-night total")).toBeInTheDocument();
+    expect(screen.getByText("Includes child surcharge +NT$1,200")).toBeInTheDocument();
+
+    openChild2C("en");
+    const li = screen.getByText(/幼兒 × 2/);
+    expect(li.textContent).toBe("幼兒 × 2 × 2 nights");
+  });
+
+  it("keeps every value identical across zh-TW → English → zh-TW", () => {
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    const onSelect = vi.fn();
+    try {
+      const { container } = renderLadder2C({ onSelect });
+      const numbers = () => (container.textContent || "").match(/NT\$[\d,]+|\d+\/\d+|\d+/g) || [];
+      const structure = () =>
+        Array.from(container.querySelectorAll("*")).map((el) => el.tagName + "|" + el.className);
+      const dates = () => (container.textContent || "").match(/\d{1,2}\/\d{1,2}/g) || [];
+      const zhText = container.textContent;
+      const zhNumbers = numbers();
+      const zhStructure = structure();
+      const zhDates = dates();
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+      expect(numbers()).toEqual(zhNumbers);
+      expect(dates()).toEqual(zhDates);
+      expect(structure()).toEqual(zhStructure);
+
+      fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+      expect(container.textContent).toBe(zhText);
+
+      const cta = container.querySelector('[data-book-cta="true"]') as HTMLElement;
+      fireEvent.click(cta);
+      expect(onSelect).toHaveBeenCalledTimes(1);
+      expect(onSelect.mock.calls[0][0].guestCount).toBe(6);
+      expect(onSelect.mock.calls[0][0].totalPrice).toBe(
+        onSelect.mock.calls[0][0].totalPrice,
+      );
+
+      expect(window.location.href).toBe(urlBefore);
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(mockNavigateSpy).not.toHaveBeenCalled();
+      expect(mockState.mutations).toEqual([]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
+  });
+
+  it("uses opt.breakdown.length (not the nights prop) for the breakdown total label", () => {
+    // 週四入住 3 晚 → 週五/週六不適用本方案 → 觸發 fallback 逐晚明細
+    render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={() => {}}
+          nights={3}
+          checkIn={CHECK_IN}
+          pricingTable={LADDER_TABLE_2C}
+        />
+      </BookingLocaleProvider>,
+    );
+    fireEvent.click(screen.getAllByText("展開詳細計算")[0]);
+    expect(screen.getAllByText("合計（3 晚）").length).toBeGreaterThan(0);
+
+    // 模板本身以 breakdownNights 插值，與 nights 無關
+    expect(
+      translate("zh-TW", "booking.villa.ladder.childFee.breakdownTotal", {
+        breakdownNights: 5,
+      }),
+    ).toBe("合計（5 晚）");
+    expect(
+      translate("en", "booking.villa.ladder.childFee.breakdownTotal", {
+        breakdownNights: 5,
+      }),
+    ).toBe("Total (5-night stay)");
+  });
+});
