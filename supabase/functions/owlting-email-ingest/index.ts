@@ -340,6 +340,8 @@ Deno.serve(async (req) => {
           remaining_amount: fields.remaining_amount,
           currency: fields.currency,
           payment_status: fields.payment_status,
+          // 取消通知不需要補住客資料：直接標記 skipped，避免掛著「待補」並觸發提醒
+          pii_status: fields.message_type === "cancelled" ? "skipped" : "pending_pii_fillup",
           pii_masked: false,
           extracted_fields: fields.raw_matches,
           parse_warnings: fields.warnings.length ? fields.warnings : null,
@@ -639,6 +641,12 @@ Deno.serve(async (req) => {
 
       // NEW: cancelled email → auto-cancel any PMS orders linked to this OBE.
       if (stagingRow?.id && fields.message_type === "cancelled" && fields.obe_number) {
+        // 同一 OBE 先前仍「待補」的 staging 也一併結束（不再提醒、不再顯示待補）
+        await supabase.from("owlting_email_parsed_staging").update({
+          pii_status: "skipped",
+        })
+          .eq("obe_number", fields.obe_number)
+          .eq("pii_status", "pending_pii_fillup");
         const cancelled = await cancelAutoPendingOrders(supabase, fields.obe_number);
         if (cancelled.length > 0) {
           console.log("[owlting-email-ingest] auto-cancelled orders for OBE", fields.obe_number, cancelled);

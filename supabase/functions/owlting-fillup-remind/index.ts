@@ -92,6 +92,23 @@ Deno.serve(async (req) => {
       return end ? String(end) < todayStr : false;
     };
 
+    // 主動把不再「待補」的列結束掉：取消→skipped、已過退房→expired，
+    // 讓列表不再掛著「待補」狀態，也不會再被任何流程提醒。
+    const staleCancelled = (candidates ?? []).filter((r: any) => isCancelled(r));
+    const stalePast = (candidates ?? []).filter((r: any) => !isCancelled(r) && isPast(r));
+    if (staleCancelled.length > 0) {
+      await admin.from("owlting_email_parsed_staging")
+        .update({ pii_status: "skipped" })
+        .in("id", staleCancelled.map((r: any) => r.id))
+        .eq("pii_status", "pending_pii_fillup");
+    }
+    if (stalePast.length > 0) {
+      await admin.from("owlting_email_parsed_staging")
+        .update({ pii_status: "expired" })
+        .in("id", stalePast.map((r: any) => r.id))
+        .eq("pii_status", "pending_pii_fillup");
+    }
+
     // Filter rows whose initial notified_at is also older than 24h (covers null last_reminder_at)
     const due = (candidates ?? []).filter((r: any) => {
       if (isCancelled(r) || isPast(r)) return false;
