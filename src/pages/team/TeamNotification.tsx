@@ -172,6 +172,62 @@ export default function TeamNotification() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("settings");
   const [saving, setSaving] = useState(false);
+  // 手動補發
+  const [backfillFrom, setBackfillFrom] = useState<string>("");
+  const [backfillTo, setBackfillTo] = useState<string>("");
+  const [backfillScope, setBackfillScope] = useState<string>("all");
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillLog, setBackfillLog] = useState<string[]>([]);
+
+  const runBackfill = async () => {
+    if (!backfillFrom || !backfillTo) {
+      toast.error("請選擇補發起訖日期");
+      return;
+    }
+    if (backfillFrom > backfillTo) {
+      toast.error("起始日期不可晚於結束日期");
+      return;
+    }
+    const dates: string[] = [];
+    for (
+      let d = new Date(`${backfillFrom}T00:00:00Z`);
+      d <= new Date(`${backfillTo}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
+      dates.push(d.toISOString().slice(0, 10));
+      if (dates.length > 62) break;
+    }
+    setBackfilling(true);
+    setBackfillLog([]);
+    const logs: string[] = [];
+    for (const date of dates) {
+      const { data, error } = await supabase.functions.invoke("send-daily-performance", {
+        body: {
+          backfill: true,
+          test_date: date,
+          ...(backfillScope !== "all" ? { accommodation_id: backfillScope } : {}),
+        },
+      });
+      if (error) {
+        logs.push(`${date}：失敗（${error.message}）`);
+      } else {
+        const results: any[] = data?.results ?? [];
+        const skipped = results.filter((r) => r.error === "duplicate_skipped").length;
+        const failed = results.filter((r) => !r.ok);
+        const sent = results.length - skipped - failed.length;
+        logs.push(
+          `${date}：已補發 ${sent} 館` +
+            (skipped ? `、已送過略過 ${skipped} 館` : "") +
+            (failed.length ? `、失敗 ${failed.length} 館（${failed[0].error}）` : ""),
+        );
+      }
+      setBackfillLog([...logs]);
+    }
+    setBackfilling(false);
+    toast.success("補發作業完成");
+  };
+
+
   
 
   useEffect(() => {
@@ -527,6 +583,56 @@ export default function TeamNotification() {
           )}
         </Card>
       </div>
+
+      {/* 手動補發 */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">手動補發業績通報</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            指定日期區間，重新寄送（含 LINE 推播）該日各館業績通報。已成功送出的日期／館別會自動略過，不會重複發送。
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label>起始日期</Label>
+              <Input type="date" value={backfillFrom} onChange={(e) => setBackfillFrom(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>結束日期</Label>
+              <Input type="date" value={backfillTo} onChange={(e) => setBackfillTo(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>範圍</Label>
+              <Select value={backfillScope} onValueChange={setBackfillScope}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部啟用館別</SelectItem>
+                  {accommodations.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={runBackfill} disabled={backfilling} className="w-full">
+                {backfilling ? "補發中..." : "開始補發"}
+              </Button>
+            </div>
+          </div>
+          {backfillLog.length > 0 && (
+            <div className="rounded-md border p-3 text-sm space-y-1 max-h-60 overflow-auto">
+              {backfillLog.map((l, i) => (
+                <div key={i} className="tabular-nums">{l}</div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+
 
       {/* Flags table */}
       <Card>

@@ -196,10 +196,12 @@ Deno.serve(async (req) => {
     const realTp = getTaipeiParts();
     const hhmm = `${pad2(realTp.hour)}:${pad2(realTp.minute)}`;
 
-    // Parse optional test_mode / test_date body
+    // Parse optional test_mode / test_date / backfill body
     let testMode = false;
     let testAccId: string | null = null;
     let testDate: string | null = null; // "YYYY-MM-DD" in Taipei
+    let backfill = false; // 手動補發：忽略 notify_time，仍保留同日同館去重
+    let backfillAccId: string | null = null;
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -207,11 +209,19 @@ Deno.serve(async (req) => {
           testMode = true;
           testAccId = body.accommodation_id;
         }
+        if (body && body.backfill === true) {
+          backfill = true;
+          if (typeof body.accommodation_id === "string") backfillAccId = body.accommodation_id;
+        }
         if (body && typeof body.test_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.test_date)) {
           testDate = body.test_date;
         }
       } catch { /* no body */ }
     }
+    // 補發模式不套用 test_mode 的跳過去重行為
+    if (backfill) testMode = false;
+
+
 
     // Effective "today" — overridden by test_date when provided
     const tp = testDate
@@ -262,11 +272,17 @@ Deno.serve(async (req) => {
         }];
       }
     } else {
-      const { data: settingsRows, error: sErr } = await supabase
+      let q = supabase
         .from("performance_notification_settings")
         .select("*")
-        .eq("enabled", true)
-        .eq("notify_time", hhmm);
+        .eq("enabled", true);
+      // 補發模式：忽略 notify_time（可指定單一館別）
+      if (backfill) {
+        if (backfillAccId) q = q.eq("accommodation_id", backfillAccId);
+      } else {
+        q = q.eq("notify_time", hhmm);
+      }
+      const { data: settingsRows, error: sErr } = await q;
       if (sErr) throw sErr;
       settings = settingsRows ?? [];
       if (settings.length === 0) {
@@ -276,6 +292,7 @@ Deno.serve(async (req) => {
         );
       }
     }
+
 
     const results: Array<{ accommodation_id: string; ok: boolean; error?: string }> = [];
 
