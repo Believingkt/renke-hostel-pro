@@ -42,7 +42,6 @@ BEGIN
     coalesce(s.failures_24h, 0)
   FROM cron.job j
   LEFT JOIN LATERAL (
-    -- 只取「已完成」的紀錄作為最後執行結果，忽略仍在執行中的暫存列
     SELECT d.start_time, d.end_time, d.status, d.return_message
     FROM cron.job_run_details d
     WHERE d.jobid = j.jobid
