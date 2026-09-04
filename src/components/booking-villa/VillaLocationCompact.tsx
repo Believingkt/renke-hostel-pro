@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Copy, Maximize2, Check, Train, MapPin, Car, Bus } from "lucide-react";
 import { toast } from "sonner";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import type { BookingI18nKey } from "@/lib/bookingI18n";
 
 interface Attraction {
   name: string;
@@ -23,15 +25,16 @@ interface Props {
 
 type TabKey = "transit" | "driving" | "landmark";
 
-const TABS: { key: TabKey; label: string; icon: typeof Train }[] = [
-  { key: "transit", label: "大眾運輸", icon: Bus },
-  { key: "driving", label: "自行開車", icon: Car },
-  { key: "landmark", label: "週邊景點", icon: MapPin },
+const TABS: { key: TabKey; labelKey: BookingI18nKey; icon: typeof Train }[] = [
+  { key: "transit", labelKey: "booking.villa.location.tabs.transit", icon: Bus },
+  { key: "driving", labelKey: "booking.villa.location.tabs.driving", icon: Car },
+  { key: "landmark", labelKey: "booking.villa.location.tabs.landmark", icon: MapPin },
 ];
 
 const TRANSPORT_KW = ["車站", "火車", "高鐵", "客運", "捷運", "機場", "轉運", "station"];
 
 const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
+  const { t } = useBookingLocale();
   const [tab, setTab] = useState<TabKey>("transit");
   const [copied, setCopied] = useState(false);
 
@@ -56,16 +59,16 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
     try {
       await navigator.clipboard.writeText(address);
       setCopied(true);
-      toast.success("地址已複製");
+      toast.success(t("booking.villa.location.copySuccess"));
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("複製失敗");
+      toast.error(t("booking.villa.location.copyError"));
     }
   };
 
   return (
     <section id="location" className="px-4 py-5 bg-background">
-      <h2 className="text-[20px] font-bold text-foreground mb-3">交通建議</h2>
+      <h2 className="text-[20px] font-bold text-foreground mb-3">{t("booking.villa.location.title")}</h2>
 
 
       {/* Map */}
@@ -84,7 +87,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
             target="_blank"
             rel="noopener noreferrer"
             className="icon-btn absolute bottom-2 right-2 h-10 w-10 rounded-full bg-white shadow-md"
-            aria-label="放大地圖"
+            aria-label={t("booking.villa.location.zoomMap")}
           >
             <Maximize2 className="h-4 w-4 text-foreground" />
           </a>
@@ -108,12 +111,12 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
 
       {/* Tabs */}
       <div className="flex gap-2 mb-3 overflow-x-auto scrollbar-none -mx-1 px-1">
-        {TABS.map((t) => {
-          const active = t.key === tab;
+        {TABS.map((tabItem) => {
+          const active = tabItem.key === tab;
           return (
             <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
+              key={tabItem.key}
+              onClick={() => setTab(tabItem.key)}
               className="shrink-0 px-3 py-1.5 rounded-md border text-[13px] font-medium transition"
               style={{
                 borderColor: active ? "hsl(25, 76%, 50%)" : "hsl(0, 0%, 88%)",
@@ -121,7 +124,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
                 background: active ? "hsl(25, 76%, 96%)" : "transparent",
               }}
             >
-              {t.label}
+              {t(tabItem.labelKey)}
             </button>
           );
         })}
@@ -132,7 +135,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
         <div className="rounded-lg border border-border/60 bg-card p-3">
           <div className="flex items-center gap-2 mb-2">
             <Bus className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
-            <h3 className="text-[14px] font-semibold text-foreground">大眾運輸</h3>
+            <h3 className="text-[14px] font-semibold text-foreground">{t("booking.villa.location.tabs.transit")}</h3>
           </div>
           {transitAttractions.length > 0 && (
             <ul className="divide-y divide-border/60 mb-2">
@@ -155,14 +158,14 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
               dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
             />
           ) : transitAttractions.length === 0 ? (
-            <p className="text-[12px] text-muted-foreground py-1">暫無相關資訊</p>
+            <p className="text-[12px] text-muted-foreground py-1">{t("booking.villa.location.empty")}</p>
           ) : null}
         </div>
       ) : tab === "driving" ? (
         <div className="rounded-lg border border-border/60 bg-card p-3">
           <div className="flex items-center gap-2 mb-2">
             <Car className="h-4 w-4" style={{ color: "hsl(25, 76%, 50%)" }} />
-            <h3 className="text-[14px] font-semibold text-foreground">自行開車</h3>
+            <h3 className="text-[14px] font-semibold text-foreground">{t("booking.villa.location.tabs.driving")}</h3>
           </div>
           {locationInfo?.driving_info ? (
             <div
@@ -170,7 +173,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
               dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
             />
           ) : (
-            <p className="text-[12px] text-muted-foreground py-1">暫無相關資訊</p>
+            <p className="text-[12px] text-muted-foreground py-1">{t("booking.villa.location.empty")}</p>
           )}
         </div>
       ) : landmarkAttractions.length > 0 ? (
@@ -213,7 +216,7 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
           ))}
         </ul>
       ) : (
-        <p className="text-[12px] text-muted-foreground py-2">暫無相關資訊</p>
+        <p className="text-[12px] text-muted-foreground py-2">{t("booking.villa.location.empty")}</p>
       )}
     </section>
   );

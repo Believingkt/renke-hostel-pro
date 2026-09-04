@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImageIcon, Expand } from "lucide-react";
 import VillaPhotoLightbox from "./VillaPhotoLightbox";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 
 interface Photo {
@@ -22,6 +23,7 @@ interface Props {
  *  - 底部：小圓點頁籤（>10 張時改顯示 "n / N" 計數）
  */
 const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
+  const { t } = useBookingLocale();
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -118,7 +120,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
           >
             <img
               src={p.photo_url}
-              alt={p.title || `${accommodationName} - ${i + 1}`}
+              alt={p.title || t("booking.villa.photos.alt", { index: i + 1 })}
               loading={i === 0 ? "eager" : "lazy"}
               className="w-full h-full object-cover"
               draggable={false}
@@ -132,7 +134,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
         <>
           <div
             role="button"
-            aria-label="上一張"
+            aria-label={t("booking.villa.photos.prev")}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -150,7 +152,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
           </div>
           <div
             role="button"
-            aria-label="下一張"
+            aria-label={t("booking.villa.photos.next")}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
@@ -180,7 +182,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
         className="absolute left-3 bottom-3 z-20 flex items-center gap-1.5 rounded-full bg-black/55 backdrop-blur px-3 py-1.5 text-white text-xs md:text-sm font-medium hover:bg-black/70 transition-colors"
       >
         <Expand className="h-3.5 w-3.5" />
-        查看全部照片
+        {t("booking.villa.photos.viewAll")}
       </button>
 
       {lightboxOpen && (
@@ -197,7 +199,7 @@ const VillaPhotoCarousel = ({ photos, accommodationName }: Props) => {
       {photos.length > 1 && (
         useCounter ? (
           <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded-full bg-black/55 backdrop-blur text-white text-xs font-medium tabular-nums pointer-events-none">
-            {activeIdx + 1} / {photos.length}
+            {t("booking.villa.photos.counter", { current: activeIdx + 1, total: photos.length })}
           </div>
         ) : (
           <div className="absolute right-3 bottom-3 flex items-center gap-1 px-1.5 py-1 rounded-full bg-black/40 backdrop-blur-sm pointer-events-none">
