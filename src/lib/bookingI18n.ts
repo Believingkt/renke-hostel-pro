@@ -97,6 +97,23 @@ const zh = {
   "booking.villa.ladder.scrollLeft": "向左滑動",
   "booking.villa.ladder.scrollRight": "向右滑動",
 
+  "booking.villa.ladder.empty.all": "目前沒有可預訂的方案",
+  "booking.villa.ladder.empty.tier": "此時段目前沒有可預訂的方案",
+  "booking.villa.ladder.roomAllocation.kicker": "ROOM ALLOCATION",
+  "booking.villa.ladder.perks.title": "尊榮禮遇",
+  "booking.villa.ladder.childFee.title": "兒童加價明細",
+  "booking.villa.ladder.childFee.rules": "您選擇的兒童年齡層規則",
+  "booking.villa.ladder.childFee.total": "合計",
+  "booking.villa.ladder.details.expand": "展開詳細計算",
+  "booking.villa.ladder.details.collapse": "收合詳細計算",
+  "booking.villa.ladder.cta.book": "預約這段專屬假期",
+  "booking.villa.ladder.childBlocked.toastTitle": "兒童人數不符合此民宿規範",
+  "booking.villa.ladder.childBlocked.toastDesc": "請點選上方搜尋條調整人數後再試。",
+  "booking.villa.ladder.tag.earlyBird": "早鳥優惠",
+  "booking.villa.ladder.tag.mealIncluded": "一泊二食",
+  "booking.villa.ladder.tag.fewPeople": "少人數包棟",
+
+
   "booking.villa.searchSheet.decrease": "減少",
   "booking.villa.searchSheet.increase": "增加",
 } as const;
@@ -180,6 +197,25 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.ladder.scrollMore": "Swipe for more ›",
   "booking.villa.ladder.scrollLeft": "Scroll left",
   "booking.villa.ladder.scrollRight": "Scroll right",
+
+  "booking.villa.ladder.empty.all": "No bookable plans available",
+  "booking.villa.ladder.empty.tier": "No plans available for this period",
+  "booking.villa.ladder.roomAllocation.kicker": "ROOM ALLOCATION",
+  "booking.villa.ladder.perks.title": "Exclusive Perks",
+  "booking.villa.ladder.childFee.title": "Child surcharge details",
+  "booking.villa.ladder.childFee.rules": "Rules for the selected child age groups",
+  "booking.villa.ladder.childFee.total": "Total",
+  "booking.villa.ladder.details.expand": "Show breakdown",
+  "booking.villa.ladder.details.collapse": "Hide breakdown",
+  "booking.villa.ladder.cta.book": "Book this stay",
+  "booking.villa.ladder.childBlocked.toastTitle":
+    "The selected number of children does not meet this property's policy",
+  "booking.villa.ladder.childBlocked.toastDesc":
+    "Please adjust the guest count in the search bar above and try again.",
+  "booking.villa.ladder.tag.earlyBird": "Early Bird Offer",
+  "booking.villa.ladder.tag.mealIncluded": "Two Meals Included",
+  "booking.villa.ladder.tag.fewPeople": "Private Stay for Small Groups",
+
 
   "booking.villa.searchSheet.decrease": "Decrease",
   "booking.villa.searchSheet.increase": "Increase",

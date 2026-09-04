@@ -94,6 +94,12 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
+const toastErrorSpy = vi.hoisted(() => vi.fn());
+vi.mock("sonner", async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return { ...actual, toast: { ...actual.toast, error: toastErrorSpy } };
+});
+
 const mockNavigateSpy = vi.hoisted(() => vi.fn());
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -971,5 +977,292 @@ describe("booking villa i18n phase 1C-1: micro-labels display only", () => {
       pushSpy.mockRestore();
       replaceSpy.mockRestore();
     }
+  });
+});
+
+/**
+ * Phase 1C-2B：CapacityPriceLadder 固定顯示文字（15 keys）
+ * 僅驗證顯示層；價格 / tier / 人數 / payload / URL 全部為 invariant。
+ */
+const ROOM_TYPES = [
+  { id: "rt-1", name: "測試房", capacity: 6, base_price: 10000, room_count: 3 },
+];
+
+/** 週四入住 2 晚 → 第 2 晚為週五，方案不在該時段 → 觸發 fallback 詳細計算區塊 */
+const CHECK_IN = new Date("2026-10-01T00:00:00"); // Thursday
+const LADDER_TABLE: any = {
+  weekday: [
+    {
+      guestCount: 6,
+      original: 20000,
+      sale: 15000,
+      roomAllocation: "雙人房 3 間",
+      tags: ["best_value", "early_bird", "meal_included", "few_people", "mystery_tag"],
+      includes: [{ text: "迎賓下午茶", available: "yes" }],
+    },
+  ],
+  friday_sunday: [
+    {
+      guestCount: 12,
+      original: 30000,
+      sale: 25000,
+      roomAllocation: "四人房 3 間",
+      planName: "旺日方案",
+    },
+  ],
+  weekend: [],
+};
+
+describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", () => {
+  let fetchSpy: any;
+
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockState.mutations.length = 0;
+    mockNavigateSpy.mockClear();
+    toastErrorSpy.mockClear();
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+    Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || (() => {});
+    (window as any).ResizeObserver =
+      (window as any).ResizeObserver ||
+      class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    (globalThis as any).ResizeObserver = (window as any).ResizeObserver;
+    fetchSpy = vi.spyOn(globalThis, "fetch" as any).mockImplementation(() =>
+      Promise.resolve({ ok: true, json: () => Promise.resolve({}) } as any),
+    );
+  });
+
+  afterEach(() => {
+    fetchSpy?.mockRestore();
+  });
+
+  const renderLadder2B = (overrides: Record<string, any> = {}) =>
+    render(
+      <BookingLocaleProvider>
+        <BookingLanguageSwitch />
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={overrides.onSelect ?? (() => {})}
+          nights={2}
+          checkIn={CHECK_IN}
+          pricingTable={LADDER_TABLE}
+          childExtraTotal={12345}
+          childExtraBreakdown={[{ key: "kid", label: "兒童", count: 1, subtotal: 12345 }]}
+          childRuleLines={[
+            { key: "kid", label: "兒童", ageRange: "7-11 歲", feeText: "每晚加價", capText: "", count: 1 },
+          ]}
+          {...overrides}
+        />
+      </BookingLocaleProvider>,
+    );
+
+  const openChildPopover = () => {
+    fireEvent.click(screen.getByText("含兒童加價 +NT$12,345"));
+  };
+
+  it("renders all 15 fixed strings in zh-TW", () => {
+    // 1. 全空方案
+    const empty = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder roomTypes={[]} onSelect={() => {}} nights={1} />
+      </BookingLocaleProvider>,
+    );
+    expect(empty.getByText("目前沒有可預訂的方案")).toBeInTheDocument();
+    empty.unmount();
+
+    // 2. 該時段無方案
+    const emptyTier = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={() => {}}
+          nights={1}
+          checkIn={CHECK_IN}
+          pricingTable={{ weekday: [], friday_sunday: [], weekend: [] } as any}
+        />
+      </BookingLocaleProvider>,
+    );
+    expect(emptyTier.getByText("此時段目前沒有可預訂的方案")).toBeInTheDocument();
+    emptyTier.unmount();
+
+    renderLadder2B();
+    expect(screen.getByText("ROOM ALLOCATION")).toBeInTheDocument();
+    expect(screen.getByText("尊榮禮遇")).toBeInTheDocument();
+    expect(screen.getByText("早鳥優惠")).toBeInTheDocument();
+    expect(screen.getByText("一泊二食")).toBeInTheDocument();
+    expect(screen.getByText("少人數包棟")).toBeInTheDocument();
+    expect(screen.getByText("展開詳細計算")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("展開詳細計算"));
+    expect(screen.getByText("收合詳細計算")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("收合詳細計算"));
+    expect(screen.getByText("預約這段專屬假期")).toBeInTheDocument();
+
+    openChildPopover();
+    expect(screen.getByText("兒童加價明細")).toBeInTheDocument();
+    expect(screen.getByText("您選擇的兒童年齡層規則")).toBeInTheDocument();
+    expect(screen.getByText("合計")).toBeInTheDocument();
+  });
+
+  it("renders all 15 fixed strings in English", () => {
+    window.localStorage.setItem("booking_lang", "en");
+
+    const empty = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder roomTypes={[]} onSelect={() => {}} nights={1} />
+      </BookingLocaleProvider>,
+    );
+    expect(empty.getByText("No bookable plans available")).toBeInTheDocument();
+    empty.unmount();
+
+    const emptyTier = render(
+      <BookingLocaleProvider>
+        <CapacityPriceLadder
+          roomTypes={ROOM_TYPES as any}
+          onSelect={() => {}}
+          nights={1}
+          checkIn={CHECK_IN}
+          pricingTable={{ weekday: [], friday_sunday: [], weekend: [] } as any}
+        />
+      </BookingLocaleProvider>,
+    );
+    expect(emptyTier.getByText("No plans available for this period")).toBeInTheDocument();
+    emptyTier.unmount();
+
+    renderLadder2B();
+    expect(screen.getByText("ROOM ALLOCATION")).toBeInTheDocument();
+    expect(screen.getByText("Exclusive Perks")).toBeInTheDocument();
+    expect(screen.getByText("Early Bird Offer")).toBeInTheDocument();
+    expect(screen.getByText("Two Meals Included")).toBeInTheDocument();
+    expect(screen.getByText("Private Stay for Small Groups")).toBeInTheDocument();
+    expect(screen.getByText("Show breakdown")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Show breakdown"));
+    expect(screen.getByText("Hide breakdown")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Hide breakdown"));
+    expect(screen.getByText("Book this stay")).toBeInTheDocument();
+
+    openChildPopover();
+    expect(screen.getByText("Child surcharge details")).toBeInTheDocument();
+    expect(screen.getByText("Rules for the selected child age groups")).toBeInTheDocument();
+    expect(screen.getByText("Total")).toBeInTheDocument();
+  });
+
+  it("switches zh-TW → English → zh-TW and keeps prices / guest count / tier / expansion state", () => {
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    try {
+      const { container } = renderLadder2B();
+      const priceOf = () =>
+        Array.from(container.querySelectorAll("*"))
+          .map((el) => el.textContent || "")
+          .filter((txt) => txt.startsWith("NT$") && txt.length < 20);
+      const guestLine = () => container.querySelector("h3")?.textContent;
+
+      fireEvent.click(screen.getByText("展開詳細計算"));
+      const zhPrices = priceOf();
+      const zhGuest = guestLine();
+      expect(screen.getByText("含兒童加價 +NT$12,345")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+      expect(screen.getByText("Book this stay")).toBeInTheDocument();
+      expect(screen.getByText("Hide breakdown")).toBeInTheDocument(); // 展開狀態不變
+      expect(screen.getByText("含兒童加價 +NT$12,345")).toBeInTheDocument();
+      expect(priceOf()).toEqual(zhPrices);
+      expect(guestLine()).toBe(zhGuest);
+
+      fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+      expect(screen.getByText("預約這段專屬假期")).toBeInTheDocument();
+      expect(screen.getByText("收合詳細計算")).toBeInTheDocument();
+      expect(priceOf()).toEqual(zhPrices);
+      expect(guestLine()).toBe(zhGuest);
+
+      expect(window.location.href).toBe(urlBefore);
+      expect(window.location.search).not.toContain("lang");
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(mockNavigateSpy).not.toHaveBeenCalled();
+      expect(mockState.mutations).toEqual([]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
+  });
+
+  it("keeps tag enum keys separate from displayed labels and falls back to the raw unknown tag", () => {
+    renderLadder2B();
+    // enum key 不得出現在畫面
+    expect(screen.queryByText("early_bird")).not.toBeInTheDocument();
+    expect(screen.queryByText("meal_included")).not.toBeInTheDocument();
+    expect(screen.queryByText("few_people")).not.toBeInTheDocument();
+    // 未知 tag 維持原字串
+    expect(screen.getByText("mystery_tag")).toBeInTheDocument();
+    // 原始資料 enum key 未被翻譯改寫
+    expect(LADDER_TABLE.weekday[0].tags).toEqual([
+      "best_value",
+      "early_bird",
+      "meal_included",
+      "few_people",
+      "mystery_tag",
+    ]);
+
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    expect(screen.getByText("mystery_tag")).toBeInTheDocument();
+    expect(LADDER_TABLE.weekday[0].tags).toContain("meal_included");
+  });
+
+  it("prefers the dynamic childBlockReason and never calls onSelect when blocked", () => {
+    const onSelect = vi.fn();
+    renderLadder2B({ onSelect, childBlocked: true, childBlockReason: "動態原因：不接待 3 歲以下" });
+    fireEvent.click(screen.getByText("預約這段專屬假期"));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(toastErrorSpy).toHaveBeenCalled();
+    expect(toastErrorSpy.mock.calls[0][0]).toBe("動態原因：不接待 3 歲以下");
+    expect(toastErrorSpy.mock.calls[0][1].description).toBe("請點選上方搜尋條調整人數後再試。");
+  });
+
+  it("uses the translated toast fallback only when childBlockReason is missing", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    const onSelect = vi.fn();
+    renderLadder2B({ onSelect, childBlocked: true });
+    fireEvent.click(screen.getByText("Book this stay"));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(toastErrorSpy.mock.calls[0][0]).toBe(
+      "The selected number of children does not meet this property's policy",
+    );
+    expect(toastErrorSpy.mock.calls[0][1].description).toBe(
+      "Please adjust the guest count in the search bar above and try again.",
+    );
+  });
+
+  it("emits an identical CapacityOption payload in both languages and keeps data-book-cta", () => {
+    const serialize = (o: any) =>
+      JSON.stringify(o, (_k, v) => (v instanceof Date ? v.toISOString() : v));
+
+    const zhSelect = vi.fn();
+    const zh = renderLadder2B({ onSelect: zhSelect });
+    const zhCta = zh.container.querySelector('[data-book-cta="true"]') as HTMLElement;
+    expect(zhCta).toBeTruthy();
+    fireEvent.click(zhCta);
+    const zhPayload = serialize(zhSelect.mock.calls[0][0]);
+    zh.unmount();
+
+    window.localStorage.setItem("booking_lang", "en");
+    const enSelect = vi.fn();
+    const en = renderLadder2B({ onSelect: enSelect });
+    const enCta = en.container.querySelector('[data-book-cta="true"]') as HTMLElement;
+    expect(enCta).toBeTruthy();
+    expect(enCta.textContent).toContain("Book this stay");
+    fireEvent.click(enCta);
+    const enPayload = serialize(enSelect.mock.calls[0][0]);
+
+    expect(enPayload).toBe(zhPayload);
+    expect(mockNavigateSpy).not.toHaveBeenCalled();
+    expect(mockState.mutations).toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
