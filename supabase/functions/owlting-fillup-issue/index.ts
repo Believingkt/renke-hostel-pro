@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     // Load staging
     const { data: staging, error: stErr } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, obe_number, accommodation_name, accommodation_id, check_in_date, check_out_date, pii_status, pii_due_at")
+      .select("id, obe_number, accommodation_name, accommodation_id, check_in_date, check_out_date, pii_status, pii_due_at, message_type, payment_status")
       .eq("id", stagingId)
       .single();
     if (stErr || !staging) {
@@ -107,6 +107,24 @@ Deno.serve(async (req) => {
     if (staging.pii_status === "promoted_to_booking") {
       return new Response(JSON.stringify({ error: "Already promoted to order" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 已取消／付款失敗／已過退房日的訂單不需要補單：直接標記結束，不發 magic link
+    const CANCELLED_PAYMENT = new Set(["已取消", "付款失敗", "取消"]);
+    const isCancelledStaging =
+      staging.message_type === "cancelled" ||
+      CANCELLED_PAYMENT.has(String(staging.payment_status ?? "").trim());
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const stayEnd = staging.check_out_date ?? staging.check_in_date;
+    const isPastStay = stayEnd ? String(stayEnd) < todayStr : false;
+    if (isCancelledStaging || isPastStay) {
+      await admin.from("owlting_email_parsed_staging")
+        .update({ pii_status: isCancelledStaging ? "skipped" : "expired" })
+        .eq("id", stagingId)
+        .eq("pii_status", "pending_pii_fillup");
+      return new Response(JSON.stringify({ ok: true, skipped: true, reason: isCancelledStaging ? "cancelled" : "past_stay" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
