@@ -717,6 +717,9 @@ export default function TeamNotification() {
           })()}
         </TabsContent>
 
+        <TabsContent value="cron" className="space-y-4">
+          <CronHealthTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
