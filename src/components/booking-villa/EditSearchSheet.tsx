@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { Minus, Plus, CalendarDays, BedDouble, User, Baby, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface EditSearchSheetProps {
   open: boolean;
@@ -60,35 +61,38 @@ const Counter = ({
   onChange: (n: number) => void;
   min?: number;
   max?: number;
-}) => (
-  <div className="flex items-center justify-between py-3">
-    <div className="flex items-center gap-2.5">
-      <Icon className="w-4 h-4 text-muted-foreground" />
-      <span className="text-[15px] text-foreground">{label}</span>
+}) => {
+  const { t } = useBookingLocale();
+  return (
+    <div className="flex items-center justify-between py-3">
+      <div className="flex items-center gap-2.5">
+        <Icon className="w-4 h-4 text-muted-foreground" />
+        <span className="text-[15px] text-foreground">{label}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(min, value - 1))}
+          disabled={value <= min}
+          className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
+          aria-label={t("booking.villa.searchSheet.decrease")}
+        >
+          <Minus className="w-3.5 h-3.5" />
+        </button>
+        <span className="w-6 text-center tabular-nums font-medium">{value}</span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, value + 1))}
+          disabled={value >= max}
+          className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
+          aria-label={t("booking.villa.searchSheet.increase")}
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={() => onChange(Math.max(min, value - 1))}
-        disabled={value <= min}
-        className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
-        aria-label="減少"
-      >
-        <Minus className="w-3.5 h-3.5" />
-      </button>
-      <span className="w-6 text-center tabular-nums font-medium">{value}</span>
-      <button
-        type="button"
-        onClick={() => onChange(Math.min(max, value + 1))}
-        disabled={value >= max}
-        className="w-8 h-8 rounded-full border border-border flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
-        aria-label="增加"
-      >
-        <Plus className="w-3.5 h-3.5" />
-      </button>
-    </div>
-  </div>
-);
+  );
+};
 
 const EditSearchSheet = ({
   open,
