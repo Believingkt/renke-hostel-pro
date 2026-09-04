@@ -71,6 +71,14 @@ const zh = {
   "booking.villa.location.tabs.driving": "自行開車",
   "booking.villa.location.tabs.landmark": "週邊景點",
   "booking.villa.location.empty": "暫無相關資訊",
+
+  "booking.villa.faq.title": "常見問題",
+  "booking.villa.faq.subtitle": "以下是住客最常詢問的問題，希望能幫助您更了解我們",
+  "booking.villa.faq.viewAll": "查看全部 {total} 個常見問題",
+
+  "booking.villa.bookingInfo.title": "訂房須知",
+  "booking.villa.bookingInfo.subtitle": "為確保愉快的住宿體驗，請詳閱以下相關資訊",
+  "booking.villa.bookingInfo.viewFull": "查看完整內容",
 } as const;
 
 export type BookingI18nKey = keyof typeof zh;
@@ -127,6 +135,14 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.location.tabs.driving": "Driving",
   "booking.villa.location.tabs.landmark": "Nearby Attractions",
   "booking.villa.location.empty": "No information available",
+
+  "booking.villa.faq.title": "FAQ",
+  "booking.villa.faq.subtitle": "Here are the questions our guests ask most often — we hope they help you get to know us better",
+  "booking.villa.faq.viewAll": "View all {total} FAQs",
+
+  "booking.villa.bookingInfo.title": "Booking Information",
+  "booking.villa.bookingInfo.subtitle": "To ensure a pleasant stay, please read the following information",
+  "booking.villa.bookingInfo.viewFull": "View full details",
 };
 
 const DICTS: Record<BookingLang, Record<string, string>> = {
