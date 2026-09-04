@@ -56,6 +56,21 @@ const zh = {
   "booking.villa.photos.next": "下一張",
   "booking.villa.photos.alt": "住宿照片 {index}",
   "booking.villa.photos.counter": "{current} / {total}",
+  "booking.villa.photos.viewAll": "查看全部照片",
+  "booking.villa.photos.gridCount": "{total} 張照片",
+  "booking.villa.photos.gridView": "全部照片",
+  "booking.villa.photos.singleView": "單張檢視",
+  "booking.villa.photos.thumbAlt": "{name} 縮圖 {index}",
+  "booking.villa.photos.close": "關閉",
+
+  "booking.villa.location.title": "交通建議",
+  "booking.villa.location.zoomMap": "放大地圖",
+  "booking.villa.location.copySuccess": "地址已複製",
+  "booking.villa.location.copyError": "複製失敗",
+  "booking.villa.location.tabs.transit": "大眾運輸",
+  "booking.villa.location.tabs.driving": "自行開車",
+  "booking.villa.location.tabs.landmark": "週邊景點",
+  "booking.villa.location.empty": "暫無相關資訊",
 } as const;
 
 export type BookingI18nKey = keyof typeof zh;
@@ -97,6 +112,21 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.photos.next": "Next photo",
   "booking.villa.photos.alt": "Stay photo {index}",
   "booking.villa.photos.counter": "{current} / {total}",
+  "booking.villa.photos.viewAll": "View all photos",
+  "booking.villa.photos.gridCount": "{total} photos",
+  "booking.villa.photos.gridView": "All photos",
+  "booking.villa.photos.singleView": "Single view",
+  "booking.villa.photos.thumbAlt": "{name} thumbnail {index}",
+  "booking.villa.photos.close": "Close",
+
+  "booking.villa.location.title": "Getting Here",
+  "booking.villa.location.zoomMap": "Enlarge map",
+  "booking.villa.location.copySuccess": "Address copied",
+  "booking.villa.location.copyError": "Copy failed",
+  "booking.villa.location.tabs.transit": "Public Transit",
+  "booking.villa.location.tabs.driving": "Driving",
+  "booking.villa.location.tabs.landmark": "Nearby Attractions",
+  "booking.villa.location.empty": "No information available",
 };
 
 const DICTS: Record<BookingLang, Record<string, string>> = {

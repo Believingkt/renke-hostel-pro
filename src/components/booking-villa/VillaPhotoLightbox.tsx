@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, LayoutGrid, Images } from "lucide-react";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface Photo {
   id: string;
@@ -19,6 +20,7 @@ interface Props {
 
 /** 全螢幕圖片瀏覽器：單張大圖 + 左右切換 + 縮圖列 + 全部照片格狀檢視 */
 const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startInGrid = false, onClose }: Props) => {
+  const { t } = useBookingLocale();
   const [index, setIndex] = useState(Math.min(Math.max(startIndex, 0), Math.max(photos.length - 1, 0)));
   const [gridMode, setGridMode] = useState(startInGrid);
   const thumbRef = useRef<HTMLDivElement>(null);
@@ -57,21 +59,25 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
       {/* 頂部列 */}
       <div className="flex items-center justify-between px-3 py-2 md:px-5 md:py-3 text-white shrink-0">
         <span className="text-sm md:text-base tabular-nums opacity-90">
-          {gridMode ? `${photos.length} 張照片` : `${index + 1} / ${photos.length}`}
+          {gridMode
+            ? t("booking.villa.photos.gridCount", { total: photos.length })
+            : t("booking.villa.photos.counter", { current: index + 1, total: photos.length })}
         </span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setGridMode((v) => !v)}
             className="flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 px-3 py-1.5 text-sm transition-colors"
-            aria-label={gridMode ? "單張檢視" : "全部照片"}
+            aria-label={gridMode ? t("booking.villa.photos.singleView") : t("booking.villa.photos.gridView")}
           >
             {gridMode ? <Images className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-            <span className="hidden sm:inline">{gridMode ? "單張檢視" : "全部照片"}</span>
+            <span className="hidden sm:inline">
+              {gridMode ? t("booking.villa.photos.singleView") : t("booking.villa.photos.gridView")}
+            </span>
           </button>
           <button
             onClick={onClose}
             className="icon-btn h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            aria-label="關閉"
+            aria-label={t("booking.villa.photos.close")}
           >
             <X className="h-5 w-5" />
           </button>
@@ -92,7 +98,7 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
               >
                 <img
                   src={p.photo_url}
-                  alt={p.title || `${accommodationName} - ${i + 1}`}
+                  alt={p.title || t("booking.villa.photos.alt", { index: i + 1 })}
                   loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
@@ -119,7 +125,7 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
           >
             <img
               src={current.photo_url}
-              alt={current.title || `${accommodationName} - ${index + 1}`}
+              alt={current.title || t("booking.villa.photos.alt", { index: index + 1 })}
               draggable={false}
               className="max-w-[94vw] max-h-full object-contain"
             />
@@ -128,14 +134,14 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
               <>
                 <button
                   onClick={prev}
-                  aria-label="上一張"
+                  aria-label={t("booking.villa.photos.prev")}
                   className="icon-btn absolute left-2 md:left-5 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
                 >
                   <ChevronLeft className="h-6 w-6" />
                 </button>
                 <button
                   onClick={next}
-                  aria-label="下一張"
+                  aria-label={t("booking.villa.photos.next")}
                   className="icon-btn absolute right-2 md:right-5 top-1/2 -translate-y-1/2 h-11 w-11 md:h-12 md:w-12 rounded-full bg-white/15 hover:bg-white/30 text-white transition-colors"
                 >
                   <ChevronRight className="h-6 w-6" />
@@ -158,7 +164,7 @@ const VillaPhotoLightbox = ({ photos, startIndex = 0, accommodationName, startIn
                 >
                   <img
                     src={p.photo_url}
-                    alt={p.title || `${accommodationName} 縮圖 ${i + 1}`}
+                    alt={p.title || t("booking.villa.photos.thumbAlt", { name: accommodationName, index: i + 1 })}
                     loading="lazy"
                     className="w-full h-full object-cover"
                   />
