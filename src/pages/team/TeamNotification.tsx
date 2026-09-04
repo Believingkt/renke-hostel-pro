@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import PerformanceTemplatesSection, { type PerformanceTemplatesHandle } from "@/components/team/PerformanceTemplatesSection";
 import PerformanceSourceRulesSection from "@/components/team/PerformanceSourceRulesSection";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import CronHealthTab from "@/components/team/CronHealthTab";
 
 
 interface Accommodation {
@@ -353,6 +354,7 @@ export default function TeamNotification() {
         <TabsList>
           <TabsTrigger value="settings">通報設定</TabsTrigger>
           <TabsTrigger value="sources">業績推播來源設定</TabsTrigger>
+          <TabsTrigger value="cron">排程健康檢查</TabsTrigger>
         </TabsList>
 
         <TabsContent value="settings" className="space-y-6">

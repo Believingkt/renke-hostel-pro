@@ -89,12 +89,13 @@ export const TEAM_MENU: TeamMenuItem[] = [
     ] as TeamRole[],
   },
 
-  {
-    title: "廣告追蹤",
-    url: "/team/ads",
-    icon: BarChart2,
-    allowedRoles: ["super_admin", "admin", "scout_manager"],
-  },
+  // 暫時隱藏「廣告追蹤」選單項（頁面與路由保留，之後取消註解即可復原）
+  // {
+  //   title: "廣告追蹤",
+  //   url: "/team/ads",
+  //   icon: BarChart2,
+  //   allowedRoles: ["super_admin", "admin", "scout_manager"],
+  // },
   {
     title: "特許加盟",
     url: "/team/franchise",

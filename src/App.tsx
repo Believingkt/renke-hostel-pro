@@ -857,9 +857,8 @@ function App() {
                         <Route path="commission" element={
                           <Suspense fallback={null}><TeamCommission /></Suspense>
                         } />
-                        <Route path="ads" element={
-                          <Suspense fallback={null}><TeamAds /></Suspense>
-                        } />
+                        {/* 廣告追蹤頁暫時對所有人隱藏（頁面保留，之後恢復再取消註解） */}
+                        <Route path="ads" element={<Navigate to="/team" replace />} />
                         <Route path="notification" element={
                           <Suspense fallback={null}><TeamNotification /></Suspense>
                         } />
