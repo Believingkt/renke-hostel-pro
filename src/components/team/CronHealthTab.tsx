@@ -228,11 +228,8 @@ export default function CronHealthTab() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="text-sm">{formatScheduleChinese(r.schedule)}</div>
-                        <div className="font-mono text-[11px] text-muted-foreground">
-                          {r.schedule}
-                        </div>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        {formatScheduleChinese(r.schedule)}
                       </TableCell>
                       <TableCell>
                         <Badge variant={s.variant}>{s.label}</Badge>
@@ -241,7 +238,10 @@ export default function CronHealthTab() {
                         {fmt(r.last_start)}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">
-                        {r.last_status ?? "—"}
+                        <span>{r.last_status ?? "—"}</span>
+                        {r.last_status?.toLowerCase() === "connecting" && (
+                          <span className="ml-1 text-xs text-muted-foreground">（連線中）</span>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap tabular-nums text-sm">
                         {r.runs_24h} 次
