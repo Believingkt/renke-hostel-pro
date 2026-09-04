@@ -33,6 +33,7 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { format } from "date-fns";
 import {
   TW_DEFAULT_CANCEL_RULES,
@@ -1259,6 +1260,7 @@ const GuestTabsScroller = ({
   const btnRefs = useRef<Record<number, HTMLButtonElement | null>>({});
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const { t } = useBookingLocale();
 
   const updateEdges = () => {
     const el = scrollerRef.current;
@@ -1334,7 +1336,7 @@ const GuestTabsScroller = ({
         {/* 尾端 hint：可滑動時顯示「更多 →」 */}
         {canRight && (
           <span className="shrink-0 ml-1 mr-2 text-[12px] font-medium text-muted-foreground/80 whitespace-nowrap animate-pulse">
-            滑動看更多 ›
+            {t("booking.villa.ladder.scrollMore")}
           </span>
         )}
       </div>
@@ -1348,7 +1350,7 @@ const GuestTabsScroller = ({
           />
           <button
             type="button"
-            aria-label="向左滑動"
+            aria-label={t("booking.villa.ladder.scrollLeft")}
             onClick={() => scrollBy(-1)}
             className="hidden sm:flex absolute left-0 top-1/2 -translate-y-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border border-border shadow-sm text-foreground/70 hover:text-foreground hover:shadow"
           >
@@ -1364,7 +1366,7 @@ const GuestTabsScroller = ({
           />
           <button
             type="button"
-            aria-label="向右滑動"
+            aria-label={t("booking.villa.ladder.scrollRight")}
             onClick={() => scrollBy(1)}
             className="hidden sm:flex absolute right-0 top-1/2 -translate-y-1/2 h-7 w-7 items-center justify-center rounded-full bg-white border border-border shadow-sm text-foreground/70 hover:text-foreground hover:shadow"
           >

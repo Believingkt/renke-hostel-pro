@@ -12,6 +12,8 @@ import VillaLocationCompact from "@/components/booking-villa/VillaLocationCompac
 import FloatingAIChat from "@/components/booking-villa/FloatingAIChat";
 import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarousel";
 import { translate } from "@/lib/bookingI18n";
+import CapacityPriceLadder from "@/components/booking-villa/CapacityPriceLadder";
+import EditSearchSheet from "@/components/booking-villa/EditSearchSheet";
 
 // 1B-1：mock Supabase client（僅本測試檔，避免網路呼叫；不改任何 global mock）
 // coverage remediation：在同一 mock 內補上登入使用者、聊天歷史、帶價方案，
@@ -820,5 +822,154 @@ describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
     fireEvent.click(screen.getByLabelText("切換為繁體中文"));
     // 直接攔截 useNavigate 回傳的 navigate function，斷言語言切換從未觸發導航
     expect(mockNavigateSpy).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * 1C-1：business-mixed 元件中的純顯示 micro-label 翻譯
+ * 範圍：CapacityPriceLadder 滑動提示 / 左右箭頭 aria-label
+ *       EditSearchSheet Counter 加減鈕 aria-label
+ * 禁止：不改計價、房況、人數、日期、方案、CTA、錯誤訊息、state、URL
+ */
+describe("booking villa i18n phase 1C-1: micro-labels display only", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    mockState.mutations.length = 0;
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+    window.matchMedia =
+      window.matchMedia ||
+      (() => ({
+        matches: false,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      } as unknown as MediaQueryList));
+  });
+
+  const renderLadder = () =>
+    render(
+      <BookingLocaleProvider>
+        <BookingLanguageSwitch />
+        <CapacityPriceLadder
+          roomTypes={[
+            { id: "rt-1", name: "測試房", capacity: 6, base_price: 10000, room_count: 1 },
+          ]}
+          onSelect={() => {}}
+          nights={1}
+          checkIn={new Date("2026-10-05")}
+        />
+      </BookingLocaleProvider>,
+    );
+
+  const setScrollerOverflow = (container: HTMLElement) => {
+    const scroller = container.querySelector(".overflow-x-auto.no-scrollbar") as HTMLElement | null;
+    if (!scroller) return;
+    Object.defineProperty(scroller, "clientWidth", { value: 100, configurable: true });
+    Object.defineProperty(scroller, "scrollWidth", { value: 1000, configurable: true });
+    Object.defineProperty(scroller, "scrollLeft", { value: 10, configurable: true });
+    fireEvent.scroll(scroller);
+  };
+
+  it("renders CapacityPriceLadder scroll labels in zh-TW", async () => {
+    const { container } = renderLadder();
+    await act(async () => setScrollerOverflow(container));
+    expect(screen.getByText("滑動看更多 ›")).toBeInTheDocument();
+    expect(screen.getByLabelText("向左滑動")).toBeInTheDocument();
+    expect(screen.getByLabelText("向右滑動")).toBeInTheDocument();
+  });
+
+  it("renders CapacityPriceLadder scroll labels in English", async () => {
+    window.localStorage.setItem("booking_lang", "en");
+    const { container } = renderLadder();
+    await act(async () => setScrollerOverflow(container));
+    expect(screen.getByText("Swipe for more ›")).toBeInTheDocument();
+    expect(screen.getByLabelText("Scroll left")).toBeInTheDocument();
+    expect(screen.getByLabelText("Scroll right")).toBeInTheDocument();
+  });
+
+  it("updates CapacityPriceLadder scroll labels across language switch", async () => {
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    try {
+      const { container } = renderLadder();
+      await act(async () => setScrollerOverflow(container));
+      expect(screen.getByText("滑動看更多 ›")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+      await act(async () => setScrollerOverflow(container));
+      expect(screen.getByText("Swipe for more ›")).toBeInTheDocument();
+      expect(screen.getByLabelText("Scroll left")).toBeInTheDocument();
+      expect(screen.getByLabelText("Scroll right")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+      await act(async () => setScrollerOverflow(container));
+      expect(screen.getByText("滑動看更多 ›")).toBeInTheDocument();
+      expect(screen.getByLabelText("向左滑動")).toBeInTheDocument();
+
+      expect(window.location.href).toBe(urlBefore);
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(mockState.mutations).toEqual([]);
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
+  });
+
+  const renderSheet = () =>
+    render(
+      <BookingLocaleProvider>
+        <BookingLanguageSwitch />
+        <EditSearchSheet
+          open={true}
+          onOpenChange={() => {}}
+          checkIn={null}
+          checkOut={null}
+          adults={2}
+          children={0}
+          rooms={1}
+          availableDates={new Set()}
+          onConfirm={() => {}}
+        />
+      </BookingLocaleProvider>,
+    );
+
+  it("renders EditSearchSheet Counter aria labels in zh-TW", () => {
+    renderSheet();
+    expect(screen.getAllByLabelText("減少").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("增加").length).toBeGreaterThan(0);
+  });
+
+  it("renders EditSearchSheet Counter aria labels in English", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    renderSheet();
+    expect(screen.getAllByLabelText("Decrease").length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText("Increase").length).toBeGreaterThan(0);
+  });
+
+  it("updates EditSearchSheet Counter aria labels across language switch", () => {
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    try {
+      renderSheet();
+      expect(screen.getAllByLabelText("減少").length).toBeGreaterThan(0);
+
+      fireEvent.click(screen.getByLabelText("Switch to English"));
+      expect(screen.getAllByLabelText("Decrease").length).toBeGreaterThan(0);
+      expect(screen.queryByLabelText("減少")).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+      expect(screen.getAllByLabelText("減少").length).toBeGreaterThan(0);
+
+      expect(window.location.href).toBe(urlBefore);
+      expect(pushSpy).not.toHaveBeenCalled();
+      expect(replaceSpy).not.toHaveBeenCalled();
+      expect(mockState.mutations).toEqual([]);
+    } finally {
+      pushSpy.mockRestore();
+      replaceSpy.mockRestore();
+    }
   });
 });
