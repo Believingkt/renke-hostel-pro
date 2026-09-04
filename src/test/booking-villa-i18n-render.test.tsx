@@ -1427,8 +1427,10 @@ describe("booking villa i18n phase 1C-2C: interpolated display templates", () =>
     try {
       const { container } = renderLadder2C({ onSelect });
       const numbers = () => (container.textContent || "").match(/NT\$[\d,]+|\d+\/\d+|\d+/g) || [];
+      // 只比對 ladder 子樹（語言切換鈕自身的 active class 本來就會變）
+      const ladder = () => container.lastElementChild as HTMLElement;
       const structure = () =>
-        Array.from(container.querySelectorAll("*")).map((el) => el.tagName + "|" + el.className);
+        Array.from(ladder().querySelectorAll("*")).map((el) => el.tagName + "|" + el.className);
       const dates = () => (container.textContent || "").match(/\d{1,2}\/\d{1,2}/g) || [];
       const zhText = container.textContent;
       const zhNumbers = numbers();
