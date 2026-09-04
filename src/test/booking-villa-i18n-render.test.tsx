@@ -836,6 +836,14 @@ describe("booking villa i18n phase 1C-1: micro-labels display only", () => {
     window.localStorage.clear();
     mockState.mutations.length = 0;
     Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+    window.matchMedia =
+      window.matchMedia ||
+      (() => ({
+        matches: false,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false,
+      } as unknown as MediaQueryList));
   });
 
   const renderLadder = () =>
