@@ -172,6 +172,62 @@ export default function TeamNotification() {
   const [selectedId, setSelectedId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<string>("settings");
   const [saving, setSaving] = useState(false);
+  // 手動補發
+  const [backfillFrom, setBackfillFrom] = useState<string>("");
+  const [backfillTo, setBackfillTo] = useState<string>("");
+  const [backfillScope, setBackfillScope] = useState<string>("all");
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillLog, setBackfillLog] = useState<string[]>([]);
+
+  const runBackfill = async () => {
+    if (!backfillFrom || !backfillTo) {
+      toast.error("請選擇補發起訖日期");
+      return;
+    }
+    if (backfillFrom > backfillTo) {
+      toast.error("起始日期不可晚於結束日期");
+      return;
+    }
+    const dates: string[] = [];
+    for (
+      let d = new Date(`${backfillFrom}T00:00:00Z`);
+      d <= new Date(`${backfillTo}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + 1)
+    ) {
+      dates.push(d.toISOString().slice(0, 10));
+      if (dates.length > 62) break;
+    }
+    setBackfilling(true);
+    setBackfillLog([]);
+    const logs: string[] = [];
+    for (const date of dates) {
+      const { data, error } = await supabase.functions.invoke("send-daily-performance", {
+        body: {
+          backfill: true,
+          test_date: date,
+          ...(backfillScope !== "all" ? { accommodation_id: backfillScope } : {}),
+        },
+      });
+      if (error) {
+        logs.push(`${date}：失敗（${error.message}）`);
+      } else {
+        const results: any[] = data?.results ?? [];
+        const skipped = results.filter((r) => r.error === "duplicate_skipped").length;
+        const failed = results.filter((r) => !r.ok);
+        const sent = results.length - skipped - failed.length;
+        logs.push(
+          `${date}：已補發 ${sent} 館` +
+            (skipped ? `、已送過略過 ${skipped} 館` : "") +
+            (failed.length ? `、失敗 ${failed.length} 館（${failed[0].error}）` : ""),
+        );
+      }
+      setBackfillLog([...logs]);
+    }
+    setBackfilling(false);
+    toast.success("補發作業完成");
+  };
+
+
   
 
   useEffect(() => {
