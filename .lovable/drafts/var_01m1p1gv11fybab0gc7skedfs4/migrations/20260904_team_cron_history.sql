@@ -26,6 +26,7 @@ BEGIN
   SELECT d.start_time, d.end_time, d.status::text, left(coalesce(d.return_message, ''), 200)
   FROM cron.job_run_details d
   WHERE d.jobid = _jobid
+    AND d.start_time IS NOT NULL
   ORDER BY d.start_time DESC
   LIMIT greatest(1, least(coalesce(_limit, 20), 100));
 END;
