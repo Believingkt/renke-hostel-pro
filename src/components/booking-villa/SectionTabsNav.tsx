@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useStickyHeightRef, getLadderTop, TABS_TOP_CSS } from "@/lib/stickyOffsets";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 export interface SectionTab {
   id: string;
@@ -17,6 +18,7 @@ interface SectionTabsNavProps {
  * - 點擊滾動到對應 section（offset 扣掉 header + 自身高度）
  */
 export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
+  const { t } = useBookingLocale();
   const [active, setActive] = useState<string>(tabs[0]?.id ?? "");
   const navRef = useRef<HTMLDivElement>(null);
   const wrapRef = useStickyHeightRef<HTMLDivElement>("--vb-tabs-h");
@@ -144,6 +146,8 @@ export default function SectionTabsNav({ tabs }: SectionTabsNavProps) {
     >
       <div
         ref={navRef}
+        role="navigation"
+        aria-label={t("booking.villa.tabs.nav")}
         className="max-w-3xl mx-auto flex items-center gap-1 overflow-x-auto px-2 h-12 scrollbar-none"
         style={{ scrollbarWidth: "none" }}
       >
