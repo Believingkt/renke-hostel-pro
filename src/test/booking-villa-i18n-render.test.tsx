@@ -1020,6 +1020,7 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
     window.localStorage.clear();
     mockState.mutations.length = 0;
     mockNavigateSpy.mockClear();
+    toastErrorSpy.mockClear();
     Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
     Element.prototype.scrollIntoView = Element.prototype.scrollIntoView || (() => {});
     (window as any).ResizeObserver =
