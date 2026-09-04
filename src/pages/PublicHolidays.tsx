@@ -242,11 +242,19 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
   };
 
   const handleAddHoliday = async () => {
+    if (isSubmittingAdd) return;
+    if (!accommodationId) return;
+
     if (!newHoliday.name.trim()) {
       toast({
         title: "請輸入假日名稱",
         variant: "destructive",
       });
+      return;
+    }
+
+    if (addMode === "range") {
+      await handleAddHolidayRange();
       return;
     }
 
@@ -259,11 +267,13 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
     }
 
     try {
+      setIsSubmittingAdd(true);
       const { error } = await supabase.from("public_holidays").insert({
         accommodation_id: accommodationId,
         holiday_name: newHoliday.name.trim(),
         holiday_date: format(newHoliday.date, "yyyy-MM-dd"),
         holiday_type: newHoliday.type,
+        is_custom: true,
       });
 
       if (error) throw error;
@@ -274,7 +284,7 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
       });
 
       setIsAddDialogOpen(false);
-      setNewHoliday({ name: "", date: undefined, type: 'holiday' });
+      resetAddDialogState();
       loadHolidays();
     } catch (error) {
       console.error("Error adding holiday:", error);
@@ -283,8 +293,75 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         description: "無法新增國定假日",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmittingAdd(false);
     }
   };
+
+  // 區間新增（起訖皆含，一天一筆，已存在日期保留不覆蓋）
+  const handleAddHolidayRange = async () => {
+    if (!accommodationId) return;
+
+    if (!rangeStart || !rangeEnd) {
+      toast({ title: "請選擇開始與結束日期", variant: "destructive" });
+      return;
+    }
+
+    const diff = differenceInCalendarDays(rangeEnd, rangeStart);
+    if (diff < 0) {
+      toast({ title: "開始日期不得晚於結束日期", variant: "destructive" });
+      return;
+    }
+    const totalDays = diff + 1;
+    if (totalDays > MAX_RANGE_DAYS) {
+      toast({
+        title: "區間過長",
+        description: `一次最多新增 ${MAX_RANGE_DAYS} 天，目前選取 ${totalDays} 天，請縮小範圍`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const rows = Array.from({ length: totalDays }, (_, i) => ({
+      accommodation_id: accommodationId,
+      holiday_name: newHoliday.name.trim(),
+      holiday_date: format(addDays(rangeStart, i), "yyyy-MM-dd"),
+      holiday_type: newHoliday.type,
+      is_custom: true,
+    }));
+
+    try {
+      setIsSubmittingAdd(true);
+      const { data, error } = await supabase
+        .from("public_holidays")
+        .upsert(rows, { onConflict: "accommodation_id,holiday_date", ignoreDuplicates: true })
+        .select("id, holiday_date");
+
+      if (error) throw error;
+
+      const insertedCount = (data || []).length;
+      const skippedCount = totalDays - insertedCount;
+
+      toast({
+        title: "區間新增完成",
+        description: `已新增 ${insertedCount} 天，略過 ${skippedCount} 天已存在日期`,
+      });
+
+      setIsAddDialogOpen(false);
+      resetAddDialogState();
+      loadHolidays();
+    } catch (error) {
+      console.error("Error adding holiday range:", error);
+      toast({
+        title: "區間新增失敗",
+        description: error instanceof Error ? error.message : "無法新增區間假日",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingAdd(false);
+    }
+  };
+
 
   const handleEditHoliday = async () => {
     if (!selectedHoliday) return;
