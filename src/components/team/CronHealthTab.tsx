@@ -65,6 +65,45 @@ const fmt = (v: string | null) => {
 const hoursSince = (v: string | null) =>
   v ? (Date.now() - new Date(v).getTime()) / 3_600_000 : null;
 
+const WEEKDAY_NAMES = ["日", "一", "二", "三", "四", "五", "六"];
+
+const pad = (n: string) => n.padStart(2, "0");
+
+const formatScheduleChinese = (cron: string): string => {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 5) return cron;
+  const [min, hour, day, month, weekday] = parts;
+  const isStar = (v: string) => v === "*";
+  const isStep = (v: string) => v.startsWith("*/");
+
+  if (isStep(min) && isStar(hour) && isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每 ${min.slice(2)} 分鐘`;
+  }
+  if (min === "0" && isStep(hour) && isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每 ${hour.slice(2)} 小時`;
+  }
+  if (!isStar(min) && isStar(hour) && isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每小時 ${pad(min)} 分`;
+  }
+  if (!isStar(min) && !isStar(hour) && isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每天 ${pad(hour)}:${pad(min)}`;
+  }
+  if (!isStar(min) && !isStar(hour) && isStar(day) && isStar(month) && !isStar(weekday)) {
+    const w = weekday
+      .split(",")
+      .map((d) => WEEKDAY_NAMES[parseInt(d, 10)] ?? d)
+      .join("、");
+    return `每週${w} ${pad(hour)}:${pad(min)}`;
+  }
+  if (!isStar(min) && !isStar(hour) && !isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每月 ${day} 日 ${pad(hour)}:${pad(min)}`;
+  }
+  if (isStar(min) && isStar(hour) && !isStar(day) && isStar(month) && isStar(weekday)) {
+    return `每月 ${day} 日`;
+  }
+  return cron;
+};
+
 export default function CronHealthTab() {
   const [rows, setRows] = useState<CronHealthRow[]>([]);
   const [loading, setLoading] = useState(false);
