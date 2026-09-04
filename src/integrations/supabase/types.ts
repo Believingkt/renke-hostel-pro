@@ -2906,6 +2906,7 @@ export type Database = {
           month: string
           note: string | null
           payout_month: string
+          remittance_date: string | null
           surplus_amount: number
           updated_at: string
           updated_by: string | null
@@ -2919,6 +2920,7 @@ export type Database = {
           month: string
           note?: string | null
           payout_month: string
+          remittance_date?: string | null
           surplus_amount?: number
           updated_at?: string
           updated_by?: string | null
@@ -2932,6 +2934,7 @@ export type Database = {
           month?: string
           note?: string | null
           payout_month?: string
+          remittance_date?: string | null
           surplus_amount?: number
           updated_at?: string
           updated_by?: string | null
