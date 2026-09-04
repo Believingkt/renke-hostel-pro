@@ -633,10 +633,11 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                     const distributed = rows.reduce((s, p) => s + Number(p.amount), 0);
                     const dirty = !!d;
                     const siblings = monthsByPeriod.get(row.payout_month) ?? [];
-                    const draftOf = (over: Partial<{ surplus: string; note: string; payout: string }>) => ({
+                    const draftOf = (over: Partial<{ surplus: string; note: string; payout: string; remittance: string | null }>) => ({
                       surplus: d?.surplus ?? String(Number(row.surplus_amount)),
                       note: d?.note ?? (row.note ?? ""),
                       payout: d?.payout ?? row.payout_month.slice(0, 7),
+                      remittance: d ? d.remittance : (row.remittance_date ?? null),
                       ...over,
                     });
                     return (
