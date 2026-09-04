@@ -231,8 +231,11 @@ export default function CronHealthTab() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-mono text-xs whitespace-nowrap">
-                        {r.schedule}
+                      <TableCell className="whitespace-nowrap">
+                        <div className="text-sm">{formatScheduleChinese(r.schedule)}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground">
+                          {r.schedule}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={s.variant}>{s.label}</Badge>
