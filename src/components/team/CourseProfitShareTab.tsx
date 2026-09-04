@@ -597,6 +597,19 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                 onChange={(e) => setNewMonth((p) => ({ ...p, note: e.target.value }))}
                 className="h-9 w-full sm:min-w-[8rem] sm:flex-1"
               />
+              <div className="space-y-1 w-full sm:w-auto">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  匯款日期
+                  <RemittanceTooltip />
+                </div>
+                <DateField
+                  value={newMonth.remittance}
+                  onChange={(v) => setNewMonth((p) => ({ ...p, remittance: v }))}
+                  placeholder="選擇匯款日期"
+                  className="h-9 w-full sm:w-44"
+                />
+              </div>
+
 
               <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"} className="w-full sm:w-auto">
                 {savingId === "__new__" ? (
@@ -619,6 +632,12 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                     <TableHead className="w-40 whitespace-nowrap">發放期別</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">盈餘月份</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">課程盈餘</TableHead>
+                    <TableHead className="w-44 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1">
+                        匯款日期
+                        <RemittanceTooltip />
+                      </span>
+                    </TableHead>
                     <TableHead className="w-56 whitespace-nowrap">備註</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">分潤合計</TableHead>
                     <TableHead className="w-56 whitespace-nowrap">狀態 / 最後修改</TableHead>
@@ -672,6 +691,20 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                                 setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ surplus: e.target.value }) }))
                               }
                               className="h-9 w-32 tabular-nums"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap tabular-nums">
+                          {locked || readOnly ? (
+                            <span className="text-sm">{row.remittance_date ?? "—"}</span>
+                          ) : (
+                            <DateField
+                              value={d ? d.remittance : (row.remittance_date ?? null)}
+                              onChange={(v) =>
+                                setMonthDraft((p) => ({ ...p, [row.id]: draftOf({ remittance: v }) }))
+                              }
+                              placeholder="選擇日期"
+                              className="h-9 w-40"
                             />
                           )}
                         </TableCell>
