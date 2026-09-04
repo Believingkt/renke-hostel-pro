@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { Card } from "@/components/ui/card";
 import { openFrontendBooking } from "@/lib/frontendUrl";
 import {
@@ -40,6 +41,7 @@ interface Props {
  */
 const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut }: Props) => {
   const navigate = useNavigate();
+  const { t } = useBookingLocale();
   const [items, setItems] = useState<Item[]>([]);
 
   useEffect(() => {
@@ -189,7 +191,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
 
   return (
     <section className="py-5 bg-background">
-      <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">您可能也喜歡</h2>
+      <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">{t("booking.villa.similar.title")}</h2>
       <div className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-none">
         {items.map((it) => (
           <button

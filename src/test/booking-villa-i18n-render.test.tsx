@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { BookingLocaleProvider } from "@/contexts/BookingLocaleContext";
 import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
 import SectionTabsNav from "@/components/booking-villa/SectionTabsNav";
@@ -8,7 +9,51 @@ import PackagePhotoCarousel from "@/components/booking-villa/PackagePhotoCarouse
 import VillaPhotoCarousel from "@/components/booking-villa/VillaPhotoCarousel";
 import VillaPhotoLightbox from "@/components/booking-villa/VillaPhotoLightbox";
 import VillaLocationCompact from "@/components/booking-villa/VillaLocationCompact";
+import FloatingAIChat from "@/components/booking-villa/FloatingAIChat";
+import SimilarStaysCarousel from "@/components/booking-villa/SimilarStaysCarousel";
 import { translate } from "@/lib/bookingI18n";
+
+// 1B-1：mock Supabase client（僅本測試檔，避免網路呼叫；不改任何 global mock）
+vi.mock("@/integrations/supabase/client", () => {
+  const chain = (result: any): any => {
+    const self: any = new Proxy(function () {}, {
+      get: (_t, prop) => {
+        if (prop === "then")
+          return (resolve: any, reject: any) =>
+            Promise.resolve(result).then(resolve, reject);
+        return () => self;
+      },
+      apply: () => self,
+    });
+    return self;
+  };
+  return {
+    supabase: {
+      auth: {
+        getUser: () => Promise.resolve({ data: { user: null } }),
+        getSession: () => Promise.resolve({ data: { session: null } }),
+        onAuthStateChange: () => ({
+          data: { subscription: { unsubscribe() {} } },
+        }),
+      },
+      from: (table: string) =>
+        chain({
+          data:
+            table === "accommodation_info"
+              ? [
+                  {
+                    id: "acc-near-1",
+                    name: "鄰近測試館",
+                    region_1: "宜蘭",
+                    google_reviews_cache: null,
+                    og_image_url: null,
+                  },
+                ]
+              : [],
+        }),
+    },
+  };
+});
 
 /** BookingVilla 實際傳入 SectionTabsNav 的 section id（不得因語言改變） */
 const SECTION_IDS = [
@@ -265,5 +310,105 @@ describe("booking villa i18n phase 1A-2: media + location display", () => {
     // tab state 保留：Driving tab 仍 active，內容仍顯示
     expect(screen.getByRole("button", { name: "Driving" })).toBeInTheDocument();
     expect(screen.getByText("drive")).toBeInTheDocument();
+  });
+});
+
+describe("booking villa i18n phase 1B-1: AI chat static UI + similar stays title", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    Element.prototype.scrollTo = Element.prototype.scrollTo || (() => {});
+  });
+
+  const renderAI = () =>
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <FloatingAIChat
+            accommodationId="acc-1"
+            accommodationName="測試館"
+            contactHref="https://example.com/contact"
+          />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+
+  it("renders AI chat fixed UI in zh-TW by default", () => {
+    renderAI();
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    expect(screen.getByText("AI 管家")).toBeInTheDocument();
+    expect(screen.getByText("測試館・回答基本問題")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("輸入您的問題…")).toBeInTheDocument();
+    const human = screen.getByText("需要真人協助？點此轉接客服");
+    expect(human.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+  });
+
+  it("renders AI chat fixed UI in English", () => {
+    window.localStorage.setItem("booking_lang", "en");
+    renderAI();
+    fireEvent.click(screen.getByLabelText("Open AI concierge"));
+    expect(screen.getByText("AI Concierge")).toBeInTheDocument();
+    expect(screen.getByText("測試館・Answers general questions")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Type your question…")).toBeInTheDocument();
+    const human = screen.getByText("Need a human? Contact our team");
+    expect(human.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+  });
+
+  it("keeps AI chat open, input draft and human link across language switch", () => {
+    const urlBefore = window.location.href;
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    const replaceSpy = vi.spyOn(window.history, "replaceState");
+    renderAI();
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    const input = screen.getByPlaceholderText("輸入您的問題…") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "可以帶寵物嗎？" } });
+    expect(input.value).toBe("可以帶寵物嗎？");
+
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+
+    // chat 仍開啟（切換後仍以英文 placeholder 存在）
+    const inputEn = screen.getByPlaceholderText("Type your question…") as HTMLInputElement;
+    expect(inputEn.value).toBe("可以帶寵物嗎？"); // 輸入草稿不變
+    expect(screen.getByText("AI Concierge")).toBeInTheDocument();
+    // human-contact destination 不變
+    const human = screen.getByText("Need a human? Contact our team");
+    expect(human.closest("a")).toHaveAttribute("href", "https://example.com/contact");
+    // URL / history 不變
+    expect(window.location.href).toBe(urlBefore);
+    expect(pushSpy).not.toHaveBeenCalled();
+    expect(replaceSpy).not.toHaveBeenCalled();
+    pushSpy.mockRestore();
+    replaceSpy.mockRestore();
+  });
+
+  it("renders similar stays title in zh-TW and keeps card content", async () => {
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <SimilarStaysCarousel excludeId="acc-self" region="宜蘭" />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("您可能也喜歡")).toBeInTheDocument();
+    expect(await screen.findByText("鄰近測試館")).toBeInTheDocument();
+  });
+
+  it("renders similar stays title in English with identical card data across switch", async () => {
+    const urlBefore = window.location.href;
+    render(
+      <MemoryRouter>
+        <BookingLocaleProvider>
+          <BookingLanguageSwitch />
+          <SimilarStaysCarousel excludeId="acc-self" region="宜蘭" />
+        </BookingLocaleProvider>
+      </MemoryRouter>,
+    );
+    expect(await screen.findByText("您可能也喜歡")).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    expect(await screen.findByText("You may also like")).toBeInTheDocument();
+    // 卡片資料與順序不變
+    expect(screen.getByText("鄰近測試館")).toBeInTheDocument();
+    expect(window.location.href).toBe(urlBefore);
   });
 });
