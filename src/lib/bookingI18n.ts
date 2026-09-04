@@ -198,6 +198,25 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.ladder.scrollLeft": "Scroll left",
   "booking.villa.ladder.scrollRight": "Scroll right",
 
+  "booking.villa.ladder.empty.all": "No bookable plans available",
+  "booking.villa.ladder.empty.tier": "No plans available for this period",
+  "booking.villa.ladder.roomAllocation.kicker": "ROOM ALLOCATION",
+  "booking.villa.ladder.perks.title": "Exclusive Perks",
+  "booking.villa.ladder.childFee.title": "Child surcharge details",
+  "booking.villa.ladder.childFee.rules": "Rules for the selected child age groups",
+  "booking.villa.ladder.childFee.total": "Total",
+  "booking.villa.ladder.details.expand": "Show breakdown",
+  "booking.villa.ladder.details.collapse": "Hide breakdown",
+  "booking.villa.ladder.cta.book": "Book this stay",
+  "booking.villa.ladder.childBlocked.toastTitle":
+    "The selected number of children does not meet this property's policy",
+  "booking.villa.ladder.childBlocked.toastDesc":
+    "Please adjust the guest count in the search bar above and try again.",
+  "booking.villa.ladder.tag.earlyBird": "Early Bird Offer",
+  "booking.villa.ladder.tag.mealIncluded": "Two Meals Included",
+  "booking.villa.ladder.tag.fewPeople": "Private Stay for Small Groups",
+
+
   "booking.villa.searchSheet.decrease": "Decrease",
   "booking.villa.searchSheet.increase": "Increase",
 };
