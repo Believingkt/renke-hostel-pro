@@ -225,9 +225,6 @@ export default function CronHealthTab() {
                             <div className="text-xs text-muted-foreground break-words">
                               {f?.desc}
                             </div>
-                            <div className="font-mono text-[11px] text-muted-foreground break-all">
-                              {r.jobname}
-                            </div>
                           </div>
                         </div>
                       </TableCell>
