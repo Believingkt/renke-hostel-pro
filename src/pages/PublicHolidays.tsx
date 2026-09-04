@@ -1532,7 +1532,14 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
         </Card>
 
       {/* 新增假日對話框 */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog
+        open={isAddDialogOpen}
+        onOpenChange={(open) => {
+          if (isSubmittingAdd) return;
+          setIsAddDialogOpen(open);
+          if (!open) resetAddDialogState();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>新增國定假日</DialogTitle>
@@ -1541,6 +1548,15 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>新增方式</Label>
+              <Tabs value={addMode} onValueChange={(v) => setAddMode(v as "single" | "range")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="single">單日</TabsTrigger>
+                  <TabsTrigger value="range">日期區間</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="holidayName">假日名稱</Label>
               <Input
@@ -1552,40 +1568,114 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label>假日日期</Label>
-              <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !newHoliday.date && "text-muted-foreground"
-                    )}
-                  >
-                    <Calendar className="mr-2 h-4 w-4" />
-                    {newHoliday.date ? (
-                      format(newHoliday.date, "PPP", { locale: zhTW })
-                    ) : (
-                      <span>選擇日期</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    mode="single"
-                    selected={newHoliday.date}
-                    defaultMonth={newHoliday.date}
-                    onSelect={(date) => {
-                      setNewHoliday({ ...newHoliday, date });
-                      setIsDatePickerOpen(false);
-                    }}
-                    locale={zhTW}
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            {addMode === "single" ? (
+              <div className="space-y-2">
+                <Label>假日日期</Label>
+                <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newHoliday.date && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {newHoliday.date ? (
+                        format(newHoliday.date, "PPP", { locale: zhTW })
+                      ) : (
+                        <span>選擇日期</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newHoliday.date}
+                      defaultMonth={newHoliday.date}
+                      onSelect={(date) => {
+                        setNewHoliday({ ...newHoliday, date });
+                        setIsDatePickerOpen(false);
+                      }}
+                      locale={zhTW}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>開始日期</Label>
+                    <Popover open={isRangeStartPickerOpen} onOpenChange={setIsRangeStartPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-full justify-start text-left font-normal", !rangeStart && "text-muted-foreground")}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {rangeStart ? format(rangeStart, "yyyy/MM/dd", { locale: zhTW }) : <span>選擇開始日期</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={rangeStart}
+                          defaultMonth={rangeStart}
+                          onSelect={(date) => {
+                            setRangeStart(date);
+                            setIsRangeStartPickerOpen(false);
+                          }}
+                          locale={zhTW}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>結束日期</Label>
+                    <Popover open={isRangeEndPickerOpen} onOpenChange={setIsRangeEndPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn("w-full justify-start text-left font-normal", !rangeEnd && "text-muted-foreground")}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {rangeEnd ? format(rangeEnd, "yyyy/MM/dd", { locale: zhTW }) : <span>選擇結束日期</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={rangeEnd}
+                          defaultMonth={rangeEnd ?? rangeStart}
+                          onSelect={(date) => {
+                            setRangeEnd(date);
+                            setIsRangeEndPickerOpen(false);
+                          }}
+                          locale={zhTW}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+                {rangeStart && rangeEnd && (
+                  differenceInCalendarDays(rangeEnd, rangeStart) < 0 ? (
+                    <p className="text-xs text-destructive">開始日期不得晚於結束日期</p>
+                  ) : differenceInCalendarDays(rangeEnd, rangeStart) + 1 > MAX_RANGE_DAYS ? (
+                    <p className="text-xs text-destructive">
+                      一次最多新增 {MAX_RANGE_DAYS} 天，目前選取 {differenceInCalendarDays(rangeEnd, rangeStart) + 1} 天，請縮小範圍
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      將新增 {differenceInCalendarDays(rangeEnd, rangeStart) + 1} 天（起訖日皆包含）；已存在的日期會自動略過，不覆蓋原內容。
+                    </p>
+                  )
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>類型</Label>
               <Select
@@ -1613,13 +1703,86 @@ const PublicHolidays = forwardRef(({ showInPricingPage = false }: { showInPricin
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)} disabled={isSubmittingAdd}>
               取消
             </Button>
-            <Button onClick={handleAddHoliday}>新增</Button>
+            <Button
+              onClick={handleAddHoliday}
+              disabled={
+                isSubmittingAdd ||
+                (addMode === "range" &&
+                  (!rangeStart ||
+                    !rangeEnd ||
+                    differenceInCalendarDays(rangeEnd, rangeStart) < 0 ||
+                    differenceInCalendarDays(rangeEnd, rangeStart) + 1 > MAX_RANGE_DAYS))
+              }
+            >
+              {isSubmittingAdd ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  處理中…
+                </>
+              ) : (
+                "新增"
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* 批次刪除確認 */}
+      <AlertDialog
+        open={isBatchDeleteOpen}
+        onOpenChange={(open) => {
+          if (isDeleting) return;
+          setIsBatchDeleteOpen(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認批次刪除假日？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <div>館別：{accommodationName || "（目前館別）"}</div>
+                <div>已選日期數：{batchDeleteSummary.count} 天</div>
+                <div>
+                  日期範圍：{batchDeleteSummary.minDate || "-"} ～ {batchDeleteSummary.maxDate || "-"}
+                </div>
+                <div>
+                  類型統計：
+                  {Object.entries(batchDeleteSummary.typeCounts)
+                    .map(([label, n]) => `${label} ${n}`)
+                    .join("、") || "-"}
+                </div>
+                <div>
+                  政府同步資料（is_custom=false）：{batchDeleteSummary.govCount} 筆；自訂資料（is_custom=true）：
+                  {batchDeleteSummary.customCount} 筆
+                </div>
+                {batchDeleteSummary.govCount > 0 && (
+                  <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2 text-destructive">
+                    選取內容包含政府同步日期；刪除後，未來重新同步政府開放資料時可能再次出現。
+                  </div>
+                )}
+                <div>此操作無法復原。</div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBatchDelete();
+              }}
+              disabled={isDeleting || batchDeleteSummary.count === 0}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "刪除中…" : `刪除 ${batchDeleteSummary.count} 筆`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* 編輯對話框 */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
