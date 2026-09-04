@@ -14019,6 +14019,21 @@ export type Database = {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
       }
+      team_cron_health: {
+        Args: never
+        Returns: {
+          active: boolean
+          failures_24h: number
+          jobid: number
+          jobname: string
+          last_end: string
+          last_message: string
+          last_start: string
+          last_status: string
+          runs_24h: number
+          schedule: string
+        }[]
+      }
       update_kol_quota_config: {
         Args: {
           p_accommodation_id: string
