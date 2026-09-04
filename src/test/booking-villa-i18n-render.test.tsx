@@ -92,6 +92,15 @@ vi.mock("@/integrations/supabase/client", () => {
   };
 });
 
+const mockNavigateSpy = vi.hoisted(() => vi.fn());
+vi.mock("react-router-dom", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-router-dom")>();
+  return {
+    ...actual,
+    useNavigate: () => mockNavigateSpy,
+  };
+});
+
 /** BookingVilla 實際傳入 SectionTabsNav 的 section id（不得因語言改變） */
 const SECTION_IDS = [
   "capacity-price-section",
@@ -801,5 +810,15 @@ describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
       replaceSpy.mockRestore();
       vi.unstubAllGlobals();
     }
+  });
+
+  it("does not invoke React Router useNavigate during language switch", () => {
+    mockNavigateSpy.mockClear();
+    renderChat("測試館");
+    fireEvent.click(screen.getByLabelText("開啟 AI 管家"));
+    fireEvent.click(screen.getByLabelText("Switch to English"));
+    fireEvent.click(screen.getByLabelText("切換為繁體中文"));
+    // 直接攔截 useNavigate 回傳的 navigate function，斷言語言切換從未觸發導航
+    expect(mockNavigateSpy).not.toHaveBeenCalled();
   });
 });
