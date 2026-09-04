@@ -370,21 +370,29 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     load();
   };
 
-  const saveMonth = async (row: MonthRow) => {
+  const saveMonth = async (row: MonthRow, locked: boolean) => {
     const d = monthDraft[row.id];
     if (!d) return;
     setSavingId(row.id);
     const { data: userData } = await supabase.auth.getUser();
+    // 已發放（鎖定）列只允許回填匯款日期；金額與期別由 DB 鎖定保護
+    const payload = locked
+      ? {
+          remittance_date: d.remittance || null,
+          updated_by: userData?.user?.id ?? null,
+          updated_by_email: userData?.user?.email ?? null,
+        }
+      : {
+          surplus_amount: Number(d.surplus || 0),
+          note: d.note || null,
+          payout_month: `${d.payout}-01`,
+          remittance_date: d.remittance || null,
+          updated_by: userData?.user?.id ?? null,
+          updated_by_email: userData?.user?.email ?? null,
+        };
     const { error } = await supabase
       .from("course_profit_months")
-      .update({
-        surplus_amount: Number(d.surplus || 0),
-        note: d.note || null,
-        payout_month: `${d.payout}-01`,
-        remittance_date: d.remittance || null,
-        updated_by: userData?.user?.id ?? null,
-        updated_by_email: userData?.user?.email ?? null,
-      } as any)
+      .update(payload as any)
       .eq("id", row.id);
     setSavingId(null);
     if (error) {
