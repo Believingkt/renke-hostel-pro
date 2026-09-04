@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     // where last reminder (fallback to notified_at) is older than 24h.
     const { data: candidates, error: qErr } = await admin
       .from("owlting_email_parsed_staging")
-      .select("id, obe_number, accommodation_id, accommodation_name, check_in_date, check_out_date, pii_due_at, notified_at, last_reminder_at")
+      .select("id, obe_number, accommodation_id, accommodation_name, check_in_date, check_out_date, pii_due_at, notified_at, last_reminder_at, message_type, payment_status")
       .eq("pii_status", "pending_pii_fillup")
       .not("notified_at", "is", null)
       .not("accommodation_id", "is", null)
@@ -80,8 +80,21 @@ Deno.serve(async (req) => {
 
     if (qErr) throw qErr;
 
+    // 已取消／付款失敗的訂單不需要補住客資料，也不需要逾期提醒
+    const CANCELLED_PAYMENT_STATUS = new Set(["已取消", "付款失敗", "取消"]);
+    const isCancelled = (r: any) =>
+      r.message_type === "cancelled" ||
+      CANCELLED_PAYMENT_STATUS.has((r.payment_status ?? "").trim());
+    // 已過退房日的訂單也不再提醒
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const isPast = (r: any) => {
+      const end = r.check_out_date ?? r.check_in_date;
+      return end ? String(end) < todayStr : false;
+    };
+
     // Filter rows whose initial notified_at is also older than 24h (covers null last_reminder_at)
     const due = (candidates ?? []).filter((r: any) => {
+      if (isCancelled(r) || isPast(r)) return false;
       const ref = r.last_reminder_at ?? r.notified_at;
       return ref && new Date(ref).toISOString() < cutoff;
     });
