@@ -92,6 +92,13 @@ const zh = {
   "booking.villa.ai.toast.retry": "請稍後再試",
 
   "booking.villa.similar.title": "您可能也喜歡",
+
+  "booking.villa.ladder.scrollMore": "滑動看更多 ›",
+  "booking.villa.ladder.scrollLeft": "向左滑動",
+  "booking.villa.ladder.scrollRight": "向右滑動",
+
+  "booking.villa.searchSheet.decrease": "減少",
+  "booking.villa.searchSheet.increase": "增加",
 } as const;
 
 export type BookingI18nKey = keyof typeof zh;
@@ -169,6 +176,13 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.ai.toast.retry": "Please try again later",
 
   "booking.villa.similar.title": "You may also like",
+
+  "booking.villa.ladder.scrollMore": "Swipe for more ›",
+  "booking.villa.ladder.scrollLeft": "Scroll left",
+  "booking.villa.ladder.scrollRight": "Scroll right",
+
+  "booking.villa.searchSheet.decrease": "Decrease",
+  "booking.villa.searchSheet.increase": "Increase",
 };
 
 const DICTS: Record<BookingLang, Record<string, string>> = {
