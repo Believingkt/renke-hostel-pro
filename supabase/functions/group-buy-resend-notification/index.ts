@@ -105,16 +105,21 @@ Deno.serve(async (req) => {
 
       const entry: any = { orderNumber: order.order_number, guest: null, venue: null };
 
-      // 旅客信：已收款 → 訂房確認信；未收款 → 訂房通知＋匯款資訊
+      // 旅客信：可由後台指定模板；未指定（auto）時沿用原本依付款狀態判斷的行為
       if (targets.has("guest")) {
+        const requested = String((body as any).guestTemplate ?? "auto");
+        const useFull = requested === "full_payment" || (requested === "auto" && isPaid && fullPayment);
+        const usePaid = requested === "deposit_received" || useFull ||
+          (requested === "auto" && isPaid);
+
         let mail;
         let templateType;
-        if (isPaid) {
-          templateType = "deposit_received";
+        if (usePaid) {
+          templateType = useFull ? "full_payment_received" : "deposit_received";
           mail = renderDepositReceived(emailOrder, {
             providerLabel: emailOrder.paymentMethodText,
             paidThisTime: paid > 0 ? paid : null,
-            fullPayment,
+            fullPayment: useFull,
           });
         } else {
           templateType = "booking_pending";
@@ -128,6 +133,7 @@ Deno.serve(async (req) => {
             .maybeSingle();
           mail = renderBookingWithBankInfo(emailOrder, bankToInfo(bankRow));
         }
+
         const sent = await sendGroupBuyEmail(previewTo ?? order.guest_email, withPreviewSubject(mail));
         entry.guest = sent;
         if (!previewTo) await admin.from("group_buy_payment_events").insert({

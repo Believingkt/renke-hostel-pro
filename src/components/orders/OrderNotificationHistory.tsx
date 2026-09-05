@@ -103,6 +103,8 @@ const STATUS_LABEL: Record<string, string> = {
 const EMAIL_TYPE_LABEL: Record<string, string> = {
   booking_confirmation: "訂房確認通知",
   deposit_received: "訂金已收到",
+  full_payment_received: "訂房確認・已完成全額付款",
+
   final_payment_received: "尾款已收到",
   order_cancelled: "訂單取消通知",
   // 團購專屬模板
@@ -263,11 +265,15 @@ export default function OrderNotificationHistory({
   };
 
   // 團購訂單：補寄團購專屬通知信（旅客／民宿），不會動到任何付款或訂單資料
-  const resendGroupBuy = async (target: "guest" | "venue") => {
-    setResendingType(`gb_${target}`);
+  const resendGroupBuy = async (
+    target: "guest" | "venue",
+    guestTemplate: "auto" | "booking_pending" | "deposit_received" | "full_payment" = "auto",
+    key = `gb_${target}`,
+  ) => {
+    setResendingType(key);
     try {
       const { data, error } = await supabase.functions.invoke("group-buy-resend-notification", {
-        body: { orderIds: [orderId], targets: [target] },
+        body: { orderIds: [orderId], targets: [target], guestTemplate },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -298,10 +304,22 @@ export default function OrderNotificationHistory({
             {canManage && (isGroupBuy ? (
               <>
                 <ResendButton
-                  label="補寄旅客通知信"
-                  description="依訂單目前付款狀態，重新寄出團購旅客通知信（待匯款或已收款版本）。"
-                  loading={resendingType === "gb_guest"}
-                  onConfirm={() => resendGroupBuy("guest")}
+                  label="補寄旅客通知信：訂房成立・待匯款"
+                  description="重新寄出「團購訂房成立・待匯款」通知（含匯款帳號與付款期限）。"
+                  loading={resendingType === "gb_guest_booking_pending"}
+                  onConfirm={() => resendGroupBuy("guest", "booking_pending", "gb_guest_booking_pending")}
+                />
+                <ResendButton
+                  label="補寄旅客通知信：訂金已收到"
+                  description="重新寄出「訂房確認・已收到訂金」通知（尾款現場付清版本）。"
+                  loading={resendingType === "gb_guest_deposit"}
+                  onConfirm={() => resendGroupBuy("guest", "deposit_received", "gb_guest_deposit")}
+                />
+                <ResendButton
+                  label="補寄旅客通知信：全額付款完成"
+                  description="重新寄出「訂房確認・已完成付款」通知（信用卡全額付款版本，入住當天無需再付款）。"
+                  loading={resendingType === "gb_guest_full"}
+                  onConfirm={() => resendGroupBuy("guest", "full_payment", "gb_guest_full")}
                 />
                 <ResendButton
                   label="補寄民宿通知信"
@@ -311,6 +329,7 @@ export default function OrderNotificationHistory({
                 />
               </>
             ) : (
+
               <>
                 <ResendButton
                   label="重送訂房確認"
