@@ -134,7 +134,7 @@ const handler = async (req: Request): Promise<Response> => {
     
     const { data: order, error: orderError } = await supabase
       .from('orders')
-      .select('id, guest_email, order_number, accommodation_id, paid_amount, payment_status, total_price')
+      .select('id, guest_email, order_number, accommodation_id, paid_amount, payment_status, total_price, order_source')
       .eq('order_number', orderNumber)
       .single();
 
@@ -166,6 +166,15 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
     
+    // 團購訂單一律不寄全站共用訂房確認信（改由團購專屬模板寄送）
+    if ((order as any).order_source === 'group_buy') {
+      console.log(`[Guard] group_buy order, shared confirmation skipped: ${orderNumber}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "團購訂單不寄送共用訂房確認信，請使用團購專屬補寄按鈕", skipped: "group_buy" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Verify email matches order (case-insensitive)
     if (order.guest_email?.toLowerCase() !== guestEmail.toLowerCase()) {
       console.warn(`[Validation] Email mismatch for order ${orderNumber}: expected ${order.guest_email}, got ${guestEmail}`);
