@@ -92,9 +92,29 @@ Deno.serve(async (req) => {
       return end ? String(end) < todayStr : false;
     };
 
+    // 同一張奧丁丁訂單（同 OBE）若後續收到「取消通知」信（另一列 staging），
+    // 原本那列仍是 new_order，不能只看自己這列，否則會繼續寄逾期提醒。
+    const obeList = Array.from(
+      new Set((candidates ?? []).map((r: any) => r.obe_number).filter(Boolean)),
+    ) as string[];
+    const cancelledObe = new Set<string>();
+    if (obeList.length > 0) {
+      const { data: siblings } = await admin
+        .from("owlting_email_parsed_staging")
+        .select("obe_number, message_type, payment_status")
+        .in("obe_number", obeList);
+      for (const s of siblings ?? []) {
+        if (s.message_type === "cancelled" || CANCELLED_PAYMENT_STATUS.has((s.payment_status ?? "").trim())) {
+          if (s.obe_number) cancelledObe.add(s.obe_number);
+        }
+      }
+    }
+    const isCancelledOrder = (r: any) =>
+      isCancelled(r) || (r.obe_number ? cancelledObe.has(r.obe_number) : false);
+
     // 主動把不再「待補」的列結束掉：取消→skipped、已過退房→expired，
     // 讓列表不再掛著「待補」狀態，也不會再被任何流程提醒。
-    const staleCancelled = (candidates ?? []).filter((r: any) => isCancelled(r));
+    const staleCancelled = (candidates ?? []).filter((r: any) => isCancelledOrder(r));
     const stalePast = (candidates ?? []).filter((r: any) => !isCancelled(r) && isPast(r));
     if (staleCancelled.length > 0) {
       await admin.from("owlting_email_parsed_staging")
