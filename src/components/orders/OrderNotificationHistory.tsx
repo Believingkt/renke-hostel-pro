@@ -103,6 +103,8 @@ const STATUS_LABEL: Record<string, string> = {
 const EMAIL_TYPE_LABEL: Record<string, string> = {
   booking_confirmation: "訂房確認通知",
   deposit_received: "訂金已收到",
+  full_payment_received: "訂房確認・已完成全額付款",
+
   final_payment_received: "尾款已收到",
   order_cancelled: "訂單取消通知",
   // 團購專屬模板
