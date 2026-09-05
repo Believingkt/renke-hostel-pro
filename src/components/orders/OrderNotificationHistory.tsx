@@ -195,7 +195,36 @@ export default function OrderNotificationHistory({
         .limit(50),
     ]);
     setPayments((p.data ?? []) as PaymentEvent[]);
-    setEmails((e.data ?? []) as EmailEvent[]);
+    let emailRows = (e.data ?? []) as EmailEvent[];
+    if (isGroupBuy) {
+      // 團購訂單的通知信紀錄寫在 group_buy_payment_events（email_sent / email_failed）
+      const { data: gb } = await supabase
+        .from("group_buy_payment_events")
+        .select("id, event_type, actor_label, note, created_at")
+        .eq("order_id", orderId)
+        .in("event_type", ["email_sent", "email_failed"])
+        .order("created_at", { ascending: false })
+        .limit(50);
+      const mapped: EmailEvent[] = (gb ?? []).map((row: any) => {
+        const info = parseGroupBuyNote(row.note);
+        return {
+          id: row.id,
+          email_type: info.templateType ?? "group_buy_email",
+          recipient: GROUP_BUY_RECIPIENT_LABEL[info.recipientType ?? ""] ?? info.recipientType ?? "—",
+          subject: null,
+          status: row.event_type === "email_sent" ? (info.isResend ? "resent" : "sent") : "failed",
+          resend_id: null,
+          error_message: row.event_type === "email_failed" ? info.reason : null,
+          triggered_by: row.actor_label ?? null,
+          trigger_source: info.isResend ? "manual_resend" : null,
+          created_at: row.created_at,
+        };
+      });
+      emailRows = [...mapped, ...emailRows].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    }
+    setEmails(emailRows);
     const audits = (d.data ?? []) as unknown as DepositAudit[];
     setDepositAudits(audits);
     const auditUserIds = Array.from(new Set(audits.map((a) => a.user_id).filter(Boolean))) as string[];
