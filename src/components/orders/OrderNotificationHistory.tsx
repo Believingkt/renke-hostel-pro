@@ -262,6 +262,26 @@ export default function OrderNotificationHistory({
     }
   };
 
+  // 團購訂單：補寄團購專屬通知信（旅客／民宿），不會動到任何付款或訂單資料
+  const resendGroupBuy = async (target: "guest" | "venue") => {
+    setResendingType(`gb_${target}`);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-resend-notification", {
+        body: { orderIds: [orderId], targets: [target] },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const entry = (data as any)?.results?.[0]?.[target];
+      if (entry && entry.ok === false) throw new Error(entry.reason || "寄送失敗");
+      toast.success(target === "guest" ? "旅客通知信已補寄" : "民宿通知信已補寄");
+      await load();
+    } catch (err: any) {
+      toast.error(`補寄失敗：${err?.message || "unknown"}`);
+    } finally {
+      setResendingType(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
