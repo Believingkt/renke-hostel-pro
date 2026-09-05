@@ -16,6 +16,8 @@ interface Props {
   orderId: string;
   orderNumber?: string;
   canManage?: boolean;
+  /** 團購訂單（order_source = 'group_buy'）改讀團購稽核事件，並提供團購專屬補寄按鈕 */
+  orderSource?: string | null;
 }
 
 type PaymentEvent = {
