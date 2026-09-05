@@ -3,7 +3,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const LOGO_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/storage/v1/object/public/email-assets/lakeze-logo.png";
 
@@ -334,12 +334,11 @@ Deno.serve(async (req) => {
 
     const { subject, html } = renderTemplate(templateType as TemplateType, templateData || {});
 
-    const response = await fetch(`${GATEWAY_URL}/emails`, {
+    const response = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
         from: FROM_EMAIL,

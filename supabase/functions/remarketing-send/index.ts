@@ -10,7 +10,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const ADMIN_ROLES = ["super_admin", "admin", "hotel_admin", "owner"];
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const BRAND = { primary: "#d07218", foreground: "#2d3344", muted: "#6b7280" };
 
@@ -161,12 +161,11 @@ Deno.serve(async (req) => {
           : "";
         const html = emailHtml({ name, body: personalBody, ctaText, ctaUrl: trackUrl, products: productNames });
 
-        const resp = await fetch(`${GATEWAY_URL}/emails`, {
+        const resp = await fetch(RESEND_API_URL, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "X-Connection-Api-Key": RESEND_API_KEY,
+            Authorization: `Bearer ${RESEND_API_KEY}`,
           },
           body: JSON.stringify({ from: FROM_EMAIL, to: [sendRow.recipient], subject, html }),
         });

@@ -9,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "noreply@sensaninn.lakeze.com";
 const TO_EMAIL = "service@lakeze.com";
 
@@ -160,12 +160,11 @@ async function sendEmail(subject: string, text: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")}</pre>`;
 
-  const res = await fetch(`${GATEWAY_URL}/emails`, {
+  const res = await fetch(RESEND_API_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "X-Connection-Api-Key": RESEND_API_KEY,
+      Authorization: `Bearer ${RESEND_API_KEY}`,
     },
     body: JSON.stringify({
       from: FROM_EMAIL,

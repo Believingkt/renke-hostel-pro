@@ -19,7 +19,7 @@ const FILLUP_BASE_URL = Deno.env.get("FILLUP_BASE_URL") ?? "https://booking.lake
 // 透過 Lovable Connector Gateway 寄送，避免直接打 Resend 時遇到「網域未驗證」問題
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
 
 function randomToken(): string {
@@ -199,11 +199,10 @@ Deno.serve(async (req) => {
           dueAt: staging.pii_due_at ? new Date(staging.pii_due_at).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" }) : null,
         });
         try {
-          const resp = await fetch(`${GATEWAY_URL}/emails`, {
+          const resp = await fetch(RESEND_API_URL, {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": RESEND_API_KEY,
+              Authorization: `Bearer ${RESEND_API_KEY}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({

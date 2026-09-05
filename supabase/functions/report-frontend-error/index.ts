@@ -32,7 +32,7 @@ async function sendAlertEmail(
   },
 ): Promise<boolean> {
   const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const resendKey = Deno.env.get("RESEND_API_KEY");
+  const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
   if (!lovableKey || !resendKey) return false;
 
   const html = `
@@ -54,13 +54,12 @@ async function sendAlertEmail(
 
   try {
     const res = await fetch(
-      "https://connector-gateway.lovable.dev/resend/emails",
+      "https://api.resend.com/emails",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${lovableKey}`,
-          "X-Connection-Api-Key": resendKey,
+          Authorization: `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
           from: "Lakeze 監控告警 <onboarding@resend.dev>",
