@@ -62,7 +62,7 @@ async function sendAlertEmail(
           Authorization: `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
-          from: "Lakeze 監控告警 <onboarding@resend.dev>",
+          from: "Lakeze 監控告警 <noreply@lakeze.com>",
           to: recipients,
           subject: `⚠️ [Lakeze 前端] ${payload.errorType} 錯誤回報`,
           html,

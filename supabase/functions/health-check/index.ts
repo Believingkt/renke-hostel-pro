@@ -104,7 +104,7 @@ async function sendAlertEmail(
           Authorization: `Bearer ${resendKey}`,
         },
         body: JSON.stringify({
-          from: "Lakeze 監控告警 <onboarding@resend.dev>",
+          from: "Lakeze 監控告警 <noreply@lakeze.com>",
           to: recipients,
           subject,
           html: htmlBody,
