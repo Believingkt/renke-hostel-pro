@@ -560,17 +560,15 @@ export async function sendGroupBuyEmail(
     .map((v) => String(v ?? "").trim())
     .filter((v) => v.length > 0);
   if (recipients.length === 0) return { ok: false, reason: "no_email" };
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const resendKey = Deno.env.get("RESEND_API_KEY_1");
-  if (!lovableKey || !resendKey) return { ok: false, reason: "email_not_configured" };
+  const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) return { ok: false, reason: "email_not_configured" };
 
   try {
-    const resp = await fetch(`${GATEWAY_URL}/emails`, {
+    const resp = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": resendKey,
+        Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({ from: FROM_EMAIL, to: recipients, subject: mail.subject, html: mail.html }),
     });
