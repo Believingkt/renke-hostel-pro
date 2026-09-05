@@ -37,6 +37,7 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
+  special_requests?: string | null;
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
