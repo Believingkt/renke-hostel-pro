@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation, Link, useSearchParams as useSearch
 import { ArrowLeft, Mail, Home, ShoppingBag, Globe, UserPlus, CreditCard, XCircle, Pencil, Save, X, Minus, Plus, Trash2, LogIn, LogOut, Copy, Building2, MoreHorizontal, RefreshCw } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Megaphone } from "lucide-react";
-import { OrderMetaDrawer } from "@/components/orders/OrderMetaDrawer";
+import { CommissionEligibilityExceptionDialog } from "@/components/orders/CommissionEligibilityExceptionDialog";
 import { DealDateEditDialog } from "@/components/orders/DealDateEditDialog";
 import { isHoldOrder } from "@/lib/holdOrder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -2294,9 +2294,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <Pencil className="h-4 w-4 mr-2" />編輯
                   </Button>
                 )}
-                <Button variant="outline" onClick={() => setShowMetaDrawer(true)} className="text-sm">
-                  <Megaphone className="h-4 w-4 mr-2" />行銷／獎金
-                </Button>
+                {isSuperAdmin && (
+                  <Button variant="outline" onClick={() => setShowMetaDrawer(true)} className="text-sm">
+                    <Megaphone className="h-4 w-4 mr-2" />獎金資格例外
+                  </Button>
+                )}
                 {order.guest_email && (
                   <Button variant="outline" onClick={handleResendConfirmation} disabled={isSendingEmail} className="text-sm">
                     <Mail className="h-4 w-4 mr-2" />{isSendingEmail ? "發送中..." : "重發確認信"}
@@ -2351,9 +2353,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                         <Pencil className="mr-2 h-4 w-4" />編輯訂單
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem onClick={() => setShowMetaDrawer(true)} className="py-3">
-                      <Megaphone className="mr-2 h-4 w-4" />行銷／獎金
-                    </DropdownMenuItem>
+                    {isSuperAdmin && (
+                      <DropdownMenuItem onClick={() => setShowMetaDrawer(true)} className="py-3">
+                        <Megaphone className="mr-2 h-4 w-4" />獎金資格例外
+                      </DropdownMenuItem>
+                    )}
                     {order.guest_email && (
                       <DropdownMenuItem disabled={isSendingEmail} onClick={handleResendConfirmation} className="py-3">
                         <Mail className="mr-2 h-4 w-4" />{isSendingEmail ? "發送中..." : "重發確認信"}
@@ -4165,11 +4169,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <OrderMetaDrawer
-        orderId={showMetaDrawer ? order.id : null}
-        open={showMetaDrawer}
-        onClose={() => setShowMetaDrawer(false)}
-      />
+      {isSuperAdmin && (
+        <CommissionEligibilityExceptionDialog
+          orderId={showMetaDrawer ? order.id : null}
+          open={showMetaDrawer}
+          onClose={() => setShowMetaDrawer(false)}
+        />
+      )}
       {isSuperAdmin && (
         <DealDateEditDialog
           open={dealDateOpen}
