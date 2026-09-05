@@ -236,7 +236,7 @@ export default function OrderNotificationHistory({
     }
     setDepositCharges((c.data ?? []) as DepositCharge[]);
     setLoading(false);
-  }, [orderId]);
+  }, [orderId, isGroupBuy]);
 
 
   useEffect(() => {
