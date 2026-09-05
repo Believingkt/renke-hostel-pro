@@ -73,7 +73,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const caller = await resolveCaller(req);
+    const internalKey = Deno.env.get("GROUP_BUY_RESEND_INTERNAL_KEY");
+    const isInternal = !!internalKey && req.headers.get("x-internal-key") === internalKey;
+    const caller = isInternal
+      ? await resolveCaller(new Request(req.url, { method: "POST", headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` } }))
+      : await resolveCaller(req);
     if (!caller.ok) {
       return new Response(JSON.stringify({ error: caller.error }), {
         status: caller.status,
@@ -181,8 +185,11 @@ serve(async (req) => {
       },
     ];
 
+    const rawKeys = Array.isArray(body?.keys) ? body.keys.map((k: unknown) => String(k)) : null;
+    const selected = rawKeys && rawKeys.length > 0 ? mails.filter((m) => rawKeys.includes(m.key)) : mails;
+
     const results: { key: string; subject: string; ok: boolean; reason?: string }[] = [];
-    for (const m of mails) {
+    for (const m of selected) {
       const subject = `[測試樣本] ${m.mail.subject}`;
       const r = await sendGroupBuyEmail(to, { subject, html: m.mail.html });
       results.push({ key: m.key, subject, ok: r.ok, reason: r.reason });
