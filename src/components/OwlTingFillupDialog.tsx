@@ -475,6 +475,14 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
   }, [phase, roomAssignments, unitOverrides, unitsByType, busyByType, datesValid, roomTypes]);
 
 
+  // 訂單備註預覽（與 owlting-fillup-submit 寫入訂單備註的組成一致）
+  const specialRequestsText = String(stagingRow?.special_requests ?? "").trim();
+  const rawChannelLabel = String(stagingRow?.channel_source ?? "").trim();
+  const notesPreview = [
+    specialRequestsText ? `[特殊需求] ${specialRequestsText}` : null,
+    `奧丁丁訂單由業主補單 (OBE: ${stagingRow?.obe_number ?? ""}, ${stagingRow?.room_type_name ?? ""}${validAssignments.length > 1 ? `, ${validAssignments.length} 間` : ""}${rawChannelLabel ? `, 平台: ${rawChannelLabel}` : ""}, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"})${stagingRow?.auto_order_id ? " — 補齊自動鎖房訂單" : ""}`,
+  ].filter(Boolean).join("\n");
+
   const handleSubmit = async () => {
     if (!token) return;
     if (!guestName.trim() || !guestPhone.trim()) {
