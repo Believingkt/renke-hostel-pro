@@ -73,7 +73,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const caller = await resolveCaller(req);
+    const internalKey = Deno.env.get("GROUP_BUY_RESEND_INTERNAL_KEY");
+    const isInternal = !!internalKey && req.headers.get("x-internal-key") === internalKey;
+    const caller = isInternal
+      ? await resolveCaller(new Request(req.url, { method: "POST", headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` } }))
+      : await resolveCaller(req);
     if (!caller.ok) {
       return new Response(JSON.stringify({ error: caller.error }), {
         status: caller.status,
