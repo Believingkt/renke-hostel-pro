@@ -5,10 +5,9 @@ export async function sendPaymentAlertEmail(
   subject: string,
   html: string,
 ): Promise<boolean> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
-  const resendKey = Deno.env.get("RESEND_API_KEY");
-  if (!lovableKey || !resendKey) {
-    console.error("[paymentAlert] Missing LOVABLE_API_KEY or RESEND_API_KEY");
+  const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
+  if (!resendKey) {
+    console.error("[paymentAlert] Missing RESEND_API_KEY_LAKEZE / RESEND_API_KEY");
     return false;
   }
 
@@ -25,15 +24,14 @@ export async function sendPaymentAlertEmail(
   }
 
   try {
-    const res = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+    const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableKey}`,
-        "X-Connection-Api-Key": resendKey,
+        Authorization: `Bearer ${resendKey}`,
       },
       body: JSON.stringify({
-        from: "Lakeze 金流告警 <onboarding@resend.dev>",
+        from: "人客多金流告警 <noreply@lakeze.com>",
         to: emails,
         subject,
         html,
