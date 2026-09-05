@@ -144,7 +144,20 @@ const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructiv
 type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_received";
 
 
-export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
+function parseGroupBuyNote(note: string | null) {
+  const get = (key: string) => note?.match(new RegExp(`${key}:([^／/\\s]+)`))?.[1] ?? null;
+  return {
+    recipientType: get("recipient_type"),
+    templateType: get("template_type"),
+    reason: note?.match(/reason:(.+)$/)?.[1] ?? null,
+    isResend: /resend:true/.test(note ?? ""),
+  };
+}
+
+export default function OrderNotificationHistory({
+  orderId, orderNumber, canManage = false, orderSource = null,
+}: Props) {
+  const isGroupBuy = orderSource === "group_buy";
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
