@@ -105,6 +105,18 @@ const EMAIL_TYPE_LABEL: Record<string, string> = {
   deposit_received: "訂金已收到",
   final_payment_received: "尾款已收到",
   order_cancelled: "訂單取消通知",
+  // 團購專屬模板
+  booking_pending: "團購訂房成立・待匯款",
+  venue_new_order: "民宿端・新團購訂單",
+  guest_reported_transfer: "民宿端・客人回報匯款",
+  order_expired: "團購逾期取消通知",
+  refund_completed: "退款完成通知",
+  cancel_request_received: "已收到取消申請",
+};
+
+const GROUP_BUY_RECIPIENT_LABEL: Record<string, string> = {
+  guest: "旅客",
+  venue: "民宿／管理者",
 };
 
 const EMAIL_STATUS_LABEL: Record<string, string> = {
