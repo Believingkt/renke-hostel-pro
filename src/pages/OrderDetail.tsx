@@ -3921,6 +3921,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         <OrderNotificationHistory
           orderId={order.id}
           orderNumber={order.order_number}
+          orderSource={order.order_source}
           canManage={isAdminUser || canEditOrders}
         />
       )}
