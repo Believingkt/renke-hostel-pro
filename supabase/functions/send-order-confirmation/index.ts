@@ -70,11 +70,17 @@ serve(async (req: Request) => {
 
     const { data: orderRow } = await supabase
       .from("orders")
-      .select("guest_email")
+      .select("guest_email, order_source")
       .eq("order_number", orderNumber)
       .maybeSingle();
 
     if (!orderRow) return json({ success: false, error: "找不到指定的訂單" }, 404);
+
+    // 團購訂單只寄團購專屬信；共用訂房確認信一律不寄（預覽模式除外）
+    if (orderRow.order_source === "group_buy" && body?.preview !== true) {
+      console.log("[send-order-confirmation] group_buy order, skip shared confirmation", orderNumber);
+      return json({ success: false, error: "團購訂單不寄送共用訂房確認信", skipped: "group_buy" }, 200);
+    }
 
     if (!isServiceCall) {
       const { data: userData } = await supabase.auth.getUser(token);
