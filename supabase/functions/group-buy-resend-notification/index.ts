@@ -33,7 +33,13 @@ function nightsBetween(a: string | null, b: string | null): number | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const caller = await resolveCaller(req);
+  // 內部維運金鑰（僅供後端補寄工具使用）；一般後台呼叫仍走使用者 JWT 權限檢查
+  const internalKey = Deno.env.get("GROUP_BUY_RESEND_INTERNAL_KEY");
+  const isInternal = !!internalKey && req.headers.get("x-internal-key") === internalKey;
+
+  const caller = isInternal
+    ? await resolveCaller(new Request(req.url, { method: "POST", headers: { Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""}` } }))
+    : await resolveCaller(req);
   if (!caller.ok) return json({ error: caller.error }, caller.status);
   const { ctx } = caller;
   const admin = ctx.admin;
