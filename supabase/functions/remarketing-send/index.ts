@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     const channel = campaign.channel === "line_share" ? "line_share" : "email";
     const funcBase = `${supabaseUrl}/functions/v1`;
 
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1");
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const results: any[] = [];

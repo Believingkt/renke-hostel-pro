@@ -151,7 +151,7 @@ function applyVars(tpl: string, vars: Record<string, string>): string {
 // ── Resend ─────────────────────────────────────────────────
 async function sendEmail(subject: string, text: string) {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_1") || Deno.env.get("RESEND_API_KEY");
+  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") || Deno.env.get("RESEND_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
   if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY missing");
 
