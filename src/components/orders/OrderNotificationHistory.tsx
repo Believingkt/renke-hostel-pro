@@ -295,7 +295,22 @@ export default function OrderNotificationHistory({
             <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
               <RefreshCcw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            {canManage && (
+            {canManage && (isGroupBuy ? (
+              <>
+                <ResendButton
+                  label="補寄旅客通知信"
+                  description="依訂單目前付款狀態，重新寄出團購旅客通知信（待匯款或已收款版本）。"
+                  loading={resendingType === "gb_guest"}
+                  onConfirm={() => resendGroupBuy("guest")}
+                />
+                <ResendButton
+                  label="補寄民宿通知信"
+                  description="重新寄出團購新訂單通知給民宿／管理者收件人。"
+                  loading={resendingType === "gb_venue"}
+                  onConfirm={() => resendGroupBuy("venue")}
+                />
+              </>
+            ) : (
               <>
                 <ResendButton
                   label="重送訂房確認"
@@ -316,7 +331,7 @@ export default function OrderNotificationHistory({
                   onConfirm={() => resend("final_payment_received")}
                 />
               </>
-            )}
+            ))}
           </div>
         </div>
       </CardHeader>
