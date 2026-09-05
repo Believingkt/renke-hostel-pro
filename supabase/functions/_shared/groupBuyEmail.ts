@@ -7,8 +7,8 @@ import { cancellationPolicyCopy, renderCancellationPolicyHtml } from "./cancella
 import type { CancellationPolicyType } from "./cancellationPolicy.ts";
 
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
-const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
+const RESEND_API_URL = "https://api.resend.com/emails";
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多通知 <noreply@lakeze.com>";
 const LOGO_URL =
   "https://dmafqwfynatdvnaeovhz.supabase.co/storage/v1/object/public/email-assets/lakeze-logo.png";
 
