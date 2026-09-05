@@ -177,8 +177,9 @@ async function sendConversionEmails(
       event_type: mail.ok ? "email_sent" : "email_failed",
       actor_label: "system",
       note: mail.ok
-        ? "recipient_type:guest／template_type:deposit_received／recipient_count:1／provider:tappay／payment_type:credit_card"
-        : `recipient_type:guest／template_type:deposit_received／provider:tappay／payment_type:credit_card／reason:${mail.reason ?? "unknown"}`,
+        ? "recipient_type:guest／template_type:full_payment_received／recipient_count:1／provider:tappay／payment_type:credit_card"
+        : `recipient_type:guest／template_type:full_payment_received／provider:tappay／payment_type:credit_card／reason:${mail.reason ?? "unknown"}`,
+
     });
   }
 
