@@ -2299,11 +2299,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <Megaphone className="h-4 w-4 mr-2" />獎金資格例外
                   </Button>
                 )}
-                {order.guest_email && (
-                  <Button variant="outline" onClick={handleResendConfirmation} disabled={isSendingEmail} className="text-sm">
-                    <Mail className="h-4 w-4 mr-2" />{isSendingEmail ? "發送中..." : "重發確認信"}
-                  </Button>
-                )}
                 {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
                   <Button variant="outline" className="text-sm" disabled={isSyncingRefund} onClick={handleSyncTapPayRefund}>
                     <CreditCard className="h-4 w-4 mr-2" />{isSyncingRefund ? "同步中..." : "同步 TapPay 退款狀態"}
@@ -2356,11 +2351,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     {isSuperAdmin && (
                       <DropdownMenuItem onClick={() => setShowMetaDrawer(true)} className="py-3">
                         <Megaphone className="mr-2 h-4 w-4" />獎金資格例外
-                      </DropdownMenuItem>
-                    )}
-                    {order.guest_email && (
-                      <DropdownMenuItem disabled={isSendingEmail} onClick={handleResendConfirmation} className="py-3">
-                        <Mail className="mr-2 h-4 w-4" />{isSendingEmail ? "發送中..." : "重發確認信"}
                       </DropdownMenuItem>
                     )}
                     {isAdminUser && order.notes && /rec_trade_id/i.test(order.notes) && (
@@ -3922,6 +3912,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           orderId={order.id}
           orderNumber={order.order_number}
           orderSource={order.order_source}
+          paymentMethod={order.payment_method}
           canManage={isAdminUser || canEditOrders}
         />
       )}

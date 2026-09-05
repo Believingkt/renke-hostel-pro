@@ -18,6 +18,8 @@ interface Props {
   canManage?: boolean;
   /** 團購訂單（order_source = 'group_buy'）改讀團購稽核事件，並提供團購專屬補寄按鈕 */
   orderSource?: string | null;
+  /** 付款方式（orders.payment_method）：用於決定團購補寄按鈕要顯示哪幾封 */
+  paymentMethod?: string | null;
 }
 
 type PaymentEvent = {
@@ -157,9 +159,11 @@ function parseGroupBuyNote(note: string | null) {
 }
 
 export default function OrderNotificationHistory({
-  orderId, orderNumber, canManage = false, orderSource = null,
+  orderId, orderNumber, canManage = false, orderSource = null, paymentMethod = null,
 }: Props) {
   const isGroupBuy = orderSource === "group_buy";
+  // 信用卡團購單一律全額付清，只會有「訂房確認・已完成全額付款」這封旅客信
+  const isCardOrder = typeof paymentMethod === "string" && /credit|card|tappay/i.test(paymentMethod);
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
@@ -303,24 +307,29 @@ export default function OrderNotificationHistory({
             </Button>
             {canManage && (isGroupBuy ? (
               <>
-                <ResendButton
-                  label="補寄旅客通知信：訂房成立・待匯款"
-                  description="重新寄出「團購訂房成立・待匯款」通知（含匯款帳號與付款期限）。"
-                  loading={resendingType === "gb_guest_booking_pending"}
-                  onConfirm={() => resendGroupBuy("guest", "booking_pending", "gb_guest_booking_pending")}
-                />
-                <ResendButton
-                  label="補寄旅客通知信：訂金已收到"
-                  description="重新寄出「訂房確認・已收到訂金」通知（尾款現場付清版本）。"
-                  loading={resendingType === "gb_guest_deposit"}
-                  onConfirm={() => resendGroupBuy("guest", "deposit_received", "gb_guest_deposit")}
-                />
-                <ResendButton
-                  label="補寄旅客通知信：全額付款完成"
-                  description="重新寄出「訂房確認・已完成付款」通知（信用卡全額付款版本，入住當天無需再付款）。"
-                  loading={resendingType === "gb_guest_full"}
-                  onConfirm={() => resendGroupBuy("guest", "full_payment", "gb_guest_full")}
-                />
+                {isCardOrder ? (
+                  <ResendButton
+                    label="補寄旅客通知信：全額付款完成"
+                    description="重新寄出「訂房確認・已完成付款」通知（信用卡全額付款版本，入住當天無需再付款）。"
+                    loading={resendingType === "gb_guest_full"}
+                    onConfirm={() => resendGroupBuy("guest", "full_payment", "gb_guest_full")}
+                  />
+                ) : (
+                  <>
+                    <ResendButton
+                      label="補寄旅客通知信：訂房成立・待匯款"
+                      description="重新寄出「團購訂房成立・待匯款」通知（含匯款帳號與付款期限）。"
+                      loading={resendingType === "gb_guest_booking_pending"}
+                      onConfirm={() => resendGroupBuy("guest", "booking_pending", "gb_guest_booking_pending")}
+                    />
+                    <ResendButton
+                      label="補寄旅客通知信：訂金已收到"
+                      description="重新寄出「訂房確認・已收到訂金」通知（尾款現場付清版本）。"
+                      loading={resendingType === "gb_guest_deposit"}
+                      onConfirm={() => resendGroupBuy("guest", "deposit_received", "gb_guest_deposit")}
+                    />
+                  </>
+                )}
                 <ResendButton
                   label="補寄民宿通知信"
                   description="重新寄出團購新訂單通知給民宿／管理者收件人。"
