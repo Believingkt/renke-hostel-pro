@@ -302,7 +302,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const canManageOrders = canEditModule("orders");
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState<OrderDetail | null>(null);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isSyncingRefund, setIsSyncingRefund] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -2068,69 +2067,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       });
     } finally {
       setIsSyncingRefund(false);
-    }
-  };
-
-  const handleResendConfirmation = async () => {
-    if (!order || !order.guest_email) {
-      toast({
-        title: "無法發送郵件",
-        description: "此訂單沒有電子郵件地址",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSendingEmail(true);
-    try {
-      const mealPlanDetailsForEmail = (order.meal_plan_details || []).map(detail => ({
-        date: format(new Date(detail.date), "MM/dd"),
-        count: detail.count,
-        price: detail.price
-      }));
-
-      const { error: emailError } = await supabase.functions.invoke(
-        "send-booking-confirmation",
-        {
-          body: {
-            triggerSource: "manual_resend",
-            guestName: order.guest_name,
-            guestEmail: order.guest_email,
-            orderNumber: order.order_number,
-            roomName: order.room_types?.name || "房型資訊不完整",
-            checkInDate: order.check_in_date,
-            checkOutDate: order.check_out_date,
-            guestCount: order.guest_count,
-            mealPlan: order.meal_plan || "2_meals",
-            mealPlanDisplayName: getMealPlanDisplayName(order.meal_plan),
-            finalPrice: order.final_price,
-            depositAmount: order.deposit_amount,
-            paymentMethod: order.payment_method || "未指定",
-            petCount: order.pet_count > 0 ? order.pet_count : undefined,
-            petPlanPrice: order.pet_plan_price > 0 ? order.pet_plan_price : undefined,
-            mealPlanDetails: mealPlanDetailsForEmail.length > 0 ? mealPlanDetailsForEmail : undefined,
-            mealPlanTotal: order.meal_plan_total > 0 ? order.meal_plan_total : undefined,
-          },
-        }
-      );
-
-      if (emailError) {
-        throw emailError;
-      }
-
-      toast({
-        title: "郵件發送成功",
-        description: `確認信已重新發送至 ${order.guest_email}`,
-      });
-    } catch (error) {
-      console.error("重發確認郵件失敗:", error);
-      toast({
-        title: "郵件發送失敗",
-        description: "無法發送確認郵件，請稍後再試",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingEmail(false);
     }
   };
 
