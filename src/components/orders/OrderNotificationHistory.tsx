@@ -16,6 +16,8 @@ interface Props {
   orderId: string;
   orderNumber?: string;
   canManage?: boolean;
+  /** 團購訂單（order_source = 'group_buy'）改讀團購稽核事件，並提供團購專屬補寄按鈕 */
+  orderSource?: string | null;
 }
 
 type PaymentEvent = {
@@ -103,6 +105,18 @@ const EMAIL_TYPE_LABEL: Record<string, string> = {
   deposit_received: "訂金已收到",
   final_payment_received: "尾款已收到",
   order_cancelled: "訂單取消通知",
+  // 團購專屬模板
+  booking_pending: "團購訂房成立・待匯款",
+  venue_new_order: "民宿端・新團購訂單",
+  guest_reported_transfer: "民宿端・客人回報匯款",
+  order_expired: "團購逾期取消通知",
+  refund_completed: "退款完成通知",
+  cancel_request_received: "已收到取消申請",
+};
+
+const GROUP_BUY_RECIPIENT_LABEL: Record<string, string> = {
+  guest: "旅客",
+  venue: "民宿／管理者",
 };
 
 const EMAIL_STATUS_LABEL: Record<string, string> = {
@@ -130,7 +144,20 @@ const EMAIL_STATUS_VARIANT: Record<string, "default" | "secondary" | "destructiv
 type ResendType = "booking_confirmation" | "deposit_received" | "final_payment_received";
 
 
-export default function OrderNotificationHistory({ orderId, orderNumber, canManage = false }: Props) {
+function parseGroupBuyNote(note: string | null) {
+  const get = (key: string) => note?.match(new RegExp(`${key}:([^／/\\s]+)`))?.[1] ?? null;
+  return {
+    recipientType: get("recipient_type"),
+    templateType: get("template_type"),
+    reason: note?.match(/reason:(.+)$/)?.[1] ?? null,
+    isResend: /resend:true/.test(note ?? ""),
+  };
+}
+
+export default function OrderNotificationHistory({
+  orderId, orderNumber, canManage = false, orderSource = null,
+}: Props) {
+  const isGroupBuy = orderSource === "group_buy";
   const [payments, setPayments] = useState<PaymentEvent[]>([]);
   const [emails, setEmails] = useState<EmailEvent[]>([]);
   const [depositAudits, setDepositAudits] = useState<DepositAudit[]>([]);
@@ -168,7 +195,36 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
         .limit(50),
     ]);
     setPayments((p.data ?? []) as PaymentEvent[]);
-    setEmails((e.data ?? []) as EmailEvent[]);
+    let emailRows = (e.data ?? []) as EmailEvent[];
+    if (isGroupBuy) {
+      // 團購訂單的通知信紀錄寫在 group_buy_payment_events（email_sent / email_failed）
+      const { data: gb } = await supabase
+        .from("group_buy_payment_events")
+        .select("id, event_type, actor_label, note, created_at")
+        .eq("order_id", orderId)
+        .in("event_type", ["email_sent", "email_failed"])
+        .order("created_at", { ascending: false })
+        .limit(50);
+      const mapped: EmailEvent[] = (gb ?? []).map((row: any) => {
+        const info = parseGroupBuyNote(row.note);
+        return {
+          id: row.id,
+          email_type: info.templateType ?? "group_buy_email",
+          recipient: GROUP_BUY_RECIPIENT_LABEL[info.recipientType ?? ""] ?? info.recipientType ?? "—",
+          subject: null,
+          status: row.event_type === "email_sent" ? (info.isResend ? "resent" : "sent") : "failed",
+          resend_id: null,
+          error_message: row.event_type === "email_failed" ? info.reason : null,
+          triggered_by: row.actor_label ?? null,
+          trigger_source: info.isResend ? "manual_resend" : null,
+          created_at: row.created_at,
+        };
+      });
+      emailRows = [...mapped, ...emailRows].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    }
+    setEmails(emailRows);
     const audits = (d.data ?? []) as unknown as DepositAudit[];
     setDepositAudits(audits);
     const auditUserIds = Array.from(new Set(audits.map((a) => a.user_id).filter(Boolean))) as string[];
@@ -180,7 +236,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
     }
     setDepositCharges((c.data ?? []) as DepositCharge[]);
     setLoading(false);
-  }, [orderId]);
+  }, [orderId, isGroupBuy]);
 
 
   useEffect(() => {
@@ -206,6 +262,26 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
     }
   };
 
+  // 團購訂單：補寄團購專屬通知信（旅客／民宿），不會動到任何付款或訂單資料
+  const resendGroupBuy = async (target: "guest" | "venue") => {
+    setResendingType(`gb_${target}`);
+    try {
+      const { data, error } = await supabase.functions.invoke("group-buy-resend-notification", {
+        body: { orderIds: [orderId], targets: [target] },
+      });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      const entry = (data as any)?.results?.[0]?.[target];
+      if (entry && entry.ok === false) throw new Error(entry.reason || "寄送失敗");
+      toast.success(target === "guest" ? "旅客通知信已補寄" : "民宿通知信已補寄");
+      await load();
+    } catch (err: any) {
+      toast.error(`補寄失敗：${err?.message || "unknown"}`);
+    } finally {
+      setResendingType(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -219,7 +295,22 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
             <Button variant="ghost" size="sm" onClick={load} disabled={loading}>
               <RefreshCcw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             </Button>
-            {canManage && (
+            {canManage && (isGroupBuy ? (
+              <>
+                <ResendButton
+                  label="補寄旅客通知信"
+                  description="依訂單目前付款狀態，重新寄出團購旅客通知信（待匯款或已收款版本）。"
+                  loading={resendingType === "gb_guest"}
+                  onConfirm={() => resendGroupBuy("guest")}
+                />
+                <ResendButton
+                  label="補寄民宿通知信"
+                  description="重新寄出團購新訂單通知給民宿／管理者收件人。"
+                  loading={resendingType === "gb_venue"}
+                  onConfirm={() => resendGroupBuy("venue")}
+                />
+              </>
+            ) : (
               <>
                 <ResendButton
                   label="重送訂房確認"
@@ -240,7 +331,7 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
                   onConfirm={() => resend("final_payment_received")}
                 />
               </>
-            )}
+            ))}
           </div>
         </div>
       </CardHeader>
@@ -380,8 +471,14 @@ export default function OrderNotificationHistory({ orderId, orderNumber, canMana
 }
 
 function ResendButton({
-  label, emailType, loading, onConfirm,
-}: { label: string; emailType: string; loading: boolean; onConfirm: () => void }) {
+  label, emailType, description, loading, onConfirm,
+}: {
+  label: string;
+  emailType?: string;
+  description?: string;
+  loading: boolean;
+  onConfirm: () => void;
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -394,7 +491,11 @@ function ResendButton({
         <AlertDialogHeader>
           <AlertDialogTitle>確認重送 {label}？</AlertDialogTitle>
           <AlertDialogDescription>
-            將重新寄送 <strong>{EMAIL_TYPE_LABEL[emailType] || emailType}</strong> 給訂單客人。此動作不會影響付款流程。
+            {description ?? (
+              <>
+                將重新寄送 <strong>{EMAIL_TYPE_LABEL[emailType ?? ""] || emailType}</strong> 給訂單客人。此動作不會影響付款流程。
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
