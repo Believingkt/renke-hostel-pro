@@ -223,7 +223,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: `${accommodationName} <onboarding@resend.dev>`,
+        from: `${accommodationName} <noreply@lakeze.com>`,
         to: [guestEmail],
         subject: `訂單取消通知 - ${orderNumber}`,
         html: emailHtml,

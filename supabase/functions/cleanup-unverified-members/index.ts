@@ -9,8 +9,8 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
+const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 
 const DEFAULT_DAYS = 7;
@@ -44,12 +44,11 @@ async function sendNotice(to: string, days: number): Promise<boolean> {
   <p style="color:#6b7280;font-size:12px;margin:0">此為系統自動發送，請勿直接回覆。</p>
 </div></body></html>`);
   try {
-    const r = await fetch(`${GATEWAY_URL}/emails`, {
+    const r = await fetch(RESEND_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": RESEND_API_KEY,
+        Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject, html }),
     });
