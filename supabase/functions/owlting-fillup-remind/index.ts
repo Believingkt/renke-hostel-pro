@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
     // 主動把不再「待補」的列結束掉：取消→skipped、已過退房→expired，
     // 讓列表不再掛著「待補」狀態，也不會再被任何流程提醒。
     const staleCancelled = (candidates ?? []).filter((r: any) => isCancelledOrder(r));
-    const stalePast = (candidates ?? []).filter((r: any) => !isCancelled(r) && isPast(r));
+    const stalePast = (candidates ?? []).filter((r: any) => !isCancelledOrder(r) && isPast(r));
     if (staleCancelled.length > 0) {
       await admin.from("owlting_email_parsed_staging")
         .update({ pii_status: "skipped" })
@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
 
     // Filter rows whose initial notified_at is also older than 24h (covers null last_reminder_at)
     const due = (candidates ?? []).filter((r: any) => {
-      if (isCancelled(r) || isPast(r)) return false;
+      if (isCancelledOrder(r) || isPast(r)) return false;
       const ref = r.last_reminder_at ?? r.notified_at;
       return ref && new Date(ref).toISOString() < cutoff;
     });
