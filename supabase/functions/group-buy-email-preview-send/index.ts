@@ -168,7 +168,7 @@ serve(async (req) => {
         }),
       },
       { key: "venue_new_order", mail: renderVenueNewOrder(venueSample) },
-      { key: "venue_new_order_full_payment", mail: renderVenueNewOrder(venueSample, { fullPayment: true }) },
+      { key: "venue_new_order_full_payment", mail: renderVenueNewOrder({ ...venueSample, ...cardSample, paymentStatusText: "已全額付款" }, { fullPayment: true }) },
       {
         key: "venue_transfer_reported",
         mail: renderVenueTransferReported(venueSample, {
