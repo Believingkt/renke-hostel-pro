@@ -37,6 +37,7 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
+  special_requests?: string | null;
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
@@ -115,7 +116,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, auto_order_id")
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, special_requests, auto_order_id")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -473,6 +474,14 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     setUnitPreviews(results);
   }, [phase, roomAssignments, unitOverrides, unitsByType, busyByType, datesValid, roomTypes]);
 
+
+  // 訂單備註預覽（與 owlting-fillup-submit 寫入訂單備註的組成一致）
+  const specialRequestsText = String(stagingRow?.special_requests ?? "").trim();
+  const rawChannelLabel = String(stagingRow?.channel_source ?? "").trim();
+  const notesPreview = [
+    specialRequestsText ? `[特殊需求] ${specialRequestsText}` : null,
+    `奧丁丁訂單由業主補單 (OBE: ${stagingRow?.obe_number ?? ""}, ${stagingRow?.room_type_name ?? ""}${validAssignments.length > 1 ? `, ${validAssignments.length} 間` : ""}${rawChannelLabel ? `, 平台: ${rawChannelLabel}` : ""}, 付款: ${paymentStatus === "paid" ? "已付清" : "待結清"})${stagingRow?.auto_order_id ? " — 補齊自動鎖房訂單" : ""}`,
+  ].filter(Boolean).join("\n");
 
   const handleSubmit = async () => {
     if (!token) return;
@@ -886,6 +895,20 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
               </div>
             </div>
 
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+              <div className="text-sm font-medium">訂單備註預覽</div>
+              <p className="text-[11px] text-muted-foreground">以下內容會原樣寫入訂單備註欄位</p>
+              <pre className="whitespace-pre-wrap break-words text-xs leading-relaxed font-mono">
+{notesPreview}
+              </pre>
+              {specialRequestsText ? (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  ✓ 已偵測到信件特殊需求（含早餐等），將以 [特殊需求] 開頭寫入
+                </p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">此信件未解析到特殊需求</p>
+              )}
+            </div>
 
 
             {/* Auto-assignment preview */}
