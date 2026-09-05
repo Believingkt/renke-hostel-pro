@@ -87,9 +87,10 @@ export default function OwlTingFillup() {
 
   const specialRequests = String(staging?.special_requests ?? "").trim();
   const roomCount = Number(staging?.room_quantity ?? 1);
+  const channelLabel = String(staging?.channel_source ?? "").trim();
   const notesPreview = [
     specialRequests ? `[特殊需求] ${specialRequests}` : null,
-    `奧丁丁訂單由業主補單 (OBE: ${staging?.obe_number ?? ""}, ${staging?.room_type_name ?? ""}${roomCount > 1 ? `, ${roomCount} 間` : ""}, 付款: ${staging?.payment_status === "paid" ? "已付清" : "待結清"})`,
+    `奧丁丁訂單由業主補單 (OBE: ${staging?.obe_number ?? ""}, ${staging?.room_type_name ?? ""}${roomCount > 1 ? `, ${roomCount} 間` : ""}${channelLabel ? `, 平台: ${channelLabel}` : ""}, 付款: ${staging?.payment_status === "paid" ? "已付清" : "待結清"})`,
   ].filter(Boolean).join("\n");
 
   const copyObe = () => {
