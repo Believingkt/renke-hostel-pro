@@ -471,8 +471,14 @@ export default function OrderNotificationHistory({
 }
 
 function ResendButton({
-  label, emailType, loading, onConfirm,
-}: { label: string; emailType: string; loading: boolean; onConfirm: () => void }) {
+  label, emailType, description, loading, onConfirm,
+}: {
+  label: string;
+  emailType?: string;
+  description?: string;
+  loading: boolean;
+  onConfirm: () => void;
+}) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -485,7 +491,11 @@ function ResendButton({
         <AlertDialogHeader>
           <AlertDialogTitle>確認重送 {label}？</AlertDialogTitle>
           <AlertDialogDescription>
-            將重新寄送 <strong>{EMAIL_TYPE_LABEL[emailType] || emailType}</strong> 給訂單客人。此動作不會影響付款流程。
+            {description ?? (
+              <>
+                將重新寄送 <strong>{EMAIL_TYPE_LABEL[emailType ?? ""] || emailType}</strong> 給訂單客人。此動作不會影響付款流程。
+              </>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
