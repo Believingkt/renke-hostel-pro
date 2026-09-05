@@ -109,11 +109,14 @@ export interface GroupBuyEmailOrder {
 
 /** 取消政策區塊（與一般訂房信共用同一份文案來源） */
 function cancellationBlock(o: GroupBuyEmailOrder): string {
-  if (!o.cancellationPolicy) return "";
+  // 全額預收（信用卡一次付清）一律顯示全額預收級距，不得沿用訂金制文案
+  const policy = o.fullPrepayment === true ? "full_prepayment" : o.cancellationPolicy;
+  if (!policy) return "";
   return `<div class="box">${
-    renderCancellationPolicyHtml(cancellationPolicyCopy(o.cancellationPolicy))
+    renderCancellationPolicyHtml(cancellationPolicyCopy(policy))
   }</div>`;
 }
+
 
 
 export interface GroupBuyBankInfo {

@@ -106,17 +106,31 @@ serve(async (req) => {
       note: "請以訂單編號為備註",
     };
 
+    /** 信用卡全額付款樣本：取消政策必須為全額預收制 */
+    const cardSample: GroupBuyEmailOrder = {
+      ...sample,
+      isCardOrder: true,
+      fullPrepayment: true,
+      paidAmount: 24000,
+      depositAmount: 0,
+      balanceAmount: 0,
+      cancellationPolicy: "full_prepayment",
+      paymentMethodText: "信用卡（3D 驗證）",
+      refundChannelText: "原信用卡退刷（TapPay）",
+    };
+
     const mails: { key: string; mail: { subject: string; html: string } }[] = [
       { key: "guest_booking_with_bank_info", mail: renderBookingWithBankInfo(sample, bank) },
       { key: "guest_deposit_received", mail: renderDepositReceived(sample, { providerLabel: "ATM 虛擬帳號轉帳", paidThisTime: 8000 }) },
       {
         key: "guest_full_payment_received",
-        mail: renderDepositReceived({ ...sample, isCardOrder: true, fullPrepayment: true, paidAmount: 24000 }, {
+        mail: renderDepositReceived(cardSample, {
           providerLabel: "信用卡（3D 驗證）",
           paidThisTime: 24000,
           fullPayment: true,
         }),
       },
+
       { key: "guest_expired_cancelled", mail: renderExpiredCancelled(sample) },
       { key: "guest_atm_deadline_expired", mail: renderAtmDeadlineExpired(sample, "2026/09/08 23:59") },
       {
@@ -154,7 +168,7 @@ serve(async (req) => {
         }),
       },
       { key: "venue_new_order", mail: renderVenueNewOrder(venueSample) },
-      { key: "venue_new_order_full_payment", mail: renderVenueNewOrder(venueSample, { fullPayment: true }) },
+      { key: "venue_new_order_full_payment", mail: renderVenueNewOrder({ ...venueSample, ...cardSample, paymentStatusText: "已全額付款" }, { fullPayment: true }) },
       {
         key: "venue_transfer_reported",
         mail: renderVenueTransferReported(venueSample, {
