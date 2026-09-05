@@ -55,6 +55,12 @@ Deno.serve(async (req) => {
     );
     if (ids.length === 0 && numbers.length === 0) return json({ error: "缺少 orderIds 或 orderNumbers" }, 400);
 
+    // 測試副本：指定時，所有信件改寄到此信箱（不寄給旅客／民宿），且不寫入稽核事件
+    const previewToRaw = String((body as any).previewTo ?? "").trim().toLowerCase();
+    const previewTo = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(previewToRaw) ? previewToRaw : null;
+    const withPreviewSubject = (m: { subject: string; html: string }) =>
+      previewTo ? { subject: `[副本] ${m.subject}`, html: m.html } : m;
+
     let query = admin.from("orders").select("*").eq("order_source", "group_buy");
     query = ids.length > 0 ? query.in("id", ids) : query.in("order_number", numbers);
     const { data: orders, error: oErr } = await query;
@@ -122,9 +128,9 @@ Deno.serve(async (req) => {
             .maybeSingle();
           mail = renderBookingWithBankInfo(emailOrder, bankToInfo(bankRow));
         }
-        const sent = await sendGroupBuyEmail(order.guest_email, mail);
+        const sent = await sendGroupBuyEmail(previewTo ?? order.guest_email, withPreviewSubject(mail));
         entry.guest = sent;
-        await admin.from("group_buy_payment_events").insert({
+        if (!previewTo) await admin.from("group_buy_payment_events").insert({
           campaign_id: campaign?.id ?? null,
           order_id: order.id,
           event_type: sent.ok ? "email_sent" : "email_failed",
@@ -142,12 +148,12 @@ Deno.serve(async (req) => {
           accommodationId: order.accommodation_id,
           campaignId: campaign?.id ?? null,
         });
-        if (venueEmails.length === 0) {
+        if (venueEmails.length === 0 && !previewTo) {
           entry.venue = { ok: false, reason: "no_recipients" };
         } else {
           const venueMail = await sendGroupBuyEmail(
-            venueEmails,
-            renderVenueNewOrder({
+            previewTo ?? venueEmails,
+            withPreviewSubject(renderVenueNewOrder({
               ...emailOrder,
               guestPhone: order.guest_phone ?? null,
               guestEmail: order.guest_email ?? null,
@@ -162,10 +168,10 @@ Deno.serve(async (req) => {
                 campaignId: campaign?.id ?? null,
                 orderNumber: order.order_number,
               }),
-            }, { fullPayment }),
+            }, { fullPayment })),
           );
           entry.venue = venueMail;
-          await admin.from("group_buy_payment_events").insert({
+          if (!previewTo) await admin.from("group_buy_payment_events").insert({
             campaign_id: campaign?.id ?? null,
             order_id: order.id,
             event_type: venueMail.ok ? "email_sent" : "email_failed",
