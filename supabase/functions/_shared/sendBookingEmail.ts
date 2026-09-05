@@ -24,7 +24,7 @@ export async function sendBookingConfirmationByOrderId(
   const { data: order, error } = await supabase
     .from("orders")
     .select(
-      `id, order_number, guest_name, guest_email,
+      `id, order_number, guest_name, guest_email, order_source,
        check_in_date, check_out_date, guest_count, meal_plan,
        final_price, pet_count, pet_plan_price,
        meal_plan_details, meal_plan_total,
@@ -36,6 +36,12 @@ export async function sendBookingConfirmationByOrderId(
   if (error || !order) {
     console.error("[sendBookingEmail] order not found", { orderId, error });
     return { ok: false, reason: "order_not_found" };
+  }
+  // 團購訂單有自己一整套通知信（_shared/groupBuyEmail.ts），
+  // 不得再寄全站共用的訂房確認信，避免客人同時收到兩封重複內容。
+  if (order.order_source === "group_buy") {
+    console.log("[sendBookingEmail] group_buy order, skip shared confirmation", order.order_number);
+    return { ok: false, reason: "group_buy_skipped" };
   }
   if (!order.guest_email) {
     console.log("[sendBookingEmail] order has no guest_email, skip", order.order_number);
