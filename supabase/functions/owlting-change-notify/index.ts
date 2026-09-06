@@ -13,7 +13,7 @@ const corsHeaders = {
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@sensaninn.lakeze.com>";
+const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@lakeze.com>";
 
 function renderEmail(opts: {
   ownerName: string;

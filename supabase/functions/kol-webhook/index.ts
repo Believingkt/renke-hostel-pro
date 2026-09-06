@@ -118,7 +118,7 @@ async function sendInternalOrderEmail(supabase: any, order: any, roomTypeName: s
     const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
-      from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+      from: "人客多通知 <noreply@lakeze.com>",
       to: ["service@lakeze.com"],
       subject,
       text,
@@ -187,7 +187,7 @@ async function sendDiscountCorrectionEmail(supabase: any, order: any, previousDi
     const text = withShortNamePrefix(baseText, shortName);
 
     const { data, error } = await resend.emails.send({
-      from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+      from: "人客多通知 <noreply@lakeze.com>",
       to: ["service@lakeze.com"],
       subject,
       text,

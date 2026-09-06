@@ -10,7 +10,7 @@ const corsHeaders = {
 };
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM_EMAIL = "noreply@sensaninn.lakeze.com";
+const FROM_EMAIL = "noreply@lakeze.com";
 const TO_EMAIL = "service@lakeze.com";
 
 // ── Time helpers (Taipei = UTC+8, via Intl) ────────────────

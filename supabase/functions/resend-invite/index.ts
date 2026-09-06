@@ -134,7 +134,7 @@ serve(async (req) => {
       const resend = new Resend(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"));
 
       await resend.emails.send({
-        from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+        from: "森山寫照 <noreply@lakeze.com>",
         to: [targetUser.user.email!],
         subject: "重新設定您的密碼 - 森山寫照 PMS",
         html: `

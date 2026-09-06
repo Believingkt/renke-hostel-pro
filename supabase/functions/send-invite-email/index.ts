@@ -67,7 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { email, inviteLink, senderName = "系統管理員", recipientName = "使用者" }: InviteEmailRequest = await req.json();
 
     const emailResponse = await resend.emails.send({
-      from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+      from: "森山寫照 <noreply@lakeze.com>",
       to: [email],
       subject: "歡迎加入森山寫照 PMS 管理系統",
       html: `
