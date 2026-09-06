@@ -127,7 +127,7 @@ Deno.serve(async (req) => {
     ].join("\n");
 
     const { error: sendErr } = await resend.emails.send({
-      from: "人客多通知 <noreply@sensaninn.lakeze.com>",
+      from: "人客多通知 <noreply@lakeze.com>",
       to: ["service@lakeze.com"],
       subject,
       text,

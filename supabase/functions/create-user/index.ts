@@ -286,7 +286,7 @@ serve(async (req) => {
       if (isNewUser && inviteLink) {
         // New user - send invitation email with password setup link
         const emailResponse = await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+          from: "森山寫照 <noreply@lakeze.com>",
           to: [email],
           subject: "歡迎加入森山寫照 PMS 管理系統",
           html: `
@@ -349,7 +349,7 @@ serve(async (req) => {
       } else {
         // Existing user - send notification email about new accommodation access
         const emailResponse = await resend.emails.send({
-          from: "森山寫照 <noreply@sensaninn.lakeze.com>",
+          from: "森山寫照 <noreply@lakeze.com>",
           to: [email],
           subject: `您已獲得「${accommodation.name}」的管理權限`,
           html: `
