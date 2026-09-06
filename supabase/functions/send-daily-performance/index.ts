@@ -729,12 +729,13 @@ Deno.serve(async (req) => {
         };
 
 
-        // Email：固定只寄「完整版」(is_primary)，一館一天一封
+        // 先推 LINE，再寄 Email；兩者互不影響，任一失敗都不中斷另一邊
         const body = renderTemplate(primaryTpl);
         const subject = `【${accName}紀錄報表】${dateLabel}`;
-        await sendEmail(subject, body);
 
-        // ── LINE：依群組所選模板分組推播（失敗不影響 Email）────
+        // ── LINE：依群組所選模板分組推播 ────────────────────
+        let linePushed = 0;
+        let lineFailed = 0;
         try {
           const { data: pushTargets } = await supabase
             .from("line_push_targets")
@@ -761,6 +762,9 @@ Deno.serve(async (req) => {
             arr.push((t as any).target_id);
             groups.set(key, arr);
           }
+          console.log(
+            `[send-daily-performance] ${accId} line targets=${matched.length} groups=${groups.size}`,
+          );
 
           for (const [key, targets] of groups) {
             const tpl = key === "__primary__"
@@ -773,30 +777,71 @@ Deno.serve(async (req) => {
               chunks.push(message.slice(i, i + 4500));
             }
             for (const chunk of chunks) {
-              const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${serviceKey}`,
-                  apikey: serviceKey,
-                },
-                body: JSON.stringify({ targets, message: chunk }),
-              });
-              if (!pushRes.ok) {
-                const t = await pushRes.text().catch(() => "");
-                console.error(`[send-daily-performance] line-push ${accId} tpl=${key} failed: ${pushRes.status} ${t}`);
+              try {
+                const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${serviceKey}`,
+                    apikey: serviceKey,
+                  },
+                  body: JSON.stringify({ targets, message: chunk }),
+                });
+                if (!pushRes.ok) {
+                  lineFailed++;
+                  const t = await pushRes.text().catch(() => "");
+                  console.error(`[send-daily-performance] line-push ${accId} tpl=${key} failed: ${pushRes.status} ${t}`);
+                } else {
+                  linePushed++;
+                }
+              } catch (chunkErr) {
+                lineFailed++;
+                console.error(`[send-daily-performance] line-push ${accId} tpl=${key} exception:`, chunkErr);
               }
             }
           }
         } catch (pushErr) {
+          lineFailed++;
           console.error(`[send-daily-performance] line-push ${accId} error:`, pushErr);
         }
 
+        // ── Email：固定只寄「完整版」(is_primary)，一館一天一封 ──
+        let emailOk = false;
+        let emailErr: string | null = null;
+        try {
+          await sendEmail(subject, body);
+          emailOk = true;
+        } catch (e) {
+          emailErr = e instanceof Error ? e.message : String(e);
+          console.error(`[send-daily-performance] email ${accId} failed:`, emailErr);
+        }
 
-        results.push({ accommodation_id: accId, ok: true });
+        // 兩邊都沒送成功 → 回滾去重紀錄，讓下一輪／補發可重送
+        if (!emailOk && linePushed === 0 && sentLogId) {
+          await supabase
+            .from("performance_notification_sent_log")
+            .delete()
+            .eq("id", sentLogId);
+          console.warn(`[send-daily-performance] ${accId} all channels failed, sent log rolled back`);
+        }
+
+        results.push({
+          accommodation_id: accId,
+          ok: emailOk || linePushed > 0,
+          error: emailOk ? undefined : (emailErr ?? undefined),
+          email_ok: emailOk,
+          line_pushed: linePushed,
+          line_failed: lineFailed,
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error(`[send-daily-performance] ${accId} failed:`, msg);
+        if (sentLogId) {
+          await supabase
+            .from("performance_notification_sent_log")
+            .delete()
+            .eq("id", sentLogId);
+        }
         results.push({ accommodation_id: accId, ok: false, error: msg });
       }
     }
