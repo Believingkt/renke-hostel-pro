@@ -293,10 +293,19 @@ Deno.serve(async (req) => {
     }
 
 
-    const results: Array<{ accommodation_id: string; ok: boolean; error?: string }> = [];
+    const results: Array<{
+      accommodation_id: string;
+      ok: boolean;
+      error?: string;
+      email_ok?: boolean;
+      line_pushed?: number;
+      line_failed?: number;
+    }> = [];
 
     for (const s of settings) {
       const accId: string = s.accommodation_id;
+      // 本輪佔位的去重紀錄 id（若 Email 與 LINE 全數失敗會回滾，讓下次可重送）
+      let sentLogId: string | null = null;
       try {
         // ── Dedup guard：同日同民宿同分鐘只發送一次（test_mode 跳過）──
         if (!testMode) {
