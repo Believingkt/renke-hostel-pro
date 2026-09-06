@@ -332,6 +332,7 @@ Deno.serve(async (req) => {
             console.log(`[send-daily-performance] skip (no log row) ${accId}`);
             continue;
           }
+          sentLogId = (logRow as any).id ?? null;
         }
         // Accommodation name
         const { data: acc } = await supabase
