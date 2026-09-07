@@ -116,7 +116,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, special_requests, auto_order_id")
+        // NOTE: special_requests is NOT a column on this table; it lives inside
+        // extracted_fields (jsonb). Project just that key via PostgREST.
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, special_requests:extracted_fields->>special_requests, auto_order_id")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
