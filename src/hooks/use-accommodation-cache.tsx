@@ -31,6 +31,10 @@ export interface AccommodationInfo {
   og_title?: string;
   og_description?: string;
   og_image_url?: string;
+  seo_title?: string;
+  seo_description?: string;
+  meta_keywords?: string;
+
   hero_main_title?: string;
   hero_subtitle?: string;
   hero_description?: string;
