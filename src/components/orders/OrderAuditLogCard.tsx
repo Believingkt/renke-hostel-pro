@@ -205,8 +205,18 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
                         </div>
                       )}
                       {changes.map((c, i) => {
-                        const isDetailedText = ["__notes_visible", "notes", "meal_plan_details", "custom_addon_details", "addon_note"].includes(c.field);
+                        // 舊紀錄相容：當時未保存備註文字，只能顯示「有更動」
+                        if (c.field === "addon_note_changed") {
+                          return (
+                            <div key={i} className="text-xs flex flex-wrap items-center gap-1.5">
+                              <span className="text-muted-foreground">額外現場加購備註：</span>
+                              <span className="break-words">有更動（舊紀錄未保存內容）</span>
+                            </div>
+                          );
+                        }
+                        const isDetailedText = ["__notes_visible", "notes", "meal_plan_details", "custom_addon_details", "addon_note", "extra_addon_note"].includes(c.field);
                         if (isDetailedText) {
+
                           return (
                             <div key={i} className="text-xs space-y-1 pt-1">
                               <div className="text-muted-foreground font-medium">{c.label || getFieldLabel(c.field)}</div>
