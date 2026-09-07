@@ -2,6 +2,7 @@ import * as React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
+import { HQIndexGate } from "@/components/hq/HQIndexGate";
 import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
@@ -831,7 +832,9 @@ function App() {
                       } />
 
                       <Route path="/hq" element={
-                        <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
+                        <HQIndexGate>
+                          <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
+                        </HQIndexGate>
                       } />
                       <Route path="/team" element={
                         <Suspense fallback={<DashboardSkeleton />}><TeamLayout /></Suspense>
