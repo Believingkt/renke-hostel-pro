@@ -1023,12 +1023,6 @@ Deno.serve(async (req) => {
           status: "failed",
           error: msg.slice(0, 1000),
         });
-        if (sentLogId) {
-          await supabase
-            .from("performance_notification_sent_log")
-            .delete()
-            .eq("id", sentLogId);
-        }
         results.push({ accommodation_id: accId, ok: false, error: msg });
       }
     }
