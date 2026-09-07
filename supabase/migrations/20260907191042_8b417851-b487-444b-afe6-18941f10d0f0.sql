@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS display_room_type_name text;
+COMMENT ON COLUMN public.orders.display_room_type_name IS 'Display-only room type label; does not bind a room type or consume inventory.';
