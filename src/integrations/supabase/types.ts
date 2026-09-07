@@ -13526,6 +13526,8 @@ export type Database = {
         Args: { p_payload: Json }
         Returns: Json
       }
+      addon_name_canonical: { Args: { p_name: string }; Returns: string }
+      addon_name_normalize: { Args: { p_name: string }; Returns: string }
       admin_delete_order: {
         Args: { _order_id: string; _reason?: string }
         Returns: Json
@@ -13986,6 +13988,14 @@ export type Database = {
         Args: { _month: string }
         Returns: undefined
       }
+      resolve_addon_setting_id: {
+        Args: {
+          p_accommodation_id: string
+          p_addon_id: string
+          p_addon_type: string
+        }
+        Returns: string
+      }
       resolve_pricing_template_by_numeric_code: {
         Args: { p_accommodation_id: string; p_code: number }
         Returns: {
@@ -14100,6 +14110,23 @@ export type Database = {
         }
         Returns: Json
       }
+      update_paid_order_addons_v3: {
+        Args: {
+          p_addon_plans?: Json
+          p_confirmed?: boolean
+          p_expected_updated_at: string
+          p_onsite_amount?: number
+          p_onsite_note?: string
+          p_order_id: string
+          p_paid_amount?: number
+          p_price_change_acknowledged?: boolean
+          p_reason: string
+          p_reduce_acknowledged?: boolean
+          p_risk_acknowledged?: boolean
+          p_settlement_handling: string
+        }
+        Returns: Json
+      }
       update_paid_order_discount: {
         Args: {
           p_confirmed?: boolean
@@ -14109,6 +14136,21 @@ export type Database = {
           p_mode: string
           p_order_id: string
           p_reason: string
+          p_settlement_handling?: string
+        }
+        Returns: Json
+      }
+      update_paid_order_discount_v2: {
+        Args: {
+          p_applied_discount_amount?: number
+          p_confirmed?: boolean
+          p_discount_amount?: number
+          p_discount_code?: string
+          p_expected_updated_at: string
+          p_mode: string
+          p_order_id: string
+          p_reason: string
+          p_risk_acknowledged?: boolean
           p_settlement_handling?: string
         }
         Returns: Json
