@@ -1020,6 +1020,17 @@ Deno.serve(async (req) => {
     }
 
 
+    await logDispatch(supabase, {
+      run_id: runId,
+      run_mode: runMode,
+      accommodation_id: null,
+      sent_date: today,
+      notify_time: hhmm,
+      channel: "run",
+      status: "success",
+      detail: `finished matched=${settings.length} ok=${results.filter((r) => r.ok).length}`,
+    });
+
     return new Response(
       JSON.stringify({ ok: true, hhmm, matched: settings.length, results }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
