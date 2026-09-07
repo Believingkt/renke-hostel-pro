@@ -181,7 +181,40 @@ async function sendEmail(subject: string, text: string) {
   return json;
 }
 
+// ── 排程日誌 ────────────────────────────────────────────────
+// 每一次推播／寄信都留下館別、時間、狀態與錯誤原因。
+// 寫入 performance_notification_dispatch_log（若資料表尚未建立則僅寫 console，不影響發送）。
+type DispatchLogRow = {
+  run_id: string;
+  run_mode: string;
+  accommodation_id: string | null;
+  accommodation_name?: string | null;
+  sent_date: string;
+  notify_time: string;
+  channel: string; // run | line | email
+  status: string; // started | success | failed | skipped
+  target?: string | null;
+  detail?: string | null;
+  error?: string | null;
+  duration_ms?: number | null;
+};
+
+async function logDispatch(supabase: any, row: DispatchLogRow) {
+  console.log(`[send-daily-performance] ${JSON.stringify({ ...row, at: new Date().toISOString() })}`);
+  try {
+    const { error } = await supabase
+      .from("performance_notification_dispatch_log")
+      .insert({ ...row, created_at: new Date().toISOString() });
+    if (error) {
+      console.warn(`[send-daily-performance] dispatch log skipped: ${error.message}`);
+    }
+  } catch (e) {
+    console.warn(`[send-daily-performance] dispatch log exception: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
 // ── Main ───────────────────────────────────────────────────
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
