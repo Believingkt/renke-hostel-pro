@@ -16,14 +16,14 @@ async function preferences() {
   if (!isNativeApp()) return null;
   try {
     const { Preferences } = await import("@capacitor/preferences");
-    return Preferences;
+    return { plugin: Preferences };
   } catch {
     return null;
   }
 }
 
 export async function readOfflineCache<T>(key: string): Promise<CachedEnvelope<T> | null> {
-  const prefs = await preferences();
+  const prefs = (await preferences())?.plugin;
   if (!prefs) return null;
   try {
     const { value } = await prefs.get({ key: PREFIX + key });
@@ -37,7 +37,7 @@ export async function readOfflineCache<T>(key: string): Promise<CachedEnvelope<T
 }
 
 export async function writeOfflineCache<T>(key: string, data: T): Promise<void> {
-  const prefs = await preferences();
+  const prefs = (await preferences())?.plugin;
   if (!prefs) return;
   try {
     const envelope: CachedEnvelope<T> = { data, savedAt: Date.now() };
@@ -48,7 +48,7 @@ export async function writeOfflineCache<T>(key: string, data: T): Promise<void> 
 }
 
 export async function clearOfflineCache(key: string): Promise<void> {
-  const prefs = await preferences();
+  const prefs = (await preferences())?.plugin;
   if (!prefs) return;
   try {
     await prefs.remove({ key: PREFIX + key });
