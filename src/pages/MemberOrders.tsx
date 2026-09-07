@@ -108,6 +108,7 @@ const MemberOrders = () => {
   const native = useIsNativeApp();
   const [usingCache, setUsingCache] = useState(false);
   const [cachedAt, setCachedAt] = useState<number | null>(null);
+  const hasCacheRef = useRef(false);
 
   useEffect(() => {
     // 原生 App：先顯示上次快取，避免白屏；再抓最新資料
@@ -118,6 +119,7 @@ const MemberOrders = () => {
         if (!cancelled && cached?.data?.length) {
           setOrders(cached.data);
           setCachedAt(cached.savedAt);
+          hasCacheRef.current = true;
           setLoading(false);
         }
       }
@@ -163,7 +165,7 @@ const MemberOrders = () => {
     if (!user) {
       setLoading(false);
       // 離線時無法向伺服器確認身分，維持顯示快取內容
-      if (native && cachedAt !== null) setUsingCache(true);
+      if (native && hasCacheRef.current) setUsingCache(true);
       return;
     }
 
@@ -174,7 +176,7 @@ const MemberOrders = () => {
       .maybeSingle();
     if (!member) {
       setLoading(false);
-      if (native && memberError) setUsingCache(true);
+      if (native && (memberError || hasCacheRef.current)) setUsingCache(true);
       return;
     }
 
@@ -248,7 +250,7 @@ const MemberOrders = () => {
       }));
 
     setOrders(mapped);
-    if (native) void writeOfflineCache(OFFLINE_KEYS.memberOrders("self"), mapped);
+    if (native) { hasCacheRef.current = true; void writeOfflineCache(OFFLINE_KEYS.memberOrders("self"), mapped); }
 
     setUsingCache(false);
     setCachedAt(null);
