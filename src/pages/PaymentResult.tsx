@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { hapticSuccess, hapticError } from "@/lib/native/haptics";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,12 @@ export default function PaymentResult() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<PaymentStatus>('loading');
+
+  // 原生 App：付款成功／失敗給予震動回饋
+  useEffect(() => {
+    if (status === 'success') void hapticSuccess();
+    else if (status === 'failed' || status === 'error') void hapticError();
+  }, [status]);
   const [transaction, setTransaction] = useState<TransactionInfo | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [paymentSource, setPaymentSource] = useState<PaymentSource>('unknown');

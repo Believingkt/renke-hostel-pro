@@ -18,6 +18,10 @@ import {
   syncBadgeFromServer,
 } from "@/lib/appBadge";
 import { getCategoryUnread, type MessageCategory } from "@/lib/messagesUnread";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { OFFLINE_KEYS, readOfflineCache, writeOfflineCache } from "@/lib/native/offlineStore";
+import PullToRefresh from "@/components/native/PullToRefresh";
+import OfflineBanner from "@/components/native/OfflineBanner";
 
 
 import {
@@ -156,11 +160,45 @@ const MemberMessages = () => {
   const [hasNewPush, setHasNewPush] = useState(() => hasUnreadPush());
   const [unreadCount, setUnreadCount] = useState(() => getLocalUnreadCount());
 
+  const native = useIsNativeApp();
+  const [offline, setOffline] = useState(false);
+  const [cachedAt, setCachedAt] = useState<number | null>(null);
+
   /** 進入訊息頁：以伺服器未讀數校正角標與畫面 */
   useEffect(() => {
-    void syncBadgeFromServer().then(setUnreadCount);
+    void syncBadgeFromServer().then(setUnreadCount).catch(() => { if (native) setOffline(true); });
     return subscribeUnreadCount(setUnreadCount);
-  }, []);
+  }, [native]);
+
+  /** 原生 App：離線時顯示上次收到的通知列表 */
+  useEffect(() => {
+    if (!native) return;
+    let cancelled = false;
+    void readOfflineCache<typeof livePushItems>(OFFLINE_KEYS.memberMessages()).then((cached) => {
+      if (cancelled || !cached?.data?.length) return;
+      setLivePushItems((prev) => (prev.length ? prev : cached.data));
+      setCachedAt(cached.savedAt);
+    });
+    return () => { cancelled = true; };
+  }, [native]);
+
+  useEffect(() => {
+    if (!native || !livePushItems.length) return;
+    void writeOfflineCache(OFFLINE_KEYS.memberMessages(), livePushItems);
+  }, [native, livePushItems]);
+
+  /** 下拉更新：重新校正未讀數與通知開關 */
+  const handleRefresh = async () => {
+    try {
+      const count = await syncBadgeFromServer();
+      setUnreadCount(count);
+      await refreshNotify();
+      setOffline(false);
+      setCachedAt(null);
+    } catch {
+      if (native) setOffline(true);
+    }
+  };
 
   /** 全部已讀：伺服器 + 本地 + App icon 角標歸零 */
   const handleMarkAllRead = async () => {
@@ -261,7 +299,9 @@ const MemberMessages = () => {
   );
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="space-y-4">
+      <OfflineBanner show={native && offline} cachedAt={cachedAt} />
       {/* Page title */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -404,6 +444,7 @@ const MemberMessages = () => {
         在 Lakeze 人客多 安心預訂　·　30 秒內獲得客服協助
       </div>
     </div>
+    </PullToRefresh>
   );
 };
 

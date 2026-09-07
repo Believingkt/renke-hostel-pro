@@ -158,13 +158,22 @@ export const LAST_PROPERTY_ALIAS_KEY = "pms_last_property_alias";
  * 原生環境的 hostname 是 localhost / capacitor:，無法用網域判斷，
  * 因此一律視為訂房平台（等同 booking.lakeze.com 的行為）。
  */
+let cachedNativeApp = false;
 export function isNativeApp(): boolean {
+  if (cachedNativeApp) return true;
   if (typeof window === "undefined") return false;
   try {
     const cap = (window as any).Capacitor;
-    if (cap?.isNativePlatform?.() === true) return true;
+    if (cap?.isNativePlatform?.() === true) {
+      cachedNativeApp = true;
+      return true;
+    }
     const protocol = window.location.protocol.toLowerCase();
-    return protocol === "capacitor:" || protocol === "ionic:";
+    if (protocol === "capacitor:" || protocol === "ionic:") {
+      cachedNativeApp = true;
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }

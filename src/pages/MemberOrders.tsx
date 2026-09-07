@@ -27,6 +27,11 @@ import { toast } from "sonner";
 import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
 import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { OFFLINE_KEYS, readOfflineCache, writeOfflineCache } from "@/lib/native/offlineStore";
+import PullToRefresh from "@/components/native/PullToRefresh";
+import OfflineBanner from "@/components/native/OfflineBanner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface MemberOrder {
   id: string;
@@ -100,9 +105,26 @@ const MemberOrders = () => {
   const [claimPhoneLast4, setClaimPhoneLast4] = useState("");
   const [claiming, setClaiming] = useState(false);
 
+  const native = useIsNativeApp();
+  const [usingCache, setUsingCache] = useState(false);
+  const [cachedAt, setCachedAt] = useState<number | null>(null);
+
   useEffect(() => {
-    loadOrders();
-  }, []);
+    // 原生 App：先顯示上次快取，避免白屏；再抓最新資料
+    let cancelled = false;
+    (async () => {
+      if (native) {
+        const cached = await readOfflineCache<MemberOrder[]>(OFFLINE_KEYS.memberOrders("self"));
+        if (!cancelled && cached?.data?.length) {
+          setOrders(cached.data);
+          setCachedAt(cached.savedAt);
+          setLoading(false);
+        }
+      }
+      if (!cancelled) await refreshOrders();
+    })();
+    return () => { cancelled = true; };
+  }, [native]);
 
   useEffect(() => {
     if (searchParams.get("claim") === "1") setClaimOpen(true);
@@ -159,7 +181,12 @@ const MemberOrders = () => {
       .limit(50);
 
 
-    if (error) { console.error(error); setLoading(false); return; }
+    if (error) {
+      console.error(error);
+      setLoading(false);
+      if (native) setUsingCache(true);
+      return;
+    }
 
     const accIds = [...new Set((data || []).map((o) => o.accommodation_id))];
     const { data: accs } = await supabase
@@ -189,31 +216,45 @@ const MemberOrders = () => {
     const bookedAt = (o: any) =>
       new Date(o.order_date || o.created_at || o.check_in_date).getTime();
 
-    setOrders(
-      [...(data || [])]
-        .sort((a: any, b: any) => bookedAt(b) - bookedAt(a))
-        .map((o: any) => ({
-          id: o.id,
-          order_number: o.order_number,
-          order_date: o.order_date,
-          check_in_date: o.check_in_date,
-          check_out_date: o.check_out_date,
-          order_status: o.order_status,
-          payment_status: o.payment_status ?? null,
-          paid_amount: Number(o.paid_amount || 0),
-          final_price: o.final_price,
-          guest_name: o.guest_name,
-          guest_count: o.guest_count || 1,
-          accommodation_id: o.accommodation_id,
-          accommodation_name: accMap.get(o.accommodation_id) || "",
-          room_type_name: o.room_types?.name || null,
-          room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
-          atm_vacc_no: o.atm_vacc_no ?? null,
-          atm_expire_at: o.atm_expire_at ?? null,
-        }))
-    );
+    const mapped: MemberOrder[] = [...(data || [])]
+      .sort((a: any, b: any) => bookedAt(b) - bookedAt(a))
+      .map((o: any) => ({
+        id: o.id,
+        order_number: o.order_number,
+        order_date: o.order_date,
+        check_in_date: o.check_in_date,
+        check_out_date: o.check_out_date,
+        order_status: o.order_status,
+        payment_status: o.payment_status ?? null,
+        paid_amount: Number(o.paid_amount || 0),
+        final_price: o.final_price,
+        guest_name: o.guest_name,
+        guest_count: o.guest_count || 1,
+        accommodation_id: o.accommodation_id,
+        accommodation_name: accMap.get(o.accommodation_id) || "",
+        room_type_name: o.room_types?.name || null,
+        room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
+        atm_vacc_no: o.atm_vacc_no ?? null,
+        atm_expire_at: o.atm_expire_at ?? null,
+      }));
 
+    setOrders(mapped);
+    if (native) void writeOfflineCache(OFFLINE_KEYS.memberOrders("self"), mapped);
+
+    setUsingCache(false);
+    setCachedAt(null);
     setLoading(false);
+  };
+
+  // 抓資料失敗（例如離線）時保留快取內容並標記離線模式
+  const refreshOrders = async () => {
+    try {
+      await loadOrders();
+    } catch (e) {
+      console.error(e);
+      if (native) setUsingCache(true);
+      setLoading(false);
+    }
   };
 
   const isPast = (dateStr: string) => {
@@ -350,11 +391,30 @@ const MemberOrders = () => {
       </div>
 
       {/* Body */}
+      <OfflineBanner show={native && usingCache} cachedAt={cachedAt} />
+      <PullToRefresh onRefresh={refreshOrders}>
       <div className="px-3 py-3">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
+          native ? (
+            <div className="space-y-3">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="rounded-xl border p-3 space-y-2">
+                  <div className="flex gap-3">
+                    <Skeleton className="h-16 w-16 rounded-lg shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-2/3" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )
         ) : filteredOrders.length === 0 ? (
           <div className="text-center py-16 space-y-3">
             <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/30" />
@@ -544,6 +604,7 @@ const MemberOrders = () => {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       {/* Claim Dialog */}
       <Dialog open={claimOpen} onOpenChange={setClaimOpen}>

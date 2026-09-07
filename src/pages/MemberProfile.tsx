@@ -20,6 +20,7 @@ import {
   Share2,
   History,
   CreditCard,
+  LogOut,
 } from "lucide-react";
 import { isMemberPreview, mockProfile, mockPoints, mockCoupons, mockOrders } from "@/lib/memberPreviewMock";
 import AtmCountdownCard from "@/components/member/AtmCountdownCard";
@@ -28,6 +29,9 @@ import BiometricLoginCard from "@/components/member/BiometricLoginCard";
 
 
 import DeleteAccountSection from "@/components/member/DeleteAccountSection";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { hapticSelection } from "@/lib/native/haptics";
+import { requestMemberLogout } from "@/lib/native/memberLogoutEvent";
 
 import MissingEmailNotice from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl } from "@/lib/memberAvatar";
@@ -54,6 +58,7 @@ const initialStats: Stats = {
 
 const MemberProfile = () => {
   const navigate = useNavigate();
+  const native = useIsNativeApp();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<Stats>(initialStats);
 
@@ -289,13 +294,31 @@ const MemberProfile = () => {
 
       </div>
 
+      {/* 登出（原生 App 專用；網站版登出仍在頁首） */}
+      {native && (
+        <MenuGroup>
+          <button
+            type="button"
+            onClick={() => {
+              void hapticSelection();
+              requestMemberLogout();
+            }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-4 text-destructive text-[15px] font-medium active:bg-muted/60"
+          >
+            <LogOut className="h-4 w-4" />
+            登出
+          </button>
+        </MenuGroup>
+      )}
+
       {/* 刪除帳號（Apple Guideline 5.1.1） */}
       <DeleteAccountSection />
 
-
-      <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
-        <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
-      </div>
+      {!native && (
+        <div className="text-center text-[11px] text-muted-foreground pt-2 pb-4">
+          <div>Lakeze 人客多 · 值得您信賴的訂房夥伴</div>
+        </div>
+      )}
     </div>
   );
 };

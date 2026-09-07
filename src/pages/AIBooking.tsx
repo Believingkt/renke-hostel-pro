@@ -7,6 +7,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { Send, Loader2, ArrowLeft, ArrowRight, RotateCcw, User, Mic, MicOff, Volume2, VolumeX, Square, ClipboardList, MessageCircle, Settings, UserCircle, Paperclip, Image as ImageIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { canUseNativeCamera, pickImageNative } from "@/lib/native/nativeCamera";
+import { hapticSelection } from "@/lib/native/haptics";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -105,8 +107,23 @@ export default function AIBooking() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
     e.target.value = '';
+    await processAttachment(file);
+  };
+
+  // 原生 App：改用系統相機／相簿選擇器；瀏覽器維持原本檔案選擇
+  const openAttachmentPicker = async (ref: React.RefObject<HTMLInputElement>) => {
+    if (canUseNativeCamera()) {
+      await hapticSelection();
+      const file = await pickImageNative({ fileNamePrefix: 'receipt' });
+      if (file) await processAttachment(file);
+      return;
+    }
+    ref.current?.click();
+  };
+
+  const processAttachment = async (file?: File | null) => {
+    if (!file) return;
 
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
@@ -1874,7 +1891,7 @@ export default function AIBooking() {
                 onChange={handleFileUpload}
               />
               <Button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => openAttachmentPicker(fileInputRef)}
                 disabled={isLoading || isUploading}
                 size="icon"
                 variant="outline"
@@ -1928,7 +1945,7 @@ export default function AIBooking() {
               onChange={handleFileUpload}
             />
             <Button
-              onClick={() => fileInputMobileRef.current?.click()}
+              onClick={() => openAttachmentPicker(fileInputMobileRef)}
               disabled={isLoading || isUploading}
               size="icon"
               variant="ghost"

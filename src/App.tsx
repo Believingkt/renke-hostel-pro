@@ -13,6 +13,7 @@ import { DetailSkeleton } from "@/components/skeletons/DetailSkeleton";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
 import { PageTransition } from "@/components/PageTransition";
+import NativeShell from "@/components/native/NativeShell";
 import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
@@ -212,6 +213,7 @@ function App() {
         <BookingDomainRedirect>
         <PmsDomainGuard>
           <PageTransition>
+            <NativeShell>
             <ChunkErrorBoundary>
               {(() => {
                 // 共用子路由：可掛在根層或 /:alias/* 之下
@@ -896,7 +898,9 @@ function App() {
                 );
               })()}
             </ChunkErrorBoundary>
+            </NativeShell>
           </PageTransition>
+
         </PmsDomainGuard>
         </BookingDomainRedirect>
         </HQDomainRedirect>

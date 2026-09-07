@@ -14,6 +14,8 @@ import {
 import { toast } from "sonner";
 import { Loader2, Save, UserRound, Camera, Trash2 } from "lucide-react";
 import { isMemberPreview, mockProfile } from "@/lib/memberPreviewMock";
+import { canUseNativeCamera, pickImageNative } from "@/lib/native/nativeCamera";
+import { hapticSelection } from "@/lib/native/haptics";
 import { isUsableEmail, SYNTHETIC_EMAIL_RE } from "@/components/member/MissingEmailNotice";
 import { resolveMemberAvatarUrl, uploadMemberAvatar } from "@/lib/memberAvatar";
 
@@ -199,7 +201,16 @@ const MemberProfile = () => {
                 variant="outline"
                 size="sm"
                 disabled={uploadingAvatar}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={async () => {
+                  // 原生 App：改用系統相機／相簿選擇器（可裁切）
+                  if (canUseNativeCamera()) {
+                    await hapticSelection();
+                    const file = await pickImageNative({ allowEditing: true, fileNamePrefix: "avatar" });
+                    if (file) await handleAvatarPick(file);
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
               >
                 <Camera className="mr-2 h-4 w-4" />
                 {avatarPath ? "更換頭貼" : "上傳頭貼"}

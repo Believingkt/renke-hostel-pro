@@ -15,7 +15,7 @@ async function loadPlugin() {
   if (!isNativeApp()) return null;
   try {
     const mod = await import("@capawesome/capacitor-badge");
-    return mod.Badge;
+    return { plugin: mod.Badge };
   } catch (e) {
     console.warn("[badge] plugin unavailable", e);
     return null;
@@ -28,7 +28,7 @@ export async function logBadgeDiagnostics(): Promise<void> {
     console.log("[badge] web environment — badge disabled");
     return;
   }
-  const Badge = await loadPlugin();
+  const Badge = (await loadPlugin())?.plugin;
   if (!Badge) {
     console.error("[badge] plugin NOT registered (檢查 iOS Package.swift / packageClassList 是否含 BadgePlugin，並執行 npx cap sync ios)");
     return;
@@ -80,7 +80,7 @@ export function subscribeUnreadCount(handler: (count: number) => void): () => vo
 export async function setAppBadge(count: number): Promise<void> {
   const safe = Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   persistLocal(safe);
-  const Badge = await loadPlugin();
+  const Badge = (await loadPlugin())?.plugin;
   if (!Badge) {
     return;
   }

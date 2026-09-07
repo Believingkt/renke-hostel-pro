@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { hapticSuccess } from "@/lib/native/haptics";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { bookingPath } from "@/lib/frontendUrl";
 import {
@@ -618,6 +619,11 @@ const BookingFlow = () => {
   const [isCheckInDateOpen, setIsCheckInDateOpen] = useState(false);
   const [isCheckOutDateOpen, setIsCheckOutDateOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  // 原生 App：訂房成功給予震動回饋
+  useEffect(() => {
+    if (bookingSuccess) void hapticSuccess();
+  }, [bookingSuccess]);
   const [successOrderData, setSuccessOrderData] = useState<any>(null);
   const [paymentFailed, setPaymentFailed] = useState(false);
   
