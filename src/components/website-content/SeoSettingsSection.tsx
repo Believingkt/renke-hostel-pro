@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Info } from "lucide-react";
+import { Info, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,10 @@ interface SeoSettingsSectionProps {
   ogTitle?: string;
   ogDescription?: string;
   ogImageUrl?: string;
+  /** 用於自動建議 SEO 內容 */
+  accommodationName?: string;
+  accommodationDescription?: string;
+  accommodationAddress?: string;
   onUpdate: () => void;
 }
 
@@ -46,6 +52,9 @@ export const SeoSettingsSection = ({
   ogTitle = "",
   ogDescription = "",
   ogImageUrl = "",
+  accommodationName = "",
+  accommodationDescription = "",
+  accommodationAddress = "",
   onUpdate,
 }: SeoSettingsSectionProps) => {
   const {
@@ -69,6 +78,8 @@ export const SeoSettingsSection = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
 
   // 當 props 變更時同步更新（如果沒有草稿）
   useEffect(() => {
@@ -152,19 +163,94 @@ export const SeoSettingsSection = ({
     }
   };
 
+  /** 依館別名稱、簡介與現有照片自動產生 SEO 內容 */
+  const handleGenerate = async () => {
+    if (!accommodationName.trim()) {
+      toast.error("請先填寫館別名稱");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const [aiRes, photoRes] = await Promise.all([
+        supabase.functions.invoke("generate-seo-suggestions", {
+          body: {
+            name: accommodationName,
+            description: accommodationDescription,
+            address: accommodationAddress,
+          },
+        }),
+        formData.ogImageUrl
+          ? Promise.resolve({ data: null })
+          : supabase
+              .from("accommodation_photos")
+              .select("photo_url, photo_type, display_order")
+              .eq("accommodation_id", accommodationId)
+              .order("display_order", { ascending: true })
+              .limit(30),
+      ]);
+
+      if (aiRes.error) throw aiRes.error;
+      const s = aiRes.data as Record<string, string> | null;
+      if (!s?.seo_title) throw new Error("AI 未回傳內容");
+
+      const photos = (photoRes as any)?.data as
+        | { photo_url: string; photo_type?: string }[]
+        | null;
+      const suggestedImage =
+        formData.ogImageUrl ||
+        photos?.find((p) => p.photo_type === "hero")?.photo_url ||
+        photos?.[0]?.photo_url ||
+        "";
+
+      setFormData({
+        ...formData,
+        seoTitle: s.seo_title || formData.seoTitle,
+        metaDescription: s.seo_description || formData.metaDescription,
+        metaKeywords: s.meta_keywords || formData.metaKeywords,
+        ogTitle: s.og_title || formData.ogTitle,
+        ogDescription: s.og_description || formData.ogDescription,
+        ogImageUrl: suggestedImage,
+      });
+      setErrors({});
+      toast.success("已產生建議內容，確認後請按儲存");
+    } catch (error: any) {
+      console.error("generate seo error:", error);
+      toast.error(error?.message || "產生建議失敗，請稍後再試");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-4">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-1.5 bg-primary rounded-full" />
-          <div>
-            <CardTitle className="text-xl">SEO 設定</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              設定搜尋引擎顯示的標題、描述和關鍵字
-            </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-1.5 bg-primary rounded-full" />
+            <div>
+              <CardTitle className="text-xl">SEO 設定</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                設定搜尋引擎顯示的標題、描述和關鍵字
+              </p>
+            </div>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGenerate}
+            disabled={generating}
+            className="w-full sm:w-auto shrink-0"
+          >
+            {generating ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 mr-2" />
+            )}
+            {generating ? "產生中..." : "自動建議內容"}
+          </Button>
         </div>
       </CardHeader>
+
       <CardContent className="space-y-6">
         {hasDraft && (
           <DraftRestoreBanner

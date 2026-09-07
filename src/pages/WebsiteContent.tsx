@@ -3390,8 +3390,12 @@ const WebsiteContent = () => {
             ogTitle={basicInfo.og_title}
             ogDescription={basicInfo.og_description}
             ogImageUrl={basicInfo.og_image_url}
+            accommodationName={basicInfo.name}
+            accommodationDescription={basicInfo.description}
+            accommodationAddress={basicInfo.address}
             onUpdate={loadData}
           />
+
 
           <SocialSharingSection
             accommodationId={accommodationId || ''}

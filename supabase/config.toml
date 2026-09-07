@@ -55,8 +55,11 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = true
   [functions.fix-orphaned-data]
     verify_jwt = true
+  [functions.generate-seo-suggestions]
+    verify_jwt = true
   [functions.generate-test-orders]
     verify_jwt = true
+
   [functions.get-public-order]
     verify_jwt = false
   [functions.health-check]
