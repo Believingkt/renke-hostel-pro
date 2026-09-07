@@ -3171,15 +3171,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-lg">價格明細</CardTitle>
-              {canUsePaidAmountDialogs && !isEditing && (
+              {(showPaidDiscountEntry || showPaidAddonEntry) && !isEditing && (
                 <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row">
-                  <Button
-                    variant="outline"
-                    className="h-11 w-full sm:h-9 sm:w-auto text-sm"
-                    onClick={() => setPaidAmountDialogMode("discount")}
-                  >
-                    修改已結清折扣
-                  </Button>
+                  {showPaidDiscountEntry && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full sm:h-9 sm:w-auto text-sm"
+                      onClick={() => setPaidAmountDialogMode("discount")}
+                    >
+                      修改已結清折扣
+                    </Button>
+                  )}
                   {showPaidAddonEntry && (
                     <Button
                       variant="outline"
@@ -3191,6 +3193,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   )}
                 </div>
               )}
+
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
