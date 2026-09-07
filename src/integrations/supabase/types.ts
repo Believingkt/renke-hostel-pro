@@ -13962,6 +13962,10 @@ export type Database = {
         Args: { _amount: number; _note: string; _notes: string; _ts: string }
         Returns: string
       }
+      notes_set_onsite_addon_v2: {
+        Args: { _amount: number; _note: string; _notes: string; _ts: string }
+        Returns: string
+      }
       notes_strip_onsite_addon: { Args: { _notes: string }; Returns: string }
       owlting_is_inbound_owned: {
         Args: {
