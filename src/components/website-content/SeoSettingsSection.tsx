@@ -78,6 +78,8 @@ export const SeoSettingsSection = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
 
   // 當 props 變更時同步更新（如果沒有草稿）
   useEffect(() => {
