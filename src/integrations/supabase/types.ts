@@ -14054,6 +14054,34 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_paid_order_addons: {
+        Args: {
+          p_addons: Json
+          p_confirmed?: boolean
+          p_expected_updated_at: string
+          p_order_id: string
+          p_paid_amount?: number
+          p_payment_mode: string
+          p_pet_plan_price?: number
+          p_reason: string
+          p_reduce_acknowledged?: boolean
+          p_settlement_handling?: string
+        }
+        Returns: Json
+      }
+      update_paid_order_discount: {
+        Args: {
+          p_confirmed?: boolean
+          p_discount_amount?: number
+          p_discount_code?: string
+          p_expected_updated_at: string
+          p_mode: string
+          p_order_id: string
+          p_reason: string
+          p_settlement_handling?: string
+        }
+        Returns: Json
+      }
       update_team_order_marketing_info: {
         Args: {
           p_ad_id: string
