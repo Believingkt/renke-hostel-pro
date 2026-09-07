@@ -349,6 +349,32 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     // orders.total_price 口徑：房費 + 加購
     const safeTotalPrice = safeRoomPrice + addonTotal;
     const safeFinalPrice = safeTotalPrice - safeDiscountAmount;
+    // 已結清訂單修改折扣：必須填寫原因
+    const paidDiscountChanges = isAmountLocked
+      ? buildPaidDiscountChanges(
+          {
+            discount_amount: order.discount_amount ?? 0,
+            discount_code: order.discount_code ?? null,
+            final_price: order.final_price ?? 0,
+          },
+          {
+            discount_amount: safeDiscountAmount,
+            discount_code: safeDiscountCode.trim() || null,
+            final_price: safeFinalPrice,
+          },
+        )
+      : [];
+    const paidDiscountEdited =
+      isAmountLocked &&
+      paidDiscountChanges.some((c) => c.field === "discount_amount" || c.field === "discount_code");
+    if (paidDiscountEdited && !editReason.trim()) {
+      toast({
+        title: "請填寫修改原因",
+        description: "修改已結清訂單的折扣必須填寫原因。",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsSaving(true);
     try {
       const oldValues = {
@@ -455,6 +481,14 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          const details = paidDiscountEdited
+            ? {
+                type: "paid_discount_edit",
+                source: PAID_DISCOUNT_SOURCE,
+                reason: editReason.trim(),
+                changes: paidDiscountChanges,
+              }
+            : { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues };
           await supabase.from("audit_logs").insert([{
             user_id: user.id,
             user_email: user.email,
@@ -463,7 +497,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
             entity_type: "order",
             entity_id: order.id,
             entity_name: order.order_number,
-            details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues } as any,
+            details: details as any,
           }]);
         }
       } catch (e) {
