@@ -3387,6 +3387,9 @@ const WebsiteContent = () => {
             seoTitle={basicInfo.seo_title}
             metaDescription={basicInfo.seo_description}
             metaKeywords={basicInfo.meta_keywords}
+            ogTitle={basicInfo.og_title}
+            ogDescription={basicInfo.og_description}
+            ogImageUrl={basicInfo.og_image_url}
             onUpdate={loadData}
           />
 
