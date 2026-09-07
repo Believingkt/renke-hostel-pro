@@ -352,39 +352,24 @@ Deno.serve(async (req) => {
     for (const s of settings) {
       const accId: string = s.accommodation_id;
       const notifyTimeKey = String(s.notify_time || hhmm);
-      // 本輪佔位的去重紀錄 id（若 Email 與 LINE 全數失敗會回滾，讓下次可重送）
-      let sentLogId: string | null = null;
+      // 去重改為「分管道」：LINE 與 Email 各自記錄，成功後才寫入。
+      let alreadyLine = false;
+      let alreadyEmail = false;
       try {
-        // ── Dedup guard：同日同民宿同分鐘只發送一次（test_mode 跳過）──
         if (!testMode) {
-          const { error: logErr, data: logRow } = await supabase
+          const { data: sentRows, error: sentErr } = await supabase
             .from("performance_notification_sent_log")
-            .insert({
-              accommodation_id: accId,
-              sent_date: today,
-              notify_time: notifyTimeKey,
-            })
-            .select("id")
-            .maybeSingle();
-          if (logErr) {
-            const code = (logErr as any).code;
-            if (code === "23505") {
-              await logDispatch(supabase, {
-                run_id: runId,
-                run_mode: runMode,
-                accommodation_id: accId,
-                sent_date: today,
-                notify_time: notifyTimeKey,
-                channel: "run",
-                status: "skipped",
-                detail: "duplicate_skipped",
-              });
-              results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
-              continue;
-            }
-            throw logErr;
+            .select("channel")
+            .eq("accommodation_id", accId)
+            .eq("sent_date", today)
+            .eq("notify_time", notifyTimeKey);
+          if (sentErr) throw sentErr;
+          for (const r of sentRows ?? []) {
+            const ch = String((r as any).channel ?? "line");
+            if (ch === "email") alreadyEmail = true;
+            else alreadyLine = true;
           }
-          if (!logRow) {
+          if (alreadyLine && alreadyEmail) {
             await logDispatch(supabase, {
               run_id: runId,
               run_mode: runMode,
@@ -393,12 +378,13 @@ Deno.serve(async (req) => {
               notify_time: notifyTimeKey,
               channel: "run",
               status: "skipped",
-              detail: "no_log_row",
+              detail: "duplicate_skipped",
             });
+            results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
             continue;
           }
-          sentLogId = (logRow as any).id ?? null;
         }
+
 
         // Accommodation name
         const { data: acc } = await supabase
@@ -802,7 +788,19 @@ Deno.serve(async (req) => {
         // ── LINE：依群組所選模板分組推播 ────────────────────
         let linePushed = 0;
         let lineFailed = 0;
-        try {
+        if (alreadyLine) {
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "line",
+            status: "skipped",
+            detail: "already_pushed",
+          });
+        } else try {
           const { data: pushTargets } = await supabase
             .from("line_push_targets")
             .select("target_id, event_types, accommodation_ids, custom_venue_ids, custom_venue_names, performance_template_id")
@@ -931,12 +929,23 @@ Deno.serve(async (req) => {
           });
         }
 
+        // LINE 成功才寫入去重紀錄（失敗則保留可重送）
+        if (!testMode && !alreadyLine && linePushed > 0) {
+          await supabase
+            .from("performance_notification_sent_log")
+            .insert({
+              accommodation_id: accId,
+              sent_date: today,
+              notify_time: notifyTimeKey,
+              channel: "line",
+            });
+        }
+
         // ── Email：固定只寄「完整版」(is_primary)，一館一天一封 ──
         let emailOk = false;
         let emailErr: string | null = null;
         const emailStartedAt = Date.now();
-        try {
-          const sent = await sendEmail(subject, body);
+        if (alreadyEmail) {
           emailOk = true;
           await logDispatch(supabase, {
             run_id: runId,
@@ -946,48 +955,53 @@ Deno.serve(async (req) => {
             sent_date: today,
             notify_time: notifyTimeKey,
             channel: "email",
-            status: "success",
-            target: TO_EMAIL,
-            detail: `from=${FROM_EMAIL} subject=${subject} id=${(sent as any)?.id ?? ""}`,
-            duration_ms: Date.now() - emailStartedAt,
+            status: "skipped",
+            detail: "already_sent",
           });
-        } catch (e) {
-          emailErr = e instanceof Error ? e.message : String(e);
-          await logDispatch(supabase, {
-            run_id: runId,
-            run_mode: runMode,
-            accommodation_id: accId,
-            accommodation_name: accName,
-            sent_date: today,
-            notify_time: notifyTimeKey,
-            channel: "email",
-            status: "failed",
-            target: TO_EMAIL,
-            detail: `from=${FROM_EMAIL} subject=${subject}`,
-            error: emailErr.slice(0, 1000),
-            duration_ms: Date.now() - emailStartedAt,
-          });
+        } else {
+          try {
+            const sent = await sendEmail(subject, body);
+            emailOk = true;
+            await supabase
+              .from("performance_notification_sent_log")
+              .insert({
+                accommodation_id: accId,
+                sent_date: today,
+                notify_time: notifyTimeKey,
+                channel: "email",
+              });
+            await logDispatch(supabase, {
+              run_id: runId,
+              run_mode: runMode,
+              accommodation_id: accId,
+              accommodation_name: accName,
+              sent_date: today,
+              notify_time: notifyTimeKey,
+              channel: "email",
+              status: "success",
+              target: TO_EMAIL,
+              detail: `from=${FROM_EMAIL} subject=${subject} id=${(sent as any)?.id ?? ""}`,
+              duration_ms: Date.now() - emailStartedAt,
+            });
+          } catch (e) {
+            emailErr = e instanceof Error ? e.message : String(e);
+            await logDispatch(supabase, {
+              run_id: runId,
+              run_mode: runMode,
+              accommodation_id: accId,
+              accommodation_name: accName,
+              sent_date: today,
+              notify_time: notifyTimeKey,
+              channel: "email",
+              status: "failed",
+              target: TO_EMAIL,
+              detail: `from=${FROM_EMAIL} subject=${subject}`,
+              error: emailErr.slice(0, 1000),
+              duration_ms: Date.now() - emailStartedAt,
+            });
+          }
         }
 
-        // 兩邊都沒送成功 → 回滾去重紀錄，讓下一輪／補發可重送
-        if (!emailOk && linePushed === 0 && sentLogId) {
-          await supabase
-            .from("performance_notification_sent_log")
-            .delete()
-            .eq("id", sentLogId);
-          await logDispatch(supabase, {
-            run_id: runId,
-            run_mode: runMode,
-            accommodation_id: accId,
-            accommodation_name: accName,
-            sent_date: today,
-            notify_time: notifyTimeKey,
-            channel: "run",
-            status: "failed",
-            detail: "all_channels_failed_sent_log_rolled_back",
-            error: emailErr ?? undefined,
-          });
-        }
 
         results.push({
           accommodation_id: accId,
@@ -1009,12 +1023,6 @@ Deno.serve(async (req) => {
           status: "failed",
           error: msg.slice(0, 1000),
         });
-        if (sentLogId) {
-          await supabase
-            .from("performance_notification_sent_log")
-            .delete()
-            .eq("id", sentLogId);
-        }
         results.push({ accommodation_id: accId, ok: false, error: msg });
       }
     }
