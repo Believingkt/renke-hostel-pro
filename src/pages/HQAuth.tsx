@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, LogIn, Eye, EyeOff, Mail } from "lucide-react";
 import lokezeLogo from "@/assets/lokeze-logo-auth.png";
+import { HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES, HQ_OWNER_SETTLEMENT_LANDING } from "@/lib/hqAccess";
 
 const HQ_REMEMBER_EMAIL_KEY = "hq_remember_email";
 
@@ -34,17 +35,16 @@ export default function HQAuth() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
-        // Check if user is super_admin (in any accommodation)
-        const { data: userRole } = await supabase
+        // 放行條件與總部頁面一致（含 am / am_manager）
+        const { data: userRoles } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
-          .eq("role", "super_admin")
-          .limit(1)
-          .maybeSingle();
+          .in("role", HQ_LOGIN_ROLES);
 
-        if (userRole) {
-          navigate("/hq");
+        const roles = (userRoles ?? []).map((r: { role: string }) => r.role);
+        if (roles.length > 0) {
+          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
         } else {
           toast.error("您沒有總部後台的存取權限");
           await supabase.auth.signOut();
@@ -55,15 +55,15 @@ export default function HQAuth() {
     // Check for existing session on mount
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session) {
-        const { data: userRoles } = await supabase
+        const { data: existingRoles } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", session.user.id)
-          .eq("role", "super_admin")
-          .limit(1);
+          .in("role", HQ_LOGIN_ROLES);
 
-        if (userRoles && userRoles.length > 0) {
-          navigate("/hq");
+        const roles = (existingRoles ?? []).map((r: { role: string }) => r.role);
+        if (roles.length > 0) {
+          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
         }
       }
     });
@@ -96,8 +96,7 @@ export default function HQAuth() {
           .from("user_roles")
           .select("role")
           .eq("user_id", data.user.id)
-          .eq("role", "super_admin")
-          .limit(1);
+          .in("role", HQ_LOGIN_ROLES);
 
         if (!userRoles || userRoles.length === 0) {
           toast.error("您沒有總部後台的存取權限");
