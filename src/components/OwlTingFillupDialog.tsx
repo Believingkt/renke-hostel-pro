@@ -37,7 +37,8 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
-  special_requests?: string | null;
+  /** jsonb blob on the staging row; only `special_requests` is read from it. */
+  extracted_fields?: Record<string, unknown> | null;
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
