@@ -788,7 +788,19 @@ Deno.serve(async (req) => {
         // ── LINE：依群組所選模板分組推播 ────────────────────
         let linePushed = 0;
         let lineFailed = 0;
-        try {
+        if (alreadyLine) {
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "line",
+            status: "skipped",
+            detail: "already_pushed",
+          });
+        } else try {
           const { data: pushTargets } = await supabase
             .from("line_push_targets")
             .select("target_id, event_types, accommodation_ids, custom_venue_ids, custom_venue_names, performance_template_id")
