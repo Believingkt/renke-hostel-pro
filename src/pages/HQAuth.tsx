@@ -44,7 +44,7 @@ export default function HQAuth() {
 
         const roles = (userRoles ?? []).map((r: { role: string }) => r.role);
         if (roles.length > 0) {
-          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
+          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r as never)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
         } else {
           toast.error("您沒有總部後台的存取權限");
           await supabase.auth.signOut();
@@ -63,7 +63,7 @@ export default function HQAuth() {
 
         const roles = (existingRoles ?? []).map((r: { role: string }) => r.role);
         if (roles.length > 0) {
-          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
+          navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r as never)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
         }
       }
     });

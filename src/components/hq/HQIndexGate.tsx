@@ -35,8 +35,8 @@ export function HQIndexGate({ children }: { children: ReactNode }) {
 
   if (roles === null) return null;
 
-  if (roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r))) return <>{children}</>;
-  if (roles.some((r) => HQ_LOGIN_ROLES.includes(r))) {
+  if (roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r as never))) return <>{children}</>;
+  if (roles.some((r) => HQ_LOGIN_ROLES.includes(r as never))) {
     return <Navigate to={HQ_OWNER_SETTLEMENT_LANDING} replace />;
   }
   return <Navigate to="/hq-auth" replace />;
