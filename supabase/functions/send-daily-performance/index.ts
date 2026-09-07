@@ -352,39 +352,24 @@ Deno.serve(async (req) => {
     for (const s of settings) {
       const accId: string = s.accommodation_id;
       const notifyTimeKey = String(s.notify_time || hhmm);
-      // 本輪佔位的去重紀錄 id（若 Email 與 LINE 全數失敗會回滾，讓下次可重送）
-      let sentLogId: string | null = null;
+      // 去重改為「分管道」：LINE 與 Email 各自記錄，成功後才寫入。
+      let alreadyLine = false;
+      let alreadyEmail = false;
       try {
-        // ── Dedup guard：同日同民宿同分鐘只發送一次（test_mode 跳過）──
         if (!testMode) {
-          const { error: logErr, data: logRow } = await supabase
+          const { data: sentRows, error: sentErr } = await supabase
             .from("performance_notification_sent_log")
-            .insert({
-              accommodation_id: accId,
-              sent_date: today,
-              notify_time: notifyTimeKey,
-            })
-            .select("id")
-            .maybeSingle();
-          if (logErr) {
-            const code = (logErr as any).code;
-            if (code === "23505") {
-              await logDispatch(supabase, {
-                run_id: runId,
-                run_mode: runMode,
-                accommodation_id: accId,
-                sent_date: today,
-                notify_time: notifyTimeKey,
-                channel: "run",
-                status: "skipped",
-                detail: "duplicate_skipped",
-              });
-              results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
-              continue;
-            }
-            throw logErr;
+            .select("channel")
+            .eq("accommodation_id", accId)
+            .eq("sent_date", today)
+            .eq("notify_time", notifyTimeKey);
+          if (sentErr) throw sentErr;
+          for (const r of sentRows ?? []) {
+            const ch = String((r as any).channel ?? "line");
+            if (ch === "email") alreadyEmail = true;
+            else alreadyLine = true;
           }
-          if (!logRow) {
+          if (alreadyLine && alreadyEmail) {
             await logDispatch(supabase, {
               run_id: runId,
               run_mode: runMode,
@@ -393,12 +378,13 @@ Deno.serve(async (req) => {
               notify_time: notifyTimeKey,
               channel: "run",
               status: "skipped",
-              detail: "no_log_row",
+              detail: "duplicate_skipped",
             });
+            results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
             continue;
           }
-          sentLogId = (logRow as any).id ?? null;
         }
+
 
         // Accommodation name
         const { data: acc } = await supabase
