@@ -828,9 +828,17 @@ Deno.serve(async (req) => {
             arr.push((t as any).target_id);
             groups.set(key, arr);
           }
-          console.log(
-            `[send-daily-performance] ${accId} line targets=${matched.length} groups=${groups.size}`,
-          );
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "line",
+            status: "started",
+            detail: `targets=${matched.length} groups=${groups.size}`,
+          });
 
           for (const [key, targets] of groups) {
             const tpl = key === "__primary__"
@@ -842,7 +850,9 @@ Deno.serve(async (req) => {
             for (let i = 0; i < message.length; i += 4500) {
               chunks.push(message.slice(i, i + 4500));
             }
-            for (const chunk of chunks) {
+            for (let ci = 0; ci < chunks.length; ci++) {
+              const chunk = chunks[ci];
+              const startedAt = Date.now();
               try {
                 const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-line-push`, {
                   method: "POST",
@@ -853,33 +863,110 @@ Deno.serve(async (req) => {
                   },
                   body: JSON.stringify({ targets, message: chunk }),
                 });
+                const respText = await pushRes.text().catch(() => "");
                 if (!pushRes.ok) {
                   lineFailed++;
-                  const t = await pushRes.text().catch(() => "");
-                  console.error(`[send-daily-performance] line-push ${accId} tpl=${key} failed: ${pushRes.status} ${t}`);
+                  await logDispatch(supabase, {
+                    run_id: runId,
+                    run_mode: runMode,
+                    accommodation_id: accId,
+                    accommodation_name: accName,
+                    sent_date: today,
+                    notify_time: notifyTimeKey,
+                    channel: "line",
+                    status: "failed",
+                    target: targets.join(","),
+                    detail: `tpl=${key} chunk=${ci + 1}/${chunks.length}`,
+                    error: `${pushRes.status} ${respText}`.slice(0, 1000),
+                    duration_ms: Date.now() - startedAt,
+                  });
                 } else {
                   linePushed++;
+                  await logDispatch(supabase, {
+                    run_id: runId,
+                    run_mode: runMode,
+                    accommodation_id: accId,
+                    accommodation_name: accName,
+                    sent_date: today,
+                    notify_time: notifyTimeKey,
+                    channel: "line",
+                    status: "success",
+                    target: targets.join(","),
+                    detail: `tpl=${key} chunk=${ci + 1}/${chunks.length} resp=${respText.slice(0, 300)}`,
+                    duration_ms: Date.now() - startedAt,
+                  });
                 }
               } catch (chunkErr) {
                 lineFailed++;
-                console.error(`[send-daily-performance] line-push ${accId} tpl=${key} exception:`, chunkErr);
+                await logDispatch(supabase, {
+                  run_id: runId,
+                  run_mode: runMode,
+                  accommodation_id: accId,
+                  accommodation_name: accName,
+                  sent_date: today,
+                  notify_time: notifyTimeKey,
+                  channel: "line",
+                  status: "failed",
+                  target: targets.join(","),
+                  detail: `tpl=${key} chunk=${ci + 1}/${chunks.length}`,
+                  error: chunkErr instanceof Error ? chunkErr.message : String(chunkErr),
+                  duration_ms: Date.now() - startedAt,
+                });
               }
             }
           }
         } catch (pushErr) {
           lineFailed++;
-          console.error(`[send-daily-performance] line-push ${accId} error:`, pushErr);
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "line",
+            status: "failed",
+            detail: "target_lookup_or_loop_error",
+            error: pushErr instanceof Error ? pushErr.message : String(pushErr),
+          });
         }
 
         // ── Email：固定只寄「完整版」(is_primary)，一館一天一封 ──
         let emailOk = false;
         let emailErr: string | null = null;
+        const emailStartedAt = Date.now();
         try {
-          await sendEmail(subject, body);
+          const sent = await sendEmail(subject, body);
           emailOk = true;
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "email",
+            status: "success",
+            target: TO_EMAIL,
+            detail: `from=${FROM_EMAIL} subject=${subject} id=${(sent as any)?.id ?? ""}`,
+            duration_ms: Date.now() - emailStartedAt,
+          });
         } catch (e) {
           emailErr = e instanceof Error ? e.message : String(e);
-          console.error(`[send-daily-performance] email ${accId} failed:`, emailErr);
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "email",
+            status: "failed",
+            target: TO_EMAIL,
+            detail: `from=${FROM_EMAIL} subject=${subject}`,
+            error: emailErr.slice(0, 1000),
+            duration_ms: Date.now() - emailStartedAt,
+          });
         }
 
         // 兩邊都沒送成功 → 回滾去重紀錄，讓下一輪／補發可重送
@@ -888,7 +975,18 @@ Deno.serve(async (req) => {
             .from("performance_notification_sent_log")
             .delete()
             .eq("id", sentLogId);
-          console.warn(`[send-daily-performance] ${accId} all channels failed, sent log rolled back`);
+          await logDispatch(supabase, {
+            run_id: runId,
+            run_mode: runMode,
+            accommodation_id: accId,
+            accommodation_name: accName,
+            sent_date: today,
+            notify_time: notifyTimeKey,
+            channel: "run",
+            status: "failed",
+            detail: "all_channels_failed_sent_log_rolled_back",
+            error: emailErr ?? undefined,
+          });
         }
 
         results.push({
@@ -901,7 +999,16 @@ Deno.serve(async (req) => {
         });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error(`[send-daily-performance] ${accId} failed:`, msg);
+        await logDispatch(supabase, {
+          run_id: runId,
+          run_mode: runMode,
+          accommodation_id: accId,
+          sent_date: today,
+          notify_time: notifyTimeKey,
+          channel: "run",
+          status: "failed",
+          error: msg.slice(0, 1000),
+        });
         if (sentLogId) {
           await supabase
             .from("performance_notification_sent_log")
@@ -911,6 +1018,7 @@ Deno.serve(async (req) => {
         results.push({ accommodation_id: accId, ok: false, error: msg });
       }
     }
+
 
     return new Response(
       JSON.stringify({ ok: true, hhmm, matched: settings.length, results }),
