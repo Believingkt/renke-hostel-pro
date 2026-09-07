@@ -25,6 +25,7 @@ import { clearManualLogoutFlag, disableBiometricLogin, refreshStoredBiometricTok
 import { clearAppBadge } from "@/lib/appBadge";
 import { useIsNativeApp } from "@/hooks/use-is-native-app";
 import { MEMBER_LOGOUT_EVENT } from "@/lib/native/memberLogoutEvent";
+import { getAuthUserOfflineSafe } from "@/lib/authSession";
 
 
 const navItems = [
@@ -83,12 +84,18 @@ const MemberLayout = () => {
     };
 
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      // 離線時以本機持久化的 session 為準；網路錯誤絕不導向登入頁
+      const { user, offline } = await getAuthUserOfflineSafe();
       if (!user) {
+        if (offline) return;
         navigate("/member/auth");
         return;
       }
-      await ensureMember(user);
+      try {
+        await ensureMember(user);
+      } catch {
+        /* 離線或請求失敗：維持登入狀態，頁面各自顯示快取 */
+      }
     };
     checkAuth();
 

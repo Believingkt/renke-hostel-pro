@@ -2282,3 +2282,8 @@ button > svg,
     animation: none;
   }
 }
+
+/* ── 原生 App：全站隱藏網站型頁首／頁尾與桌機導覽（瀏覽器版不受影響） ── */
+html.native-app [data-site-chrome] {
+  display: none !important;
+}

@@ -103,6 +103,8 @@ const MemberAuth = () => {
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  // Email + 密碼登入（Apple 審查員需要固定帳密登入）
+  const [passwordMode, setPasswordMode] = useState(false);
 
   // In-app browser guidance dialog
   const [guide, setGuide] = useState<{ target: "line" | "facebook"; current: "line" | "facebook" | "instagram" } | null>(null);
@@ -904,6 +906,78 @@ const MemberAuth = () => {
                   重新寄送 / 更改 Email
                 </button>
               </form>
+            )}
+
+            {/* Email + 密碼登入（與驗證碼登入共用同一套登入後流程） */}
+            {!passwordMode ? (
+              <button
+                type="button"
+                className="mt-3 w-full text-sm text-muted-foreground hover:underline"
+                onClick={() => setPasswordMode(true)}
+              >
+                改用密碼登入
+              </button>
+            ) : (
+              <div className="mt-4 border-t pt-4">
+                <form onSubmit={handleLogin} className="space-y-2">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="your@email.com"
+                      className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      required
+                      autoComplete="email"
+                      disabled={loading}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="password"
+                      placeholder="密碼"
+                      className="!pl-10 focus-visible:ring-[hsl(24,100%,50%)]"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      autoComplete="current-password"
+                      disabled={loading}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-[hsl(24,100%,50%)] hover:bg-[hsl(24,100%,45%)] text-white"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        登入中…
+                      </>
+                    ) : (
+                      "以密碼登入"
+                    )}
+                  </Button>
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:underline"
+                      onClick={() => setPasswordMode(false)}
+                    >
+                      改用 Email 驗證碼
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground hover:underline"
+                      onClick={() => setViewMode("forgot-password")}
+                    >
+                      忘記密碼？
+                    </button>
+                  </div>
+                </form>
+              </div>
             )}
 
           </CardContent>

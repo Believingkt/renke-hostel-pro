@@ -48,6 +48,7 @@ const BookingFooter = ({
 
   return (
     <footer
+      data-site-chrome
       className="border-t border-border relative bg-white"
     >
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">

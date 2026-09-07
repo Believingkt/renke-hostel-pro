@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { path: "/booking", label: "首頁", icon: Home, match: (p: string) => p === "/booking" || p === "/" },
-  { path: "/booking/search", label: "找房", icon: Search, match: (p: string) => p.startsWith("/booking/search") || p.startsWith("/booking/villa") },
+  { path: "/booking/search", label: "找房", icon: Search, match: (p: string) => p.startsWith("/booking/search") || p.startsWith("/booking/villa") || p.startsWith("/ai-booking") },
   { path: "/member/orders", label: "訂單", icon: CalendarCheck, match: (p: string) => p.startsWith("/member/orders") },
   { path: "/member/messages", label: "訊息", icon: MessageCircle, match: (p: string) => p.startsWith("/member/messages") },
   { path: "/member/profile", label: "我的", icon: User, match: (p: string) => p.startsWith("/member/profile") || p.startsWith("/member/points") || p.startsWith("/member/coupons") },
