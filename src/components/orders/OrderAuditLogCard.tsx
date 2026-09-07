@@ -133,7 +133,11 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
               ).filter((c: OrderFieldChange) =>
                 // 已結清金額調整：不顯示 raw JSON 或備註全文
                 !(isPaidAmountEdit && ["custom_addon_details", "notes", "__notes_visible"].includes(c.field)),
+              ).filter((c: OrderFieldChange) =>
+                // 舊紀錄：addon_note_changed=false 代表備註未變更，不顯示
+                !(c.field === "addon_note_changed" && c.after !== true),
               );
+
               const hasDetail =
                 changes.length > 0 ||
                 log.details?.reason ||
