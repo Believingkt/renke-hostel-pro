@@ -114,7 +114,12 @@ for (const a of accommodations) {
   );
 
   entries.push({
-    loc: `${origin}/booking/villa/${a.id}`,
+    loc: (() => {
+      const alias = a.short_url_alias?.trim().replace(/^\/+|\/+$/g, "");
+      return alias && /^[a-z0-9-_]+$/i.test(alias)
+        ? `${origin}/${alias}`
+        : `${origin}/booking/villa/${a.id}`;
+    })(),
     changefreq: "daily",
     priority: "0.9",
     image: {
