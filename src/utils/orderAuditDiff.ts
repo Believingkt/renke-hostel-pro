@@ -45,6 +45,8 @@ const FIELD_LABELS: Record<string, string> = {
   addon_total: "加購總額",
   extra_addon_amount: "額外現場加購金額",
   addon_note: "額外現場加購備註",
+  extra_addon_note: "額外現場加購備註",
+
   __rooms: "房間配置",
   __exclusive_config: "包區/包棟房型配置",
   __notes_visible: "備註",
