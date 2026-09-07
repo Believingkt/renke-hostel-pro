@@ -2087,12 +2087,19 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     !!order.accommodation_id &&
     order.accommodation_id === currentAccommodationId &&
     getModuleLevel("orders") === "editable";
+  // 折扣入口另需 payment_status ∈ (paid, fully_paid)
+  const showPaidDiscountEntry = canShowPaidDiscountEntry({
+    ordersLevel: getModuleLevel("orders"),
+    currentAccommodationId,
+    order: order as any,
+  });
   const showPaidAddonEntry =
     canUsePaidAmountDialogs && canEditPaidAddon({
       ordersLevel: getModuleLevel("orders"),
       currentAccommodationId,
       order: order as any,
     }).allowed;
+
 
   const nights = Math.ceil(
 
