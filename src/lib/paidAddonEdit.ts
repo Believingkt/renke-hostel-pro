@@ -1,8 +1,9 @@
 /**
  * 已付款訂單「額外加購」修改 — 權限判定、參數組裝與唯一 RPC 入口。
  *
- * 寫入唯一路徑：public.update_paid_order_addons_v2（v5.5A 已安裝）。
- * 前端不得直接 orders.update()、不得寫 order_rooms、不得自行補寫變更紀錄。
+ * 寫入唯一路徑：public.update_paid_order_addons_v3（v5.5A.3）。
+ * 前端不得直接 orders.update()、不得寫 order_rooms、不得自行補寫變更紀錄，
+ * 也不得送出單價／小計／倍數／pricing_mode 等任何金額欄位。
  */
 
 import type { OrdersModuleLevel } from "@/lib/paidDiscountEdit";
@@ -12,8 +13,9 @@ import {
   type SettlementHandling,
 } from "@/lib/paidAmountSettlement";
 
-export const PAID_ADDON_RPC = "update_paid_order_addons_v2";
-export const PAID_ADDON_SOURCE = "/admin 修改已付款訂單額外加購（v5.5）";
+export const PAID_ADDON_RPC = "update_paid_order_addons_v3";
+export const PAID_ADDON_SOURCE = "/admin 修改已付款訂單額外加購（v5.5A.3）";
+
 
 export interface PaidAddonOrderLike {
   accommodation_id?: string | null;
@@ -100,12 +102,19 @@ export function riskMessage(kind: PaidAddonRiskKind): string | null {
   }
 }
 
+export interface PaidAddonPlanCommand {
+  addon_id: string;
+  quantity: number;
+}
+
 export interface PaidAddonRpcInput {
   orderId: string;
   expectedUpdatedAt: string;
   reason: string;
   settlement: SettlementHandling | "";
   confirmed: boolean;
+  /** 方案指令；只含 addon_id + quantity，undefined = 不變更方案 */
+  addonPlans?: PaidAddonPlanCommand[];
   /** 額外現場加購金額；undefined = 不變更 */
   onsiteAmount?: number;
   /** 額外現場加購備註；undefined = 不變更 */
@@ -114,6 +123,7 @@ export interface PaidAddonRpcInput {
   paidAmount?: number;
   reduceAcknowledged?: boolean;
   riskAcknowledged?: boolean;
+  priceChangeAcknowledged?: boolean;
 }
 
 /** 純函式：組 RPC 參數；任何必填缺漏一律 throw，確保 0 mutation */
@@ -123,19 +133,32 @@ export function buildPaidAddonRpcArgs(input: PaidAddonRpcInput): Record<string, 
   if ((input.reason || "").trim().length < 2) throw new Error("請填寫修改原因");
   if (!isValidSettlement(input.settlement)) throw new Error("請選擇差額處理方式");
   if (input.confirmed !== true) throw new Error("尚未完成二次確認，未做任何修改");
+  let plans: PaidAddonPlanCommand[] | null = null;
+  if (input.addonPlans && input.addonPlans.length > 0) {
+    const seen = new Set<string>();
+    plans = input.addonPlans.map((p) => {
+      if (!p?.addon_id) throw new Error("加購方案缺少識別碼，未做任何修改");
+      if (seen.has(p.addon_id)) throw new Error("同一加購方案重複出現，未做任何修改");
+      seen.add(p.addon_id);
+      const qty = Math.trunc(Number(p.quantity));
+      if (!Number.isFinite(qty) || qty < 0) throw new Error("加購數量不正確，未做任何修改");
+      // 僅送出 addon_id 與 quantity：單價、小計、倍數一律由後端決定
+      return { addon_id: p.addon_id, quantity: qty };
+    });
+  }
   return {
     p_order_id: input.orderId,
     p_expected_updated_at: input.expectedUpdatedAt,
     p_reason: input.reason.trim(),
     p_settlement_handling: input.settlement,
     p_confirmed: true,
-    p_addons: null,
-    p_pet_plan_price: null,
+    p_addon_plans: plans,
     p_onsite_amount: input.onsiteAmount ?? null,
     p_onsite_note: input.onsiteNote ?? null,
     p_paid_amount: input.paidAmount ?? null,
     p_reduce_acknowledged: input.reduceAcknowledged === true,
     p_risk_acknowledged: input.riskAcknowledged === true,
+    p_price_change_acknowledged: input.priceChangeAcknowledged === true,
   };
 }
 
@@ -144,7 +167,7 @@ type RpcClient = {
 };
 
 /** 唯一寫入入口。錯誤一律原樣拋出後端訊息，不做 fallback。 */
-export async function callUpdatePaidOrderAddonsV2(
+export async function callUpdatePaidOrderAddonsV3(
   client: RpcClient,
   input: PaidAddonRpcInput,
 ): Promise<PaidAmountRpcResult> {
@@ -153,3 +176,4 @@ export async function callUpdatePaidOrderAddonsV2(
   if (error) throw new Error(error.message || "加購修改失敗");
   return data as unknown as PaidAmountRpcResult;
 }
+
