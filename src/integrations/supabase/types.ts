@@ -9738,6 +9738,7 @@ export type Database = {
       performance_notification_sent_log: {
         Row: {
           accommodation_id: string
+          channel: string
           created_at: string
           id: string
           notify_time: string
@@ -9745,6 +9746,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          channel?: string
           created_at?: string
           id?: string
           notify_time: string
@@ -9752,6 +9754,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          channel?: string
           created_at?: string
           id?: string
           notify_time?: string
