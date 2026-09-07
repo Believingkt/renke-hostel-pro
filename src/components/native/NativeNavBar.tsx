@@ -21,6 +21,12 @@ const TITLES: Array<{ test: RegExp; title: string; root?: boolean }> = [
   { test: /^\/member\/referral/, title: "推薦好友" },
   { test: /^\/cart/, title: "購物車" },
   { test: /^\/ai-booking/, title: "AI 管家" },
+  { test: /^\/book(\/|$)/, title: "訂房" },
+  { test: /^\/payment-result/, title: "付款結果" },
+  { test: /^\/order-search/, title: "訂單查詢" },
+  { test: /^\/privacy/, title: "隱私權政策" },
+  { test: /^\/booking\/atm-info/, title: "匯款資訊" },
+  { test: /^\/booking\/[^/]+$/, title: "房源" },
 ];
 
 export function resolveNativeTitle(pathname: string) {

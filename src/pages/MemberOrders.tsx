@@ -160,14 +160,23 @@ const MemberOrders = () => {
       return;
     }
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setLoading(false); return; }
+    if (!user) {
+      setLoading(false);
+      // 離線時無法向伺服器確認身分，維持顯示快取內容
+      if (native && cachedAt !== null) setUsingCache(true);
+      return;
+    }
 
-    const { data: member } = await supabase
+    const { data: member, error: memberError } = await supabase
       .from("platform_members")
       .select("id, email, phone, name")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!member) { setLoading(false); return; }
+    if (!member) {
+      setLoading(false);
+      if (native && memberError) setUsingCache(true);
+      return;
+    }
 
     // 僅顯示已綁定本會員的訂單。以 Email/電話模糊比對可能撈到他人以相同 Email 下的訂單，
     // 未綁定的歷史訂單請走「認領訂單」（訂單編號＋姓名＋電話末4碼）驗證。

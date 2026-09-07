@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { MessageCircle, User, Home, CalendarCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
 
 const navItems = [
   { path: "/booking", label: "首頁", icon: Home },
@@ -16,6 +17,7 @@ interface MobileBottomNavProps {
 
 const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNavProps) => {
   const location = useLocation();
+  const native = useIsNativeApp();
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
   const navRef = useRef<HTMLElement | null>(null);
@@ -58,6 +60,9 @@ const MobileBottomNav = ({ onVisibilityChange, onHeightChange }: MobileBottomNav
       window.removeEventListener("resize", measure);
     };
   }, [onHeightChange]);
+
+  // 原生 App 使用 NativeTabBar，不再顯示網頁版底部導覽
+  if (native) return null;
 
   return (
     <nav

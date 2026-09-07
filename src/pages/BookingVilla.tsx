@@ -830,6 +830,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
       {/* ── Sticky Header (Trip.com style: floating over hero on scroll-top) ── */}
       <header
         ref={headerRef}
+        data-site-chrome
         className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-border"
         style={{ paddingTop: 'env(safe-area-inset-top)' }}
       >

@@ -37,6 +37,7 @@ import {
   isPackageExcludedOnDate,
   type AccommodationPackage,
 } from "@/hooks/use-accommodation-packages";
+import { MessageCircle } from "lucide-react";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { openFrontendBooking } from "@/lib/frontendUrl";
@@ -846,7 +847,7 @@ const BookingSearchResults = () => {
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* Header（原生 App 改用 iOS 導覽列與底部 Tab Bar） */}
       {!native && (
-      <header className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
+      <header data-site-chrome className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
             <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
@@ -869,6 +870,20 @@ const BookingSearchResults = () => {
           </div>
         </div>
       </header>
+      )}
+
+      {/* 原生 App：「找房」頁提供 AI 管家找房入口 */}
+      {native && (
+        <div className="px-3 pt-3">
+          <Button
+            variant="outline"
+            className="w-full h-11 justify-start gap-2 border-primary/40 text-foreground"
+            onClick={() => navigate("/ai-booking")}
+          >
+            <MessageCircle className="h-4 w-4 text-primary" />
+            用 AI 管家幫我找房
+          </Button>
+        </div>
       )}
 
       {/* 可編輯搜尋條件列 */}

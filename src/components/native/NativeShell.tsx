@@ -6,10 +6,30 @@ import NativeTabBar from "@/components/native/NativeTabBar";
 import { hapticSelection } from "@/lib/native/haptics";
 
 /** 這些路徑不套用 App 外殼（付款流程、外部導轉頁等維持原樣） */
-const SHELL_EXCLUDED = [/^\/pay/, /^\/payment-/, /^\/liff\//, /^\/admin/, /^\/team/, /^\/hq/];
+const SHELL_EXCLUDED = [
+  /^\/pay(\/|$)/,
+  /^\/payment-(?!result)/,
+  /^\/liff\//,
+  /^\/admin/,
+  /^\/team/,
+  /^\/hq/,
+];
 
 function isShellPath(pathname: string) {
   return !SHELL_EXCLUDED.some((re) => re.test(pathname));
+}
+
+/** 手勢起點若落在可橫向捲動的元件內（輪播、橫向清單）就不接管左緣返回 */
+function insideHorizontalScroller(target: EventTarget | null): boolean {
+  let el = target as HTMLElement | null;
+  while (el && el !== document.body) {
+    if (el.scrollWidth - el.clientWidth > 8) {
+      const overflowX = window.getComputedStyle(el).overflowX;
+      if (overflowX === "auto" || overflowX === "scroll") return true;
+    }
+    el = el.parentElement;
+  }
+  return false;
 }
 
 interface Props {
@@ -27,6 +47,13 @@ export function NativeShell({ children }: Props) {
   const [direction, setDirection] = useState<"forward" | "back" | "none">("none");
   const historyRef = useRef<string[]>([]);
   const lastPath = useRef(location.pathname);
+
+  // 原生模式：在 <html> 掛上旗標，供全站 CSS 隱藏網站型頁首／頁尾
+  useEffect(() => {
+    if (!native) return;
+    document.documentElement.classList.add("native-app");
+    return () => document.documentElement.classList.remove("native-app");
+  }, [native]);
 
   // 判斷是前進（滑入）還是返回（滑出）
   useEffect(() => {
@@ -50,20 +77,26 @@ export function NativeShell({ children }: Props) {
     if (!native) return;
     let startX: number | null = null;
     let startY = 0;
+    let blocked = false;
     const onStart = (e: TouchEvent) => {
       const t = e.touches[0];
-      startX = t.clientX <= 24 ? t.clientX : null;
+      startX = t.clientX <= 20 ? t.clientX : null;
       startY = t.clientY;
+      blocked = startX !== null && insideHorizontalScroller(e.target);
     };
     const onEnd = (e: TouchEvent) => {
-      if (startX == null) return;
+      if (startX == null || blocked) {
+        startX = null;
+        return;
+      }
       const t = e.changedTouches[0];
       const dx = t.clientX - startX;
       const dy = Math.abs(t.clientY - startY);
       startX = null;
       if (dx > 80 && dy < 60) {
         const entry = resolveNativeTitle(window.location.pathname);
-        if (entry && !entry.root) {
+        const isRootTab = entry?.root === true;
+        if (!isRootTab && window.history.length > 1) {
           void hapticSelection();
           navigate(-1);
         }
