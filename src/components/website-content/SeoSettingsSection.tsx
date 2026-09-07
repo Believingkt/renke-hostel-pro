@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SaveButtonContainer } from "@/components/ui/save-button-container";
 import { DraftRestoreBanner } from "@/components/ui/draft-restore-banner";
 import { useFormDraft } from "@/hooks/use-form-draft";
-import { invalidateAccommodationCache } from "@/hooks/use-accommodation-cache";
+import { invalidateAccommodationCache, patchAccommodationSeoCache } from "@/hooks/use-accommodation-cache";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -18,6 +18,13 @@ const seoSchema = z.object({
   seoTitle: z.string().max(60, "標題不可超過 60 字元").optional(),
   metaDescription: z.string().max(160, "描述不可超過 160 字元").optional(),
   metaKeywords: z.string().max(200, "關鍵字不可超過 200 字元").optional(),
+  ogTitle: z.string().max(60, "分享標題不可超過 60 字元").optional(),
+  ogDescription: z.string().max(160, "分享描述不可超過 160 字元").optional(),
+  ogImageUrl: z
+    .string()
+    .max(500, "圖片網址過長")
+    .refine((v) => !v || /^https?:\/\//.test(v), "請輸入以 http:// 或 https:// 開頭的網址")
+    .optional(),
 });
 
 interface SeoSettingsSectionProps {
@@ -25,6 +32,9 @@ interface SeoSettingsSectionProps {
   seoTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImageUrl?: string;
   onUpdate: () => void;
 }
 
@@ -33,6 +43,9 @@ export const SeoSettingsSection = ({
   seoTitle,
   metaDescription,
   metaKeywords,
+  ogTitle = "",
+  ogDescription = "",
+  ogImageUrl = "",
   onUpdate,
 }: SeoSettingsSectionProps) => {
   const {
@@ -48,6 +61,9 @@ export const SeoSettingsSection = ({
       seoTitle: seoTitle || "",
       metaDescription: metaDescription || "",
       metaKeywords: metaKeywords || "",
+      ogTitle: ogTitle || "",
+      ogDescription: ogDescription || "",
+      ogImageUrl: ogImageUrl || "",
     },
   });
 
@@ -61,9 +77,12 @@ export const SeoSettingsSection = ({
         seoTitle: seoTitle || "",
         metaDescription: metaDescription || "",
         metaKeywords: metaKeywords || "",
+        ogTitle: ogTitle || "",
+        ogDescription: ogDescription || "",
+        ogImageUrl: ogImageUrl || "",
       });
     }
-  }, [seoTitle, metaDescription, metaKeywords, hasDraft, setFormData]);
+  }, [seoTitle, metaDescription, metaKeywords, ogTitle, ogDescription, ogImageUrl, hasDraft, setFormData]);
 
   const validateField = (field: string, value: string) => {
     const fieldSchema = seoSchema.shape[field as keyof typeof seoSchema.shape];
@@ -104,6 +123,9 @@ export const SeoSettingsSection = ({
           seo_title: formData.seoTitle,
           seo_description: formData.metaDescription,
           meta_keywords: formData.metaKeywords,
+          og_title: formData.ogTitle,
+          og_description: formData.ogDescription,
+          og_image_url: formData.ogImageUrl,
         })
         .eq("id", accommodationId);
 
@@ -111,6 +133,15 @@ export const SeoSettingsSection = ({
 
       clearDraft();
       invalidateAccommodationCache(accommodationId);
+      // 立即寫入瀏覽器快取，前台不必等重新發布
+      patchAccommodationSeoCache(accommodationId, {
+        seo_title: formData.seoTitle,
+        seo_description: formData.metaDescription,
+        meta_keywords: formData.metaKeywords,
+        og_title: formData.ogTitle,
+        og_description: formData.ogDescription,
+        og_image_url: formData.ogImageUrl,
+      });
       toast.success("SEO 設定已儲存");
       onUpdate();
     } catch (error) {
@@ -254,7 +285,103 @@ export const SeoSettingsSection = ({
           </p>
         </div>
 
+        {/* 社群分享（og）標籤 */}
+        <div className="space-y-6 rounded-lg border p-4">
+          <div>
+            <h4 className="text-sm font-medium">社群分享標籤（og）</h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              Facebook、LINE 分享時顯示的標題、描述與預覽圖；留空會自動沿用上方 SEO 設定
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ogTitle">分享標題（og:title）</Label>
+              <span className="text-xs text-muted-foreground">{formData.ogTitle.length}/60</span>
+            </div>
+            <Input
+              id="ogTitle"
+              value={formData.ogTitle}
+              onChange={(e) => {
+                setFormData({ ...formData, ogTitle: e.target.value });
+                validateField("ogTitle", e.target.value);
+              }}
+              placeholder={formData.seoTitle || "留空自動沿用 SEO 標題"}
+              maxLength={60}
+              className={cn(errors.ogTitle && "border-destructive")}
+            />
+            {errors.ogTitle && <p className="text-xs text-destructive">{errors.ogTitle}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ogDescription">分享描述（og:description）</Label>
+              <span className="text-xs text-muted-foreground">
+                {formData.ogDescription.length}/160
+              </span>
+            </div>
+            <Textarea
+              id="ogDescription"
+              value={formData.ogDescription}
+              onChange={(e) => {
+                setFormData({ ...formData, ogDescription: e.target.value });
+                validateField("ogDescription", e.target.value);
+              }}
+              placeholder={formData.metaDescription || "留空自動沿用 Meta 描述"}
+              maxLength={160}
+              rows={3}
+              className={cn(errors.ogDescription && "border-destructive")}
+            />
+            {errors.ogDescription && (
+              <p className="text-xs text-destructive">{errors.ogDescription}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ogImageUrl">分享預覽圖網址（og:image）</Label>
+            <Input
+              id="ogImageUrl"
+              value={formData.ogImageUrl}
+              onChange={(e) => {
+                setFormData({ ...formData, ogImageUrl: e.target.value });
+                validateField("ogImageUrl", e.target.value);
+              }}
+              placeholder="https://example.com/preview.jpg（建議 1200 x 630）"
+              className={cn(errors.ogImageUrl && "border-destructive")}
+            />
+            {errors.ogImageUrl && <p className="text-xs text-destructive">{errors.ogImageUrl}</p>}
+            {formData.ogImageUrl && !errors.ogImageUrl && (
+              <img
+                src={formData.ogImageUrl}
+                alt="社群分享預覽圖"
+                loading="lazy"
+                className="mt-2 h-40 w-full max-w-md rounded-lg border object-cover"
+              />
+            )}
+          </div>
+
+          {/* 社群分享預覽 */}
+          <div className="rounded-lg border bg-muted/30 p-4 max-w-md">
+            <div className="text-xs text-muted-foreground mb-2">社群分享預覽</div>
+            {formData.ogImageUrl && !errors.ogImageUrl && (
+              <img
+                src={formData.ogImageUrl}
+                alt=""
+                loading="lazy"
+                className="mb-2 h-32 w-full rounded object-cover"
+              />
+            )}
+            <div className="text-sm font-medium truncate">
+              {formData.ogTitle || formData.seoTitle || "分享標題"}
+            </div>
+            <div className="text-xs text-muted-foreground line-clamp-2">
+              {formData.ogDescription || formData.metaDescription || "分享描述會顯示在這裡"}
+            </div>
+          </div>
+        </div>
+
         <SaveButtonContainer onSave={handleSave} isSaving={saving} />
+
       </CardContent>
     </Card>
   );

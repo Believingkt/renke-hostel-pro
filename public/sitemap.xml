@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://booking.lakeze.com/booking</loc>
     <changefreq>daily</changefreq>
@@ -9,55 +9,110 @@
     <loc>https://booking.lakeze.com/booking/villa/8e3e8866-3cb0-4654-91f3-d9b09a543301</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>淞湘卉館｜宜蘭包棟．私人別墅空間｜人客多精選</image:title>
+      <image:caption>宜蘭員山 佔地600坪獨棟別墅，超大庭院草坪、田園景色、池塘美景，氣派的豪華莊園，一次只接待一組貴賓，給您最尊榮的享受。 •KTV •電動麻將桌 •戲水池 •烤肉區 •停車場</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://traveldays.lakeze.com/booking/villa/fb894708-d807-42b0-aaba-d4329ab34467</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>大阪包棟｜DAIDODO｜人客多精選</image:title>
+      <image:caption>這是一棟靜謐日式住宅，位於大阪市中央區谷町六丁目，鄰近懷舊的空堀商店街。 步行2分鐘即可抵達最近的地鐵站，交通十分便利。兩層樓的日式房屋，兼具日式生活方式與現代化設施。 最多可容納5人入住，非常適合家庭旅遊、朋友出遊或小團體。位於安靜的日式住宅區，特別適合放鬆度假。</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/6b6ac0dc-602b-4dec-9167-7791ac412ba3</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>哈庫納馬塔塔｜宜蘭包棟·非洲風格民宿｜人客多精選</image:title>
+      <image:caption>沒有煩惱，只有歡樂！ 「Hakuna Matata」——無憂無慮的生活哲學🏖️🦍 卸下都市面具，來趟非洲精品住宿的感官饗宴。 #宜蘭包棟 #泳池 #電動麻將 #烤肉 #KTV #寵物友善</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/5f764d55-ae11-4631-80fe-2e611853deae</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://dmafqwfynatdvnaeovhz.supabase.co/storage/v1/object/public/og-images/5f764d55-ae11-4631-80fe-2e611853deae/og-image-1763368196088.webp</image:loc>
+      <image:title>森山寫照 - 日式枯山水美學與現代禪風的精品奢華露營</image:title>
+      <image:caption>森山寫照位於寧靜的山下，是一處結合日式枯山水美學與現代禪風的精品奢華露營，園區每天只接待一組貴賓，適合親友包區包棟、公司行號團建活動與身心靈課程的團體。</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/f8bb11b8-ce45-4226-b3d6-14f3323c94ff</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>旅行日-光</image:title>
+      <image:caption>日本專業清潔公司打掃，讓您安心入住</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://oliviaboutiquehotel.lakeze.com/booking/villa/74d064f4-1f8c-47e8-9be0-f0a596bbe6f8</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>奧莉薇雅生活小酒店</image:title>
+      <image:caption>官方網站與線上訂房系統</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/ae945d55-4320-4451-bf3c-3ad9752c45c2</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>旅行日-艾屋吉屋</image:title>
+      <image:caption>日本專業清潔公司打掃，讓您安心入住</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/7690a606-6bac-4cd5-a3e7-2fa754b318e8</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>雲岫海景渡假會館｜宜蘭包棟．龜山島正面海景｜人客多精選</image:title>
+      <image:caption>宜蘭頭城·山海景觀Villa·連排包棟別墅 「在山海交會之間，收藏最純粹的相聚時光」 . 面海泳池·歡唱烤肉·電動麻將 #宜蘭包棟 #海景民宿 #多人包棟 #烤肉 #包棟首選</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/5bbb48d0-37e3-43a1-8e52-58ec41e2a517</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>櫻家小築</image:title>
+      <image:caption>官方網站與線上訂房系統</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://booking.lakeze.com/booking/villa/7e82c589-a5f6-468a-8a38-570b6f2ce891</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>大阪包棟｜The Nomad Inn｜人客多精選</image:title>
+      <image:caption>這是一棟靜謐日式住宅，位於大阪市中央區谷町六丁目，鄰近懷舊的空堀商店街。 步行2分鐘即可抵達最近的地鐵站，交通十分便利。兩層樓的日式房屋，兼具日式生活方式與現代化設施。 最多可容納5人入住，非常適合家庭旅遊、朋友出遊或小團體。位於安靜的日式住宅區，特別適合放鬆度假。</image:caption>
+    </image:image>
   </url>
   <url>
     <loc>https://tiansong-villa.lakeze.com/booking/villa/4ee31aca-5641-4d05-80e2-1c67626be83d</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>天送幸福和苑</image:title>
+      <image:caption>宜蘭包棟民宿首選</image:caption>
+    </image:image>
   </url>
 </urlset>

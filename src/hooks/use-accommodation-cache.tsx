@@ -31,6 +31,10 @@ export interface AccommodationInfo {
   og_title?: string;
   og_description?: string;
   og_image_url?: string;
+  seo_title?: string;
+  seo_description?: string;
+  meta_keywords?: string;
+
   hero_main_title?: string;
   hero_subtitle?: string;
   hero_description?: string;
@@ -97,7 +101,60 @@ export const clearAllAccommodationCache = () => {
   secondaryCache.clear();
 };
 
+/** 後台剛儲存的 SEO／社群欄位（瀏覽器端覆蓋，避免等到下次發布才更新） */
+export type AccommodationSeoOverlay = Partial<
+  Pick<
+    AccommodationInfo,
+    "seo_title" | "seo_description" | "meta_keywords" | "og_title" | "og_description" | "og_image_url"
+  >
+>;
+
+const SEO_OVERLAY_TTL = 30 * 60 * 1000;
+const seoOverlayKey = (id: string) => `acc-seo-overlay-${id}`;
+
+export const readAccommodationSeoOverlay = (accommodationId: string): AccommodationSeoOverlay => {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(seoOverlayKey(accommodationId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as { timestamp: number; data: AccommodationSeoOverlay };
+    if (!parsed?.timestamp || Date.now() - parsed.timestamp > SEO_OVERLAY_TTL) {
+      localStorage.removeItem(seoOverlayKey(accommodationId));
+      return {};
+    }
+    return parsed.data || {};
+  } catch {
+    return {};
+  }
+};
+
+/** 儲存 SEO／社群欄位後立即寫入瀏覽器快取，前台重新整理即可看到新內容 */
+export const patchAccommodationSeoCache = (
+  accommodationId: string,
+  patch: AccommodationSeoOverlay,
+) => {
+  if (!accommodationId) return;
+  const merged = { ...readAccommodationSeoOverlay(accommodationId), ...patch };
+  try {
+    localStorage.setItem(
+      seoOverlayKey(accommodationId),
+      JSON.stringify({ timestamp: Date.now(), data: merged }),
+    );
+  } catch {
+    /* 忽略儲存空間限制 */
+  }
+
+  const cached = primaryCache.get(accommodationId);
+  if (cached) {
+    primaryCache.set(accommodationId, {
+      ...cached,
+      data: { ...cached.data, info: { ...cached.data.info, ...merged } },
+    });
+  }
+};
+
 export const useAccommodationCache = (accommodationId: string | null) => {
+
   const [info, setInfo] = useState<AccommodationInfo | null>(null);
   const [heroPhotos, setHeroPhotos] = useState<any[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<any[]>([]);
@@ -121,7 +178,7 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       const [infoRes, photosRes] = await Promise.all([
         supabase
           .from("accommodation_info")
-          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_room_facilities_whole, show_room_facilities_single, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order, homepage_section_titles, child_age_rules, region_1, region_2")
+          .select("id, name, description, address, check_in_notice, phone, email, line_id, facebook_url, instagram_url, threads_url, youtube_url, tiktok_url, og_title, og_description, og_image_url, seo_title, seo_description, meta_keywords, hero_main_title, hero_subtitle, hero_description, hero_overlay_opacity, hero_autoplay_delay, theme_preset, short_url_alias, show_reviews_section, show_facilities_section, show_room_facilities_whole, show_room_facilities_single, show_gallery_section, show_faq_section, show_location_section, show_booking_info_section, show_about_section, show_rooms_section, show_custom_images_section, homepage_sections_order, homepage_section_titles, child_age_rules, region_1, region_2")
           .eq("id", accId)
           .maybeSingle(),
         supabase
@@ -155,6 +212,8 @@ export const useAccommodationCache = (accommodationId: string | null) => {
       // Parse homepage_sections_order from JSONB to string array
       const parsedInfo: AccommodationInfo = {
         ...infoRes.data,
+        // 後台剛儲存的 SEO／社群欄位優先（即時生效，不必等重新發布）
+        ...readAccommodationSeoOverlay(accId),
         homepage_sections_order: Array.isArray(infoRes.data.homepage_sections_order) 
           ? infoRes.data.homepage_sections_order as string[]
           : DEFAULT_SECTIONS_ORDER,
