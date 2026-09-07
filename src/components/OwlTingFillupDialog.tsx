@@ -479,7 +479,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
 
   // 訂單備註預覽（與 owlting-fillup-submit 寫入訂單備註的組成一致）
-  const specialRequestsText = String(stagingRow?.special_requests ?? "").trim();
+  // special_requests 存放於 staging 的 extracted_fields jsonb，非資料表欄位。
+  const specialRequestsText = String(stagingRow?.extracted_fields?.special_requests ?? "").trim();
   const rawChannelLabel = String(stagingRow?.channel_source ?? "").trim();
   const notesPreview = [
     specialRequestsText ? `[特殊需求] ${specialRequestsText}` : null,
