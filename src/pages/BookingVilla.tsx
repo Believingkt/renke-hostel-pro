@@ -141,7 +141,8 @@ const BookingVillaContent = () => {
   const searchBarRef = useStickyHeightRef<HTMLDivElement>("--vb-search-h");
 
 
-  const { accId } = useParams<{ accId: string }>();
+  const { accId: routeAccId } = useParams<{ accId: string }>();
+  const accId = props.accommodationId || routeAccId;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { setCurrentAccommodationId } = useAccommodation();
