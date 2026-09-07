@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getOrderPricingTemplateId } from "@/lib/discountScope";
+import { getOrderDiscountScope } from "@/lib/discountScope";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,13 @@ import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Order } from "@/types/order";
 import { Minus, Plus, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import {
+  canEditPaidDiscount,
+  buildPaidDiscountChanges,
+  PAID_DISCOUNT_SOURCE,
+  type PaidDiscountOrderLike,
+} from "@/lib/paidDiscountEdit";
 
 interface OrderPriceEditDialogProps {
   order: Order | null;
@@ -76,40 +83,50 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
   const isAmountLocked = !!order && ["paid", "fully_paid"].includes(order.payment_status);
   const isDepositLocked = !!order && ["deposit_paid", "paid", "fully_paid"].includes(order.payment_status);
 
-  // Permission: can current user unlock discount fields on already-paid orders?
-  const [canUnlockDiscount, setCanUnlockDiscount] = useState(false);
+  // 權限唯一來源：/admin 同館「訂單」模組 = editable
+  const { getLevel, isLoading: isPermissionLoading } = useStaffPermissions();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  // 退款／取消等保護欄位（Order 型別未帶，另外讀取）
+  const [discountGuard, setDiscountGuard] = useState<PaidDiscountOrderLike | null>(null);
   useEffect(() => {
     let cancelled = false;
     const check = async () => {
-      if (!isAmountLocked || !currentAccommodationId) {
-        setCanUnlockDiscount(false);
-        return;
-      }
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      // super_admin?
       const { data: roles } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id);
       const isSuper = (roles ?? []).some((r: any) => r.role === "super_admin");
       if (!cancelled) setIsSuperAdmin(isSuper);
-      if (isSuper) {
-        if (!cancelled) setCanUnlockDiscount(true);
-        return;
-      }
-      const { data: perm } = await supabase
-        .from("paid_order_discount_unlock_permissions")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("accommodation_id", currentAccommodationId)
-        .maybeSingle();
-      if (!cancelled) setCanUnlockDiscount(!!perm);
     };
     check();
     return () => { cancelled = true; };
-  }, [isAmountLocked, currentAccommodationId, order?.id]);
+  }, [order?.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!order?.id) {
+      setDiscountGuard(null);
+      return;
+    }
+    supabase
+      .from("orders")
+      .select("accommodation_id, payment_status, order_status, refund_status, refunded_amount, refunded_at, paid_amount")
+      .eq("id", order.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled) setDiscountGuard((data as any) ?? null);
+      });
+    return () => { cancelled = true; };
+  }, [order?.id]);
+
+  const discountPermission = canEditPaidDiscount({
+    ordersLevel: getLevel("orders"),
+    currentAccommodationId,
+    order: discountGuard,
+  });
+  const canUnlockDiscount = !isPermissionLoading && discountPermission.allowed;
 
   // Discount fields are only locked when amount-locked AND user has no unlock permission
   const isDiscountLocked = isAmountLocked && !canUnlockDiscount;
@@ -271,14 +288,22 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     setIsValidatingCode(true);
     try {
-      const pricingTemplateId = await getOrderPricingTemplateId(order.id);
+      const scope = await getOrderDiscountScope(order.id, order.room_types?.id || null);
+      if (scope.ambiguous) {
+        toast({
+          title: "無法套用折扣碼",
+          description: scope.reason || "此訂單包含多個房型／房價方案，請改填手動折扣金額。",
+          variant: "destructive",
+        });
+        return;
+      }
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: code,
         p_accommodation_id: currentAccommodationId,
         p_order_amount: editTotalPrice,
-        p_room_type_id: order.room_types?.id || null,
+        p_room_type_id: scope.roomTypeId,
         p_check_in_date: order.check_in_date || null,
-        p_pricing_template_id: pricingTemplateId,
+        p_pricing_template_id: scope.templateId,
       });
       if (error) throw error;
       const result = (data as any[])?.[0];
@@ -483,8 +508,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
               <Lock className="h-4 w-4" />
               <AlertDescription>
                 {canUnlockDiscount
-                  ? "已付款訂單僅鎖定房費與訂金。您具有「修改已結清折扣」權限，可調整折扣金額與折扣碼以補登折扣券。"
-                  : "已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。"}
+                  ? "已付款訂單僅鎖定房費與訂金。您可調整折扣金額與折扣碼補登折扣券，並必須填寫修改原因。"
+                  : (discountPermission.reason || "已付款後無法修改房費、折扣、折扣碼、訂金，僅可調整加購方案與已付金額。")}
               </AlertDescription>
             </Alert>
           )}
