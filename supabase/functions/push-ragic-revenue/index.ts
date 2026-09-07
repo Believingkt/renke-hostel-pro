@@ -212,6 +212,22 @@ Deno.serve(async (req) => {
     }
 
     for (const acc of accommodations || []) {
+      // Gate 0：雲岫收入另有成本需扣除，不適用標準管顧抽成／行銷費規則 → 整館不產生任何列
+      if (String(acc.name ?? "").includes("雲岫")) {
+        skipped.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          scope: "venue",
+          gate: "0",
+          skip_reason: "excluded_special_cost_structure",
+          has_commission_setting: feeMap.has(acc.id),
+          charges_marketing_fee: chargesMarketing.get(acc.id) === true,
+          detail:
+            "雲岫收入尚有其他成本需扣除，不適用目前的標準計算規則，預覽與寫入皆排除，請另行人工登錄",
+        });
+        continue;
+      }
+
       // Gate A：非合作期間（含從未合作、已終止）→ 整館不產生任何列
       if (!partneredIds.has(acc.id)) {
         const hadPeriod = (periodRows || []).some((p: any) => p.accommodation_id === acc.id);
