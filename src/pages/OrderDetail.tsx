@@ -61,6 +61,7 @@ import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { PaidAmountEditDialog, type PaidAmountEditMode } from "@/components/orders/PaidAmountEditDialog";
 import { canEditPaidAddon, isPaidAddonFlowOrder } from "@/lib/paidAddonEdit";
+import { canShowPaidDiscountEntry } from "@/lib/paidDiscountEdit";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
 import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
