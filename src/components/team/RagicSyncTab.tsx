@@ -446,6 +446,10 @@ export default function RagicSyncTab() {
           <span className="text-xs">
             ※ 月份篩選＝該月內實際入住晚數對應的營收（跨月訂單會拆分計算），非以訂單日或退房日歸屬。
           </span>
+          <br />
+          <span className="text-xs text-amber-700 dark:text-amber-400">
+            ※ 雲岫已排除：其收入尚有其他成本需扣除，不適用目前的標準計算規則，預覽與寫入皆不含雲岫（會列在下方「已略過」清單），請另行人工登錄。
+          </span>
         </p>
         <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button variant="outline" size="sm" onClick={() => setGuideOpen(true)}>
