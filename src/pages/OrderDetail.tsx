@@ -601,35 +601,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     clearEditAmountsRef.current = () => setEditForm(f => ({ ...f, total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0 }));
   }, [editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount, isEditing]);
   const [discountCodeError, setDiscountCodeError] = useState("");
-  const [canUnlockPaidOrderDiscount, setCanUnlockPaidOrderDiscount] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const checkPaidOrderDiscountUnlock = async () => {
-      if (!order || !["deposit_paid", "paid", "fully_paid"].includes(order.payment_status)) {
-        setCanUnlockPaidOrderDiscount(false);
-        return;
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        setCanUnlockPaidOrderDiscount(false);
-        return;
-      }
-
-      const { data, error } = await supabase.rpc("can_unlock_paid_order_discount", {
-        _user_id: user.id,
-        _accommodation_id: order.accommodation_id,
-      });
-
-      if (!cancelled) {
-        setCanUnlockPaidOrderDiscount(!error && !!data);
-      }
-    };
-
-    checkPaidOrderDiscountUnlock();
-    return () => { cancelled = true; };
-  }, [order?.id, order?.accommodation_id, order?.payment_status]);
+  // 已結清訂單的折扣一律改由「修改金額」對話框處理（權限：/admin 同館訂單模組 editable），
+  // inline 編輯不再提供已付款折扣修改入口，避免與房型重建流程耦合。
+  const INLINE_PAID_DISCOUNT_EDITABLE = false;
 
   const startEditing = () => {
     if (!order) return;
@@ -1117,7 +1091,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         }
       };
       addIfChanged("total_price", savedTotalPrice, order.total_price);
-      if (!isPaidOrDeposit || canUnlockPaidOrderDiscount) {
+      if (!isPaidOrDeposit) {
         addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
         updateData.discount_code = editForm.discount_code.trim() || null;
       } else {
@@ -1147,12 +1121,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       const blocked: string[] = [];
       // super_admin 可修改已結清訂單的房費（DB trigger 亦放行）
       if (isPaidOrDeposit && !isSuperAdmin && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
-      if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
-      if (isPaidOrDeposit && !canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) blocked.push("折扣碼");
+      if (isPaidOrDeposit && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
+      if (isPaidOrDeposit && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) blocked.push("折扣碼");
       if (blocked.length > 0) {
         toast({
           title: "已付款訂單無法修改金額",
-          description: `${blocked.join("、")} 無法在此付款狀態下變更，請改用退款或新增訂單方式處理。`,
+          description: `${blocked.join("、")} 無法在此處變更。折扣與折扣碼請改用「修改金額」功能，其餘請以退款或新增訂單方式處理。`,
           variant: "destructive",
         });
         setIsSavingEdit(false);
@@ -1162,12 +1136,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       // Auto-append locked audit line when a settled order has financial changes via inline edit
       if (isPaidOrDeposit) {
         const auditParts: string[] = [];
-        if (canUnlockPaidOrderDiscount && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) {
-          auditParts.push(`折扣 ${order.discount_amount}→${editForm.discount_amount}`);
-        }
-        if (canUnlockPaidOrderDiscount && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) {
-          auditParts.push(`折扣碼 ${order.discount_code || "(無)"}→${editForm.discount_code.trim() || "(無)"}`);
-        }
 
         // Addon diffs (寵物 / 餐食 / 自訂加購) — show item-level changes that explain 實收 變動
         const oldPetTotal = (() => {
@@ -3230,7 +3198,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
+                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-base md:text-base text-destructive">- {orderCurrencyPrefix} {order.discount_amount.toLocaleString()}</span>
@@ -3243,7 +3211,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["paid", "fully_paid"].includes(order.payment_status) && !canUnlockPaidOrderDiscount} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>

@@ -1,0 +1,126 @@
+/**
+ * 已結清訂單「折扣」修改 — 單一權限判定與變更記錄組裝。
+ *
+ * 權限唯一來源：/admin 同館「訂單」模組 = editable（super_admin / hotel_admin 由
+ * useStaffPermissions 直接回傳 editable）。
+ * 不使用 /team 角色、closer、finance、分潤權限，亦不使用舊的
+ * `paid_order_discount_unlock_permissions` 特殊名單。
+ */
+
+export type OrdersModuleLevel = "hidden" | "readonly" | "editable" | null | undefined;
+
+export const PAID_DISCOUNT_SOURCE = "/admin 修改已結清折扣";
+
+export interface PaidDiscountOrderLike {
+  accommodation_id?: string | null;
+  payment_status?: string | null;
+  order_status?: string | null;
+  refund_status?: string | null;
+  refunded_amount?: number | null;
+  refunded_at?: string | null;
+  paid_amount?: number | null;
+  /** 保證金退還欄位「不」納入判斷，避免誤擋 */
+  deposit_refunded_amount?: number | null;
+  deposit_status?: string | null;
+}
+
+const PAID_STATUSES = ["paid", "fully_paid", "partial_paid", "deposit_paid"];
+const REFUNDED_PAYMENT_STATUSES = ["refunded", "partial_refunded"];
+const REFUND_IN_PROGRESS = ["pending", "pending_manual", "processing", "refunding", "refunded"];
+
+/** 房費退款中／已退款的訂單不得再走一般折扣修改（保證金退還不算） */
+export function isDiscountRefundLocked(order: PaidDiscountOrderLike | null | undefined): boolean {
+  if (!order) return false;
+  const refundStatus = (order.refund_status || "").toLowerCase();
+  if (refundStatus && refundStatus !== "none" && REFUND_IN_PROGRESS.includes(refundStatus)) return true;
+  if (REFUNDED_PAYMENT_STATUSES.includes((order.payment_status || "").toLowerCase())) return true;
+  if (Number(order.refunded_amount ?? 0) > 0) return true;
+  if (order.refunded_at) return true;
+  const cancelled = (order.order_status || "").toLowerCase() === "cancelled";
+  const everPaid =
+    Number(order.paid_amount ?? 0) > 0 ||
+    PAID_STATUSES.includes((order.payment_status || "").toLowerCase());
+  if (cancelled && everPaid) return true;
+  return false;
+}
+
+export interface PaidDiscountPermissionInput {
+  ordersLevel: OrdersModuleLevel;
+  currentAccommodationId: string | null | undefined;
+  order: PaidDiscountOrderLike | null | undefined;
+}
+
+export interface PaidDiscountPermissionResult {
+  allowed: boolean;
+  reason?: string;
+}
+
+/** 是否可修改此訂單的折扣（fail-closed） */
+export function canEditPaidDiscount({
+  ordersLevel,
+  currentAccommodationId,
+  order,
+}: PaidDiscountPermissionInput): PaidDiscountPermissionResult {
+  if (!order) return { allowed: false, reason: "訂單資料尚未載入" };
+  if (ordersLevel !== "editable") {
+    return { allowed: false, reason: "您對「訂單」模組沒有編輯權限，無法修改折扣。" };
+  }
+  if (!currentAccommodationId || !order.accommodation_id) {
+    return { allowed: false, reason: "無法確認館別，無法修改折扣。" };
+  }
+  if (order.accommodation_id !== currentAccommodationId) {
+    return { allowed: false, reason: "此訂單不屬於目前館別，無法修改折扣。" };
+  }
+  if (isDiscountRefundLocked(order)) {
+    return { allowed: false, reason: "此訂單已退款或退款處理中，無法修改折扣。" };
+  }
+  return { allowed: true };
+}
+
+export interface PaidDiscountSnapshot {
+  discount_amount: number;
+  discount_code: string | null;
+  final_price: number;
+}
+
+export interface PaidDiscountChange {
+  field: string;
+  label: string;
+  before: string | number | null;
+  after: string | number | null;
+}
+
+const norm = (v: string | null | undefined) => (v || "").trim().toUpperCase() || null;
+
+/** 產生變更記錄項目；完全相同（no-op）時回傳空陣列，呼叫端不得寫入記錄 */
+export function buildPaidDiscountChanges(
+  before: PaidDiscountSnapshot,
+  after: PaidDiscountSnapshot,
+): PaidDiscountChange[] {
+  const changes: PaidDiscountChange[] = [];
+  if (Number(before.discount_amount ?? 0) !== Number(after.discount_amount ?? 0)) {
+    changes.push({
+      field: "discount_amount",
+      label: "折扣金額",
+      before: Number(before.discount_amount ?? 0),
+      after: Number(after.discount_amount ?? 0),
+    });
+  }
+  if (norm(before.discount_code) !== norm(after.discount_code)) {
+    changes.push({
+      field: "discount_code",
+      label: "折扣碼",
+      before: norm(before.discount_code),
+      after: norm(after.discount_code),
+    });
+  }
+  if (Number(before.final_price ?? 0) !== Number(after.final_price ?? 0)) {
+    changes.push({
+      field: "final_price",
+      label: "實收金額",
+      before: Number(before.final_price ?? 0),
+      after: Number(after.final_price ?? 0),
+    });
+  }
+  return changes;
+}

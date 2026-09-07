@@ -24,6 +24,7 @@ interface OrderAuditLogCardProps {
 const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   update: { text: "編輯", tone: "bg-blue-100 text-blue-700" },
   price_edit: { text: "金額修改", tone: "bg-amber-100 text-amber-700" },
+  paid_discount_edit: { text: "已結清折扣修改", tone: "bg-amber-100 text-amber-700" },
   cancel: { text: "取消訂單", tone: "bg-red-100 text-red-700" },
   checkin: { text: "辦理入住", tone: "bg-green-100 text-green-700" },
   checkout: { text: "辦理退房", tone: "bg-emerald-100 text-emerald-700" },
@@ -220,6 +221,11 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
                               </div>
                             );
                           })}
+                        </div>
+                      )}
+                      {log.details?.source && (
+                        <div className="text-xs text-muted-foreground pt-1">
+                          來源：{log.details.source}
                         </div>
                       )}
                       {log.details?.reason && (
