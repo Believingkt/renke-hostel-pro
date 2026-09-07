@@ -58,6 +58,10 @@ import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
 import { ChangeOrderDatesDialog } from "@/components/orders/ChangeOrderDatesDialog";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
+import { useAccommodation } from "@/contexts/AccommodationContext";
+import { PaidAmountEditDialog, type PaidAmountEditMode } from "@/components/orders/PaidAmountEditDialog";
+import { canEditPaidAddon, isPaidAddonFlowOrder } from "@/lib/paidAddonEdit";
+import { canShowPaidDiscountEntry } from "@/lib/paidDiscountEdit";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
 import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
@@ -294,6 +298,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   };
   const { toast } = useToast();
   const { canEdit: canEditModule, isStaff } = useStaffPermissions();
+  const { getLevel: getModuleLevel } = useStaffPermissions();
+  const { currentAccommodationId } = useAccommodation();
+  // v5.5：已結清訂單的折扣／加購一律走專用 RPC 對話框（不進 inline 儲存流程）
+  const [paidAmountDialogMode, setPaidAmountDialogMode] = useState<PaidAmountEditMode | null>(null);
   // 一般訂單改期只允許：admin，或明確為此民宿 staff 且 orders 模組 editable。
   // 其他角色（closer/scout/無角色）不顯示按鈕，避免點下去被後端擋。
   const canEditOrders = isStaff && canEditModule("orders");
@@ -1123,10 +1131,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       if (isPaidOrDeposit && !isSuperAdmin && Number(editForm.total_price) !== Number(originalRoomFee)) blocked.push("房費金額");
       if (isPaidOrDeposit && Number(editForm.discount_amount) !== Number(order.discount_amount ?? 0)) blocked.push("折扣金額");
       if (isPaidOrDeposit && (editForm.discount_code.trim() || "") !== (order.discount_code || "")) blocked.push("折扣碼");
+      // v5.5：已結清訂單的加購一律走 update_paid_order_addons_v2，一般 Save 不得夾帶加購值
+      if (isPaidOrDeposit) {
+        const savedExtra = extractExtraAddonAmount(order.notes || "");
+        const savedNote = extractAddonNote(order.notes || "");
+        if (Number(editForm.addon_total) !== Number(savedAddonTotalOf(order))) blocked.push("加購金額");
+        if (Number(editForm.extra_addon_amount || 0) !== Number(savedExtra || 0)) blocked.push("額外現場加購金額");
+        if ((editForm.addon_note || "").trim() !== (savedNote || "").trim()) blocked.push("額外現場加購備註");
+      }
       if (blocked.length > 0) {
         toast({
           title: "已付款訂單無法修改金額",
-          description: `${blocked.join("、")} 無法在此處變更。折扣與折扣碼請改用「修改金額」功能，其餘請以退款或新增訂單方式處理。`,
+          description: `${blocked.join("、")} 無法在此處變更。折扣請改用「修改已結清折扣」，加購請改用「修改額外加購」，其餘請以退款或新增訂單方式處理。`,
           variant: "destructive",
         });
         setIsSavingEdit(false);
@@ -2067,7 +2083,27 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     );
   }
 
+  // v5.5：專用金額調整入口的唯一顯示條件 — 同館 + orders 模組 editable
+  const canUsePaidAmountDialogs =
+    !!order.accommodation_id &&
+    order.accommodation_id === currentAccommodationId &&
+    getModuleLevel("orders") === "editable";
+  // 折扣入口另需 payment_status ∈ (paid, fully_paid)
+  const showPaidDiscountEntry = canShowPaidDiscountEntry({
+    ordersLevel: getModuleLevel("orders"),
+    currentAccommodationId,
+    order: order as any,
+  });
+  const showPaidAddonEntry =
+    canUsePaidAmountDialogs && canEditPaidAddon({
+      ordersLevel: getModuleLevel("orders"),
+      currentAccommodationId,
+      order: order as any,
+    }).allowed;
+
+
   const nights = Math.ceil(
+
     (new Date(order.check_out_date).getTime() - new Date(order.check_in_date).getTime()) / 
     (1000 * 60 * 60 * 24)
   );
@@ -3133,7 +3169,32 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         {/* 價格資訊 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg md:text-lg">價格明細</CardTitle>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <CardTitle className="text-lg md:text-lg">價格明細</CardTitle>
+              {(showPaidDiscountEntry || showPaidAddonEntry) && !isEditing && (
+                <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row">
+                  {showPaidDiscountEntry && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full sm:h-9 sm:w-auto text-sm"
+                      onClick={() => setPaidAmountDialogMode("discount")}
+                    >
+                      修改已結清折扣
+                    </Button>
+                  )}
+                  {showPaidAddonEntry && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full sm:h-9 sm:w-auto text-sm"
+                      onClick={() => setPaidAmountDialogMode("addon")}
+                    >
+                      修改額外加購
+                    </Button>
+                  )}
+                </div>
+              )}
+
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {/* Multi-room price breakdown */}
@@ -3231,11 +3292,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <Separator />
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">加購小計</span>
-                    <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.addon_total} onChange={(v) => setEditForm(f => ({ ...f, addon_total: v }))} />
+                    <DualCurrencyInput disabled={isPaidAddonFlowOrder(order as any)} config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.addon_total} onChange={(v) => setEditForm(f => ({ ...f, addon_total: v }))} />
                   </div>
+                  {isPaidAddonFlowOrder(order as any) && (
+                    <p className="text-xs text-muted-foreground">
+                      已結清訂單的折扣與額外加購請使用價格明細上方的「修改已結清折扣」／「修改額外加購」，此處欄位不會被儲存。
+                    </p>
+                  )}
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">額外現場加購金額</span>
                     <DualCurrencyInput
+                      disabled={isPaidAddonFlowOrder(order as any)}
                       config={secondaryCurrencyConfig}
                       rawMode={!!secondaryCurrencyConfig}
                       storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig}
@@ -3249,6 +3316,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex flex-col gap-1">
                     <span className="text-sm md:text-sm text-muted-foreground">額外現場加購備註</span>
                     <Textarea
+                      disabled={isPaidAddonFlowOrder(order as any)}
                       className="min-h-[60px] text-base md:text-sm"
                       placeholder="例如：加購早餐2份500元、額外床墊1張800元"
                       value={editForm.addon_note}
@@ -3832,6 +3900,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       {/* 變更紀錄 */}
       {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
+
+      {order && (
+        <PaidAmountEditDialog
+          orderId={order.id}
+          mode={paidAmountDialogMode ?? "discount"}
+          open={paidAmountDialogMode !== null}
+          onOpenChange={(v) => { if (!v) setPaidAmountDialogMode(null); }}
+          onSuccess={() => { fetchOrder(); }}
+        />
+      )}
 
 
 
