@@ -104,9 +104,11 @@ const SKIP_REASON_LABEL: Record<string, string> = {
   under_threshold: "未達抽成門檻",
   no_revenue: "當月無可計營收",
   marketing_fee_not_contracted: "合約未約定行銷推廣費",
+  excluded_special_cost_structure: "另有成本，排除計算",
 };
 
 const GATE_LABEL: Record<string, string> = {
+  "0": "館別排除",
   A: "合作期間",
   B: "抽成設定",
   C: "月費勾選",
