@@ -8,16 +8,11 @@
  */
 
 /**
- * v5.5A 的 update_paid_order_discount：
- *   - mode = 'code'   → 折扣金額一律採 validator 計算值，無法保留人工調整值
- *   - mode = 'manual' → discount_code 會被寫成 NULL
- * 因此「折扣碼 + 人工調整金額」目前後端不支援，需 v5.5A.1（code_override）。
+ * v5.5A.3 的 update_paid_order_discount_v2 支援 code_override：
+ * 折扣碼保留、實際套用金額可人工調整（後端仍重新驗證折扣碼並回報標準金額）。
  */
-export const DISCOUNT_CODE_OVERRIDE_RPC_SUPPORTED = false;
-export const DISCOUNT_CODE_OVERRIDE_BLOCKER =
-  "目前後端 update_paid_order_discount 的「折扣碼」模式一律採用系統計算金額，" +
-  "「手動折扣」模式則會清掉折扣碼，無法同時保留折扣碼與人工調整金額。" +
-  "需先安裝 v5.5A.1（code_override 模式）才能送出人工調整後的折扣金額。";
+export const DISCOUNT_CODE_OVERRIDE_RPC_SUPPORTED = true;
+
 
 export type DiscountValidationState =
   | { status: "idle" }

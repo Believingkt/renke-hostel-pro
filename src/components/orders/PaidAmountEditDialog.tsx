@@ -2,9 +2,10 @@
  * 已結清訂單金額調整專用對話框（折扣 / 額外加購共用）。
  *
  * 唯一寫入路徑：
- *   折扣 → public.update_paid_order_discount
- *   加購 → public.update_paid_order_addons_v2
- * 本元件不得直接 orders.update()、不得寫 order_rooms、不得自行補寫變更紀錄。
+ *   折扣 → public.update_paid_order_discount_v2
+ *   加購 → public.update_paid_order_addons_v3
+ * 本元件不得直接 orders.update()、不得寫 order_rooms、不得自行補寫變更紀錄，
+ * 也不得送出單價／小計／倍數／pricing_mode 等任何金額欄位。
  * 折扣碼驗證只呼叫唯讀的 public.validate_discount_code。
  */
 
@@ -37,32 +38,32 @@ import {
   type SettlementHandling,
 } from "@/lib/paidAmountSettlement";
 import {
-  callUpdatePaidOrderDiscount,
+  callUpdatePaidOrderDiscountV2,
   type PaidDiscountMode,
 } from "@/lib/paidDiscountEdit";
 import {
-  callUpdatePaidOrderAddonsV2,
+  callUpdatePaidOrderAddonsV3,
   getPaidAddonRisk,
   riskMessage,
 } from "@/lib/paidAddonEdit";
 import {
-  buildAddonDetails,
+  buildAddonPlansPayload,
+  buildEstimatedAddonDetails,
   hasPlanChanges,
+  hasPlanMerge,
   hasPlanReduction,
+  needsPriceChangeAck,
   nextPlanQty,
   parseOrderAddons,
   planDiffs,
+  planStoredSubtotal,
   planSubtotal,
   plansTotal,
-  PAID_ADDON_PLAN_BLOCKER,
-  PAID_ADDON_PLAN_RPC_SUPPORTED,
   type AddonDetailRow,
   type AddonPlanRow,
   type AddonSettingRow,
 } from "@/lib/paidAddonPlans";
 import {
-  DISCOUNT_CODE_OVERRIDE_BLOCKER,
-  DISCOUNT_CODE_OVERRIDE_RPC_SUPPORTED,
   validatePaidDiscountCode,
   type DiscountValidationState,
 } from "@/lib/paidDiscountCodeValidation";
@@ -96,10 +97,12 @@ interface Snapshot {
   custom_addon_details: unknown;
   notes: string | null;
   check_in_date: string | null;
+  check_out_date: string | null;
   room_type_id: string | null;
 }
 
 const NT = (v: number | null | undefined) => `NT$ ${Number(v ?? 0).toLocaleString()}`;
+const MULT = (v: number | null | undefined) => (v == null ? "—" : `${v} 倍`);
 
 const onsiteNoteFromNotes = (notes: string | null | undefined): string => {
   if (!notes) return "";
@@ -111,6 +114,14 @@ const onsiteNoteFromNotes = (notes: string | null | undefined): string => {
   if (blocks.length > 0) return (blocks[blocks.length - 1][1] || "").trim();
   const line = notes.match(/^【(?:加購備註|額外現場加購備註)[^】]*】(.*)$/m);
   return line ? (line[1] || "").trim() : "";
+};
+
+const nightsOf = (snap: Snapshot | null): number => {
+  if (!snap?.check_in_date || !snap?.check_out_date) return 1;
+  const diff =
+    (new Date(snap.check_out_date).getTime() - new Date(snap.check_in_date).getTime()) /
+    86400000;
+  return Math.max(1, Math.round(diff) || 1);
 };
 
 export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSuccess }: Props) {
@@ -143,6 +154,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const [paidAmountStr, setPaidAmountStr] = useState("");
   const [reduceAck, setReduceAck] = useState(false);
   const [riskAck, setRiskAck] = useState(false);
+  const [priceAck, setPriceAck] = useState(false);
+  /** 後端回報「需確認目前單價」時強制顯示確認 */
+  const [priceAckRequiredByServer, setPriceAckRequiredByServer] = useState(false);
 
   useEffect(() => {
     if (!open || !orderId) return;
@@ -154,6 +168,8 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     setSettlement("");
     setReduceAck(false);
     setRiskAck(false);
+    setPriceAck(false);
+    setPriceAckRequiredByServer(false);
     setPaidAmountStr("");
     setValidation({ status: "idle" });
     setScopeError("");
@@ -164,7 +180,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, accommodation_id, updated_at, payment_status, order_status, refund_status, refunded_amount, refunded_at, total_price, final_price, paid_amount, discount_amount, discount_code, pet_plan_price, custom_addon_details, notes, check_in_date, room_type_id",
+          "id, order_number, accommodation_id, updated_at, payment_status, order_status, refund_status, refunded_amount, refunded_at, total_price, final_price, paid_amount, discount_amount, discount_code, pet_plan_price, custom_addon_details, notes, check_in_date, check_out_date, room_type_id",
         )
         .eq("id", orderId)
         .maybeSingle();
@@ -183,7 +199,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       setOnsiteAmountStr(String(extraOnSiteAddonFromNotes(s.notes)));
       setOnsiteNote(onsiteNoteFromNotes(s.notes));
 
-      // 加購方案：單價一律取自館別 addon_settings（不使用前端硬編價格）
+      // 加購方案：單價／計價方式一律取自館別 addon_settings（僅供顯示，後端仍會重算）
       const { data: settings } = await supabase
         .from("addon_settings")
         .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity")
@@ -191,7 +207,11 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       if (cancelled) return;
-      const parsed = parseOrderAddons((settings || []) as AddonSettingRow[], s.custom_addon_details);
+      const parsed = parseOrderAddons(
+        (settings || []) as AddonSettingRow[],
+        s.custom_addon_details,
+        nightsOf(s),
+      );
       setPlanRows(parsed.rows);
       setQuantities(parsed.quantities);
       setPreserved(parsed.preserved);
@@ -211,6 +231,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const oldOnsite = extraOnSiteAddonFromNotes(snap?.notes);
   const oldOnsiteNote = onsiteNoteFromNotes(snap?.notes);
   const roomFee = snap ? pureRoomFeeOf(snap as any) : 0;
+  const nights = nightsOf(snap);
 
   const newOnsite = Math.max(0, parseInt(onsiteAmountStr, 10) || 0);
   const newDiscountInput = Math.max(0, parseInt(discountAmountStr, 10) || 0);
@@ -225,21 +246,30 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   }, [discountCode, discountMode]);
 
   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
+  const usesCode = discountMode === "code" || discountMode === "code_override";
   const codeOverridden =
-    discountMode === "code" && validatedStandard != null && appliedDiscountInput !== validatedStandard;
+    usesCode && validatedStandard != null && appliedDiscountInput !== validatedStandard;
+  const effectiveDiscountMode: PaidDiscountMode = usesCode
+    ? codeOverridden
+      ? "code_override"
+      : "code"
+    : discountMode;
 
   const previewDiscount =
     discountMode === "none"
       ? 0
       : discountMode === "manual"
         ? newDiscountInput
-        : (validatedStandard ?? oldDiscount);
-  const previewCode =
-    discountMode === "code" ? (discountCode || "").trim().toUpperCase() || null : null;
+        : validatedStandard != null
+          ? codeOverridden
+            ? appliedDiscountInput
+            : validatedStandard
+          : oldDiscount;
+  const previewCode = usesCode ? (discountCode || "").trim().toUpperCase() || null : null;
 
-  // 加購預估
-  const newPlansDetails = useMemo(
-    () => buildAddonDetails(planRows, quantities, preserved),
+  // 加購預估（顯示用；實際金額由後端計算）
+  const estimatedDetails = useMemo(
+    () => buildEstimatedAddonDetails(planRows, quantities, preserved),
     [planRows, quantities, preserved],
   );
   const newAddonTotal = useMemo(
@@ -247,11 +277,11 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       mode === "addon"
         ? calcOrderAddonTotal({
             pet_plan_price: snap?.pet_plan_price ?? 0,
-            custom_addon_details: newPlansDetails,
+            custom_addon_details: estimatedDetails,
             notes: `【額外現場加購金額】${newOnsite}【額外現場加購金額END】`,
           })
         : oldAddonTotal,
-    [mode, snap?.pet_plan_price, newPlansDetails, newOnsite, oldAddonTotal],
+    [mode, snap?.pet_plan_price, estimatedDetails, newOnsite, oldAddonTotal],
   );
   const addonDelta = mode === "addon" ? newAddonTotal - oldAddonTotal : 0;
   const newPaidInput = paidAmountStr.trim() === "" ? undefined : Math.max(0, parseInt(paidAmountStr, 10) || 0);
@@ -259,8 +289,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const diffs = useMemo(() => planDiffs(planRows, quantities), [planRows, quantities]);
   const planChanged = mode === "addon" && hasPlanChanges(planRows, quantities);
   const planReduced = mode === "addon" && hasPlanReduction(planRows, quantities);
-  const planBlocked = planChanged && !PAID_ADDON_PLAN_RPC_SUPPORTED;
-  const discountBlocked = codeOverridden && !DISCOUNT_CODE_OVERRIDE_RPC_SUPPORTED;
+  const planMerged = mode === "addon" && hasPlanMerge(planRows, quantities);
+  const planPriceChanged = mode === "addon" && needsPriceChangeAck(planRows, quantities);
+  const showPriceAck = mode === "addon" && (planPriceChanged || priceAckRequiredByServer);
 
   const afterTotal = mode === "addon" ? oldTotal + addonDelta : oldTotal;
   const afterFinal =
@@ -270,7 +301,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const risk = getPaidAddonRisk(snap || undefined);
   const riskText = riskMessage(risk);
-  const showRiskBlock = mode === "addon" && risk !== "none";
+  const showRiskBlock = risk !== "none";
   const showReduceBlock = mode === "addon" && (addonDelta < 0 || planReduced);
 
   const notesChanged =
@@ -278,18 +309,20 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const isNoop =
     mode === "addon"
       ? !notesChanged && !planChanged && newPaidInput == null
-      : discountMode === "code"
+      : usesCode
         ? previewCode === oldCode && previewDiscount === oldDiscount
         : previewDiscount === oldDiscount && oldCode === null;
 
   const reasonOk = reason.trim().length >= 2;
   const settlementOk = settlement !== "";
-  const codeReady =
-    mode !== "discount" || discountMode !== "code" || validation.status === "valid";
-  const canProceed =
-    !!snap && reasonOk && settlementOk && !isNoop && codeReady && !planBlocked && !discountBlocked;
+  const codeReady = mode !== "discount" || !usesCode || validation.status === "valid";
+  const canProceed = !!snap && reasonOk && settlementOk && !isNoop && codeReady;
   const canConfirm =
-    canProceed && (!showReduceBlock || reduceAck) && (!showRiskBlock || riskAck) && !saving;
+    canProceed &&
+    (!showReduceBlock || reduceAck) &&
+    (!showRiskBlock || riskAck) &&
+    (!showPriceAck || priceAck) &&
+    !saving;
 
   const title = mode === "discount" ? "修改已結清折扣" : "修改額外加購";
 
@@ -324,45 +357,55 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     try {
       let result: PaidAmountRpcResult;
       if (mode === "discount") {
-        result = await callUpdatePaidOrderDiscount(supabase as any, {
+        result = await callUpdatePaidOrderDiscountV2(supabase as any, {
           orderId: snap.id,
           expectedUpdatedAt: snap.updated_at,
           reason,
-          mode: discountMode,
+          mode: effectiveDiscountMode,
           settlement,
           confirmed: true,
           discountAmount: newDiscountInput,
           discountCode,
+          appliedDiscountAmount: appliedDiscountInput,
+          riskAcknowledged: riskAck,
         });
       } else {
-        result = await callUpdatePaidOrderAddonsV2(supabase as any, {
+        const plans = buildAddonPlansPayload(planRows, quantities);
+        result = await callUpdatePaidOrderAddonsV3(supabase as any, {
           orderId: snap.id,
           expectedUpdatedAt: snap.updated_at,
           reason,
           settlement,
           confirmed: true,
+          addonPlans: plans.length > 0 ? plans : undefined,
           onsiteAmount: notesChanged ? newOnsite : undefined,
           onsiteNote: notesChanged ? onsiteNote.trim() : undefined,
           paidAmount: newPaidInput,
           reduceAcknowledged: reduceAck,
           riskAcknowledged: riskAck,
+          priceChangeAcknowledged: priceAck,
         });
       }
-      if (result?.changed === false) {
+      if (!result || typeof result !== "object" || !result.order_id) {
+        throw new Error("後端未回傳結果，請重新整理後確認訂單狀態（可能未修改）");
+      }
+      if (result.changed === false) {
         toast({ title: "沒有任何變更", description: "本次未修改任何金額。" });
       } else {
         toast({
           title: "已儲存",
           description:
             mode === "discount"
-              ? `折扣已更新，應收金額 ${NT(result?.final_price)}`
-              : `加購已更新，應收金額 ${NT(result?.final_price)}`,
+              ? `折扣已更新，應收金額 ${NT(result.final_price)}`
+              : `加購已更新，應收金額 ${NT(result.final_price)}`,
         });
       }
       onSuccess();
       onOpenChange(false);
     } catch (e: any) {
-      setErrorMsg(e?.message || "儲存失敗");
+      const msg = e?.message || "儲存失敗";
+      if (/歷史單價|計價方式與目前設定/.test(msg)) setPriceAckRequiredByServer(true);
+      setErrorMsg(msg);
       setStep("form");
     } finally {
       savingRef.current = false;
@@ -417,7 +460,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               <div className="space-y-3">
                 <Label className="text-sm">折扣方式</Label>
                 <RadioGroup
-                  value={discountMode}
+                  value={usesCode ? "code" : discountMode}
                   onValueChange={(v) => setDiscountMode(v as PaidDiscountMode)}
                   className="grid gap-2"
                 >
@@ -445,7 +488,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                     <p className="text-xs text-muted-foreground">手動折扣不會保留折扣碼。</p>
                   </div>
                 )}
-                {discountMode === "code" && (
+                {usesCode && (
                   <div className="space-y-2">
                     <Label className="text-sm" htmlFor="paid-discount-code">折扣碼</Label>
                     <div className="flex gap-2">
@@ -489,16 +532,10 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                             onChange={(e) => setAppliedDiscountStr(e.target.value.replace(/[^\d]/g, ""))}
                           />
                           {codeOverridden && (
-                            <p className="text-xs text-amber-600">已人工調整折扣金額（與系統標準金額不同）</p>
+                            <p className="text-xs text-amber-600">已人工調整折扣金額（與系統標準金額不同，折扣碼仍會保留）</p>
                           )}
                         </div>
                       </>
-                    )}
-                    {discountBlocked && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription className="text-xs">{DISCOUNT_CODE_OVERRIDE_BLOCKER}</AlertDescription>
-                      </Alert>
                     )}
                   </div>
                 )}
@@ -512,7 +549,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                   ) : (
                     <div className="rounded-md border divide-y">
                       {planRows.map((r) => {
-                        const qty = quantities[r.key] || 0;
+                        const qty = r.legacyOnly ? r.originalQty : quantities[r.key] || 0;
                         return (
                           <div key={r.key} className="p-3 space-y-1">
                             <div className="flex items-start justify-between gap-2">
@@ -522,8 +559,14 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                                   {r.legacyOnly && <span className="ml-1 text-xs text-muted-foreground">（已停用）</span>}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
-                                  {NT(r.pricePerUnit)} / {r.unitLabel}・適用 {r.nights} 晚
+                                  {NT(r.pricePerUnit)} / {r.unitLabel}
+                                  {r.legacyOnly ? "・沿用歷史紀錄" : `・${MULT(r.multiplier)}（${r.pricingMode === "per_night" ? `每晚 × ${nights} 晚` : "整筆一次"}）`}
                                 </p>
+                                {r.lines > 1 && (
+                                  <p className="text-xs text-amber-600">
+                                    此方案有 {r.lines} 筆舊明細，調整數量後會合併為一筆
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 flex-shrink-0">
                                 <Button
@@ -552,23 +595,20 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                               </div>
                             </div>
                             <p className="text-xs text-right tabular-nums text-muted-foreground">
-                              小計 {NT(planSubtotal(r, qty))}
+                              小計 {NT(r.legacyOnly ? planStoredSubtotal(r) : planSubtotal(r, qty))}
                             </p>
                           </div>
                         );
                       })}
                       <div className="flex justify-between p-3 text-sm">
-                        <span className="text-muted-foreground">全部加購方案合計</span>
+                        <span className="text-muted-foreground">全部加購方案合計（預估）</span>
                         <span className="font-semibold tabular-nums">{NT(plansTotal(planRows, quantities))}</span>
                       </div>
                     </div>
                   )}
-                  {planBlocked && (
-                    <Alert variant="destructive">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription className="text-xs">{PAID_ADDON_PLAN_BLOCKER}</AlertDescription>
-                    </Alert>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    單價、計價倍數與小計以後端依目前方案設定計算的結果為準。
+                  </p>
                 </div>
 
                 <Separator />
@@ -650,7 +690,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               {mode === "discount" ? (
                 <>
                   <Row label="折扣碼" before={oldCode || "—"} after={previewCode || "—"} />
-                  {discountMode === "code" && validatedStandard != null && (
+                  {usesCode && validatedStandard != null && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">系統計算標準折扣</span>
                       <span className="tabular-nums">{NT(validatedStandard)}</span>
@@ -658,28 +698,41 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                   )}
                   <Row label="實際套用折扣" before={NT(oldDiscount)} after={NT(previewDiscount)} />
                   {codeOverridden && (
-                    <p className="text-xs text-amber-600">已人工調整折扣金額</p>
+                    <p className="text-xs text-amber-600">已人工調整折扣金額（保留折扣碼，模式：code_override）</p>
                   )}
                 </>
               ) : (
                 <>
                   {diffs.length > 0 && (
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {diffs.map((d) => (
-                        <div key={d.key} className="text-sm">
+                        <div key={d.key} className="text-sm space-y-0.5">
                           <div className="flex justify-between gap-2">
                             <span className="text-muted-foreground truncate">{d.name}</span>
                             <span className="tabular-nums">
                               {d.beforeQty} → {d.afterQty} {d.unitLabel}
                             </span>
                           </div>
-                          <p className="text-xs text-muted-foreground text-right">
-                            {NT(d.pricePerUnit)} / {d.unitLabel}／{d.nights} 晚・小計 {NT(d.beforeSubtotal)} → {NT(d.afterSubtotal)}
+                          <p className="text-xs text-muted-foreground text-right tabular-nums">
+                            單價 {d.beforePricePerUnit == null ? "—" : NT(d.beforePricePerUnit)} → {NT(d.afterPricePerUnit)}
+                            ｜計價倍數 {MULT(d.beforeMultiplier)} → {MULT(d.afterMultiplier)}
                           </p>
+                          <p className="text-xs text-muted-foreground text-right tabular-nums">
+                            小計 {NT(d.beforeSubtotal)} → {NT(d.afterSubtotal)}
+                          </p>
+                          {d.merged && (
+                            <p className="text-xs text-amber-600 text-right">此方案的多筆舊明細會合併為一筆</p>
+                          )}
+                          {d.priceChanged && (
+                            <p className="text-xs text-amber-600 text-right">會改用目前單價與目前計價方式重算</p>
+                          )}
                         </div>
                       ))}
                       <Separator />
                     </div>
+                  )}
+                  {planMerged && (
+                    <p className="text-xs text-amber-600">本次會發生舊方案明細合併。</p>
                   )}
                   <Row label="額外現場加購金額" before={NT(oldOnsite)} after={NT(newOnsite)} />
                   <div className="flex justify-between gap-2 text-sm">
@@ -688,7 +741,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                       {(oldOnsiteNote || "—")} → {(onsiteNote.trim() || "—")}
                     </span>
                   </div>
-                  <Row label="加購合計" before={NT(oldAddonTotal)} after={NT(newAddonTotal)} />
+                  <Row label="加購合計（預估）" before={NT(oldAddonTotal)} after={NT(newAddonTotal)} />
                 </>
               )}
               <Separator />
@@ -701,11 +754,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                   {NT(diff)}
                 </span>
               </div>
-              {mode === "discount" && discountMode === "code" && (
-                <p className="text-xs text-muted-foreground">
-                  折扣碼的實際折抵金額由後端重新驗證與計算，以儲存後的結果為準。
-                </p>
-              )}
+              <p className="text-xs text-muted-foreground">
+                以上為預估值，最終金額以後端計算並回寫的結果為準。
+              </p>
             </div>
 
             <div className="rounded-md border p-3 space-y-1 text-sm">
@@ -719,6 +770,20 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               </div>
             </div>
 
+            {showPriceAck && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <div className="space-y-2">
+                    <p>此方案的歷史單價或計價方式與目前設定不同，送出後會以目前單價與目前計價方式重算。</p>
+                    <label className="flex items-center gap-2">
+                      <Checkbox checked={priceAck} onCheckedChange={(v) => setPriceAck(v === true)} />
+                      <span className="text-sm">我確認改用目前方案單價與計價方式</span>
+                    </label>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
             {showReduceBlock && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />

@@ -48,4 +48,10 @@ export interface PaidAmountRpcResult {
   settlement_handling?: string;
   updated_at?: string;
   audit_log_id?: string | null;
+  standard_discount_amount?: number | null;
+  applied_discount_amount?: number | null;
+  manual_override?: boolean;
+  addon_line_changes?: unknown;
+  addon_line_merges?: unknown;
+  price_corrections?: unknown;
 }

@@ -161,9 +161,9 @@ import {
   type SettlementHandling,
 } from "@/lib/paidAmountSettlement";
 
-export const PAID_DISCOUNT_RPC = "update_paid_order_discount";
+export const PAID_DISCOUNT_RPC = "update_paid_order_discount_v2";
 
-export type PaidDiscountMode = "manual" | "none" | "code";
+export type PaidDiscountMode = "manual" | "none" | "code" | "code_override";
 
 export interface PaidDiscountRpcInput {
   orderId: string;
@@ -174,6 +174,9 @@ export interface PaidDiscountRpcInput {
   confirmed: boolean;
   discountAmount?: number;
   discountCode?: string;
+  /** code_override 模式的實際套用折扣金額 */
+  appliedDiscountAmount?: number;
+  riskAcknowledged?: boolean;
 }
 
 /** 純函式：組 RPC 參數；任何必填缺漏一律 throw，確保 0 mutation */
@@ -183,12 +186,21 @@ export function buildPaidDiscountRpcArgs(input: PaidDiscountRpcInput): Record<st
   if ((input.reason || "").trim().length < 2) throw new Error("請填寫修改原因");
   if (!isValidSettlement(input.settlement)) throw new Error("請選擇差額處理方式");
   if (input.confirmed !== true) throw new Error("尚未完成二次確認，未做任何修改");
-  if (!["manual", "none", "code"].includes(input.mode)) throw new Error("折扣模式不正確");
+  if (!["manual", "none", "code", "code_override"].includes(input.mode)) {
+    throw new Error("折扣模式不正確");
+  }
   if (input.mode === "manual" && (input.discountAmount == null || input.discountAmount < 0)) {
     throw new Error("折扣金額不得為負數");
   }
-  if (input.mode === "code" && !(input.discountCode || "").trim()) {
+  const usesCode = input.mode === "code" || input.mode === "code_override";
+  if (usesCode && !(input.discountCode || "").trim()) {
     throw new Error("請輸入折扣碼");
+  }
+  if (
+    input.mode === "code_override" &&
+    (input.appliedDiscountAmount == null || input.appliedDiscountAmount < 0)
+  ) {
+    throw new Error("實際套用折扣金額不得為空或負數");
   }
   return {
     p_order_id: input.orderId,
@@ -196,9 +208,12 @@ export function buildPaidDiscountRpcArgs(input: PaidDiscountRpcInput): Record<st
     p_reason: input.reason.trim(),
     p_mode: input.mode,
     p_discount_amount: input.mode === "manual" ? Math.trunc(input.discountAmount as number) : null,
-    p_discount_code: input.mode === "code" ? (input.discountCode || "").trim().toUpperCase() : null,
+    p_discount_code: usesCode ? (input.discountCode || "").trim().toUpperCase() : null,
     p_confirmed: true,
     p_settlement_handling: input.settlement,
+    p_applied_discount_amount:
+      input.mode === "code_override" ? Math.trunc(input.appliedDiscountAmount as number) : null,
+    p_risk_acknowledged: input.riskAcknowledged === true,
   };
 }
 
@@ -206,7 +221,7 @@ type PaidDiscountRpcClient = {
   rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
-export async function callUpdatePaidOrderDiscount(
+export async function callUpdatePaidOrderDiscountV2(
   client: PaidDiscountRpcClient,
   input: PaidDiscountRpcInput,
 ): Promise<PaidAmountRpcResult> {
@@ -215,3 +230,4 @@ export async function callUpdatePaidOrderDiscount(
   if (error) throw new Error(error.message || "折扣修改失敗");
   return data as unknown as PaidAmountRpcResult;
 }
+
