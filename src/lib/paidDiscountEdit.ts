@@ -3,8 +3,7 @@
  *
  * 權限唯一來源：/admin 同館「訂單」模組 = editable（super_admin / hotel_admin 由
  * useStaffPermissions 直接回傳 editable）。
- * 不使用 /team 角色、closer、finance、分潤權限，亦不使用舊的
- * `paid_order_discount_unlock_permissions` 特殊名單。
+ * 不使用 /team 角色、closer、finance、分潤權限，亦不使用任何舊的折扣特殊名單。
  */
 
 export type OrdersModuleLevel = "hidden" | "readonly" | "editable" | null | undefined;
@@ -123,4 +122,70 @@ export function buildPaidDiscountChanges(
     });
   }
   return changes;
+}
+
+/* ------------------------------------------------------------------
+ * v5.5：折扣修改的唯一寫入入口 — public.update_paid_order_discount
+ * 前端不得直接 orders.update()，也不得自行補寫變更紀錄。
+ * ------------------------------------------------------------------ */
+
+import {
+  isValidSettlement,
+  type PaidAmountRpcResult,
+  type SettlementHandling,
+} from "@/lib/paidAmountSettlement";
+
+export const PAID_DISCOUNT_RPC = "update_paid_order_discount";
+
+export type PaidDiscountMode = "manual" | "none" | "code";
+
+export interface PaidDiscountRpcInput {
+  orderId: string;
+  expectedUpdatedAt: string;
+  reason: string;
+  mode: PaidDiscountMode;
+  settlement: SettlementHandling | "";
+  confirmed: boolean;
+  discountAmount?: number;
+  discountCode?: string;
+}
+
+/** 純函式：組 RPC 參數；任何必填缺漏一律 throw，確保 0 mutation */
+export function buildPaidDiscountRpcArgs(input: PaidDiscountRpcInput): Record<string, unknown> {
+  if (!input.orderId) throw new Error("缺少訂單編號，未做任何修改");
+  if (!input.expectedUpdatedAt) throw new Error("訂單版本資訊尚未載入，請重新整理後再試");
+  if ((input.reason || "").trim().length < 2) throw new Error("請填寫修改原因");
+  if (!isValidSettlement(input.settlement)) throw new Error("請選擇差額處理方式");
+  if (input.confirmed !== true) throw new Error("尚未完成二次確認，未做任何修改");
+  if (!["manual", "none", "code"].includes(input.mode)) throw new Error("折扣模式不正確");
+  if (input.mode === "manual" && (input.discountAmount == null || input.discountAmount < 0)) {
+    throw new Error("折扣金額不得為負數");
+  }
+  if (input.mode === "code" && !(input.discountCode || "").trim()) {
+    throw new Error("請輸入折扣碼");
+  }
+  return {
+    p_order_id: input.orderId,
+    p_expected_updated_at: input.expectedUpdatedAt,
+    p_reason: input.reason.trim(),
+    p_mode: input.mode,
+    p_discount_amount: input.mode === "manual" ? Math.trunc(input.discountAmount as number) : null,
+    p_discount_code: input.mode === "code" ? (input.discountCode || "").trim().toUpperCase() : null,
+    p_confirmed: true,
+    p_settlement_handling: input.settlement,
+  };
+}
+
+type PaidDiscountRpcClient = {
+  rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+};
+
+export async function callUpdatePaidOrderDiscount(
+  client: PaidDiscountRpcClient,
+  input: PaidDiscountRpcInput,
+): Promise<PaidAmountRpcResult> {
+  const args = buildPaidDiscountRpcArgs(input);
+  const { data, error } = await client.rpc(PAID_DISCOUNT_RPC, args);
+  if (error) throw new Error(error.message || "折扣修改失敗");
+  return data as unknown as PaidAmountRpcResult;
 }

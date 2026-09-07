@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown, ChevronRight, History } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatChangeValue, getFieldLabel, type OrderFieldChange } from "@/utils/orderAuditDiff";
+import { settlementLabel } from "@/lib/paidAmountSettlement";
 
 interface AuditLogRow {
   id: string;
@@ -25,6 +26,7 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   update: { text: "編輯", tone: "bg-blue-100 text-blue-700" },
   price_edit: { text: "金額修改", tone: "bg-amber-100 text-amber-700" },
   paid_discount_edit: { text: "已結清折扣修改", tone: "bg-amber-100 text-amber-700" },
+  paid_addon_edit: { text: "已付款加購修改", tone: "bg-amber-100 text-amber-700" },
   cancel: { text: "取消訂單", tone: "bg-red-100 text-red-700" },
   checkin: { text: "辦理入住", tone: "bg-green-100 text-green-700" },
   checkout: { text: "辦理退房", tone: "bg-emerald-100 text-emerald-700" },
@@ -124,9 +126,14 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
           <div className="space-y-2">
             {displayed.map((log) => {
               const meta = getActionLabel(log.details, log.action_type);
-              const changes: OrderFieldChange[] = Array.isArray(log.details?.changes)
-                ? log.details.changes
-                : [];
+              const isPaidAmountEdit =
+                log.details?.type === "paid_discount_edit" || log.details?.type === "paid_addon_edit";
+              const changes: OrderFieldChange[] = (
+                Array.isArray(log.details?.changes) ? log.details.changes : []
+              ).filter((c: OrderFieldChange) =>
+                // 已結清金額調整：不顯示 raw JSON 或備註全文
+                !(isPaidAmountEdit && ["custom_addon_details", "notes", "__notes_visible"].includes(c.field)),
+              );
               const hasDetail =
                 changes.length > 0 ||
                 log.details?.reason ||
@@ -170,6 +177,29 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
                   </button>
                   {isOpen && hasDetail && (
                     <div className="border-t bg-muted/30 px-3 py-2 space-y-1.5">
+                      {(log.details?.type === "paid_discount_edit" || log.details?.type === "paid_addon_edit") && (
+                        <div className="text-xs space-y-1 pb-1">
+                          {log.details?.source && (
+                            <div><span className="text-muted-foreground">來源：</span>{String(log.details.source)}</div>
+                          )}
+                          {log.details?.settlement_handling && (
+                            <div>
+                              <span className="text-muted-foreground">差額處理方式：</span>
+                              {settlementLabel(String(log.details.settlement_handling))}
+                            </div>
+                          )}
+                          {log.details?.difference_note && (
+                            <div className="text-muted-foreground">{String(log.details.difference_note)}</div>
+                          )}
+                          {(log.details?.payment_status_before || log.details?.order_status || log.details?.refund_status) && (
+                            <div className="text-muted-foreground">
+                              當時狀態：付款 {String(log.details?.payment_status_before ?? "—")}
+                              ／訂單 {String(log.details?.order_status ?? "—")}
+                              ／退款 {String(log.details?.refund_status ?? "none")}
+                            </div>
+                          )}
+                        </div>
+                      )}
                       {changes.map((c, i) => {
                         const isDetailedText = ["__notes_visible", "notes", "meal_plan_details", "custom_addon_details", "addon_note"].includes(c.field);
                         if (isDetailedText) {
