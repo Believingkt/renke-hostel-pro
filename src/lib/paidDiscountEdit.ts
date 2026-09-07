@@ -27,6 +27,32 @@ const PAID_STATUSES = ["paid", "fully_paid", "partial_paid", "deposit_paid"];
 const REFUNDED_PAYMENT_STATUSES = ["refunded", "partial_refunded"];
 const REFUND_IN_PROGRESS = ["pending", "pending_manual", "processing", "refunding", "refunded"];
 
+/**
+ * 「已結清」判定唯一來源：payment_status ∈ (paid, fully_paid)。
+ * fully_paid 僅為既有相容值；不得以 paid_amount 比較、入退房狀態或任何舊權限替代。
+ */
+export const SETTLED_PAYMENT_STATUSES = ["paid", "fully_paid"] as const;
+
+export function isSettledPaymentStatus(status: string | null | undefined): boolean {
+  return SETTLED_PAYMENT_STATUSES.includes(
+    (status || "").toLowerCase() as (typeof SETTLED_PAYMENT_STATUSES)[number],
+  );
+}
+
+/** /admin 訂單詳情「修改已結清折扣」入口的顯示條件（fail-closed） */
+export function canShowPaidDiscountEntry({
+  ordersLevel,
+  currentAccommodationId,
+  order,
+}: PaidDiscountPermissionInput): boolean {
+  if (!order) return false;
+  if (!isSettledPaymentStatus(order.payment_status)) return false;
+  if (ordersLevel !== "editable") return false;
+  if (!currentAccommodationId || !order.accommodation_id) return false;
+  return order.accommodation_id === currentAccommodationId;
+}
+
+
 /** 房費退款中／已退款的訂單不得再走一般折扣修改（保證金退還不算） */
 export function isDiscountRefundLocked(order: PaidDiscountOrderLike | null | undefined): boolean {
   if (!order) return false;
