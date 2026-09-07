@@ -60,16 +60,30 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         // silent
       }
 
-      setSearchParams(
-        (prev) => {
-          const current = prev.get(ACCOMMODATION_ID_PARAM);
-          if (current === id) return prev;
-          const next = new URLSearchParams(prev);
-          next.set(ACCOMMODATION_ID_PARAM, id);
-          return next;
-        },
-        { replace: true }
-      );
+      // 網址本身已是民宿短網址 /{alias} 時不再加上 ?accId=，保持對外網址乾淨
+      let pathCarriesAlias = false;
+      try {
+        pathCarriesAlias =
+          typeof window !== "undefined" &&
+          sessionStorage.getItem("alias_accommodation_id") === id &&
+          window.location.pathname.split("/").filter(Boolean)[0] ===
+            sessionStorage.getItem("alias_short_url_alias");
+      } catch {
+        pathCarriesAlias = false;
+      }
+
+      if (!pathCarriesAlias) {
+        setSearchParams(
+          (prev) => {
+            const current = prev.get(ACCOMMODATION_ID_PARAM);
+            if (current === id) return prev;
+            const next = new URLSearchParams(prev);
+            next.set(ACCOMMODATION_ID_PARAM, id);
+            return next;
+          },
+          { replace: true }
+        );
+      }
     }
   }, [setSearchParams]);
 
