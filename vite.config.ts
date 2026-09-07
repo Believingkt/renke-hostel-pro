@@ -1,8 +1,10 @@
-import { defineConfig, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
+import { seoPrerender } from "./scripts/vite-plugin-seo-prerender";
+
 
 // 產生 /version.json，讓前端能偵測新版本並提示重新整理
 function emitVersionJson(buildId: string): Plugin {
@@ -22,6 +24,7 @@ function emitVersionJson(buildId: string): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const buildId = String(Date.now());
+  const env = loadEnv(mode, process.cwd(), "");
   return {
     server: {
       host: "::",
@@ -36,8 +39,13 @@ export default defineConfig(({ mode }) => {
       }),
       mode === "development" && componentTagger(),
       emitVersionJson(buildId),
+      seoPrerender({
+        url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
+        key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
+      }),
       mcpPlugin(),
     ].filter(Boolean),
+
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
