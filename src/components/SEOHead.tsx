@@ -57,9 +57,9 @@ export const SEOHead = ({
     setMetaTag('language', 'zh-TW');
     setMetaTag('revisit-after', '7 days');
 
-    // Open Graph 標籤
-    setMetaTag('og:title', title, true);
-    setMetaTag('og:description', description, true);
+    // Open Graph 標籤（未填社群欄位時自動沿用 SEO 標題／描述）
+    setMetaTag('og:title', socialTitle, true);
+    setMetaTag('og:description', socialDescription, true);
     setMetaTag('og:url', url, true);
     if (image) {
       setMetaTag('og:image', image, true);
@@ -67,7 +67,7 @@ export const SEOHead = ({
       setMetaTag('og:image:type', image.endsWith('.jpg') || image.endsWith('.jpeg') ? 'image/jpeg' : 'image/png', true);
       setMetaTag('og:image:width', '1200', true);
       setMetaTag('og:image:height', '630', true);
-      setMetaTag('og:image:alt', title, true);
+      setMetaTag('og:image:alt', socialTitle, true);
     }
     setMetaTag('og:type', type, true);
     setMetaTag('og:locale', 'zh_TW', true);
@@ -75,11 +75,11 @@ export const SEOHead = ({
 
     // Twitter Card 標籤
     setMetaTag('twitter:card', 'summary_large_image');
-    setMetaTag('twitter:title', title);
-    setMetaTag('twitter:description', description);
+    setMetaTag('twitter:title', socialTitle);
+    setMetaTag('twitter:description', socialDescription);
     if (image) {
       setMetaTag('twitter:image', image);
-      setMetaTag('twitter:image:alt', title);
+      setMetaTag('twitter:image:alt', socialTitle);
     }
 
 
