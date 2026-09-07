@@ -17,6 +17,7 @@ import { ChunkErrorBoundary } from "@/components/ChunkErrorBoundary";
 import { HQDomainRedirect } from "@/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@/components/BookingDomainRedirect";
 import { AliasResolver } from "@/components/AliasResolver";
+const AliasVillaEntry = lazy(() => import("@/components/AliasVillaEntry"));
 import { PmsDomainGuard } from "@/components/PmsDomainGuard";
 import { RequireModule } from "@/components/RequireModule";
 import { useVersionCheck } from "@/hooks/useVersionCheck";
@@ -881,6 +882,9 @@ function App() {
 
                       {/* /:alias/* — booking.lakeze.com/{alias}/admin 等使用 */}
                       <Route path="/:alias" element={<AliasResolver />}>
+                        <Route index element={
+                          <Suspense fallback={<FrontendSkeleton />}><AliasVillaEntry /></Suspense>
+                        } />
                         {sharedRoutes}
                       </Route>
 

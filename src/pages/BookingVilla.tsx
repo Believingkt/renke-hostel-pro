@@ -124,7 +124,12 @@ export const TRUST_BADGE_ICONS: Record<string, typeof ShieldCheck> = {
 };
 export const TRUST_BADGE_ICON_OPTIONS = Object.keys(TRUST_BADGE_ICONS);
 
-const BookingVillaContent = () => {
+interface BookingVillaProps {
+  /** 由 /{alias} 路由帶入的民宿 ID（沒有 :accId 參數時使用） */
+  accommodationId?: string;
+}
+
+const BookingVillaContent = (props: BookingVillaProps) => {
   const { t } = useBookingLocale();
   // 黏頂列高度動態量測（避免硬寫 px 造成重疊）
   const [isDesktopSearch, setIsDesktopSearch] = useState(
@@ -1633,9 +1638,9 @@ const BookingVillaContent = () => {
   );
 };
 
-const BookingVilla = () => (
+const BookingVilla = (props: BookingVillaProps) => (
   <BookingLocaleProvider>
-    <BookingVillaContent />
+    <BookingVillaContent {...props} />
   </BookingLocaleProvider>
 );
 
