@@ -252,6 +252,9 @@ Deno.serve(async (req) => {
     }
     // 補發模式不套用 test_mode 的跳過去重行為
     if (backfill) testMode = false;
+    const runId = crypto.randomUUID();
+    const runMode = backfill ? "backfill" : testMode ? "test" : "cron";
+
 
 
 
