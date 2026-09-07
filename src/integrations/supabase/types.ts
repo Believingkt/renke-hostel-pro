@@ -13947,6 +13947,20 @@ export type Database = {
       }
       normalize_kol_name: { Args: { _raw: string }; Returns: string }
       normalize_owlting_name: { Args: { p_name: string }; Returns: string }
+      notes_onsite_addon_amount: { Args: { _notes: string }; Returns: number }
+      notes_onsite_addon_block_count: {
+        Args: { _notes: string }
+        Returns: number
+      }
+      notes_onsite_addon_malformed: {
+        Args: { _notes: string }
+        Returns: boolean
+      }
+      notes_set_onsite_addon: {
+        Args: { _amount: number; _note: string; _notes: string; _ts: string }
+        Returns: string
+      }
+      notes_strip_onsite_addon: { Args: { _notes: string }; Returns: string }
       owlting_is_inbound_owned: {
         Args: {
           p_auto_email_id: string
@@ -14066,6 +14080,23 @@ export type Database = {
           p_reason: string
           p_reduce_acknowledged?: boolean
           p_settlement_handling?: string
+        }
+        Returns: Json
+      }
+      update_paid_order_addons_v2: {
+        Args: {
+          p_addons?: Json
+          p_confirmed?: boolean
+          p_expected_updated_at: string
+          p_onsite_amount?: number
+          p_onsite_note?: string
+          p_order_id: string
+          p_paid_amount?: number
+          p_pet_plan_price?: number
+          p_reason: string
+          p_reduce_acknowledged?: boolean
+          p_risk_acknowledged?: boolean
+          p_settlement_handling: string
         }
         Returns: Json
       }
