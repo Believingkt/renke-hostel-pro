@@ -3,7 +3,12 @@ import { useParams, Outlet, Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { FrontendSkeleton } from "@/components/skeletons/FrontendSkeleton";
 
-const BOOKING_DOMAINS = ["booking.lakeze.com", "www.booking.lakeze.com"];
+import { registerBookingAlias } from "@/lib/bookingAliasRegistry";
+
+export interface AliasOutletContext {
+  accommodationId: string;
+  alias: string;
+}
 
 /**
  * AliasResolver
@@ -29,7 +34,7 @@ export function AliasResolver() {
     (async () => {
       const { data, error } = await supabase
         .from("accommodation_info")
-        .select("id, short_url_alias")
+        .select("id, short_url_alias, custom_domain")
         .eq("short_url_alias", alias)
         .maybeSingle();
 
@@ -47,6 +52,7 @@ export function AliasResolver() {
       } catch {
         /* silent */
       }
+      registerBookingAlias(data.id, data.short_url_alias, (data as any).custom_domain);
       setResolvedId(data.id);
       setStatus("ready");
 
@@ -73,16 +79,5 @@ export function AliasResolver() {
     return <Navigate to="/booking" replace />;
   }
 
-  // 在 booking.lakeze.com 網域且路徑為 /{alias} 根路徑時，直接進新版包棟訂房頁。
-  if (resolvedId && typeof window !== "undefined") {
-    const hostname = window.location.hostname.toLowerCase();
-    const segments = location.pathname.split("/").filter(Boolean);
-    if (BOOKING_DOMAINS.includes(hostname) && segments.length === 1) {
-      const target = `/booking/villa/${resolvedId}`;
-      return <Navigate to={`${target}${location.search}`} replace />;
-    }
-  }
-
-
-  return <Outlet />;
+  return <Outlet context={{ accommodationId: resolvedId, alias } as AliasOutletContext} />;
 }

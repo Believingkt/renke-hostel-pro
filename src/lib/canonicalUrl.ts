@@ -27,6 +27,9 @@ export function buildAccommodationCanonical(info: {
     const origin = domain
       ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
       : BOOKING_PORTAL_ORIGIN;
+    // 短網址 /{alias} 現在會直接渲染訂房頁（不再轉址），因此優先作為 canonical。
+    const alias = info.short_url_alias?.trim().replace(/^\/+|\/+$/g, "");
+    if (alias && /^[a-z0-9-_]+$/i.test(alias)) return `${origin}/${alias}`;
     return `${origin}/booking/villa/${id}`;
   }
 

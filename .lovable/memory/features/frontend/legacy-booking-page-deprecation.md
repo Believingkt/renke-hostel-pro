@@ -10,3 +10,8 @@ type: constraint
 - 入口統一：BookingPortal、BookingSearchResults、MemberOrders「再次預訂」、AliasResolver、AccommodationSelector 一律使用 `/booking/villa/{accId}`。
 - **禁止**再新增任何指向 `/booking/{accId}` 或舊首頁的連結；不要用 `isSensanAccommodation` 或「是否有包區方案」判斷要走哪個訂房頁。
 - 舊檔案暫留（尚未刪除）僅為歷史參考，前台不再可達。
+
+## 2026-09 更新
+- 平台入口（/booking 列表）點進館別後也走短網址 `/{alias}`，與民宿主人對外貼的網址一致。
+- `/{alias}` 直接渲染訂房頁（不再 302 到 `/booking/villa/{uuid}`）。
+- `/booking/villa/{uuid}` 保留可用（向下相容），其 canonical 指向 `/{alias}`，避免兩個網址兩份 meta。

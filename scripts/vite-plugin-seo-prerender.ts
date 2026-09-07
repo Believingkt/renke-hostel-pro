@@ -91,7 +91,11 @@ function buildHead(acc: AccRow) {
   const ogDescription = clamp((acc.og_description || acc.seo_description || description).trim(), 200);
   const keywords = (acc.meta_keywords || "").trim();
   const image = (acc.og_image_url || "").trim() || DEFAULT_OG_IMAGE;
-  const canonical = `${originOf(acc)}/booking/villa/${acc.id}`;
+  const aliasSlug = acc.short_url_alias?.trim().replace(/^\/+|\/+$/g, "");
+  const canonical =
+    aliasSlug && /^[a-z0-9-_]+$/i.test(aliasSlug) && !RESERVED.has(aliasSlug.toLowerCase())
+      ? `${originOf(acc)}/${aliasSlug}`
+      : `${originOf(acc)}/booking/villa/${acc.id}`;
 
   return [
     `<title>${esc(title)}</title>`,

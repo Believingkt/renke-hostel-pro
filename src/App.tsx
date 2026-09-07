@@ -39,6 +39,7 @@ const BookingPortal = lazy(() => import("./pages/BookingPortal"));
 const BookingSearchResults = lazy(() => import("./pages/BookingSearchResults"));
 const LegacyBookingRedirect = lazy(() => import("./components/LegacyBookingRedirect"));
 const BookingVilla = lazy(() => import("./pages/BookingVilla"));
+const AliasVillaEntry = lazy(() => import("@/components/AliasVillaEntry"));
 const MemberAuth = lazy(() => import("./pages/MemberAuth"));
 const MemberLayout = lazy(() => import("./components/member/MemberLayout"));
 const MemberProfile = lazy(() => import("./pages/MemberProfile"));
@@ -881,6 +882,9 @@ function App() {
 
                       {/* /:alias/* — booking.lakeze.com/{alias}/admin 等使用 */}
                       <Route path="/:alias" element={<AliasResolver />}>
+                        <Route index element={
+                          <Suspense fallback={<FrontendSkeleton />}><AliasVillaEntry /></Suspense>
+                        } />
                         {sharedRoutes}
                       </Route>
 

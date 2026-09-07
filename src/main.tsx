@@ -1,3 +1,4 @@
+import { primeBookingAliases } from "@/lib/bookingAliasRegistry";
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -59,3 +60,6 @@ if ('caches' in window) {
     names.forEach(name => caches.delete(name));
   });
 }
+
+// 預先載入民宿短網址對照，讓前台連結一律輸出 /{alias}
+primeBookingAliases();

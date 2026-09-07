@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter, Routes, Route } from "react-router-dom";
+import { MemoryRouter, Routes, Route, useOutletContext } from "react-router-dom";
 
 const ACC_ID = "11111111-2222-3333-4444-555555555555";
 
@@ -51,13 +51,20 @@ function StandardStub() {
   return <div data-testid="standard-page">standard</div>;
 }
 
+function AliasIndexStub() {
+  const ctx = useOutletContext<{ accommodationId: string } | null>();
+  return <div data-testid="villa-page">villa:{ctx?.accommodationId}</div>;
+}
+
 function renderAlias(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route path="/booking/villa/:accId" element={<VillaStub />} />
         <Route path="/booking/:accId" element={<StandardStub />} />
-        <Route path="/:alias" element={<AliasResolver />} />
+        <Route path="/:alias" element={<AliasResolver />}>
+          <Route index element={<AliasIndexStub />} />
+        </Route>
       </Routes>
     </MemoryRouter>,
   );
@@ -81,10 +88,10 @@ describe("booking 網域別名導向", () => {
     vi.clearAllMocks();
   });
 
-  it("在 booking 網域輸入 /{alias} 時導向新版包棟訂房頁（不論有無方案）", async () => {
+  it("在 booking 網域輸入 /{alias} 時直接渲染包棟訂房頁（不再轉址）", async () => {
     renderAlias("/sensan");
     await waitFor(() => {
-      expect(screen.getByTestId("villa-page")).toBeInTheDocument();
+      expect(screen.getByTestId("villa-page")).toHaveTextContent(ACC_ID);
     });
     expect(screen.queryByTestId("standard-page")).not.toBeInTheDocument();
   });
@@ -97,14 +104,14 @@ describe("booking 網域別名導向", () => {
     expect(container).toBeTruthy();
   });
 
-  it("非 booking 網域時不強制導向，維持子路由渲染", async () => {
+  it("其他網域的 /{alias} 一樣直接渲染訂房頁（同一份設定、同一個網址）", async () => {
     Object.defineProperty(window, "location", {
       writable: true,
-      value: { ...originalLocation, hostname: "hq.lakeze.com" },
+      value: { ...originalLocation, hostname: "sensaninn.lakeze.com" },
     });
     renderAlias("/sensan");
     await waitFor(() => {
-      expect(screen.queryByTestId("villa-page")).not.toBeInTheDocument();
+      expect(screen.getByTestId("villa-page")).toHaveTextContent(ACC_ID);
     });
   });
 });
