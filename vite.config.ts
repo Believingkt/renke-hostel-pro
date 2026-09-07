@@ -24,6 +24,7 @@ function emitVersionJson(buildId: string): Plugin {
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const buildId = String(Date.now());
+  const env = loadEnv(mode, process.cwd(), "");
   return {
     server: {
       host: "::",
@@ -38,8 +39,13 @@ export default defineConfig(({ mode }) => {
       }),
       mode === "development" && componentTagger(),
       emitVersionJson(buildId),
+      seoPrerender({
+        url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
+        key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
+      }),
       mcpPlugin(),
     ].filter(Boolean),
+
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
