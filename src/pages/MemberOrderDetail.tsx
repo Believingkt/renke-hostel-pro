@@ -362,7 +362,7 @@ const MemberOrderDetail = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, display_room_type_name, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -463,7 +463,8 @@ const MemberOrderDetail = () => {
         accommodation_email: acc?.email || null,
         accommodation_photo: accPhotos?.[0]?.photo_url || null,
         short_url_alias: acc?.short_url_alias || null,
-        room_type_name: (data as any).room_types?.name || null,
+        room_type_name:
+          (data as any).room_types?.name || (data as any).display_room_type_name || null,
         room_photo_url: roomPhotos?.[0]?.photo_url || null,
         check_in_time: settings?.check_in_time || null,
         check_out_time: settings?.check_out_time || null,
@@ -763,6 +764,7 @@ const MemberOrderDetail = () => {
                 size="sm"
                 orderNumber={order.order_number}
                 accommodationName={order.accommodation_name}
+                roomTypeName={order.room_type_name}
                 address={order.accommodation_address}
                 checkInDate={order.check_in_date}
                 checkOutDate={order.check_out_date}

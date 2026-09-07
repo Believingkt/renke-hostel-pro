@@ -174,7 +174,7 @@ const MemberOrders = () => {
     const { data, error } = await supabase
       .from("orders")
       .select(
-        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, payment_status, paid_amount, final_price, guest_name, guest_count, accommodation_id, room_type_id, atm_vacc_no, atm_expire_at, room_types(name)"
+        "id, order_number, order_date, created_at, check_in_date, check_out_date, order_status, payment_status, paid_amount, final_price, guest_name, guest_count, accommodation_id, room_type_id, atm_vacc_no, atm_expire_at, display_room_type_name, room_types(name)"
       )
       .eq("member_id", member.id)
       .order("created_at", { ascending: false })
@@ -232,7 +232,7 @@ const MemberOrders = () => {
         guest_count: o.guest_count || 1,
         accommodation_id: o.accommodation_id,
         accommodation_name: accMap.get(o.accommodation_id) || "",
-        room_type_name: o.room_types?.name || null,
+        room_type_name: o.room_types?.name || o.display_room_type_name || null,
         room_photo_url: o.room_type_id ? photoMap.get(o.room_type_id) || null : null,
         atm_vacc_no: o.atm_vacc_no ?? null,
         atm_expire_at: o.atm_expire_at ?? null,

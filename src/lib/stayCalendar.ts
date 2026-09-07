@@ -18,6 +18,8 @@ import { isNativeApp } from "@/lib/appMode";
 export interface StayCalendarInput {
   orderNumber: string;
   accommodationName: string;
+  /** 房型名稱（純顯示用，可省略） */
+  roomTypeName?: string | null;
   /** yyyy-MM-dd */
   checkInDate: string;
   /** yyyy-MM-dd */
@@ -73,8 +75,14 @@ export function buildStayEvent(input: StayCalendarInput): StayCalendarEvent {
   const url =
     input.orderUrl ||
     (typeof window !== "undefined" ? window.location.href : "https://booking.lakeze.com");
+  const room = input.roomTypeName?.trim();
+  const title = room
+    ? room.includes(input.accommodationName)
+      ? `入住 ${room}`
+      : `入住 ${input.accommodationName}・${room}`
+    : `入住 ${input.accommodationName}`.trim();
   return {
-    title: `入住 ${input.accommodationName}`.trim(),
+    title,
     start: atLocalTime(input.checkInDate, 15),
     end: atLocalTime(input.checkOutDate, 11),
     location: input.address || "",

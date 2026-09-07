@@ -7793,6 +7793,7 @@ export type Database = {
           deposit_status: string
           discount_amount: number | null
           discount_code: string | null
+          display_room_type_name: string | null
           exchange_rate_snapshot: number | null
           final_price: number
           group_buy_booking_notice_snapshot: Json | null
@@ -7892,6 +7893,7 @@ export type Database = {
           deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
+          display_room_type_name?: string | null
           exchange_rate_snapshot?: number | null
           final_price: number
           group_buy_booking_notice_snapshot?: Json | null
@@ -7991,6 +7993,7 @@ export type Database = {
           deposit_status?: string
           discount_amount?: number | null
           discount_code?: string | null
+          display_room_type_name?: string | null
           exchange_rate_snapshot?: number | null
           final_price?: number
           group_buy_booking_notice_snapshot?: Json | null
