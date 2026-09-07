@@ -14100,6 +14100,10 @@ export type Database = {
           updated_at: string
         }[]
       }
+      seed_app_review_account: {
+        Args: { p_email: string; p_user_id: string }
+        Returns: Json
+      }
       staff_can_edit_module: {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
