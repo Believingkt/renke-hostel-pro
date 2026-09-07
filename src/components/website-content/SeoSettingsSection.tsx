@@ -285,7 +285,103 @@ export const SeoSettingsSection = ({
           </p>
         </div>
 
+        {/* 社群分享（og）標籤 */}
+        <div className="space-y-6 rounded-lg border p-4">
+          <div>
+            <h4 className="text-sm font-medium">社群分享標籤（og）</h4>
+            <p className="text-xs text-muted-foreground mt-1">
+              Facebook、LINE 分享時顯示的標題、描述與預覽圖；留空會自動沿用上方 SEO 設定
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ogTitle">分享標題（og:title）</Label>
+              <span className="text-xs text-muted-foreground">{formData.ogTitle.length}/60</span>
+            </div>
+            <Input
+              id="ogTitle"
+              value={formData.ogTitle}
+              onChange={(e) => {
+                setFormData({ ...formData, ogTitle: e.target.value });
+                validateField("ogTitle", e.target.value);
+              }}
+              placeholder={formData.seoTitle || "留空自動沿用 SEO 標題"}
+              maxLength={60}
+              className={cn(errors.ogTitle && "border-destructive")}
+            />
+            {errors.ogTitle && <p className="text-xs text-destructive">{errors.ogTitle}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="ogDescription">分享描述（og:description）</Label>
+              <span className="text-xs text-muted-foreground">
+                {formData.ogDescription.length}/160
+              </span>
+            </div>
+            <Textarea
+              id="ogDescription"
+              value={formData.ogDescription}
+              onChange={(e) => {
+                setFormData({ ...formData, ogDescription: e.target.value });
+                validateField("ogDescription", e.target.value);
+              }}
+              placeholder={formData.metaDescription || "留空自動沿用 Meta 描述"}
+              maxLength={160}
+              rows={3}
+              className={cn(errors.ogDescription && "border-destructive")}
+            />
+            {errors.ogDescription && (
+              <p className="text-xs text-destructive">{errors.ogDescription}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ogImageUrl">分享預覽圖網址（og:image）</Label>
+            <Input
+              id="ogImageUrl"
+              value={formData.ogImageUrl}
+              onChange={(e) => {
+                setFormData({ ...formData, ogImageUrl: e.target.value });
+                validateField("ogImageUrl", e.target.value);
+              }}
+              placeholder="https://example.com/preview.jpg（建議 1200 x 630）"
+              className={cn(errors.ogImageUrl && "border-destructive")}
+            />
+            {errors.ogImageUrl && <p className="text-xs text-destructive">{errors.ogImageUrl}</p>}
+            {formData.ogImageUrl && !errors.ogImageUrl && (
+              <img
+                src={formData.ogImageUrl}
+                alt="社群分享預覽圖"
+                loading="lazy"
+                className="mt-2 h-40 w-full max-w-md rounded-lg border object-cover"
+              />
+            )}
+          </div>
+
+          {/* 社群分享預覽 */}
+          <div className="rounded-lg border bg-muted/30 p-4 max-w-md">
+            <div className="text-xs text-muted-foreground mb-2">社群分享預覽</div>
+            {formData.ogImageUrl && !errors.ogImageUrl && (
+              <img
+                src={formData.ogImageUrl}
+                alt=""
+                loading="lazy"
+                className="mb-2 h-32 w-full rounded object-cover"
+              />
+            )}
+            <div className="text-sm font-medium truncate">
+              {formData.ogTitle || formData.seoTitle || "分享標題"}
+            </div>
+            <div className="text-xs text-muted-foreground line-clamp-2">
+              {formData.ogDescription || formData.metaDescription || "分享描述會顯示在這裡"}
+            </div>
+          </div>
+        </div>
+
         <SaveButtonContainer onSave={handleSave} isSaving={saving} />
+
       </CardContent>
     </Card>
   );
