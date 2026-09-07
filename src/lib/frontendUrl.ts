@@ -11,6 +11,8 @@
  * 不論帳號權限、是否有包區方案，都不再導向舊版一般民宿訂房頁或舊首頁。
  */
 
+import { getBookingAliasEntry } from "@/lib/bookingAliasRegistry";
+
 export const BOOKING_PORTAL_HOST = "booking.lakeze.com";
 
 export interface BookingTarget {
@@ -18,6 +20,8 @@ export interface BookingTarget {
   accommodationId?: string | null;
   /** 自訂網域，例如 sensaninn.lakeze.com（可選） */
   customDomain?: string | null;
+  /** 民宿短網址（可選，未提供時自動從 alias 登錄表查） */
+  alias?: string | null;
   /** 額外查詢參數 */
   params?: Record<string, string | number | null | undefined>;
   /** 錨點，例如 "rooms"（不含 #） */
@@ -30,10 +34,16 @@ function normalizeDomain(domain?: string | null): string | null {
   return d.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 }
 
-function buildQuery(target: BookingTarget): string {
+function resolveAlias(target: BookingTarget): string | null {
+  const explicit = target.alias?.trim().replace(/^\/+|\/+$/g, "");
+  if (explicit) return explicit;
+  return getBookingAliasEntry(target.accommodationId)?.alias || null;
+}
+
+function buildQuery(target: BookingTarget, withAccId = true): string {
   const sp = new URLSearchParams();
   // accId 一律帶上，供 AccommodationContext 在跨網域情境下解析
-  if (target.accommodationId) sp.set("accId", target.accommodationId);
+  if (withAccId && target.accommodationId) sp.set("accId", target.accommodationId);
   for (const [k, v] of Object.entries(target.params || {})) {
     if (v === null || v === undefined || v === "") continue;
     sp.set(k, String(v));
@@ -51,6 +61,9 @@ function buildHash(target: BookingTarget): string {
 export function bookingPath(target: BookingTarget | string | null | undefined): string {
   const t: BookingTarget = typeof target === "string" ? { accommodationId: target } : target || {};
   if (!t.accommodationId) return "/booking";
+  // 對外統一使用短網址 /{alias}；查不到 alias 時退回向下相容的 uuid 路徑
+  const alias = resolveAlias(t);
+  if (alias) return `/${alias}${buildQuery(t, false)}${buildHash(t)}`;
   return `/booking/villa/${t.accommodationId}${buildQuery(t)}${buildHash(t)}`;
 }
 
