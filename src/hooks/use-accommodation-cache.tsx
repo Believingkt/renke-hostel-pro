@@ -101,7 +101,60 @@ export const clearAllAccommodationCache = () => {
   secondaryCache.clear();
 };
 
+/** 後台剛儲存的 SEO／社群欄位（瀏覽器端覆蓋，避免等到下次發布才更新） */
+export type AccommodationSeoOverlay = Partial<
+  Pick<
+    AccommodationInfo,
+    "seo_title" | "seo_description" | "meta_keywords" | "og_title" | "og_description" | "og_image_url"
+  >
+>;
+
+const SEO_OVERLAY_TTL = 30 * 60 * 1000;
+const seoOverlayKey = (id: string) => `acc-seo-overlay-${id}`;
+
+export const readAccommodationSeoOverlay = (accommodationId: string): AccommodationSeoOverlay => {
+  if (typeof localStorage === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(seoOverlayKey(accommodationId));
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as { timestamp: number; data: AccommodationSeoOverlay };
+    if (!parsed?.timestamp || Date.now() - parsed.timestamp > SEO_OVERLAY_TTL) {
+      localStorage.removeItem(seoOverlayKey(accommodationId));
+      return {};
+    }
+    return parsed.data || {};
+  } catch {
+    return {};
+  }
+};
+
+/** 儲存 SEO／社群欄位後立即寫入瀏覽器快取，前台重新整理即可看到新內容 */
+export const patchAccommodationSeoCache = (
+  accommodationId: string,
+  patch: AccommodationSeoOverlay,
+) => {
+  if (!accommodationId) return;
+  const merged = { ...readAccommodationSeoOverlay(accommodationId), ...patch };
+  try {
+    localStorage.setItem(
+      seoOverlayKey(accommodationId),
+      JSON.stringify({ timestamp: Date.now(), data: merged }),
+    );
+  } catch {
+    /* 忽略儲存空間限制 */
+  }
+
+  const cached = primaryCache.get(accommodationId);
+  if (cached) {
+    primaryCache.set(accommodationId, {
+      ...cached,
+      data: { ...cached.data, info: { ...cached.data.info, ...merged } },
+    });
+  }
+};
+
 export const useAccommodationCache = (accommodationId: string | null) => {
+
   const [info, setInfo] = useState<AccommodationInfo | null>(null);
   const [heroPhotos, setHeroPhotos] = useState<any[]>([]);
   const [galleryPhotos, setGalleryPhotos] = useState<any[]>([]);
