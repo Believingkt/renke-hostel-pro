@@ -215,8 +215,8 @@ describe("原始碼契約", () => {
 
   it("驗證只走唯讀 validate_discount_code", () => {
     expect(codeLib).toContain('"validate_discount_code"');
-    expect(codeLib).not.toContain("used_count");
-    expect(codeLib).not.toContain("coupon_usages");
+    expect(codeLib).not.toMatch(/\.(insert|update|delete)\(/);
+    expect(codeLib).not.toMatch(/rpc\(\s*"(?!validate_discount_code)/);
   });
 
   it("兩個 blocker 皆以 fail-closed 常數擋住送出", () => {
