@@ -100,7 +100,7 @@ export const SEOHead = ({
       document.head.appendChild(viewport);
     }
 
-  }, [title, description, url, image, type, keywords]);
+  }, [title, description, url, image, type, keywords, socialTitle, socialDescription]);
 
   return null;
 };
