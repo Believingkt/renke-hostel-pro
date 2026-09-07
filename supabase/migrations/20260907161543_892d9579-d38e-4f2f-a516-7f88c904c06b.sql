@@ -32,4 +32,4 @@ CREATE POLICY "super_admin can read dispatch log"
   ON public.performance_notification_dispatch_log
   FOR SELECT
   TO authenticated
-  USING (public.has_role(auth.uid(), 'super_admin'::app_role));
+  USING (public.is_super_admin(auth.uid()));
