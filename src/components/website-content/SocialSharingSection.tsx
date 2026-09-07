@@ -18,6 +18,9 @@ interface SocialSharingSectionProps {
   ogTitle: string;
   ogDescription: string;
   ogImageUrl: string;
+  /** SEO 設定值；社群欄位留空時自動沿用 */
+  seoTitle?: string;
+  seoDescription?: string;
   onUpdate: () => void;
   onOgImageUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onDeleteOgImage: () => void;
@@ -29,6 +32,8 @@ export const SocialSharingSection = ({
   ogTitle,
   ogDescription,
   ogImageUrl,
+  seoTitle = "",
+  seoDescription = "",
   onUpdate,
   onOgImageUpload,
   onDeleteOgImage,
@@ -36,6 +41,10 @@ export const SocialSharingSection = ({
 }: SocialSharingSectionProps) => {
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // 社群欄位未填時，先以 SEO 設定的標題／描述帶入（60／160 字元上限）
+  const fallbackTitle = (seoTitle || "").trim().slice(0, 60);
+  const fallbackDescription = (seoDescription || "").trim().slice(0, 160);
 
   // 使用草稿功能
   const {
@@ -48,8 +57,8 @@ export const SocialSharingSection = ({
   } = useFormDraft({
     key: `social-sharing-draft-${accommodationId}`,
     initialData: {
-      ogTitle,
-      ogDescription,
+      ogTitle: ogTitle || fallbackTitle,
+      ogDescription: ogDescription || fallbackDescription,
     },
   });
 
@@ -57,11 +66,11 @@ export const SocialSharingSection = ({
   useEffect(() => {
     if (!hasDraft) {
       setFormData({
-        ogTitle,
-        ogDescription,
+        ogTitle: ogTitle || fallbackTitle,
+        ogDescription: ogDescription || fallbackDescription,
       });
     }
-  }, [ogTitle, ogDescription, hasDraft]);
+  }, [ogTitle, ogDescription, fallbackTitle, fallbackDescription, hasDraft]);
 
   const validateField = (field: string, value: string) => {
     try {
@@ -138,7 +147,9 @@ export const SocialSharingSection = ({
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
             <CardTitle className="text-xl">社群分享</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">設定社群分享預覽</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              設定社群分享預覽（留空會自動沿用 SEO 設定的標題與描述）
+            </p>
           </div>
         </div>
       </CardHeader>

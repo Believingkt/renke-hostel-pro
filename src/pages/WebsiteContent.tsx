@@ -3395,6 +3395,8 @@ const WebsiteContent = () => {
             ogTitle={basicInfo.og_title}
             ogDescription={basicInfo.og_description}
             ogImageUrl={basicInfo.og_image_url}
+            seoTitle={basicInfo.seo_title}
+            seoDescription={basicInfo.seo_description}
             onUpdate={loadData}
             onOgImageUpload={handleOgImageUpload}
             onDeleteOgImage={handleDeleteOgImageClick}

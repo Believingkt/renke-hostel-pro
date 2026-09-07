@@ -7,6 +7,9 @@ interface SEOHeadProps {
   image?: string;
   type?: string;
   keywords?: string[];
+  /** 社群分享標題／描述；未提供時自動沿用 SEO 標題與描述 */
+  ogTitle?: string;
+  ogDescription?: string;
 }
 
 export const SEOHead = ({
@@ -15,8 +18,12 @@ export const SEOHead = ({
   url = window.location.href,
   image,
   type = "website",
-  keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"]
+  keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"],
+  ogTitle,
+  ogDescription,
 }: SEOHeadProps) => {
+  const socialTitle = ogTitle?.trim() || title;
+  const socialDescription = ogDescription?.trim() || description;
   // 立即同步更新標題，無需等待 useEffect（減少閃爍）
   if (typeof document !== 'undefined' && document.title !== title) {
     document.title = title;
@@ -50,9 +57,9 @@ export const SEOHead = ({
     setMetaTag('language', 'zh-TW');
     setMetaTag('revisit-after', '7 days');
 
-    // Open Graph 標籤
-    setMetaTag('og:title', title, true);
-    setMetaTag('og:description', description, true);
+    // Open Graph 標籤（未填社群欄位時自動沿用 SEO 標題／描述）
+    setMetaTag('og:title', socialTitle, true);
+    setMetaTag('og:description', socialDescription, true);
     setMetaTag('og:url', url, true);
     if (image) {
       setMetaTag('og:image', image, true);
@@ -60,7 +67,7 @@ export const SEOHead = ({
       setMetaTag('og:image:type', image.endsWith('.jpg') || image.endsWith('.jpeg') ? 'image/jpeg' : 'image/png', true);
       setMetaTag('og:image:width', '1200', true);
       setMetaTag('og:image:height', '630', true);
-      setMetaTag('og:image:alt', title, true);
+      setMetaTag('og:image:alt', socialTitle, true);
     }
     setMetaTag('og:type', type, true);
     setMetaTag('og:locale', 'zh_TW', true);
@@ -68,11 +75,11 @@ export const SEOHead = ({
 
     // Twitter Card 標籤
     setMetaTag('twitter:card', 'summary_large_image');
-    setMetaTag('twitter:title', title);
-    setMetaTag('twitter:description', description);
+    setMetaTag('twitter:title', socialTitle);
+    setMetaTag('twitter:description', socialDescription);
     if (image) {
       setMetaTag('twitter:image', image);
-      setMetaTag('twitter:image:alt', title);
+      setMetaTag('twitter:image:alt', socialTitle);
     }
 
 
@@ -93,7 +100,7 @@ export const SEOHead = ({
       document.head.appendChild(viewport);
     }
 
-  }, [title, description, url, image, type, keywords]);
+  }, [title, description, url, image, type, keywords, socialTitle, socialDescription]);
 
   return null;
 };
