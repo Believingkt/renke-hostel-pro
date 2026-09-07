@@ -9676,6 +9676,65 @@ export type Database = {
           },
         ]
       }
+      performance_notification_dispatch_log: {
+        Row: {
+          accommodation_id: string | null
+          accommodation_name: string | null
+          channel: string
+          created_at: string
+          detail: string | null
+          duration_ms: number | null
+          error: string | null
+          id: string
+          notify_time: string
+          run_id: string
+          run_mode: string
+          sent_date: string
+          status: string
+          target: string | null
+        }
+        Insert: {
+          accommodation_id?: string | null
+          accommodation_name?: string | null
+          channel: string
+          created_at?: string
+          detail?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          notify_time: string
+          run_id: string
+          run_mode: string
+          sent_date: string
+          status: string
+          target?: string | null
+        }
+        Update: {
+          accommodation_id?: string | null
+          accommodation_name?: string | null
+          channel?: string
+          created_at?: string
+          detail?: string | null
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          notify_time?: string
+          run_id?: string
+          run_mode?: string
+          sent_date?: string
+          status?: string
+          target?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_notification_dispatch_log_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_notification_sent_log: {
         Row: {
           accommodation_id: string
