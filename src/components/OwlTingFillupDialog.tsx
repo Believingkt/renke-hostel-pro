@@ -37,7 +37,8 @@ interface StagingRow {
   pii_status: string;
   channel_source: string | null;
   room_quantity: number | null;
-  special_requests?: string | null;
+  /** jsonb blob on the staging row; only `special_requests` is read from it. */
+  extracted_fields?: Record<string, unknown> | null;
   auto_order_id: string | null;
   auto_order_number?: string | null;
 }
@@ -116,7 +117,9 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
     (async () => {
       const { data, error } = await supabase
         .from("owlting_email_parsed_staging")
-        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, special_requests, auto_order_id")
+        // NOTE: special_requests is NOT a column on this table; it lives inside
+        // extracted_fields (jsonb) and is read below (read-only, single key).
+        .select("id, raw_email_id, obe_number, accommodation_id, accommodation_name, room_type_name, check_in_date, check_out_date, guest_count, adult_count, child_count, total_amount, pii_status, channel_source, room_quantity, extracted_fields, auto_order_id")
         .eq("id", stagingId)
         .maybeSingle();
       if (error || !data) {
@@ -476,7 +479,8 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
 
 
   // 訂單備註預覽（與 owlting-fillup-submit 寫入訂單備註的組成一致）
-  const specialRequestsText = String(stagingRow?.special_requests ?? "").trim();
+  // special_requests 存放於 staging 的 extracted_fields jsonb，非資料表欄位。
+  const specialRequestsText = String(stagingRow?.extracted_fields?.special_requests ?? "").trim();
   const rawChannelLabel = String(stagingRow?.channel_source ?? "").trim();
   const notesPreview = [
     specialRequestsText ? `[特殊需求] ${specialRequestsText}` : null,
