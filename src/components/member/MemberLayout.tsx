@@ -23,6 +23,8 @@ import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/push
 import BiometricEnrollPrompt from "@/components/member/BiometricEnrollPrompt";
 import { clearManualLogoutFlag, disableBiometricLogin, refreshStoredBiometricToken, setManualLogoutFlag } from "@/lib/biometricAuth";
 import { clearAppBadge } from "@/lib/appBadge";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { MEMBER_LOGOUT_EVENT } from "@/lib/native/memberLogoutEvent";
 
 
 const navItems = [
@@ -36,6 +38,7 @@ const MemberLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
+  const native = useIsNativeApp();
   const [memberName, setMemberName] = useState("");
   const [logoutOpen, setLogoutOpen] = useState(false);
 
@@ -136,11 +139,19 @@ const MemberLayout = () => {
     navigate("/booking", { replace: true });
   };
 
-
+  // 原生 App：登出改由「我的」頁內觸發（網站版不受影響）
+  useEffect(() => {
+    if (!native) return;
+    const open = () => setLogoutOpen(true);
+    window.addEventListener(MEMBER_LOGOUT_EVENT, open);
+    return () => window.removeEventListener(MEMBER_LOGOUT_EVENT, open);
+  }, [native]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      {/* Header */}
+    <div className={native ? "min-h-screen bg-background" : "min-h-screen bg-gradient-to-b from-orange-50 to-white"}>
+      {native && <AtmPaymentBanner />}
+      {/* Header（網站版專用；原生 App 改用 iOS 導覽列） */}
+      {!native && (
       <header className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b">
         <AtmPaymentBanner />
         <div className="max-w-4xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
@@ -160,6 +171,7 @@ const MemberLayout = () => {
           </div>
         </div>
       </header>
+      )}
 
       <AlertDialog open={logoutOpen} onOpenChange={setLogoutOpen}>
         <AlertDialogContent>
@@ -177,8 +189,8 @@ const MemberLayout = () => {
       {/* 一次性提示：啟用 Face ID 快速登入（僅 iOS App） */}
       <BiometricEnrollPrompt />
 
-      {/* Desktop top nav */}
-      {!isMobile && (
+      {/* Desktop top nav（原生 App 不顯示，改用底部 Tab Bar） */}
+      {!isMobile && !native && (
         <nav className="border-b bg-white">
           <div className="max-w-4xl mx-auto px-4 flex gap-1">
             {navItems.map((item) => {
@@ -203,12 +215,12 @@ const MemberLayout = () => {
       )}
 
       {/* Content — add bottom padding on mobile for the tab bar */}
-      <main className={`max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 ${isMobile ? "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]" : ""}`}>
+      <main className={`max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 ${isMobile && !native ? "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]" : ""}`}>
         <Outlet />
       </main>
 
-      {/* Mobile bottom tab bar */}
-      <MobileBottomNav />
+      {/* Mobile bottom tab bar（原生 App 由 NativeTabBar 取代） */}
+      {!native && <MobileBottomNav />}
     </div>
   );
 };

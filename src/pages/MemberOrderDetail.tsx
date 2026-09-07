@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { OFFLINE_KEYS, readOfflineCache, writeOfflineCache } from "@/lib/native/offlineStore";
 import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
 import {
   ChevronLeft,
@@ -343,10 +345,20 @@ const MemberOrderDetail = () => {
 
 
 
+  const native = useIsNativeApp();
+
   useEffect(() => {
     const load = async () => {
       if (!orderNumber) return;
       setLoading(true);
+      // 原生 App：先顯示上次快取的訂單內容，離線也看得到
+      if (native) {
+        const cached = await readOfflineCache<any>(OFFLINE_KEYS.memberOrderDetail(orderNumber));
+        if (cached?.data) {
+          setOrder(cached.data);
+          setLoading(false);
+        }
+      }
       const { data, error } = await supabase
         .from("orders")
         .select(
@@ -412,7 +424,7 @@ const MemberOrderDetail = () => {
           .order("category", { ascending: true }),
       ]);
 
-      setOrder({
+      const detail = {
         id: data.id,
         order_number: data.order_number,
         order_status: data.order_status,
@@ -469,12 +481,15 @@ const MemberOrderDetail = () => {
           .filter((f: any) => f.is_available !== false)
           .map((f: any) => f.facility_name)
           .filter(Boolean),
-      });
+      };
+
+      setOrder(detail as any);
+      if (native) void writeOfflineCache(OFFLINE_KEYS.memberOrderDetail(orderNumber), detail);
 
       setLoading(false);
     };
     load();
-  }, [orderNumber, reloadKey]);
+  }, [orderNumber, reloadKey, native]);
 
   // TapPay 付款回呼寫回 orders 後，即時更新本頁狀態
   useOrderRealtime(

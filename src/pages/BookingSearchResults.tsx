@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { format, parseISO, addDays, eachDayOfInterval, differenceInCalendarDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import PullToRefresh from "@/components/native/PullToRefresh";
 import { toast } from "sonner";
 import { fetchAdjustedInventory } from "@/lib/inventoryQuery";
 import { expandFacilitiesForAccommodations } from "@/lib/facility-merge";
@@ -220,6 +222,16 @@ const BookingSearchResults = () => {
 
 
   // ── 基本資料 ──
+  const native = useIsNativeApp();
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // 下拉更新：重新抓一次房源與庫存
+  const handleRefresh = () =>
+    new Promise<void>((resolve) => {
+      setReloadKey((k) => k + 1);
+      setTimeout(resolve, 700);
+    });
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -320,7 +332,7 @@ const BookingSearchResults = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reloadKey]);
 
 
   // ── auth ──
@@ -830,8 +842,10 @@ const BookingSearchResults = () => {
   }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount]);
 
   return (
+    <PullToRefresh onRefresh={handleRefresh}>
     <div className="min-h-screen bg-background pb-16 md:pb-0">
-      {/* Header */}
+      {/* Header（原生 App 改用 iOS 導覽列與底部 Tab Bar） */}
+      {!native && (
       <header className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
@@ -855,6 +869,7 @@ const BookingSearchResults = () => {
           </div>
         </div>
       </header>
+      )}
 
       {/* 可編輯搜尋條件列 */}
       <div className="bg-card border-b border-border sticky top-14 z-40">
@@ -1034,6 +1049,7 @@ const BookingSearchResults = () => {
         </SheetContent>
       </Sheet>
     </div>
+    </PullToRefresh>
 
   );
 };
