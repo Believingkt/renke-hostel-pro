@@ -338,14 +338,25 @@ Deno.serve(async (req) => {
       line_failed?: number;
     }> = [];
 
+    await logDispatch(supabase, {
+      run_id: runId,
+      run_mode: runMode,
+      accommodation_id: null,
+      sent_date: today,
+      notify_time: hhmm,
+      channel: "run",
+      status: "started",
+      detail: `matched=${settings.length}`,
+    });
+
     for (const s of settings) {
       const accId: string = s.accommodation_id;
+      const notifyTimeKey = String(s.notify_time || hhmm);
       // 本輪佔位的去重紀錄 id（若 Email 與 LINE 全數失敗會回滾，讓下次可重送）
       let sentLogId: string | null = null;
       try {
         // ── Dedup guard：同日同民宿同分鐘只發送一次（test_mode 跳過）──
         if (!testMode) {
-          const notifyTimeKey = String(s.notify_time || hhmm);
           const { error: logErr, data: logRow } = await supabase
             .from("performance_notification_sent_log")
             .insert({
@@ -358,18 +369,37 @@ Deno.serve(async (req) => {
           if (logErr) {
             const code = (logErr as any).code;
             if (code === "23505") {
-              console.log(`[send-daily-performance] skip dup ${accId} ${today} ${notifyTimeKey}`);
+              await logDispatch(supabase, {
+                run_id: runId,
+                run_mode: runMode,
+                accommodation_id: accId,
+                sent_date: today,
+                notify_time: notifyTimeKey,
+                channel: "run",
+                status: "skipped",
+                detail: "duplicate_skipped",
+              });
               results.push({ accommodation_id: accId, ok: true, error: "duplicate_skipped" } as any);
               continue;
             }
             throw logErr;
           }
           if (!logRow) {
-            console.log(`[send-daily-performance] skip (no log row) ${accId}`);
+            await logDispatch(supabase, {
+              run_id: runId,
+              run_mode: runMode,
+              accommodation_id: accId,
+              sent_date: today,
+              notify_time: notifyTimeKey,
+              channel: "run",
+              status: "skipped",
+              detail: "no_log_row",
+            });
             continue;
           }
           sentLogId = (logRow as any).id ?? null;
         }
+
         // Accommodation name
         const { data: acc } = await supabase
           .from("accommodation_info")
