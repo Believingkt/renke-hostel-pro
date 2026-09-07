@@ -153,7 +153,7 @@ describe("折扣碼 — 唯讀驗證", () => {
   });
 
   it("驗證成功 → 回傳標準金額，且只呼叫唯讀 validate_discount_code", async () => {
-    const rpc = vi.fn(async () => ({
+    const rpc = vi.fn(async (_fn: string, _args: Record<string, unknown>) => ({
       data: [{ is_valid: true, discount_type: "percentage", discount_value: 10, message: "ok" }],
       error: null,
     }));
