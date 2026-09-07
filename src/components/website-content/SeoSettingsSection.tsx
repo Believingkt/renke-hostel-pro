@@ -37,6 +37,10 @@ interface SeoSettingsSectionProps {
   ogTitle?: string;
   ogDescription?: string;
   ogImageUrl?: string;
+  /** 用於自動建議 SEO 內容 */
+  accommodationName?: string;
+  accommodationDescription?: string;
+  accommodationAddress?: string;
   onUpdate: () => void;
 }
 
@@ -48,6 +52,9 @@ export const SeoSettingsSection = ({
   ogTitle = "",
   ogDescription = "",
   ogImageUrl = "",
+  accommodationName = "",
+  accommodationDescription = "",
+  accommodationAddress = "",
   onUpdate,
 }: SeoSettingsSectionProps) => {
   const {
