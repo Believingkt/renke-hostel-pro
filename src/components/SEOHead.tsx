@@ -7,6 +7,9 @@ interface SEOHeadProps {
   image?: string;
   type?: string;
   keywords?: string[];
+  /** 社群分享標題／描述；未提供時自動沿用 SEO 標題與描述 */
+  ogTitle?: string;
+  ogDescription?: string;
 }
 
 export const SEOHead = ({
@@ -15,8 +18,12 @@ export const SEOHead = ({
   url = window.location.href,
   image,
   type = "website",
-  keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"]
+  keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"],
+  ogTitle,
+  ogDescription,
 }: SEOHeadProps) => {
+  const socialTitle = ogTitle?.trim() || title;
+  const socialDescription = ogDescription?.trim() || description;
   // 立即同步更新標題，無需等待 useEffect（減少閃爍）
   if (typeof document !== 'undefined' && document.title !== title) {
     document.title = title;
