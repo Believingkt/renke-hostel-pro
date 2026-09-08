@@ -1,4 +1,5 @@
 // V5.5B.1 — OwlTing SpecialRequests whitelist filter (pure, no I/O)
+// V5.5B.3 — 加入 partnerTagPrefixes 夥伴標籤豁免
 // V5.5B.2 — 加入 maskContacts 選項與泛用 [系統標籤] 行規則
 // 注意：本檔與 src/utils/guestNotesWhitelist.ts 必須保持同一套規則（有 parity 測試把關）
 
@@ -6,6 +7,21 @@ export interface WhitelistOpts {
   includeRoomLayout?: boolean; // default true
   maxGuestChars?: number;      // default 500
   maskContacts?: boolean;      // default true
+  partnerTagPrefixes?: string[]; // V5.5B.3 夥伴標籤前綴豁免，如 ["StarChain 星鏈"]
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// 只剝除行首、且完全等於夥伴名稱的 [標籤]；其餘 [系統標籤] 行維持整行剔除
+function stripPartnerTags(line: string, prefixes: string[]): string {
+  let out = line;
+  for (const p of prefixes) {
+    const re = new RegExp(`^\\s*\\[\\s*${escapeRe(p)}\\s*\\]\\s*`);
+    if (re.test(out)) { out = out.replace(re, ""); break; }
+  }
+  return out;
 }
 
 const ROOM_LAYOUT_RE = /^【(包棟|包區)房間配置】/;
@@ -79,7 +95,9 @@ export function buildGuestNotes(
   let text = String(rawNotes ?? "");
   for (const re of BLOCK_RES) text = text.replace(re, "");
 
+  const partnerTags = opts.partnerTagPrefixes ?? [];
   let lines = text.split(/\r?\n/);
+  if (partnerTags.length) lines = lines.map((l) => stripPartnerTags(l, partnerTags));
 
   const layout = lines.filter((l) => ROOM_LAYOUT_RE.test(l)).map((l) => l.trim());
   lines = lines.filter((l) => !ROOM_LAYOUT_RE.test(l));
