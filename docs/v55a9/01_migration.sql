@@ -15,6 +15,16 @@ BEGIN
     RAISE EXCEPTION 'PRECHECK FAILED: sync_order_rooms_v1 已存在';
   END IF;
 
+  -- 依賴的既有函式必須存在且簽章正確
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public' AND p.proname = 'get_staff_module_permission'
+      AND pg_get_function_identity_arguments(p.oid) = '_user_id uuid, _accommodation_id uuid, _module_key text'
+      AND p.prosecdef
+  ) THEN
+    RAISE EXCEPTION 'PRECHECK FAILED: get_staff_module_permission 不存在或簽章不符';
+  END IF;
+
   -- 依賴的既有防護必須都在（規則不得被拿掉）
   IF (SELECT count(*) FROM pg_trigger
       WHERE tgrelid = 'public.order_rooms'::regclass AND NOT tgisinternal
