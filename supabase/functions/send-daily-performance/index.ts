@@ -234,6 +234,7 @@ Deno.serve(async (req) => {
     let testDate: string | null = null; // "YYYY-MM-DD" in Taipei
     let backfill = false; // 手動補發：忽略 notify_time，仍保留同日同館去重
     let backfillAccId: string | null = null;
+    let forceLine = false; // 補發時強制重推 LINE（忽略「已推播」紀錄）
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -245,11 +246,13 @@ Deno.serve(async (req) => {
           backfill = true;
           if (typeof body.accommodation_id === "string") backfillAccId = body.accommodation_id;
         }
+        if (body && body.force_line === true) forceLine = true;
         if (body && typeof body.test_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.test_date)) {
           testDate = body.test_date;
         }
       } catch { /* no body */ }
     }
+
     // 補發模式不套用 test_mode 的跳過去重行為
     if (backfill) testMode = false;
     const runId = crypto.randomUUID();
@@ -355,6 +358,7 @@ Deno.serve(async (req) => {
       // 去重改為「分管道」：LINE 與 Email 各自記錄，成功後才寫入。
       let alreadyLine = false;
       let alreadyEmail = false;
+      let hadLineLogRow = false;
       try {
         if (!testMode) {
           const { data: sentRows, error: sentErr } = await supabase
@@ -369,6 +373,10 @@ Deno.serve(async (req) => {
             if (ch === "email") alreadyEmail = true;
             else alreadyLine = true;
           }
+          hadLineLogRow = alreadyLine;
+          // 強制重推 LINE：忽略既有推播紀錄
+          if (forceLine) alreadyLine = false;
+
           if (alreadyLine && alreadyEmail) {
             await logDispatch(supabase, {
               run_id: runId,
@@ -930,7 +938,7 @@ Deno.serve(async (req) => {
         }
 
         // LINE 成功才寫入去重紀錄（失敗則保留可重送）
-        if (!testMode && !alreadyLine && linePushed > 0) {
+        if (!testMode && !alreadyLine && !hadLineLogRow && linePushed > 0) {
           await supabase
             .from("performance_notification_sent_log")
             .insert({

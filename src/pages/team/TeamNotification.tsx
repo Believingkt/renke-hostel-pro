@@ -178,6 +178,7 @@ export default function TeamNotification() {
   const [backfillTo, setBackfillTo] = useState<string>("");
   const [backfillScope, setBackfillScope] = useState<string>("all");
   const [backfilling, setBackfilling] = useState(false);
+  const [backfillForceLine, setBackfillForceLine] = useState(false);
   const [backfillLog, setBackfillLog] = useState<string[]>([]);
 
   const runBackfill = async () => {
@@ -206,6 +207,7 @@ export default function TeamNotification() {
         body: {
           backfill: true,
           test_date: date,
+          ...(backfillForceLine ? { force_line: true } : {}),
           ...(backfillScope !== "all" ? { accommodation_id: backfillScope } : {}),
         },
       });
@@ -624,6 +626,10 @@ export default function TeamNotification() {
               </Button>
             </div>
           </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Switch checked={backfillForceLine} onCheckedChange={setBackfillForceLine} />
+            <span>同時重推 LINE 群組（忽略「已推播」紀錄，適用當初 LINE 其實沒發成功時）</span>
+          </label>
           {backfillLog.length > 0 && (
             <div className="rounded-md border p-3 text-sm space-y-1 max-h-60 overflow-auto">
               {backfillLog.map((l, i) => (
