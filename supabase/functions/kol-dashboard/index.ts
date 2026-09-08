@@ -142,7 +142,7 @@ async function summarizeByCode(admin: any, cidCode: string | null, getRate: (a: 
     baseTotal += base;
     commissionTotal += commission;
     if (isSettleable) settled += commission;
-    orders.push({
+    orders.push(stripInternal({
       id: o.id,
       order_number: o.order_number,
       discount_code: o.discount_code,
@@ -157,7 +157,7 @@ async function summarizeByCode(admin: any, cidCode: string | null, getRate: (a: 
       commission_rate: rate,
       commission_amount: commission,
       is_settleable: isSettleable,
-    });
+    }));
   }
   orders.sort((a, b) => String(b.order_date ?? "").localeCompare(String(a.order_date ?? "")));
 
