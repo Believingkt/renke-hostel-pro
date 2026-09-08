@@ -125,8 +125,9 @@ export default function AIBooking() {
   const processAttachment = async (file?: File | null) => {
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'application/pdf'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
+    const fileType = file.type || 'image/jpeg';
+    if (!allowedTypes.includes(fileType)) {
       toast({ title: "不支援的檔案格式", description: "請上傳圖片 (JPG/PNG/WEBP) 或 PDF", variant: "destructive" });
       return;
     }
@@ -137,14 +138,16 @@ export default function AIBooking() {
 
     setIsUploading(true);
     try {
-      const ext = file.name.split('.').pop() || 'jpg';
+      const nameExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : undefined;
+      const ext = nameExt || (fileType === 'application/pdf' ? 'pdf' : fileType.split('/')[1] || 'jpg');
       const fileName = `${accommodationId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('transfer-receipts')
-        .upload(fileName, file);
+        .upload(fileName, file, { contentType: fileType, upsert: false });
 
       if (uploadError) throw uploadError;
+
 
       const { data: urlData } = await supabase.storage
         .from('transfer-receipts')

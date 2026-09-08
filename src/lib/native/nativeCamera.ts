@@ -39,7 +39,7 @@ export async function pickImageNative(options: NativePickOptions = {}): Promise<
     const photo = await Camera.getPhoto({
       quality: options.quality ?? 85,
       allowEditing: options.allowEditing ?? false,
-      resultType: CameraResultType.DataUrl,
+      resultType: CameraResultType.Uri,
       source: CameraSource.Prompt,
       promptLabelHeader: "選擇照片",
       promptLabelPhoto: "從相簿選取",
@@ -47,10 +47,22 @@ export async function pickImageNative(options: NativePickOptions = {}): Promise<
       promptLabelCancel: "取消",
       correctOrientation: true,
     });
-    if (!photo?.dataUrl) return null;
-    const ext = (photo.format || "jpeg").toLowerCase() === "png" ? "png" : "jpg";
+
     const prefix = options.fileNamePrefix || "photo";
-    return dataUrlToFile(photo.dataUrl, `${prefix}-${Date.now()}.${ext}`);
+    const format = (photo?.format || "jpeg").toLowerCase();
+    const ext = format === "png" ? "png" : format === "webp" ? "webp" : "jpg";
+    const mime = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+    const fileName = `${prefix}-${Date.now()}.${ext}`;
+
+    // 優先用 webPath（原生檔案 URL）取得 Blob，記憶體較省也較穩定
+    if (photo?.webPath) {
+      const res = await fetch(photo.webPath);
+      const blob = await res.blob();
+      const type = blob.type && blob.type.startsWith("image/") ? blob.type : mime;
+      return new File([blob], fileName, { type });
+    }
+    if (photo?.dataUrl) return dataUrlToFile(photo.dataUrl, fileName);
+    return null;
   } catch (e: any) {
     // 使用者取消不視為錯誤
     const msg = String(e?.message || e || "").toLowerCase();
@@ -58,3 +70,4 @@ export async function pickImageNative(options: NativePickOptions = {}): Promise<
     throw e;
   }
 }
+
