@@ -85,7 +85,7 @@ Card 的 `CardDescription` 文案由「設定接收健檢失敗與前端崩潰�
 
 **`NOT NULL DEFAULT true`**。理由：
 - 與既有三個 notify_* 旗標一致（皆為 `NOT NULL DEFAULT true`），避免同一張表出現兩種語意。
-- 目前 `alert_recipients` 為 0 列，DEFAULT 對既有資料無任何影響（0 業務資料異動）。
+- 目前 `alert_recipients` 有 1 列，DEFAULT 只是替該列補上新欄位值，不改動任何既有欄位（0 業務資料異動）。
 - 告警類旗標寧可預設開啟、由人主動關閉；預設 false 會讓「有人設了收件人卻收不到房型告警」變成沉默失敗。
 
 ### Migration（`01_migration.sql`）
