@@ -234,6 +234,7 @@ Deno.serve(async (req) => {
     let testDate: string | null = null; // "YYYY-MM-DD" in Taipei
     let backfill = false; // 手動補發：忽略 notify_time，仍保留同日同館去重
     let backfillAccId: string | null = null;
+    let forceLine = false; // 補發時強制重推 LINE（忽略「已推播」紀錄）
     if (req.method === "POST") {
       try {
         const body = await req.json();
@@ -245,11 +246,13 @@ Deno.serve(async (req) => {
           backfill = true;
           if (typeof body.accommodation_id === "string") backfillAccId = body.accommodation_id;
         }
+        if (body && body.force_line === true) forceLine = true;
         if (body && typeof body.test_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.test_date)) {
           testDate = body.test_date;
         }
       } catch { /* no body */ }
     }
+
     // 補發模式不套用 test_mode 的跳過去重行為
     if (backfill) testMode = false;
     const runId = crypto.randomUUID();
