@@ -290,10 +290,17 @@ export default function KolBonusPublic() {
     [completedTotals.commission, commissionMultiplier],
   );
 
-  const payFormUrl = useMemo(
-    () => buildPayFormUrl(kol, payableCommission),
-    [kol, payableCommission],
+  /** 對帳編號：整年檢視時無單一結算月，不預帶 */
+  const reconCode = useMemo(
+    () => buildReconCode(kol?.cid_code, isYearAll ? null : prefix),
+    [kol?.cid_code, isYearAll, prefix],
   );
+
+  const payFormUrl = useMemo(
+    () => buildPayFormUrl(kol, payableCommission, reconCode),
+    [kol, payableCommission, reconCode],
+  );
+
 
   /**
    * 館別一致性檢查（純顯示，不影響任何計算）
