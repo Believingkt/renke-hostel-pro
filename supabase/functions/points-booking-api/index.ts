@@ -1,4 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildOwltingNotes as buildGuestNotes } from "../_shared/owltingNotesWhitelist.ts";
+
+// V5.5B.3 — 回傳給 B2B 夥伴時的聯絡資料遮蔽
+const maskPhone = (v?: string | null) => (v ? v.replace(/\d(?=\d{3})/g, "x") : v ?? null);
+const maskEmail = (v?: string | null) =>
+  v ? v.replace(/^(.).*(@.*)$/, "$1***$2") : v ?? null;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1002,9 +1008,20 @@ async function handleGetOrder(supabase: any, partner: Partner, orderId: string) 
   const pointsDiscount = transaction?.currency_amount || 0;
   const remainingAfterPoints = order.total_price - pointsDiscount;
 
+  const safeNotes = buildGuestNotes(order.notes, "", {
+    includeRoomLayout: true,
+    maxGuestChars: 500,
+    maskContacts: true,
+    partnerTagPrefixes: [partner.platform_name],
+  });
+  const { notes: _rawNotes, guest_phone, guest_email, ...safeOrder } = order;
+
   return jsonResponse({
     order: {
-      ...order,
+      ...safeOrder,
+      notes: safeNotes || null,
+      guest_phone: maskPhone(guest_phone),
+      guest_email: maskEmail(guest_email),
       accommodation_name: acc?.name,
       room_type_name: roomType?.name,
       room_type_name_en: roomType?.name_en,
