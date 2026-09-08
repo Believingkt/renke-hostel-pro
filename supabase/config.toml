@@ -110,6 +110,8 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.public-venue-directory]
     verify_jwt = false
+  [functions.fetch-ragic-kol-payforms]
+    verify_jwt = true
   [functions.push-ragic-franchise-fee]
     verify_jwt = true
   [functions.push-ragic-revenue]
