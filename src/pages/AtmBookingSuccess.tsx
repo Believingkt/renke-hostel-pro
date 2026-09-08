@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@/utils/paymentDomain";
-import { resolvePaymentSummary } from "@/lib/paymentSummary";
+
 
 
 interface OrderRow {
@@ -42,9 +42,12 @@ interface OrderRow {
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
   accommodation_id: string | null;
-  notes?: string | null;
-  booking_deposit_amount?: number | null;
-  booking_deposit_percentage?: number | null;
+  payment_summary?: {
+    totalAmount: number;
+    paidAmount: number;
+    bookingDepositAmount: number;
+    bookingDepositPercentage: number | null;
+  } | null;
 }
 
 const TAPPAY_FALLBACK_EMAIL = "noreply@lakeze.com";
