@@ -358,6 +358,7 @@ Deno.serve(async (req) => {
       // 去重改為「分管道」：LINE 與 Email 各自記錄，成功後才寫入。
       let alreadyLine = false;
       let alreadyEmail = false;
+      let hadLineLogRow = false;
       try {
         if (!testMode) {
           const { data: sentRows, error: sentErr } = await supabase
@@ -372,6 +373,10 @@ Deno.serve(async (req) => {
             if (ch === "email") alreadyEmail = true;
             else alreadyLine = true;
           }
+          hadLineLogRow = alreadyLine;
+          // 強制重推 LINE：忽略既有推播紀錄
+          if (forceLine) alreadyLine = false;
+
           if (alreadyLine && alreadyEmail) {
             await logDispatch(supabase, {
               run_id: runId,
