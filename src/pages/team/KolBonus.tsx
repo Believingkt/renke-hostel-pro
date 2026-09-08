@@ -11,6 +11,7 @@ import {
   type RateAuditLogRow,
 } from "@/lib/kolRateAudit";
 import KolBonusDashboardTab from "@/components/team/KolBonusDashboardTab";
+import KolPayFormReconcileTab from "@/components/team/KolPayFormReconcileTab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ import { Separator } from "@/components/ui/separator";
 import { useTeam } from "@/components/team/TeamContext";
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@/lib/bonusMultiplier";
 
 interface KolRow {
   // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
@@ -530,6 +532,33 @@ export default function KolBonus() {
     }
     return map;
   }, [rows, ordersByKey, getRate, tab2TargetPrefix]);
+
+  /** 勞報單對帳：系統端當期應發（依 CID 彙總，含獎金加倍） */
+  const reconcileExpected = useMemo(() => {
+    const map = new Map<
+      string,
+      { cid_code: string; name: string | null; venue: string | null; amount: number }
+    >();
+    for (const k of tab2FilteredRows) {
+      const cid = (k.cid_code ?? "").trim().toUpperCase();
+      if (!cid) continue;
+      const commission = tab2Metrics.get(k.rowKey)?.commission ?? 0;
+      const amount = Math.round(boostedAmount(commission, tab2CommissionMultiplier));
+      const prev = map.get(cid);
+      if (prev) {
+        prev.amount += amount;
+        if (!prev.venue && k.accommodation_name) prev.venue = k.accommodation_name;
+      } else {
+        map.set(cid, {
+          cid_code: cid,
+          name: k.name,
+          venue: k.accommodation_name,
+          amount,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  }, [tab2FilteredRows, tab2Metrics, tab2CommissionMultiplier]);
 
   const tab1DrawerInitialMonth =
     filterMonth === "all"
