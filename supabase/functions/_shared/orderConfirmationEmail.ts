@@ -2,6 +2,7 @@
 // 所有資料一律由 DB 取得（server truth），避免與頁面顯示不一致。
 import { resolvePaymentSummary } from "./paymentSummary.ts";
 import {
+import { buildOwltingNotes } from "./owltingNotesWhitelist.ts";
   cancellationPolicyCopyForOrder,
   freeCancelDaysFor,
   renderCancellationPolicyHtml,
@@ -74,23 +75,6 @@ const htmlToLines = (html?: string | null): string[] => {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
-};
-
-/** 只取出客人自己填寫的特殊需求（與前台一致） */
-const extractGuestNotes = (notes?: string | null): string => {
-  if (!notes) return "";
-  return notes
-    .split("\n")
-    .map((line) => {
-      let s = line.trim();
-      if (!s) return "";
-      s = s.replace(/^\[訂金制\][\s\S]*?入住現場付清\s*/, "").trim();
-      s = s.replace(/^\[TapPay[^\]]*\]\s*/, "").trim();
-      if (/^\[[^\]]+\]/.test(s)) return "";
-      return s;
-    })
-    .filter(Boolean)
-    .join("\n");
 };
 
 const isAtmExpired = (order: any): boolean => {
@@ -433,7 +417,10 @@ export function renderOrderConfirmationEmail(
     .split("\n")
     .map((l: string) => l.trim())
     .filter((l: string) => l.length > 0);
-  const guestNotes = extractGuestNotes(order.notes);
+  const guestNotes = buildOwltingNotes(order.notes, "", {
+    includeRoomLayout: true,
+    maskContacts: false,
+  });
   const stayDetail = card(
     block(`
       ${sectionTitle("住宿詳情")}

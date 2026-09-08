@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import { isAtmExpired } from "@/lib/atmPayment";
 import { resolvePaymentSummary } from "@/lib/paymentSummary";
 import { bookingPath } from "@/lib/frontendUrl";
+import { buildGuestNotes } from "@/utils/guestNotesWhitelist";
 
 const ORANGE = "hsl(24,100%,50%)";
 
@@ -104,23 +105,6 @@ const htmlToLines = (html?: string | null): string[] => {
     .split("\n")
     .map((l) => l.trim())
     .filter(Boolean);
-};
-
-/** 只取出客人自己填寫的特殊需求，濾掉系統寫入的 [訂金制] / [ATM] / [TapPay] 等後台備註 */
-const extractGuestNotes = (notes?: string | null): string => {
-  if (!notes) return "";
-  return notes
-    .split("\n")
-    .map((line) => {
-      let s = line.trim();
-      if (!s) return "";
-      s = s.replace(/^\[訂金制\][\s\S]*?入住現場付清\s*/, "").trim();
-      s = s.replace(/^\[TapPay[^\]]*\]\s*/, "").trim();
-      if (/^\[[^\]]+\]/.test(s)) return "";
-      return s;
-    })
-    .filter(Boolean)
-    .join("\n");
 };
 
 const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行" };
@@ -511,6 +495,11 @@ const MemberOrderDetail = () => {
         return next;
       });
     },
+  );
+
+  const guestNotes = useMemo(
+    () => buildGuestNotes(order?.notes, "", { includeRoomLayout: true, maskContacts: false }),
+    [order?.notes],
   );
 
   const nights = useMemo(() => {
@@ -1175,13 +1164,13 @@ const MemberOrderDetail = () => {
           </div>
         )}
 
-        {extractGuestNotes(order.notes) && (
+        {guestNotes && (
           <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
             <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
             <div className="text-sm min-w-0">
               <p className="font-medium">您的特殊需求</p>
               <p className="mt-1 text-muted-foreground whitespace-pre-line leading-relaxed">
-                {extractGuestNotes(order.notes)}
+                {guestNotes}
               </p>
             </div>
           </div>
