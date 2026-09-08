@@ -64,8 +64,6 @@ export function NativeShell({ children }: Props) {
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           style={{
             paddingBottom: shell ? "calc(50px + env(safe-area-inset-bottom, 0px))" : undefined,
-
-            paddingBottom: shell ? "calc(50px + env(safe-area-inset-bottom, 0px))" : undefined,
           }}
         >
           {children}
