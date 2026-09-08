@@ -207,6 +207,7 @@ export default function TeamNotification() {
         body: {
           backfill: true,
           test_date: date,
+          ...(backfillForceLine ? { force_line: true } : {}),
           ...(backfillScope !== "all" ? { accommodation_id: backfillScope } : {}),
         },
       });
