@@ -938,7 +938,7 @@ Deno.serve(async (req) => {
         }
 
         // LINE 成功才寫入去重紀錄（失敗則保留可重送）
-        if (!testMode && !alreadyLine && linePushed > 0) {
+        if (!testMode && !alreadyLine && !hadLineLogRow && linePushed > 0) {
           await supabase
             .from("performance_notification_sent_log")
             .insert({
