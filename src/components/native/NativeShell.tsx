@@ -51,13 +51,11 @@ export function NativeShell({ children }: Props) {
   return (
     <div className="native-shell">
       {hasNavBar && <NativeNavBar />}
-      <div
-        style={{
-          paddingTop: hasNavBar ? "calc(2.75rem + env(safe-area-inset-top, 0px))" : undefined,
-        }}
-      >
-        <OfflineBanner show={!online} />
-      </div>
+      {/* 導覽列高度佔位（固定定位的 NavBar 不佔流） */}
+      {hasNavBar && (
+        <div style={{ height: "calc(2.75rem + env(safe-area-inset-top, 0px))" }} aria-hidden />
+      )}
+      <OfflineBanner show={!online} />
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div
           key={location.pathname}
@@ -65,7 +63,8 @@ export function NativeShell({ children }: Props) {
           animate={{ x: 0 }}
           transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
           style={{
-            paddingTop: hasNavBar && online ? "calc(2.75rem + env(safe-area-inset-top, 0px))" : undefined,
+            paddingBottom: shell ? "calc(50px + env(safe-area-inset-bottom, 0px))" : undefined,
+
             paddingBottom: shell ? "calc(50px + env(safe-area-inset-bottom, 0px))" : undefined,
           }}
         >
