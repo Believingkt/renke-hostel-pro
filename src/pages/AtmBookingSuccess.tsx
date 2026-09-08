@@ -258,7 +258,12 @@ export default function AtmBookingSuccess() {
         { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${order.id}` },
         (payload) => {
           const next = payload.new as OrderRow;
-          setOrder((prev) => ({ ...(prev as OrderRow), ...next }));
+          // realtime 回傳的是資料表原始列，沒有 payment_summary，合併時要保留既有摘要
+          setOrder((prev) => ({
+            ...(prev as OrderRow),
+            ...next,
+            payment_summary: prev?.payment_summary ?? null,
+          }));
           if (isPaid(next)) {
             setPaidDetected(true);
             toast.success("已收到您的匯款，訂單付款完成！");
@@ -297,10 +302,18 @@ export default function AtmBookingSuccess() {
   }, [order]);
 
   /**
-   * 付款摘要一律以訂單本身的訂房訂金快照為準（舊單回退解析備註），
-   * 不再依當下 booking_settings 重新計算，避免歷史訂單金額被之後的設定變動污染。
+   * 付款摘要改由伺服器端（get-public-order）計算後回傳 payment_summary，
+   * 前端不再取得訂單備註原文，也不再自行解析訂金。
    */
-  const summary = useMemo(() => resolvePaymentSummary(order), [order]);
+  const summary = useMemo(
+    () => ({
+      totalAmount: order?.payment_summary?.totalAmount ?? Math.max(0, Math.round(order?.final_price ?? 0)),
+      paidAmount: order?.payment_summary?.paidAmount ?? Math.max(0, Math.round(order?.paid_amount ?? 0)),
+      bookingDepositAmount: order?.payment_summary?.bookingDepositAmount ?? 0,
+      bookingDepositPercentage: order?.payment_summary?.bookingDepositPercentage ?? null,
+    }),
+    [order],
+  );
   const depositPercentLabel = summary.bookingDepositPercentage != null ? `${summary.bookingDepositPercentage}%` : "";
 
   /** 本次應匯款金額＝訂房訂金扣掉已付款；無訂金快照則為全額未付金額 */
