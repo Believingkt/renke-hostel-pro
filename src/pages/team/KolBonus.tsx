@@ -138,6 +138,11 @@ export default function KolBonus() {
   const readOnlyViewer =
     !canEdit && (roleSet.includes("am") || roleSet.includes("am_manager"));
   const allowed = canEdit || readOnlyViewer;
+  /** 勞報單對帳：帳務核對用，僅管理層可見 */
+  const canReconcile =
+    roleSet.includes("super_admin") ||
+    roleSet.includes("hotel_admin") ||
+    roleSet.includes("scout_manager");
 
   const twNow = (() => {
     const now = new Date();
@@ -688,6 +693,7 @@ export default function KolBonus() {
             <TabsTrigger value="dashboard">儀表板</TabsTrigger>
             {!readOnlyViewer && <TabsTrigger value="bonus">進單管理</TabsTrigger>}
             {!readOnlyViewer && <TabsTrigger value="settlement">分潤結算</TabsTrigger>}
+            {canReconcile && <TabsTrigger value="payform">勞報單對帳</TabsTrigger>}
             {!readOnlyViewer && <TabsTrigger value="rates">分潤設定</TabsTrigger>}
           </TabsList>
         </div>
@@ -1005,6 +1011,20 @@ export default function KolBonus() {
             <div>同一個「折扣碼 / CID」，若產生兩筆以上訂單，可點開明細查看「訂單編號」</div>
           </div>
         </TabsContent>
+
+        {canReconcile && (
+          <TabsContent value="payform" className="mt-0">
+            <KolPayFormReconcileTab
+              payoutYear={payoutYear}
+              payoutPeriod={payoutPeriod}
+              onChangeYear={setPayoutYear}
+              onChangePeriod={setPayoutPeriod}
+              yearOptions={yearOptions}
+              expected={reconcileExpected}
+              loading={loading}
+            />
+          </TabsContent>
+        )}
 
         <TabsContent value="rates" className="mt-0">
           <KolRateSettingsTab onDirtyChange={setHasUnsavedChanges} />
