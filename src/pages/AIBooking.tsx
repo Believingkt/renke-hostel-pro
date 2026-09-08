@@ -124,6 +124,12 @@ export default function AIBooking() {
 
   const processAttachment = async (file?: File | null) => {
     if (!file) return;
+    console.info('[attachment]', { name: file.name, type: file.type, size: file.size });
+
+    if (file.size === 0) {
+      toast({ title: "照片讀取失敗", description: "請再拍一次", variant: "destructive" });
+      return;
+    }
 
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
     const fileType = file.type || 'image/jpeg';

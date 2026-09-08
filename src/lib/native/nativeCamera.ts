@@ -56,12 +56,38 @@ export async function pickImageNative(options: NativePickOptions = {}): Promise<
 
     // 優先用 webPath（原生檔案 URL）取得 Blob，記憶體較省也較穩定
     if (photo?.webPath) {
-      const res = await fetch(photo.webPath);
-      const blob = await res.blob();
-      const type = blob.type && blob.type.startsWith("image/") ? blob.type : mime;
-      return new File([blob], fileName, { type });
+      try {
+        const res = await fetch(photo.webPath);
+        const blob = await res.blob();
+        // WKWebView 偶爾回傳 size=0 的空 Blob，需退回 Base64 重取
+        if (blob.size > 0) {
+          const type = blob.type && blob.type.startsWith("image/") ? blob.type : mime;
+          return new File([blob], fileName, { type });
+        }
+      } catch {
+        // 忽略，改走 Base64 後援
+      }
     }
-    if (photo?.dataUrl) return dataUrlToFile(photo.dataUrl, fileName);
+    if (photo?.dataUrl) {
+      const f = dataUrlToFile(photo.dataUrl, fileName);
+      if (f.size > 0) return f;
+    }
+
+    // 後援：直接以 Base64 重新取一張，確保拿得到實際影像內容
+    const base64Photo = await Camera.getPhoto({
+      quality: options.quality ?? 85,
+      allowEditing: options.allowEditing ?? false,
+      resultType: CameraResultType.Base64,
+      source: CameraSource.Prompt,
+      promptLabelHeader: "選擇照片",
+      promptLabelPhoto: "從相簿選取",
+      promptLabelPicture: "拍照",
+      promptLabelCancel: "取消",
+      correctOrientation: true,
+    });
+    if (base64Photo?.base64String) {
+      return dataUrlToFile(`data:${mime};base64,${base64Photo.base64String}`, fileName);
+    }
     return null;
   } catch (e: any) {
     // 使用者取消不視為錯誤
