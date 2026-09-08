@@ -16,6 +16,7 @@ import {
 } from "./xml.ts";
 import { buildMappingTables, mapOutboundStay } from "./group-mapping.ts";
 import { resolveOrderForQueueRow, classifyCancelResponse } from "./deletedSnapshot.ts";
+import { buildOwltingNotes } from "../_shared/owltingNotesWhitelist.ts";
 
 
 
@@ -445,7 +446,7 @@ async function processRow(
   const depositLabel = (isFullyPaid || isDepositPaid || paidAmt >= depositAmt) && depositAmt > 0 ? "已付" : "未付";
   const balanceLabel = isFullyPaid || paidAmt >= finalTotal ? "已付" : "未付";
   const payLine = `[人客多收款狀態] 付款狀態：${statusLabel}｜訂金 ${depositAmt}(${depositLabel})｜尾款 ${remainingAmt}(${balanceLabel})｜已收 ${paidAmt}｜未收 ${balanceAmt}`;
-  const combinedNotes = [order.notes?.trim() || null, payLine].filter(Boolean).join("\n");
+  const combinedNotes = buildOwltingNotes(order.notes, payLine);
 
   const owlOrder: OwlOrderInput = {
     order_number: order.order_number,
