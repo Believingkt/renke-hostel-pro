@@ -1,8 +1,8 @@
 // 訂單確認信：完整複製會員端「訂單詳情頁」(src/pages/MemberOrderDetail.tsx) 的內容與版面。
 // 所有資料一律由 DB 取得（server truth），避免與頁面顯示不一致。
 import { resolvePaymentSummary } from "./paymentSummary.ts";
-import {
 import { buildOwltingNotes } from "./owltingNotesWhitelist.ts";
+import {
   cancellationPolicyCopyForOrder,
   freeCancelDaysFor,
   renderCancellationPolicyHtml,
