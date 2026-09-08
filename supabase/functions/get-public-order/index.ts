@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolvePaymentSummary } from "../_shared/paymentSummary.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -101,8 +102,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq("id", accommodation_id || (data as any).accommodation_id)
       .maybeSingle();
 
+    // 伺服器端算好訂金摘要後，回應不再包含原始 notes 文字
+    const summary = resolvePaymentSummary(data as any);
+    const { notes: _notes, ...orderPublic } = data as Record<string, unknown>;
+
     return new Response(
-      JSON.stringify({ order: data, accommodation_name: accData?.name ?? "", accommodation: accData ?? null }),
+      JSON.stringify({
+        order: {
+          ...orderPublic,
+          payment_summary: {
+            totalAmount: summary.totalAmount,
+            paidAmount: summary.paidAmount,
+            bookingDepositAmount: summary.bookingDepositAmount,
+            bookingDepositPercentage: summary.bookingDepositPercentage,
+            pendingBookingDeposit: summary.pendingBookingDeposit,
+            accommodationBalance: summary.accommodationBalance,
+            isFullPayment: summary.isFullPayment,
+          },
+        },
+        accommodation_name: accData?.name ?? "",
+        accommodation: accData ?? null,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: any) {
