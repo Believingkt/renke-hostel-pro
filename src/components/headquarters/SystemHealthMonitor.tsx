@@ -33,6 +33,8 @@ interface AlertRecipient {
   is_active: boolean;
   notify_health_check: boolean;
   notify_frontend_error: boolean;
+  notify_payment_webhook: boolean;
+  notify_order_rooms_failure: boolean;
   created_at: string;
 }
 
@@ -105,7 +107,13 @@ export function SystemHealthMonitor() {
     setAdding(true);
     const { error } = await supabase
       .from("alert_recipients")
-      .insert({ email });
+      .insert({
+        email,
+        notify_health_check: true,
+        notify_frontend_error: true,
+        notify_payment_webhook: true,
+        notify_order_rooms_failure: true,
+      });
     setAdding(false);
     if (error) {
       toast.error(error.message.includes("duplicate") ? "此 Email 已存在" : "新增失敗");
@@ -220,7 +228,7 @@ export function SystemHealthMonitor() {
             告警收件人
           </CardTitle>
           <CardDescription>
-            設定接收健檢失敗與前端崩潰告警的 Email
+            設定接收健檢失敗、前端崩潰、金流事件與房型明細重建失敗告警的 Email
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -249,6 +257,8 @@ export function SystemHealthMonitor() {
                   <TableHead>Email</TableHead>
                   <TableHead className="w-24 text-center">健檢告警</TableHead>
                   <TableHead className="w-24 text-center">前端錯誤</TableHead>
+                  <TableHead className="w-24 text-center">金流告警</TableHead>
+                  <TableHead className="w-28 text-center">房型明細告警</TableHead>
                   <TableHead className="w-24 text-center">啟用</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
@@ -267,6 +277,18 @@ export function SystemHealthMonitor() {
                       <Switch
                         checked={r.notify_frontend_error}
                         onCheckedChange={(v) => handleToggle(r.id, "notify_frontend_error", v)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={r.notify_payment_webhook}
+                        onCheckedChange={(v) => handleToggle(r.id, "notify_payment_webhook", v)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={r.notify_order_rooms_failure}
+                        onCheckedChange={(v) => handleToggle(r.id, "notify_order_rooms_failure", v)}
                       />
                     </TableCell>
                     <TableCell className="text-center">

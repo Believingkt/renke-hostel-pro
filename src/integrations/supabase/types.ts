@@ -1863,6 +1863,7 @@ export type Database = {
           is_active: boolean
           notify_frontend_error: boolean
           notify_health_check: boolean
+          notify_order_rooms_failure: boolean
           notify_payment_webhook: boolean
         }
         Insert: {
@@ -1873,6 +1874,7 @@ export type Database = {
           is_active?: boolean
           notify_frontend_error?: boolean
           notify_health_check?: boolean
+          notify_order_rooms_failure?: boolean
           notify_payment_webhook?: boolean
         }
         Update: {
@@ -1883,6 +1885,7 @@ export type Database = {
           is_active?: boolean
           notify_frontend_error?: boolean
           notify_health_check?: boolean
+          notify_order_rooms_failure?: boolean
           notify_payment_webhook?: boolean
         }
         Relationships: []

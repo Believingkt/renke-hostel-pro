@@ -11,6 +11,8 @@
 // `owlting-fillup-submit` will later UPDATE this order instead of inserting
 // a duplicate — see `promoteAutoPendingOrder` there.
 
+import { sendOrderRoomsAlertEmail } from "./orderRoomsAlert.ts";
+
 export function normalizeName(s: string | null | undefined): string {
   return (s ?? "").replace(/\s+/g, "").toLowerCase();
 }
@@ -183,14 +185,26 @@ export async function autoCreatePendingOrder(
     }
 
     // Auto-assign units for each room row (sequential display_order pick).
-    await rebuildOrderRooms(admin, {
-      orderId: inserted.id,
-      roomTypeId,
-      roomQuantity,
-      total,
-      checkIn: input.check_in_date,
-      checkOut: input.check_out_date,
-    });
+    try {
+      await rebuildOrderRooms(admin, {
+        orderId: inserted.id,
+        roomTypeId,
+        roomQuantity,
+        total,
+        checkIn: input.check_in_date,
+        checkOut: input.check_out_date,
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      await markRebuildFailure(admin, {
+        stagingId: input.staging_id,
+        orderId: inserted.id,
+        orderNumber: inserted.order_number,
+        obeNumber: input.obe_number ?? null,
+        error: msg,
+      });
+      return { ok: false, error: msg };
+    }
 
     // Link staging → order.
     await admin
@@ -255,19 +269,25 @@ export async function rebuildOrderRooms(
     checkOut: string;
   },
 ): Promise<void> {
-  await admin.from("order_rooms").delete().eq("order_id", opts.orderId);
+  const { error: delErr } = await admin.from("order_rooms").delete().eq("order_id", opts.orderId);
+  if (delErr) {
+    throw new Error(`order_rooms delete failed: ${delErr.message}`);
+  }
 
-  const { data: units } = await admin
+  const { data: units, error: unitsErr } = await admin
     .from("room_units")
     .select("id, display_order, unit_number")
     .eq("room_type_id", opts.roomTypeId)
     .eq("is_active", true)
     .order("display_order", { ascending: true })
     .order("unit_number", { ascending: true });
+  if (unitsErr) {
+    throw new Error(`room_units query failed: ${unitsErr.message}`);
+  }
 
   const busySet = new Set<string>();
   if (units && units.length > 0) {
-    const { data: conflicts } = await admin
+    const { data: conflicts, error: conflictErr } = await admin
       .from("order_rooms")
       .select("room_unit_id, order_id, orders!inner(order_status, check_in_date, check_out_date)")
       .in("room_unit_id", units.map((u: any) => u.id))
@@ -275,6 +295,9 @@ export async function rebuildOrderRooms(
       .neq("orders.order_status", "cancelled")
       .lt("orders.check_in_date", opts.checkOut)
       .gt("orders.check_out_date", opts.checkIn);
+    if (conflictErr) {
+      throw new Error(`order_rooms conflict query failed: ${conflictErr.message}`);
+    }
     for (const c of conflicts ?? []) {
       if ((c as any).room_unit_id) busySet.add((c as any).room_unit_id);
     }
@@ -286,13 +309,57 @@ export async function rebuildOrderRooms(
   for (let i = 0; i < qty; i++) {
     const free = (units ?? []).find((u: any) => !busySet.has(u.id) && !pickedIds.has(u.id));
     if (free) pickedIds.add(free.id);
-    await admin.from("order_rooms").insert({
+    const { error: insErr } = await admin.from("order_rooms").insert({
       order_id: opts.orderId,
       room_type_id: opts.roomTypeId,
       quantity: 1,
       room_price: perRoomPrice,
       room_unit_id: free?.id ?? null,
     });
+    if (insErr) {
+      throw new Error(`order_rooms insert failed (row ${i + 1}/${qty}): ${insErr.message}`);
+    }
+  }
+}
+
+/**
+ * Mark staging + send internal alert when rebuildOrderRooms() fails.
+ * Never throws — the caller re-throws the original error.
+ */
+async function markRebuildFailure(
+  admin: any,
+  ctx: {
+    stagingId: string;
+    orderId: string | null;
+    orderNumber: string | null;
+    obeNumber: string | null;
+    error: string;
+  },
+): Promise<void> {
+  try {
+    await admin
+      .from("owlting_email_parsed_staging")
+      .update({
+        auto_order_id: ctx.orderId,
+        auto_create_error: ctx.error,
+        review_status: "pending_review",
+        review_notes: `[需人工檢查] 房型明細重建失敗：${ctx.orderNumber ?? ctx.orderId ?? "未知訂單"}／${ctx.error}`,
+        modification_diff_status: "rebuild_failed",
+      })
+      .eq("id", ctx.stagingId);
+  } catch (e) {
+    console.error("[markRebuildFailure] staging update failed:", e);
+  }
+  try {
+    await sendOrderRoomsAlertEmail(admin, {
+      orderNumber: ctx.orderNumber,
+      orderId: ctx.orderId,
+      obeNumber: ctx.obeNumber,
+      stagingId: ctx.stagingId,
+      error: ctx.error,
+    });
+  } catch (e) {
+    console.error("[markRebuildFailure] alert failed:", e);
   }
 }
 
@@ -435,14 +502,26 @@ export async function applyModificationToExistingOrder(
         .select("id", { count: "exact", head: true })
         .eq("order_id", order.id);
       const qty = Math.max(1, Math.min(20, Number(input.room_quantity ?? count ?? 1) || 1));
-      await rebuildOrderRooms(admin, {
-        orderId: order.id,
-        roomTypeId,
-        roomQuantity: qty,
-        total: finalTotal,
-        checkIn: finalCheckIn,
-        checkOut: finalCheckOut,
-      });
+      try {
+        await rebuildOrderRooms(admin, {
+          orderId: order.id,
+          roomTypeId,
+          roomQuantity: qty,
+          total: finalTotal,
+          checkIn: finalCheckIn,
+          checkOut: finalCheckOut,
+        });
+      } catch (e) {
+        const msg = (e as Error).message;
+        await markRebuildFailure(admin, {
+          stagingId: input.staging_id,
+          orderId: order.id,
+          orderNumber: order.order_number,
+          obeNumber: (input as any).obe_number ?? null,
+          error: msg,
+        });
+        return { ok: false, error: msg, diff };
+      }
     }
 
     await admin
