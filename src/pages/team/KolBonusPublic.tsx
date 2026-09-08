@@ -61,10 +61,32 @@ const RAGIC_FIELD_NICKNAME = "pfv1001024";
 const RAGIC_FIELD_IG_URL = "pfv1001025";
 const RAGIC_FIELD_VENUE = "pfv1000508";
 const RAGIC_FIELD_AMOUNT = "pfv3005533";
+/** 對帳編號（PMS 預帶，供後台「勞報單對帳」精準比對） */
+const RAGIC_FIELD_RECON = "pfv1001029";
+
+/**
+ * 對帳編號：KOL-<CID>-<獎金結算月 YYYYMM>
+ * 獎金結算月＝退房月 +1（與預計發放日「次月10日」一致）；整年檢視時無單一期別，回 null。
+ */
+export function buildReconCode(
+  cidCode: string | null | undefined,
+  checkoutMonthPrefix: string | null,
+): string | null {
+  const cid = (cidCode ?? "").trim().toUpperCase();
+  if (!cid || !checkoutMonthPrefix) return null;
+  const [ys, ms] = checkoutMonthPrefix.split("-");
+  const y = Number(ys);
+  const m = Number(ms);
+  if (!y || !m) return null;
+  const py = m === 12 ? y + 1 : y;
+  const pm = m === 12 ? 1 : m + 1;
+  return `KOL-${cid}-${py}${String(pm).padStart(2, "0")}`;
+}
 
 function buildPayFormUrl(
   kol: Pick<KolInfo, "name" | "publish_url" | "ig_url" | "venue_name"> | null,
   payableAmount: number,
+  reconCode?: string | null,
 ) {
   const params = new URLSearchParams(RAGIC_FIXED_PARAMS);
   const nickname = (kol?.name ?? "").trim();
@@ -79,6 +101,8 @@ function buildPayFormUrl(
 
   const amount = Math.round(Number(payableAmount) || 0);
   if (amount > 0) params.set(RAGIC_FIELD_AMOUNT, String(amount));
+
+  if (reconCode) params.set(RAGIC_FIELD_RECON, reconCode);
 
   return `${RAGIC_PAY_FORM_BASE}?${params.toString()}&showSheetName`;
 }
