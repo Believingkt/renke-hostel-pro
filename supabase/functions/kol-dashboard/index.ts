@@ -8,8 +8,35 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+/**
+ * 🔒 notes 僅供伺服器端解析分潤用，嚴禁出現在回傳給 KOL 的 payload。
+ *
+ * 為什麼要撈 notes：commissionBaseFromOrder() → extraOnSiteAddonFromNotes() 需要從備註
+ * 解析【額外現場加購金額】…【額外現場加購金額END】，V2/V3 分潤基準都依賴它。刪掉會算錯錢。
+ *
+ * 為什麼不能回傳 notes：orders.notes 內含內部稽核行（🔒）、金流資料（ATM 虛擬帳號、
+ * rec_trade_id、3DS / TapPay webhook 紀錄）、包棟／包區房間配置、以及客人聯絡方式。
+ * KOL 是外部合作對象，只該看到自己代碼帶來的訂單金額與分潤，不該看到上述任何一項。
+ * 2026-09 V5.5B 系列（B.1 OwlTing 推送、B.2 客人確認信／會員訂單頁、B.3 點數平台 API、
+ * B.4 本檔）已逐一確認此原則。
+ *
+ * ⚠️ 未來維護者請注意：
+ *   - 不要因為「看起來沒用到」就刪掉下面的 stripInternal()，那是最後一道防線。
+ *   - 若真的要在 KOL 後台顯示備註，必須改走 buildOwltingNotes() 白名單過濾
+ *     （supabase/functions/_shared/owltingNotesWhitelist.ts），不可直接塞 o.notes。
+ *   - 不要把整列訂單用 `...o` 展開放進回傳物件。
+ */
 const ORDER_SELECT =
   "id, order_number, discount_code, check_in_date, check_out_date, order_date, total_price, final_price, order_status, accommodation_id, custom_addon_details, notes, currency_at_booking";
+
+/**
+ * 回傳前的最後一道防線：任何情況下都不讓 notes 流出到 KOL 端。
+ * 對目前的欄位白名單而言是 no-op；價值在於擋住未來的 `...o` 展開式改寫。
+ */
+function stripInternal<T extends Record<string, unknown>>(row: T): Omit<T, "notes"> {
+  const { notes: _notes, ...safe } = row as T & { notes?: unknown };
+  return safe as Omit<T, "notes">;
+}
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
