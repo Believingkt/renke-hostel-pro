@@ -14146,6 +14146,14 @@ export type Database = {
         Args: { _accommodation_id: string; _module_key: string }
         Returns: boolean
       }
+      sync_order_rooms_v1: {
+        Args: {
+          p_expected_updated_at: string
+          p_order_id: string
+          p_rooms: Json
+        }
+        Returns: Json
+      }
       team_cron_health: {
         Args: never
         Returns: {

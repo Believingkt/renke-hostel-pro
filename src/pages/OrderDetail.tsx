@@ -1237,24 +1237,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       if (error) throw error;
 
-      // Save order_rooms changes if multi-room
-      if (editOrderRooms.length > 0) {
-        // Delete existing order_rooms first and check result
-        const { error: deleteError } = await supabase
-          .from("order_rooms")
-          .delete()
-          .eq("order_id", order.id);
-        if (deleteError) throw deleteError;
-
-        // Verify deletion succeeded (RLS may silently block deletes)
-        const { data: remaining } = await supabase
-          .from("order_rooms")
-          .select("id")
-          .eq("order_id", order.id);
-        if (remaining && remaining.length > 0) {
-          throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
-        }
-
+      // V5.5A.9: order_rooms 改由 sync_order_rooms_v1 以 diff 方式在單一交易內同步
+      {
         // 自動安排：對於 quantity===1 且未手動指派的列，依 display_order 找出可用 unit
         const needsAuto = editOrderRooms.filter(r => r.quantity === 1 && !r.room_unit_id);
         const autoAssignMap = new Map<string, string>();
@@ -1293,37 +1277,37 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           });
         }
 
-        // Insert updated rooms
-        const newOrderRooms = editOrderRooms.map(r => {
-          return {
-            order_id: order.id,
-            room_type_id: r.room_type_id,
-            quantity: r.quantity,
-            room_price: r.room_price,
-            template_name: r.template_name,
-            // quantity > 1 不指派單一棟/房；quantity===1 套用手動或自動安排
-            room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || autoAssignMap.get(r.id) || null),
-          };
+        const existingIds = new Set((orderRooms || []).map((o: any) => o.id));
+        const payloadRooms = editOrderRooms.map(r => ({
+          // synthetic / 新增列不帶 id，讓 RPC 走 INSERT
+          id: existingIds.has(r.id) ? r.id : null,
+          room_type_id: r.room_type_id,
+          quantity: r.quantity,
+          room_price: r.room_price,
+          template_name: r.template_name,
+          room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || autoAssignMap.get(r.id) || null),
+        }));
+
+        const { data: syncResult, error: syncError } = await supabase.rpc("sync_order_rooms_v1" as any, {
+          p_order_id: order.id,
+          p_expected_updated_at: null,
+          p_rooms: payloadRooms as any,
         });
-        const { error: roomsError } = await supabase.from("order_rooms").insert(newOrderRooms);
-        if (roomsError) throw roomsError;
-      } else {
-        // If all rooms were removed in edit, also delete from DB
-        // 刪到 0 筆是合法情況（legacy / Hold 訂單本來就沒有 order_rooms），
-        // 所以不能用「至少刪到 1 筆」判斷；改用殘留列驗證抓 RLS silent deny。
-        const { error: deleteError } = await supabase
-          .from("order_rooms")
-          .delete()
-          .eq("order_id", order.id);
-        if (deleteError) throw deleteError;
-        const { data: remainingAfterRemoveAll } = await supabase
-          .from("order_rooms")
-          .select("id")
-          .eq("order_id", order.id);
-        if (remainingAfterRemoveAll && remainingAfterRemoveAll.length > 0) {
-          throw new Error("無法刪除舊的房間記錄，請確認您有足夠的權限");
+        if (syncError) throw syncError;
+
+        const conflicts = ((syncResult as any)?.conflicts ?? []) as any[];
+        if (conflicts.length > 0) {
+          toast({
+            title: "部分房號未指派",
+            description: `有 ${conflicts.length} 間房的房號已被其他訂單佔用（${conflicts
+              .map((c: any) => c.conflict_order_number)
+              .filter(Boolean)
+              .join("、")}），已改為未指派，其餘資料已儲存。`,
+            variant: "destructive",
+          });
         }
       }
+
 
       // Audit log
       try {
