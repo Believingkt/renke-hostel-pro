@@ -29,7 +29,19 @@ GRANT EXECUTE TO authenticated, service_role（REVOKE FROM PUBLIC）
 3. **advisory lock**：進入 function 第一件事就 `pg_advisory_xact_lock(hashtextextended(order_id,1))`，涵蓋 DELETE/UPDATE/INSERT 全程（現行只有部分 INSERT 路徑會鎖）。
 4. **房號衝突容錯（方案 A）**：寫入前先查該 unit 是否被其他未取消、日期重疊的訂單佔用；有的話該列 `room_unit_id` 設 NULL 並記進 `conflicts`，**其餘欄位照常寫入、交易不失敗、RPC 回傳 ok:true**。
 5. **既有規則不動**：`validate_order_rooms_inventory`（庫存）、`validate_room_unit_no_conflict`（最後一道防線）、`order_rooms_prevent_double_submit`、兩支 enqueue trigger 全部保留，migration 的 pre/postcheck 會驗證這 5 支 trigger 仍在。
-6. **權限**：`service_role` 直接放行；否則需 super_admin／admin，或該館 `orders` 模組為 `editable`，不依賴前端已檢查。
+6. **權限**：`service_role` 直接放行；否則以 `EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('super_admin','admin'))` 判斷全域管理員，其餘走 `public.get_staff_module_permission(uid, accommodation_id, 'orders') = 'editable'`。**不使用 `public.has_role()`——該函式在本專案不存在（DB 內只有 `public.user_has_role(uuid, uuid, app_role)` 與 `get_staff_module_permission`），原稿寫法會在執行期噴 `function does not exist`，已更正。** migration precheck 追加驗證 `get_staff_module_permission(_user_id uuid, _accommodation_id uuid, _module_key text)` 存在且為 SECURITY DEFINER。
+
+### 測試身分補充（(d)/(e)）
+先前 (a)(b)(c) 三個測試都是以 SQL 連線的既有身分執行（`request.jwt.claims` 未設 → `v_role` 非 service_role、`auth.uid()` 為 NULL 的路徑未被觸發，權限段等同未實測）。補測結果（BEGIN…ROLLBACK，正式資料 0 異動）：
+
+```text
+setup            order=91bf002d-22b5-4c9f-806d-5231467741fb rows=6
+auth_uid         2693a019-449f-46e1-8b00-ba29b0db75fa   (super_admin)
+(d) super_admin  {"ok": true, "deleted": [], "inserted": [], "updated": [6 筆 id], "conflicts": []}
+(e) no-role      BLOCKED=NOT_AUTHORIZED
+after_rows       6
+```
+交易結束後確認暫時函式已隨 rollback 消失（`tmp_fn=0`）。
 
 ## 三、呼叫端改法
 
