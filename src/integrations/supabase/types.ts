@@ -13240,6 +13240,30 @@ export type Database = {
           },
         ]
       }
+      v55a6_order_meta_backfill_snapshot: {
+        Row: {
+          new_accommodation_id: string
+          old_accommodation_id: string | null
+          order_id: string
+          order_meta_id: string
+          snapshot_at: string
+        }
+        Insert: {
+          new_accommodation_id: string
+          old_accommodation_id?: string | null
+          order_id: string
+          order_meta_id: string
+          snapshot_at?: string
+        }
+        Update: {
+          new_accommodation_id?: string
+          old_accommodation_id?: string | null
+          order_id?: string
+          order_meta_id?: string
+          snapshot_at?: string
+        }
+        Relationships: []
+      }
       venue_team_bonus_tier_rule_logs: {
         Row: {
           accommodation_id: string | null
