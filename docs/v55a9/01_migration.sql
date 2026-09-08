@@ -93,7 +93,12 @@ BEGIN
     IF v_uid IS NULL THEN
       RAISE EXCEPTION 'NOT_AUTHORIZED' USING ERRCODE = 'P0001';
     END IF;
-    IF NOT (public.has_role(v_uid, 'super_admin') OR public.has_role(v_uid, 'admin')) THEN
+    -- 全域 super_admin / admin：直接放行（比照既有 policy 的 EXISTS 寫法）
+    IF NOT EXISTS (
+      SELECT 1 FROM public.user_roles ur
+      WHERE ur.user_id = v_uid
+        AND ur.role IN ('super_admin'::public.app_role, 'admin'::public.app_role)
+    ) THEN
       v_perm := public.get_staff_module_permission(v_uid, v_order.accommodation_id, 'orders');
       IF coalesce(v_perm, 'hidden') <> 'editable' THEN
         RAISE EXCEPTION 'NOT_AUTHORIZED' USING ERRCODE = 'P0001';
