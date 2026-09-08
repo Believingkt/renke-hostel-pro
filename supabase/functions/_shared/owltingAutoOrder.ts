@@ -256,7 +256,8 @@ export async function cancelAutoPendingOrders(
 
 /**
  * (Re)build order_rooms for an order, auto-assigning free room units.
- * Existing rows for the order are replaced.
+ * V5.5A.9: 改由 sync_order_rooms_v1 在單一交易內完成 diff 同步；
+ * 任何錯誤都會 throw，由呼叫端標記 staging 並發出告警。
  */
 export async function rebuildOrderRooms(
   admin: any,
@@ -269,11 +270,6 @@ export async function rebuildOrderRooms(
     checkOut: string;
   },
 ): Promise<void> {
-  const { error: delErr } = await admin.from("order_rooms").delete().eq("order_id", opts.orderId);
-  if (delErr) {
-    throw new Error(`order_rooms delete failed: ${delErr.message}`);
-  }
-
   const { data: units, error: unitsErr } = await admin
     .from("room_units")
     .select("id, display_order, unit_number")
@@ -306,21 +302,29 @@ export async function rebuildOrderRooms(
   const qty = Math.max(1, opts.roomQuantity);
   const perRoomPrice = Math.round(opts.total / qty);
   const pickedIds = new Set<string>();
+  const rows: any[] = [];
   for (let i = 0; i < qty; i++) {
     const free = (units ?? []).find((u: any) => !busySet.has(u.id) && !pickedIds.has(u.id));
     if (free) pickedIds.add(free.id);
-    const { error: insErr } = await admin.from("order_rooms").insert({
-      order_id: opts.orderId,
+    rows.push({
+      id: null,
       room_type_id: opts.roomTypeId,
       quantity: 1,
       room_price: perRoomPrice,
       room_unit_id: free?.id ?? null,
     });
-    if (insErr) {
-      throw new Error(`order_rooms insert failed (row ${i + 1}/${qty}): ${insErr.message}`);
-    }
+  }
+
+  const { error: rpcErr } = await admin.rpc("sync_order_rooms_v1", {
+    p_order_id: opts.orderId,
+    p_expected_updated_at: null,
+    p_rooms: rows,
+  });
+  if (rpcErr) {
+    throw new Error(`sync_order_rooms_v1 failed: ${rpcErr.message}`);
   }
 }
+
 
 /**
  * Mark staging + send internal alert when rebuildOrderRooms() fails.
