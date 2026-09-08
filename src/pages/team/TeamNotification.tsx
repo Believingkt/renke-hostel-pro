@@ -178,6 +178,7 @@ export default function TeamNotification() {
   const [backfillTo, setBackfillTo] = useState<string>("");
   const [backfillScope, setBackfillScope] = useState<string>("all");
   const [backfilling, setBackfilling] = useState(false);
+  const [backfillForceLine, setBackfillForceLine] = useState(false);
   const [backfillLog, setBackfillLog] = useState<string[]>([]);
 
   const runBackfill = async () => {
