@@ -1,8 +1,11 @@
 // V5.5B.1 — OwlTing SpecialRequests whitelist filter (pure, no I/O)
+// V5.5B.2 — 加入 maskContacts 選項與泛用 [系統標籤] 行規則
+// 注意：本檔與 src/utils/guestNotesWhitelist.ts 必須保持同一套規則（有 parity 測試把關）
 
 export interface WhitelistOpts {
   includeRoomLayout?: boolean; // default true
   maxGuestChars?: number;      // default 500
+  maskContacts?: boolean;      // default true
 }
 
 const ROOM_LAYOUT_RE = /^【(包棟|包區)房間配置】/;
@@ -18,12 +21,10 @@ const BLOCK_RES: RegExp[] = [
 const LINE_RES: RegExp[] = [
   /^\s*🔒/,
   /^\s*【付款狀態變更】/,
-  /^\s*\[人客多收款狀態\]/,
-  /^\s*\[ATM(\s+Webhook)?\]/,
+  /^\s*\[[^\]]+\]/,
   /rec_trade_id/i,
   /虛擬帳號/,
   /^\s*.*(虛擬帳號|繳款帳號).*8\d{2}-\d{6,}/,
-  /^\s*\[\d{4}-\d{2}-\d{2}\s*奧丁丁修改通知\]/,
   /^\s*（信件差異[:：]/,
   /奧丁丁訂單由業主補單/,
   /^\s*折扣碼設定[:：]/,
@@ -54,12 +55,14 @@ function extractGroupBuy(lines: string[]): { kept: string[]; rest: string[] } {
   return { kept, rest: rest.filter((_, i) => !consumed.has(i)) };
 }
 
-function sanitize(text: string, maxChars: number): string {
-  let out = text
-    .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[已隱藏]")
-    .replace(/https?:\/\/\S+/g, "[連結已移除]")
-    .replace(/\n{2,}/g, "\n")
-    .trim();
+function sanitize(text: string, maxChars: number, mask: boolean): string {
+  let out = text;
+  if (mask) {
+    out = out
+      .replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "[已隱藏]")
+      .replace(/https?:\/\/\S+/g, "[連結已移除]");
+  }
+  out = out.replace(/\n{2,}/g, "\n").trim();
   if (out.length > maxChars) out = out.slice(0, maxChars) + "…";
   return out;
 }
@@ -71,6 +74,7 @@ export function buildOwltingNotes(
 ): string {
   const includeLayout = opts.includeRoomLayout !== false;
   const maxChars = opts.maxGuestChars ?? 500;
+  const mask = opts.maskContacts !== false;
 
   let text = String(rawNotes ?? "");
   for (const re of BLOCK_RES) text = text.replace(re, "");
@@ -84,7 +88,7 @@ export function buildOwltingNotes(
   lines = rest;
 
   const survivors = lines.filter((l) => l.trim() && !LINE_RES.some((r) => r.test(l)));
-  const guest = sanitize([...gbKept, ...survivors].join("\n"), maxChars);
+  const guest = sanitize([...gbKept, ...survivors].join("\n"), maxChars, mask);
 
   return [
     includeLayout && layout.length ? layout.join("\n") : null,
