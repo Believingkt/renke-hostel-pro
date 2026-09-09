@@ -1287,6 +1287,28 @@ const BookingPortal = () => {
         );
       })()}
 
+      {/* 可被搜尋引擎跟隨的館別內部連結（同時方便鍵盤／讀屏使用者） */}
+      {accommodations.some((a) => a.short_url_alias) && (
+        <nav aria-label="所有館別" className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-8">
+          <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">
+            所有館別
+          </h2>
+          <ul className="flex flex-wrap gap-x-4 gap-y-2">
+            {accommodations
+              .filter((a) => a.short_url_alias)
+              .map((a) => (
+                <li key={a.id}>
+                  <a
+                    href={`/${a.short_url_alias}`}
+                    className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
+                  >
+                    {a.name}
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </nav>
+      )}
 
       <button
         onClick={() => setAiOpen(true)}

@@ -16,7 +16,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://traveldays.lakeze.com/traveldays-daidodo</loc>
+    <loc>https://booking.lakeze.com/traveldays-daidodo</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
@@ -56,7 +56,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://oliviaboutiquehotel.lakeze.com/oliviaboutiquehotel</loc>
+    <loc>https://booking.lakeze.com/oliviaboutiquehotel</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>
@@ -106,7 +106,7 @@
     </image:image>
   </url>
   <url>
-    <loc>https://tiansong-villa.lakeze.com/tiansongvilla</loc>
+    <loc>https://booking.lakeze.com/tiansongvilla</loc>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
     <image:image>

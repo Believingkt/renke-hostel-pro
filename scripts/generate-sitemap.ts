@@ -98,10 +98,8 @@ const entries: SitemapEntry[] = [
 // 避免列出會再轉址的 alias / 網域根路徑。
 for (const a of accommodations) {
   if (!a.id) continue;
-  const domain = a.custom_domain?.trim();
-  const origin = domain
-    ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
-    : BASE_URL;
+  // sitemap 只列 canonical 網址（一律主網域），自訂網域網址不再列入。
+  const origin = BASE_URL;
   const title = clamp(
     (a.seo_title || a.og_title || a.name || "人客多線上訂房系統").trim(),
     70,

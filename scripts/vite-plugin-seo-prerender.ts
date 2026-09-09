@@ -47,11 +47,9 @@ const esc = (s: string) =>
 
 const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-function originOf(acc: AccRow) {
-  const domain = acc.custom_domain?.trim();
-  return domain
-    ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
-    : BASE_URL;
+// canonical 一律指向平台主網域（自訂網域頁面權重歸戶到 booking.lakeze.com）
+function originOf(_acc: AccRow) {
+  return BASE_URL;
 }
 
 async function fetchAccommodations(url: string, key: string): Promise<AccRow[]> {
@@ -115,6 +113,15 @@ function buildHead(acc: AccRow) {
     `<meta name="twitter:title" content="${esc(ogTitle)}" />`,
     `<meta name="twitter:description" content="${esc(ogDescription)}" />`,
     `<meta name="twitter:image" content="${esc(image)}" />`,
+    // JSON-LD：讓爬蟲在原始 HTML 就讀得到住宿結構化資料
+    `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LodgingBusiness",
+      name: name || title,
+      description,
+      url: canonical,
+      image,
+    }).replace(/</g, "\\u003c")}</script>`,
   ]
     .filter(Boolean)
     .join("\n    ");
