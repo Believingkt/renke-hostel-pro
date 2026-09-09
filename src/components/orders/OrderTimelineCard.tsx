@@ -166,10 +166,16 @@ const EMAIL_STATUS_TONE: Record<string, string> = {
 
 const TRIGGER_SOURCE_LABEL: Record<string, string> = {
   manual_resend: "手動重送",
+  auto: "自動處理",
   auto_final_payment: "系統自動（付款）",
   auto_deposit: "系統自動（訂金入帳）",
+  auto_atm_deposit: "系統自動（ATM 訂金入帳）",
+  auto_atm_final: "系統自動（ATM 尾款入帳）",
+  auto_3ds_final: "系統自動（信用卡尾款）",
   date_change: "改期重寄",
   member_cancel: "會員自行取消",
+  admin_cancel: "後台取消",
+  public_payment_status_page: "付款狀態查詢頁",
   atm_notify: "ATM 入帳通知",
 };
 
