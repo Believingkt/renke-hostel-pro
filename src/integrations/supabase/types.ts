@@ -7275,6 +7275,65 @@ export type Database = {
           },
         ]
       }
+      order_change_log: {
+        Row: {
+          accommodation_id: string
+          actor_email: string | null
+          actor_id: string | null
+          actor_label: string | null
+          actor_type: string
+          changed_at: string
+          changed_fields: Json
+          id: string
+          op: string
+          order_id: string
+          order_number: string | null
+          reason: string | null
+          source: string | null
+          txid: number
+        }
+        Insert: {
+          accommodation_id: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_label?: string | null
+          actor_type: string
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          op: string
+          order_id: string
+          order_number?: string | null
+          reason?: string | null
+          source?: string | null
+          txid?: number
+        }
+        Update: {
+          accommodation_id?: string
+          actor_email?: string | null
+          actor_id?: string | null
+          actor_label?: string | null
+          actor_type?: string
+          changed_at?: string
+          changed_fields?: Json
+          id?: string
+          op?: string
+          order_id?: string
+          order_number?: string | null
+          reason?: string | null
+          source?: string | null
+          txid?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_change_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_commissions: {
         Row: {
           amount: number
@@ -14095,6 +14154,7 @@ export type Database = {
         }
         Returns: string
       }
+      resolve_change_actor: { Args: never; Returns: Json }
       resolve_pricing_template_by_numeric_code: {
         Args: { p_accommodation_id: string; p_code: number }
         Returns: {
@@ -14136,6 +14196,15 @@ export type Database = {
       seed_app_review_account: {
         Args: { p_email: string; p_user_id: string }
         Returns: Json
+      }
+      set_order_change_context: {
+        Args: {
+          p_actor_label?: string
+          p_actor_type?: string
+          p_reason?: string
+          p_source?: string
+        }
+        Returns: undefined
       }
       staff_can_edit_module: {
         Args: { _accommodation_id: string; _module_key: string }
