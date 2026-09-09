@@ -247,10 +247,13 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
   const usesCode = discountMode === "code" || discountMode === "code_override";
+  // V5.5C5 code_keep：與訂單現有折扣碼相同 → 沿用原碼、不重新驗證，只調整金額
+  const keepExistingCode =
+    usesCode && !!oldCode && (discountCode || "").trim().toUpperCase() === oldCode;
   const codeOverridden =
     usesCode && validatedStandard != null && appliedDiscountInput !== validatedStandard;
   const effectiveDiscountMode: PaidDiscountMode = usesCode
-    ? codeOverridden
+    ? keepExistingCode || codeOverridden
       ? "code_override"
       : "code"
     : discountMode;
@@ -260,11 +263,13 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       ? 0
       : discountMode === "manual"
         ? newDiscountInput
-        : validatedStandard != null
-          ? codeOverridden
-            ? appliedDiscountInput
-            : validatedStandard
-          : oldDiscount;
+        : keepExistingCode
+          ? appliedDiscountInput
+          : validatedStandard != null
+            ? codeOverridden
+              ? appliedDiscountInput
+              : validatedStandard
+            : oldDiscount;
   const previewCode = usesCode ? (discountCode || "").trim().toUpperCase() || null : null;
 
   // 加購預估（顯示用；實際金額由後端計算）
