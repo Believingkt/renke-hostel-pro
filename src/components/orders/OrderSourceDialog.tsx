@@ -110,35 +110,9 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
 
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            details: {
-              type: "order_source_change",
-              old_source: order.order_source,
-              new_source: selectedSource,
-              changes: [
-                {
-                  field: "order_source",
-                  label: "訂單來源",
-                  before: oldLabel,
-                  after: newLabel,
-                },
-              ],
-            } as any,
-          }]);
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
+
+
 
       if (kolOverrideStatus && accommodationId) {
         await logKolQuotaOverride({
