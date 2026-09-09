@@ -14258,6 +14258,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      update_order_with_context: {
+        Args: {
+          p_actor_label?: string
+          p_actor_type?: string
+          p_order_id: string
+          p_patch: Json
+          p_reason?: string
+          p_source: string
+        }
+        Returns: undefined
+      }
       update_paid_order_addons: {
         Args: {
           p_addons: Json
