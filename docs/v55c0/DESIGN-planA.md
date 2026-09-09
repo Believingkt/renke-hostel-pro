@@ -336,8 +336,8 @@ ON public.order_change_log
 FOR SELECT
 TO authenticated
 USING (
-  public.has_role(auth.uid(), 'super_admin')
-  OR public.has_role(auth.uid(), 'admin')
+  public.is_super_admin(auth.uid())
+  OR public.is_admin(auth.uid())
   OR EXISTS (
     SELECT 1 FROM public.user_roles ur
     WHERE ur.user_id = auth.uid()
@@ -532,3 +532,35 @@ Badge 標籤新增兩筆（其餘不動）：
 5. **RLS**：以無角色使用者 / 該館 staff(orders=readonly) / 他館 staff 三種身分 SELECT `order_change_log`，應分別為 0 / 有資料 / 0；並驗證 authenticated 直接 INSERT 被拒（42501）。
 
 執行方式與 V5.5A.5–A.7 相同：整包 DDL + 測試包在一個 migration 交易中，最後 `RAISE EXCEPTION` 強制回滾，取得真實輸出後再請求核准正式安裝。
+
+---
+
+## 六、實測結果（已在單一交易內建立物件→測試→強制 ROLLBACK，2026-09-09）
+
+測試對象：真實訂單 `CE2V95Y5`（652770d9-…）。
+
+```
+T1 changed_fields=[{"to": 23276, "from": 23275, "field": "final_price"},
+                   {"field": "guest_phone", "changed": true}]
+T2 sentinel_audit_rows=1  change_log_actor=unknown/unmarked_system
+T3 2 列 / distinct txid=1
+T4 audit(order/order_meta)=1875  其中 changes陣列=1122  order_deposit=460
+T5 無角色使用者可見=0 / INSERT被擋 SQLSTATE=42501
+ERROR: P0001 ROLLBACK-BY-DESIGN（整批回滾）
+```
+
+判讀：
+- T1 金額記完整 from/to、電話只記「有變動」不記值 → 分級正確。
+- T2 以 `SET LOCAL ROLE service_role`（auth.uid() 為 NULL）更新押金：audit_logs 以 sentinel user_id 成功寫入 1 列（舊版此情境會 23502 失敗）；order_change_log actor 落為 `unknown/unmarked_system`（未補 context 時的預設）。
+- T3 同交易兩次 UPDATE → 2 列但 txid 相同，前端可收斂為 1 筆。
+- T4 舊資料全在：order/order_meta 共 1875 筆（其中 changes 陣列 1122 筆），order_deposit 460 筆（含 T2 新增的 1 筆，交易外仍為 459）。
+- T5 無角色使用者讀不到、authenticated 直接 INSERT 被 RLS 擋（42501）。
+
+回滾後驗證（交易外）：`order_change_log` 不存在、`resolve_change_actor` 不存在、
+`log_order_deposit_change` md5 = `4b33bfc95401fa843f53f21e01da3253`（原版）、
+audit_logs order_deposit 459 筆、訂單 final_price/guest_count/deposit_required_amount =
+23275 / 14 / 5000（全部還原）。零殘留、零業務資料異動。
+
+備註：`has_role(uuid, app_role)` 在本專案不存在，實際權限函式為
+`public.is_super_admin(uuid)` / `public.is_admin(uuid)` / `public.get_staff_module_permission(uuid,uuid,text)`，
+第五節的 policy 全文已以此為準（設計文件第二節請以本節版本為準）。
