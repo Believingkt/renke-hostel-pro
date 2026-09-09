@@ -181,12 +181,17 @@ GRANT EXECUTE ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,
 | `charge-room-on-checkin:94` | `checkin_auto_charge` | `入住日自動扣款成功 NT${amount}` | 系統排程 / system |
 | `charge-room-on-checkin:114` | `checkin_auto_charge` | `入住日自動扣款失敗：{msg}` | 系統排程 / system |
 | `charge-room-on-checkin:151,171` | `checkin_auto_charge` | 同上（狀態同步） | 系統排程 / system |
-| `charge-deposit:115`（成功） | `deposit_charge` | `押金扣款成功 NT${amount}` | 觸發別 `scheduled` → system；`manual` → 操作者 email / human |
-| `charge-deposit:126`（失敗） | `deposit_charge` | `押金扣款失敗：{msg}` | 同上 |
-| `refund-deposit:116` | `deposit_refund` | `押金退款 NT${amount}` | 操作者 email / human |
-| `bind-deposit-card:136` | `deposit_bind_card` | `綁卡成功（末四碼 {last4}）` | 客人 / guest |
+| `charge-deposit:115`（成功） | `deposit_charge` | `押金扣款成功 NT${amount}` | `押金扣款（排程）` 或 `押金扣款（操作者 {email}）` / system |
+| `charge-deposit:126`（失敗） | `deposit_charge` | `押金扣款失敗：{msg}` | 同上 / system |
+| `refund-deposit:116` | `deposit_refund` | `押金退款 NT${amount}` | `押金退款（操作者 {email}）` / system |
+| `bind-deposit-card:136` | `deposit_bind_card` | `綁卡成功（末四碼 {last4}）` | 客人綁卡 / system |
+| `cancel-order-with-refund:241` | `admin_cancel_refund` | `TapPay 退款失敗（代碼 …）` | `取消退款（操作者 {email}）` / system |
+| `cancel-order-with-refund:309` | `admin_cancel_refund` | 依 refundAction：`自動退刷 NT$…`／`需手動退款`／`未退款` | `取消退款（操作者 {email}）` / system |
 
-`cancel-order-with-refund:241,309` 也屬金流批次，同形狀改為 `update_order_with_context`，`p_source='admin_cancel_refund'`、`p_reason` 用既有取消原因、`p_actor_label` 用 `userEmail`、`p_actor_type='human'`。
+（全部 `actor_type` 一律 `system`，理由見上一節；`actor_label` 內含操作者 email 以保留人的歸屬線索。）
+
+### 本次範圍界線
+依你的指示，**分類 A 的 notes 文字這次一律不移除**（change-order-dates 改期行、OrderSourceDialog 來源變更、金額異動 🔒 行、付款狀態變更行都原樣保留）。批次一只做「補 context」與上面那支 RPC，不動任何 notes 內容。
 
 ### 其餘批次（僅列清單，本次不設計）
 - 批次二 OwlTing：`owlting-change-notify`、`owlting-fillup-issue`、`owlting-fillup-remind`、`owlting-cleanup-stale-pending`、OwlTing 匯入 staging 相關寫入
