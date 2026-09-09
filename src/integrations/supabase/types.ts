@@ -13749,9 +13749,12 @@ export type Database = {
       }
       change_order_dates: {
         Args: {
+          _actor_label?: string
           _new_check_in: string
           _new_check_out: string
           _order_id: string
+          _reason?: string
+          _source?: string
         }
         Returns: Json
       }
@@ -14261,16 +14264,27 @@ export type Database = {
         }
         Returns: undefined
       }
-      update_order_with_context: {
+      update_order_fields_v1: {
         Args: {
-          p_actor_label?: string
-          p_actor_type?: string
           p_order_id: string
           p_patch: Json
           p_reason?: string
           p_source: string
         }
-        Returns: undefined
+        Returns: number
+      }
+      update_order_with_context: {
+        Args: {
+          p_actor_label?: string
+          p_actor_type?: string
+          p_expect?: Json
+          p_not?: Json
+          p_order_id: string
+          p_patch: Json
+          p_reason?: string
+          p_source: string
+        }
+        Returns: number
       }
       update_paid_order_addons: {
         Args: {
