@@ -449,9 +449,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           : `【金額修改】${editReason.trim()}`;
       }
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: {
           total_price: safeTotalPrice,
           discount_amount: safeDiscountAmount,
           final_price: safeFinalPrice,
@@ -460,10 +460,12 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
           payment_status: newPaymentStatus,
           custom_addon_details: newCustomAddonDetails as any,
           discount_code: safeDiscountCode.trim() || null,
-          meal_plan_details: newMealPlanDetails.length > 0 ? newMealPlanDetails as any : null,
+          meal_plan_details: newMealPlanDetails.length > 0 ? (newMealPlanDetails as any) : null,
           notes: nextNotes,
-        })
-        .eq("id", order.id);
+        } as any,
+        p_source: paidDiscountEdited ? "paid_discount_edit" : "admin_price_edit_dialog",
+        p_reason: editReason.trim() || null,
+      });
       if (error) throw error;
 
       // 變更紀錄由 zzz_order_change_log trigger 統一寫入；原因已寫入 notes（V5.5C.2）

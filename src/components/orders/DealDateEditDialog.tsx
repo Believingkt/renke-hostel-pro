@@ -86,10 +86,12 @@ export function DealDateEditDialog({
       }
 
       const newIso = composeDealDate(currentOrderDate, dateValue);
-      const { error } = await supabase
-        .from("orders")
-        .update({ order_date: newIso })
-        .eq("id", orderId);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: orderId,
+        p_patch: { order_date: newIso },
+        p_source: "admin_deal_date_edit",
+        p_reason: null,
+      });
       if (error) throw error;
 
       // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
