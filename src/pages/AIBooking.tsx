@@ -69,6 +69,7 @@ export default function AIBooking() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId } = useSubdomain();
   const isMobile = useIsMobile();
+  const isNative = useIsNativeApp();
 
   // 使用共用主題常數
   const themeClass = getThemeClassByAccommodation(accommodationId);
