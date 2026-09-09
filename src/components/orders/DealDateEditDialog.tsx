@@ -92,32 +92,9 @@ export function DealDateEditDialog({
         .eq("id", orderId);
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: orderId,
-            entity_name: orderNumber,
-            accommodation_id: accommodationId ?? null,
-            details: {
-              type: "order_deal_date_change",
-              field: "order_date",
-              before: currentOrderDate,
-              after: newIso,
-              before_month: oldMonth,
-              after_month: newMonth,
-              cross_period: isCrossPeriod,
-            },
-          }]);
-        }
-      } catch (e) {
-        console.error("audit log failed", e);
-      }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
+
+
 
       toast.success("成交日已更新", {
         description: isCrossPeriod
