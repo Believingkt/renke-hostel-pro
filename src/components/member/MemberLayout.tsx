@@ -22,7 +22,7 @@ import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import { deactivateCurrentDeviceTokens, initPushNotifications } from "@/lib/pushNotifications";
 import BiometricEnrollPrompt from "@/components/member/BiometricEnrollPrompt";
 import { clearManualLogoutFlag, disableBiometricLogin, refreshStoredBiometricToken, setManualLogoutFlag } from "@/lib/biometricAuth";
-import { clearAppBadge } from "@/lib/appBadge";
+import { clearAppBadge, resetServerUnreadBadge } from "@/lib/appBadge";
 import { useIsNativeApp } from "@/hooks/use-is-native-app";
 import { MEMBER_LOGOUT_EVENT } from "@/lib/native/memberLogoutEvent";
 import { getAuthUserOfflineSafe } from "@/lib/authSession";
@@ -111,21 +111,28 @@ const MemberLayout = () => {
     // 1. 先立旗標：任何自動還原（Face ID）都必須跳過
     setManualLogoutFlag();
 
-    // 2. 清除 Keychain 憑證 + 關閉 Face ID 開關（失敗不可中斷登出）
-    try {
-      await disableBiometricLogin();
-    } catch (e) {
-      console.error("[logout] disableBiometricLogin failed", e);
-      toast.error("Face ID 憑證清除失敗，仍會繼續登出");
-    }
-
+    // 2. 所有需要寫回伺服器的動作都必須在 signOut 之前完成，
+    //    否則 session 已清空，寫入會被 RLS 擋下（影響 0 筆）並跳出誤導的錯誤提示。
     try {
       await deactivateCurrentDeviceTokens();
     } catch (e) {
-      console.error("[logout] deactivateCurrentDeviceTokens failed", e);
+      console.warn("[logout] deactivateCurrentDeviceTokens failed", e);
     }
 
-    // 3. 登出
+    try {
+      await resetServerUnreadBadge();
+    } catch (e) {
+      console.warn("[logout] resetServerUnreadBadge failed", e);
+    }
+
+    // 3. 清除 Keychain 憑證 + 關閉 Face ID 開關（失敗不可中斷登出，也不跳錯誤）
+    try {
+      await disableBiometricLogin();
+    } catch (e) {
+      console.warn("[logout] disableBiometricLogin failed", e);
+    }
+
+    // 4. 登出
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
@@ -135,11 +142,11 @@ const MemberLayout = () => {
       return;
     }
 
-    // 4. 清角標
+    // 5. 清角標（純本機動作，不會再打 API）
     try {
       await clearAppBadge();
     } catch (e) {
-      console.error("[logout] clearAppBadge failed", e);
+      console.warn("[logout] clearAppBadge failed", e);
     }
 
     toast.success("已登出");

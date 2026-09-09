@@ -330,13 +330,14 @@ export async function isPushEnabled(options?: { retries?: number; delayMs?: numb
 export async function deactivateCurrentDeviceTokens(): Promise<void> {
   if (!isNativeApp()) return;
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    // 沒有 session（例如已登出）時直接略過，避免被 RLS 擋下而出現假失敗
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
     await supabase
       .from("device_tokens")
       .update({ is_active: false, updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
+      .eq("user_id", session.user.id);
   } catch (e) {
-    console.error("[push] deactivate failed", e);
+    console.warn("[push] deactivate failed", e);
   }
 }

@@ -17,6 +17,13 @@ import { NO_ROWS_AFFECTED_MESSAGE } from "@/lib/supabaseWriteGuard";
 
 type AnyFn = (...args: any[]) => any;
 
+/**
+ * 背景同步用的資料表（推播 token、角標未讀數…）：
+ * 這些寫入不是使用者按下「儲存」的動作，登出後 session 清掉時影響 0 筆屬正常，
+ * 一律只寫 console.warn，不可跳 toast 干擾使用者。
+ */
+const SILENT_TABLES = new Set(["device_tokens", "member_push_badges"]);
+
 let installed = false;
 
 function withCount(args: any[], optionIndex: number) {
@@ -39,7 +46,7 @@ function wrapThenable(
     originalThen((result: any) => {
       if (result && !result.error && result.count === 0) {
         const detail = `${table} 的 ${op} 影響 0 筆`;
-        if (op === "delete" || benignZero) {
+        if (op === "delete" || benignZero || SILENT_TABLES.has(table)) {
           // delete 無資料可刪、或 upsert ignoreDuplicates 的 no-op，皆屬正常情況
           console.info(`[write-audit] ${detail}（視為正常 no-op）`);
         } else {
