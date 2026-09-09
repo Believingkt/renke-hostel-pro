@@ -100,29 +100,9 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
       }
 
 
-      // Audit log
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            details: {
-              type: "payment_status_change",
-              old_status: order.payment_status,
-              new_status: selectedStatus,
-              reason: reason.trim(),
-            } as any,
-          }]);
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入；備註已併入 notes（V5.5C.2）
+
+
 
       toast({ title: "付款狀態已更新" });
       onOpenChange(false);
