@@ -478,31 +478,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .eq("id", order.id);
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const details = paidDiscountEdited
-            ? {
-                type: "paid_discount_edit",
-                source: PAID_DISCOUNT_SOURCE,
-                reason: editReason.trim(),
-                changes: paidDiscountChanges,
-              }
-            : { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues };
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            details: details as any,
-          }]);
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入；原因已寫入 notes（V5.5C.2）
+
+
 
       toast({ title: "金額修改成功", description: "訂單金額已更新" });
 
