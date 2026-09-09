@@ -9,6 +9,7 @@ import { settlementLabel } from "@/lib/paidAmountSettlement";
 
 interface AuditLogRow {
   id: string;
+  origin?: "audit" | "change_log";
   user_id: string | null;
   user_email: string | null;
   action_type: string;
@@ -16,6 +17,16 @@ interface AuditLogRow {
   created_at: string;
   user_name?: string | null;
 }
+
+const SYSTEM_LABELS: Record<string, string> = {
+  owlting_webhook: "OwlTing 同步",
+  owlting_auto_order: "OwlTing 自動建單",
+  hotelnabe_sync: "HotelNabe 同步",
+  tappay_notify: "金流通知",
+  refund: "退款流程",
+  room_charge: "自動收款",
+  unmarked_system: "系統（未標記來源）",
+};
 
 interface OrderAuditLogCardProps {
   orderId: string;
