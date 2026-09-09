@@ -62,6 +62,8 @@ interface AccommodationInfo {
   card_cta_label?: string | null;
   card_is_visible?: boolean;
   card_photos?: string[];
+  short_url_alias?: string | null;
+  custom_domain?: string | null;
 }
 
 interface FacilityRow {
