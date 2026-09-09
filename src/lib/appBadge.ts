@@ -181,6 +181,25 @@ export async function bumpUnreadCount(delta = 1): Promise<number> {
 }
 
 /** 全部已讀：伺服器與本地同時歸零 */
+/**
+ * 僅把伺服器端未讀數歸零（登出前呼叫）。
+ * 沒有 session 時直接略過，不打 API；失敗只寫 console.warn。
+ */
+export async function resetServerUnreadBadge(): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
+    await supabase
+      .from("member_push_badges")
+      .upsert(
+        { user_id: session.user.id, unread_count: 0, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+  } catch (e) {
+    console.warn("[badge] reset server unread failed", e);
+  }
+}
+
 export async function markAllMessagesRead(): Promise<void> {
   markCategoriesRead();
   try {
