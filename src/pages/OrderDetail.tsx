@@ -1503,20 +1503,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     }
     setIsSavingPrice(true);
     try {
-      const oldValues = {
-        total_price: order.total_price,
-        discount_amount: order.discount_amount,
-        final_price: order.final_price,
-        deposit_amount: order.deposit_amount,
-        paid_amount: order.paid_amount,
-      };
-      const newValues = {
-        total_price: editTotalPrice,
-        discount_amount: editDiscountAmount,
-        final_price: editFinalPrice,
-        deposit_amount: editDepositAmount,
-        paid_amount: editPaidAmount,
-      };
 
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
