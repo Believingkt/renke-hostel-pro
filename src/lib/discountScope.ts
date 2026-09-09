@@ -70,3 +70,64 @@ export async function getOrderDiscountScope(
     ambiguous: false,
   };
 }
+
+export type CoverageResult = "full" | "partial" | "none" | "unknown";
+
+/**
+ * 多房型／多方案訂單：檢查訂單所有房價方案是否都在折扣碼的適用清單內。
+ * 僅讀取，不寫入、不重算金額。
+ * - 僅 pricing_template 模式做判斷；room_type 模式回 "unknown"（維持現況）。
+ * - 訂單 template_id 全為 NULL → "unknown"（資料不足，不等於「不適用」）。
+ */
+export async function getOrderCodeCoverage(params: {
+  orderId: string;
+  accommodationId: string;
+  code: string;
+}): Promise<{
+  coverage: CoverageResult;
+  scopeMode: "room_type" | "pricing_template";
+  orderTemplateIds: string[];
+  applicableIds: string[];
+  representativeTemplateId: string | null;
+}> {
+  const code = (params.code || "").trim().toUpperCase();
+  const [{ data: acc }, { data: rows }, { data: dc }] = await Promise.all([
+    supabase
+      .from("accommodation_info")
+      .select("discount_scope_mode")
+      .eq("id", params.accommodationId)
+      .maybeSingle(),
+    supabase.from("order_rooms").select("template_id").eq("order_id", params.orderId),
+    supabase
+      .from("discount_codes")
+      .select("applicable_pricing_template_ids")
+      .eq("accommodation_id", params.accommodationId)
+      .ilike("code", code)
+      .maybeSingle(),
+  ]);
+
+  const scopeMode = ((acc as any)?.discount_scope_mode ?? "pricing_template") as
+    | "room_type"
+    | "pricing_template";
+  const orderTemplateIds = Array.from(
+    new Set(((rows ?? []) as any[]).map((r) => r.template_id).filter(Boolean) as string[]),
+  );
+  const applicableIds = (((dc as any)?.applicable_pricing_template_ids ?? []) as string[]) || [];
+
+  const base = {
+    scopeMode,
+    orderTemplateIds,
+    applicableIds,
+    representativeTemplateId: null as string | null,
+  };
+  if (scopeMode !== "pricing_template") return { ...base, coverage: "unknown" };
+  if (orderTemplateIds.length === 0) return { ...base, coverage: "unknown" };
+  if (!dc) return { ...base, coverage: "none" };
+
+  const hit = orderTemplateIds.filter((id) => applicableIds.includes(id));
+  if (hit.length === orderTemplateIds.length) {
+    return { ...base, coverage: "full", representativeTemplateId: orderTemplateIds[0] };
+  }
+  if (hit.length === 0) return { ...base, coverage: "none" };
+  return { ...base, coverage: "partial" };
+}
