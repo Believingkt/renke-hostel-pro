@@ -49,7 +49,8 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   kol_quota_override: { text: "KOL額度覆寫", tone: "bg-orange-100 text-orange-700" },
   order_date_change: { text: "訂單改期", tone: "bg-fuchsia-100 text-fuchsia-700" },
   system_update: { text: "系統自動變更", tone: "bg-slate-100 text-slate-700" },
-  system_create: { text: "建立訂單", tone: "bg-green-100 text-green-700" },
+  system_create: { text: "系統建立訂單", tone: "bg-green-100 text-green-700" },
+  user_create: { text: "建立訂單", tone: "bg-green-100 text-green-700" },
 };
 
 function getActionLabel(details: any, action_type: string) {
@@ -128,7 +129,16 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
           origin: "change_log" as const,
           user_id: first.actor_id,
           user_email: first.actor_email,
-          action_type: first.op === "insert" ? "system_create" : "system_update",
+          // 系統標籤以 actor_type 判斷：真人（user）一律顯示姓名＋「編輯/建立訂單」，
+          // 只有 system/unknown 才帶「系統」字樣，避免真人編輯被誤標為系統自動變更。
+          action_type:
+            first.actor_type === "user"
+              ? first.op === "insert"
+                ? "user_create"
+                : "update"
+              : first.op === "insert"
+                ? "system_create"
+                : "system_update",
           details: {
             changes,
             source: first.source === "unmarked" ? undefined : first.source,
