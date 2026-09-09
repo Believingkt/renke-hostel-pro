@@ -577,13 +577,25 @@ export default function OrderTimelineCard({
 
   return (
     <Card>
-      <CardHeader className="pb-3 space-y-3">
+      <CardHeader className={cardOpen ? "pb-3 space-y-3" : "py-3 space-y-0"}>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="h-4 w-4" />
-            訂單歷程
-            {orderNumber && <span className="text-xs text-muted-foreground font-normal">#{orderNumber}</span>}
+          <CardTitle className="text-base">
+            <button
+              type="button"
+              onClick={() => setCardOpen((v) => !v)}
+              aria-expanded={cardOpen}
+              className="flex items-center gap-2 text-left hover:opacity-80"
+            >
+              {cardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <History className="h-4 w-4" />
+              訂單歷程
+              {orderNumber && <span className="text-xs text-muted-foreground font-normal">#{orderNumber}</span>}
+              <span className="text-xs text-muted-foreground font-normal">
+                {loading ? "載入中…" : `共 ${counts.all} 筆`}
+              </span>
+            </button>
           </CardTitle>
+          {cardOpen && (
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="ghost" size="sm" onClick={load} disabled={loading} aria-label="重新整理">
               <RefreshCcw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
