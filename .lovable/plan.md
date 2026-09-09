@@ -89,31 +89,67 @@
 
 **建議做法（批次一同時要做的一支 migration）**：新增一支把「設 context + 更新訂單」包在同一交易的 RPC。
 
+**修正（回應你的第一點）**：初版欄位清單確實漏了 `cancel-order-with-refund` 用到的欄位，這是遺漏、不是刻意排除。逐一比對該檔 `patch`（:293-308）與 :241 的失敗分支後，需補上：`order_status`、`cancelled_at`、`refund_status`、`refunded_at`、`refund_rec_trade_id`、`refunded_amount`（原本有）。同時把 `charge-room-on-checkin` 的 `room_charge_status`、`room_charge_scheduled_date` 一併納入。
+
+另一個初版缺陷：用 `COALESCE(p_patch->>'x', o.x)` 無法把欄位「設成 NULL」，但 `tappay-notify` 確實會把 `balance_payment_method` 設為 null。改用 `p_patch ? 'key'` 判斷。
+
 ```sql
 CREATE OR REPLACE FUNCTION public.update_order_with_context(
   p_order_id uuid, p_patch jsonb,
   p_source text, p_reason text DEFAULT NULL,
   p_actor_label text DEFAULT NULL, p_actor_type text DEFAULT 'system'
 ) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  c_allowed CONSTANT text[] := ARRAY[
+    -- 付款
+    'payment_status','paid_amount','refunded_amount','payment_method',
+    'balance_payment_method','deposit_payment_method',
+    -- 訂單狀態／取消退款（cancel-order-with-refund）
+    'order_status','cancelled_at','confirmed_at',
+    'refund_status','refunded_at','refund_rec_trade_id',
+    -- 押金
+    'deposit_status','deposit_method','deposit_charged_amount','deposit_charged_at',
+    'deposit_refunded_amount','deposit_refunded_at',
+    -- 入住扣款
+    'room_charge_status','room_charge_scheduled_date',
+    -- 備註
+    'notes'
+  ];
+  v_key text;
+  v_sets text[] := '{}';
 BEGIN
   PERFORM public.set_order_change_context(p_source, p_reason, p_actor_label, p_actor_type);
-  UPDATE public.orders o SET
-    payment_status = COALESCE(p_patch->>'payment_status', o.payment_status),
-    paid_amount    = COALESCE((p_patch->>'paid_amount')::numeric, o.paid_amount),
-    refunded_amount= COALESCE((p_patch->>'refunded_amount')::numeric, o.refunded_amount),
-    payment_method = COALESCE(p_patch->>'payment_method', o.payment_method),
-    balance_payment_method = COALESCE(p_patch->>'balance_payment_method', o.balance_payment_method),
-    deposit_status = COALESCE(p_patch->>'deposit_status', o.deposit_status),
-    deposit_method = COALESCE(p_patch->>'deposit_method', o.deposit_method),
-    deposit_charged_amount = COALESCE((p_patch->>'deposit_charged_amount')::numeric, o.deposit_charged_amount),
-    deposit_refunded_amount= COALESCE((p_patch->>'deposit_refunded_amount')::numeric, o.deposit_refunded_amount),
-    notes          = COALESCE(p_patch->>'notes', o.notes),
-    updated_at     = now()
-  WHERE o.id = p_order_id;
+  FOR v_key IN SELECT jsonb_object_keys(p_patch) LOOP
+    IF NOT (v_key = ANY(c_allowed)) THEN
+      RAISE EXCEPTION 'update_order_with_context: 欄位不在白名單內 (%)', v_key;
+    END IF;
+    v_sets := v_sets || format('%I = ($1->>%L)::text', v_key, v_key);
+  END LOOP;
+  IF array_length(v_sets,1) IS NULL THEN RETURN; END IF;
+  EXECUTE format(
+    'UPDATE public.orders SET %s, updated_at = now() WHERE id = $2',
+    array_to_string(v_sets, ', ')
+  ) USING p_patch, p_order_id;
 END; $$;
 REVOKE ALL ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) TO service_role;
 ```
+
+（`::text` 會由 Postgres 依欄位型別再隱式轉換；`numeric`／`timestamptz` 欄位以字串傳入可正常轉型，`null` 值則正確寫入 NULL。實作時會在 migration 前先跑 BEGIN…ROLLBACK 驗證每個欄位型別。）
+
+### 關於 `cancel-order-with-refund`
+它**走同一支 RPC**，不另外設計；但它有兩個寫入點、欄位組合較複雜，會在批次一 diff 裡單獨列出，不用「同形狀改法」一句帶過：
+- `:241`（TapPay 退款失敗分支）patch = `{refund_status:'failed', refund_rec_trade_id}`，`p_source='admin_cancel_refund'`、`p_reason='TapPay 退款失敗（代碼 …）'`
+- `:309`（主要取消）patch = `{order_status, cancelled_at, notes}` ＋ 依 refundAction 追加 `paid_amount / payment_status / refunded_amount / refund_rec_trade_id / refunded_at / refund_status`
+
+### 關於 `actor_type = 'human'`（回應你的第二點）
+如實說明：**目前設計下顯示不出「真人」**。
+1. `resolve_change_actor()`（migration `20260909071053`）在 `auth.uid() IS NULL` 時（service_role 呼叫必然如此）**直接忽略傳入的 `actor_type`**，硬寫成 `actor_type='system'`，只保留 `actor_label`。
+2. `OrderAuditLogCard.tsx:167,224` 只有 `actor_type === 'user'` 才顯示「{姓名}・編輯」；其他一律渲染成 `系統・{actor_label}`。
+3. 所以 `charge-deposit`（人工觸發）、`refund-deposit` 會顯示成 **「系統・admin@example.com」**，與 `human` 想表達的意思確實有落差。
+4. 另外 `'human'` 這個值本身也不被 UI 認得——即使 `auth.uid()` 存在，`actor_type` 會被寫成 `'human'` 而非 `'user'`，一樣會落到「系統・」分支。
+
+**批次一的處理方式**：不改 resolver、不引入 `'human'`。這兩支改為 `p_actor_type='system'`、`p_actor_label='押金扣款（操作者 {email}）'`，讓畫面誠實顯示「系統・押金扣款（操作者 …）」。真人歸屬要正確顯示，需要另外改 resolver 讓 service_role 可帶可信任的 `actor_id`，那是獨立議題，本次不做。
 
 ### 各呼叫端 diff（10 個檔案、14 個寫入點）
 
