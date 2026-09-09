@@ -114,3 +114,120 @@ B2 / B7 額外把批次更新改為「先查 id → 逐筆 RPC」。
 - 不移除任何 notes 文字（分類 A 仍延後）。
 - 不改 INSERT 路徑、不改 order_rooms / order_meta / staging 寫入、不改前端。
 - 批次二、批次三可分開核准；擴充白名單的 migration 為兩批共用，先核准的那一批一起帶。
+
+## 八、B2／B7 錯誤處理設計（本次新增，順便修既有「錯誤被吞、假裝成功」）
+
+### 8.1 現況缺陷（實際程式碼佐證）
+
+| 位置 | 現況 | 缺陷 |
+|---|---|---|
+| `_shared/owltingAutoOrder.ts:229-255` | `cancelAutoPendingOrders` 先 SELECT 出 ids，批次 `.update().in("id", ids)` **完全不檢查 error**，直接 `return ids` | UPDATE 失敗（RLS／trigger／連線）時仍回傳整份 ids；`owlting-email-ingest:650-660` 依此寫下「已同步取消 PMS 訂單 N 筆」與 `recordOutcome(cancelled_count)`，是假成功 |
+| `owlting-cm/index.ts:793-798` | Cancel 分支 `.update().eq(owlting_reservation_id)` 不檢查 error，也不檢查有無命中任何列，直接 `successItems.push()` | 即使 0 筆命中或 UPDATE 失敗，仍回 OwlTing `<Success/>`，OwlTing 不會重送 |
+
+### 8.2 B2 新設計：`cancelAutoPendingOrders` 回傳結構化結果
+
+回傳型別由 `string[]` 改為：
+
+```ts
+export interface CancelAutoResult {
+  cancelled: string[];              // 實際 RPC 成功的 order id
+  failed: Array<{ id: string; order_number?: string | null; error: string }>;
+}
+```
+
+流程：
+
+```diff
+-    const ids = orders.map((o: any) => o.id);
+-    const nowIso = new Date().toISOString();
+-    await admin.from("orders").update({ order_status: "cancelled", cancelled_at: nowIso }).in("id", ids);
+-    return ids;
++    const nowIso = new Date().toISOString();
++    const cancelled: string[] = [];
++    const failed: CancelAutoResult["failed"] = [];
++    for (const o of orders) {
++      try {
++        const { error } = await admin.rpc("update_order_with_context", {
++          p_order_id: o.id,
++          p_patch: { order_status: "cancelled", cancelled_at: nowIso },
++          p_source: "owlting_email_cancel",
++          p_reason: `OBE ${obeNumber} 取消通知`,
++          p_actor_label: "OwlTing 取消通知",
++          p_actor_type: "system",
++        });
++        if (error) throw new Error(error.message);
++        cancelled.push(o.id);
++      } catch (e) {
++        failed.push({ id: o.id, order_number: o.order_number ?? null, error: (e as Error).message });
++      }
++    }
++    if (failed.length > 0) {
++      await reportBackendError({
++        functionName: "owlting-email-ingest",
++        category: "owlting_auto_cancel",
++        step: "cancel_auto_pending_orders",
++        errorMessage: `OBE ${obeNumber}：${failed.length} 筆自動取消失敗`,
++        context: { obe_number: obeNumber, failed, cancelled_count: cancelled.length },
++      });
++    }
++    return { cancelled, failed };
+```
+
+- 迴圈**不中斷**：單筆失敗只記錄，繼續處理剩下的（部分完成是可接受的，但必須看得見）。
+- 失敗寫入 `public.error_logs`（`_shared/errorReporter.ts` 既有 helper，`source='backend'`），HQ 系統健康監控查得到。
+- SELECT 本身失敗 / catch 到例外時，回 `{ cancelled: [], failed: [] }` 並同樣寫一筆 error_logs（現況只有 `console.error`）。
+
+呼叫端 `owlting-email-ingest/index.ts:650-660` 對應改法：
+
+```diff
+-        const cancelled = await cancelAutoPendingOrders(supabase, fields.obe_number);
+-        if (cancelled.length > 0) {
+-          await supabase.from("owlting_email_parsed_staging").update({
+-            review_notes: `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`,
+-          }).eq("id", stagingRow.id);
+-        }
+-        await recordOutcome(supabase, inserted.id, "order_cancelled", {
+-          obe_number: fields.obe_number, cancelled_count: cancelled.length,
+-        });
++        const { cancelled, failed } = await cancelAutoPendingOrders(supabase, fields.obe_number);
++        if (cancelled.length > 0 || failed.length > 0) {
++          await supabase.from("owlting_email_parsed_staging").update({
++            review_notes: failed.length === 0
++              ? `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`
++              : `[auto-cancel] 已取消 ${cancelled.length} 筆，失敗 ${failed.length} 筆需人工處理：${failed.map(f => f.order_number ?? f.id).join(", ")}`,
++          }).eq("id", stagingRow.id);
++        }
++        await recordOutcome(supabase, inserted.id, failed.length > 0 ? "apply_failed" : "order_cancelled", {
++          obe_number: fields.obe_number,
++          cancelled_count: cancelled.length,
++          failed_count: failed.length,
++          failed,
++        });
+```
+
+`recordOutcome` 在有失敗時改記 `apply_failed`，信件在 HQ 待處理清單就會浮出來，不會靜靜歸檔。
+
+### 8.3 B7：部分成功時要回 OwlTing 什麼（需要你決定）
+
+先講清楚 OwlTing CM 的重送語意：本函式回 `<Success/>` → 對方視為整批已受理，不重送；回 `<Errors><Error Type="13" Code="450">` → 對方視為整批失敗，會依其重試策略重送**整包** XML（同一包可能含多筆 reservation，含已成功的那幾筆）。目前程式碼在 insert 失敗時就是走 errorResponse 並 `return`（第 865 行），也就是「整批失敗」語意，且已成功的前幾筆不會回滾。
+
+不論選哪案，共同改法（無爭議部分）：Cancel 與 Modify 分支都改成呼叫 RPC、檢查 error、檢查命中筆數（0 筆命中視為失敗），失敗者收進 `failedItems: Array<{uniqueId, reason}>`，並一律寫 `error_logs` + `owlting_cm_logs`（`status='error'` 或新增 `partial`）。差別只在最後回什麼。
+
+| 方案 | 回應 | OwlTing 端影響 | 風險 |
+|---|---|---|---|
+| **A. 全成功回應＋失敗另記（建議）** | 仍回 `<Success/>`，僅含成功的 `HotelReservation` 項；失敗筆寫 error_logs + CM log(`partial`) + 寄告警信給 alert_recipients | 不重送。失敗筆完全靠我們人工補救 | 若沒人看告警，訂單會漏掉；但不會產生重複建單 |
+| **B. 回整批錯誤（errorResponse）** | 有任一筆失敗就回 `Error 450`，訊息列出失敗的 uniqueId | OwlTing 會重送整包。已成功處理的筆數靠既有 `owlting_reservation_id` 去重（Commit/Modify 有查 dup；Cancel 為冪等）不會重複建單 | 重送可能反覆失敗形成迴圈；Modify 會再跑一次覆寫（值相同，影響小） |
+| **C. 逐筆回應（Warnings）** | 回 `<Success/>` + `<Warnings>`，每筆失敗一則 Warning | OTA 規範上 Warning 通常不觸發重送，等同 A，但語意更誠實 | OwlTing 是否解析 `<Warnings>` 未經證實，可能被忽略；需與對方確認 |
+
+**我的建議是 A**，理由：Cancel／Modify 屬冪等操作，最怕的不是漏一次重送，而是回錯誤導致整包反覆重送、把已成功的 Modify 一再覆寫並灌爆 `order_change_log`；失敗量在現行流量下極低，改以「告警 + error_logs + CM log partial」讓人工在數分鐘內介入即可。若你要求「絕不能靠人工」，則選 B。
+
+C 需要先向 OwlTing 確認 Warnings 行為，不建議在本批次採用。
+
+**請你指定 A / B / C，我再把 B7 的最終 diff 補齊。**
+
+### 8.4 測試補充（核准後執行）
+
+除既有 7 組，另補：
+- 逐筆迴圈中「第 2 筆刻意失敗（傳入非白名單欄位）」→ 驗證第 1、3 筆仍成功、failed 清單含第 2 筆、error_logs 產生 1 筆。
+- B2 回傳結構驗證：cancelled.length 與實際 `order_status='cancelled'` 筆數一致。
+- B7 依你選定方案，驗證最終 SOAP 回應字串與 `owlting_cm_logs.status`。
