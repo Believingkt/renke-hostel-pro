@@ -370,14 +370,19 @@ export function buildTimelineItems(input: {
   }));
 
   /* 4. 通知信 */
-  const emailItems: TimelineItem[] = (input.emails || []).map((e) => ({
+  const emailItems: TimelineItem[] = (input.emails || []).map((e) => {
+    // booking_email_log.triggered_by 是 uuid；團購事件的 actor_label 是文字（例如「系統自動」），
+    // 後者一律歸為 system，並把文字直接當作 actorLabel 顯示。
+    const uid = typeof e.triggered_by === "string" && /^[0-9a-f-]{36}$/i.test(e.triggered_by)
+      ? e.triggered_by : null;
+    return {
     id: `m_${e.id}`,
-    kind: "email",
+    kind: "email" as const,
     at: e.created_at,
-    actorType: e.triggered_by ? "user" : "system",
-    actorId: typeof e.triggered_by === "string" && /^[0-9a-f-]{36}$/i.test(e.triggered_by) ? e.triggered_by : null,
+    actorType: (uid ? "user" : "system") as ActorType,
+    actorId: uid,
     actorEmail: null,
-    actorLabel: e.trigger_source || "system",
+    actorLabel: uid ? null : (typeof e.triggered_by === "string" && e.triggered_by) || e.trigger_source || "system",
     badge: {
       text: EMAIL_STATUS_LABEL[e.status] || e.status,
       tone: EMAIL_STATUS_TONE[e.status] || "bg-zinc-100 text-zinc-700",
