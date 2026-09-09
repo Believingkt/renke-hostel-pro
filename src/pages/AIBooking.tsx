@@ -148,7 +148,14 @@ export default function AIBooking() {
     try {
       const nameExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : undefined;
       const ext = nameExt || (fileType === 'application/pdf' ? 'pdf' : fileType.split('/')[1] || 'jpg');
-      const fileName = `${accommodationId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      if (!uid) {
+        toast({ title: "請先登入", description: "登入後才能上傳憑證", variant: "destructive" });
+        setIsUploading(false);
+        return;
+      }
+      const fileName = `${accommodationId}/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('transfer-receipts')
