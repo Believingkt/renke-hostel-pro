@@ -1,96 +1,226 @@
-# V5.5C 批次四（唯讀調查／設計稿，未施工）
+# Step 3 方案 B：訂單歷程統一時間線（唯讀設計，未施工）
 
-對象：`public.update_paid_order_discount_v2`、`public.update_paid_order_addons_v3`
+把「通知與付款紀錄」（通知信、付款狀態變更、押金異動、重送按鈕）與「變更紀錄」（order_change_log + audit_logs order/order_meta）合併成單一卡片「訂單歷程」，上方加類型篩選，重送按鈕原封不動搬到標題列右側。
 
-## 1. 現況（重新查詢，非記憶）
+**本次不寄信、不動任何寫入路徑、不動 DB。純顯示層。**
 
-| 項目 | discount_v2 | addons_v3 |
+---
+
+## 一、四個來源正規化
+
+### 1.1 統一 item 型別
+
+```ts
+type TimelineKind = "change" | "payment" | "deposit" | "email";
+type ActorType = "user" | "system" | "unknown";
+
+interface TimelineItem {
+  id: string;              // 加來源前綴：c_/a_/p_/d_/dc_/m_
+  kind: TimelineKind;
+  at: string;              // ISO，統一用 created_at / changed_at
+  actorType: ActorType;
+  actorId: string | null;
+  actorEmail: string | null;
+  actorLabel: string | null;  // system 時的流程名
+  badge: { text: string; tone: string };
+  summary: string;            // 收合列右側一句話
+  changes: OrderFieldChange[];// 展開時的 before→after
+  extra?: React.ReactNode;    // 錯誤訊息、收件人等
+}
+```
+四個來源各寫一支 mapper 產出 `TimelineItem`，其餘渲染、展開、去重、姓名補齊邏輯共用一份。
+
+### 1.2 payment_status_history → actor 對齊（查證結果）
+
+寫入者只有 trigger `log_payment_status_change()`：
+```
+source := COALESCE(NULLIF(current_setting('app.change_source',true),''),'system')
+changed_by := auth.uid()
+```
+- 全庫 389 筆，`source` **唯一值就是 `'system'`**（沒有任何一筆帶其他值）。所以現在畫面上那個 `({p.source})` 括號 **不是**「這是系統做的」的判斷，只是把欄位原樣印出來，一律印 `(system)`。
+- 真正能分辨真人／系統的是 `changed_by`：389 筆中 **298 筆有值（真人 auth.uid()）**、91 筆為 NULL（service_role／trigger 情境）。
+
+對齊規則（與 order_change_log 的 actor_type 同一標準）：
+
+| payment_status_history | 正規化後 |
+|---|---|
+| `changed_by IS NOT NULL` | `actorType='user'`，`actorId=changed_by`，姓名走 profiles 查表（與變更紀錄同一份 nameMap） |
+| `changed_by IS NULL` | `actorType='system'`，`actorLabel = source`（目前恆為 `system` → 顯示「系統・自動處理」） |
+
+即：**廢掉現行 `(system)` 這個誤導字串**，改成跟變更紀錄一致的「真人姓名 / 系統・xxx」。這是本次唯一一處顯示語意的實質修正，其餘只是搬位置。
+
+### 1.3 audit_logs(entity_type='order_deposit') → actor 對齊
+
+全庫 461 筆，**461 筆 `user_id` 皆非 NULL**（0 筆系統寫入）。現行已用 `profiles.name → user_email → 「系統／排程」` fallback。
+
+正規化：`actorType='user'`、`actorId=user_id`、`actorEmail=user_email`，姓名共用同一份 nameMap（原本這張卡自己查一次 profiles，合併後只查一次）。fallback 順序與變更紀錄卡完全相同 → 顯示行為不變，只是文字來源統一。
+
+`details` 是 `{field:{from,to}}`，轉成 `changes[]`：`{field, label: DEPOSIT_FIELD_LABEL[field] ?? getFieldLabel(field), before, after}`，值格式化沿用 `formatDepositValue`（NT$ 千分位、cash/charged 等中文字典）——**不改用 orderAuditDiff 的 formatChangeValue**，否則押金狀態會退化成英文原字串。
+
+`deposit_charges`（9 筆）：`actorType = performed_by ? 'user' : 'system'`，`actorLabel = trigger_source==='scheduled' ? 'scheduled_charge' : 'manual'`，summary＝`押金扣款/退款 NT$x（自動排程/手動・成功/失敗）`，錯誤訊息放 extra。
+
+### 1.4 booking_email_log / group_buy_payment_events
+
+- `actorType = triggered_by ? 'user' : 'system'`；`actorLabel = trigger_source`（沿用 `TRIGGER_SOURCE_LABEL`）。
+- 團購 mapper（`parseGroupBuyNote`）整段照搬，`triggered_by` 為文字 `actor_label` → 一律 `actorType='system'`、`actorLabel=該文字`（維持現況顯示）。
+- badge 用現有 `EMAIL_STATUS_LABEL/VARIANT`，summary＝`模板名 → 收件人`。
+
+### 1.5 order_change_log / audit_logs(order, order_meta)
+
+**完全沿用 `OrderAuditLogCard` 現有邏輯，一行不改**：txid 收斂、`AUDIT_SUBTYPE_FIELD_HINT` 3 秒去重、`actor_type==='user'` → user_create/update、否則 system_create/system_update、`SYSTEM_LABELS` 對照。只是把輸出包成 `TimelineItem`（`kind='change'`）。
+
+---
+
+## 二、篩選對照表
+
+| 篩選標籤 | 收錄來源 | 對應 action_type / kind |
 |---|---|---|
-| 定義長度 | 291 行 | 726 行 |
-| 安全模式 | **SECURITY INVOKER**（`prosecdef=false`）、`SET search_path=pg_catalog,public` | 同左 |
-| 交易 | 單一 RPC 呼叫＝單一交易，內含 `SELECT … FOR UPDATE`＋樂觀鎖 `updated_at = p_expected_updated_at` | 同左 |
-| audit_logs 寫入 | 第 216–252 行 `INSERT INTO public.audit_logs … RETURNING id INTO v_audit_id` | 第 659–688 行，同結構 |
-| 落地驗證 | 254–266 行：`v_audit_id IS NULL` → 例外；`NOT EXISTS(audit_logs …)` → 例外 | 690–702 行，同樣兩道 |
-| 回傳 | 274–288 行含 `audit_log_id` | 713–723 行含 `audit_log_id` |
+| 全部 | 四類全收 | — |
+| 變更 | `order_change_log`、`audit_logs(entity_type in order, order_meta)` | update / inline_edit / price_edit / paid_discount_edit / paid_addon_edit / cancel / checkin / checkout / undo_* / meta_edit / order_source_change / order_date_change / kol_quota_override / system_update / system_create / user_create / create |
+| 付款 | `payment_status_history` | payment_status_change（單一 kind，無子類型） |
+| 押金 | `audit_logs(entity_type='order_deposit')` ＋ `deposit_charges` | deposit_setting_change / deposit_charge / deposit_refund |
+| 通知信 | `booking_email_log` ＋ 團購 `group_buy_payment_events(email_sent, email_failed)` | email_sent / email_resent / email_failed |
 
-details 結構（實際取樣自現有紀錄）：
-- 兩者共同：`type`、`source`（中文來源字串）、`reason`、`confirmed`、`settlement_handling`、`risk_state`、`risk_acknowledged`、`difference`、`difference_note`、當時 `payment_status/order_status/refund_status`、`changes[]`（field/label/before/after）。
-- 折扣另有：`mode`、`standard_discount_amount`、`applied_discount_amount`、`manual_override`。
-- 加購另有：`amount_format`、`reduce_acknowledged`、`price_change_acknowledged`、`addon_line_changes[]`（每個加購項目的 before_lines／數量／單價／倍數／pricing_mode）、`addon_line_merges[]`、`price_corrections[]`。
+規則：**篩選只在前端 `filter()`，不改任何查詢**；四個 chip 各自顯示筆數（`全部 21 / 變更 16 / 付款 1 / 押金 2 / 通知信 0`）；筆數為 0 的 chip 顯示為 disabled 而不隱藏，避免使用者以為功能不見。預設 `全部`。
 
-## 2. 技術前提
+`audit_logs` 的 `order_deposit` 與 `order/order_meta` 是**兩次獨立 query**（`.eq('entity_type', ...)` vs `.in(...)`），維持現行寫法不合併，避免 RLS 條件被改動。
 
-3. **可以直接在 RPC 內呼叫 `set_order_change_context()`。** 它是 SECURITY DEFINER、用 `set_config(..., is_local=true)`，與後續 UPDATE 同一交易，`zzz_order_change_log`（AFTER INSERT OR UPDATE，執行 `log_order_change()`）在同一交易內讀得到，不需要像批次一那樣外包 `update_order_with_context()`。`authenticated` 對 `set_order_change_context` 有 EXECUTE（ACL 已確認），INVOKER 呼叫不會被權限擋。
-4. 兩支 RPC 是 **INVOKER**；但 `log_order_change()` 與 `resolve_change_actor()` 都是 SECURITY DEFINER，且這兩支 RPC 一開頭就要求 `auth.uid()` 不得為 NULL，所以 actor 會被解析成 `actor_type='user'`＋真實 email＋真人姓名（不會出現批次一那種「系統・email」問題）。
+---
 
-## 3. 移除重複寫入的影響
+## 三、重送按鈕（完整搬移，邏輯零改動）
 
-5. **沒有任何流程依賴 `audit_logs` 的 id 判斷成敗**：全 repo 只有 `src/lib/paidAmountSettlement.ts:50` 宣告了選用型別 `audit_log_id?: string | null`，沒有任何讀取或判斷。對話框成功／失敗只看 RPC 是否 throw 與 `changed`。
-   但 **RPC 內部自己依賴它**：`v_audit_id IS NULL` 與 `NOT EXISTS(audit_logs …)` 兩道自我驗證，移除 INSERT 時必須一併移除，否則永遠拋例外。
-6. **細節會實質流失（這是本批最大風險）。** `log_order_change()` 只對白名單 `c_full` 欄位記 before/after；其餘只記 `{field, changed:true}`，畫面上顯示「（有更動）→（已更新）」。
-   - 折扣：`discount_amount`／`discount_code`／`final_price` 都在 `c_full` → 金額前後值不會流失；但 `mode`、`standard_discount_amount`、`manual_override`、`settlement_handling`、`difference_note`、`risk_state` **只存在 audit_logs**。
-   - 加購：`total_price`／`final_price`／`paid_amount` 在白名單；但 `custom_addon_details` 與 `notes` **不在白名單**，只會記成「（有更動）」。也就是加購方案明細、現場加購金額／備註、`addon_line_changes`、`price_corrections`、`merges` **全部消失**。
-   結論：**折扣可視為「可移除但會少掉判讀脈絡」；加購若直接移除，等於把「修改前後對照」降級成一句「加購有更動」，不建議移除。**
+### 3.1 判斷邏輯（現況＝搬移後，逐字相同）
 
-## 4. 建議方案
+| 條件 | 顯示 |
+|---|---|
+| `canManage === false` | 一顆都不顯示（重新整理 ↻ 仍顯示，不受限） |
+| `canManage && order_source !== 'group_buy'` | 固定三顆：重送訂房確認(`booking_confirmation`)／重送訂金通知(`deposit_received`)／重送尾款通知(`final_payment_received`)。**不隨付款狀態變化** |
+| 團購 ＋ `payment_method` 符合 `/credit|card|tappay/i` | 「補寄旅客通知信：全額付款完成」(`guest`,`full_payment`) ＋「補寄民宿通知信」(`venue`) |
+| 團購 ＋ 其他（匯款） | 「補寄旅客通知信：訂房成立・待匯款」(`guest`,`booking_pending`) ＋「補寄旅客通知信：訂金已收到」(`guest`,`deposit_received`) ＋「補寄民宿通知信」(`venue`) |
 
-- **方案 A（建議）**：兩支都只補 `set_order_change_context()`，`audit_logs` 寫入 **保留**。顯示層維持現況（`OrderAuditLogCard` 的去重只在舊紀錄「沒有可展開內容」時才合併，這兩種紀錄有 `changes[]`，本來就不會被誤併，但會與新 trigger 各顯示一筆）。
-- **方案 B（若仍要移除）**：折扣先移除、加購維持保留；並在移除前把 `settlement_handling`、`difference_note`、`standard_discount_amount`、`manual_override` 寫進 `reason` 字串或擴充 `log_order_change` 白名單，否則細節流失。
-- **方案 C（完整移除）**：需要同時擴充 `log_order_change()` 白名單與 `changed_fields` 結構（把 `custom_addon_details` 拆成語意化明細），屬於改動 trigger 本體，風險高於本批目標。
+`isGroupBuy` / `isCardOrder` 兩個布林的算式、三顆按鈕的 `label`／`description`／`loading` key（`gb_guest_full`、`gb_guest_booking_pending`、`gb_guest_deposit`、`gb_venue`）**原字串搬過去，不重寫**。
 
-## 5. 完整 diff（方案 A，設計稿）
+### 3.2 搬移方式
+整段 `<div className="flex items-center gap-2">…</div>`（現 L304–363，含 ↻ 與所有 `ResendButton`）連同 `ResendButton` 元件（L501–536）、`resend()`、`resendGroupBuy()`、`resendingType` state **原封不動剪貼**到新卡片 CardHeader 右側。`EMAIL_TYPE_LABEL` 等常數一併搬移（`ResendButton` 的 description fallback 依賴它）。
 
-`update_paid_order_discount_v2`：在既有 `set_config` 區塊尾端（現行第 198 行後）插入 4 行，其餘一字不改。
+---
 
+## 四、風險評估
+
+### 4.1 完全不需要動「觸發寄信」的程式碼——原因
+
+1. 按鈕 onClick 呼叫的是 `resend(emailType)` / `resendGroupBuy(target, guestTemplate, key)`，函式本體與簽章**逐字不變**，只是宣告位置從 `OrderNotificationHistory` 換到 `OrderTimelineCard`。
+2. 這兩支函式內部呼叫 `supabase.functions.invoke("admin-resend-booking-email", {body:{orderId, emailType}})` 與 `("group-buy-resend-notification", {body:{orderIds:[orderId], targets:[target], guestTemplate}})`——**body 形狀不變**，兩支 Edge Function 一行不改、不重新部署。
+3. 自動寄信鏈路是 `orders` trigger → `enqueue_order_status_change()` → `order_status_change_events` 佇列 → `notify-order-status-change`，與顯示層零共用程式碼；本次不碰 trigger、不碰佇列、不碰任何 Edge Function。
+4. `booking_email_log`、`payment_status_history`、`audit_logs`、`deposit_charges` 在本次改動中**只有 SELECT**，沒有任何 insert/update。
+
+殘留風險（來自稍早調查的 R1/R3，本設計的緩解）：
+- R1 按鈕消失／寄錯模板 → 用「整段剪貼、不重寫字串」的方式搬移，並在測試計畫做四情境快照比對。
+- R3 團購分支漏帶 → 同上，`isGroupBuy`/`isCardOrder` 條件與 JSX 整塊搬。
+- R2 重送後 `await load()` 沒接好 → 新卡片的 `load()` 是合併版；重送成功後改呼叫同一支 `load()`，測試會驗證列表即時刷新。
+
+### 4.2 舊資料相容性（實查數量）
+
+| 來源 | 全庫筆數 | 格式差異 | 合併後風險 |
+|---|---|---|---|
+| `payment_status_history` | 389（298 真人 / 91 系統） | `source` 恆為 `system`；`paid_amount/final_price` 為 numeric 可能 NULL | 無；NULL 沿用現行 `|| 0` |
+| `audit_logs` order_deposit | 461（user_id 全非 NULL） | `details` 為 `{field:{from,to}}`，`from` 可能 `null` | 無；`formatDepositValue` 已處理 null→「—」 |
+| `deposit_charges` | 9 | — | 無 |
+| `booking_email_log` | 38 ＋ 團購事件 107 | 團購走 note 字串解析 | 無；mapper 照搬 |
+| `audit_logs` order/order_meta | 1881 | 新舊 details 兩種格式 | 無；現行去重與 fallback 照搬 |
+| `order_change_log` | 32 | — | 無 |
+
+不會有任何一筆消失：合併是四個陣列 concat 後依時間排序，沒有任何跨來源的丟棄邏輯；唯一的丟棄是**現行就已存在**的 audit↔change_log 3 秒去重（只作用於 `entity_type='order'` 且無可展開內容者），本次不改其條件。排序統一用 `+new Date(x.at)` 降冪，時間一律 `toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false})`——**現況兩張卡不一致**（變更紀錄用台北時區、通知卡用 `date-fns format` 走瀏覽器本地時區），合併後統一為台北時區，這是刻意的一致化。
+
+---
+
+## 五、元件 diff（設計）
+
+新檔 `src/components/orders/OrderTimelineCard.tsx`；`OrderNotificationHistory.tsx`、`OrderAuditLogCard.tsx` **保留檔案不刪**（先只換掛載點，回退＝改回兩行 JSX）。
+
+`src/pages/OrderDetail.tsx`：
 ```diff
-   PERFORM set_config('app.paid_discount_settlement', v_settle, true);
-+
-+  -- V5.5C 批次四：標記變更來源／原因／操作者，供 zzz_order_change_log trigger 記錄
-+  PERFORM public.set_order_change_context(
-+    'paid_discount_edit',
-+    v_reason,
-+    '已結清折扣修改（' || v_mode || '／' || v_settle || '）',
-+    'user');
-
-   UPDATE public.orders
-      SET discount_amount = v_new_discount,
+-        <OrderNotificationHistory
+-          orderId={order.id}
+-          orderNumber={order.order_number}
+-          canManage={canManage}
+-          orderSource={order.order_source}
+-          paymentMethod={order.payment_method}
+-        />
++        <OrderTimelineCard
++          orderId={order.id}
++          orderNumber={order.order_number}
++          canManage={canManage}
++          orderSource={order.order_source}
++          paymentMethod={order.payment_method}
++          refreshKey={(order as any).updated_at || ""}
++        />
+@@
+-      {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
 ```
 
-`update_paid_order_addons_v3`：在 `app.paid_addon_reduce_ack` 區塊之後（現行第 608 行後）插入 5 行。
-
-```diff
-   IF v_delta < 0 THEN
-     PERFORM set_config('app.paid_addon_reduce_ack', 'on', true);
-   END IF;
-+
-+  -- V5.5C 批次四：標記變更來源／原因／操作者
-+  PERFORM public.set_order_change_context(
-+    'paid_addon_edit',
-+    v_reason,
-+    '已付款加購修改（' || v_settle || '）',
-+    'user');
-
-   UPDATE public.orders
-      SET custom_addon_details = v_addons,
+`OrderTimelineCard.tsx` 結構：
+```tsx
+const load = useCallback(async () => {
+  const [p, e, d, c, auditRes, changeRes] = await Promise.all([
+    /* 1 payment_status_history  — 查詢語句與現行逐字相同，多選 changed_by */
+    /* 2 booking_email_log        — 現行語句 */
+    /* 3 audit_logs order_deposit — 現行語句 */
+    /* 4 deposit_charges          — 現行語句 */
+    /* 5 audit_logs order/order_meta — 現行 OrderAuditLogCard 語句 */
+    /* 6 order_change_log         — 現行 OrderAuditLogCard 語句 */
+  ]);
+  if (isGroupBuy) { /* group_buy_payment_events mapper 照搬 */ }
+  const items = [
+    ...mapChange(changeRes, auditRes),  // 含 txid 收斂＋3 秒去重（照搬）
+    ...mapPayments(p), ...mapDeposits(d), ...mapCharges(c), ...mapEmails(e),
+  ].sort((a,b) => +new Date(b.at) - +new Date(a.at));
+  // 一次補齊所有 actorId 的 profiles.name
+}, [orderId, isGroupBuy, refreshKey]);
 ```
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle><History/> 訂單歷程 {orderNumber && <span>#{orderNumber}</span>}</CardTitle>
+    <div className="flex items-center gap-2">{/* ↻ ＋ 重送按鈕整塊剪貼 */}</div>
+    <div className="flex gap-1.5 flex-wrap">{/* 全部/變更/付款/押金/通知信 chips＋筆數 */}</div>
+  </CardHeader>
+  <CardContent>
+    {/* 單一 <ul>：badge + actor 名 + summary + 台北時間；有 changes 才可展開 */}
+    {/* 預設顯示 15 筆，「顯示全部 N 筆」沿用 */}
+  </CardContent>
+</Card>
+```
+卡片預設**展開**（現行變更紀錄卡預設收合，但通知卡預設展開；合併後以通知卡的行為為準，避免付款／押金紀錄變得更難找）。
 
-若採方案 B，折扣版另刪除第 216–252 行的 INSERT、254–266 行的兩道自我驗證，並把回傳的 `'audit_log_id', v_audit_id` 改為 `NULL`（前端型別為選用，不需同步改）。
+---
 
-## 6. 測試（重要：目前受環境權限限制）
+## 六、測試規劃
 
-沙箱的資料庫身分只有 select/insert，且沒有 `auth` schema 權限，實測遇到：
-- `SET LOCAL ROLE authenticated` → `permission denied to set role`
-- 直接呼叫 → `ERROR: permission denied for table orders`（`SELECT … FOR UPDATE`）
-- 建立 `public` 測試副本 → `permission denied for schema public`（`pg_temp` 副本可建立，但一樣卡在 orders 權限）
+### 6.1 並排對照（真實訂單 YC6U86W2，`1e025ed8-…`）
+實查：付款狀態 1 筆、押金異動 2 筆、押金扣退 0 筆、通知信 0 筆、變更 14 筆、order_change_log 0 筆。
 
-也就是說，這兩支 RPC 的 BEGIN…ROLLBACK 實測 **無法用批次一～三那條路徑完成**。可行做法二選一：
-- (a) 以「刻意在最後 RAISE EXCEPTION 中止」的 migration 執行三組測試：以 postgres 身分建立 patched 版本、跑折扣／加購／檢查 `order_change_log`，最後拋例外讓整個 migration 回滾，資料庫不留任何變更；
-- (b) 先核准施工，再由實際後台操作一筆測試訂單驗證。
+| 合併前 | 合併後（全部） |
+|---|---|
+| 通知信件：`尚無寄送紀錄` | （通知信 chip 顯示 0、disabled） |
+| 付款狀態變更：`已付訂金 → 已付清 (system)`／已付 x/總額 y／09-06 09:42 | `付款狀態 · 吳雲蔚 · 已付訂金→已付清（已付 x/總額 y）· 2026-09-06 17:42`（actor 由 changed_by=43d6838f… 解析為真人姓名，取代 `(system)`） |
+| 押金異動 09-06 09:42：應收/已扣款 0→8000、方式→現場現金、狀態 pending→已扣款、操作者 wuyunwai@gmail.com | `押金設定異動 · 吳雲蔚 · 3 項變更`，展開內容逐字相同 |
+| 押金異動 09-37:15：應收 5000→8000、方式 現場現金→— | `押金設定異動 · 吳雲蔚 · 2 項變更`，同上 |
+| 變更紀錄（收合）14 筆：inline_edit ×10、payment_status_change、meta_edit、create… | 同 14 筆，badge/展開內容不變，與上述 3 筆依時間交錯排序 |
 
-補充查證（已完成，可佐證判斷）：
-- `order_change_log` 目前共 32 筆、全部 `source='unmarked'`，最早 2026-09-09 07:22 UTC；現有的 `paid_discount_edit`／`paid_addon_edit` audit 紀錄（09-07、09-08）都早於 trigger 建立時間，因此目前 **尚無任何一次已結清折扣／加購修改被 trigger 記錄過**，這也是本批要補 context 的直接理由。
+驗收：合併後「全部」筆數 = 1+2+0+0+14 = **17**，與合併前四區塊筆數總和一致，逐筆時間戳、badge 文字、展開內容比對相同（時間由瀏覽器本地改為台北時區顯示）。
+另補 NJ3U85G6（`ff33a2ce-…`：付款 3、變更 7、change_log 2）驗證 change_log 與 audit 的去重在合併後行為不變；CE2V95Y5（`652770d9-…`，團購 ATM、付款 2 筆）驗證團購三顆補寄按鈕組合。
 
-## 7. 待你決定
+### 6.2 重送按鈕功能測試
+1. **快照比對（不寄信）**：四種情境（一般＋canManage、一般＋非 canManage、團購信用卡、團購匯款）分別擷取改動前後的按鈕清單，逐字比對 label 集合與順序。
+2. **簽章驗證（不寄信）**：暫時 stub `supabase.functions.invoke`，點三顆按鈕確認送出的 `functionName` 與 `body` 與改動前完全相同（`{orderId, emailType}` / `{orderIds, targets, guestTemplate}`）。
+3. **真實寄送（擇一、需你點頭）**：在一張測試訂單上實際按「重送訂房確認」，確認收到信、`booking_email_log` 新增一筆 `trigger_source='manual_resend'`、列表自動刷新（驗 R2）。此步驟涉及真的寄出郵件，施工時再單獨確認要不要做、用哪張訂單。
+4. 失敗路徑：對不存在的 orderId 觸發，確認 toast 顯示「重送失敗：…」且不 crash。
 
-1. 採方案 A（只補 context、保留 audit_logs）還是 B／C？
-2. 測試要用 (a) 自我中止的 migration，還是 (b) 施工後實機驗證？
+---
+
+## 七、本次不做
+- 不移除任何 notes 的 🔒／【】文字（A 類延後，維持先前決定）。
+- 不動 `payment_status_history`、`audit_logs`、`booking_email_log`、`deposit_charges` 的任何寫入者、trigger、Edge Function。
+- 不刪除 `OrderNotificationHistory.tsx` / `OrderAuditLogCard.tsx`（保留為回退路徑）。
+- 不做 DB migration。
