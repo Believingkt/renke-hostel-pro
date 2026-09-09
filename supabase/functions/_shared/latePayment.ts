@@ -129,16 +129,28 @@ export async function recordLatePaymentException(
     methodLabel: p.paymentMethodLabel,
   });
   const newNotes = p.currentNotes ? `${p.currentNotes}\n🔒 ${note}` : `🔒 ${note}`;
-  const { error: updErr } = await supabase
+  // 僅在訂單確實為已取消時才寫入（原 .eq("order_status","cancelled") 保護條件）
+  const { data: statusRow } = await supabase
     .from("orders")
-    .update({
-      paid_amount: Number(p.currentPaidAmount || 0) + amount,
-      notes: newNotes,
-      updated_at: new Date().toISOString(),
-    })
+    .select("order_status")
     .eq("id", p.orderId)
-    .eq("order_status", "cancelled");
-  if (updErr) console.error("[latePayment] orders update failed", updErr);
+    .maybeSingle();
+  if (statusRow?.order_status !== "cancelled") {
+    console.warn("[latePayment] order not cancelled, skip orders update", p.orderId);
+  } else {
+    const { error: updErr } = await supabase.rpc("update_order_with_context", {
+      p_order_id: p.orderId,
+      p_patch: {
+        paid_amount: Number(p.currentPaidAmount || 0) + amount,
+        notes: newNotes,
+      },
+      p_source: "late_payment_failsafe",
+      p_reason: `逾期付款保險機制：已取消訂單收到 NT$${amount}`,
+      p_actor_label: "系統",
+      p_actor_type: "system",
+    });
+    if (updErr) console.error("[latePayment] orders update failed", updErr);
+  }
 
   // 3) 管理端高辨識通知（不得使用一般「付款成功」語意）
   try {

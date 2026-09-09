@@ -294,7 +294,16 @@ export async function processTapPayEvent(
   }
 
   if (Object.keys(orderPatch).length > 0) {
-    const { error: updErr } = await supabase.from("orders").update(orderPatch).eq("id", order.id);
+    const { error: updErr } = await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: orderPatch,
+      p_source: "tappay_webhook",
+      p_reason: eventType === "refund"
+        ? (ok ? `TapPay 退款成功（交易 ${recTradeId}）` : `TapPay 退款失敗（${errMsg}）`)
+        : (ok ? `TapPay 扣款成功（交易 ${recTradeId}）` : `TapPay 扣款失敗（${errMsg}）`),
+      p_actor_label: "TapPay",
+      p_actor_type: "system",
+    });
     if (updErr) throw new Error(updErr.message);
   }
 

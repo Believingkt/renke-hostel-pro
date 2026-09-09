@@ -90,9 +90,9 @@ async function chargeOne(supabase: any, orderId: string, triggerSource: string, 
 
   if (result.success) {
     const { data: cur } = await supabase.from("orders").select("notes").eq("id", order.id).single();
-    await supabase
-      .from("orders")
-      .update({
+    await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         payment_status: "paid",
         paid_amount: (order.paid_amount || 0) + amount,
         payment_method: "信用卡（入住當天扣款）",
@@ -101,8 +101,12 @@ async function chargeOne(supabase: any, orderId: string, triggerSource: string, 
         room_charge_rec_trade_id: result.recTradeId ?? null,
         room_charge_error: null,
         notes: `${cur?.notes ? cur.notes + "\n" : ""}🔒 ${stamp} 入住日自動扣款成功 NT$${amount.toLocaleString()}（TapPay 交易 ${result.recTradeId}）`,
-      })
-      .eq("id", order.id);
+      },
+      p_source: "checkin_auto_charge",
+      p_reason: `入住日自動扣款成功 NT$${amount}`,
+      p_actor_label: performedBy ? `入住日扣款（操作者 ${performedBy}）` : "入住日扣款（系統排程）",
+      p_actor_type: "system",
+    });
 
     await supabase.from("deposit_card_tokens").update({ is_active: false }).eq("id", tokenRow.id);
 
@@ -110,14 +114,18 @@ async function chargeOne(supabase: any, orderId: string, triggerSource: string, 
   }
 
   const { data: cur } = await supabase.from("orders").select("notes").eq("id", order.id).single();
-  await supabase
-    .from("orders")
-    .update({
+  await supabase.rpc("update_order_with_context", {
+    p_order_id: order.id,
+    p_patch: {
       room_charge_status: "failed",
       room_charge_error: result.msg || `TapPay error ${result.status}`,
       notes: `${cur?.notes ? cur.notes + "\n" : ""}🔒 ${stamp} 入住日自動扣款失敗：${result.msg || result.status}（請於現場改收款）`,
-    })
-    .eq("id", order.id);
+    },
+    p_source: "checkin_auto_charge",
+    p_reason: `入住日自動扣款失敗：${result.msg || result.status}`,
+    p_actor_label: performedBy ? `入住日扣款（操作者 ${performedBy}）` : "入住日扣款（系統排程）",
+    p_actor_type: "system",
+  });
 
   return { success: false, message: result.msg || "扣款失敗", errorCode: result.status };
 }
