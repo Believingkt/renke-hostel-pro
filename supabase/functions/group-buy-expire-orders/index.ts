@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
         p_actor_type: "system",
       });
       if (uErr) {
+        expired.pop();
         failed.push({ order_number: order.order_number, error: uErr.message });
         continue;
       }
