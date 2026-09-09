@@ -247,9 +247,9 @@ serve(async (req) => {
       }
 
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
+      const { error } = await supabase.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: {
           order_status: "cancelled",
           cancelled_at: new Date().toISOString(),
           cancellation_fee_amount: chargedFee,
@@ -260,8 +260,12 @@ serve(async (req) => {
           notes: appendNote(lines.join("\n")),
           refunded_amount: refunded,
           ...(refundOutcome ? buildRefundPatch(refundOutcome, Number(order.paid_amount || 0)) : {}),
-        })
-        .eq("id", order.id);
+        },
+        p_source: "member_self_cancel",
+        p_reason: body.reason ?? null,
+        p_actor_label: email,
+        p_actor_type: "system",
+      });
 
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
 
@@ -346,14 +350,18 @@ serve(async (req) => {
           quoteSnapshot: { priceQuote, currentGuestCount: order.guest_count },
           requesterNote: body.reason ?? null,
         });
-        await supabase
-          .from("orders")
-          .update({
+        await supabase.rpc("update_order_with_context", {
+          p_order_id: order.id,
+          p_patch: {
             notes: appendNote(
               `🔒 ${stamp} 會員申請將入住人數改為 ${n} 人（${email}），系統無法自動重算金額，已建立客服待辦`,
             ),
-          })
-          .eq("id", order.id);
+          },
+          p_source: "member_request_review",
+          p_reason: body.reason ?? null,
+          p_actor_label: email,
+          p_actor_type: "system",
+        });
         return json(
           {
             success: false,
@@ -382,14 +390,18 @@ serve(async (req) => {
           quoteSnapshot: { priceQuote, currentGuestCount: order.guest_count },
           requesterNote: body.reason ?? null,
         });
-        await supabase
-          .from("orders")
-          .update({
+        await supabase.rpc("update_order_with_context", {
+          p_order_id: order.id,
+          p_patch: {
             notes: appendNote(
               `🔒 ${stamp} 會員申請將入住人數改為 ${n} 人（${email}），訂單已付清且金額有變動，已建立客服待辦`,
             ),
-          })
-          .eq("id", order.id);
+          },
+          p_source: "member_request_review",
+          p_reason: body.reason ?? null,
+          p_actor_label: email,
+          p_actor_type: "system",
+        });
         return json(
           {
             success: false,
@@ -445,7 +457,14 @@ serve(async (req) => {
         if (priceQuote.newPackageId) update.package_id = priceQuote.newPackageId;
       }
 
-      const { error } = await supabase.from("orders").update(update).eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: update,
+        p_source: "member_guest_count_change",
+        p_reason: body.reason ?? null,
+        p_actor_label: email,
+        p_actor_type: "system",
+      });
       if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
 
       return json(
@@ -535,6 +554,9 @@ serve(async (req) => {
       _order_id: order.id,
       _new_check_in: newCheckIn,
       _new_check_out: newCheckOut,
+      _source: "member_self_change_date",
+      _reason: body.reason ?? null,
+      _actor_label: email,
     });
     if (rpcErr) {
       const msg = rpcErr.message || "改期失敗";
@@ -546,14 +568,18 @@ serve(async (req) => {
       );
     }
 
-    await supabase
-      .from("orders")
-      .update({
+    await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         notes: appendNote(
           `🔒 ${stamp} 會員自行改期：${order.check_in_date}~${order.check_out_date} → ${newCheckIn}~${newCheckOut}（${email}）`,
         ),
-      })
-      .eq("id", order.id);
+      },
+      p_source: "member_self_change_date",
+      p_reason: body.reason ?? null,
+      p_actor_label: email,
+      p_actor_type: "system",
+    });
 
     // 改期後重寄訂單確認函，信中標明日期已更改
     try {

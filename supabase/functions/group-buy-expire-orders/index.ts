@@ -38,6 +38,7 @@ Deno.serve(async (req) => {
 
     const campaignCache = new Map<string, any>();
     const expired: string[] = [];
+    const failed: Array<{ order_number: string; error: string }> = [];
     const kept: string[] = [];
 
     for (const order of orders ?? []) {
@@ -65,14 +66,22 @@ Deno.serve(async (req) => {
       expired.push(order.order_number);
       if (dryRun) continue;
 
-      await admin
-        .from("orders")
-        .update({
+      const { error: uErr } = await admin.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: {
           order_status: "cancelled",
           cancelled_at: new Date().toISOString(),
           notes: `${order.notes ?? ""}\n【系統】逾期未匯款自動取消（期限 ${hours} 小時）`.trim(),
-        })
-        .eq("id", order.id);
+        },
+        p_source: "group_buy_expire",
+        p_reason: `逾期未匯款自動取消（${hours}h）`,
+        p_actor_label: "system",
+        p_actor_type: "system",
+      });
+      if (uErr) {
+        failed.push({ order_number: order.order_number, error: uErr.message });
+        continue;
+      }
 
       await admin.from("group_buy_payment_events").insert({
         campaign_id: campaignId,
@@ -106,8 +115,13 @@ Deno.serve(async (req) => {
       if (!mail.ok) console.warn(`[${FN}] email skipped for ${order.order_number}: ${mail.reason}`);
     }
 
-    console.log(`[${FN}] done`, { expired: expired.length, kept: kept.length, dryRun });
-    return json({ ok: true, dryRun, expiredCount: expired.length, expired, keptCount: kept.length });
+    console.log(`[${FN}] done`, { expired: expired.length, failed: failed.length, kept: kept.length, dryRun });
+    return json({
+      ok: true, dryRun,
+      expiredCount: expired.length, expired,
+      failedCount: failed.length, failed,
+      keptCount: kept.length,
+    });
   } catch (e) {
     console.error(`[${FN}] error`, e);
     return json({ error: e instanceof Error ? e.message : "internal_error" }, 500);

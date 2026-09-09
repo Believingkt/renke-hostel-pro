@@ -199,6 +199,9 @@ serve(async (req) => {
       _order_id: order.id,
       _new_check_in: body.newCheckIn,
       _new_check_out: body.newCheckOut,
+      _source: "admin_change_order_dates",
+      _reason: body.reason ?? null,
+      _actor_label: operatorName,
     });
 
     if (rpcErr) {
@@ -278,7 +281,14 @@ serve(async (req) => {
       const stamp = new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei" });
       const line = `🔒 [${stamp}] 改期：${order.check_in_date} → ${body.newCheckIn}｜${order.check_out_date} → ${body.newCheckOut}｜操作：${operatorName}${body.reason ? `｜備註：${body.reason}` : ""}`;
       const newNotes = order.notes ? `${order.notes}\n${line}` : line;
-      await supabase.from("orders").update({ notes: newNotes }).eq("id", order.id);
+      await supabase.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: { notes: newNotes },
+        p_source: "admin_change_order_dates",
+        p_reason: body.reason ?? null,
+        p_actor_label: operatorName,
+        p_actor_type: "system",
+      });
     } catch (e) {
       console.error("[change-order-dates] append notes failed", e);
     }
