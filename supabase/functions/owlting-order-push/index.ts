@@ -7,6 +7,7 @@
 // it to owlting_order_push_log with the password masked — no fetch at all.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import {
   buildResNotifRq,
   resolveRatePlan,
@@ -492,14 +493,23 @@ async function processRow(
       last_error: "dryrun",
     }).eq("id", row.id);
     if (!fromSnapshot) {
-      await admin.from("orders").update({
-        owlting_sync_state: {
-          mode: "dryrun",
-          last_action: row.res_status,
-          last_echo_token: row.echo_token,
-          at: new Date().toISOString(),
-        },
-      }).eq("id", order.id);
+      try {
+        await updateOrderWithContext(admin, order.id, {
+          owlting_sync_state: {
+            mode: "dryrun",
+            last_action: row.res_status,
+            last_echo_token: row.echo_token,
+            at: new Date().toISOString(),
+          },
+        }, {
+          source: "owlting_order_push",
+          reason: `推送 ${row.res_status}（dryrun）回寫`,
+          actorLabel: "OwlTing 推送",
+          actorType: "system",
+        });
+      } catch (e) {
+        console.error("[owlting-order-push] dryrun sync_state write failed:", (e as Error).message);
+      }
     }
 
     return { id: row.id, outcome: "dryrun_logged" };
@@ -541,16 +551,25 @@ async function processRow(
         last_successful_sync_at: new Date().toISOString(),
       }).eq("accommodation_id", row.accommodation_id);
       if (!fromSnapshot) {
-        await admin.from("orders").update({
-          owlting_unique_id: uniqueId,
-          owlting_sync_state: {
-            mode: "live",
-            last_action: row.res_status,
-            last_echo_token: row.echo_token,
-            owlnest_md5: md5,
-            at: new Date().toISOString(),
-          },
-        }).eq("id", order.id);
+        try {
+          await updateOrderWithContext(admin, order.id, {
+            owlting_unique_id: uniqueId,
+            owlting_sync_state: {
+              mode: "live",
+              last_action: row.res_status,
+              last_echo_token: row.echo_token,
+              owlnest_md5: md5,
+              at: new Date().toISOString(),
+            },
+          }, {
+            source: "owlting_order_push",
+            reason: `推送 ${row.res_status} 成功回寫`,
+            actorLabel: "OwlTing 推送",
+            actorType: "system",
+          });
+        } catch (e) {
+          console.error("[owlting-order-push] live sync_state write failed:", (e as Error).message);
+        }
       }
 
       return { id: row.id, outcome: "sent" };

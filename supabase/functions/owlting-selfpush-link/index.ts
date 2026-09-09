@@ -3,6 +3,7 @@
 // POST { staging_id: uuid }
 // Requires authenticated admin OR service-role.
 import { resolveCaller, isAccommodationAdmin, isSuperAdmin, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -197,12 +198,17 @@ Deno.serve(async (req) => {
     // Write the OBE back onto the existing order if slot is free.
     const nowIso = new Date().toISOString();
     if (staging.obe_number && !matchedOrder.owlting_reservation_id) {
-      const { error: updErr } = await admin
-        .from("orders")
-        .update({ owlting_reservation_id: staging.obe_number })
-        .eq("id", matchedOrder.id);
-      if (updErr) {
-        console.error("[owlting-selfpush-link] link OBE failed:", updErr);
+      try {
+        await updateOrderWithContext(admin, matchedOrder.id, {
+          owlting_reservation_id: staging.obe_number,
+        }, {
+          source: "owlting_selfpush_link",
+          reason: `自動連結 OBE ${staging.obe_number}`,
+          actorLabel: "OwlTing 自推比對",
+          actorType: "system",
+        });
+      } catch (e) {
+        console.error("[owlting-selfpush-link] link OBE failed:", (e as Error).message);
         // Fall through: still mark staging linked (matched_order_id captured).
       }
     }
