@@ -414,7 +414,6 @@ Deno.serve(async (req) => {
             ? (isAtm ? 'ATM 虛擬帳號轉帳' : '信用卡(3D驗證)')
             : null,
           notes: newNotes,
-          updated_at: new Date().toISOString(),
         };
 
         // 收到訂金／全額後，待確認訂單自動轉為已確認
@@ -426,10 +425,14 @@ Deno.serve(async (req) => {
           updatePayload.confirmed_at = new Date().toISOString();
         }
 
-        const { error: updateError } = await supabase
-          .from('orders')
-          .update(updatePayload)
-          .eq('id', order.id);
+        const { error: updateError } = await supabase.rpc('update_order_with_context', {
+          p_order_id: order.id,
+          p_patch: updatePayload,
+          p_source: isAtm ? 'tappay_atm_webhook' : 'tappay_3ds_webhook',
+          p_reason: `付款成功 NT$${amount}（rec_trade_id: ${rec_trade_id}）`,
+          p_actor_label: 'TapPay',
+          p_actor_type: 'system',
+        });
 
         if (updateError) {
           console.error('[tappay-notify] Error updating order:', updateError);
