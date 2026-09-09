@@ -47,11 +47,9 @@ const esc = (s: string) =>
 
 const clamp = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-function originOf(acc: AccRow) {
-  const domain = acc.custom_domain?.trim();
-  return domain
-    ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
-    : BASE_URL;
+// canonical 一律指向平台主網域（自訂網域頁面權重歸戶到 booking.lakeze.com）
+function originOf(_acc: AccRow) {
+  return BASE_URL;
 }
 
 async function fetchAccommodations(url: string, key: string): Promise<AccRow[]> {

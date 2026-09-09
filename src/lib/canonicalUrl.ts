@@ -23,14 +23,11 @@ export function buildAccommodationCanonical(info: {
   const id = info.id?.trim();
 
   if (id) {
-    const domain = info.custom_domain?.trim();
-    const origin = domain
-      ? `https://${domain.replace(/^https?:\/\//, "").replace(/\/+$/, "")}`
-      : BOOKING_PORTAL_ORIGIN;
-    // 短網址 /{alias} 現在會直接渲染訂房頁（不再轉址），因此優先作為 canonical。
+    // 決策：canonical 一律統一到平台主網域的短網址，避免自訂網域與 booking
+    // 網域出現同內容兩份 URL（自訂網域頁面仍可正常瀏覽，只是權重歸戶到主網域）。
     const alias = info.short_url_alias?.trim().replace(/^\/+|\/+$/g, "");
-    if (alias && /^[a-z0-9-_]+$/i.test(alias)) return `${origin}/${alias}`;
-    return `${origin}/booking/villa/${id}`;
+    if (alias && /^[a-z0-9-_]+$/i.test(alias)) return `${BOOKING_PORTAL_ORIGIN}/${alias}`;
+    return `${BOOKING_PORTAL_ORIGIN}/booking/villa/${id}`;
   }
 
   // 沒有 id 的舊呼叫端：維持原本行為

@@ -344,6 +344,23 @@ const BookingVillaContent = (props: BookingVillaProps) => {
     if (accId) setCurrentAccommodationId(accId);
   }, [accId, setCurrentAccommodationId]);
 
+  // 舊版 /booking/villa/{uuid} 網址：在不重新載入頁面的前提下，把網址列
+  // 換成 canonical 的短網址 /{alias}（保留 checkIn 等查詢參數，只移除 accId）。
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const alias = (info as any)?.short_url_alias?.trim().replace(/^\/+|\/+$/g, "");
+    if (!alias || !/^[a-z0-9-_]+$/i.test(alias)) return;
+    if (!window.location.pathname.startsWith("/booking/villa/")) return;
+    const sp = new URLSearchParams(window.location.search);
+    sp.delete("accId");
+    const qs = sp.toString();
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `/${alias}${qs ? `?${qs}` : ""}${window.location.hash}`,
+    );
+  }, [(info as any)?.short_url_alias]);
+
   // 載入該民宿的包區方案（非森山民宿透過資料驅動使用同一套階梯卡 UI）
   const { packages, loading: packagesLoading } = useAccommodationPackages(accId || null);
   const { isHolidayDate } = useAccommodationHolidays(accId || null);
