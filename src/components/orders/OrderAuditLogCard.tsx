@@ -28,6 +28,34 @@ const SYSTEM_LABELS: Record<string, string> = {
   unmarked_system: "系統（未標記來源）",
 };
 
+// 舊 audit_logs 沒有 changes 陣列時，用 details.type 推測它對應的欄位，
+// 避免與新機制的紀錄配錯對。沒有列在這裡的 type 一律不合併（保守策略：
+// 寧可多顯示一筆，也不要冒藏起合法紀錄的風險）。
+const AUDIT_SUBTYPE_FIELD_HINT: Record<string, string[]> = {
+  payment_status_change: ["payment_status"],
+  order_status_change: ["order_status"],
+  order_source_change: ["order_source"],
+  order_deal_date_change: ["deal_date", "deal_closed_at"],
+  order_date_change: ["check_in_date", "check_out_date"],
+  price_edit: ["final_price", "total_price", "discount_amount"],
+};
+
+const DEDUP_TIME_WINDOW_MS = 3000;
+
+function auditFieldHints(details: any): string[] | null {
+  const t = details?.type;
+  if (typeof t === "string" && AUDIT_SUBTYPE_FIELD_HINT[t]) return AUDIT_SUBTYPE_FIELD_HINT[t];
+  return null;
+}
+
+function auditHasDisplayableDetail(details: any): boolean {
+  if (!details || typeof details !== "object") return false;
+  if (Array.isArray(details.changes) && details.changes.length > 0) return true;
+  const keys = Object.keys(details).filter((k) => !["type", "order_id", "order_number"].includes(k));
+  return keys.length > 0;
+}
+
+
 interface OrderAuditLogCardProps {
   orderId: string;
   refreshKey?: string | number;
