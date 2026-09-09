@@ -237,10 +237,14 @@ serve(async (req) => {
           : isRisky
             ? "此筆退款被 TapPay 風控暫時拒絕（代碼 10016），訂單未取消。請改用「手動退款」，或聯絡 TapPay 客服了解原因。"
             : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
-        await supabase
-          .from("orders")
-          .update({ refund_status: "failed", refund_rec_trade_id: recTradeIdUsed })
-          .eq("id", order.id);
+        await supabase.rpc("update_order_with_context", {
+          p_order_id: order.id,
+          p_patch: { refund_status: "failed", refund_rec_trade_id: recTradeIdUsed },
+          p_source: "admin_cancel_refund",
+          p_reason: `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}）`,
+          p_actor_label: `取消退款（操作者 ${userEmail}）`,
+          p_actor_type: "system",
+        });
         await flagRefundNeedsManual(supabase, order as any, refundAmount, {
           attempted: true,
           success: false,
@@ -291,7 +295,6 @@ serve(async (req) => {
       order_status: "cancelled",
       cancelled_at: nowIso,
       notes: newNotes,
-      updated_at: nowIso,
     };
     if (body.refundAction === "auto_refund" && refundSucceeded) {
       const newPaid = Math.max(0, paidAmount - refundAmount);
@@ -306,7 +309,21 @@ serve(async (req) => {
       patch.refund_status = "pending_manual";
     }
 
-    const { error: upErr } = await supabase.from("orders").update(patch).eq("id", order.id);
+    const cancelReason =
+      body.refundAction === "auto_refund" && refundSucceeded
+        ? `自動退刷 NT$${refundAmount}`
+        : body.refundAction === "mark_manual_refund"
+          ? `需手動退款 NT$${refundAmount}`
+          : "未退款";
+
+    const { error: upErr } = await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: patch,
+      p_source: "admin_cancel_refund",
+      p_reason: `取消訂單：${cancelReason}`,
+      p_actor_label: `取消退款（操作者 ${userEmail}）`,
+      p_actor_type: "system",
+    });
     if (upErr) {
       console.error("[cancel-order-with-refund] update error", upErr);
       return new Response(

@@ -1,0 +1,2 @@
+REVOKE ALL ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) TO service_role;

@@ -208,15 +208,18 @@ Deno.serve(async (req) => {
       `（本次新增 NT$${delta.toLocaleString()}，rec_trade_id: ${recTradeId}，record_status: ${recordStatus}） [TAPPAY_SYNC_REFUNDED:${refundedAmountTotal}]`;
     const newNotes = order.notes ? `${order.notes}\n${noteLine}` : noteLine;
 
-    const { error: updErr } = await supabase
-      .from("orders")
-      .update({
+    const { error: updErr } = await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         paid_amount: newPaid,
         payment_status: newStatus,
         notes: newNotes,
-        updated_at: stamp,
-      })
-      .eq("id", order.id);
+      },
+      p_source: "tappay_sync_refund",
+      p_reason: `退款累計同步 NT$${refundedAmountTotal}（本次新增 NT$${delta}）`,
+      p_actor_label: "TapPay 同步",
+      p_actor_type: "system",
+    });
     if (updErr) {
       console.error("[tappay-sync-refund] update error:", updErr);
       return new Response(JSON.stringify({ error: "更新訂單失敗" }), {
