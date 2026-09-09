@@ -49,11 +49,13 @@ function auditFieldHints(details: any): string[] | null {
   return null;
 }
 
+// 與下方渲染層的 hasDetail 判斷保持一致：卡片實際「有內容可展開」只看
+// changes 陣列 / reason / old / new。像 old_status、new_status、source 這類
+// 鍵值即使存在，畫面上也不會渲染出來，應視為無內容、可參與去重。
 function auditHasDisplayableDetail(details: any): boolean {
   if (!details || typeof details !== "object") return false;
   if (Array.isArray(details.changes) && details.changes.length > 0) return true;
-  const keys = Object.keys(details).filter((k) => !["type", "order_id", "order_number"].includes(k));
-  return keys.length > 0;
+  return Boolean(details.reason || details.old || details.new);
 }
 
 
