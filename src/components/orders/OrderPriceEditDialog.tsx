@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getOrderDiscountScope } from "@/lib/discountScope";
+import { getOrderDiscountScope, getOrderCodeCoverage } from "@/lib/discountScope";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
