@@ -1,19 +1,9 @@
-# V5.5C 批次二（OwlTing）＋批次三（HotelNabe）
+# Step 3 方案 B：訂單歷程統一時間線（實作＋實測，未部署）
 
-- [x] Migration：alert_recipients 新增 notify_owlting_sync_failure；update_order_with_context 擴充 OTA 白名單（同一 transaction 內 REVOKE FROM PUBLIC/anon/authenticated + GRANT service_role，postcheck 驗證）
-- [x] 共用模組：_shared/orderContext.ts（RPC 呼叫＋白名單過濾）
-- [x] 共用模組：_shared/owltingSyncAlert.ts（error_logs＋告警信）
-- [x] B1 owltingAutoOrder 修改通知改用 RPC
-- [x] B2 cancelAutoPendingOrders 逐筆 RPC，回傳 {cancelled, failed}，失敗記錄＋告警
-- [x] B4/B5 owlting-fillup-submit 補單與寄信旗標
-- [x] B7/B8 owlting-cm Cancel／Modify＋方案 A 回應（partial log＋告警）
-- [x] B10 owlting-email-ingest 清除鎖房標記、取消結果處理
-- [x] B11 owlting-cleanup-stale-pending
-- [x] B12 owlting-order-push（dryrun／live 回寫）
-- [x] B13 owlting-selfpush-link
-- [x] H1 hotelnabe-order-receiver updateById 改用 RPC（白名單過濾，INSERT 路徑不變）
-- [x] 前端 SystemHealthMonitor.tsx 新增「OTA 同步告警」開關
-- [x] 部署 7 支 Edge Functions
-- [x] Publish 前端
+- [x] 新元件 src/components/orders/OrderTimelineCard.tsx（四來源合併＋篩選＋重送按鈕搬移）
+- [x] 以 YC6U86W2 / NJ3U85G6 / CE2V95Y5 真實資料 fixture 跑元件，輸出實際 items 與筆數
+- [x] 四種情境重送按鈕快照實測（一般 canManage / 非 canManage / 團購信用卡 / 團購匯款）
+- [x] stub supabase.functions.invoke，實際捕捉三顆按鈕的 functionName 與 body
+- [ ] 不部署、不 Publish、不改 OrderDetail 掛載點，等使用者確認
 
-備註（不處理）：balance_payment_method 會被既有 trg_sync_order_payment_fields 正規化。
+備註：真實寄送測試暫不進行，測試全綠後再評估是否詢問。
