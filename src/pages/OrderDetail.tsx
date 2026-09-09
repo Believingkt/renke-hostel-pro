@@ -3837,16 +3837,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
 
 
-      {/* 通知與付款紀錄 */}
-      {order && (
-        <OrderNotificationHistory
-          orderId={order.id}
-          orderNumber={order.order_number}
-          orderSource={order.order_source}
-          paymentMethod={order.payment_method}
-          canManage={isAdminUser || canEditOrders}
-        />
-      )}
 
       {/* 客服待辦（人工重新計價／改期審核） */}
       {order && (
@@ -3857,8 +3847,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         />
       )}
 
-      {/* 變更紀錄 */}
-      {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
+      {/* 訂單歷程（變更＋付款＋押金＋通知信，含重送按鈕） */}
+      {order && (
+        <OrderTimelineCard
+          orderId={order.id}
+          orderNumber={order.order_number}
+          orderSource={order.order_source}
+          paymentMethod={order.payment_method}
+          canManage={isAdminUser || canEditOrders}
+        />
+      )}
 
       {order && (
         <PaidAmountEditDialog
