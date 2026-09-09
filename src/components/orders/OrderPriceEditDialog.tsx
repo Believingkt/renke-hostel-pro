@@ -289,13 +289,28 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     setIsValidatingCode(true);
     try {
       const scope = await getOrderDiscountScope(order.id, order.room_types?.id || null);
+      let effTemplateId = scope.templateId;
       if (scope.ambiguous) {
-        toast({
-          title: "無法套用折扣碼",
-          description: scope.reason || "此訂單包含多個房型／房價方案，請改填手動折扣金額。",
-          variant: "destructive",
+        const cov = await getOrderCodeCoverage({
+          orderId: order.id,
+          accommodationId: currentAccommodationId || "",
+          code,
         });
-        return;
+        if (cov.coverage !== "full") {
+          toast({
+            title: "無法套用折扣碼",
+            description:
+              cov.coverage === "none"
+                ? "此折扣碼不適用於本訂單的任何房價方案，請確認是否用錯折扣碼；若仍要調整金額，請改填手動折扣金額（會清空折扣碼並刪除分潤／業績歸屬記錄）。"
+                : cov.coverage === "partial"
+                  ? "此折扣碼只適用於本訂單的部分房價方案，系統無法自動決定折扣分攤方式。請改填手動折扣金額（會清空折扣碼並刪除分潤／業績歸屬記錄）。"
+                  : scope.reason ||
+                    "此訂單包含多個房型，無法自動判斷折扣碼適用範圍。改填手動折扣金額會清空折扣碼並刪除此訂單的分潤／業績歸屬記錄。",
+            variant: "destructive",
+          });
+          return;
+        }
+        effTemplateId = cov.representativeTemplateId;
       }
       const { data, error } = await supabase.rpc('validate_discount_code', {
         p_code: code,
@@ -303,7 +318,7 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         p_order_amount: editTotalPrice,
         p_room_type_id: scope.roomTypeId,
         p_check_in_date: order.check_in_date || null,
-        p_pricing_template_id: scope.templateId,
+        p_pricing_template_id: effTemplateId,
       });
       if (error) throw error;
       const result = (data as any[])?.[0];

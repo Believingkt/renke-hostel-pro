@@ -30,7 +30,7 @@ import { AlertTriangle, Minus, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { calcOrderAddonTotal, extraOnSiteAddonFromNotes, pureRoomFeeOf } from "@/lib/orderAddonTotal";
-import { getOrderDiscountScope } from "@/lib/discountScope";
+import { getOrderDiscountScope, getOrderCodeCoverage } from "@/lib/discountScope";
 import {
   SETTLEMENT_OPTIONS,
   settlementLabel,
@@ -331,10 +331,36 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     setValidation({ status: "validating" });
     setScopeError("");
     const scope = await getOrderDiscountScope(snap.id, snap.room_type_id);
+    let effTemplateId = scope.templateId;
     if (scope.ambiguous) {
-      setScopeError(scope.reason || "此訂單包含多個房型／房價方案，無法使用折扣碼，請改用手動折扣金額。");
-      setValidation({ status: "idle" });
-      return;
+      const cov = await getOrderCodeCoverage({
+        orderId: snap.id,
+        accommodationId: snap.accommodation_id,
+        code: discountCode,
+      });
+      if (cov.coverage === "unknown") {
+        setScopeError(
+          scope.reason ||
+            "此訂單包含多個房型，無法自動判斷折扣碼適用範圍。改填手動折扣金額會清空折扣碼並刪除此訂單的分潤／業績歸屬記錄。",
+        );
+        setValidation({ status: "idle" });
+        return;
+      }
+      if (cov.coverage === "none") {
+        setScopeError(
+          "此折扣碼不適用於本訂單的任何房價方案，請確認是否用錯折扣碼；若仍要調整金額，請改用手動折扣金額（會清空折扣碼並刪除分潤／業績歸屬記錄）。",
+        );
+        setValidation({ status: "idle" });
+        return;
+      }
+      if (cov.coverage === "partial") {
+        setScopeError(
+          "此折扣碼只適用於本訂單的部分房價方案，系統無法自動決定折扣分攤方式。請改用手動折扣金額（會清空折扣碼並刪除分潤／業績歸屬記錄）。",
+        );
+        setValidation({ status: "idle" });
+        return;
+      }
+      effTemplateId = cov.representativeTemplateId;
     }
     const result = await validatePaidDiscountCode(supabase as any, {
       code: discountCode,
@@ -342,7 +368,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       roomFee,
       roomTypeId: scope.roomTypeId,
       checkInDate: snap.check_in_date,
-      pricingTemplateId: scope.templateId,
+      pricingTemplateId: effTemplateId,
     });
     setValidation(result);
     if (result.status === "valid") setAppliedDiscountStr(String(result.standardAmount));
