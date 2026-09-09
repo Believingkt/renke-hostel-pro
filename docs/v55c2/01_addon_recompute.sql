@@ -14,9 +14,8 @@
 --      d. 命中不到 → 0（不採信 payload）
 --      count 先夾在 [0, max_quantity]（trip_product 夾在 [0, stock]，stock 為 NULL 不夾）
 --      重算後同時覆寫該筆的 count / price_per_unit / total，並標記 price_source
---   2) pet_plan_price：前端只讀 addon_settings.addon_type = 'pet'
---      （BookingFlow.tsx:869），全庫目前 0 筆此設定，因此
---      命中 → pet_count * price_per_unit * (per_night ? nights : 1)；命中不到 → 0
+--   2) pet_plan_price：本次不動。維持信任 payload 現況（不歸零、不重算），
+--      因為 line / manual / kol / website 皆仍有現行流程寫入此欄位
 --   3) meal_plan_total：欄位已停用（AddonPlansSection.tsx:518），一律歸 0
 
 CREATE OR REPLACE FUNCTION public.validate_order_before_insert()
