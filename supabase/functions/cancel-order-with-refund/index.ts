@@ -295,7 +295,6 @@ serve(async (req) => {
       order_status: "cancelled",
       cancelled_at: nowIso,
       notes: newNotes,
-      updated_at: nowIso,
     };
     if (body.refundAction === "auto_refund" && refundSucceeded) {
       const newPaid = Math.max(0, paidAmount - refundAmount);
@@ -310,7 +309,21 @@ serve(async (req) => {
       patch.refund_status = "pending_manual";
     }
 
-    const { error: upErr } = await supabase.from("orders").update(patch).eq("id", order.id);
+    const cancelReason =
+      body.refundAction === "auto_refund" && refundSucceeded
+        ? `自動退刷 NT$${refundAmount}`
+        : body.refundAction === "mark_manual_refund"
+          ? `需手動退款 NT$${refundAmount}`
+          : "未退款";
+
+    const { error: upErr } = await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: patch,
+      p_source: "admin_cancel_refund",
+      p_reason: `取消訂單：${cancelReason}`,
+      p_actor_label: `取消退款（操作者 ${userEmail}）`,
+      p_actor_type: "system",
+    });
     if (upErr) {
       console.error("[cancel-order-with-refund] update error", upErr);
       return new Response(
