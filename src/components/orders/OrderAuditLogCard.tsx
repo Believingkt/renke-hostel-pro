@@ -10,6 +10,7 @@ import { settlementLabel } from "@/lib/paidAmountSettlement";
 interface AuditLogRow {
   id: string;
   origin?: "audit" | "change_log";
+  entity_type?: string;
   user_id: string | null;
   user_email: string | null;
   action_type: string;
@@ -27,6 +28,34 @@ const SYSTEM_LABELS: Record<string, string> = {
   room_charge: "自動收款",
   unmarked_system: "系統（未標記來源）",
 };
+
+// 舊 audit_logs 沒有 changes 陣列時，用 details.type 推測它對應的欄位，
+// 避免與新機制的紀錄配錯對。沒有列在這裡的 type 一律不合併（保守策略：
+// 寧可多顯示一筆，也不要冒藏起合法紀錄的風險）。
+const AUDIT_SUBTYPE_FIELD_HINT: Record<string, string[]> = {
+  payment_status_change: ["payment_status"],
+  order_status_change: ["order_status"],
+  order_source_change: ["order_source"],
+  order_deal_date_change: ["deal_date", "deal_closed_at"],
+  order_date_change: ["check_in_date", "check_out_date"],
+  price_edit: ["final_price", "total_price", "discount_amount"],
+};
+
+const DEDUP_TIME_WINDOW_MS = 3000;
+
+function auditFieldHints(details: any): string[] | null {
+  const t = details?.type;
+  if (typeof t === "string" && AUDIT_SUBTYPE_FIELD_HINT[t]) return AUDIT_SUBTYPE_FIELD_HINT[t];
+  return null;
+}
+
+function auditHasDisplayableDetail(details: any): boolean {
+  if (!details || typeof details !== "object") return false;
+  if (Array.isArray(details.changes) && details.changes.length > 0) return true;
+  const keys = Object.keys(details).filter((k) => !["type", "order_id", "order_number"].includes(k));
+  return keys.length > 0;
+}
+
 
 interface OrderAuditLogCardProps {
   orderId: string;
@@ -73,7 +102,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
       const [auditRes, changeRes] = await Promise.all([
         supabase
           .from("audit_logs")
-          .select("id, user_id, user_email, action_type, details, created_at")
+          .select("id, user_id, user_email, action_type, details, created_at, entity_type")
           .in("entity_type", ["order", "order_meta"])
           .eq("entity_id", orderId)
           .order("created_at", { ascending: false }),
@@ -96,6 +125,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
       const auditRows: AuditLogRow[] = ((auditRes.data || []) as any[]).map((r) => ({
         id: `a_${r.id}`,
         origin: "audit" as const,
+        entity_type: r.entity_type,
         user_id: r.user_id,
         user_email: r.user_email,
         action_type: r.action_type,
@@ -150,7 +180,27 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
         };
       });
 
-      const rows = [...auditRows, ...changeRows].sort(
+      // 顯示層去重：舊寫入路徑（audit_logs）與新 trigger（order_change_log）會對同一次
+      // 操作各寫一筆。當舊紀錄「沒有可展開內容」、且與某筆新紀錄是同一操作者、
+      // 時間相差 3 秒內、欄位可對應時，只保留內容完整的新紀錄。
+      // 無法確認欄位對應（hints 為 null）時一律不合併，避免藏起合法紀錄。
+      const dedupedAuditRows = auditRows.filter((a) => {
+        if (a.entity_type !== "order") return true;
+        if (auditHasDisplayableDetail(a.details)) return true;
+        const hints = auditFieldHints(a.details);
+        if (!hints) return true; // 保守：無法確認欄位就不合併
+        const aTime = +new Date(a.created_at);
+        return !changeRows.some((c) => {
+          if (a.user_id && c.user_id && a.user_id !== c.user_id) return false;
+          if (Math.abs(+new Date(c.created_at) - aTime) > DEDUP_TIME_WINDOW_MS) return false;
+          const cFields = (Array.isArray(c.details?.changes) ? c.details.changes : []).map(
+            (x: any) => x?.field,
+          );
+          return hints.some((f) => cFields.includes(f));
+        });
+      });
+
+      const rows = [...dedupedAuditRows, ...changeRows].sort(
         (a, b) => +new Date(b.created_at) - +new Date(a.created_at),
       );
       const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
