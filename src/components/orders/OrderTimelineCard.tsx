@@ -655,7 +655,9 @@ export default function OrderTimelineCard({
               </>
             ))}
           </div>
+          )}
         </div>
+        {cardOpen && (
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTERS.map((f) => (
             <Button
@@ -671,7 +673,9 @@ export default function OrderTimelineCard({
             </Button>
           ))}
         </div>
+        )}
       </CardHeader>
+      {cardOpen && (
       <CardContent>
         {loading ? (
           <div className="text-sm text-muted-foreground py-3 flex items-center gap-2">
