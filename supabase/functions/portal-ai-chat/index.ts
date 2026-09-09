@@ -196,7 +196,8 @@ serve(async (req) => {
       ? context.accommodation_id
       : null;
     const scopeKey = ctxAccId ?? 'global';
-    const scoped = <T extends { or: (f: string) => T; is: (c: string, v: null) => T }>(q: T): T =>
+    // deno-lint-ignore no-explicit-any
+    const scoped = (q: any): any =>
       ctxAccId ? q.or(`accommodation_id.is.null,accommodation_id.eq.${ctxAccId}`) : q.is('accommodation_id', null);
 
     const accommodationsPromise = cached('accommodations', () => supabase
