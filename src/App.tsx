@@ -785,10 +785,14 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
                       } />
                       <Route path="/hq/knowledge/index" element={
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/knowledge/search" element={
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/traveler-attributes" element={
                         <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
