@@ -12,6 +12,7 @@ import { hapticSelection } from "@/lib/native/haptics";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
 import { SEOHead } from "@/components/SEOHead";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
