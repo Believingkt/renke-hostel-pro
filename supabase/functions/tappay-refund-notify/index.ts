@@ -203,15 +203,18 @@ Deno.serve(async (req) => {
         ? `${order.notes}\n${refundNote}`
         : refundNote;
 
-      const { error: updateError } = await supabase
-        .from('orders')
-        .update({
+      const { error: updateError } = await supabase.rpc('update_order_with_context', {
+        p_order_id: order.id,
+        p_patch: {
           payment_status: newPaymentStatus,
           paid_amount: newPaidAmount,
           notes: newNotes,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', order.id);
+        },
+        p_source: 'tappay_refund_webhook',
+        p_reason: `退款成功 NT$${refundAmount}（rec_trade_id: ${rec_trade_id}）`,
+        p_actor_label: 'TapPay',
+        p_actor_type: 'system',
+      });
 
       if (updateError) {
         console.error('[tappay-refund-notify] Error updating order:', updateError);
