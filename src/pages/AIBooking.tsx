@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsNativeApp } from "@/hooks/use-is-native-app";
+import { isNativeApp } from "@/lib/appMode";
 import { SEOHead } from "@/components/SEOHead";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -69,7 +70,8 @@ export default function AIBooking() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId } = useSubdomain();
   const isMobile = useIsMobile();
-  const isNative = useIsNativeApp();
+  // 每次 render 直接判斷，避免 Capacitor bridge 尚未就緒時被 memo 成 false 而誤顯示附件按鈕
+  const isNative = useIsNativeApp() || isNativeApp();
 
   // 使用共用主題常數
   const themeClass = getThemeClassByAccommodation(accommodationId);
