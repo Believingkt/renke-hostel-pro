@@ -231,3 +231,43 @@ C 需要先向 OwlTing 確認 Warnings 行為，不建議在本批次採用。
 - 逐筆迴圈中「第 2 筆刻意失敗（傳入非白名單欄位）」→ 驗證第 1、3 筆仍成功、failed 清單含第 2 筆、error_logs 產生 1 筆。
 - B2 回傳結構驗證：cancelled.length 與實際 `order_status='cancelled'` 筆數一致。
 - B7 依你選定方案，驗證最終 SOAP 回應字串與 `owlting_cm_logs.status`。
+
+## 九、B7 定案（方案 A）＋ 告警管道設計 ＋ 補充測試實測結果
+
+### 9.1 B7 定案
+
+採 **方案 A**：即使有部分筆失敗，仍回 `<Success/>`（只列成功的 `HotelReservation`），OwlTing 不重送；失敗筆改由三個管道留痕：`error_logs`、`owlting_cm_logs.status='partial'`、告警信。
+
+### 9.2 告警管道：需要新增類別 `notify_owlting_sync_failure`
+
+**不沿用 `notify_order_rooms_failure`。** 理由：
+- `notify_order_rooms_failure` 的語意是「訂單房型明細（order_rooms）重建失敗」，收件人是要去核對房號／房型明細的人。
+- 本次是「OTA 同步（OwlTing 取消／CM Modify／Cancel）部分失敗」，要處理的是「這筆 OTA 訂單在 PMS 沒有被正確取消／更新」，處理動作、急迫性、負責人都不同；混在同一個開關會讓兩者無法分別訂閱。
+
+新增類別的完整配套（含 UI，避免今天「只加 DB 欄位、畫面上勾不到」的坑）：
+
+1. **Migration**：`ALTER TABLE public.alert_recipients ADD COLUMN notify_owlting_sync_failure boolean NOT NULL DEFAULT true;`（比照 `notify_order_rooms_failure`，precheck 驗欄位指紋、postcheck 驗欄位數／型別／無 NULL）。
+2. **UI**：`src/components/headquarters/SystemHealthMonitor.tsx`
+   - `AlertRecipient` 型別加 `notify_owlting_sync_failure: boolean`（第 34-37 行區塊）
+   - 新增收件人 `insert({...})` 加 `notify_owlting_sync_failure: true`（第 112-115 行區塊）
+   - 表頭加一欄「OTA 同步告警」、表格加一顆 `Switch`（比照第 290-291 行寫法，`handleToggle` 為泛用欄位更新，不需改邏輯）
+   - `CardDescription` 文案補上「OTA 同步失敗」
+3. **告警信**：新增 `supabase/functions/_shared/owltingSyncAlert.ts`，完全比照 `_shared/orderRoomsAlert.ts`（同一支 Resend、同一張 `alert_recipients`），收件條件 `is_active = true AND notify_owlting_sync_failure = true`；內容含 OBE／UniqueID、失敗訂單編號清單、錯誤訊息、CM log id。
+4. **既有收件人**：目前 `alert_recipients` 只有 1 筆有效收件人（`sakithebest@gmail.com`，四個開關皆為 true）。因為新欄位 `DEFAULT true`，這位收件人會自動訂閱新類別，**不需要另外詢問**；若日後不想收，畫面上可自行關掉。這件事已納入設計考量，不需你現在處理。
+
+### 9.3 §8.4 補充測試實測結果（正式資料庫，BEGIN…ROLLBACK）
+
+交易內建立暫時函式 `pg_temp.__t_uowc`（＝擴充白名單後的 RPC），對三筆正式訂單 `KV6Y62N2`／`XJ7V52Q9`／`VP8A27F9` 跑逐筆取消迴圈，**第 2 筆刻意注入非白名單欄位 `accommodation_id` 製造失敗**：
+
+| # | 測試 | 實際輸出 |
+|---|---|---|
+| T-A | 迴圈不中斷 | `ok=KV6Y62N2,XJ7V52Q9 / failed=VP8A27F9(欄位不在白名單內 (accommodation_id))` |
+| T-B | B2 回傳結構一致 | `returned_cancelled=2 actual_cancelled=2 failed_still_active=1` |
+| T-C | order_change_log 只為成功筆產生 | `rows=2 sources=owlting_email_cancel actors=OwlTing 取消通知 taipei=2026-09-10 01:20` |
+| T-D | B7 方案 A 的 SOAP 回應 | `<Success/><HotelReservations>` 僅含 KV6Y62N2、XJ7V52Q9 兩筆 `HotelReservation`，失敗筆不出現 |
+| T-E | `owlting_cm_logs` | `status=partial err=partial_failed=VP8A27F9: 欄位不在白名單內 (accommodation_id)`（該表 status 無 CHECK 約束，`partial` 可直接寫入） |
+| T-F | `error_logs` | `rows=1 ctx={"failed": [{"error": "欄位不在白名單內 (accommodation_id)", "order_number": "VP8A27F9"}]}` |
+
+**回滾後查證**：`XJ7V52Q9=confirmed, VP8A27F9=confirmed, KV6Y62N2=confirmed`；`order_change_log(owlting_email_cancel)` 0 筆、`owlting_cm_logs(echo-test)` 0 筆、`error_logs(owlting_cm_partial)` 0 筆、`__t_uowc` 殘留 0 支。正式資料 0 異動。
+
+重點結論：失敗筆**不會被誤標成功**（T-B 明確顯示它仍是未取消狀態且進入 failed 清單），這正是今天要修掉的「錯誤被吞、假裝成功」問題。
