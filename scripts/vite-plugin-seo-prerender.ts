@@ -113,6 +113,15 @@ function buildHead(acc: AccRow) {
     `<meta name="twitter:title" content="${esc(ogTitle)}" />`,
     `<meta name="twitter:description" content="${esc(ogDescription)}" />`,
     `<meta name="twitter:image" content="${esc(image)}" />`,
+    // JSON-LD：讓爬蟲在原始 HTML 就讀得到住宿結構化資料
+    `<script type="application/ld+json">${JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "LodgingBusiness",
+      name: name || title,
+      description,
+      url: canonical,
+      image,
+    }).replace(/</g, "\\u003c")}</script>`,
   ]
     .filter(Boolean)
     .join("\n    ");
