@@ -320,7 +320,8 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const reasonOk = reason.trim().length >= 2;
   const settlementOk = settlement !== "";
-  const codeReady = mode !== "discount" || !usesCode || validation.status === "valid";
+  const codeReady =
+    mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
   const canProceed = !!snap && reasonOk && settlementOk && !isNoop && codeReady;
   const canConfirm =
     canProceed &&
