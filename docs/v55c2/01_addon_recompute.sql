@@ -54,8 +54,7 @@ DECLARE
   v_stay_nights INT := 1;
   v_custom_addons INT := 0;
   v_new_details JSONB;
-  v_pet_unit NUMERIC;
-  v_pet_mode TEXT;
+  -- （v5.5C.2 修訂：pet 不重算，故不再需要 v_pet_unit / v_pet_mode）
 BEGIN
   IF current_setting('app.bypass_inventory_check', true) = 'on' THEN
     NEW.order_status := COALESCE(NEW.order_status, 'pending');
