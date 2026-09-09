@@ -1373,7 +1373,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           if (Number(extraAddonBefore) !== Number(editForm.extra_addon_amount || 0)) {
             changes.push({ field: "extra_addon_amount", label: "額外現場加購金額", before: extraAddonBefore, after: editForm.extra_addon_amount || 0 });
           }
-          if (changes.length > 0) {
+          // trigger 已涵蓋 orders 欄位；此處只補記 order_rooms／包區設定／
+          // 額外加購等不在 orders 資料表的內容（V5.5C.2）
+          const NON_ORDER_FIELDS = ["rooms", "exclusive_configs", "addon_note", "extra_addon_amount", "notes"];
+          const residual = changes.filter((c: any) => NON_ORDER_FIELDS.includes(c.field));
+          if (residual.length > 0) {
             const { error: auditError } = await supabase.from("audit_logs").insert([{
               user_id: user.id,
               user_email: user.email,
@@ -1383,7 +1387,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               entity_id: order.id,
               entity_name: order.order_number,
               accommodation_id: order.accommodation_id,
-              details: { type: "inline_edit", changes } as any,
+              details: { type: "inline_edit", changes: residual } as any,
             }]);
             if (auditError) throw auditError;
           }
@@ -1441,23 +1445,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
         .eq("id", order.id);
       if (error) throw error;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: auditError } = await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: "cancel", changes: [{ field: "order_status", label: "訂單狀態", before: order.order_status, after: "cancelled" }] } as any,
-          }]);
-          if (auditError) throw auditError;
-        }
-      } catch (e) { console.error("Audit log error:", e); }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
       goBack();
     } catch (error) {
@@ -1481,23 +1469,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       if (action === "undo_checkout") patch.checked_out_at = null;
       const { error } = await supabase.from("orders").update(patch as any).eq("id", order.id);
       if (error) throw error;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: auditError } = await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: action, changes: Object.keys(patch).map(k => ({ field: k, label: k, before: (order as any)[k] ?? null, after: patch[k] })) } as any,
-          }]);
-          if (auditError) throw auditError;
-        }
-      } catch (e) { console.error("Audit log error:", e); }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
       toast({
         title:
           action === "checkin" ? "已辦理入住"
@@ -1531,20 +1503,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     }
     setIsSavingPrice(true);
     try {
-      const oldValues = {
-        total_price: order.total_price,
-        discount_amount: order.discount_amount,
-        final_price: order.final_price,
-        deposit_amount: order.deposit_amount,
-        paid_amount: order.paid_amount,
-      };
-      const newValues = {
-        total_price: editTotalPrice,
-        discount_amount: editDiscountAmount,
-        final_price: editFinalPrice,
-        deposit_amount: editDepositAmount,
-        paid_amount: editPaidAmount,
-      };
 
       let newPaymentStatus = order.payment_status;
       if (editPaidAmount <= 0) {
@@ -1602,25 +1560,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         .eq("id", order.id);
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: auditError } = await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues, changes: Object.keys(newValues).filter(k => (oldValues as any)[k] !== (newValues as any)[k]).map(k => ({ field: k, label: k, before: (oldValues as any)[k], after: (newValues as any)[k] })) } as any,
-          }]);
-          if (auditError) throw auditError;
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 trigger 統一寫入；修改原因已寫入 notes 的稽核行（V5.5C.2）
 
       toast({ title: "金額修改成功", description: "訂單金額已更新" });
       setShowPriceEditDialog(false);

@@ -377,20 +377,6 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     setIsSaving(true);
     try {
-      const oldValues = {
-        total_price: order.total_price,
-        discount_amount: order.discount_amount,
-        final_price: order.final_price,
-        deposit_amount: order.deposit_amount,
-        paid_amount: order.paid_amount,
-      };
-      const newValues = {
-        total_price: safeTotalPrice,
-        discount_amount: safeDiscountAmount,
-        final_price: safeFinalPrice,
-        deposit_amount: safeDepositAmount,
-        paid_amount: editPaidAmount,
-      };
 
       // Build custom_addon_details（含原樣保留的非設定項目）
       const newCustomAddonDetails: AddonDetail[] = buildNewAddonDetails();
@@ -452,7 +438,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
         if (Number(safeFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${safeFinalPrice}`);
         const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
-        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}`;
+        // 已結清折扣修改：來源標記改寫入 notes 稽核行（V5.5C.2；舊 audit_logs 寫入已停用）
+        const sourceStr = paidDiscountEdited ? `｜paid_discount_edit（${PAID_DISCOUNT_SOURCE}）` : "";
+        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}${sourceStr}`;
         nextNotes = nextNotes ? `${nextNotes}\n${auditLine}` : auditLine;
       } else if (editReason.trim()) {
         // Non-locked path: keep original behaviour for plain reason note
@@ -478,31 +466,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         .eq("id", order.id);
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const details = paidDiscountEdited
-            ? {
-                type: "paid_discount_edit",
-                source: PAID_DISCOUNT_SOURCE,
-                reason: editReason.trim(),
-                changes: paidDiscountChanges,
-              }
-            : { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues };
-          await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            details: details as any,
-          }]);
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入；原因已寫入 notes（V5.5C.2）
+
+
 
       toast({ title: "金額修改成功", description: "訂單金額已更新" });
 
