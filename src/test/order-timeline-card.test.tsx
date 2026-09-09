@@ -73,6 +73,9 @@ async function renderOrder(orderNumber: string, override: any = {}) {
       {...override}
     />,
   );
+  // 卡片預設收合：先展開再驗證內容
+  const header = screen.getByRole("button", { expanded: false });
+  fireEvent.click(header);
   await waitFor(() => expect(screen.queryByText("載入中…")).toBeNull());
 }
 
