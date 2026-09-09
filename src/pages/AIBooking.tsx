@@ -12,6 +12,7 @@ import { hapticSelection } from "@/lib/native/haptics";
 import { useToast } from "@/hooks/use-toast";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsNativeApp } from "@/hooks/use-is-native-app";
 import { SEOHead } from "@/components/SEOHead";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
@@ -68,6 +69,7 @@ export default function AIBooking() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { accommodationId } = useSubdomain();
   const isMobile = useIsMobile();
+  const isNative = useIsNativeApp();
 
   // 使用共用主題常數
   const themeClass = getThemeClassByAccommodation(accommodationId);
@@ -146,7 +148,14 @@ export default function AIBooking() {
     try {
       const nameExt = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() : undefined;
       const ext = nameExt || (fileType === 'application/pdf' ? 'pdf' : fileType.split('/')[1] || 'jpg');
-      const fileName = `${accommodationId}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData?.user?.id;
+      if (!uid) {
+        toast({ title: "請先登入", description: "登入後才能上傳憑證", variant: "destructive" });
+        setIsUploading(false);
+        return;
+      }
+      const fileName = `${accommodationId}/${uid}/${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from('transfer-receipts')
@@ -1892,27 +1901,31 @@ export default function AIBooking() {
                 )}
               </Button>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button
-                onClick={() => openAttachmentPicker(fileInputRef)}
-                disabled={isLoading || isUploading}
-                size="icon"
-                variant="outline"
-                className="h-12 w-12 transition-all duration-200"
-                title="上傳憑證"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Paperclip className="h-5 w-5" />
-                )}
-              </Button>
+              {!isNative && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    onClick={() => openAttachmentPicker(fileInputRef)}
+                    disabled={isLoading || isUploading}
+                    size="icon"
+                    variant="outline"
+                    className="h-12 w-12 transition-all duration-200"
+                    title="上傳憑證"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-5 w-5" />
+                    )}
+                  </Button>
+                </>
+              )}
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1946,26 +1959,30 @@ export default function AIBooking() {
         {/* 輸入框 */}
         <div className="px-3 pt-2 pb-1">
           <div className="flex gap-2">
-            <input
-              ref={fileInputMobileRef}
-              type="file"
-              accept="image/*,.pdf"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <Button
-              onClick={() => openAttachmentPicker(fileInputMobileRef)}
-              disabled={isLoading || isUploading}
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full shrink-0"
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Paperclip className="h-4 w-4" />
-              )}
-            </Button>
+            {!isNative && (
+              <>
+                <input
+                  ref={fileInputMobileRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  onClick={() => openAttachmentPicker(fileInputMobileRef)}
+                  disabled={isLoading || isUploading}
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10 rounded-full shrink-0"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
             <Button
               onClick={toggleRecording}
               disabled={isLoading || isTranscribing}
