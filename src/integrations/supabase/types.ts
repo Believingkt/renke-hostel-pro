@@ -7767,6 +7767,7 @@ export type Database = {
           atm_rec_trade_id: string | null
           atm_vacc_bank_code: string | null
           atm_vacc_no: string | null
+          attribution_session_id: string | null
           auto_created_from_email_id: string | null
           balance_payment_method: string | null
           booking_deposit_amount: number | null
@@ -7867,6 +7868,7 @@ export type Database = {
           atm_rec_trade_id?: string | null
           atm_vacc_bank_code?: string | null
           atm_vacc_no?: string | null
+          attribution_session_id?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
           booking_deposit_amount?: number | null
@@ -7967,6 +7969,7 @@ export type Database = {
           atm_rec_trade_id?: string | null
           atm_vacc_bank_code?: string | null
           atm_vacc_no?: string | null
+          attribution_session_id?: string | null
           auto_created_from_email_id?: string | null
           balance_payment_method?: string | null
           booking_deposit_amount?: number | null
