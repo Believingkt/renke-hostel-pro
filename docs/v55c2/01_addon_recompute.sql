@@ -14,9 +14,8 @@
 --      d. 命中不到 → 0（不採信 payload）
 --      count 先夾在 [0, max_quantity]（trip_product 夾在 [0, stock]，stock 為 NULL 不夾）
 --      重算後同時覆寫該筆的 count / price_per_unit / total，並標記 price_source
---   2) pet_plan_price：前端只讀 addon_settings.addon_type = 'pet'
---      （BookingFlow.tsx:869），全庫目前 0 筆此設定，因此
---      命中 → pet_count * price_per_unit * (per_night ? nights : 1)；命中不到 → 0
+--   2) pet_plan_price：本次不動。維持信任 payload 現況（不歸零、不重算），
+--      因為 line / manual / kol / website 皆仍有現行流程寫入此欄位
 --   3) meal_plan_total：欄位已停用（AddonPlansSection.tsx:518），一律歸 0
 
 CREATE OR REPLACE FUNCTION public.validate_order_before_insert()
@@ -55,8 +54,7 @@ DECLARE
   v_stay_nights INT := 1;
   v_custom_addons INT := 0;
   v_new_details JSONB;
-  v_pet_unit NUMERIC;
-  v_pet_mode TEXT;
+  -- （v5.5C.2 修訂：pet 不重算，故不再需要 v_pet_unit / v_pet_mode）
 BEGIN
   IF current_setting('app.bypass_inventory_check', true) = 'on' THEN
     NEW.order_status := COALESCE(NEW.order_status, 'pending');
@@ -107,26 +105,7 @@ BEGIN
   -- (3) meal_plan_total 已停用
   NEW.meal_plan_total := 0;
 
-  -- (2) pet_plan_price：只認 addon_settings.addon_type = 'pet'
-  IF COALESCE(NEW.pet_plan_price, 0) <> 0 THEN
-    SELECT a.price_per_unit, a.pricing_mode
-      INTO v_pet_unit, v_pet_mode
-    FROM public.addon_settings a
-    WHERE a.accommodation_id = NEW.accommodation_id
-      AND a.addon_type = 'pet'
-      AND a.enabled = TRUE
-    LIMIT 1;
-
-    IF v_pet_unit IS NULL THEN
-      NEW.pet_plan_price := 0;
-    ELSE
-      NEW.pet_plan_price := (
-        v_pet_unit
-        * GREATEST(0, COALESCE(NEW.pet_count, 0))
-        * CASE WHEN v_pet_mode = 'per_night' THEN v_stay_nights ELSE 1 END
-      )::INT;
-    END IF;
-  END IF;
+  -- (2) pet_plan_price：本次不動，維持 payload 原值
 
   -- (1) custom_addon_details 逐筆回查
   IF NEW.custom_addon_details IS NOT NULL
