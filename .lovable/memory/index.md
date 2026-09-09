@@ -25,3 +25,4 @@
 - [order_meta INSERT Scope](mem://security/order-meta-insert-scope.md) — order_meta 首次建立授權契約：privileged 全域；team roles 需 order→館別存取；禁用 payload 欄位當授權依據。
 - [AI Config Write Scope](mem://security/ai-config-write-super-admin-only.md) — AI 六張表寫入僅 super_admin；館別／staff 政策已移除，不可重建；portal-ai-chat 讀取只取全域列。
 - [施工前必須等待明確核准](mem://preferences/approval-before-execution.md) — 使用者說「不用施工／我看過再核准」時，設計再完整也不可自行執行或上線。
+- [SECURITY DEFINER 建立即收權](mem://security/security-definer-revoke-same-migration.md) — 新函式 CREATE 與 REVOKE PUBLIC 必須同一 migration/交易；postcheck 必驗 anon/authenticated/PUBLIC 無執行權。
