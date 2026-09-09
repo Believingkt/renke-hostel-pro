@@ -334,6 +334,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const handleValidateCode = async () => {
     if (!snap?.accommodation_id) return;
+    if (keepExistingCode) return; // 沿用訂單原折扣碼，不重新驗證
     setValidation({ status: "validating" });
     setScopeError("");
     const scope = await getOrderDiscountScope(snap.id, snap.room_type_id);
