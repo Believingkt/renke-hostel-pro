@@ -259,6 +259,12 @@ Deno.serve(async (req) => {
     if (authCode) orderNotes += ` [授權碼: ${authCode}]`;
     if (body.guestInfo.notes) orderNotes += ` ${body.guestInfo.notes}`;
 
+    // V5.5B.5：member_id 必須屬於呼叫者本人（service_role 補單除外）
+    const safeMemberId = await resolveMemberId(req, supabase, body.memberId ?? null);
+    if (safeMemberId !== (body.memberId ?? null)) {
+      console.warn("[create-paid-order] memberId overridden", { requested: body.memberId ?? null, applied: safeMemberId });
+    }
+
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert([{
@@ -266,7 +272,7 @@ Deno.serve(async (req) => {
         room_type_id: body.selectedRoom.id,
         package_id: body.packageId || null,
         customer_id: body.customerId || null,
-        member_id: body.memberId || null,
+        member_id: safeMemberId,
         order_number: "",
         idempotency_key: body.idempotencyKey,
         guest_name: body.guestInfo.name,
