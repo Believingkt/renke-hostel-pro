@@ -470,14 +470,25 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
     setSavingDiscounts(true);
     try {
       const results = await Promise.all(
-        entries.map(([orderNumber, code]) =>
-          supabase
+        entries.map(async ([orderNumber, code]) => {
+          const { data: row, error: findErr } = await supabase
             .from("orders")
-            .update({ discount_code: code })
+            .select("id")
             .eq("accommodation_id", RYAN_ACCOMMODATION_ID)
             .eq("order_number", orderNumber)
-            .then((r) => ({ orderNumber, code, error: r.error })),
-        ),
+            .maybeSingle();
+          if (findErr) return { orderNumber, code, error: findErr };
+          if (!row?.id) {
+            return { orderNumber, code, error: { message: "找不到對應訂單" } as { message: string } };
+          }
+          const { error } = await supabase.rpc("update_order_fields_v1", {
+            p_order_id: row.id,
+            p_patch: { discount_code: code },
+            p_source: "import_discount_code",
+            p_reason: null,
+          });
+          return { orderNumber, code, error };
+        }),
       );
       const ok: Record<string, string> = {};
       const failed: string[] = [];
