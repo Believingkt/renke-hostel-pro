@@ -78,10 +78,12 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
         updateData.cancelled_at = new Date().toISOString();
       }
 
-      const { error } = await supabase
-        .from("orders")
-        .update(updateData)
-        .eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: updateData,
+        p_source: "admin_order_status_dialog",
+        p_reason: reason.trim() || null,
+      });
 
       if (error) throw error;
 
