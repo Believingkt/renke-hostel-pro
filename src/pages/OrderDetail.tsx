@@ -37,6 +37,7 @@ import { savedAddonTotalOf, pureRoomFeeOf } from "@/lib/orderAddonTotal";
 import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@/utils/templatePriceResolver";
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
+import { resolveTemplateId } from "@/lib/resolveTemplateId";
 import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { useToast } from "@/hooks/use-toast";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
@@ -163,6 +164,7 @@ interface OrderRoom {
   room_type_id: string;
   quantity: number;
   room_price: number;
+  template_id: string | null;
   template_name: string | null;
   room_unit_id?: string | null;
   room_types?: { name: string } | null;
@@ -175,6 +177,7 @@ interface EditOrderRoom {
   quantity: number;
   room_price: number;
   unit_price: number;
+  template_id: string | null;
   template_name: string | null;
   room_unit_id?: string | null;
 }
@@ -773,6 +776,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           quantity: or.quantity,
           room_price: correctedRoomPrice,
           unit_price: unitPrice,
+          template_id: or.template_id ?? null,
           template_name: or.template_name,
           room_unit_id: or.room_unit_id ?? null,
         };
@@ -793,6 +797,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           quantity: 1,
           room_price: syntheticPrice,
           unit_price: syntheticPrice,
+          template_id: null,
           template_name: null,
           room_unit_id: null,
         }]);
@@ -932,6 +937,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         quantity: or.quantity,
         room_price: correctedRoomPrice,
         unit_price: unitPrice,
+        template_id: or.template_id ?? null,
         template_name: or.template_name,
         room_unit_id: or.room_unit_id ?? null,
       };
@@ -954,6 +960,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       quantity: 1,
       room_price: syntheticPrice,
       unit_price: syntheticPrice,
+      template_id: null,
       template_name: null,
       room_unit_id: null,
     }]);
@@ -1309,6 +1316,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           room_type_id: r.room_type_id,
           quantity: r.quantity,
           room_price: r.room_price,
+          // template_id 是折扣碼適用範圍的唯一依據；沒帶就會被 RPC 寫成 NULL
+          template_id: resolveTemplateId(allTemplates as any, r.room_type_id, r.template_name, r.template_id),
           template_name: r.template_name,
           room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || autoAssignMap.get(r.id) || null),
         }));
@@ -1627,7 +1636,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         ] = await Promise.all([
           supabase
             .from("order_rooms")
-            .select("id, room_type_id, quantity, room_price, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
+            .select("id, room_type_id, quantity, room_price, template_id, template_name, room_unit_id, room_types(name), room_units(unit_number, nickname)")
             .eq("order_id", orderId),
           accId
             ? supabase
@@ -2613,6 +2622,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                               quantity: 1,
                               room_price: suggestedUnitPrice,
                               unit_price: suggestedUnitPrice,
+                              template_id: resolveTemplateId(allTemplates as any, rt.id, sharedTpl),
                               template_name: sharedTpl,
                             }]);
                           }}
@@ -2641,6 +2651,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                 quantity: 1,
                                 room_price: suggestedUnitPrice,
                                 unit_price: suggestedUnitPrice,
+                                template_id: resolveTemplateId(allTemplates as any, rt.id, sharedTpl),
                                 template_name: sharedTpl,
                               }]);
                             }}
@@ -2775,27 +2786,29 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                         } else {
                                           applyTpl = cands[0]?.template_name || r.template_name || "";
                                         }
+                                        const applyId = resolveTemplateId(allTemplates as any, r.room_type_id, applyTpl);
                                         const dateBasedTotal = await computeRoomTotalByDates(r.room_type_id, applyTpl);
                                         if (dateBasedTotal > 0) {
                                           const roomTotal = dateBasedTotal * r.quantity;
                                           const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
-                                          return { ...r, template_name: applyTpl, unit_price: unitPrice, room_price: roomTotal };
+                                          return { ...r, template_id: applyId, template_name: applyTpl, unit_price: unitPrice, room_price: roomTotal };
                                         }
-                                        return { ...r, template_name: applyTpl };
+                                        return { ...r, template_id: applyId, template_name: applyTpl };
                                       }));
                                       setEditOrderRooms(updates);
                                       return;
                                     }
                                     // 非主列：獨立設定自己的方案
                                     const dateBasedTotal = await computeRoomTotalByDates(or.room_type_id, newTemplate);
+                                    const newTemplateId = resolveTemplateId(allTemplates as any, or.room_type_id, newTemplate);
                                     setEditOrderRooms(prev => prev.map(r => {
                                       if (r.id !== or.id) return r;
                                       if (dateBasedTotal > 0) {
                                         const roomTotal = dateBasedTotal * r.quantity;
                                         const unitPrice = r.quantity > 0 ? Math.round(roomTotal / r.quantity) : roomTotal;
-                                        return { ...r, template_name: newTemplate, unit_price: unitPrice, room_price: roomTotal };
+                                        return { ...r, template_id: newTemplateId, template_name: newTemplate, unit_price: unitPrice, room_price: roomTotal };
                                       }
-                                      return { ...r, template_name: newTemplate };
+                                      return { ...r, template_id: newTemplateId, template_name: newTemplate };
                                     }));
                                   }}
                                 >
@@ -3009,6 +3022,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                           quantity: 1,
                           room_price: unitPrice,
                           unit_price: unitPrice,
+                          template_id: null,
                           template_name: null,
                           room_unit_id: null,
                         }]);
