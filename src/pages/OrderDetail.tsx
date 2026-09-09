@@ -1375,7 +1375,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           }
           // trigger 已涵蓋 orders 欄位；此處只補記 order_rooms／包區設定／
           // 額外加購等不在 orders 資料表的內容（V5.5C.2）
-          const NON_ORDER_FIELDS = ["rooms", "exclusive_configs", "addon_note", "extra_addon_amount", "notes"];
+          const NON_ORDER_FIELDS = ["rooms", "exclusive_configs", "addon_note", "extra_addon_amount"];
           const residual = changes.filter((c: any) => NON_ORDER_FIELDS.includes(c.field));
           if (residual.length > 0) {
             const { error: auditError } = await supabase.from("audit_logs").insert([{
