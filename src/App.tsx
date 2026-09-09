@@ -740,7 +740,9 @@ function App() {
                       } />
 
                       <Route path="/hq/ai-training" element={
-                        <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                        </RequireHQRole>
                       }>
                         <Route index element={
                           <Suspense fallback={null}><AiTrainingDashboard /></Suspense>
