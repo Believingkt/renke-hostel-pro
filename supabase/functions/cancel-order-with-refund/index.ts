@@ -237,10 +237,14 @@ serve(async (req) => {
           : isRisky
             ? "此筆退款被 TapPay 風控暫時拒絕（代碼 10016），訂單未取消。請改用「手動退款」，或聯絡 TapPay 客服了解原因。"
             : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
-        await supabase
-          .from("orders")
-          .update({ refund_status: "failed", refund_rec_trade_id: recTradeIdUsed })
-          .eq("id", order.id);
+        await supabase.rpc("update_order_with_context", {
+          p_order_id: order.id,
+          p_patch: { refund_status: "failed", refund_rec_trade_id: recTradeIdUsed },
+          p_source: "admin_cancel_refund",
+          p_reason: `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}）`,
+          p_actor_label: `取消退款（操作者 ${userEmail}）`,
+          p_actor_type: "system",
+        });
         await flagRefundNeedsManual(supabase, order as any, refundAmount, {
           attempted: true,
           success: false,
