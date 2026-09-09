@@ -1,24 +1,53 @@
-# V5.5B.2 設計：order_attributions 綁定訂單 session（唯讀設計，未施工）
+# V5.5B.2 設計：order_attributions 綁定訂單 session（設計階段，未施工）
 
 ## 0. 前置事實查證
 
-| 查證項目 | 結果 |
+| 項目 | 結果 |
 |---|---|
-| `analytics_session_id` 產生時機 | `src/hooks/use-page-analytics.tsx:7-17`，任一頁面載入時就寫入 `sessionStorage`（`${Date.now()}-${random}`）。**早於**訂單 insert，前端在 `BookingFlow.tsx:3609` insert 當下已可讀到。 |
-| 訂單 insert 位置 | `src/pages/BookingFlow.tsx:3609-3660`（匿名走 `Public can insert orders`）；3DS 卡單走 `create-paid-order`（service role） |
+| `analytics_session_id` 產生時機 | `src/hooks/use-page-analytics.tsx:7-17`，任一頁面載入即寫入 `sessionStorage`。**早於**訂單 insert，`BookingFlow.tsx:3609` 當下必定拿得到。 |
+| 訂單 insert | `src/pages/BookingFlow.tsx:3609`（匿名走 `Public can insert orders`）；3DS 卡單走 `create-paid-order`（service role） |
 | attribution 寫入 | `src/lib/attribution.ts:103-142`，訂單成立後同一 async 函式內立即呼叫，已帶 `session_id` |
-| 現行 policy | `order_attributions_insert_public`：`WITH CHECK (order_id IS NOT NULL)`（無角色限制＝含 anon） |
-| 現有資料 | `order_attributions` 5 筆，`session_id` 5 筆皆非空；4451/4456 筆訂單無 attribution row |
-| anon 能否 SELECT orders | **不能**。`orders` 只有兩條 SELECT policy（AM 團隊、館別／會員／業務），anon 一律讀不到 → policy 內若直接子查詢 `orders`，anon insert 會永遠失敗。**必須用 SECURITY DEFINER 函式。** |
-| get-public-order 回傳 | `supabase/functions/get-public-order/index.ts:78-83` 已是**明確白名單** select，不含新欄位（不會外洩） |
-| 其他 `orders.select("*")` | `supabase/functions/mcp/index.ts:95`（走使用者 JWT＋RLS）、`group-buy-*` 系列與 `_shared/groupBuy*`（service role，內部用，不回傳整包給公開端）、`src/lib/mcp/tools/get-order.ts:17`。詳見 §3 |
+| 現行 policy | `order_attributions_insert_public`：`WITH CHECK (order_id IS NOT NULL)`，無角色限制（含 anon） |
+| 現有資料 | `order_attributions` 5 筆，`session_id` 全非空；4455 筆訂單無 attribution row |
+| anon 能否 SELECT orders | **不能**（模擬測試 b4 實測 `42501 permission denied for table orders`）→ policy 不可直接子查詢 orders，必須用 SECURITY DEFINER 函式 |
+| `Public can insert orders` WITH CHECK | 不限制欄位清單，新增欄位可由匿名 insert 直接帶入，policy 無需修改 |
 
 ---
 
-## 1. Migration A：新增欄位＋前端一併寫入
+## 1. 測試可行性（回應「能不能包在交易內測」）
+
+可以，且**已實測完成**。限制在於 exec 的 psql 以 `sandbox_exec` 角色連線，對 `public.orders` 沒有 owner 權限（實測 `must be owner of table orders`），所以 DDL 不能從 psql 發。改用 migration 通道，在**同一個交易**內依序做 ADD COLUMN → CREATE FUNCTION → GRANT → 換 policy → 跑情境 → 最後 `RAISE EXCEPTION` 讓整批交易中止，結果由例外訊息帶回。
+
+### 實測輸出（原文）
+
+```
+=== V5.5B.2 SIMULATION (all rolled back) ===
+[setup] new order tagged TEST-SESS-A; old order left NULL
+(a) anon insert w/ correct session -> OK, rows=1
+(b1) anon insert w/ guessed session -> BLOCKED 42501 new row violates row-level security policy for table "order_attributions"
+(b2) anon insert w/ NULL session -> BLOCKED 42501 new row violates row-level security policy for table "order_attributions"
+(b3) legacy order insert -> BLOCKED 42501 new row violates row-level security policy for table "order_attributions"
+(b4) helper probe error 42501 permission denied for table orders
+(c) order_attributions total rows now=6 (5 original + test rows)
+(c) legacy orders with NULL attribution_session_id=4455
+```
+
+### 回滾驗證（測試後獨立查詢）
+
+```
+col_exists = 0
+fn_exists  = 0
+with_check = (order_id IS NOT NULL)
+order_attributions rows = 5
+```
+
+欄位、函式、policy、資料全部回到原狀，零殘留。
+
+---
+
+## 2. Migration A：新增欄位
 
 ```sql
--- precheck
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns
@@ -28,44 +57,30 @@ BEGIN
   END IF;
 END $$;
 
-ALTER TABLE public.orders
-  ADD COLUMN attribution_session_id text;
+ALTER TABLE public.orders ADD COLUMN attribution_session_id text;
 
 COMMENT ON COLUMN public.orders.attribution_session_id IS
-  '前端 analytics_session_id，僅用於驗證 order_attributions 寫入來源，不得對外回傳';
+  '前端 analytics_session_id，僅供驗證 order_attributions 寫入來源，不得對外回傳';
 
--- postcheck
 DO $$
-DECLARE v_null int;
+DECLARE v int;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                  WHERE table_schema='public' AND table_name='orders'
                    AND column_name='attribution_session_id') THEN
     RAISE EXCEPTION 'POSTCHECK FAIL: column missing';
   END IF;
-  SELECT count(*) INTO v_null FROM public.orders WHERE attribution_session_id IS NOT NULL;
-  IF v_null <> 0 THEN RAISE EXCEPTION 'POSTCHECK FAIL: unexpected data %', v_null; END IF;
+  SELECT count(*) INTO v FROM public.orders WHERE attribution_session_id IS NOT NULL;
+  IF v <> 0 THEN RAISE EXCEPTION 'POSTCHECK FAIL: unexpected data %', v; END IF;
   RAISE NOTICE 'POSTCHECK PASS (0 business rows changed)';
 END $$;
 ```
 
-Rollback：`ALTER TABLE public.orders DROP COLUMN attribution_session_id;`（需破壞性確認）
-
-`Public can insert orders` 的 WITH CHECK 不需改（未限制欄位清單），新欄位可直接由匿名 insert 帶入。
-
-前端改動（`src/pages/BookingFlow.tsx`，orders insert 物件內新增一行）：
-
-```ts
-attribution_session_id: getAnalyticsSessionId(),   // 讀 sessionStorage，讀不到給 null
-```
-
-並在 `src/lib/attribution.ts` 匯出共用的 `getAnalyticsSessionId()`（同一支函式供 insert 與 attribution 使用，保證兩邊值一致）。3DS 卡單路徑（`create-paid-order`）需由前端把 `attribution_session_id` 一併放進 payload，後端白名單寫入；若未帶則為 NULL（見 §2 的 NULL 處理）。
+Rollback：`ALTER TABLE public.orders DROP COLUMN attribution_session_id;`
 
 ---
 
-## 2. Migration B：收緊 order_attributions insert policy
-
-因 anon 讀不到 `orders`，比對邏輯放進 SECURITY DEFINER 函式：
+## 3. 比對函式
 
 ```sql
 CREATE OR REPLACE FUNCTION public.attribution_session_matches(_order_id uuid, _session_id text)
@@ -74,17 +89,49 @@ LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = public
-AS $$
+AS $fn$
   SELECT EXISTS (
     SELECT 1 FROM public.orders o
     WHERE o.id = _order_id
       AND o.attribution_session_id IS NOT NULL
       AND o.attribution_session_id = _session_id
   );
-$$;
+$fn$;
 
 REVOKE ALL ON FUNCTION public.attribution_session_matches(uuid, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.attribution_session_matches(uuid, text) TO anon, authenticated, service_role;
+```
+
+為何要 SECURITY DEFINER：anon 對 `orders` 沒有 SELECT 權限也沒有 RLS 通道（實測 42501），policy 內若直接查 orders，所有合法客戶端也會被擋。函式以擁有者身分執行才能完成比對。
+
+外洩面評估：
+- 回傳型別 `boolean`，函式體只有一個 `EXISTS`，不回傳任何 orders 欄位內容。
+- 兩個參數都必須由呼叫者提供，等於「拿已知的 order_id + 已知的 session 字串問是不是這組」，不能列舉、不能反查。
+- 唯一可推導的資訊是「某訂單有沒有被設過某個 session 值」。session 值是 `${Date.now()}-${11碼亂數}`，猜中機率可忽略；且此資訊本身無商業價值。
+- `REVOKE ALL FROM PUBLIC` + 具名 GRANT，避免預設 PUBLIC EXECUTE。
+- `SET search_path = public` 防搜尋路徑劫持。
+
+---
+
+## 4. 新版 policy 全文 + precheck/postcheck
+
+```sql
+-- precheck
+DO $$
+DECLARE v_wc text; v_rows int;
+BEGIN
+  SELECT pg_get_expr(polwithcheck, polrelid) INTO v_wc
+  FROM pg_policy WHERE polrelid='public.order_attributions'::regclass
+    AND polname='order_attributions_insert_public';
+  IF v_wc IS DISTINCT FROM '(order_id IS NOT NULL)' THEN
+    RAISE EXCEPTION 'PRECHECK FAIL: unexpected policy: %', v_wc;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname='attribution_session_matches') THEN
+    RAISE EXCEPTION 'PRECHECK FAIL: helper function missing (run stage 1 first)';
+  END IF;
+  SELECT count(*) INTO v_rows FROM public.order_attributions;
+  RAISE NOTICE 'PRECHECK PASS: attribution rows=%', v_rows;
+END $$;
 
 DROP POLICY IF EXISTS order_attributions_insert_public ON public.order_attributions;
 
@@ -97,27 +144,6 @@ WITH CHECK (
   AND session_id IS NOT NULL
   AND public.attribution_session_matches(order_id, session_id)
 );
-```
-
-注意：舊訂單 `attribution_session_id` 為 NULL，函式回傳 false → **舊訂單一律無法再新增 attribution**。這是有意為之（舊訂單本來就沒有合法客戶端能證明身分），影響見 §5(c)。
-
-precheck / postcheck：
-
-```sql
--- precheck
-DO $$
-DECLARE v_wc text;
-BEGIN
-  SELECT pg_get_expr(polwithcheck, polrelid) INTO v_wc
-  FROM pg_policy WHERE polrelid='public.order_attributions'::regclass
-    AND polname='order_attributions_insert_public';
-  IF v_wc IS DISTINCT FROM '(order_id IS NOT NULL)' THEN
-    RAISE EXCEPTION 'PRECHECK FAIL: unexpected policy %', v_wc;
-  END IF;
-  IF (SELECT count(*) FROM public.order_attributions) <> 5 THEN
-    RAISE EXCEPTION 'PRECHECK FAIL: row count changed';
-  END IF;
-END $$;
 
 -- postcheck
 DO $$
@@ -132,54 +158,120 @@ BEGIN
   IF (SELECT count(*) FROM public.order_attributions) <> 5 THEN
     RAISE EXCEPTION 'POSTCHECK FAIL: data changed';
   END IF;
-  RAISE NOTICE 'POSTCHECK PASS (0 business rows changed)';
+  RAISE NOTICE 'POSTCHECK PASS: % (0 business rows changed)', v_wc;
 END $$;
 ```
 
-Rollback：重建原 policy `WITH CHECK (order_id IS NOT NULL)` 並 `DROP FUNCTION public.attribution_session_matches(uuid,text);`
+Rollback：
+```sql
+DROP POLICY IF EXISTS order_attributions_insert_public ON public.order_attributions;
+CREATE POLICY order_attributions_insert_public ON public.order_attributions
+FOR INSERT WITH CHECK (order_id IS NOT NULL);
+```
 
 ---
 
-## 3. 新欄位不得外洩：逐處白名單盤點
+## 5. 新欄位不得外洩
 
-| 位置 | 目前寫法 | 處置 |
+| 位置 | 現況 | 處置 |
 |---|---|---|
-| `supabase/functions/get-public-order/index.ts:78-83` | 已是明確欄位白名單 | 不動；**確認不加入新欄位** |
-| `supabase/functions/mcp/index.ts:95` | `select("*")` + 使用者 JWT | 改為明確欄位白名單（不含新欄位） |
-| `src/lib/mcp/tools/get-order.ts:17` | `select("*")` | 同上改白名單 |
-| `group-buy-order-lookup` / `group-buy-*` / `_shared/groupBuy*` | service role `select("*")`，只在後端組信件與內部邏輯 | 逐支確認回應 payload 不整包外送；`group-buy-order-lookup` 的公開回應改明確白名單 |
-| Admin / Team 前端訂單查詢 | 皆為明確欄位清單（已查，無 `orders.select("*")`，唯一例外是上表 MCP 工具） | 不動 |
-| `supabase/functions/get-public-order` 之外的公開端點 | 無其他整包展開 | — |
+| `supabase/functions/get-public-order/index.ts:80` | 已是逐欄白名單 | 不動，不加新欄位；加一項回應斷言測試 |
+| `supabase/functions/mcp/index.ts:95` | `orders.select("*")` | 改逐欄白名單 |
+| `src/lib/mcp/tools/get-order.ts:17` | `orders.select("*")` | 改逐欄白名單（此檔為前者原始碼） |
+| group-buy 系列 / `_shared/groupBuy*` | service role `select("*")`，後端內部組信與邏輯 | 確認回應 payload 不整包外送；`group-buy-order-lookup` 公開回應改白名單 |
+| Admin / Team 前端 | 全為明確欄位清單，無 `orders.select("*")` | 不動 |
 
-施工時的硬性規則：新欄位只出現在 (1) BookingFlow insert、(2) create-paid-order 寫入、(3) policy 函式內部。任何 select 清單一律不加。另建議加一條測試：對 get-public-order 真呼叫後斷言回應 key 不含 `attribution_session_id`。
-
----
-
-## 4. attribution 寫入失敗要看得到
-
-`src/lib/attribution.ts:141` 改為：失敗時（含 policy 拒絕）除 `console.warn` 外，寫一筆 `error_logs`（沿用既有前端錯誤上報路徑），欄位含 `order_id`、`session_id` 前 8 碼、Postgres error code / message、`landing_path`。不阻擋訂單流程、不對客人顯示 toast。若 error code 為唯一鍵衝突（23505）另標記為 `attribution_conflict`，這正是「有人搶先灌假資料」的偵測訊號，並依 V5.5A.8 的告警開關送內部通知。
+硬性規則：新欄位只出現在 (1) BookingFlow orders insert、(2) create-paid-order 寫入、(3) 比對函式內部。
 
 ---
 
-## 5. 測試情境（真實交易，全程 BEGIN…ROLLBACK）
+## 6. attribution.ts 錯誤處理
 
-**(a) 正常流程**：交易內 insert 一筆 orders（帶 `attribution_session_id='TEST-SESS-A'`）→ 以 anon 身分 insert order_attributions（`session_id='TEST-SESS-A'`）→ 預期成功 1 列。
-
-**(b) 攻擊模擬**：同一筆 order_id、`session_id='GUESSED'`（及 `session_id=NULL`）→ 預期 `42501 new row violates row-level security policy`。再測舊訂單（`attribution_session_id IS NULL`）任意 session → 預期同樣被拒。
-
-**(c) 舊訂單影響面**：唯讀確認舊 4451 筆的依賴。目前 `order_attributions` 的讀取端只有 `src/hooks/use-marketing-analytics.tsx:66-77`（廣告成效報表，LEFT 關聯，沒有 row 就顯示無來源），SELECT/UPDATE policy 不變，管理者仍可讀寫。故新 policy 只影響「未來的匿名新增」，不影響任何既有查詢、報表、獎金計算（獎金讀 `order_meta`，與本表無關）。唯一行為改變：舊訂單之後無法再由前端補寫 attribution——實務上不會發生，因為補寫只在下單當下那一次。
-
-三個情境全部在 `BEGIN … ROLLBACK` 內以真實 anon 角色執行，執行後回報實際錯誤碼與列數。
+見 §8 diff。要點：insert 失敗改為寫 `error_logs`（`reportFrontendError`），`23505` 唯一鍵衝突另以 `attribution_conflict` 分類並送內部告警（沿用 V5.5A.8 開關），一律不影響訂單流程、不對客人顯示。
 
 ---
 
-## 6. 執行順序
+## 7. 分階段
 
-1. Migration A（欄位）
-2. 前端／`create-paid-order` 寫入 session（先部署，確保新訂單都有值）
-3. 觀察至少 1 天，確認新訂單 `attribution_session_id` 覆蓋率＝100%
-4. Migration B（收緊 policy）
-5. attribution.ts 錯誤上報（可與步驟 2 同批）
-6. select 白名單清理（步驟 2 同批）
+**第一階段（只寫 session，policy 不動）**
+- Migration A（新增欄位）
+- `src/lib/attribution.ts`：匯出 `getAnalyticsSessionId()`、錯誤上報
+- `src/pages/BookingFlow.tsx`：orders insert 帶 `attribution_session_id`；3DS 路徑傳入 payload
+- `supabase/functions/create-paid-order/index.ts`：白名單接收並寫入
+- `supabase/functions/mcp/index.ts`、`src/lib/mcp/tools/get-order.ts`：改白名單 select
 
-先上 policy 再上前端會導致所有新訂單 attribution 全被擋掉，順序不可顛倒。
+**第二階段（觀察 1 天、新訂單覆蓋率 100% 後）**
+- 比對函式 + policy 收緊（§3、§4）
+
+順序不可顛倒。
+
+---
+
+## 8. attribution.ts diff（設計）
+
+```diff
++const ATTR_SESSION_KEY = "analytics_session_id";
++
++export const getAnalyticsSessionId = (): string | null => {
++  try {
++    return sessionStorage.getItem(ATTR_SESSION_KEY);
++  } catch {
++    return null;
++  }
++};
++
+ export const recordOrderAttribution = async (
+   orderId: string,
+   accommodationId: string | null,
+ ) => {
++  const sessionId = getAnalyticsSessionId();
+   try {
+     const first = readTouch(FIRST_KEY);
+     const last = readTouch(LAST_KEY) || first;
+     if (!first && !last) return;
+-
+-    let sessionId: string | null = null;
+-    try {
+-      sessionId = sessionStorage.getItem("analytics_session_id");
+-    } catch {
+-      sessionId = null;
+-    }
+-
+-    await supabase.from("order_attributions").insert({
++    const { error } = await supabase.from("order_attributions").insert({
+       order_id: orderId,
+       session_id: sessionId,
+       ...
+     });
++    if (error) {
++      const conflict = error.code === "23505";
++      await reportFrontendError({
++        category: conflict ? "attribution_conflict" : "attribution_insert_failed",
++        step: "record_order_attribution",
++        accommodationId,
++        errorCode: error.code,
++        errorMessage: error.message,
++        context: {
++          order_id: orderId,
++          session_prefix: sessionId ? sessionId.slice(0, 8) : null,
++          landing_path: first?.landing_path ?? null,
++          suspected_preemptive_write: conflict,
++        },
++      });
++      console.warn("attribution record failed", error);
++    }
+   } catch (e) {
+-    console.warn("attribution record failed", e);
++    console.warn("attribution record failed", e);
++    void reportFrontendError({
++      category: "attribution_insert_failed",
++      step: "record_order_attribution",
++      accommodationId,
++      errorMessage: e instanceof Error ? e.message : String(e),
++      context: { order_id: orderId },
++    });
+   }
+ };
+```
+
+`23505` 的意義：該訂單已經有 attribution row，但真實客人此刻才第一次寫入 → 幾乎必然是有人先猜到 UUID 搶插。這類事件寫入 `error_logs` 後由既有告警管道通知內部（不通知客人）。
