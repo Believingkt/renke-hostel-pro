@@ -322,6 +322,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [deleteReason, setDeleteReason] = useState("");
   const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
+  // V5.5C.1：改為「已付清」但已付金額不足時的三選一提示
+  const [paidSyncPrompt, setPaidSyncPrompt] = useState<{ expected: number; current: number } | null>(null);
+  const paidSyncOverrideRef = useRef<{ paid_amount?: number; payment_status?: string } | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -983,6 +986,23 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       });
       return;
     }
+    // V5.5C.1：本次存檔正要把付款狀態改成「已付清」，但已付金額低於應收 → 先問清楚
+    if (!paidSyncOverrideRef.current) {
+      const FULLY_PAID = ["paid", "fully_paid"];
+      const savedTotalForCheck = editForm.total_price + editForm.addon_total;
+      const calcFinalForCheck = savedTotalForCheck - editForm.discount_amount;
+      const pricingUnchangedForCheck =
+        Number(savedTotalForCheck) === Number(order.total_price ?? 0) &&
+        Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
+        Number(editForm.addon_total) === Number(savedAddonTotalOf(order));
+      const expectedFinal = pricingUnchangedForCheck ? Number(order.final_price ?? 0) : calcFinalForCheck;
+      const willBeFullyPaid = FULLY_PAID.includes(editForm.payment_status);
+      const wasFullyPaid = FULLY_PAID.includes(order.payment_status);
+      if (willBeFullyPaid && !wasFullyPaid && Number(editForm.paid_amount) < expectedFinal) {
+        setPaidSyncPrompt({ expected: expectedFinal, current: Number(editForm.paid_amount) });
+        return;
+      }
+    }
     savingEditRef.current = true;
     try {
 
@@ -1020,6 +1040,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     try {
       const savedTotalPrice = editForm.total_price + editForm.addon_total;
       const editFinalPriceCalc = savedTotalPrice - editForm.discount_amount;
+      // V5.5C.1：使用者在提示框做出的選擇（補足已付金額 / 改回已付訂金）優先於表單值
+      const effPaymentStatus = paidSyncOverrideRef.current?.payment_status ?? editForm.payment_status;
+      const effPaidAmount = paidSyncOverrideRef.current?.paid_amount ?? editForm.paid_amount;
 
       // If any edited room is an exclusive package, regenerate one [包區/包棟房間配置] line per 包棟
       const exclusiveRows = editOrderRooms.filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
@@ -1075,14 +1098,14 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         owner_direct: editForm.owner_direct,
         lock_whole_building: isOlivia ? editForm.lock_whole_building : false,
         order_status: editForm.order_status,
-        payment_status: editForm.payment_status,
+        payment_status: effPaymentStatus,
         deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
         balance_payment_method: editForm.balance_payment_method === "none" ? null : editForm.balance_payment_method,
         meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
         notes: finalNotes || null,
         room_type_id: editForm.room_type_id || null,
         discount_code: editForm.discount_code.trim() || null,
-        paid_amount: editForm.paid_amount,
+        paid_amount: effPaidAmount,
         pet_count: editForm.pet_count,
         pet_plan_price: editForm.pet_plan_price,
         meal_plan_details: editForm.meal_plan_details.length > 0 ? editForm.meal_plan_details : null,
@@ -1192,8 +1215,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         if (Number(editForm.deposit_amount) !== Number(order.deposit_amount ?? 0)) {
           auditParts.push(`訂金 ${order.deposit_amount ?? 0}→${editForm.deposit_amount}`);
         }
-        if (Number(editForm.paid_amount) !== Number(order.paid_amount ?? 0)) {
-          auditParts.push(`已付 ${order.paid_amount ?? 0}→${editForm.paid_amount}`);
+        if (Number(effPaidAmount) !== Number(order.paid_amount ?? 0)) {
+          auditParts.push(`已付 ${order.paid_amount ?? 0}→${effPaidAmount}`);
         }
         if (auditParts.length > 0) {
           const { data: { user } } = await supabase.auth.getUser();
@@ -1405,6 +1428,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     }
     } finally {
       savingEditRef.current = false;
+      paidSyncOverrideRef.current = null;
     }
   };
 
