@@ -377,20 +377,6 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     }
     setIsSaving(true);
     try {
-      const oldValues = {
-        total_price: order.total_price,
-        discount_amount: order.discount_amount,
-        final_price: order.final_price,
-        deposit_amount: order.deposit_amount,
-        paid_amount: order.paid_amount,
-      };
-      const newValues = {
-        total_price: safeTotalPrice,
-        discount_amount: safeDiscountAmount,
-        final_price: safeFinalPrice,
-        deposit_amount: safeDepositAmount,
-        paid_amount: editPaidAmount,
-      };
 
       // Build custom_addon_details（含原樣保留的非設定項目）
       const newCustomAddonDetails: AddonDetail[] = buildNewAddonDetails();
