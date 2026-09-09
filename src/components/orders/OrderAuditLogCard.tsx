@@ -180,7 +180,27 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
         };
       });
 
-      const rows = [...auditRows, ...changeRows].sort(
+      // 顯示層去重：舊寫入路徑（audit_logs）與新 trigger（order_change_log）會對同一次
+      // 操作各寫一筆。當舊紀錄「沒有可展開內容」、且與某筆新紀錄是同一操作者、
+      // 時間相差 3 秒內、欄位可對應時，只保留內容完整的新紀錄。
+      // 無法確認欄位對應（hints 為 null）時一律不合併，避免藏起合法紀錄。
+      const dedupedAuditRows = auditRows.filter((a) => {
+        if (a.entity_type !== "order") return true;
+        if (auditHasDisplayableDetail(a.details)) return true;
+        const hints = auditFieldHints(a.details);
+        if (!hints) return true; // 保守：無法確認欄位就不合併
+        const aTime = +new Date(a.created_at);
+        return !changeRows.some((c) => {
+          if (a.user_id && c.user_id && a.user_id !== c.user_id) return false;
+          if (Math.abs(+new Date(c.created_at) - aTime) > DEDUP_TIME_WINDOW_MS) return false;
+          const cFields = (Array.isArray(c.details?.changes) ? c.details.changes : []).map(
+            (x: any) => x?.field,
+          );
+          return hints.some((f) => cFields.includes(f));
+        });
+      });
+
+      const rows = [...dedupedAuditRows, ...changeRows].sort(
         (a, b) => +new Date(b.created_at) - +new Date(a.created_at),
       );
       const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
