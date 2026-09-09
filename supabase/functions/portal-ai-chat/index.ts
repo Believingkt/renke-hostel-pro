@@ -190,39 +190,49 @@ serve(async (req) => {
       return p;
     };
 
+    // 館別過濾：本函式為平台全站客服，前端目前未提供館別上下文。
+    // 一律只讀全域列（accommodation_id IS NULL）；若呼叫端明確帶入 accommodation_id，才額外納入該館列。
+    const ctxAccId = typeof context?.accommodation_id === 'string' && UUID_REGEX.test(context.accommodation_id)
+      ? context.accommodation_id
+      : null;
+    const scopeKey = ctxAccId ?? 'global';
+    const scoped = <T extends { or: (f: string) => T; is: (c: string, v: null) => T }>(q: T): T =>
+      ctxAccId ? q.or(`accommodation_id.is.null,accommodation_id.eq.${ctxAccId}`) : q.is('accommodation_id', null);
+
     const accommodationsPromise = cached('accommodations', () => supabase
       .from('accommodation_info')
       .select('id, name, address, region_1, region_2, type, phone')
       .eq('is_active', true)
       .order('display_order', { ascending: true, nullsFirst: false }).then(r => r));
-    const knowledgePromise = cached('knowledge', () => supabase
+    const knowledgePromise = cached(`knowledge:${scopeKey}`, () => scoped(supabase
       .from('ai_knowledge')
       .select('title, content, priority')
-      .eq('is_active', true)
+      .eq('is_active', true))
       .order('priority', { ascending: false })
       .limit(24).then(r => r));
-    const examplesPromise = cached('examples', () => supabase
+    const examplesPromise = cached(`examples:${scopeKey}`, () => scoped(supabase
       .from('ai_examples')
       .select('scenario, user_message, ideal_response')
-      .eq('is_active', true)
+      .eq('is_active', true))
       .limit(10).then(r => r));
+    // ai_reply_templates 無 accommodation_id 欄位，無法也不需要館別過濾
     const templatesPromise = cached('templates', () => supabase
       .from('ai_reply_templates')
       .select('name, scenario, template')
       .eq('is_active', true)
       .order('sort', { ascending: true })
       .limit(8).then(r => r));
-    const abTestPromise = cached('abtest', () => supabase
+    const abTestPromise = cached(`abtest:${scopeKey}`, () => scoped(supabase
       .from('ai_ab_tests')
       .select('version_a, version_b, traffic_split')
-      .eq('is_active', true)
+      .eq('is_active', true))
       .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle().then(r => r));
-    const publishedPromptPromise = cached('published_prompt', () => supabase
+    const publishedPromptPromise = cached(`published_prompt:${scopeKey}`, () => scoped(supabase
       .from('ai_prompts')
       .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
-      .eq('status', 'published')
+      .eq('status', 'published'))
       .order('version', { ascending: false })
       .limit(1)
       .maybeSingle().then(r => r));
