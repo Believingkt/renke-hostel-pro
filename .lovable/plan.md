@@ -1,229 +1,116 @@
-# notes 稽核文字整合評估 ＋ 批次一（金流）補 context 設計
+# 批次二（OwlTing）＋批次三（HotelNabe）補 context 設計稿（唯讀，未施工）
 
-**設計階段，未施工。** 以下皆為查證與設計內容。
+## 一、重新盤點（全 repo，只列真正寫入 public.orders 的地方）
 
----
+### 批次二 OwlTing
 
-## 一、盤點：所有會往 `orders.notes` 寫入 🔒 / 【】格式文字的位置
-
-### 後端 Edge Functions
-
-| # | 檔案:行號 | 文字格式範例 | 已呼叫 context？ |
+| # | 檔案:行 | 動作 | 實際寫入欄位 |
 |---|---|---|---|
-| 1 | `_shared/tappayWebhookProcessor.ts:230` | `🔒 2026-09-09 12:00 TapPay 退款成功 NT$3,000（交易 xxx）` | 否 |
-| 2 | `tappay-notify/index.ts:404,416` | `[3DS Webhook] … - 付款成功 NT$3000 (rec_trade_id: …, auth_code: …)` | 否 |
-| 3 | `tappay-notify/index.ts:578,585` | `[3DS Webhook] … - 付款失敗 (rec_trade_id: …, verified_status: …)` | 否 |
-| 4 | `tappay-refund-notify/index.ts:201,211` | `[退款 Webhook] … - 退款成功 NT$1,000 (rec_trade_id: …, refund_id: …)` | 否 |
-| 5 | `tappay-refund-notify/index.ts:262,269` | `[退款 Webhook] … - 退款失敗 …（status, msg）` | 否 |
-| 6 | `tappay-sync-refund/index.ts:207,216` | `[TapPay 同步] … 退款累計 NT$… [TAPPAY_SYNC_REFUNDED:3000]` | 否 |
-| 7 | `_shared/latePayment.ts:131` | `🔒 {逾期付款說明}` | 否 |
-| 8 | `charge-room-on-checkin/index.ts:103` | `🔒 … 入住日自動扣款成功 NT$5,000（TapPay 交易 xxx）` | 否 |
-| 9 | `charge-room-on-checkin/index.ts:118` | `🔒 … 入住日自動扣款失敗：{msg}（請於現場改收款）` | 否 |
-| 10 | `cancel-order-with-refund/index.ts:158,280` | `🔒 [ts] user@x 取消訂單` ／ `🔒 [ts] 取消政策：…／距入住 N 天／…` | 否 |
-| 11 | `change-order-dates/index.ts:279,281` | `🔒 [ts] 改期：A → B｜C → D｜操作：X｜備註：Y` | 否 |
-| 12 | `payment-audit-resolve/index.ts:106` | `🔒 {stamp} {處理內容}（處理人：user@x）` | 否 |
-| 13 | `member-order-manage/index.ts:147,148,194-246,353,389,426,430,435,514,553` | `🔒 … 會員於前台自行取消訂單（email）` ／ `🔒 取消政策（…）：… 退款比例 N%` ／ `🔒 已收取取消手續費 NT$…（TapPay …）` ／ `🔒 … 會員自行改期：…` | 否 |
-| 14 | `public-order-cancel/index.ts:118,119` | `🔒 … 客人於付款狀態頁自行取消訂單（未扣款）` ／ `🔒 取消政策（…）：…` | 否 |
-| 15 | `group-buy-cancel-refund/index.ts:327,328,503` | `【退款】ts 由 X 執行原信用卡退刷 NT$…` ／ `【取消】ts 由 X 取消訂單` | 否 |
-| 16 | `group-buy-expire-orders/index.ts:73` | `【系統】逾期未匯款自動取消（期限 24 小時）` | 否 |
+| B1 | `_shared/owltingAutoOrder.ts:496` | UPDATE（修改通知自動更新） | check_in_date, check_out_date, guest_count, room_type_id, total_price, final_price, paid_amount, notes |
+| B2 | `_shared/owltingAutoOrder.ts:244` | UPDATE（取消通知，`.in(ids)` 批次） | order_status, cancelled_at |
+| B3 | `_shared/owltingAutoOrder.ts:153` | INSERT 自動鎖房單 | （建單，不改） |
+| B4 | `owlting-fillup-submit/index.ts:287` | UPDATE（業主補齊 PII，補鎖房單） | room_type_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, ota_channel, payment_status, paid_amount, is_pii_pending, notes |
+| B5 | `owlting-fillup-submit/index.ts:526` | UPDATE（信件寄出旗標） | internal_email_sent, internal_email_sent_at |
+| B6 | `owlting-fillup-submit/index.ts:321` | INSERT 新單 | （建單，不改） |
+| B7 | `owlting-cm/index.ts:794` | UPDATE（OTA Cancel，依 `owlting_reservation_id` 批次） | order_status, cancelled_at |
+| B8 | `owlting-cm/index.ts:814` | UPDATE（OTA Modify） | room_type_id, check_in_date, check_out_date, guest_count, total_price, final_price, guest_name, guest_phone, guest_email, notes, ota_channel |
+| B9 | `owlting-cm/index.ts:843` | INSERT | （建單，不改） |
+| B10 | `owlting-email-ingest/index.ts:552,569` | UPDATE（清掉「等待付款鎖房」標記） | notes |
+| B11 | `owlting-cleanup-stale-pending/index.ts:70` | UPDATE（48h 自動取消） | order_status, cancelled_at, is_pii_pending, notes |
+| B12 | `owlting-order-push/index.ts:495,544` | UPDATE（推送回寫） | owlting_sync_state（jsonb）、owlting_unique_id |
+| B13 | `owlting-selfpush-link/index.ts:201` | UPDATE（回填 OBE） | owlting_reservation_id |
 
-`charge-deposit`、`refund-deposit`、`bind-deposit-card` **不寫 notes**（只改 `deposit_*` 欄位），但仍屬批次一補 context 範圍。
+**與稍早盤點的差異（必須指出）**
+- 稍早清單提到的 `owlting-change-notify`、`owlting-fillup-issue`、`owlting-fillup-remind` **完全沒有寫入 orders**，只動 `owlting_email_parsed_staging` / `owlting_fillup_tokens`。→ 本批次移出範圍。
+- 稍早未列出的三處這次補上：`owlting-order-push`（B12）、`owlting-selfpush-link`（B13）、`owlting-fillup-submit` 的信件旗標（B5）。
+- `owlting-ari-push`、`owlting-cm-snapshot`、`owlting-content`、`owlting-email-reparse-dates`、`owlting-fillup-validate` 對 orders 只有 SELECT。
 
-### 前端
+### 批次三 HotelNabe
 
-| # | 檔案:行號 | 文字格式範例 | 已呼叫 context？ |
+| # | 檔案:行 | 動作 | 實際寫入欄位 |
 |---|---|---|---|
-| 17 | `src/pages/OrderDetail.tsx:1229,1541` | `🔒[金額異動 ts by user] 總金額 A→B、…` | 否 |
-| 18 | `src/pages/OrderDetail.tsx:1545` | `【金額修改】{原因}` | 否 |
-| 19 | `src/pages/OrderDetail.tsx:1065,1071,1082` | `【額外現場加購備註 ts】…【…END】`／`【額外現場加購金額 ts】…`／`【包區房間配置】雙人房 2 間` | 否 |
-| 20 | `src/components/orders/OrderPriceEditDialog.tsx:443,448` | `🔒[金額異動 …]` ／ `【金額修改】…` | 否 |
-| 21 | `src/components/orders/PaymentStatusDialog.tsx:59,60` | `【付款狀態變更】未付款 → 已付訂金：{原因}` | 否 |
-| 22 | `src/components/orders/OrderStatusDialog.tsx:57,58` | `【訂單狀態變更】待確認 → 已確認：{原因}` | 否 |
-| 23 | `src/components/orders/OrderSourceDialog.tsx:95` | `【來源變更】官網 → 人工` | 否 |
-| 24 | `src/components/orders/PaidAmountEditDialog.tsx:281` | `【額外現場加購金額】3000【額外現場加購金額END】` | 否 |
-| 25 | `src/components/orders/OrderManualReviewCard.tsx:122,134,149,154,157` | `🔒 [ts] 客服核准改期：…｜操作：X` 等 5 種 | 否 |
-| 26 | `src/components/orders/CreateOrderDialog.tsx:1535-1558` | `【包區房間配置】雙人房 2 間、四人房 1 間` | 否（建單） |
-| 27 | `src/components/orders/CreateHoldOrderDialog.tsx:353` | `【保留單】待補客人資訊` | 否（建單） |
-| 28 | `src/components/orders/ImportOrdersDialog.tsx:270,271,320` | `【訂單類型：X】`／`【專案：Y】`／`【其他營收：3000】` | 否（匯入） |
-| 29 | `src/pages/BookingFlow.tsx:3715` | `[系統自動取消] 並發下訂庫存複驗失敗：…` | 否 |
+| H1 | `hotelnabe-order-receiver/index.ts:481-487`（`upsertHotelnabeOrder.updateById`，核心 `upsertHotelnabeOrderCore:447`） | UPDATE 整包 payload | order_source, ota_channel, hotelnabe_res_id, hotelnabe_last_modify, hotelnabe_sync_state, accommodation_id, room_type_id, package_id, check_in_date, check_out_date, guest_count, guest_name, guest_phone, guest_email, total_price, final_price, paid_amount, order_status, payment_status, cancelled_at, notes |
+| H2 | `hotelnabe-order-receiver/index.ts:472-479` | INSERT | （建單，不改） |
 
-### 補 context 現況
+`hotelnabe-push-inventory`、`-worker`、`-backfill-inventory`、`-retrieve-rooms` 皆不寫 orders（只動庫存／log 表）。
 
-**全 repo 查無任何呼叫端呼叫 `set_order_change_context()`。** 目前只有 3 處出現該名稱：migration `20260909071053`（定義）、`src/integrations/supabase/types.ts:14200`（自動產生型別）、`docs/v55c0/*`（設計文件）。也就是 **40 支全部都還沒補**。
+## 二、欄位需求評估
 
----
+現有白名單只有付款／訂單狀態／退款／押金／入住扣款／notes。兩批共有 **21 個欄位不在白名單內**，必須擴充：
 
-## 二、分類：純內部稽核 vs 客人/OTA 需要看到
-
-判斷依據是既有白名單 `src/utils/guestNotesWhitelist.ts` 與 `supabase/functions/_shared/owltingNotesWhitelist.ts`（兩份同規則、有 parity 測試）：
-- `LINE_RES` 會剝除：行首 `🔒`、`【付款狀態變更】`、行首 `[標籤]`、含 `rec_trade_id`、`【取消】`、`取消政策：`、`退款處理：`、`原因：` 等。
-- `BLOCK_RES` 會整塊剝除：`【額外現場加購備註/金額…END】`。
-- **未被剝除（客人／OTA 看得到）**：`【退款】`、`【系統】`、`【金額修改】`、`【訂單狀態變更】`、`【來源變更】`、`【包區/包棟房間配置】`（刻意保留）、`【保留單】`、`【訂單類型/專案/其他營收】`。
-
-### 分類 A — 純內部稽核，且欄位已被 `order_change_log` 完整覆蓋 → 可評估移除
-- #11 `change-order-dates` 改期行（`check_in_date`/`check_out_date` 已追蹤，操作者已在 log 的 actor）
-- #23 `OrderSourceDialog`【來源變更】（`order_source` 已追蹤）— 但此行客人看得到，移除等於「客人少看到一行」，屬安全方向
-- #17/#20 `🔒[金額異動 …]`（total/final/discount/paid 皆已追蹤）— 惟「原因」文字不在 log 內，需搭配 context 的 `reason` 一併帶入才可移除
-- #21 `【付款狀態變更】`（`payment_status` 已追蹤；同樣需把 reason 帶進 context）
-
-### 分類 B — 內部用，但內容不是 `orders` 欄位或屬資料載體 → **不可移除**
-- #1〜#9 全部金流 webhook／扣款行：`rec_trade_id`、`auth_code`、`refund_id`、TapPay 錯誤訊息、`[TAPPAY_SYNC_REFUNDED:n]`（此標記還被 `tappay-sync-refund:23` 反向解析）
-- #7 逾期付款說明、#12 人工審核處理內容與處理人
-- #19/#24 `【額外現場加購備註/金額】`、`【包區房間配置】`：`OrderDetail.tsx:632,671,3293` 會**回讀解析**，屬結構化資料載體
-- #25 客服人工審核 5 種說明（核准改期／人數／重新計價／結案／客服說明）
-
-### 分類 C — 客人／OTA 需要看到 → **不可動**
-- #10 取消政策與退款說明、#13/#14 會員與訪客自助取消的政策、退款比例、手續費說明
-- #15 團購【退款】/【取消】、#16【系統】逾期自動取消
-- #18 `【金額修改】{原因}`、#22`【訂單狀態變更】`（含原因，屬對客說明）
-- #26〜#29 建單／保留單／匯入／庫存複驗自動取消的說明文字
-
-**先不動任何一項，等你確認分類後再談移除。**
-
----
-
-## 三、批次一（金流）補 context — 技術前提與完整 diff
-
-### 阻擋點（必須先解決）
-`set_order_change_context()` 用 `set_config(..., is_local => true)`，是**交易內有效**。Edge Function 透過 PostgREST 呼叫 `rpc()` 與 `.update()` 是**兩個獨立交易**（且 Supavisor 可能換連線），所以「先 rpc 再 update」拿不到 context。
-
-**建議做法（批次一同時要做的一支 migration）**：新增一支把「設 context + 更新訂單」包在同一交易的 RPC。
-
-**修正（回應你的第一點）**：初版欄位清單確實漏了 `cancel-order-with-refund` 用到的欄位，這是遺漏、不是刻意排除。逐一比對該檔 `patch`（:293-308）與 :241 的失敗分支後，需補上：`order_status`、`cancelled_at`、`refund_status`、`refunded_at`、`refund_rec_trade_id`、`refunded_amount`（原本有）。同時把 `charge-room-on-checkin` 的 `room_charge_status`、`room_charge_scheduled_date` 一併納入。
-
-另一個初版缺陷：用 `COALESCE(p_patch->>'x', o.x)` 無法把欄位「設成 NULL」，但 `tappay-notify` 確實會把 `balance_payment_method` 設為 null。改用 `p_patch ? 'key'` 判斷。
-
-```sql
-CREATE OR REPLACE FUNCTION public.update_order_with_context(
-  p_order_id uuid, p_patch jsonb,
-  p_source text, p_reason text DEFAULT NULL,
-  p_actor_label text DEFAULT NULL, p_actor_type text DEFAULT 'system'
-) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE
-  c_allowed CONSTANT text[] := ARRAY[
-    -- 付款
-    'payment_status','paid_amount','refunded_amount','payment_method',
-    'balance_payment_method','deposit_payment_method',
-    -- 訂單狀態／取消退款（cancel-order-with-refund）
-    'order_status','cancelled_at','confirmed_at',
-    'refund_status','refunded_at','refund_rec_trade_id',
-    -- 押金
-    'deposit_status','deposit_method','deposit_charged_amount','deposit_charged_at',
-    'deposit_refunded_amount','deposit_refunded_at',
-    -- 入住扣款
-    'room_charge_status','room_charge_scheduled_date',
-    -- 備註
-    'notes'
-  ];
-  v_key text;
-  v_type text;
-  v_sets text[] := '{}';
-BEGIN
-  PERFORM public.set_order_change_context(p_source, p_reason, p_actor_label, p_actor_type);
-  FOR v_key IN SELECT jsonb_object_keys(p_patch) LOOP
-    IF NOT (v_key = ANY(c_allowed)) THEN
-      RAISE EXCEPTION 'update_order_with_context: 欄位不在白名單內 (%)', v_key;
-    END IF;
-    SELECT atttypid::regtype::text INTO v_type FROM pg_attribute
-     WHERE attrelid = 'public.orders'::regclass AND attname = v_key AND attnum > 0;
-    v_sets := v_sets || format('%I = ($1->>%L)::%s', v_key, v_key, v_type);
-  END LOOP;
-  IF array_length(v_sets,1) IS NULL THEN RETURN; END IF;
-  EXECUTE format(
-    'UPDATE public.orders SET %s, updated_at = now() WHERE id = $2',
-    array_to_string(v_sets, ', ')
-  ) USING p_patch, p_order_id;
-END; $$;
-REVOKE ALL ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) TO service_role;
+```
+room_type_id, package_id, check_in_date, check_out_date, guest_count,
+guest_name, guest_phone, guest_email,
+total_price, final_price, discount_amount,
+ota_channel, owlting_reservation_id, owlting_unique_id, owlting_sync_state,
+hotelnabe_res_id, hotelnabe_last_modify, hotelnabe_sync_state,
+is_pii_pending, requires_owner_review, internal_email_sent, internal_email_sent_at
 ```
 
-**測試發現的修正**：原設計寫死 `::text`，實測直接失敗（`column "paid_amount" is of type integer but expression is of type text`）。改為從 `pg_attribute` 查出該欄位真實型別再轉型，測試才全數通過。
+重疊／衝突檢查：
+- 與金流批次重疊的只有 `payment_status`、`paid_amount`、`order_status`、`cancelled_at`、`notes`，語意一致（同欄位同型別），不衝突。
+- 新欄位皆為新增，不改動既有 24 個欄位的定義；RPC 以 `pg_attribute` 動態取型別，jsonb（`owlting_sync_state`/`hotelnabe_sync_state`）與 boolean 都能正確 cast（測試 T4/T5/T3 已驗）。
+- **刻意不入白名單**：`accommodation_id`、`order_number`、`order_source`（換館／換來源屬高風險，HotelNabe update 雖然帶 `order_source/accommodation_id`，但值恆等於原值，改法是從 patch 剔除）。
 
-## BEGIN…ROLLBACK 實測結果（正式資料，訂單 CE2V95Y5，全部已回滾）
+## 三、技術前提（與金流批次不同的三點）
 
-| 項目 | 實際輸出 |
-| --- | --- |
-| 0 欄位型別 | `paid_amount=integer, refunded_amount=integer, cancelled_at=timestamptz, refunded_at=timestamptz, balance_payment_method=text, order_status=text, refund_status=text` |
-| 1 數字型別 | 前 `paid=6983` → 傳入字串 `"12345"` → 後 `paid=12345` |
-| 2 時間型別 | 傳入 `2026-09-09T22:30:00+08:00` → 庫內 UTC `2026-09-09 14:30:00`、換算台北 `2026-09-09 22:30:00`（正確） |
-| 3 明確 NULL | `refund_rec_trade_id`：先設 `REC_X` → 傳 `{"refund_rec_trade_id":null}` → 讀回 `<NULL 正確>`，log fields=`refund_rec_trade_id` |
-| 4 白名單 | 傳 `final_price` → `已擋下：update_order_with_context: 欄位不在白名單內 (final_price)`，`paid 前=12345 後=12345`（整筆 UPDATE 未執行） |
-| 5a 退款失敗分支 | `refund_status=failed, refund_rec_trade_id=REC_TEST_241` |
-| 5b 主要取消 | `order_status=cancelled, cancelled_at台北=2026-09-09 22:35:00, paid=0, payment_status=refunded, refunded_amount=12345, refund_status=refunded, refunded_at台北=2026-09-09 22:35:00` |
-| 6 order_change_log | 3 筆全部寫入。例：`source=admin_cancel_refund｜reason=自動退刷 NT$12345｜actor_type=system｜actor_label=取消退款（操作者 tester@example.com）｜fields=notes,paid_amount,refunded_at,cancelled_at,order_status,refund_status,payment_status,refunded_amount,refund_rec_trade_id｜UTC=2026-09-09 14:49:47｜台北=2026-09-09 22:49:47` |
+1. **批次 UPDATE 不相容**：B2、B7 目前是一次 `.in(ids)` / `.eq(owlting_reservation_id)` 更新多筆；RPC 是單筆 `p_order_id`。改法為先 SELECT 出 id 清單，再逐筆呼叫 RPC（每筆各自產生一列 order_change_log）。
+2. **INSERT 不走 RPC**：B3/B6/B9/H2 維持原樣，建單由既有 `zzz_order_change_log` 的 insert 分支記錄。
+3. **HotelNabe 是整包 payload**：改法是在 `updateById` 前以白名單 pick 出可更新欄位，剔除 `accommodation_id`/`order_source`（值不變）。核心 `upsertHotelnabeOrderCore` 的介面不動，只換 live wrapper 的 `updateById` 實作，`upsert_test.ts` 不受影響。
 
-回滾後重查該筆訂單：`paid_amount=6983, order_status=confirmed, cancelled_at=NULL, refund_status=none, refund_rec_trade_id=NULL, notes 未被污染`。
+## 四、Migration（若核准）
 
-**一個必須告訴你的既有行為**：`balance_payment_method` 設 NULL 測不出來——它會被既有的 `trg_sync_order_payment_fields`（BEFORE UPDATE）改回 `atm`。實測「直接 UPDATE 設 NULL」也一樣被改回，所以這不是本 RPC 的問題，是原本就有的 trigger 行為，本次不動它。若 `tappay-notify` 真的需要把它清空，要另案處理該 trigger。
+新增 `update_order_with_context` 的 `CREATE OR REPLACE`（同一 migration 內同時 `REVOKE ALL ... FROM PUBLIC, anon, authenticated` 並 `GRANT EXECUTE TO service_role`，postcheck 明確驗 anon/authenticated/PUBLIC 無權），僅擴充 `c_allowed` 陣列，其餘邏輯一字不動。
 
-**時區說明**：`cancelled_at`／`changed_at` 都是 `timestamptz`，資料庫存 UTC 是正確設計；台北時間由查詢或前端換算（上表已同時列出兩者，換算差 8 小時正確）。前端顯示是否一律轉台北，屬另一個檢查項，不在本 RPC 範圍。
-
-
-
-### 關於 `cancel-order-with-refund`
-它**走同一支 RPC**，不另外設計；但它有兩個寫入點、欄位組合較複雜，會在批次一 diff 裡單獨列出，不用「同形狀改法」一句帶過：
-- `:241`（TapPay 退款失敗分支）patch = `{refund_status:'failed', refund_rec_trade_id}`，`p_source='admin_cancel_refund'`、`p_reason='TapPay 退款失敗（代碼 …）'`
-- `:309`（主要取消）patch = `{order_status, cancelled_at, notes}` ＋ 依 refundAction 追加 `paid_amount / payment_status / refunded_amount / refund_rec_trade_id / refunded_at / refund_status`
-
-### 關於 `actor_type = 'human'`（回應你的第二點）
-如實說明：**目前設計下顯示不出「真人」**。
-1. `resolve_change_actor()`（migration `20260909071053`）在 `auth.uid() IS NULL` 時（service_role 呼叫必然如此）**直接忽略傳入的 `actor_type`**，硬寫成 `actor_type='system'`，只保留 `actor_label`。
-2. `OrderAuditLogCard.tsx:167,224` 只有 `actor_type === 'user'` 才顯示「{姓名}・編輯」；其他一律渲染成 `系統・{actor_label}`。
-3. 所以 `charge-deposit`（人工觸發）、`refund-deposit` 會顯示成 **「系統・admin@example.com」**，與 `human` 想表達的意思確實有落差。
-4. 另外 `'human'` 這個值本身也不被 UI 認得——即使 `auth.uid()` 存在，`actor_type` 會被寫成 `'human'` 而非 `'user'`，一樣會落到「系統・」分支。
-
-**批次一的處理方式**：不改 resolver、不引入 `'human'`。這兩支改為 `p_actor_type='system'`、`p_actor_label='押金扣款（操作者 {email}）'`，讓畫面誠實顯示「系統・押金扣款（操作者 …）」。真人歸屬要正確顯示，需要另外改 resolver 讓 service_role 可帶可信任的 `actor_id`，那是獨立議題，本次不做。
-
-### 各呼叫端 diff（10 個檔案、14 個寫入點）
-
-所有改動形狀一致，以 `tappay-notify` 為例：
+## 五、各呼叫端 diff（示意形狀，全部相同改法）
 
 ```diff
-- await supabase.from('orders').update(updatePayload).eq('id', order.id);
-+ await supabase.rpc('update_order_with_context', {
+- await admin.from("orders").update(patch).eq("id", order.id);
++ await admin.rpc("update_order_with_context", {
 +   p_order_id: order.id,
-+   p_patch: updatePayload,
-+   p_source: isAtm ? 'tappay_atm_webhook' : 'tappay_3ds_webhook',
-+   p_reason: `付款成功 NT$${amount}`,
-+   p_actor_label: 'TapPay',
-+   p_actor_type: 'system',
++   p_patch: patch,               // 移除 updated_at
++   p_source: "owlting_email_modify",
++   p_reason: `OBE ${input.obe_number} 修改通知自動更新`,
++   p_actor_label: "OwlTing 修改通知",
++   p_actor_type: "system",
 + });
 ```
 
-各點的 source / reason / actor 對照：
+各呼叫端 source / reason / actor_label（一律 `actor_type: "system"`）：
 
-| 檔案:行號 | p_source | p_reason | actor_label / type |
+| 位置 | p_source | p_reason | p_actor_label |
 |---|---|---|---|
-| `tappay-notify:409` | `tappay_3ds_webhook`／`tappay_atm_webhook` | `付款成功 NT${amount}` | TapPay / system |
-| `tappay-notify:582` | `tappay_3ds_webhook` | `付款失敗（verified_status: …）` | TapPay / system |
-| `tappay-refund-notify:207` | `tappay_refund_webhook` | `退款成功 NT${refundAmount}` | TapPay / system |
-| `tappay-refund-notify:265` | `tappay_refund_webhook` | `退款失敗（{msg}）` | TapPay / system |
-| `tappay-sync-refund:212` | `tappay_sync_refund` | `退款累計同步 NT${total}` | TapPay 同步 / system |
-| `_shared/tappayWebhookProcessor.ts`（`orderPatch` 套用處） | `tappay_webhook` | 依 eventType：`退款成功`／`退款失敗`／`請款成功` 等 | TapPay / system |
-| `_shared/latePayment.ts:131` 之更新 | `late_payment_failsafe` | `逾期付款保險機制` | 系統 / system |
-| `charge-room-on-checkin:94` | `checkin_auto_charge` | `入住日自動扣款成功 NT${amount}` | 系統排程 / system |
-| `charge-room-on-checkin:114` | `checkin_auto_charge` | `入住日自動扣款失敗：{msg}` | 系統排程 / system |
-| `charge-room-on-checkin:151,171` | `checkin_auto_charge` | 同上（狀態同步） | 系統排程 / system |
-| `charge-deposit:115`（成功） | `deposit_charge` | `押金扣款成功 NT${amount}` | `押金扣款（排程）` 或 `押金扣款（操作者 {email}）` / system |
-| `charge-deposit:126`（失敗） | `deposit_charge` | `押金扣款失敗：{msg}` | 同上 / system |
-| `refund-deposit:116` | `deposit_refund` | `押金退款 NT${amount}` | `押金退款（操作者 {email}）` / system |
-| `bind-deposit-card:136` | `deposit_bind_card` | `綁卡成功（末四碼 {last4}）` | 客人綁卡 / system |
-| `cancel-order-with-refund:241` | `admin_cancel_refund` | `TapPay 退款失敗（代碼 …）` | `取消退款（操作者 {email}）` / system |
-| `cancel-order-with-refund:309` | `admin_cancel_refund` | 依 refundAction：`自動退刷 NT$…`／`需手動退款`／`未退款` | `取消退款（操作者 {email}）` / system |
+| B1 | `owlting_email_modify` | OBE {obe} 修改通知自動更新 | OwlTing 修改通知 |
+| B2 | `owlting_email_cancel` | OBE {obe} 取消通知 | OwlTing 取消通知 |
+| B4 | `owlting_fillup_submit` | 業主補齊 PII（OBE {obe}） | 業主填單連結 |
+| B5 | `owlting_fillup_submit` | 內部確認信已寄出 | 系統寄信 |
+| B7 | `owlting_cm` | OTA Cancel（{uniqueId}） | OwlTing CM |
+| B8 | `owlting_cm` | OTA Modify（{uniqueId}） | OwlTing CM |
+| B10 | `owlting_email_ingest` | 成立通知抵達，清除等待付款鎖房標記 | OwlTing 信件解析 |
+| B11 | `owlting_cleanup_stale` | 48h 未成立，自動釋放鎖房 | 系統排程 |
+| B12 | `owlting_order_push` | 推送 {res_status} 成功回寫 | OwlTing 推送 |
+| B13 | `owlting_selfpush_link` | 自動連結 OBE {obe} | OwlTing 自推比對 |
+| H1 | `hotelnabe_receiver` | HotelNabe {resStatus}（ResID {id}） | HotelNabe 訂單接收 |
 
-（全部 `actor_type` 一律 `system`，理由見上一節；`actor_label` 內含操作者 email 以保留人的歸屬線索。）
+B2 / B7 額外把批次更新改為「先查 id → 逐筆 RPC」。
 
-### 本次範圍界線
-依你的指示，**分類 A 的 notes 文字這次一律不移除**（change-order-dates 改期行、OrderSourceDialog 來源變更、金額異動 🔒 行、付款狀態變更行都原樣保留）。批次一只做「補 context」與上面那支 RPC，不動任何 notes 內容。
+## 六、BEGIN…ROLLBACK 實測結果（正式訂單 KT3V68U2）
 
-### 其餘批次（僅列清單，本次不設計）
-- 批次二 OwlTing：`owlting-change-notify`、`owlting-fillup-issue`、`owlting-fillup-remind`、`owlting-cleanup-stale-pending`、OwlTing 匯入 staging 相關寫入
-- 批次三 HotelNabe：`hotelnabe-*` 訂單回寫路徑
-- 批次四 已結清折扣／加購 RPC：`update_paid_order_discount_v2`、`update_paid_order_addons_v3`
-- 批次五 `/admin` 手動：OrderDetail 內嵌編輯、5 個對話框、`OrderManualReviewCard`、`PaidAmountEditDialog`
-- 批次六 團購／KOL／匯入低頻：`group-buy-cancel-refund`、`group-buy-expire-orders`、`group-buy-order-lookup`、`claim-order`、`member-order-manage`、`public-order-cancel`、`change-order-dates`、`ImportOrdersDialog`
+以擴充後白名單的暫時函式在單一交易內模擬，最後 ROLLBACK：
 
----
+| # | 情境 | 實際輸出 |
+|---|---|---|
+| T1 | OwlTing 修改通知 | in=2026-09-25 out=2026-09-27 guests=3 total=4000 final=4000 paid=4000 notes=[T1 奧丁丁修改通知] |
+| T2 | OwlTing 取消 | status=cancelled cancelled_taipei=2026-09-09 23:00 |
+| T3 | 業主補單（含 boolean 欄位） | name=王小明 phone=0912345678 email=a@b.com ota=agoda pay=paid pii_pending=f review=t |
+| T4 | 推送回寫（jsonb） | uid=UQ-T4 sync={"mode": "live", "last_action": "Commit"} |
+| T5 | HotelNabe 整包更新 | res=HN-T5 lm_taipei=2026-09-09 22:00 sync={"res_status": "Commit"} status=confirmed pay=paid |
+| T6 | 非白名單欄位 accommodation_id | OK 已攔截：`欄位不在白名單內 (accommodation_id)` |
+| T7 | order_change_log | rows=5，sources = hotelnabe_receiver, owlting_cm, owlting_email_modify, owlting_fillup_submit, owlting_order_push；actor_labels 含 owner@example.com |
 
-未施工、未部署。等你確認分類與批次一做法後再繼續。
+回滾後查證訂單原狀：`KT3V68U2 / 2026-09-21 / 2 人 / TSENG HSIUHUNG / confirmed / hotelnabe_res_id=(null)`，暫時函式殘留 0 支。
+
+## 七、範圍界線
+- 不移除任何 notes 文字（分類 A 仍延後）。
+- 不改 INSERT 路徑、不改 order_rooms / order_meta / staging 寫入、不改前端。
+- 批次二、批次三可分開核准；擴充白名單的 migration 為兩批共用，先核准的那一批一起帶。
