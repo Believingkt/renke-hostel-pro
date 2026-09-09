@@ -109,6 +109,9 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
             _order_id: active.order_id,
             _new_check_in: active.requested_check_in,
             _new_check_out: active.requested_check_out,
+            _source: "manual_review_date_change",
+            _reason: note.trim() || null,
+            _actor_label: operator,
           });
           if (rpcErr) {
             toast.error(
@@ -122,10 +125,12 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
             `🔒 [${stamp}] 客服核准改期：→ ${active.requested_check_in} ~ ${active.requested_check_out}｜操作：${operator}`,
           );
         } else if (active.requested_guest_count != null) {
-          const { error } = await supabase
-            .from("orders")
-            .update({ guest_count: active.requested_guest_count })
-            .eq("id", active.order_id);
+          const { error } = await supabase.rpc("update_order_fields_v1", {
+            p_order_id: active.order_id,
+            p_patch: { guest_count: active.requested_guest_count },
+            p_source: "manual_review_guest_count",
+            p_reason: note.trim() || null,
+          });
           if (error) {
             toast.error(error.message);
             return;
@@ -137,10 +142,12 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
 
         const finalAmount = Number(amount);
         if (amount !== "" && Number.isFinite(finalAmount)) {
-          const { error: amtErr } = await supabase
-            .from("orders")
-            .update({ final_price: finalAmount })
-            .eq("id", active.order_id);
+          const { error: amtErr } = await supabase.rpc("update_order_fields_v1", {
+            p_order_id: active.order_id,
+            p_patch: { final_price: finalAmount },
+            p_source: "manual_review_repricing",
+            p_reason: note.trim() || null,
+          });
           if (amtErr) {
             toast.error(amtErr.message);
             return;
@@ -162,12 +169,14 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
         .select("notes")
         .eq("id", active.order_id)
         .maybeSingle();
-      await supabase
-        .from("orders")
-        .update({
+      await supabase.rpc("update_order_fields_v1", {
+        p_order_id: active.order_id,
+        p_patch: {
           notes: cur?.notes ? `${cur.notes}\n${noteLines.join("\n")}` : noteLines.join("\n"),
-        })
-        .eq("id", active.order_id);
+        },
+        p_source: "manual_review_note",
+        p_reason: null,
+      });
 
       const { error: taskErr } = await supabase
         .from("order_manual_review_tasks")

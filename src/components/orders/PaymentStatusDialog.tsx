@@ -59,14 +59,16 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
         ? `\n【付款狀態變更】${getPaymentStatusConfig(order.payment_status).label} → ${getPaymentStatusConfig(selectedStatus).label}：${reason.trim()}`
         : `\n【付款狀態變更】${getPaymentStatusConfig(order.payment_status).label} → ${getPaymentStatusConfig(selectedStatus).label}`;
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: {
           payment_status: selectedStatus,
           paid_amount: paidAmount,
           notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-        })
-        .eq("id", order.id);
+        },
+        p_source: "admin_payment_status_dialog",
+        p_reason: reason.trim() || null,
+      });
 
       if (error) throw error;
 

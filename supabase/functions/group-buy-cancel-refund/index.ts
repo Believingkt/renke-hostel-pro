@@ -331,17 +331,21 @@ Deno.serve(async (req) => {
         reason ? `退款備註：${reason}` : null,
       ].filter(Boolean).join("\n");
 
-      const { error: uErr } = await admin
-        .from("orders")
-        .update({
+      const { error: uErr } = await admin.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: {
           refunded_amount: totalRefunded,
           refund_fee_amount: totalRefundFee,
           refunded_at: nowIso,
           refund_status: refundStatus,
           ...(paymentStatus ? { payment_status: paymentStatus } : {}),
           notes,
-        })
-        .eq("id", order.id);
+        },
+        p_source: "group_buy_refund",
+        p_reason: reason || null,
+        p_actor_label: actor,
+        p_actor_type: "system",
+      });
       if (uErr) throw uErr;
 
 
@@ -522,9 +526,9 @@ Deno.serve(async (req) => {
     ].filter(Boolean).join("\n");
 
 
-    const { error: uErr } = await admin
-      .from("orders")
-      .update({
+    const { error: uErr } = await admin.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         order_status: "cancelled",
         cancelled_at: (order as any).cancelled_at ?? nowIso,
         refunded_amount: totalRefunded,
@@ -533,8 +537,12 @@ Deno.serve(async (req) => {
         refund_status: refundStatus,
         ...(cancelPaymentStatus ? { payment_status: cancelPaymentStatus } : {}),
         notes: noteLines,
-      })
-      .eq("id", order.id);
+      },
+      p_source: "group_buy_cancel",
+      p_reason: reason || null,
+      p_actor_label: actor,
+      p_actor_type: "system",
+    });
     if (uErr) throw uErr;
 
 

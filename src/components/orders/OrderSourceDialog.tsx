@@ -102,10 +102,12 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
         updatePayload.owner_direct = true;
       }
 
-      const { error } = await supabase
-        .from("orders")
-        .update(updatePayload)
-        .eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: updatePayload,
+        p_source: "admin_order_source_dialog",
+        p_reason: null,
+      });
 
 
       if (error) throw error;

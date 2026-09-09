@@ -1253,10 +1253,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         }
       }
 
-      const { error } = await supabase
-        .from("orders")
-        .update(updateData as any)
-        .eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: updateData as any,
+        p_source: "admin_order_inline_edit",
+        p_reason: null,
+      });
 
       if (error) throw error;
 
@@ -1440,10 +1442,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     if (!order) return;
     setIsCancelling(true);
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
-        .eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: { order_status: "cancelled", cancelled_at: new Date().toISOString() },
+        p_source: "admin_order_cancel",
+        p_reason: null,
+      });
       if (error) throw error;
       // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
       toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
@@ -1467,7 +1471,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         if (!order.checked_in_at) patch.checked_in_at = new Date().toISOString();
       }
       if (action === "undo_checkout") patch.checked_out_at = null;
-      const { error } = await supabase.from("orders").update(patch as any).eq("id", order.id);
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: patch as any,
+        p_source: `admin_${action}`,
+        p_reason: null,
+      });
       if (error) throw error;
       // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
       toast({
@@ -1546,9 +1555,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           : `【金額修改】${editReason.trim()}`;
       }
 
-      const { error } = await supabase
-        .from("orders")
-        .update({
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: {
           total_price: editTotalPrice,
           discount_amount: editDiscountAmount,
           final_price: editFinalPrice,
@@ -1556,8 +1565,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           paid_amount: editPaidAmount,
           payment_status: newPaymentStatus,
           notes: nextNotes,
-        })
-        .eq("id", order.id);
+        },
+        p_source: "admin_price_edit",
+        p_reason: editReason.trim() || null,
+      });
       if (error) throw error;
 
       // 變更紀錄由 trigger 統一寫入；修改原因已寫入 notes 的稽核行（V5.5C.2）
