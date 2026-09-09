@@ -582,13 +582,14 @@ Deno.serve(async (req) => {
           ? `${order.notes}\n${failureNote}`
           : failureNote;
 
-        await supabase
-          .from('orders')
-          .update({
-            notes: newNotes,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', order.id);
+        await supabase.rpc('update_order_with_context', {
+          p_order_id: order.id,
+          p_patch: { notes: newNotes },
+          p_source: 'tappay_3ds_webhook',
+          p_reason: `付款失敗（verified_status: ${verifiedStatus}）`,
+          p_actor_label: 'TapPay',
+          p_actor_type: 'system',
+        });
 
         await supabase.from('notifications').insert({
           accommodation_id: await getAccommodationIdFromOrder(supabase, order.id),
