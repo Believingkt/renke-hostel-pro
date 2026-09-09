@@ -48,6 +48,8 @@ const ACTION_LABEL: Record<string, { text: string; tone: string }> = {
   order_source_change: { text: "來源變更", tone: "bg-indigo-100 text-indigo-700" },
   kol_quota_override: { text: "KOL額度覆寫", tone: "bg-orange-100 text-orange-700" },
   order_date_change: { text: "訂單改期", tone: "bg-fuchsia-100 text-fuchsia-700" },
+  system_update: { text: "系統自動變更", tone: "bg-slate-100 text-slate-700" },
+  system_create: { text: "建立訂單", tone: "bg-green-100 text-green-700" },
 };
 
 function getActionLabel(details: any, action_type: string) {
