@@ -388,7 +388,11 @@ export function buildTimelineItems(input: {
     actorType: (uid ? "user" : "system") as ActorType,
     actorId: uid,
     actorEmail: null,
-    actorLabel: uid ? null : (typeof e.triggered_by === "string" && e.triggered_by) || e.trigger_source || "system",
+    actorLabel: uid
+      ? null
+      : (typeof e.triggered_by === "string" && e.triggered_by) ||
+        (e.trigger_source ? TRIGGER_SOURCE_LABEL[e.trigger_source] || e.trigger_source : null) ||
+        "system",
     badge: {
       text: EMAIL_STATUS_LABEL[e.status] || e.status,
       tone: EMAIL_STATUS_TONE[e.status] || "bg-zinc-100 text-zinc-700",
