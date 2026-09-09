@@ -1574,25 +1574,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         .eq("id", order.id);
       if (error) throw error;
 
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: auditError } = await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: "price_edit", reason: editReason.trim(), old: oldValues, new: newValues, changes: Object.keys(newValues).filter(k => (oldValues as any)[k] !== (newValues as any)[k]).map(k => ({ field: k, label: k, before: (oldValues as any)[k], after: (newValues as any)[k] })) } as any,
-          }]);
-          if (auditError) throw auditError;
-        }
-      } catch (e) {
-        console.error("Audit log error:", e);
-      }
+      // 變更紀錄由 trigger 統一寫入；修改原因已寫入 notes 的稽核行（V5.5C.2）
 
       toast({ title: "金額修改成功", description: "訂單金額已更新" });
       setShowPriceEditDialog(false);
