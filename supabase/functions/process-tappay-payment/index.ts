@@ -127,10 +127,19 @@ serve(async (req) => {
         });
       }
       const admin = createClient(supaUrl, svcKey);
+      // V5.5B.5：草稿在此刻就先驗身分並覆寫，下游 create-paid-order 補單才可以信任它
+      const safeMemberId = await resolveMemberId(req, admin, (payload.memberId as string | null) ?? null);
+      if (safeMemberId !== ((payload.memberId as string | null) ?? null)) {
+        console.warn('[process-tappay-payment] draft memberId overridden', {
+          requested: payload.memberId ?? null,
+          applied: safeMemberId,
+        });
+      }
+      const safePayload = { ...payload, memberId: safeMemberId };
       const { error: draftError } = await admin.from('pending_paid_order_drafts').upsert({
         idempotency_key: orderId,
         expected_amount: amount,
-        order_payload: payload,
+        order_payload: safePayload,
         status: 'pending_3ds',
         last_error: null,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
