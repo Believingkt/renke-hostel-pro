@@ -123,7 +123,7 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
 import { reportFrontendError } from "@/utils/errorReporter";
-import { recordOrderAttribution } from "@/lib/attribution";
+import { recordOrderAttribution, getAnalyticsSessionId } from "@/lib/attribution";
 import {
   buildNightDates,
   verifyAdjustedInventory,
@@ -3286,6 +3286,7 @@ const BookingFlow = () => {
             tripId: tripCheckoutTripId,
             adultsCount: contextGuests?.adults || 2,
             nights,
+            attributionSessionId: getAnalyticsSessionId(),
           };
 
           // 立即請款：走 TapPay 3D 驗證（正式商店代號不接受免 3DS 直接請款，會回 10023）
@@ -3610,6 +3611,7 @@ const BookingFlow = () => {
           .insert([{
             accommodation_id: accommodationId,
             room_type_id: selectedRoom.id,
+            attribution_session_id: getAnalyticsSessionId(),
              customer_id: customerId,
              member_id: effectiveMemberId,
              order_number: "", // 由資料庫 trigger 自動生成

@@ -301,6 +301,10 @@ Deno.serve(async (req) => {
         room_quantity: (body as any).roomQuantity ?? 1,
         custom_addon_details: body.customAddonDetails ?? null,
         order_source: "website",
+        attribution_session_id:
+          typeof (body as any).attributionSessionId === "string"
+            ? String((body as any).attributionSessionId).slice(0, 128)
+            : null,
 
       }])
       .select()
