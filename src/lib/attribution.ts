@@ -1,4 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
+import { reportFrontendError } from "@/utils/errorReporter";
+
+const ATTR_SESSION_KEY = "analytics_session_id";
+
+/** 下單當下的瀏覽 session 識別碼（由 use-page-analytics 於頁面載入時產生） */
+export const getAnalyticsSessionId = (): string | null => {
+  try {
+    return sessionStorage.getItem(ATTR_SESSION_KEY);
+  } catch {
+    return null;
+  }
+};
 
 /**
  * 廣告歸因（首次接觸 + 最後點擊 雙軌）
@@ -109,14 +121,9 @@ export const recordOrderAttribution = async (
     const last = readTouch(LAST_KEY) || first;
     if (!first && !last) return;
 
-    let sessionId: string | null = null;
-    try {
-      sessionId = sessionStorage.getItem("analytics_session_id");
-    } catch {
-      sessionId = null;
-    }
+    const sessionId = getAnalyticsSessionId();
 
-    await supabase.from("order_attributions").insert({
+    const { error } = await supabase.from("order_attributions").insert({
       order_id: orderId,
       accommodation_id: accommodationId,
       session_id: sessionId,
@@ -137,7 +144,32 @@ export const recordOrderAttribution = async (
       campaign_id: last?.campaign_id ?? first?.campaign_id ?? null,
       landing_path: first?.landing_path ?? null,
     });
+
+    if (error) {
+      const conflict = error.code === "23505";
+      console.warn("attribution record failed", error);
+      void reportFrontendError({
+        category: conflict ? "attribution_conflict" : "attribution_insert_failed",
+        step: "record_order_attribution",
+        accommodationId,
+        errorCode: error.code,
+        errorMessage: error.message,
+        context: {
+          order_id: orderId,
+          session_prefix: sessionId ? sessionId.slice(0, 8) : null,
+          landing_path: first?.landing_path ?? null,
+          suspected_preemptive_write: conflict,
+        },
+      });
+    }
   } catch (e) {
     console.warn("attribution record failed", e);
+    void reportFrontendError({
+      category: "attribution_insert_failed",
+      step: "record_order_attribution",
+      accommodationId,
+      errorMessage: e instanceof Error ? e.message : String(e),
+      context: { order_id: orderId },
+    });
   }
 };
