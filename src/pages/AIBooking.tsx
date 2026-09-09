@@ -1952,26 +1952,30 @@ export default function AIBooking() {
         {/* 輸入框 */}
         <div className="px-3 pt-2 pb-1">
           <div className="flex gap-2">
-            <input
-              ref={fileInputMobileRef}
-              type="file"
-              accept="image/*,.pdf"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-            <Button
-              onClick={() => openAttachmentPicker(fileInputMobileRef)}
-              disabled={isLoading || isUploading}
-              size="icon"
-              variant="ghost"
-              className="h-10 w-10 rounded-full shrink-0"
-            >
-              {isUploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Paperclip className="h-4 w-4" />
-              )}
-            </Button>
+            {!isNative && (
+              <>
+                <input
+                  ref={fileInputMobileRef}
+                  type="file"
+                  accept="image/*,.pdf"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+                <Button
+                  onClick={() => openAttachmentPicker(fileInputMobileRef)}
+                  disabled={isLoading || isUploading}
+                  size="icon"
+                  variant="ghost"
+                  className="h-10 w-10 rounded-full shrink-0"
+                >
+                  {isUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Paperclip className="h-4 w-4" />
+                  )}
+                </Button>
+              </>
+            )}
             <Button
               onClick={toggleRecording}
               disabled={isLoading || isTranscribing}
