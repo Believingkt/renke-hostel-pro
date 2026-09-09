@@ -796,10 +796,10 @@ serve(async (req) => {
     let abTestPicked: 'A' | 'B' | null = null;
 
     const fetchByVersion = async (v: number) => {
-      const { data } = await supabase
+      const { data } = await scoped(supabase
         .from('ai_prompts')
         .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
-        .eq('version', v)
+        .eq('version', v))
         .maybeSingle();
       return data;
     };
@@ -807,10 +807,10 @@ serve(async (req) => {
     if (explicitVersion) {
       dbPrompt = await fetchByVersion(explicitVersion);
     } else if (isDraft) {
-      const { data } = await supabase
+      const { data } = await scoped(supabase
         .from('ai_prompts')
         .select('id, version, system_prompt, tone_rules, forbidden_topics, persona_name, status')
-        .eq('status', 'draft')
+        .eq('status', 'draft'))
         .order('version', { ascending: false })
         .limit(1)
         .maybeSingle();
