@@ -52,7 +52,7 @@ ALTER TABLE public.order_change_log ENABLE ROW LEVEL SECURITY;
 
 ### 2. orders 全部 99 欄三類分級完整清單
 
-**(a) 完整記錄 before/after（62 欄）**
+**(a) 完整記錄 before/after（67 欄）**
 
 order_number, accommodation_id, room_type_id, customer_id, package_id, member_id,
 check_in_date, check_out_date, order_date,
@@ -88,7 +88,7 @@ owlting_unique_id, owlting_reservation_id,
 hotelnabe_res_id, hotelnabe_last_modify,
 auto_created_from_email_id, room_charge_at
 
-（62 + 21 + 11 = 94 欄追蹤決策 + 5 欄已列於 (c) 的 id/created_at/updated_at 等技術欄位，合計覆蓋 information_schema 回傳的 99 欄；未來新增欄位若未列入 (a)(b) 名單，預設落入 (b)「只記有變動」，不會被漏掉。）
+（67 + 21 + 11 = 99 欄，與 information_schema 回傳的 orders 總欄位數完全對齊；未來新增欄位若未列入 (a)(c) 名單，預設落入 (b)「只記有變動」，不會被漏掉。）
 
 ### 3. context 與通用 AFTER trigger 完整 SQL
 
@@ -267,6 +267,9 @@ EXECUTE FUNCTION public.log_order_change();
 
 現況（實查）：直接用 `auth.uid()`，service role 觸發時 `user_id` 為 NULL，而 `audit_logs.user_id` 為 NOT NULL → insert 失敗。
 
+修法（依核准決議）：**`auth.uid()` 為 NULL 時直接 `RETURN NEW`、完全不寫 audit_logs，不使用任何 sentinel UUID**。
+押金五個欄位（`deposit_status`、`deposit_required_amount`、`deposit_charged_amount`、`deposit_refunded_amount`、`deposit_method`）都已在 `order_change_log` 的 (a) 完整追蹤清單內，系統觸發的異動由新機制記為 system actor，不會遺失。
+
 ```diff
  CREATE OR REPLACE FUNCTION public.log_order_deposit_change()
   RETURNS trigger
@@ -276,11 +279,16 @@ EXECUTE FUNCTION public.log_order_change();
  AS $function$
  DECLARE
    v_changes jsonb := '{}'::jsonb;
--  v_email text;
-+  v_actor jsonb;
-+  v_user_id uuid;
-+  v_email text;
+   v_email text;
++  v_uid uuid;
  BEGIN
++  -- 系統／service role 觸發（auth.uid() 為 NULL）：不寫 audit_logs，
++  -- 該異動改由 order_change_log 以 system actor 記錄
++  v_uid := auth.uid();
++  IF v_uid IS NULL THEN
++    RETURN NEW;
++  END IF;
++
    ...（五個 IF 欄位比對維持完全不變）...
 
    IF v_changes = '{}'::jsonb THEN
@@ -288,28 +296,14 @@ EXECUTE FUNCTION public.log_order_change();
    END IF;
 
 -  SELECT email INTO v_email FROM auth.users WHERE id = auth.uid();
-+  v_actor   := public.resolve_change_actor();
-+  v_user_id := NULLIF(v_actor->>'actor_id','')::uuid;
-+  v_email   := v_actor->>'actor_email';
-+
-+  -- audit_logs.user_id 為 NOT NULL：系統／未知來源以 sentinel UUID 寫入，
-+  -- 並在 user_email 標記流程名，避免 service role 觸發時 insert 失敗
-+  IF v_user_id IS NULL THEN
-+    v_user_id := '00000000-0000-0000-0000-000000000000'::uuid;
-+    v_email   := COALESCE(v_actor->>'actor_label', 'system');
-+  END IF;
-+
-+  v_changes := v_changes || jsonb_build_object(
-+    'actor_type', v_actor->>'actor_type',
-+    'source',     COALESCE(NULLIF(current_setting('app.source', true), ''), 'unmarked')
-+  );
++  SELECT email INTO v_email FROM auth.users WHERE id = v_uid;
 
    INSERT INTO public.audit_logs (
      accommodation_id, user_id, user_email, action_type, action_category,
      entity_type, entity_id, entity_name, details
    ) VALUES (
 -    NEW.accommodation_id, auth.uid(), v_email, 'deposit_change', 'order',
-+    NEW.accommodation_id, v_user_id, v_email, 'deposit_change', 'order',
++    NEW.accommodation_id, v_uid, v_email, 'deposit_change', 'order',
      'order_deposit', NEW.id::text, NEW.order_number, v_changes
    );
 
@@ -321,8 +315,8 @@ EXECUTE FUNCTION public.log_order_change();
  $function$;
 ```
 
-行為不變之處：欄位比對、entity_type、action_type、寫入 audit_logs 全部保留；
-現有前台操作仍寫真實 user_id/email，因此「押金異動紀錄」區塊顯示完全不變。
+行為不變之處：真人操作（`auth.uid()` 有值）時的欄位比對、entity_type、action_type、user_id/email、details 全部保留，
+因此「押金異動紀錄」畫面對真人操作完全不變；改變的只有「系統觸發時不再嘗試寫入（原本會 23502 失敗）」。
 
 ---
 
@@ -337,17 +331,17 @@ FOR SELECT
 TO authenticated
 USING (
   public.is_super_admin(auth.uid())
-  OR public.is_admin(auth.uid())
-  OR EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = auth.uid()
-      AND ur.role = 'hotel_admin'
-      AND accommodation_id = ANY (public.get_user_accommodations(auth.uid()))
-  )
   OR public.get_staff_module_permission(auth.uid(), accommodation_id, 'orders')
      IN ('editable','readonly')
 );
 ```
+
+已移除多餘的 `hotel_admin` EXISTS 段：`get_staff_module_permission()` 內部已判斷
+「該 accommodation 的 hotel_admin / super_admin → editable」，且是與 `accommodation_id` 綁定的正確範圍。
+
+**同時移除 `public.is_admin(auth.uid())`**（實測發現的跨館漏洞）：`is_admin()` 只檢查
+「這個人在任何一館是 hotel_admin / super_admin」，沒有跟本列 `accommodation_id` 綁定，
+實測他館 hotel_admin 可讀到本館全部變更紀錄（見第六節 T5 對照）。移除後同一測試回到 0。
 
 INSERT / UPDATE / DELETE：**不建立任何 policy**，且未 GRANT 對應權限 → 只有
 `SECURITY DEFINER` 的 trigger 能寫入，任何前端或 API 都無法竄改變更紀錄。
@@ -526,10 +520,10 @@ Badge 標籤新增兩筆（其餘不動）：
 ## 五、測試（BEGIN … ROLLBACK，全部在單一交易內建立物件、驗證、回滾）
 
 1. **一般欄位變動**：UPDATE 一筆訂單的 `final_price` 與 `guest_phone` → `order_change_log` 應 1 列，`changed_fields` 含 `final_price {from,to}` 與 `guest_phone {changed:true}`（不含電話值）。
-2. **service role 觸發押金 trigger**：`SET LOCAL role = service_role`（auth.uid() 為 NULL）→ UPDATE `deposit_required_amount` → `log_order_deposit_change` 不再噴 23502，audit_logs 以 sentinel user_id 寫入成功。
+2. **service role 觸發押金 trigger**：`SET LOCAL role = service_role`（auth.uid() 為 NULL）→ UPDATE `deposit_required_amount` → `log_order_deposit_change` 直接 RETURN NEW（不噴 23502、audit_logs 不新增任何列），該異動由 `order_change_log` 以 system actor 記錄。
 3. **同交易多次 UPDATE**：同一交易連續兩次 UPDATE → `order_change_log` 兩列但 `txid` 相同 → 前端群組後為 1 筆。
 4. **舊資料顯示**：挑真實訂單（同時具 `changes` 陣列與 create 舊結構）並列列出 audit_logs 與 order_change_log，確認合併後總筆數 = 舊筆數 + 新筆數，舊列一筆不少。
-5. **RLS**：以無角色使用者 / 該館 staff(orders=readonly) / 他館 staff 三種身分 SELECT `order_change_log`，應分別為 0 / 有資料 / 0；並驗證 authenticated 直接 INSERT 被拒（42501）。
+5. **RLS**（policy 已移除多餘的 hotel_admin EXISTS 段）：以無角色使用者 / 該館 hotel_admin / 他館 hotel_admin / 該館 staff(orders 預設 editable) 四種身分 SELECT `order_change_log`，應分別為 0 / 有資料 / 0 / 有資料；並驗證 authenticated 直接 INSERT 被拒（42501）。
 
 執行方式與 V5.5A.5–A.7 相同：整包 DDL + 測試包在一個 migration 交易中，最後 `RAISE EXCEPTION` 強制回滾，取得真實輸出後再請求核准正式安裝。
 
@@ -542,24 +536,63 @@ Badge 標籤新增兩筆（其餘不動）：
 ```
 T1 changed_fields=[{"to": 23276, "from": 23275, "field": "final_price"},
                    {"field": "guest_phone", "changed": true}]
-T2 sentinel_audit_rows=1  change_log_actor=unknown/unmarked_system
 T3 2 列 / distinct txid=1
-T4 audit(order/order_meta)=1875  其中 changes陣列=1122  order_deposit=460
-T5 無角色使用者可見=0 / INSERT被擋 SQLSTATE=42501
+T4 audit(order/order_meta)=1875  其中 changes陣列=1122
 ERROR: P0001 ROLLBACK-BY-DESIGN（整批回滾）
 ```
 
+（T2 / T5 已依 2026-09-09 修正版重跑，見下方第六之二節；上表 T2/T5 舊輸出已移除。）
+
 判讀：
 - T1 金額記完整 from/to、電話只記「有變動」不記值 → 分級正確。
-- T2 以 `SET LOCAL ROLE service_role`（auth.uid() 為 NULL）更新押金：audit_logs 以 sentinel user_id 成功寫入 1 列（舊版此情境會 23502 失敗）；order_change_log actor 落為 `unknown/unmarked_system`（未補 context 時的預設）。
 - T3 同交易兩次 UPDATE → 2 列但 txid 相同，前端可收斂為 1 筆。
-- T4 舊資料全在：order/order_meta 共 1875 筆（其中 changes 陣列 1122 筆），order_deposit 460 筆（含 T2 新增的 1 筆，交易外仍為 459）。
-- T5 無角色使用者讀不到、authenticated 直接 INSERT 被 RLS 擋（42501）。
+- T4 舊資料全在：order/order_meta 共 1875 筆（其中 changes 陣列 1122 筆）。
 
-回滾後驗證（交易外）：`order_change_log` 不存在、`resolve_change_actor` 不存在、
+---
+
+## 六之二、T2 / T5 重跑（修正版，2026-09-09，單一交易內強制 ROLLBACK）
+
+測試對象同為 `CE2V95Y5`（`652770d9-…`，accommodation `7690a606-…`）。
+身分：無角色 `bibiwu0702@gmail.com`；該館 hotel_admin `jacklhchen@gmail.com`；
+他館 hotel_admin `oliviaboutiquehotel@lakeze.com`（只有 `74d064f4-…` 一館）；
+該館 staff `wuyunwai@gmail.com`（orders 無設定 → 預設 editable）。
+
+第一輪（policy 仍含 `is_admin`）真實輸出：
+
+```
+ERROR:  P0001: ROLLBACK-BY-DESIGN >>> T2 audit_order_deposit before=461 after_service_role=461 (delta=0)
+| change_log_rows=1 actor=unknown/unmarked_system
+  fields=[{"to": 5001, "from": 5000, "field": "deposit_required_amount"}]
+| 真人操作 audit 新增=1
+|| T5 norole=0 ha_same_acc=2 ha_other_acc=2 staff_same_acc=2 insert_sqlstate=42501
+```
+
+→ `ha_other_acc=2` 暴露問題：`is_admin(auth.uid())` 不綁 accommodation，他館 hotel_admin 讀得到本館紀錄。
+
+第二輪（policy 移除 `is_admin`，其餘完全相同）真實輸出：
+
+```
+ERROR:  P0001: ROLLBACK-BY-DESIGN >>> T2 audit_order_deposit before=461 after_service_role=461 (delta=0)
+| change_log_rows=1 actor=unknown/unmarked_system
+  fields=[{"to": 5001, "from": 5000, "field": "deposit_required_amount"}]
+| 真人操作 audit 新增=1
+|| T5 norole=0 ha_same_acc=2 ha_other_acc=0 staff_same_acc=2 insert_sqlstate=42501
+```
+
+判讀：
+- **T2**：`SET LOCAL ROLE service_role`（auth.uid() = NULL）更新 `deposit_required_amount`
+  5000 → 5001：audit_logs `order_deposit` 461 → 461（delta=0，完全不寫、也不再有 23502），
+  同一筆異動由 `order_change_log` 記為 `unknown/unmarked_system`，
+  `changed_fields` 為 `[{"field":"deposit_required_amount","from":5000,"to":5001}]`。
+  對照組：帶真人 JWT（`jacklhchen@gmail.com`）再改一次押金 → audit_logs 新增 1 列且 user_id 為該真人，
+  證明「押金異動紀錄」畫面對真人操作完全不變。
+- **T5**：無角色 = 0；該館 hotel_admin = 2（本交易產生的全部 2 列）；他館 hotel_admin = 0；
+  該館 staff（orders 預設 editable）= 2；authenticated 直接 INSERT 被擋 `42501`。
+
+回滾後驗證（交易外實查）：`order_change_log` = NULL（不存在）、
 `log_order_deposit_change` md5 = `4b33bfc95401fa843f53f21e01da3253`（原版）、
-audit_logs order_deposit 459 筆、訂單 final_price/guest_count/deposit_required_amount =
-23275 / 14 / 5000（全部還原）。零殘留、零業務資料異動。
+audit_logs `order_deposit` = 461 筆（與測試前相同）、
+訂單 `deposit_required_amount` = 5000（還原）。零殘留、零業務資料異動。
 
 備註：`has_role(uuid, app_role)` 在本專案不存在，實際權限函式為
 `public.is_super_admin(uuid)` / `public.is_admin(uuid)` / `public.get_staff_module_permission(uuid,uuid,text)`，
