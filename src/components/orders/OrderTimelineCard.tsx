@@ -166,10 +166,16 @@ const EMAIL_STATUS_TONE: Record<string, string> = {
 
 const TRIGGER_SOURCE_LABEL: Record<string, string> = {
   manual_resend: "手動重送",
+  auto: "自動處理",
   auto_final_payment: "系統自動（付款）",
   auto_deposit: "系統自動（訂金入帳）",
+  auto_atm_deposit: "系統自動（ATM 訂金入帳）",
+  auto_atm_final: "系統自動（ATM 尾款入帳）",
+  auto_3ds_final: "系統自動（信用卡尾款）",
   date_change: "改期重寄",
   member_cancel: "會員自行取消",
+  admin_cancel: "後台取消",
+  public_payment_status_page: "付款狀態查詢頁",
   atm_notify: "ATM 入帳通知",
 };
 
@@ -382,7 +388,11 @@ export function buildTimelineItems(input: {
     actorType: (uid ? "user" : "system") as ActorType,
     actorId: uid,
     actorEmail: null,
-    actorLabel: uid ? null : (typeof e.triggered_by === "string" && e.triggered_by) || e.trigger_source || "system",
+    actorLabel: uid
+      ? null
+      : (typeof e.triggered_by === "string" && e.triggered_by) ||
+        (e.trigger_source ? TRIGGER_SOURCE_LABEL[e.trigger_source] || e.trigger_source : null) ||
+        "system",
     badge: {
       text: EMAIL_STATUS_LABEL[e.status] || e.status,
       tone: EMAIL_STATUS_TONE[e.status] || "bg-zinc-100 text-zinc-700",
@@ -448,6 +458,7 @@ export default function OrderTimelineCard({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [resendingType, setResendingType] = useState<string | null>(null);
+  const [cardOpen, setCardOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -566,13 +577,25 @@ export default function OrderTimelineCard({
 
   return (
     <Card>
-      <CardHeader className="pb-3 space-y-3">
+      <CardHeader className={cardOpen ? "pb-3 space-y-3" : "py-3 space-y-0"}>
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <History className="h-4 w-4" />
-            訂單歷程
-            {orderNumber && <span className="text-xs text-muted-foreground font-normal">#{orderNumber}</span>}
+          <CardTitle className="text-base">
+            <button
+              type="button"
+              onClick={() => setCardOpen((v) => !v)}
+              aria-expanded={cardOpen}
+              className="flex items-center gap-2 text-left hover:opacity-80"
+            >
+              {cardOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              <History className="h-4 w-4" />
+              訂單歷程
+              {orderNumber && <span className="text-xs text-muted-foreground font-normal">#{orderNumber}</span>}
+              <span className="text-xs text-muted-foreground font-normal">
+                {loading ? "載入中…" : `共 ${counts.all} 筆`}
+              </span>
+            </button>
           </CardTitle>
+          {cardOpen && (
           <div className="flex items-center gap-2 flex-wrap">
             <Button variant="ghost" size="sm" onClick={load} disabled={loading} aria-label="重新整理">
               <RefreshCcw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
@@ -632,7 +655,9 @@ export default function OrderTimelineCard({
               </>
             ))}
           </div>
+          )}
         </div>
+        {cardOpen && (
         <div className="flex items-center gap-1.5 flex-wrap">
           {FILTERS.map((f) => (
             <Button
@@ -648,7 +673,9 @@ export default function OrderTimelineCard({
             </Button>
           ))}
         </div>
+        )}
       </CardHeader>
+      {cardOpen && (
       <CardContent>
         {loading ? (
           <div className="text-sm text-muted-foreground py-3 flex items-center gap-2">
@@ -800,6 +827,7 @@ export default function OrderTimelineCard({
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
