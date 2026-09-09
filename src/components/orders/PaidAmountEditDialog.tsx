@@ -247,10 +247,13 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
   const usesCode = discountMode === "code" || discountMode === "code_override";
+  // V5.5C5 code_keep：與訂單現有折扣碼相同 → 沿用原碼、不重新驗證，只調整金額
+  const keepExistingCode =
+    usesCode && !!oldCode && (discountCode || "").trim().toUpperCase() === oldCode;
   const codeOverridden =
     usesCode && validatedStandard != null && appliedDiscountInput !== validatedStandard;
   const effectiveDiscountMode: PaidDiscountMode = usesCode
-    ? codeOverridden
+    ? keepExistingCode || codeOverridden
       ? "code_override"
       : "code"
     : discountMode;
@@ -260,11 +263,13 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       ? 0
       : discountMode === "manual"
         ? newDiscountInput
-        : validatedStandard != null
-          ? codeOverridden
-            ? appliedDiscountInput
-            : validatedStandard
-          : oldDiscount;
+        : keepExistingCode
+          ? appliedDiscountInput
+          : validatedStandard != null
+            ? codeOverridden
+              ? appliedDiscountInput
+              : validatedStandard
+            : oldDiscount;
   const previewCode = usesCode ? (discountCode || "").trim().toUpperCase() || null : null;
 
   // 加購預估（顯示用；實際金額由後端計算）
@@ -315,7 +320,8 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const reasonOk = reason.trim().length >= 2;
   const settlementOk = settlement !== "";
-  const codeReady = mode !== "discount" || !usesCode || validation.status === "valid";
+  const codeReady =
+    mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
   const canProceed = !!snap && reasonOk && settlementOk && !isNoop && codeReady;
   const canConfirm =
     canProceed &&
@@ -328,6 +334,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
 
   const handleValidateCode = async () => {
     if (!snap?.accommodation_id) return;
+    if (keepExistingCode) return; // 沿用訂單原折扣碼，不重新驗證
     setValidation({ status: "validating" });
     setScopeError("");
     const scope = await getOrderDiscountScope(snap.id, snap.room_type_id);
@@ -532,29 +539,22 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                         value={discountCode}
                         onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                       />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="h-11 md:h-9 flex-shrink-0"
-                        disabled={validation.status === "validating" || !discountCode.trim()}
-                        onClick={handleValidateCode}
-                      >
-                        {validation.status === "validating" ? "驗證中..." : "驗證折扣碼"}
-                      </Button>
+                      {!keepExistingCode && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="h-11 md:h-9 flex-shrink-0"
+                          disabled={validation.status === "validating" || !discountCode.trim()}
+                          onClick={handleValidateCode}
+                        >
+                          {validation.status === "validating" ? "驗證中..." : "驗證折扣碼"}
+                        </Button>
+                      )}
                     </div>
-                    {scopeError && (
-                      <p className="text-xs text-destructive">{scopeError}</p>
-                    )}
-                    {validation.status === "idle" && (
-                      <p className="text-xs text-muted-foreground">尚未驗證，請先驗證折扣碼。</p>
-                    )}
-                    {validation.status === "invalid" && (
-                      <p className="text-xs text-destructive">折扣碼無效：{validation.message}</p>
-                    )}
-                    {validation.status === "valid" && (
+                    {keepExistingCode ? (
                       <>
                         <p className="text-xs text-emerald-600">
-                          驗證成功｜系統計算標準折扣金額 {NT(validation.standardAmount)}
+                          沿用此訂單原有的折扣碼 {oldCode}，不重新檢查有效期限與適用範圍，只調整折扣金額；折扣碼與分潤／業績歸屬記錄會保留，並依新金額更新。
                         </p>
                         <div className="space-y-1">
                           <Label className="text-sm" htmlFor="paid-applied-discount">實際套用折扣金額</Label>
@@ -565,10 +565,39 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                             value={appliedDiscountStr}
                             onChange={(e) => setAppliedDiscountStr(e.target.value.replace(/[^\d]/g, ""))}
                           />
-                          {codeOverridden && (
-                            <p className="text-xs text-amber-600">已人工調整折扣金額（與系統標準金額不同，折扣碼仍會保留）</p>
-                          )}
                         </div>
+                      </>
+                    ) : (
+                      <>
+                        {scopeError && (
+                          <p className="text-xs text-destructive">{scopeError}</p>
+                        )}
+                        {validation.status === "idle" && (
+                          <p className="text-xs text-muted-foreground">尚未驗證，請先驗證折扣碼。</p>
+                        )}
+                        {validation.status === "invalid" && (
+                          <p className="text-xs text-destructive">折扣碼無效：{validation.message}</p>
+                        )}
+                        {validation.status === "valid" && (
+                          <>
+                            <p className="text-xs text-emerald-600">
+                              驗證成功｜系統計算標準折扣金額 {NT(validation.standardAmount)}
+                            </p>
+                            <div className="space-y-1">
+                              <Label className="text-sm" htmlFor="paid-applied-discount">實際套用折扣金額</Label>
+                              <Input
+                                id="paid-applied-discount"
+                                inputMode="numeric"
+                                className="h-11 text-base md:h-9 md:text-sm"
+                                value={appliedDiscountStr}
+                                onChange={(e) => setAppliedDiscountStr(e.target.value.replace(/[^\d]/g, ""))}
+                              />
+                              {codeOverridden && (
+                                <p className="text-xs text-amber-600">已人工調整折扣金額（與系統標準金額不同，折扣碼仍會保留）</p>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
@@ -724,16 +753,18 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               {mode === "discount" ? (
                 <>
                   <Row label="折扣碼" before={oldCode || "—"} after={previewCode || "—"} />
-                  {usesCode && validatedStandard != null && (
+                  {usesCode && !keepExistingCode && validatedStandard != null && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">系統計算標準折扣</span>
                       <span className="tabular-nums">{NT(validatedStandard)}</span>
                     </div>
                   )}
                   <Row label="實際套用折扣" before={NT(oldDiscount)} after={NT(previewDiscount)} />
-                  {codeOverridden && (
+                  {keepExistingCode ? (
+                    <p className="text-xs text-amber-600">已沿用原折扣碼並人工指定折扣金額（模式：code_keep）</p>
+                  ) : codeOverridden ? (
                     <p className="text-xs text-amber-600">已人工調整折扣金額（保留折扣碼，模式：code_override）</p>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <>

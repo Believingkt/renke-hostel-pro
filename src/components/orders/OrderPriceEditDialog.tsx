@@ -282,8 +282,8 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
     if (!order || isDiscountLocked) return;
     const code = editDiscountCode.trim().toUpperCase();
     if (!code) return;
-    // 若與訂單原有折扣碼相同且金額未變動，不重複驗證
-    if (code === (order.discount_code || "").toUpperCase() && editDiscountAmount === order.discount_amount) {
+    // 與訂單原有折扣碼相同 → 一律不重新驗證（沿用原碼，只調整金額；折扣碼與分潤記錄保留）
+    if (code === (order.discount_code || "").toUpperCase()) {
       return;
     }
     setIsValidatingCode(true);
