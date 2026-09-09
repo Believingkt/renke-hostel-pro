@@ -1469,23 +1469,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       if (action === "undo_checkout") patch.checked_out_at = null;
       const { error } = await supabase.from("orders").update(patch as any).eq("id", order.id);
       if (error) throw error;
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { error: auditError } = await supabase.from("audit_logs").insert([{
-            user_id: user.id,
-            user_email: user.email,
-            action_type: "update",
-            action_category: "order",
-            entity_type: "order",
-            entity_id: order.id,
-            entity_name: order.order_number,
-            accommodation_id: order.accommodation_id,
-            details: { type: action, changes: Object.keys(patch).map(k => ({ field: k, label: k, before: (order as any)[k] ?? null, after: patch[k] })) } as any,
-          }]);
-          if (auditError) throw auditError;
-        }
-      } catch (e) { console.error("Audit log error:", e); }
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
       toast({
         title:
           action === "checkin" ? "已辦理入住"
