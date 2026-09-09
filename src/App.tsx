@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
 import { HQIndexGate } from "@/components/hq/HQIndexGate";
+import { HQ_AI_ROLES } from "@/lib/hqAccess";
 import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
