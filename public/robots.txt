@@ -20,5 +20,6 @@ Disallow: /auth
 Disallow: /pay
 Disallow: /payment-result
 Disallow: /order-search
+Disallow: /team
 
 Sitemap: https://booking.lakeze.com/sitemap.xml
