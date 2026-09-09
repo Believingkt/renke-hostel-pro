@@ -1373,7 +1373,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           if (Number(extraAddonBefore) !== Number(editForm.extra_addon_amount || 0)) {
             changes.push({ field: "extra_addon_amount", label: "額外現場加購金額", before: extraAddonBefore, after: editForm.extra_addon_amount || 0 });
           }
-          if (changes.length > 0) {
+          // trigger 已涵蓋 orders 欄位；此處只補記 order_rooms／包區設定／
+          // 額外加購等不在 orders 資料表的內容（V5.5C.2）
+          const NON_ORDER_FIELDS = ["rooms", "exclusive_configs", "addon_note", "extra_addon_amount", "notes"];
+          const residual = changes.filter((c: any) => NON_ORDER_FIELDS.includes(c.field));
+          if (residual.length > 0) {
             const { error: auditError } = await supabase.from("audit_logs").insert([{
               user_id: user.id,
               user_email: user.email,
@@ -1383,7 +1387,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               entity_id: order.id,
               entity_name: order.order_number,
               accommodation_id: order.accommodation_id,
-              details: { type: "inline_edit", changes } as any,
+              details: { type: "inline_edit", changes: residual } as any,
             }]);
             if (auditError) throw auditError;
           }
