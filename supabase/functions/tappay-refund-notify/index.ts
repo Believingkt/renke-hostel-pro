@@ -266,13 +266,14 @@ Deno.serve(async (req) => {
         ? `${order.notes}\n${failureNote}`
         : failureNote;
 
-      await supabase
-        .from('orders')
-        .update({
-          notes: newNotes,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', order.id);
+      await supabase.rpc('update_order_with_context', {
+        p_order_id: order.id,
+        p_patch: { notes: newNotes },
+        p_source: 'tappay_refund_webhook',
+        p_reason: `退款失敗（${msg || '未知'}）`,
+        p_actor_label: 'TapPay',
+        p_actor_type: 'system',
+      });
 
       // 建立退款失敗通知
       await supabase.from('notifications').insert({
