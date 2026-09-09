@@ -331,11 +331,17 @@ FOR SELECT
 TO authenticated
 USING (
   public.is_super_admin(auth.uid())
-  OR public.is_admin(auth.uid())
   OR public.get_staff_module_permission(auth.uid(), accommodation_id, 'orders')
      IN ('editable','readonly')
 );
 ```
+
+已移除多餘的 `hotel_admin` EXISTS 段：`get_staff_module_permission()` 內部已判斷
+「該 accommodation 的 hotel_admin / super_admin → editable」，且是與 `accommodation_id` 綁定的正確範圍。
+
+**同時移除 `public.is_admin(auth.uid())`**（實測發現的跨館漏洞）：`is_admin()` 只檢查
+「這個人在任何一館是 hotel_admin / super_admin」，沒有跟本列 `accommodation_id` 綁定，
+實測他館 hotel_admin 可讀到本館全部變更紀錄（見第六節 T5 對照）。移除後同一測試回到 0。
 
 INSERT / UPDATE / DELETE：**不建立任何 policy**，且未 GRANT 對應權限 → 只有
 `SECURITY DEFINER` 的 trigger 能寫入，任何前端或 API 都無法竄改變更紀錄。
