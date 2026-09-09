@@ -355,9 +355,9 @@ Deno.serve(async (req) => {
         ].filter(Boolean).join("\n");
 
         // 併發保護：付款狀態若在此期間變動（例如遲到入帳）則中止，改走人工
-        const { data: updated, error: uErr } = await admin
-          .from("orders")
-          .update({
+        const { data: affected, error: uErr } = await admin.rpc("update_order_with_context", {
+          p_order_id: order.id,
+          p_patch: {
             order_status: "cancelled",
             cancelled_at: (order as any).cancelled_at ?? nowIso,
             refunded_amount: totalRefunded,
@@ -367,14 +367,16 @@ Deno.serve(async (req) => {
             refund_status: refundStatus,
             ...paymentStatusPatch,
             notes: noteLines,
-            updated_at: nowIso,
-          })
-          .eq("id", order.id)
-          .eq("payment_status", order.payment_status)
-          .neq("order_status", "cancelled")
-          .select("id");
+          },
+          p_source: "group_buy_guest_cancel",
+          p_reason: reason || null,
+          p_actor_label: (order as any).guest_name ?? null,
+          p_actor_type: "system",
+          p_expect: { payment_status: order.payment_status },
+          p_not: { order_status: "cancelled" },
+        });
         if (uErr) throw uErr;
-        if (!updated || updated.length === 0) {
+        if (!affected || Number(affected) === 0) {
           return json({ error: "訂單狀態剛剛有更新，請重新查詢後再試一次。" }, 409);
         }
 

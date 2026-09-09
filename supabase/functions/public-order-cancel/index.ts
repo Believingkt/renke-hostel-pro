@@ -119,9 +119,9 @@ Deno.serve(async (req) => {
       `🔒 取消政策（${quote.policy}／${quote.policyReason}）：距入住 ${quote.daysBefore} 天，${quote.label}，未產生費用；房間已釋放`,
     ].join("\n");
 
-    const { error } = await supabase
-      .from("orders")
-      .update({
+    const { data: affected, error } = await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         order_status: "cancelled",
         cancelled_at: new Date().toISOString(),
         payment_status: "cancelled",
@@ -129,11 +129,18 @@ Deno.serve(async (req) => {
         cancellation_fee_percent: quote.feePercent,
         room_charge_status: order.room_charge_status ? "cancelled" : null,
         notes: `${order.notes ? order.notes + "\n" : ""}${note}`,
-      })
-      .eq("id", order.id)
-      .eq("order_status", order.order_status);
+      },
+      p_source: "public_order_cancel",
+      p_reason: body.reason ?? null,
+      p_actor_label: order.guest_name ?? null,
+      p_actor_type: "system",
+      p_expect: { order_status: order.order_status },
+    });
 
     if (error) return json({ success: false, message: error.message }, 500, corsHeaders);
+    if (!affected || Number(affected) === 0) {
+      return json({ success: false, message: "訂單狀態剛剛有更新，請重新整理後再試一次" }, 409, corsHeaders);
+    }
 
     // 停用已綁定的信用卡 token，確保入住日不會再被扣款
     await supabase

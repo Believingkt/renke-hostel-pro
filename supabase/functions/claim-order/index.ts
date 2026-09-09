@@ -213,10 +213,14 @@ Deno.serve(async (req) => {
     }
 
     // Claim
-    const { error: updateError } = await adminClient
-      .from("orders")
-      .update({ member_id: member.id })
-      .eq("id", order.id);
+    const { error: updateError } = await adminClient.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: { member_id: member.id },
+      p_source: "member_claim_order",
+      p_reason: null,
+      p_actor_label: user.email ?? null,
+      p_actor_type: "system",
+    });
 
     if (updateError) {
       console.error("Claim error:", updateError);
