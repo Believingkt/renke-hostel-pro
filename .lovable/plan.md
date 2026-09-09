@@ -1,226 +1,164 @@
-# Step 3 方案 B：訂單歷程統一時間線（唯讀設計，未施工）
+# 方案1：已結清折扣「沿用原折扣碼、只調金額」（code_keep）
 
-把「通知與付款紀錄」（通知信、付款狀態變更、押金異動、重送按鈕）與「變更紀錄」（order_change_log + audit_logs order/order_meta）合併成單一卡片「訂單歷程」，上方加類型篩選，重送按鈕原封不動搬到標題列右側。
-
-**本次不寄信、不動任何寫入路徑、不動 DB。純顯示層。**
+目標：提交的折扣碼與**資料庫中該訂單目前的 discount_code** 完全相同時，跳過折扣碼的存在性／啟用狀態／有效期限／適用範圍重新驗證，改以人工指定金額寫入；折扣碼保留，分潤記錄（commission_records）因此能用新金額自動更新。
 
 ---
 
-## 一、四個來源正規化
+## 一、RPC：update_paid_order_discount_v2 診斷與改法
 
-### 1.1 統一 item 型別
+現況（第 123–211 行）：`code` 與 `code_override` 共用同一段前置檢查 —— 多房型／多方案範圍判斷（128–171）→ `validate_discount_code`（181–188）→ 標準金額（190–194）→ 兩模式才分岔（197–210）。因此舊碼被停用、或多房型無法判斷範圍時，即使只想改金額也會被擋。
 
-```ts
-type TimelineKind = "change" | "payment" | "deposit" | "email";
-type ActorType = "user" | "system" | "unknown";
+改法（只動 `ELSE -- code / code_override` 這一段的最前面，其餘一律不動）：
 
-interface TimelineItem {
-  id: string;              // 加來源前綴：c_/a_/p_/d_/dc_/m_
-  kind: TimelineKind;
-  at: string;              // ISO，統一用 created_at / changed_at
-  actorType: ActorType;
-  actorId: string | null;
-  actorEmail: string | null;
-  actorLabel: string | null;  // system 時的流程名
-  badge: { text: string; tone: string };
-  summary: string;            // 收合列右側一句話
-  changes: OrderFieldChange[];// 展開時的 before→after
-  extra?: React.ReactNode;    // 錯誤訊息、收件人等
-}
+```sql
+   ELSE -- code / code_override
+     IF v_code IS NULL THEN
+       RAISE EXCEPTION '請輸入折扣碼' USING ERRCODE = '22023';
+     END IF;
+
++    -- ★ code_keep：提交的折扣碼與「資料庫裡這張訂單目前的 discount_code」完全相同
++    --   → 沿用原碼，不重新驗證存在性／啟用狀態／有效期限／適用範圍，只允許人工指定金額。
++    --   比對基準一律是 v_old_code（來自 SELECT ... FOR UPDATE 的 o.discount_code），不是前端傳來的值。
++    IF v_old_code IS NOT NULL AND v_code = v_old_code THEN
++      v_keep := true;
++      v_new_code := v_old_code;
++      v_new_discount := COALESCE(p_applied_discount_amount, v_old_discount);
++      IF v_new_discount < 0 THEN
++        RAISE EXCEPTION '實際套用折扣金額不得為負數' USING ERRCODE = '22023';
++      END IF;
++      -- 上限兩道檢查完全比照 code_override，不放寬
++      v_cap := LEAST(v_room_fee, COALESCE(o.total_price, 0)::integer);
++      IF v_new_discount > v_cap THEN
++        RAISE EXCEPTION '實際套用折扣金額不得大於折扣基準（房費 NT$%）', v_cap USING ERRCODE = '22023';
++      END IF;
++      v_standard := NULL;      -- 未重新驗證，無標準折扣可比對
++      v_override := true;
++    ELSE
+     SELECT array_agg(DISTINCT r.template_id) ... （原本 128–210 行整段內縮，內容一字不動）
++    END IF;
+   END IF;
 ```
-四個來源各寫一支 mapper 產出 `TimelineItem`，其餘渲染、展開、去重、姓名補齊邏輯共用一份。
 
-### 1.2 payment_status_history → actor 對齊（查證結果）
+宣告區新增：`v_keep boolean := false;`、`v_mode_label text;`
 
-寫入者只有 trigger `log_payment_status_change()`：
-```
-source := COALESCE(NULLIF(current_setting('app.change_source',true),''),'system')
-changed_by := auth.uid()
-```
-- 全庫 389 筆，`source` **唯一值就是 `'system'`**（沒有任何一筆帶其他值）。所以現在畫面上那個 `({p.source})` 括號 **不是**「這是系統做的」的判斷，只是把欄位原樣印出來，一律印 `(system)`。
-- 真正能分辨真人／系統的是 `changed_by`：389 筆中 **298 筆有值（真人 auth.uid()）**、91 筆為 NULL（service_role／trigger 情境）。
+保持不變（不放寬）：
+- `IF v_new_discount > COALESCE(o.total_price, 0)` 訂單總額上限（213–215）
+- 樂觀鎖 `p_expected_updated_at`、`payment_status ∈ (paid, fully_paid)`、退款／取消高風險確認、`get_staff_module_permission = editable`、`v_uid IS NULL` 一律先擋
+- SECURITY INVOKER（`prosecdef=false`）與 RLS 不變；audit_logs 寫入保留
 
-對齊規則（與 order_change_log 的 actor_type 同一標準）：
+稽核標記（`v_mode_label := CASE WHEN v_keep THEN 'code_keep' ELSE v_mode END`）：
+- `mode='code_keep'`、新增 `keep_existing_code=true`
+- `standard_discount_amount=null`（不做標準折扣比對，已確認可接受）
+- changes 陣列在 keep 分支改為三項：`discount_code`（before=after，附 `note:'沿用訂單原折扣碼，未重新驗證'`）、`discount_amount`（label 改「實際套用折扣（人工指定）」）、`final_price`；不再輸出 standard 那一列
+- `set_order_change_context('paid_discount_edit', 原因, '已結清折扣修改（code_keep／<settlement>）', 'user')`
 
-| payment_status_history | 正規化後 |
-|---|---|
-| `changed_by IS NOT NULL` | `actorType='user'`，`actorId=changed_by`，姓名走 profiles 查表（與變更紀錄同一份 nameMap） |
-| `changed_by IS NULL` | `actorType='system'`，`actorLabel = source`（目前恆為 `system` → 顯示「系統・自動處理」） |
-
-即：**廢掉現行 `(system)` 這個誤導字串**，改成跟變更紀錄一致的「真人姓名 / 系統・xxx」。這是本次唯一一處顯示語意的實質修正，其餘只是搬位置。
-
-### 1.3 audit_logs(entity_type='order_deposit') → actor 對齊
-
-全庫 461 筆，**461 筆 `user_id` 皆非 NULL**（0 筆系統寫入）。現行已用 `profiles.name → user_email → 「系統／排程」` fallback。
-
-正規化：`actorType='user'`、`actorId=user_id`、`actorEmail=user_email`，姓名共用同一份 nameMap（原本這張卡自己查一次 profiles，合併後只查一次）。fallback 順序與變更紀錄卡完全相同 → 顯示行為不變，只是文字來源統一。
-
-`details` 是 `{field:{from,to}}`，轉成 `changes[]`：`{field, label: DEPOSIT_FIELD_LABEL[field] ?? getFieldLabel(field), before, after}`，值格式化沿用 `formatDepositValue`（NT$ 千分位、cash/charged 等中文字典）——**不改用 orderAuditDiff 的 formatChangeValue**，否則押金狀態會退化成英文原字串。
-
-`deposit_charges`（9 筆）：`actorType = performed_by ? 'user' : 'system'`，`actorLabel = trigger_source==='scheduled' ? 'scheduled_charge' : 'manual'`，summary＝`押金扣款/退款 NT$x（自動排程/手動・成功/失敗）`，錯誤訊息放 extra。
-
-### 1.4 booking_email_log / group_buy_payment_events
-
-- `actorType = triggered_by ? 'user' : 'system'`；`actorLabel = trigger_source`（沿用 `TRIGGER_SOURCE_LABEL`）。
-- 團購 mapper（`parseGroupBuyNote`）整段照搬，`triggered_by` 為文字 `actor_label` → 一律 `actorType='system'`、`actorLabel=該文字`（維持現況顯示）。
-- badge 用現有 `EMAIL_STATUS_LABEL/VARIANT`，summary＝`模板名 → 收件人`。
-
-### 1.5 order_change_log / audit_logs(order, order_meta)
-
-**完全沿用 `OrderAuditLogCard` 現有邏輯，一行不改**：txid 收斂、`AUDIT_SUBTYPE_FIELD_HINT` 3 秒去重、`actor_type==='user'` → user_create/update、否則 system_create/system_update、`SYSTEM_LABELS` 對照。只是把輸出包成 `TimelineItem`（`kind='change'`）。
+安全性：此分支唯一的放寬是「不再查 discount_codes 表」。金額上限兩道、權限、樂觀鎖、付款狀態、風險確認全部在此分支之前或之後執行，無法被繞過；且 `v_old_code` 取自資料庫列鎖後的值，前端無法偽造。
 
 ---
 
-## 二、篩選對照表
+## 二、前端 diff
 
-| 篩選標籤 | 收錄來源 | 對應 action_type / kind |
-|---|---|---|
-| 全部 | 四類全收 | — |
-| 變更 | `order_change_log`、`audit_logs(entity_type in order, order_meta)` | update / inline_edit / price_edit / paid_discount_edit / paid_addon_edit / cancel / checkin / checkout / undo_* / meta_edit / order_source_change / order_date_change / kol_quota_override / system_update / system_create / user_create / create |
-| 付款 | `payment_status_history` | payment_status_change（單一 kind，無子類型） |
-| 押金 | `audit_logs(entity_type='order_deposit')` ＋ `deposit_charges` | deposit_setting_change / deposit_charge / deposit_refund |
-| 通知信 | `booking_email_log` ＋ 團購 `group_buy_payment_events(email_sent, email_failed)` | email_sent / email_resent / email_failed |
+### src/components/orders/PaidAmountEditDialog.tsx
 
-規則：**篩選只在前端 `filter()`，不改任何查詢**；四個 chip 各自顯示筆數（`全部 21 / 變更 16 / 付款 1 / 押金 2 / 通知信 0`）；筆數為 0 的 chip 顯示為 disabled 而不隱藏，避免使用者以為功能不見。預設 `全部`。
-
-`audit_logs` 的 `order_deposit` 與 `order/order_meta` 是**兩次獨立 query**（`.eq('entity_type', ...)` vs `.in(...)`），維持現行寫法不合併，避免 RLS 條件被改動。
-
----
-
-## 三、重送按鈕（完整搬移，邏輯零改動）
-
-### 3.1 判斷邏輯（現況＝搬移後，逐字相同）
-
-| 條件 | 顯示 |
-|---|---|
-| `canManage === false` | 一顆都不顯示（重新整理 ↻ 仍顯示，不受限） |
-| `canManage && order_source !== 'group_buy'` | 固定三顆：重送訂房確認(`booking_confirmation`)／重送訂金通知(`deposit_received`)／重送尾款通知(`final_payment_received`)。**不隨付款狀態變化** |
-| 團購 ＋ `payment_method` 符合 `/credit|card|tappay/i` | 「補寄旅客通知信：全額付款完成」(`guest`,`full_payment`) ＋「補寄民宿通知信」(`venue`) |
-| 團購 ＋ 其他（匯款） | 「補寄旅客通知信：訂房成立・待匯款」(`guest`,`booking_pending`) ＋「補寄旅客通知信：訂金已收到」(`guest`,`deposit_received`) ＋「補寄民宿通知信」(`venue`) |
-
-`isGroupBuy` / `isCardOrder` 兩個布林的算式、三顆按鈕的 `label`／`description`／`loading` key（`gb_guest_full`、`gb_guest_booking_pending`、`gb_guest_deposit`、`gb_venue`）**原字串搬過去，不重寫**。
-
-### 3.2 搬移方式
-整段 `<div className="flex items-center gap-2">…</div>`（現 L304–363，含 ↻ 與所有 `ResendButton`）連同 `ResendButton` 元件（L501–536）、`resend()`、`resendGroupBuy()`、`resendingType` state **原封不動剪貼**到新卡片 CardHeader 右側。`EMAIL_TYPE_LABEL` 等常數一併搬移（`ResendButton` 的 description fallback 依賴它）。
-
----
-
-## 四、風險評估
-
-### 4.1 完全不需要動「觸發寄信」的程式碼——原因
-
-1. 按鈕 onClick 呼叫的是 `resend(emailType)` / `resendGroupBuy(target, guestTemplate, key)`，函式本體與簽章**逐字不變**，只是宣告位置從 `OrderNotificationHistory` 換到 `OrderTimelineCard`。
-2. 這兩支函式內部呼叫 `supabase.functions.invoke("admin-resend-booking-email", {body:{orderId, emailType}})` 與 `("group-buy-resend-notification", {body:{orderIds:[orderId], targets:[target], guestTemplate}})`——**body 形狀不變**，兩支 Edge Function 一行不改、不重新部署。
-3. 自動寄信鏈路是 `orders` trigger → `enqueue_order_status_change()` → `order_status_change_events` 佇列 → `notify-order-status-change`，與顯示層零共用程式碼；本次不碰 trigger、不碰佇列、不碰任何 Edge Function。
-4. `booking_email_log`、`payment_status_history`、`audit_logs`、`deposit_charges` 在本次改動中**只有 SELECT**，沒有任何 insert/update。
-
-殘留風險（來自稍早調查的 R1/R3，本設計的緩解）：
-- R1 按鈕消失／寄錯模板 → 用「整段剪貼、不重寫字串」的方式搬移，並在測試計畫做四情境快照比對。
-- R3 團購分支漏帶 → 同上，`isGroupBuy`/`isCardOrder` 條件與 JSX 整塊搬。
-- R2 重送後 `await load()` 沒接好 → 新卡片的 `load()` 是合併版；重送成功後改呼叫同一支 `load()`，測試會驗證列表即時刷新。
-
-### 4.2 舊資料相容性（實查數量）
-
-| 來源 | 全庫筆數 | 格式差異 | 合併後風險 |
-|---|---|---|---|
-| `payment_status_history` | 389（298 真人 / 91 系統） | `source` 恆為 `system`；`paid_amount/final_price` 為 numeric 可能 NULL | 無；NULL 沿用現行 `|| 0` |
-| `audit_logs` order_deposit | 461（user_id 全非 NULL） | `details` 為 `{field:{from,to}}`，`from` 可能 `null` | 無；`formatDepositValue` 已處理 null→「—」 |
-| `deposit_charges` | 9 | — | 無 |
-| `booking_email_log` | 38 ＋ 團購事件 107 | 團購走 note 字串解析 | 無；mapper 照搬 |
-| `audit_logs` order/order_meta | 1881 | 新舊 details 兩種格式 | 無；現行去重與 fallback 照搬 |
-| `order_change_log` | 32 | — | 無 |
-
-不會有任何一筆消失：合併是四個陣列 concat 後依時間排序，沒有任何跨來源的丟棄邏輯；唯一的丟棄是**現行就已存在**的 audit↔change_log 3 秒去重（只作用於 `entity_type='order'` 且無可展開內容者），本次不改其條件。排序統一用 `+new Date(x.at)` 降冪，時間一律 `toLocaleString('zh-TW',{timeZone:'Asia/Taipei',hour12:false})`——**現況兩張卡不一致**（變更紀錄用台北時區、通知卡用 `date-fns format` 走瀏覽器本地時區），合併後統一為台北時區，這是刻意的一致化。
-
----
-
-## 五、元件 diff（設計）
-
-新檔 `src/components/orders/OrderTimelineCard.tsx`；`OrderNotificationHistory.tsx`、`OrderAuditLogCard.tsx` **保留檔案不刪**（先只換掛載點，回退＝改回兩行 JSX）。
-
-`src/pages/OrderDetail.tsx`：
 ```diff
--        <OrderNotificationHistory
--          orderId={order.id}
--          orderNumber={order.order_number}
--          canManage={canManage}
--          orderSource={order.order_source}
--          paymentMethod={order.payment_method}
--        />
-+        <OrderTimelineCard
-+          orderId={order.id}
-+          orderNumber={order.order_number}
-+          canManage={canManage}
-+          orderSource={order.order_source}
-+          paymentMethod={order.payment_method}
-+          refreshKey={(order as any).updated_at || ""}
-+        />
-@@
--      {order && <OrderAuditLogCard orderId={order.id} refreshKey={(order as any).updated_at || ""} />}
+   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
+   const usesCode = discountMode === "code" || discountMode === "code_override";
++  // 與訂單現有折扣碼相同 → 走 code_keep：不驗證、直接讓使用者填金額
++  const keepExistingCode =
++    usesCode && !!oldCode && (discountCode || "").trim().toUpperCase() === oldCode;
+   const codeOverridden =
+     usesCode && validatedStandard != null && appliedDiscountInput !== validatedStandard;
+-  const effectiveDiscountMode: PaidDiscountMode = usesCode
+-    ? codeOverridden ? "code_override" : "code"
+-    : discountMode;
++  const effectiveDiscountMode: PaidDiscountMode = usesCode
++    ? keepExistingCode || codeOverridden ? "code_override" : "code"
++    : discountMode;
 ```
 
-`OrderTimelineCard.tsx` 結構：
-```tsx
-const load = useCallback(async () => {
-  const [p, e, d, c, auditRes, changeRes] = await Promise.all([
-    /* 1 payment_status_history  — 查詢語句與現行逐字相同，多選 changed_by */
-    /* 2 booking_email_log        — 現行語句 */
-    /* 3 audit_logs order_deposit — 現行語句 */
-    /* 4 deposit_charges          — 現行語句 */
-    /* 5 audit_logs order/order_meta — 現行 OrderAuditLogCard 語句 */
-    /* 6 order_change_log         — 現行 OrderAuditLogCard 語句 */
-  ]);
-  if (isGroupBuy) { /* group_buy_payment_events mapper 照搬 */ }
-  const items = [
-    ...mapChange(changeRes, auditRes),  // 含 txid 收斂＋3 秒去重（照搬）
-    ...mapPayments(p), ...mapDeposits(d), ...mapCharges(c), ...mapEmails(e),
-  ].sort((a,b) => +new Date(b.at) - +new Date(a.at));
-  // 一次補齊所有 actorId 的 profiles.name
-}, [orderId, isGroupBuy, refreshKey]);
+```diff
+   const previewDiscount =
+     discountMode === "none" ? 0
+     : discountMode === "manual" ? newDiscountInput
++    : keepExistingCode ? appliedDiscountInput
+     : validatedStandard != null ? (codeOverridden ? appliedDiscountInput : validatedStandard)
+     : oldDiscount;
 ```
-```tsx
-<Card>
-  <CardHeader>
-    <CardTitle><History/> 訂單歷程 {orderNumber && <span>#{orderNumber}</span>}</CardTitle>
-    <div className="flex items-center gap-2">{/* ↻ ＋ 重送按鈕整塊剪貼 */}</div>
-    <div className="flex gap-1.5 flex-wrap">{/* 全部/變更/付款/押金/通知信 chips＋筆數 */}</div>
-  </CardHeader>
-  <CardContent>
-    {/* 單一 <ul>：badge + actor 名 + summary + 台北時間；有 changes 才可展開 */}
-    {/* 預設顯示 15 筆，「顯示全部 N 筆」沿用 */}
-  </CardContent>
-</Card>
+
+```diff
+-  const codeReady = mode !== "discount" || !usesCode || validation.status === "valid";
++  const codeReady =
++    mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
 ```
-卡片預設**展開**（現行變更紀錄卡預設收合，但通知卡預設展開；合併後以通知卡的行為為準，避免付款／押金紀錄變得更難找）。
+
+```diff
+   const handleValidateCode = async () => {
+     if (!snap?.accommodation_id) return;
++    if (keepExistingCode) return;   // 沿用原碼不需驗證
+```
+
+UI（折扣碼區塊，第 525–560 行）：`keepExistingCode` 為 true 時
+- 隱藏「驗證折扣碼」按鈕與 `scopeError` / 「尚未驗證」提示
+- 直接顯示「實際套用折扣金額」輸入框（原本只有驗證成功後才出現）
+- 顯示綠字說明：`沿用此訂單原有的折扣碼 {oldCode}，不重新檢查有效期限與適用範圍，只調整折扣金額；折扣碼與分潤／業績歸屬記錄會保留並依新金額更新。`
+
+確認頁（第 727–736 行）：`keepExistingCode` 時不顯示「系統計算標準折扣」列，改顯示 `已沿用原折扣碼並人工指定折扣金額（模式：code_keep）`。
+
+### src/components/orders/OrderPriceEditDialog.tsx（同形狀處，約第 285 行）
+
+```diff
+-    // 若與訂單原有折扣碼相同且金額未變動，不重複驗證
+-    if (code === (order.discount_code || "").toUpperCase() && editDiscountAmount === order.discount_amount) {
++    // 與訂單原有折扣碼相同 → 一律不重新驗證（金額改了也一樣），保留折扣碼、只調金額
++    if (code === (order.discount_code || "").toUpperCase()) {
+       return;
+     }
+```
+
+（`src/lib/paidDiscountEdit.ts` 不需改：`code_override` 已要求並傳遞 `p_applied_discount_amount`。）
 
 ---
 
-## 六、測試規劃
+## 三、BEGIN…ROLLBACK 實測（正式資料，最後刻意 RAISE EXCEPTION 回滾）
 
-### 6.1 並排對照（真實訂單 YC6U86W2，`1e025ed8-…`）
-實查：付款狀態 1 筆、押金異動 2 筆、押金扣退 0 筆、通知信 0 筆、變更 14 筆、order_change_log 0 筆。
+同交易內建立 patched 副本 `__test_paid_discount` 執行，實際輸出：
 
-| 合併前 | 合併後（全部） |
-|---|---|
-| 通知信件：`尚無寄送紀錄` | （通知信 chip 顯示 0、disabled） |
-| 付款狀態變更：`已付訂金 → 已付清 (system)`／已付 x/總額 y／09-06 09:42 | `付款狀態 · 吳雲蔚 · 已付訂金→已付清（已付 x/總額 y）· 2026-09-06 17:42`（actor 由 changed_by=43d6838f… 解析為真人姓名，取代 `(system)`） |
-| 押金異動 09-06 09:42：應收/已扣款 0→8000、方式→現場現金、狀態 pending→已扣款、操作者 wuyunwai@gmail.com | `押金設定異動 · 吳雲蔚 · 3 項變更`，展開內容逐字相同 |
-| 押金異動 09-37:15：應收 5000→8000、方式 現場現金→— | `押金設定異動 · 吳雲蔚 · 2 項變更`，同上 |
-| 變更紀錄（收合）14 筆：inline_edit ×10、payment_status_change、meta_edit、create… | 同 14 筆，badge/展開內容不變，與上述 3 筆依時間交錯排序 |
+```
+[T1] rpc={"mode":"code_keep","changed":true,"final_price":39000,"audit_log_id":"6cf222ca-…",
+     "discount_code":"168168","discount_amount":30000,"keep_existing_code":true,
+     "standard_discount_amount":null}
+[T1] commission: discount_amount=30000 order_total=69000 commission_amount=1950
+     code_id=91dd9ca7-bc0c-456b-8528-2daa602cfbcb
+[T1] audit={"mode":"code_keep","type":"paid_discount_edit","keep_existing_code":true,
+     "standard_discount_amount":null,"applied_discount_amount":30000,"manual_override":true,
+     "settlement_handling":"data_only","changes":[
+       {"field":"discount_code","before":"168168","after":"168168","note":"沿用訂單原折扣碼，未重新驗證"},
+       {"field":"discount_amount","label":"實際套用折扣（人工指定）","before":37000,"after":30000},
+       {"field":"final_price","before":32000,"after":39000}]}
+[T1] change_log=op=update actor_type=system actor_label=已結清折扣修改（code_keep／data_only）
+     source=paid_discount_edit reason=測試1 沿用原碼調整金額
+     fields=[{"field":"final_price","from":32000,"to":39000},
+             {"field":"discount_amount","from":37000,"to":30000}]
+[T2] 走完整驗證並被擋下：此訂單包含多個房型，無法自動判斷折扣碼適用範圍，請改填手動折扣金額
+[T3] rpc={"mode":"code_keep","changed":true,"final_price":10500,"discount_code":"CYNTHIA66",
+     "discount_amount":5000,"standard_discount_amount":null,"keep_existing_code":true}
+[T3] commission=discount_amount=5000 commission=525
+[T3b] 完整驗證路徑錯誤：折扣碼無效：折扣碼不存在或已停用
+```
 
-驗收：合併後「全部」筆數 = 1+2+0+0+14 = **17**，與合併前四區塊筆數總和一致，逐筆時間戳、badge 文字、展開內容比對相同（時間由瀏覽器本地改為台北時區顯示）。
-另補 NJ3U85G6（`ff33a2ce-…`：付款 3、變更 7、change_log 2）驗證 change_log 與 audit 的去重在合併後行為不變；CE2V95Y5（`652770d9-…`，團購 ATM、付款 2 筆）驗證團購三顆補寄按鈕組合。
+- **T1** YC6U86W2 + 168168（同碼）+ 30000：成功、折扣碼保留、分潤記錄同步改為 30000／佣金 1950（code_id 未變）。
+- **T2** 同一張訂單換成別的碼 CYNTHIA66：仍走原本完整驗證，被多房型範圍判斷擋下 → 不受本次改動影響。
+- **T3** 單一房型 TE9H24J8（CYNTHIA66，原 5950 → 5000）：成功，分潤同步 5000／佣金 525。
+- **T3b** 單一房型換不同碼 ZEN：仍完整驗證並回「折扣碼不存在或已停用」→ 回歸正常。
+- 註：`actor_type=system` 是因測試在無 `auth.uid()` 的環境跑；正式前端由登入者呼叫時為 user。
 
-### 6.2 重送按鈕功能測試
-1. **快照比對（不寄信）**：四種情境（一般＋canManage、一般＋非 canManage、團購信用卡、團購匯款）分別擷取改動前後的按鈕清單，逐字比對 label 集合與順序。
-2. **簽章驗證（不寄信）**：暫時 stub `supabase.functions.invoke`，點三顆按鈕確認送出的 `functionName` 與 `body` 與改動前完全相同（`{orderId, emailType}` / `{orderIds, targets, guestTemplate}`）。
-3. **真實寄送（擇一、需你點頭）**：在一張測試訂單上實際按「重送訂房確認」，確認收到信、`booking_email_log` 新增一筆 `trigger_source='manual_resend'`、列表自動刷新（驗 R2）。此步驟涉及真的寄出郵件，施工時再單獨確認要不要做、用哪張訂單。
-4. 失敗路徑：對不存在的 orderId 觸發，確認 toast 顯示「重送失敗：…」且不 crash。
+回滾查證（交易外重查）：
+`YC6U86W2 = 37000/168168/32000`、`TE9H24J8 = 5950/CYNTHIA66/9550`、`commission_records=1 筆 commission_amount=1600`、暫時函式殘留 0、`update_paid_order_discount_v2` md5=`205ce832aa0a966945e8274b622b52de` 長度 `13318`（與現況一致）。
 
 ---
 
-## 七、本次不做
-- 不移除任何 notes 的 🔒／【】文字（A 類延後，維持先前決定）。
-- 不動 `payment_status_history`、`audit_logs`、`booking_email_log`、`deposit_charges` 的任何寫入者、trigger、Edge Function。
-- 不刪除 `OrderNotificationHistory.tsx` / `OrderAuditLogCard.tsx`（保留為回退路徑）。
-- 不做 DB migration。
+## 施工範圍（核准後才執行）
+
+1. migration：`CREATE OR REPLACE update_paid_order_discount_v2`（維持 SECURITY INVOKER，pre/postcheck 記錄 md5／長度／prosecdef）
+2. 前端：`PaidAmountEditDialog.tsx`、`OrderPriceEditDialog.tsx`
+3. 需要 Publish（含前端變更）
