@@ -69,17 +69,80 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
     let cancelled = false;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("audit_logs")
-        .select("id, user_id, user_email, action_type, details, created_at")
-        .in("entity_type", ["order", "order_meta"])
-        .eq("entity_id", orderId)
-        .order("created_at", { ascending: false });
-      if (error || cancelled) {
+      const [auditRes, changeRes] = await Promise.all([
+        supabase
+          .from("audit_logs")
+          .select("id, user_id, user_email, action_type, details, created_at")
+          .in("entity_type", ["order", "order_meta"])
+          .eq("entity_id", orderId)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("order_change_log")
+          .select(
+            "id, op, actor_type, actor_id, actor_email, actor_label, reason, source, changed_fields, txid, changed_at",
+          )
+          .eq("order_id", orderId)
+          .order("changed_at", { ascending: false }),
+      ]);
+      if (cancelled) {
+        return;
+      }
+      if (auditRes.error && changeRes.error) {
         setLoading(false);
         return;
       }
-      const rows = (data || []) as AuditLogRow[];
+
+      const auditRows: AuditLogRow[] = ((auditRes.data || []) as any[]).map((r) => ({
+        id: `a_${r.id}`,
+        origin: "audit" as const,
+        user_id: r.user_id,
+        user_email: r.user_email,
+        action_type: r.action_type,
+        details: r.details,
+        created_at: r.created_at,
+      }));
+
+      // 同交易（txid）收斂為一筆
+      const grouped = new Map<string, any[]>();
+      for (const r of (changeRes.data || []) as any[]) {
+        const key = `${r.txid}|${r.actor_id ?? r.actor_label ?? ""}|${r.source ?? ""}`;
+        grouped.set(key, [...(grouped.get(key) || []), r]);
+      }
+      const changeRows: AuditLogRow[] = [...grouped.values()].map((group) => {
+        const first = group[group.length - 1];
+        const merged = new Map<string, any>();
+        for (const r of [...group].reverse()) {
+          for (const c of ((r.changed_fields || []) as any[])) {
+            const prev = merged.get(c.field);
+            merged.set(c.field, prev ? { ...c, from: prev.from } : c);
+          }
+        }
+        const changes: OrderFieldChange[] = [...merged.values()].map((c: any) => ({
+          field: c.field,
+          label: getFieldLabel(c.field),
+          before: "changed" in c ? "（有更動）" : c.from,
+          after: "changed" in c ? "（已更新）" : c.to,
+        })) as OrderFieldChange[];
+        return {
+          id: `c_${first.id}`,
+          origin: "change_log" as const,
+          user_id: first.actor_id,
+          user_email: first.actor_email,
+          action_type: first.op === "insert" ? "system_create" : "system_update",
+          details: {
+            changes,
+            source: first.source === "unmarked" ? undefined : first.source,
+            reason: first.reason || undefined,
+            actor_type: first.actor_type,
+            actor_label: first.actor_label,
+          },
+          created_at: first.changed_at,
+        };
+      });
+
+      const rows = [...auditRows, ...changeRows].sort(
+        (a, b) => +new Date(b.created_at) - +new Date(a.created_at),
+      );
       const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
       let nameMap: Record<string, string> = {};
       if (userIds.length > 0) {
@@ -93,7 +156,12 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
       setLogs(
         rows.map((r) => ({
           ...r,
-          user_name: (r.user_id && nameMap[r.user_id]) || r.user_email || "未知使用者",
+          user_name:
+            (r.user_id && nameMap[r.user_id]) ||
+            r.user_email ||
+            (r.details?.actor_type && r.details.actor_type !== "user"
+              ? `系統・${SYSTEM_LABELS[r.details.actor_label] ?? r.details.actor_label ?? "自動處理"}`
+              : "未知使用者"),
         })),
       );
       setLoading(false);
