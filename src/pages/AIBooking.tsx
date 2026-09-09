@@ -1894,27 +1894,31 @@ export default function AIBooking() {
                 )}
               </Button>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-              <Button
-                onClick={() => openAttachmentPicker(fileInputRef)}
-                disabled={isLoading || isUploading}
-                size="icon"
-                variant="outline"
-                className="h-12 w-12 transition-all duration-200"
-                title="上傳憑證"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Paperclip className="h-5 w-5" />
-                )}
-              </Button>
+              {!isNative && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <Button
+                    onClick={() => openAttachmentPicker(fileInputRef)}
+                    disabled={isLoading || isUploading}
+                    size="icon"
+                    variant="outline"
+                    className="h-12 w-12 transition-all duration-200"
+                    title="上傳憑證"
+                  >
+                    {isUploading ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Paperclip className="h-5 w-5" />
+                    )}
+                  </Button>
+                </>
+              )}
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
