@@ -20,6 +20,7 @@ import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.t
 import { queryTapPayRecord } from "../_shared/tappay.ts";
 
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { resolveMemberId } from "../_shared/resolveMemberId.ts";
 
 interface RequestBody {
   idempotencyKey: string;
