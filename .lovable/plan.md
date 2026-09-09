@@ -116,6 +116,7 @@ DECLARE
     'notes'
   ];
   v_key text;
+  v_type text;
   v_sets text[] := '{}';
 BEGIN
   PERFORM public.set_order_change_context(p_source, p_reason, p_actor_label, p_actor_type);
@@ -123,7 +124,9 @@ BEGIN
     IF NOT (v_key = ANY(c_allowed)) THEN
       RAISE EXCEPTION 'update_order_with_context: 欄位不在白名單內 (%)', v_key;
     END IF;
-    v_sets := v_sets || format('%I = ($1->>%L)::text', v_key, v_key);
+    SELECT atttypid::regtype::text INTO v_type FROM pg_attribute
+     WHERE attrelid = 'public.orders'::regclass AND attname = v_key AND attnum > 0;
+    v_sets := v_sets || format('%I = ($1->>%L)::%s', v_key, v_key, v_type);
   END LOOP;
   IF array_length(v_sets,1) IS NULL THEN RETURN; END IF;
   EXECUTE format(
@@ -135,7 +138,28 @@ REVOKE ALL ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,tex
 GRANT EXECUTE ON FUNCTION public.update_order_with_context(uuid,jsonb,text,text,text,text) TO service_role;
 ```
 
-（`::text` 會由 Postgres 依欄位型別再隱式轉換；`numeric`／`timestamptz` 欄位以字串傳入可正常轉型，`null` 值則正確寫入 NULL。實作時會在 migration 前先跑 BEGIN…ROLLBACK 驗證每個欄位型別。）
+**測試發現的修正**：原設計寫死 `::text`，實測直接失敗（`column "paid_amount" is of type integer but expression is of type text`）。改為從 `pg_attribute` 查出該欄位真實型別再轉型，測試才全數通過。
+
+## BEGIN…ROLLBACK 實測結果（正式資料，訂單 CE2V95Y5，全部已回滾）
+
+| 項目 | 實際輸出 |
+| --- | --- |
+| 0 欄位型別 | `paid_amount=integer, refunded_amount=integer, cancelled_at=timestamptz, refunded_at=timestamptz, balance_payment_method=text, order_status=text, refund_status=text` |
+| 1 數字型別 | 前 `paid=6983` → 傳入字串 `"12345"` → 後 `paid=12345` |
+| 2 時間型別 | 傳入 `2026-09-09T22:30:00+08:00` → 庫內 UTC `2026-09-09 14:30:00`、換算台北 `2026-09-09 22:30:00`（正確） |
+| 3 明確 NULL | `refund_rec_trade_id`：先設 `REC_X` → 傳 `{"refund_rec_trade_id":null}` → 讀回 `<NULL 正確>`，log fields=`refund_rec_trade_id` |
+| 4 白名單 | 傳 `final_price` → `已擋下：update_order_with_context: 欄位不在白名單內 (final_price)`，`paid 前=12345 後=12345`（整筆 UPDATE 未執行） |
+| 5a 退款失敗分支 | `refund_status=failed, refund_rec_trade_id=REC_TEST_241` |
+| 5b 主要取消 | `order_status=cancelled, cancelled_at台北=2026-09-09 22:35:00, paid=0, payment_status=refunded, refunded_amount=12345, refund_status=refunded, refunded_at台北=2026-09-09 22:35:00` |
+| 6 order_change_log | 3 筆全部寫入。例：`source=admin_cancel_refund｜reason=自動退刷 NT$12345｜actor_type=system｜actor_label=取消退款（操作者 tester@example.com）｜fields=notes,paid_amount,refunded_at,cancelled_at,order_status,refund_status,payment_status,refunded_amount,refund_rec_trade_id｜UTC=2026-09-09 14:49:47｜台北=2026-09-09 22:49:47` |
+
+回滾後重查該筆訂單：`paid_amount=6983, order_status=confirmed, cancelled_at=NULL, refund_status=none, refund_rec_trade_id=NULL, notes 未被污染`。
+
+**一個必須告訴你的既有行為**：`balance_payment_method` 設 NULL 測不出來——它會被既有的 `trg_sync_order_payment_fields`（BEFORE UPDATE）改回 `atm`。實測「直接 UPDATE 設 NULL」也一樣被改回，所以這不是本 RPC 的問題，是原本就有的 trigger 行為，本次不動它。若 `tappay-notify` 真的需要把它清空，要另案處理該 trigger。
+
+**時區說明**：`cancelled_at`／`changed_at` 都是 `timestamptz`，資料庫存 UTC 是正確設計；台北時間由查詢或前端換算（上表已同時列出兩者，換算差 8 小時正確）。前端顯示是否一律轉台北，屬另一個檢查項，不在本 RPC 範圍。
+
+
 
 ### 關於 `cancel-order-with-refund`
 它**走同一支 RPC**，不另外設計；但它有兩個寫入點、欄位組合較複雜，會在批次一 diff 裡單獨列出，不用「同形狀改法」一句帶過：
