@@ -12,6 +12,7 @@
 //
 // Meant to be invoked by pg_cron on an hourly schedule.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 
 const PAYMENT_PENDING_STALE_HOURS = 48;
@@ -66,16 +67,17 @@ Deno.serve(async (req) => {
 
     for (const o of candidates) {
       try {
-        const { error: uErr } = await supabase
-          .from("orders")
-          .update({
-            order_status: "cancelled",
-            cancelled_at: new Date().toISOString(),
-            is_pii_pending: false,
-            notes: sweep.cancelReason,
-          })
-          .eq("id", o.id);
-        if (uErr) throw uErr;
+        await updateOrderWithContext(supabase, o.id, {
+          order_status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          is_pii_pending: false,
+          notes: sweep.cancelReason,
+        }, {
+          source: "owlting_cleanup_stale",
+          reason: "48h 未收到成立通知，自動釋放鎖房",
+          actorLabel: "系統排程",
+          actorType: "system",
+        });
 
         await supabase
           .from("owlting_email_parsed_staging")

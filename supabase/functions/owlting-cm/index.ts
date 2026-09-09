@@ -18,6 +18,8 @@
  *   InvTypeCode  = same as RoomTypeCode
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
+import { reportOwltingSyncFailure } from "../_shared/owltingSyncAlert.ts";
 import { buildRatePlansForRoomType } from "./availrs_packages.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -725,6 +727,7 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
   if (reservations.length === 0) return errorResponse("OTA_HotelResNotifRS", echo, "No HotelReservation found");
 
   const successItems: string[] = [];
+  const failedItems: Array<{ order_id?: string | null; order_number?: string | null; reference: string; error: string }> = [];
   for (const r of reservations) {
     // 訂單編號 (UniqueID @ID,排除 BasicPropertyInfo)
     const uniqueId = attrFirst(r, "UniqueID", "ID") ?? "";
@@ -791,10 +794,35 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
 
     // ----- handle by ResStatus -----
     if (resStatus === "Cancel") {
-      await supabase.from("orders")
-        .update({ order_status: "cancelled", cancelled_at: new Date().toISOString() })
+      const { data: targets, error: selErr } = await supabase.from("orders")
+        .select("id, order_number")
         .eq("owlting_reservation_id", uniqueId);
-      successItems.push(uniqueIdItem(uniqueId, ""));
+      if (selErr) {
+        failedItems.push({ reference: uniqueId, error: `查詢訂單失敗：${selErr.message}` });
+        continue;
+      }
+      if (!targets || targets.length === 0) {
+        failedItems.push({ reference: uniqueId, error: "找不到對應訂單，無法取消" });
+        continue;
+      }
+      let anyFail = false;
+      for (const t of targets as any[]) {
+        try {
+          await updateOrderWithContext(supabase, t.id, {
+            order_status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+          }, {
+            source: "owlting_cm_cancel",
+            reason: `OTA Cancel（UniqueID ${uniqueId}）`,
+            actorLabel: "OwlTing CM",
+            actorType: "system",
+          });
+        } catch (e) {
+          anyFail = true;
+          failedItems.push({ order_id: t.id, order_number: t.order_number, reference: uniqueId, error: (e as Error).message });
+        }
+      }
+      if (!anyFail) successItems.push(uniqueIdItem(uniqueId, ""));
       continue;
     }
 
@@ -811,19 +839,29 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
         .select("id, order_number")
         .eq("owlting_reservation_id", uniqueId).maybeSingle();
       if (existing) {
-        await supabase.from("orders").update({
-          room_type_id: room.id,
-          check_in_date: checkIn, check_out_date: checkOut,
-          guest_count: adults,
-          total_price: Math.round(totalAmount),
-          final_price: Math.round(totalAmount),
-          guest_name: `${purchaserSur}${purchaserGiven}`.trim() || "OwlTing Guest",
-          guest_phone: purchaserPhone || "0000000000",
-          guest_email: purchaserEmail || null,
-          notes: requests || null,
-          ota_channel: otaName || null,
-        }).eq("id", existing.id);
-        successItems.push(uniqueIdItem(uniqueId, existing.order_number));
+        try {
+          await updateOrderWithContext(supabase, existing.id, {
+            room_type_id: room.id,
+            check_in_date: checkIn,
+            check_out_date: checkOut,
+            guest_count: adults,
+            total_price: Math.round(totalAmount),
+            final_price: Math.round(totalAmount),
+            guest_name: `${purchaserSur}${purchaserGiven}`.trim() || "OwlTing Guest",
+            guest_phone: purchaserPhone || "0000000000",
+            guest_email: purchaserEmail || null,
+            notes: requests || null,
+            ota_channel: otaName || null,
+          }, {
+            source: "owlting_cm_modify",
+            reason: `OTA Modify（UniqueID ${uniqueId}）`,
+            actorLabel: "OwlTing CM",
+            actorType: "system",
+          });
+          successItems.push(uniqueIdItem(uniqueId, existing.order_number));
+        } catch (e) {
+          failedItems.push({ order_id: existing.id, order_number: existing.order_number, reference: uniqueId, error: (e as Error).message });
+        }
         continue;
       }
       // fallthrough -> insert as new
@@ -878,9 +916,27 @@ async function handleResNotifRQ(supabase: any, xml: string, echo: string, overri
     }
   }
 
+  // 方案 A：即使部分失敗，仍回 <Success/>（只列出成功項），避免 OwlTing 重送整包；
+  // 失敗項另行寫 error_logs + CM log(partial) + 寄告警信供人工補救。
   const inner = `<HotelReservations>${successItems.join("")}</HotelReservations>`;
   const resp = successResponse("OTA_HotelResNotifRS", echo, inner);
-  await logCm(supabase, "inbound", "OTA_HotelResNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await resp.clone().text(), "success");
+  if (failedItems.length > 0) {
+    await reportOwltingSyncFailure(supabase, {
+      functionName: "owlting-cm",
+      category: "owlting_cm_partial",
+      step: "OTA_HotelResNotifRQ",
+      summary: `OwlTing CM 訂單通知部分失敗：成功 ${successItems.length} 筆、失敗 ${failedItems.length} 筆，需人工處理`,
+      reference: echo,
+      failed: failedItems,
+      successCount: successItems.length,
+    }).catch(() => {});
+  }
+  await logCm(
+    supabase, "inbound", "OTA_HotelResNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml,
+    await resp.clone().text(),
+    failedItems.length > 0 ? "partial" : "success",
+    failedItems.length > 0 ? `failed=${failedItems.map((x) => x.order_number ?? x.reference).join(", ")}` : undefined,
+  );
   return resp;
 }
 

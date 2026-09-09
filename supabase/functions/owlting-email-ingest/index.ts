@@ -2,6 +2,7 @@
 // Receives multipart/form-data POST, persists raw payload, lightly parses subject.
 // IMPORTANT: Always return 200 so SendGrid does not retry indefinitely.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 import { autoCreatePendingOrder, cancelAutoPendingOrders, applyModificationToExistingOrder } from "../_shared/owltingAutoOrder.ts";
 
@@ -548,16 +549,7 @@ Deno.serve(async (req) => {
         // If a confirmed 成立通知 arrives after a prior payment-pending lock,
         // clear the 等待付款 marker so 48h cleanup no longer targets it.
         if (!isPaymentPending && fields.obe_number) {
-          await supabase
-            .from("orders")
-            .update({ notes: null })
-            .eq("owlting_reservation_id", fields.obe_number)
-            .eq("is_pii_pending", true)
-            .like("notes", "%[等待付款鎖房]%")
-            .then(async () => {
-              // We only want to strip the marker prefix, not wipe notes. Do it via RPC-safe read/write.
-            }).catch(() => {});
-          // Safer: read → replace → write
+          // read → replace → write（只移除標記前綴，不清空 notes）
           const { data: pendings } = await supabase
             .from("orders")
             .select("id, notes")
@@ -566,7 +558,16 @@ Deno.serve(async (req) => {
             .like("notes", "%[等待付款鎖房]%");
           for (const p of pendings ?? []) {
             const newNotes = String(p.notes ?? "").replace(/\[等待付款鎖房\]\s*/g, "").replace(/，來源: 等待付款通知（48h 內未成立將自動釋放）/g, "");
-            await supabase.from("orders").update({ notes: newNotes }).eq("id", p.id);
+            try {
+              await updateOrderWithContext(supabase, p.id, { notes: newNotes }, {
+                source: "owlting_email_ingest",
+                reason: "成立通知抵達，清除等待付款鎖房標記",
+                actorLabel: "OwlTing 信件解析",
+                actorType: "system",
+              });
+            } catch (e) {
+              console.error("[owlting-email-ingest] clear pending marker failed:", p.id, (e as Error).message);
+            }
           }
         }
 
@@ -647,16 +648,20 @@ Deno.serve(async (req) => {
         })
           .eq("obe_number", fields.obe_number)
           .eq("pii_status", "pending_pii_fillup");
-        const cancelled = await cancelAutoPendingOrders(supabase, fields.obe_number);
-        if (cancelled.length > 0) {
-          console.log("[owlting-email-ingest] auto-cancelled orders for OBE", fields.obe_number, cancelled);
+        const { cancelled, failed } = await cancelAutoPendingOrders(supabase, fields.obe_number);
+        if (cancelled.length > 0 || failed.length > 0) {
+          console.log("[owlting-email-ingest] auto-cancel result for OBE", fields.obe_number, { cancelled, failed });
           await supabase.from("owlting_email_parsed_staging").update({
-            review_notes: `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`,
+            review_notes: failed.length === 0
+              ? `[auto-cancel] OwlTing 取消通知已同步取消 PMS 訂單 ${cancelled.length} 筆`
+              : `[auto-cancel] 已取消 ${cancelled.length} 筆，失敗 ${failed.length} 筆需人工處理：${failed.map((x) => x.order_number ?? x.id).join(", ")}`,
           }).eq("id", stagingRow.id);
         }
-        await recordOutcome(supabase, inserted.id, "order_cancelled", {
+        await recordOutcome(supabase, inserted.id, failed.length > 0 ? "apply_failed" : "order_cancelled", {
           obe_number: fields.obe_number,
           cancelled_count: cancelled.length,
+          failed_count: failed.length,
+          failed,
         });
       }
     } catch (e) {

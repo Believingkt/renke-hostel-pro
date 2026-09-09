@@ -2,6 +2,7 @@
 // POST { token, guest_name, guest_phone, guest_email, room_type_id?, total_amount? }
 // Rate-limited: fail_count++ on bad inputs, lock 1h after 5.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
 import { extractSpecialRequests } from "../_shared/owltingSpecialRequests.ts";
 import { upsertCustomerForOrder } from "../_shared/customerUpsert.ts";
@@ -283,9 +284,7 @@ Deno.serve(async (req) => {
         .eq("id", staging.auto_order_id)
         .maybeSingle();
       if (pendingOrder && pendingOrder.is_pii_pending && pendingOrder.order_status !== "cancelled") {
-        const { data: updated, error: updErr } = await admin
-          .from("orders")
-          .update({
+        const fillupPatch = {
             room_type_id: primaryRoomTypeId,
             check_in_date: finalCheckIn,
             check_out_date: finalCheckOut,
@@ -300,13 +299,28 @@ Deno.serve(async (req) => {
             paid_amount: effectivePaidAmount,
             is_pii_pending: false,
             notes: `${specialRequestsPrefix}奧丁丁訂單由業主補單 (OBE: ${staging.obe_number ?? ""}, ${staging.room_type_name ?? ""}${roomAssignments.length > 1 ? `, ${roomAssignments.length} 間` : ""}${rawChannel ? `, 平台: ${rawChannel}` : ""}, 付款: ${effectivePaymentStatus === "paid" ? "已付清" : "待結清"}) — 補齊自動鎖房訂單`,
-          })
-          .eq("id", pendingOrder.id)
+        };
+        try {
+          await updateOrderWithContext(admin, pendingOrder.id, fillupPatch, {
+            source: "owlting_fillup_submit",
+            reason: `業主補單（OBE ${staging.obe_number ?? ""}）`,
+            actorLabel: "業主補單",
+            actorType: "system",
+          });
+        } catch (e) {
+          console.error("[owlting-fillup-submit] auto-order update failed:", e);
+          return new Response(JSON.stringify({ error: "訂單更新失敗", detail: (e as Error).message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: updated, error: reselErr } = await admin
+          .from("orders")
           .select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, final_price")
+          .eq("id", pendingOrder.id)
           .single();
-        if (updErr || !updated) {
-          console.error("[owlting-fillup-submit] auto-order update failed:", updErr);
-          return new Response(JSON.stringify({ error: "訂單更新失敗", detail: updErr?.message }), {
+        if (reselErr || !updated) {
+          console.error("[owlting-fillup-submit] auto-order reselect failed:", reselErr);
+          return new Response(JSON.stringify({ error: "訂單更新失敗", detail: reselErr?.message }), {
             status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
@@ -523,10 +537,19 @@ Deno.serve(async (req) => {
         });
         emailSent = emailResp.ok;
         if (emailResp.ok) {
-          await admin.from("orders").update({
-            internal_email_sent: true,
-            internal_email_sent_at: nowIso,
-          }).eq("id", inserted!.id);
+          try {
+            await updateOrderWithContext(admin, inserted!.id, {
+              internal_email_sent: true,
+              internal_email_sent_at: nowIso,
+            }, {
+              source: "owlting_fillup_submit",
+              reason: "補單確認信已寄出",
+              actorLabel: "系統寄信",
+              actorType: "system",
+            });
+          } catch (e) {
+            console.error("[owlting-fillup-submit] mark email sent failed:", (e as Error).message);
+          }
         } else {
           console.error("[owlting-fillup-submit] confirmation email non-ok:", await emailResp.text());
         }

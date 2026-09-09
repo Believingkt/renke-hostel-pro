@@ -4,6 +4,7 @@
 //
 // This module is INDEPENDENT from owlting-order-push.
 // Do NOT import or share code with the sending side.
+import { updateOrderWithContext, pickUpdatableOrderFields } from "../_shared/orderContext.ts";
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
@@ -479,11 +480,24 @@ export async function upsertHotelnabeOrder(
       return { id: data.id as string };
     },
     async updateById(id, patch) {
-      const { error } = await admin
-        .from("orders")
-        .update(patch as unknown as Record<string, unknown>)
-        .eq("id", id);
-      if (error) throw new Error(`orders update failed: ${error.message}`);
+      // 一律透過 update_order_with_context，讓 order_change_log 記得到來源。
+      const { picked, dropped } = pickUpdatableOrderFields(
+        patch as unknown as Record<string, unknown>,
+      );
+      if (dropped.length > 0) {
+        console.warn("[hotelnabe-order-receiver] skipped non-whitelisted fields:", dropped.join(", "));
+      }
+      if (Object.keys(picked).length === 0) return;
+      try {
+        await updateOrderWithContext(admin, id, picked, {
+          source: "hotelnabe_receiver",
+          reason: `HotelNabe 訂單回寫（ResID ${(patch as any)?.hotelnabe_res_id ?? "—"}）`,
+          actorLabel: "HotelNabe",
+          actorType: "system",
+        });
+      } catch (e) {
+        throw new Error(`orders update failed: ${(e as Error).message}`);
+      }
     },
   };
 

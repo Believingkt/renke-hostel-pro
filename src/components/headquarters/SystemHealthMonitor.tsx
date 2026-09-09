@@ -35,6 +35,7 @@ interface AlertRecipient {
   notify_frontend_error: boolean;
   notify_payment_webhook: boolean;
   notify_order_rooms_failure: boolean;
+  notify_owlting_sync_failure: boolean;
   created_at: string;
 }
 
@@ -113,6 +114,7 @@ export function SystemHealthMonitor() {
         notify_frontend_error: true,
         notify_payment_webhook: true,
         notify_order_rooms_failure: true,
+        notify_owlting_sync_failure: true,
       });
     setAdding(false);
     if (error) {
@@ -259,6 +261,7 @@ export function SystemHealthMonitor() {
                   <TableHead className="w-24 text-center">前端錯誤</TableHead>
                   <TableHead className="w-24 text-center">金流告警</TableHead>
                   <TableHead className="w-28 text-center">房型明細告警</TableHead>
+                  <TableHead className="w-28 text-center">OTA 同步告警</TableHead>
                   <TableHead className="w-24 text-center">啟用</TableHead>
                   <TableHead className="w-16"></TableHead>
                 </TableRow>
@@ -289,6 +292,12 @@ export function SystemHealthMonitor() {
                       <Switch
                         checked={r.notify_order_rooms_failure}
                         onCheckedChange={(v) => handleToggle(r.id, "notify_order_rooms_failure", v)}
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Switch
+                        checked={r.notify_owlting_sync_failure}
+                        onCheckedChange={(v) => handleToggle(r.id, "notify_owlting_sync_failure", v)}
                       />
                     </TableCell>
                     <TableCell className="text-center">

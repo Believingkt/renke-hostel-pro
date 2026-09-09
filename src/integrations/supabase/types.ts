@@ -1864,6 +1864,7 @@ export type Database = {
           notify_frontend_error: boolean
           notify_health_check: boolean
           notify_order_rooms_failure: boolean
+          notify_owlting_sync_failure: boolean
           notify_payment_webhook: boolean
         }
         Insert: {
@@ -1875,6 +1876,7 @@ export type Database = {
           notify_frontend_error?: boolean
           notify_health_check?: boolean
           notify_order_rooms_failure?: boolean
+          notify_owlting_sync_failure?: boolean
           notify_payment_webhook?: boolean
         }
         Update: {
@@ -1886,6 +1888,7 @@ export type Database = {
           notify_frontend_error?: boolean
           notify_health_check?: boolean
           notify_order_rooms_failure?: boolean
+          notify_owlting_sync_failure?: boolean
           notify_payment_webhook?: boolean
         }
         Relationships: []
