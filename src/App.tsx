@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
 import { HQIndexGate } from "@/components/hq/HQIndexGate";
+import { HQ_AI_ROLES } from "@/lib/hqAccess";
 import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@/contexts/AccommodationContext";
@@ -740,7 +741,9 @@ function App() {
                       } />
 
                       <Route path="/hq/ai-training" element={
-                        <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                        </RequireHQRole>
                       }>
                         <Route index element={
                           <Suspense fallback={null}><AiTrainingDashboard /></Suspense>
@@ -782,10 +785,14 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
                       } />
                       <Route path="/hq/knowledge/index" element={
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/knowledge/search" element={
-                        <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/traveler-attributes" element={
                         <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>

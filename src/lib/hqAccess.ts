@@ -17,3 +17,7 @@ export const HQ_LOGIN_ROLES: AppRole[] = [...HQ_FULL_ACCESS_ROLES, "finance", "a
 
 /** 非完整權限者的落點：HQ 整合頁的「業主月結設定」 */
 export const HQ_OWNER_SETTLEMENT_LANDING = "/hq/bonus-settings?tab=owner-settlement";
+
+/** 可進入 AI 訓練中心與知識庫頁面的角色（與完整總部權限一致） */
+export const HQ_AI_ROLES: AppRole[] = [...HQ_FULL_ACCESS_ROLES];
+
