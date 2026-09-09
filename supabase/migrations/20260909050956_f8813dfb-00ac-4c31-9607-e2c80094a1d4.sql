@@ -1,7 +1,4 @@
 -- V5.5B.5 — orders.member_id 身分綁定
--- 只改 "Public can insert orders" 的 WITH CHECK，追加「member_id 必須屬於呼叫者本人」。
--- 0 業務資料異動。
-
 DO $$
 DECLARE v_md5 text;
 BEGIN
