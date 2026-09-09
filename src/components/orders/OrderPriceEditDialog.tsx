@@ -452,7 +452,9 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
         if (Number(editPaidAmount) !== Number(order.paid_amount ?? 0)) parts.push(`已付 ${order.paid_amount ?? 0}→${editPaidAmount}`);
         if (Number(safeFinalPrice) !== Number(order.final_price ?? 0)) parts.push(`實收 ${order.final_price}→${safeFinalPrice}`);
         const reasonStr = editReason.trim() ? `｜原因：${editReason.trim()}` : "";
-        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}`;
+        // 已結清折扣修改：來源標記改寫入 notes 稽核行（V5.5C.2；舊 audit_logs 寫入已停用）
+        const sourceStr = paidDiscountEdited ? `｜paid_discount_edit（${PAID_DISCOUNT_SOURCE}）` : "";
+        const auditLine = `🔒[金額異動 ${ts} by ${who}] ${parts.join("、")}${reasonStr}${sourceStr}`;
         nextNotes = nextNotes ? `${nextNotes}\n${auditLine}` : auditLine;
       } else if (editReason.trim()) {
         // Non-locked path: keep original behaviour for plain reason note
