@@ -10,6 +10,7 @@ import { settlementLabel } from "@/lib/paidAmountSettlement";
 interface AuditLogRow {
   id: string;
   origin?: "audit" | "change_log";
+  entity_type?: string;
   user_id: string | null;
   user_email: string | null;
   action_type: string;
@@ -101,7 +102,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
       const [auditRes, changeRes] = await Promise.all([
         supabase
           .from("audit_logs")
-          .select("id, user_id, user_email, action_type, details, created_at")
+          .select("id, user_id, user_email, action_type, details, created_at, entity_type")
           .in("entity_type", ["order", "order_meta"])
           .eq("entity_id", orderId)
           .order("created_at", { ascending: false }),
@@ -124,6 +125,7 @@ export default function OrderAuditLogCard({ orderId, refreshKey }: OrderAuditLog
       const auditRows: AuditLogRow[] = ((auditRes.data || []) as any[]).map((r) => ({
         id: `a_${r.id}`,
         origin: "audit" as const,
+        entity_type: r.entity_type,
         user_id: r.user_id,
         user_email: r.user_email,
         action_type: r.action_type,
