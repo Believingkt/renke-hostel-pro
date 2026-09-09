@@ -12,6 +12,8 @@
 // a duplicate — see `promoteAutoPendingOrder` there.
 
 import { sendOrderRoomsAlertEmail } from "./orderRoomsAlert.ts";
+import { updateOrderWithContext } from "./orderContext.ts";
+import { reportOwltingSyncFailure } from "./owltingSyncAlert.ts";
 
 export function normalizeName(s: string | null | undefined): string {
   return (s ?? "").replace(/\s+/g, "").toLowerCase();
@@ -226,31 +228,74 @@ export async function autoCreatePendingOrder(
  * On cancelled email: mark any auto-created pending order for the same OBE as cancelled.
  * Returns list of cancelled order ids (best-effort; never throws).
  */
+export interface CancelAutoResult {
+  /** 實際 RPC 呼叫成功、確定已取消的 order id */
+  cancelled: string[];
+  /** 失敗筆（不中斷迴圈，需人工補救） */
+  failed: Array<{ id: string; order_number: string | null; error: string }>;
+}
+
 export async function cancelAutoPendingOrders(
   admin: any,
   obeNumber: string,
-): Promise<string[]> {
+): Promise<CancelAutoResult> {
+  const empty: CancelAutoResult = { cancelled: [], failed: [] };
   try {
-    if (!obeNumber) return [];
-    const { data: orders } = await admin
+    if (!obeNumber) return empty;
+    const { data: orders, error: selErr } = await admin
       .from("orders")
-      .select("id, order_status")
+      .select("id, order_number, order_status")
       .eq("owlting_reservation_id", obeNumber)
       .neq("order_status", "cancelled");
-    if (!orders || orders.length === 0) return [];
-    const ids = orders.map((o: any) => o.id);
+    if (selErr) throw new Error(selErr.message);
+    if (!orders || orders.length === 0) return empty;
+
     const nowIso = new Date().toISOString();
-    await admin
-      .from("orders")
-      .update({
-        order_status: "cancelled",
-        cancelled_at: nowIso,
-      })
-      .in("id", ids);
-    return ids;
+    const cancelled: string[] = [];
+    const failed: CancelAutoResult["failed"] = [];
+
+    for (const o of orders as any[]) {
+      try {
+        await updateOrderWithContext(admin, o.id, {
+          order_status: "cancelled",
+          cancelled_at: nowIso,
+        }, {
+          source: "owlting_email_cancel",
+          reason: `OBE ${obeNumber} 取消通知`,
+          actorLabel: "OwlTing 取消通知",
+          actorType: "system",
+        });
+        cancelled.push(o.id);
+      } catch (e) {
+        failed.push({ id: o.id, order_number: o.order_number ?? null, error: (e as Error).message });
+      }
+    }
+
+    if (failed.length > 0) {
+      await reportOwltingSyncFailure(admin, {
+        functionName: "owlting-email-ingest",
+        category: "owlting_auto_cancel",
+        step: "cancel_auto_pending_orders",
+        summary: `OBE ${obeNumber}：${failed.length} 筆訂單自動取消失敗，需人工處理`,
+        reference: obeNumber,
+        failed: failed.map((f) => ({ order_id: f.id, order_number: f.order_number, reference: obeNumber, error: f.error })),
+        successCount: cancelled.length,
+      });
+    }
+
+    return { cancelled, failed };
   } catch (e) {
     console.error("[cancelAutoPendingOrders] failed:", e);
-    return [];
+    await reportOwltingSyncFailure(admin, {
+      functionName: "owlting-email-ingest",
+      category: "owlting_auto_cancel",
+      step: "cancel_auto_pending_orders",
+      summary: `OBE ${obeNumber}：取消流程整體失敗（${(e as Error).message}）`,
+      reference: obeNumber,
+      failed: [{ reference: obeNumber, error: (e as Error).message }],
+      successCount: 0,
+    }).catch(() => {});
+    return empty;
   }
 }
 
@@ -493,8 +538,16 @@ export async function applyModificationToExistingOrder(
     const summary = formatOrderDiff(diff);
     patch.notes = `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary}${input.change_summary ? `\n（信件差異：${input.change_summary}）` : ""}`;
 
-    const { error: updErr } = await admin.from("orders").update(patch).eq("id", order.id);
-    if (updErr) return { ok: false, error: updErr.message, diff };
+    try {
+      await updateOrderWithContext(admin, order.id, patch, {
+        source: "owlting_email_modify",
+        reason: `OBE ${input.obe_number} 修改通知自動更新`,
+        actorLabel: "OwlTing 修改通知",
+        actorType: "system",
+      });
+    } catch (e) {
+      return { ok: false, error: (e as Error).message, diff };
+    }
 
     // Rebuild room rows when dates / room type / quantity / price changed.
     const finalCheckIn = (patch.check_in_date as string) ?? order.check_in_date;
