@@ -112,14 +112,18 @@ serve(async (req) => {
     if (success) {
       const newRefunded = (order.deposit_refunded_amount || 0) + amount;
       const fullyRefunded = newRefunded >= (order.deposit_charged_amount || 0);
-      await supabase
-        .from("orders")
-        .update({
+      await supabase.rpc("update_order_with_context", {
+        p_order_id: order.id,
+        p_patch: {
           deposit_refunded_amount: newRefunded,
           deposit_refunded_at: new Date().toISOString(),
           deposit_status: fullyRefunded ? "refunded" : "partially_refunded",
-        })
-        .eq("id", order.id);
+        },
+        p_source: "deposit_refund",
+        p_reason: `押金退款 NT$${amount}`,
+        p_actor_label: userId ? `押金退款（操作者 ${userId}）` : "押金退款",
+        p_actor_type: "system",
+      });
 
       return new Response(
         JSON.stringify({ success: true, message: "退款成功", amount }),

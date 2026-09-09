@@ -111,21 +111,29 @@ async function chargeOne(supabase: any, orderId: string, amountOverride: number 
   if (success) {
     const newCharged = (order.deposit_charged_amount || 0) + amount;
     const newStatus = newCharged >= (order.deposit_required_amount || 0) ? "charged" : "card_bound";
-    await supabase
-      .from("orders")
-      .update({
+    await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         deposit_charged_amount: newCharged,
         deposit_charged_at: new Date().toISOString(),
         deposit_status: newStatus,
-      })
-      .eq("id", order.id);
+      },
+      p_source: "deposit_charge",
+      p_reason: `押金扣款成功 NT$${amount}`,
+      p_actor_label: performedBy ? `押金扣款（操作者 ${performedBy}）` : "押金扣款（系統排程）",
+      p_actor_type: "system",
+    });
 
     return { success: true, message: "押金扣款成功", amount, recTradeId: result.rec_trade_id };
   } else {
-    await supabase
-      .from("orders")
-      .update({ deposit_status: "failed" })
-      .eq("id", order.id);
+    await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: { deposit_status: "failed" },
+      p_source: "deposit_charge",
+      p_reason: `押金扣款失敗：${result.msg || `TapPay error ${result.status}`}`,
+      p_actor_label: performedBy ? `押金扣款（操作者 ${performedBy}）` : "押金扣款（系統排程）",
+      p_actor_type: "system",
+    });
 
     return {
       success: false,

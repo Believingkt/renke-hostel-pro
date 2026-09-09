@@ -132,13 +132,17 @@ serve(async (req) => {
     }
 
     // Update order deposit status
-    await supabase
-      .from("orders")
-      .update({
+    await supabase.rpc("update_order_with_context", {
+      p_order_id: order.id,
+      p_patch: {
         deposit_method: "card",
         deposit_status: "card_bound",
-      })
-      .eq("id", order.id);
+      },
+      p_source: "deposit_bind_card",
+      p_reason: `綁卡成功（末四碼 ${cardInfo.last_four ?? "N/A"}）`,
+      p_actor_label: "客人綁卡",
+      p_actor_type: "system",
+    });
 
     return new Response(
       JSON.stringify({
