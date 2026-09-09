@@ -106,26 +106,7 @@ BEGIN
   -- (3) meal_plan_total 已停用
   NEW.meal_plan_total := 0;
 
-  -- (2) pet_plan_price：只認 addon_settings.addon_type = 'pet'
-  IF COALESCE(NEW.pet_plan_price, 0) <> 0 THEN
-    SELECT a.price_per_unit, a.pricing_mode
-      INTO v_pet_unit, v_pet_mode
-    FROM public.addon_settings a
-    WHERE a.accommodation_id = NEW.accommodation_id
-      AND a.addon_type = 'pet'
-      AND a.enabled = TRUE
-    LIMIT 1;
-
-    IF v_pet_unit IS NULL THEN
-      NEW.pet_plan_price := 0;
-    ELSE
-      NEW.pet_plan_price := (
-        v_pet_unit
-        * GREATEST(0, COALESCE(NEW.pet_count, 0))
-        * CASE WHEN v_pet_mode = 'per_night' THEN v_stay_nights ELSE 1 END
-      )::INT;
-    END IF;
-  END IF;
+  -- (2) pet_plan_price：本次不動，維持 payload 原值
 
   -- (1) custom_addon_details 逐筆回查
   IF NEW.custom_addon_details IS NOT NULL
