@@ -5,7 +5,7 @@ import { errorResult, supabaseForUser, textResult } from "../supabase";
 const ORDER_DETAIL_FIELDS = [
   "id","order_number","accommodation_id","room_type_id","package_id","customer_id","member_id",
   "guest_name","guest_phone","guest_email","guest_address","guest_count","room_quantity",
-  "check_in_date","check_out_date","nights","order_status","payment_status","order_source",
+  "check_in_date","check_out_date","order_status","payment_status","order_source",
   "order_date","total_price","discount_code","discount_amount","final_price","paid_amount",
   "deposit_amount","deposit_status","deposit_required_amount","deposit_method",
   "payment_method","deposit_payment_method","balance_payment_method",

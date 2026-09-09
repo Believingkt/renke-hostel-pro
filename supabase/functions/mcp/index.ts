@@ -98,7 +98,6 @@ var ORDER_DETAIL_FIELDS = [
   "room_quantity",
   "check_in_date",
   "check_out_date",
-  "nights",
   "order_status",
   "payment_status",
   "order_source",
