@@ -392,7 +392,8 @@ export function buildTimelineItems(input: {
       (e.trigger_source ? `（${TRIGGER_SOURCE_LABEL[e.trigger_source] || e.trigger_source}）` : ""),
     changes: [],
     error: e.error_message ?? null,
-  }));
+    };
+  });
 
   return [...changeItems, ...paymentItems, ...depositItems, ...chargeItems, ...emailItems].sort(
     (a, b) => +new Date(b.at) - +new Date(a.at),
