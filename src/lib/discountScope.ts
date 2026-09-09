@@ -51,7 +51,8 @@ export async function getOrderDiscountScope(
       templateId: null,
       roomTypeId: null,
       ambiguous: true,
-      reason: "此訂單包含多個房價方案，無法自動判斷折扣碼適用範圍，請改填手動折扣金額。",
+      reason:
+        "此訂單包含多個房價方案，無法自動判斷折扣碼適用範圍。改填手動折扣金額會清空折扣碼並刪除此訂單的分潤／業績歸屬記錄。",
     };
   }
   if (roomTypes.length > 1) {
@@ -59,7 +60,8 @@ export async function getOrderDiscountScope(
       templateId: templates[0] ?? null,
       roomTypeId: null,
       ambiguous: true,
-      reason: "此訂單包含多個房型，無法自動判斷折扣碼適用範圍，請改填手動折扣金額。",
+      reason:
+        "此訂單包含多個房型，無法自動判斷折扣碼適用範圍。改填手動折扣金額會清空折扣碼並刪除此訂單的分潤／業績歸屬記錄。",
     };
   }
   return {

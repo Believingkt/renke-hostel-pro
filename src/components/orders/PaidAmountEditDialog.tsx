@@ -485,8 +485,16 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                       value={discountAmountStr}
                       onChange={(e) => setDiscountAmountStr(e.target.value.replace(/[^\d]/g, ""))}
                     />
-                    <p className="text-xs text-muted-foreground">手動折扣不會保留折扣碼。</p>
+                    <p className="text-xs text-destructive">
+                      ⚠️ 送出後會清空此訂單的折扣碼，並連帶刪除這筆訂單既有的分潤／業績歸屬記錄。
+                      若此訂單靠網紅／通路折扣碼歸戶業績，請先確認可接受再送出。
+                    </p>
                   </div>
+                )}
+                {discountMode === "none" && (
+                  <p className="text-xs text-destructive">
+                    ⚠️ 取消折扣會一併清空折扣碼，並刪除此訂單的分潤／業績歸屬記錄。
+                  </p>
                 )}
                 {usesCode && (
                   <div className="space-y-2">
