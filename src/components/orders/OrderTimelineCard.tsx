@@ -458,6 +458,7 @@ export default function OrderTimelineCard({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [resendingType, setResendingType] = useState<string | null>(null);
+  const [cardOpen, setCardOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
