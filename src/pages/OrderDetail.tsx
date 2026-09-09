@@ -4052,6 +4052,46 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         </AlertDialog>
       )}
 
+      {/* V5.5C.1：改為「已付清」但已付金額不足 */}
+      <AlertDialog open={!!paidSyncPrompt} onOpenChange={(o) => { if (!o) setPaidSyncPrompt(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>付款狀態為「已付清」，但已付金額少於應收</AlertDialogTitle>
+            <AlertDialogDescription>
+              應收 NT${(paidSyncPrompt?.expected ?? 0).toLocaleString()}，目前已付 NT${(paidSyncPrompt?.current ?? 0).toLocaleString()}，
+              差額 NT${Math.max(0, (paidSyncPrompt?.expected ?? 0) - (paidSyncPrompt?.current ?? 0)).toLocaleString()}。請選擇處理方式。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+            <Button
+              onClick={() => {
+                const expected = paidSyncPrompt?.expected ?? 0;
+                paidSyncOverrideRef.current = { paid_amount: expected };
+                setEditForm((f) => ({ ...f, paid_amount: expected }));
+                setPaidSyncPrompt(null);
+                void handleSaveEdit();
+              }}
+            >
+              已收齊，把已付金額更新為 NT${(paidSyncPrompt?.expected ?? 0).toLocaleString()}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                paidSyncOverrideRef.current = { payment_status: "deposit_paid" };
+                setEditForm((f) => ({ ...f, payment_status: "deposit_paid" }));
+                setPaidSyncPrompt(null);
+                void handleSaveEdit();
+              }}
+            >
+              維持已付 NT${(paidSyncPrompt?.current ?? 0).toLocaleString()}，狀態改為「已付訂金」
+            </Button>
+            <Button variant="ghost" onClick={() => setPaidSyncPrompt(null)}>
+              取消，我要自己調整
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* 改期對話框 */}
       {order && (
         <ChangeOrderDatesDialog
