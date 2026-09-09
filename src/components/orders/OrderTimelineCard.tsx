@@ -827,6 +827,7 @@ export default function OrderTimelineCard({
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
