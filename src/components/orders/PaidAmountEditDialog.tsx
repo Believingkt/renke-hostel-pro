@@ -753,16 +753,18 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               {mode === "discount" ? (
                 <>
                   <Row label="折扣碼" before={oldCode || "—"} after={previewCode || "—"} />
-                  {usesCode && validatedStandard != null && (
+                  {usesCode && !keepExistingCode && validatedStandard != null && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">系統計算標準折扣</span>
                       <span className="tabular-nums">{NT(validatedStandard)}</span>
                     </div>
                   )}
                   <Row label="實際套用折扣" before={NT(oldDiscount)} after={NT(previewDiscount)} />
-                  {codeOverridden && (
+                  {keepExistingCode ? (
+                    <p className="text-xs text-amber-600">已沿用原折扣碼並人工指定折扣金額（模式：code_keep）</p>
+                  ) : codeOverridden ? (
                     <p className="text-xs text-amber-600">已人工調整折扣金額（保留折扣碼，模式：code_override）</p>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <>
