@@ -45,10 +45,10 @@ import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
-import OrderAuditLogCard from "@/components/orders/OrderAuditLogCard";
+import OrderTimelineCard from "@/components/orders/OrderTimelineCard";
 import OrderManualReviewCard from "@/components/orders/OrderManualReviewCard";
 
-import OrderNotificationHistory from "@/components/orders/OrderNotificationHistory";
+
 import { OrderAddonSalesCard } from "@/components/orders/OrderAddonSalesCard";
 import { OrderAmenityCard } from "@/components/amenities/OrderAmenityCard";
 
