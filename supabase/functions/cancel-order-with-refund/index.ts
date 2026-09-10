@@ -14,6 +14,7 @@ import {
 import { canEditModule, resolveCaller } from "../_shared/authz.ts";
 import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
+import { buildCancelOrderPatch, buildCancelRefundFailurePatch } from "../_shared/patchBuilders.ts";
 
 
 
@@ -239,7 +240,7 @@ serve(async (req) => {
             : `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}），訂單未取消，請改用手動退款或至 TapPay 後台處理。`;
         await supabase.rpc("update_order_with_context", {
           p_order_id: order.id,
-          p_patch: { refund_status: "failed", refund_rec_trade_id: recTradeIdUsed },
+          p_patch: buildCancelRefundFailurePatch({ recTradeId: recTradeIdUsed }),
           p_source: "admin_cancel_refund",
           p_reason: `TapPay 退款失敗（代碼 ${refundResult.status}：${refundResult.msg}）`,
           p_actor_label: `取消退款（操作者 ${userEmail}）`,
@@ -291,23 +292,15 @@ serve(async (req) => {
     const newNotes = (order.notes || "") + refundResultNote + policyNote;
 
     // Build update patch
-    const patch: Record<string, any> = {
-      order_status: "cancelled",
-      cancelled_at: nowIso,
+    const patch = buildCancelOrderPatch({
+      nowIso,
       notes: newNotes,
-    };
-    if (body.refundAction === "auto_refund" && refundSucceeded) {
-      const newPaid = Math.max(0, paidAmount - refundAmount);
-      patch.paid_amount = newPaid;
-      patch.payment_status = newPaid === 0 ? "refunded" : "partial_refunded";
-      patch.refunded_amount = refundAmount;
-      patch.refund_rec_trade_id = recTradeIdUsed;
-      patch.refunded_at = nowIso;
-      patch.refund_status = newPaid === 0 ? "refunded" : "partial_refunded";
-    }
-    if (body.refundAction === "mark_manual_refund" && refundAmount > 0) {
-      patch.refund_status = "pending_manual";
-    }
+      refundAction: body.refundAction,
+      refundSucceeded,
+      paidAmount,
+      refundAmount,
+      recTradeId: recTradeIdUsed ?? null,
+    });
 
     const cancelReason =
       body.refundAction === "auto_refund" && refundSucceeded
