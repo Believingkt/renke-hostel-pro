@@ -66,11 +66,11 @@ import { canShowPaidDiscountEntry } from "@/lib/paidDiscountEdit";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
 import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
-  buildAdminCancelPatch,
   buildAdminPriceEditPatch,
   buildCheckinActionPatch,
   buildInlineEditPatch,
 } from "@/lib/orderFieldPatches";
+import { buildCancelBlockHint, isCancelBlockedError, isCancelBlockedOrder } from "@/lib/cancelEntryGuard";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -999,6 +999,19 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       });
       return;
     }
+    // 團購／信用卡訂單不得由內嵌編輯直接改成「已取消」，必須走專屬取消流程
+    if (
+      editForm.order_status === "cancelled" &&
+      order.order_status !== "cancelled" &&
+      isCancelBlockedOrder(order as any)
+    ) {
+      toast({
+        title: "此訂單不能在這裡取消",
+        description: buildCancelBlockHint(order as any),
+        variant: "destructive",
+      });
+      return;
+    }
     // V5.5C.1：本次存檔正要把付款狀態改成「已付清」，但已付金額低於應收 → 先問清楚
     if (!paidSyncOverrideRef.current) {
       const FULLY_PAID = ["paid", "fully_paid"];
@@ -1387,8 +1400,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       fetchOrder();
     } catch (error: any) {
       console.error("儲存失敗:", error);
-      const msg = error?.message || error?.error_description || "請稍後再試";
-      toast({ title: "儲存失敗", description: msg, variant: "destructive" });
+      if (isCancelBlockedError(error)) {
+        toast({
+          title: "此訂單不能在這裡取消",
+          description: buildCancelBlockHint(order as any),
+          variant: "destructive",
+        });
+      } else {
+        const msg = error?.message || error?.error_description || "請稍後再試";
+        toast({ title: "儲存失敗", description: msg, variant: "destructive" });
+      }
     } finally {
       setIsSavingEdit(false);
     }
@@ -1398,27 +1419,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     }
   };
 
-  const handleCancelOrder = async () => {
-    if (!order) return;
-    setIsCancelling(true);
-    try {
-      const { error } = await supabase.rpc("update_order_fields_v1", {
-        p_order_id: order.id,
-        p_patch: buildAdminCancelPatch({ cancelledAtIso: new Date().toISOString() }) as any,
-        p_source: "admin_order_cancel",
-        p_reason: null,
-      });
-      if (error) throw error;
-      // 變更紀錄由 zzz_order_change_log trigger 統一寫入（V5.5C.2）
-      toast({ title: "訂單已取消", description: `訂單 ${order.order_number} 已成功取消` });
-      goBack();
-    } catch (error) {
-      console.error("取消訂單失敗:", error);
-      toast({ title: "取消失敗", description: "無法取消訂單，請稍後再試", variant: "destructive" });
-    } finally {
-      setIsCancelling(false);
-    }
-  };
 
   const handleCheckinAction = async (action: "checkin" | "undo_checkin" | "checkout" | "undo_checkout") => {
     if (!order) return;
@@ -2040,6 +2040,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     { value: "owner_provided", label: "業主自帶" },
   ];
 
+  const inlineCancelBlocked = isCancelBlockedOrder(order as any);
+
   const orderStatusOptions = [
     { value: "pending", label: "待確認" },
     { value: "confirmed", label: "已確認" },
@@ -2330,16 +2332,29 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單狀態</span>
               {isEditing ? (
-                <Select value={editForm.order_status} onValueChange={(v) => setEditForm(f => ({ ...f, order_status: v }))}>
-                  <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {orderStatusOptions.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-col items-end gap-1">
+                  <Select value={editForm.order_status} onValueChange={(v) => setEditForm(f => ({ ...f, order_status: v }))}>
+                    <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {orderStatusOptions.map(o => (
+                        <SelectItem
+                          key={o.value}
+                          value={o.value}
+                          disabled={o.value === "cancelled" && inlineCancelBlocked}
+                        >
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {inlineCancelBlocked && (
+                    <span className="text-xs text-muted-foreground text-right max-w-[240px] leading-snug">
+                      {buildCancelBlockHint(order as any)}
+                    </span>
+                  )}
+                </div>
               ) : getOrderStatusBadge(order.order_status)}
             </div>
             <Separator />

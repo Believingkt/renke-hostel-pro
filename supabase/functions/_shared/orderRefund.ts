@@ -3,6 +3,7 @@
 // 不適用：ATM 虛擬帳號、現金、銀行轉帳 → 一律維持人工退款流程。
 
 import { refundTapPay } from "./tappay.ts";
+import { isCardPaidOrderRule } from "./cardPaymentRule.ts";
 
 export interface RefundableOrder {
   id: string;
@@ -20,20 +21,10 @@ export interface RefundableOrder {
 }
 
 
-const CARD_METHODS = new Set(["credit_card", "credit_card_3ds", "card", "信用卡"]);
-const ATM_METHODS = new Set(["atm", "ATM", "atm_transfer"]);
-
-/** 這張訂單是否以信用卡收款（ATM／現金／轉帳一律回 false） */
+/** 這張訂單是否以信用卡收款（ATM／現金／轉帳一律回 false）
+ *  規則本體在 ./cardPaymentRule.ts，前後端共用同一份實作。 */
 export function isCardPaidOrder(order: RefundableOrder): boolean {
-  const methods = [
-    order.balance_payment_method,
-    order.payment_method,
-    order.deposit_payment_method,
-  ].filter(Boolean) as string[];
-  if (methods.some((m) => ATM_METHODS.has(m))) return false;
-  if (methods.some((m) => CARD_METHODS.has(m))) return true;
-  // 沒有付款方式但有刷卡交易編號 → 視為刷卡
-  return !!order.room_charge_rec_trade_id;
+  return isCardPaidOrderRule(order);
 }
 
 /** 從 notes 解析 rec_trade_id（相容多種歷史寫法） */

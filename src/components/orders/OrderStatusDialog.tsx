@@ -12,6 +12,8 @@ import { isHoldOrder } from "@/lib/holdOrder";
 import { buildAmenityRestoreError, type AmenityRestoreError } from "@/lib/amenityRescheduleGuard";
 import { AlertTriangle } from "lucide-react";
 import { buildOrderStatusDialogPatch } from "@/lib/orderFieldPatches";
+import { isCardPaidOrderDisplay } from "@/lib/cardPaymentDisplay";
+import { buildCancelBlockHint, isCancelBlockedError, isCancelBlockedOrder } from "@/lib/cancelEntryGuard";
 
 interface OrderStatusDialogProps {
   order: Order | null;
@@ -42,11 +44,19 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
     }
   }, [open, order]);
 
+  const cancelBlocked = isCancelBlockedOrder(order);
+  const cancelBlockHint = buildCancelBlockHint(order);
+
   const handleSave = async () => {
     if (!order || selectedStatus === order.order_status) {
       onOpenChange(false);
       return;
     }
+    if (selectedStatus === "cancelled" && cancelBlocked) {
+      toast({ title: "此訂單不能在這裡取消", description: cancelBlockHint, variant: "destructive" });
+      return;
+    }
+
 
     setIsSaving(true);
     setAmenityError(null);
@@ -84,6 +94,11 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
       onSuccess();
     } catch (error) {
       console.error("更新訂單狀態失敗:", error);
+      if (isCancelBlockedError(error)) {
+        toast({ title: "此訂單不能在這裡取消", description: cancelBlockHint, variant: "destructive" });
+        setIsSaving(false);
+        return;
+      }
       const restoreError = buildAmenityRestoreError({
         fromStatus: order.order_status,
         toStatus: selectedStatus,
@@ -120,13 +135,20 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
           <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
             {ORDER_STATUSES.map((status) => {
               const config = getOrderStatusConfig(status.value);
+              const disabled = status.value === "cancelled" && cancelBlocked;
               return (
-                <div key={status.value} className="flex items-center space-x-3 py-1.5">
-                  <RadioGroupItem value={status.value} id={`os-${status.value}`} />
-                  <Label htmlFor={`os-${status.value}`} className="cursor-pointer flex items-center gap-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+                <div key={status.value} className="flex items-start space-x-3 py-1.5">
+                  <RadioGroupItem value={status.value} id={`os-${status.value}`} disabled={disabled} />
+                  <Label
+                    htmlFor={`os-${status.value}`}
+                    className={`flex flex-col gap-1 ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+                  >
+                    <span className={`inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
                       {status.label}
                     </span>
+                    {disabled && (
+                      <span className="text-xs text-muted-foreground leading-snug">{cancelBlockHint}</span>
+                    )}
                   </Label>
                 </div>
               );
