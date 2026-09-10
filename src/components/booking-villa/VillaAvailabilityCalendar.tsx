@@ -35,6 +35,7 @@ import {
   detectTierByDate,
   getPackagePriceForTier,
   isPackageExcludedOnDate,
+  isPackageExcludedInRange,
 } from "@/hooks/use-accommodation-packages";
 
 interface Props {
