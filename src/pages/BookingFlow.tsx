@@ -3176,11 +3176,20 @@ const BookingFlow = () => {
 
         if (!validationResult?.isValid) {
           console.error("Price validation failed:", validationResult?.errors);
+          const excludedDates: string[] = Array.isArray(validationResult?.excludedDates)
+            ? validationResult.excludedDates
+            : [];
           toast({
-            title: validationResult?.rateLimited ? "訂單暫時無法送出" : "價格驗證失敗",
+            title: validationResult?.rateLimited
+              ? "訂單暫時無法送出"
+              : excludedDates.length > 0
+                ? "此期間本方案不開放線上訂房"
+                : "價格驗證失敗",
             description: validationResult?.rateLimited
               ? (validationResult?.errors?.[0] || "請稍後再試。")
-              : "訂單價格與系統計算不符，請重新整理頁面後再試",
+              : excludedDates.length > 0
+                ? `很抱歉，您選擇的入住期間中，${excludedDates.join("、")} 這幾天本方案不開放線上訂房，請調整日期或聯繫客服。`
+                : "訂單價格與系統計算不符，請重新整理頁面後再試",
             variant: "destructive",
           });
           submittingRef.current = false;

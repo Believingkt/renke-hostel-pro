@@ -41,6 +41,8 @@ interface OrderValidationRequest {
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
+  /** 命中方案「不適用日期區間」的日期（YYYY-MM-DD），供前台顯示具體訊息用 */
+  excludedDates?: string[];
   calculatedPrices: {
     totalPrice: number;
     discountAmount: number;
@@ -273,12 +275,30 @@ serve(async (req) => {
     // 若為包區方案，一律以「訂房入住方案」設定為準：依 tier（平日／週五日／假日）取價
     let packageOverride = false;
     let discountBaseTotal = 0; // 折扣碼計算基準（包區方案原價，劃掉價）
+    const excludedDates: string[] = [];
     if (packageId) {
       const { data: pkg } = await supabase
         .from("accommodation_packages")
-        .select("sale_price, original_price, tier_prices")
+        .select("sale_price, original_price, tier_prices, excluded_date_ranges")
         .eq("id", packageId)
         .maybeSingle();
+
+      // 「不適用日期區間」檢查：無條件執行（與 sale_price 是否存在無關），逐夜比對
+      const excludedRanges = Array.isArray((pkg as any)?.excluded_date_ranges)
+        ? ((pkg as any).excluded_date_ranges as Array<{ start?: string; end?: string }>)
+        : [];
+      if (excludedRanges.length > 0) {
+        for (const date of dates) {
+          const hit = excludedRanges.some(
+            (r) => r && r.start && r.end && date >= r.start && date <= r.end,
+          );
+          if (hit) {
+            excludedDates.push(date);
+            errors.push(`Package is not available on ${date}`);
+          }
+        }
+      }
+
       if (pkg && (pkg as any).sale_price != null) {
         packageOverride = true;
         const salePrice = Number((pkg as any).sale_price);
@@ -695,6 +715,7 @@ serve(async (req) => {
       isValid: errors.length === 0,
       inventoryUnavailable,
       errors,
+      excludedDates,
 
       calculatedPrices: {
         totalPrice: calculatedTotalPrice,

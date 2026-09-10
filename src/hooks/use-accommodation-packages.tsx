@@ -101,6 +101,27 @@ export function isPackageExcludedOnDate(
 }
 
 /**
+ * 判斷一段住宿期間（入住日 ~ 退房日前一晚）是否有「任一晚」落在方案的不適用日期區間內。
+ * 不改動 isPackageExcludedOnDate 的簽章，內部逐夜呼叫既有邏輯。
+ */
+export function isPackageExcludedInRange(
+  pkg: Pick<AccommodationPackage, "excluded_date_ranges">,
+  checkIn: Date | null | undefined,
+  checkOut?: Date | null
+): boolean {
+  if (!checkIn) return false;
+  if (!checkOut) return isPackageExcludedOnDate(pkg, checkIn);
+  const cur = new Date(checkIn.getFullYear(), checkIn.getMonth(), checkIn.getDate());
+  const end = new Date(checkOut.getFullYear(), checkOut.getMonth(), checkOut.getDate());
+  while (cur < end) {
+    if (isPackageExcludedOnDate(pkg, cur)) return true;
+    cur.setDate(cur.getDate() + 1);
+  }
+  // 單日或異常區間（checkOut <= checkIn）至少檢查入住當天
+  return isPackageExcludedOnDate(pkg, checkIn);
+}
+
+/**
  * 抓取該民宿設定的「國定假日」清單，回傳 isHolidayDate(date) 判斷函式。
  * 視為假日的類型：'holiday'（國定假日）與 'compensatory_day_off'（補假）。
  * 'work_on_weekend'（補班日）不視為假日。
