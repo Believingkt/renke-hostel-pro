@@ -8,6 +8,26 @@ const THROTTLE_MINUTES = 15; // 同類錯誤 15 分鐘內不重複告警
 const ipRateLimit = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_PER_MINUTE = 5;
 
+const BOT_KEYWORDS = [
+  "googlebot",
+  "bingbot",
+  "duckduckbot",
+  "baiduspider",
+  "yandexbot",
+  "crawler",
+  "spider",
+  "headless",
+  "slurp",
+  "robot",
+  "bot",
+];
+
+function detectBotKeyword(userAgent?: string): string | null {
+  if (!userAgent) return null;
+  const normalized = userAgent.toLowerCase();
+  return BOT_KEYWORDS.find((keyword) => normalized.includes(keyword)) ?? null;
+}
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const record = ipRateLimit.get(ip);
@@ -35,11 +55,30 @@ async function sendAlertEmail(
   const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
   if (!lovableKey || !resendKey) return false;
 
+  const botKeyword = detectBotKeyword(payload.userAgent);
+  const isBot = botKeyword !== null;
+  const isChunkLoadFailure = payload.errorType === "chunk_load_failure";
+  const urgency = isBot ? "⚪ 低急迫" : "🟡 中急迫";
+  const conclusion = isChunkLoadFailure
+    ? "有瀏覽器沒有成功載入頁面的功能模組，最常見原因是網站剛部署過新版本，對方瀏覽器手上還是舊版頁面"
+    : "使用者瀏覽器在使用過程中發生了一個前端錯誤";
+  const source = isBot
+    ? `疑似搜尋引擎機器人（比對到關鍵字：${botKeyword}）`
+    : "真人瀏覽器";
+  const action = isBot
+    ? "通常不影響真人客戶，先不用處理，除非同一頁面持續大量出現"
+    : isChunkLoadFailure
+    ? "如果近期有部署新版本，這是正常現象，通常使用者重新整理就會恢復。如果同一頁面持續出現，需要進一步查"
+    : "請查看錯誤訊息判斷影響範圍，如有真人客戶回報同樣問題，需儘快處理";
+
   const html = `
     <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #dc2626; margin: 0 0 16px;">⚠️ 前端載入失敗回報</h2>
-      <p style="color: #374151;">用戶端在使用過程中發生錯誤，建議檢查近期部署或 CDN 快取狀態。</p>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
+      <div style="display:inline-block;background:${isBot ? "#f3f4f6" : "#fef3c7"};color:${isBot ? "#4b5563" : "#92400e"};font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">${urgency}</div>
+      <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">${conclusion}</h2>
+      <p style="color:#374151;margin:0 0 12px;line-height:1.7;"><strong>👤 觸發來源：</strong>${escapeHtml(source)}</p>
+      <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>${action}</p>
+      <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <tr><td style="padding: 8px; background: #f3f4f6; font-weight: 600; width: 30%;">錯誤類型</td><td style="padding: 8px;">${escapeHtml(payload.errorType)}</td></tr>
         <tr><td style="padding: 8px; background: #f3f4f6; font-weight: 600;">錯誤訊息</td><td style="padding: 8px; color: #dc2626;">${escapeHtml(payload.errorMessage)}</td></tr>
         <tr><td style="padding: 8px; background: #f3f4f6; font-weight: 600;">頁面 URL</td><td style="padding: 8px;">${escapeHtml(payload.url ?? "—")}</td></tr>
@@ -64,7 +103,7 @@ async function sendAlertEmail(
         body: JSON.stringify({
           from: "Lakeze 監控告警 <noreply@lakeze.com>",
           to: recipients,
-          subject: `⚠️ [Lakeze 前端] ${payload.errorType} 錯誤回報`,
+          subject: `${isBot ? "⚪" : "🟡"} [Lakeze 前端] ${payload.errorType} 錯誤回報`,
           html,
         }),
       },

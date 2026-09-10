@@ -36,8 +36,10 @@ export async function sendOrderRoomsAlertEmail(
 
   const html = `
   <div style="font-family:-apple-system,sans-serif;max-width:640px;margin:0 auto;padding:24px;">
-    <h2 style="color:#dc2626;margin:0 0 12px;">🚨 訂單房型明細重建失敗</h2>
-    <p style="color:#374151;margin:0 0 16px;">OwlTing 自動建單／自動更新流程中，order_rooms 重建失敗，該筆信件已標記為「需人工檢查」，請至後台核對房型明細與房號。</p>
+    <div style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">🔴 高急迫</div>
+    <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">訂單 ${payload.orderNumber ?? payload.orderId ?? "未知訂單"} 的房型內容更新沒有成功寫入，訂單資料可能不完整</h2>
+    <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請人工至該筆訂單確認房型明細是否正確，必要時手動修正</p>
+    <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       ${row("訂單編號", payload.orderNumber)}
       ${row("訂單 ID", payload.orderId)}

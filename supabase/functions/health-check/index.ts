@@ -134,11 +134,13 @@ function buildAlertHtml(
 ): string {
   return `
     <div style="font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-      <h2 style="color: #dc2626; margin: 0 0 16px;">🚨 系統健檢失敗</h2>
-      <p style="color: #374151; margin: 0 0 8px;">
-        以下監控目標在最近一次健檢中未能正常回應，請儘速確認。
+      <div style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">🔴 高急迫</div>
+      <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">${target.label}目前打不開或回應太慢，可能是網站或某個服務發生中斷</h2>
+      <p style="color:#374151;margin:0 0 20px;line-height:1.7;">
+        <strong>建議動作：</strong>請立即確認網站/服務是否正常運作，若持續異常需儘快處理
       </p>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px;">
+      <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
         <tr>
           <td style="padding: 8px; background: #f3f4f6; font-weight: 600; width: 30%;">目標</td>
           <td style="padding: 8px;">${target.label}</td>
@@ -217,7 +219,7 @@ Deno.serve(async (req) => {
         if (emails.length > 0) {
           const ok = await sendAlertEmail(
             emails,
-            `🚨 [Lakeze 監控] ${target.label} 健檢失敗`,
+            `🔴 [Lakeze 監控] ${target.label}目前無法正常回應`,
             buildAlertHtml(target, result),
           );
           if (ok) {

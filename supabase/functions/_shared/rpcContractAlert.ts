@@ -54,11 +54,15 @@ export async function reportRpcContractDrift(
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:12px;color:#b91c1c;">${d.actual}</td>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:12px;">${d.note}</td>
       </tr>`).join("");
+    const functionName = payload.drift[0]?.fn ?? "未知函式";
 
     const html = `
     <div style="font-family:-apple-system,sans-serif;max-width:680px;margin:0 auto;padding:24px;">
-      <h2 style="color:#dc2626;margin:0 0 12px;">🚨 RPC 合約與測試快照不一致</h2>
-      <p style="color:#374151;margin:0 0 8px;">${payload.summary}</p>
+      <div style="display:inline-block;background:#fef3c7;color:#92400e;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">🟡 中急迫</div>
+      <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">系統內部函式 ${functionName} 的定義被改動過，跟原本記錄的版本不一致</h2>
+      <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請確認這次改動是否為已知的正常部署，若不是需要盡快查清楚是誰、為什麼修改</p>
+      <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
+      <p style="color:#374151;margin:0 0 16px;">${payload.summary}</p>
       <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
         若這是預期中的 migration，請重跑 scripts/dump-rpc-whitelists.ts 更新基準快照，並確認所有呼叫端送出的欄位都仍在白名單內。
       </p>
@@ -78,7 +82,7 @@ export async function reportRpcContractDrift(
       body: JSON.stringify({
         from: "人客多系統告警 <noreply@lakeze.com>",
         to: emails,
-        subject: `🚨 [Lakeze] RPC 合約漂移 ${payload.drift.length} 支`,
+        subject: `🟡 [Lakeze] ${payload.drift.length} 支內部函式版本不一致`,
         html,
       }),
     });

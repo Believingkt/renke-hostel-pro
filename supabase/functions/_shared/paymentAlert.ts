@@ -68,11 +68,14 @@ export function buildPaymentAlertHtml(rows: {
       </tr>`,
     )
     .join("");
+  const primaryOrder = rows[0]?.orderNumber ?? "（未比對到訂單）";
 
   return `
   <div style="font-family:-apple-system,sans-serif;max-width:640px;margin:0 auto;padding:24px;">
-    <h2 style="color:#dc2626;margin:0 0 12px;">🚨 TapPay 金流事件處理失敗</h2>
-    <p style="color:#374151;margin:0 0 16px;">下列金流通知在自動重試後仍失敗，已標記為「待人工處理」，請至後台「金流稽核」頁核對。</p>
+    <div style="display:inline-block;background:#fee2e2;color:#991b1b;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">🔴 高急迫</div>
+    <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">金流服務商通知付款/退款狀態時失敗，訂單 ${primaryOrder} 的金流狀態可能還沒同步進系統</h2>
+    <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請儘快查看該筆訂單的付款狀態是否正確，必要時人工核對金流商後台</p>
+    <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
     <table style="width:100%;border-collapse:collapse;font-size:14px;">
       <thead>
         <tr style="background:#f3f4f6;text-align:left;">
