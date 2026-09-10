@@ -209,23 +209,24 @@ BEGIN
     IF v_ov IS NOT NULL AND (v_ov ? v_en_key) THEN
       v_enabled := COALESCE((v_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
     END IF;
-    IF NOT v_enabled THEN
-      RETURN NULL;
+    -- 不可售 → 不 RETURN，往下走 (e) base row（TS isTierSellable=false → stillUnresolved）
+    IF v_enabled THEN
+      v_weekday := COALESCE(v_ov_weekday, v_tpl.weekday_price::NUMERIC, v_tpl.price::NUMERIC, 0);
+      v_weekend := COALESCE(v_ov_weekend, v_tpl.weekend_price::NUMERIC, v_tpl.price::NUMERIC, v_weekday);
+      v_peak    := COALESCE(
+                     v_ov_peak,
+                     v_tpl.peak_price::NUMERIC,
+                     CASE WHEN v_tpl.weekday_price IS NOT NULL THEN v_tpl.weekday_price::NUMERIC ELSE v_weekend END
+                   );
+
+      RETURN (CASE v_tier WHEN 'weekend' THEN v_weekend WHEN 'peak' THEN v_peak ELSE v_weekday END)::INT;
     END IF;
-
-    v_weekday := COALESCE(v_ov_weekday, v_tpl.weekday_price::NUMERIC, v_tpl.price::NUMERIC, 0);
-    v_weekend := COALESCE(v_ov_weekend, v_tpl.weekend_price::NUMERIC, v_tpl.price::NUMERIC, v_weekday);
-    v_peak    := COALESCE(
-                   v_ov_peak,
-                   v_tpl.peak_price::NUMERIC,
-                   CASE WHEN v_tpl.weekday_price IS NOT NULL THEN v_tpl.weekday_price::NUMERIC ELSE v_weekend END
-                 );
-
-    RETURN (CASE v_tier WHEN 'weekend' THEN v_weekend WHEN 'peak' THEN v_peak ELSE v_weekday END)::INT;
 
   ELSIF COALESCE(v_tpl.price, 0) > 0 THEN
     RETURN v_tpl.price;
   END IF;
+  END IF;  -- 結束 (c)/(d) 互斥分支
+
 
   -- (e) TS 的最後一層：base row（pricing_template_id IS NULL）依範本名稱選餐型欄位
   --     此處僅接受「真登記」來源，與範圍二同一份白名單。
