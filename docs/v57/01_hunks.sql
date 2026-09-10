@@ -322,20 +322,11 @@ $check$;
 -- OLD（第 274 行 IF v_has_pkg THEN … 到第 309 行 END IF; 之間的整段）
 -- NEW:
 --       IF v_has_pkg THEN
---         SELECT EXTRACT(DOW FROM v_current_date)::INT INTO v_dow;
---         SELECT EXISTS (
---           SELECT 1 FROM public.public_holidays
---           WHERE accommodation_id = NEW.accommodation_id
---             AND holiday_date = v_current_date
---             AND holiday_type IN ('holiday', 'compensatory_day_off')
---         ) INTO v_is_holiday;
---         IF v_is_holiday OR v_dow = 6 THEN
---           v_tier := 'weekend';
---         ELSIF v_dow = 5 OR v_dow = 0 THEN
---           v_tier := 'friday_sunday';
---         ELSE
---           v_tier := 'weekday';
---         END IF;
+--         -- v5.7：日型判斷改呼叫共用函式 public.classify_day_tier()，
+--         -- 與 resolve_template_night_price() 共用同一份規則（不再各自計算）。
+--         -- 方案 tier_prices 的 JSON key 用 'friday_sunday'，僅此處做名稱映射。
+--         v_tier := public.classify_day_tier(v_current_date, NEW.accommodation_id);
+--         IF v_tier = 'peak' THEN v_tier := 'friday_sunday'; END IF;
 --         v_tier_sale := NULLIF(v_pkg_tiers -> v_tier ->> 'sale', '')::NUMERIC;
 --         IF v_tier_sale IS NULL AND v_pkg_sale IS NULL THEN
 --           RAISE EXCEPTION '入住方案未設定售價：請先於方案設定中填寫售價；若此訂單不需要指定方案，請改為不選方案、並於庫存日曆登記當日房價後再建立訂單'
