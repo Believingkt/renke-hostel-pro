@@ -17,6 +17,57 @@ COMMENT ON COLUMN public.orders.pricing_template_id IS
 
 
 -- ---------------------------------------------------------------------
+-- (1b) v5.7：日型判斷唯一真實來源（共用給 guard 與 resolve_template_night_price）
+--      回傳 'weekday' | 'peak' | 'weekend'；語意 1:1 對應前端 classifyDayTier()。
+--      方案分支需要的 'friday_sunday' 由呼叫端把 'peak' 映射過去（僅 JSON key 名不同）。
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.classify_day_tier(
+  p_date date,
+  p_accommodation_id uuid
+)
+RETURNS text
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_dow INT := EXTRACT(DOW FROM p_date)::INT;
+  v_is_holiday BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM public.public_holidays
+     WHERE accommodation_id = p_accommodation_id
+       AND holiday_date = p_date
+       AND holiday_type IN ('holiday', 'compensatory_day_off')
+  ) INTO v_is_holiday;
+
+  IF v_is_holiday OR v_dow = 6 THEN RETURN 'weekend';
+  ELSIF v_dow = 5 OR v_dow = 0 THEN RETURN 'peak';
+  ELSE RETURN 'weekday';
+  END IF;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.classify_day_tier(date, uuid) TO service_role;
+
+DO $check$
+DECLARE v_acl TEXT;
+BEGIN
+  SELECT COALESCE(array_to_string(proacl, ','), '(default)') INTO v_acl
+    FROM pg_proc WHERE proname = 'classify_day_tier';
+  IF v_acl = '(default)'
+     OR v_acl ILIKE '%anon=%' OR v_acl ILIKE '%authenticated=%' OR v_acl LIKE '%=X/%' THEN
+    RAISE EXCEPTION 'ACL postcheck failed (classify_day_tier): %', v_acl;
+  END IF;
+END
+$check$;
+
+
+-- ---------------------------------------------------------------------
 -- (2) resolve_template_night_price()：單晚專案房價（全文）
 --     語意 1:1 對應前端 src/utils/templatePriceResolverPure.ts
 --     + src/utils/pricingTemplateHelpers.ts（getTierForDate / isTierSellable /
@@ -75,19 +126,9 @@ BEGIN
     RETURN v_override_price;             -- 對應 TS overrideMap（含 0 元）
   END IF;
 
-  -- (b) 日型判斷（與 TS classifyDayTier 完全一致：
-  --     國定假日 或 週六 → weekend；週五／週日 → peak；其餘 → weekday）
-  v_dow := EXTRACT(DOW FROM p_date)::INT;
-  SELECT EXISTS (
-    SELECT 1 FROM public.public_holidays
-     WHERE accommodation_id = p_accommodation_id
-       AND holiday_date = p_date
-       AND holiday_type IN ('holiday', 'compensatory_day_off')
-  ) INTO v_is_holiday;
-  IF v_is_holiday OR v_dow = 6 THEN v_tier := 'weekend';
-  ELSIF v_dow = 5 OR v_dow = 0 THEN v_tier := 'peak';
-  ELSE v_tier := 'weekday';
-  END IF;
+  -- (b) 日型判斷：唯一真實來源 public.classify_day_tier()
+  --     （guard 的方案分支呼叫同一支，不再各自計算一次）
+  v_tier := public.classify_day_tier(p_date, p_accommodation_id);
   v_price_key := v_tier || '_price';
   v_en_key    := v_tier || '_enabled';
 
@@ -112,32 +153,35 @@ BEGIN
      ORDER BY s.ord
      LIMIT 1;
 
-    IF v_seg IS NULL THEN
-      RETURN NULL;                        -- TS: { enabled:false, price:null } → unresolved
+    IF v_seg IS NOT NULL THEN
+      SELECT r.value INTO v_seg_ov
+        FROM jsonb_array_elements(COALESCE(v_seg -> 'room_overrides', '[]'::jsonb)) r
+       WHERE r.value ->> 'room_type_id' = p_room_type_id::text
+       LIMIT 1;
+
+      v_enabled := COALESCE((v_seg ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      IF v_seg_ov IS NOT NULL AND (v_seg_ov ? v_en_key) THEN
+        v_enabled := COALESCE((v_seg_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      END IF;
+
+      v_price := COALESCE(
+        NULLIF(v_seg_ov ->> v_price_key, '')::NUMERIC,
+        NULLIF(v_seg    ->> v_price_key, '')::NUMERIC
+      );
+
+      -- 刻意與 (d) 不同：TS segments 分支把 <=0 視為「沒有有效價」(price <= 0 → unresolved)，
+      -- (d) legacy 分支則讓明確設定的 0 元通過。此差異是如實對應
+      -- src/utils/templatePriceResolverPure.ts 既有行為，改動任一邊都會破壞 parity。
+      IF v_enabled AND v_price IS NOT NULL AND v_price > 0 THEN
+        RETURN v_price::INT;
+      END IF;
     END IF;
+    -- 命中不到 segment、或該 segment 無有效價 → 不 RETURN，往下走 (e) base row，
+    -- 與 TS 的 stillUnresolved → base row fallback 完全一致。
 
-    SELECT r.value INTO v_seg_ov
-      FROM jsonb_array_elements(COALESCE(v_seg -> 'room_overrides', '[]'::jsonb)) r
-     WHERE r.value ->> 'room_type_id' = p_room_type_id::text
-     LIMIT 1;
-
-    v_enabled := COALESCE((v_seg ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
-    IF v_seg_ov IS NOT NULL AND (v_seg_ov ? v_en_key) THEN
-      v_enabled := COALESCE((v_seg_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
-    END IF;
-
-    v_price := COALESCE(
-      NULLIF(v_seg_ov ->> v_price_key, '')::NUMERIC,
-      NULLIF(v_seg    ->> v_price_key, '')::NUMERIC
-    );
-
-    IF NOT v_enabled OR v_price IS NULL OR v_price <= 0 THEN
-      RETURN NULL;                        -- TS segments 分支：不可售或 <=0 → unresolved
-    END IF;
-    RETURN v_price::INT;
-  END IF;
-
+  ELSE
   -- (d) legacy（無 segments）：room_overrides > 範本頂層 tier 價 > price
+  --     注意：此分支的 COALESCE 會讓明確設定的 0 元成為有效價（與 (c) 不同，見上方註解）。
   SELECT r.value INTO v_ov
     FROM jsonb_array_elements(COALESCE(v_tpl.room_overrides, '[]'::jsonb)) r
    WHERE r.value ->> 'room_type_id' = p_room_type_id::text
@@ -165,23 +209,24 @@ BEGIN
     IF v_ov IS NOT NULL AND (v_ov ? v_en_key) THEN
       v_enabled := COALESCE((v_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
     END IF;
-    IF NOT v_enabled THEN
-      RETURN NULL;
+    -- 不可售 → 不 RETURN，往下走 (e) base row（TS isTierSellable=false → stillUnresolved）
+    IF v_enabled THEN
+      v_weekday := COALESCE(v_ov_weekday, v_tpl.weekday_price::NUMERIC, v_tpl.price::NUMERIC, 0);
+      v_weekend := COALESCE(v_ov_weekend, v_tpl.weekend_price::NUMERIC, v_tpl.price::NUMERIC, v_weekday);
+      v_peak    := COALESCE(
+                     v_ov_peak,
+                     v_tpl.peak_price::NUMERIC,
+                     CASE WHEN v_tpl.weekday_price IS NOT NULL THEN v_tpl.weekday_price::NUMERIC ELSE v_weekend END
+                   );
+
+      RETURN (CASE v_tier WHEN 'weekend' THEN v_weekend WHEN 'peak' THEN v_peak ELSE v_weekday END)::INT;
     END IF;
-
-    v_weekday := COALESCE(v_ov_weekday, v_tpl.weekday_price::NUMERIC, v_tpl.price::NUMERIC, 0);
-    v_weekend := COALESCE(v_ov_weekend, v_tpl.weekend_price::NUMERIC, v_tpl.price::NUMERIC, v_weekday);
-    v_peak    := COALESCE(
-                   v_ov_peak,
-                   v_tpl.peak_price::NUMERIC,
-                   CASE WHEN v_tpl.weekday_price IS NOT NULL THEN v_tpl.weekday_price::NUMERIC ELSE v_weekend END
-                 );
-
-    RETURN (CASE v_tier WHEN 'weekend' THEN v_weekend WHEN 'peak' THEN v_peak ELSE v_weekday END)::INT;
 
   ELSIF COALESCE(v_tpl.price, 0) > 0 THEN
     RETURN v_tpl.price;
   END IF;
+  END IF;  -- 結束 (c)/(d) 互斥分支
+
 
   -- (e) TS 的最後一層：base row（pricing_template_id IS NULL）依範本名稱選餐型欄位
   --     此處僅接受「真登記」來源，與範圍二同一份白名單。
@@ -277,20 +322,11 @@ $check$;
 -- OLD（第 274 行 IF v_has_pkg THEN … 到第 309 行 END IF; 之間的整段）
 -- NEW:
 --       IF v_has_pkg THEN
---         SELECT EXTRACT(DOW FROM v_current_date)::INT INTO v_dow;
---         SELECT EXISTS (
---           SELECT 1 FROM public.public_holidays
---           WHERE accommodation_id = NEW.accommodation_id
---             AND holiday_date = v_current_date
---             AND holiday_type IN ('holiday', 'compensatory_day_off')
---         ) INTO v_is_holiday;
---         IF v_is_holiday OR v_dow = 6 THEN
---           v_tier := 'weekend';
---         ELSIF v_dow = 5 OR v_dow = 0 THEN
---           v_tier := 'friday_sunday';
---         ELSE
---           v_tier := 'weekday';
---         END IF;
+--         -- v5.7：日型判斷改呼叫共用函式 public.classify_day_tier()，
+--         -- 與 resolve_template_night_price() 共用同一份規則（不再各自計算）。
+--         -- 方案 tier_prices 的 JSON key 用 'friday_sunday'，僅此處做名稱映射。
+--         v_tier := public.classify_day_tier(v_current_date, NEW.accommodation_id);
+--         IF v_tier = 'peak' THEN v_tier := 'friday_sunday'; END IF;
 --         v_tier_sale := NULLIF(v_pkg_tiers -> v_tier ->> 'sale', '')::NUMERIC;
 --         IF v_tier_sale IS NULL AND v_pkg_sale IS NULL THEN
 --           RAISE EXCEPTION '入住方案未設定售價：請先於方案設定中填寫售價；若此訂單不需要指定方案，請改為不選方案、並於庫存日曆登記當日房價後再建立訂單'
