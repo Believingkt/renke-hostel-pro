@@ -280,8 +280,8 @@ BEGIN
       -- ===== v5.6：每晚取價（依「價格來源是否存在」判斷，不用金額大小判斷） =====
       v_day_price := NULL;
 
-      IF v_has_pkg AND v_pkg_sale IS NOT NULL THEN
-        -- (1) 方案價：含 tier 分級，明確登記 0 元亦視為有效價格
+      IF v_has_pkg THEN
+        -- (1) 方案價：含 tier 分級，明確登記 0 元亦視為有效價格；方案售價完全未設定則直接報錯
         SELECT EXTRACT(DOW FROM v_current_date)::INT INTO v_dow;
         SELECT EXISTS (
           SELECT 1 FROM public.public_holidays
