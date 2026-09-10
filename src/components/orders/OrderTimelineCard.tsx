@@ -443,11 +443,13 @@ interface Props {
   canManage?: boolean;
   orderSource?: string | null;
   paymentMethod?: string | null;
+  orderStatus?: string | null;
   refreshKey?: string | number;
 }
 
 export default function OrderTimelineCard({
-  orderId, orderNumber, canManage = false, orderSource = null, paymentMethod = null, refreshKey,
+  orderId, orderNumber, canManage = false, orderSource = null, paymentMethod = null,
+  orderStatus = null, refreshKey,
 }: Props) {
   const isGroupBuy = orderSource === "group_buy";
   const isCardOrder = typeof paymentMethod === "string" && /credit|card|tappay/i.test(paymentMethod);
