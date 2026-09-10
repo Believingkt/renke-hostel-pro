@@ -32,6 +32,8 @@ interface AccRow {
   og_title: string | null;
   og_description: string | null;
   og_image_url: string | null;
+  /** 總部「前台顯示」開關；false 代表不想被搜尋引擎收錄 */
+  show_on_portal: boolean | null;
 }
 
 const esc = (s: string) =>
@@ -50,7 +52,7 @@ async function fetchAccommodations(
   if (!url || !key) return { rows: [], skip: "缺少資料庫連線設定" };
   try {
     const res = await fetch(
-      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url&is_active=eq.true`,
+      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return { rows: [], skip: `資料庫回應 ${res.status}` };
@@ -101,6 +103,8 @@ export function buildSitemap(accommodations: AccRow[]): string {
 
   for (const a of accommodations) {
     if (!a.id) continue;
+    // 前台隱藏的館別不進 sitemap（避免主動請 Google 收錄）
+    if (a.show_on_portal !== true) continue;
     const title = clamp((a.seo_title || a.og_title || a.name || "人客多線上訂房系統").trim(), 70);
     const caption = clamp(
       (a.seo_description || a.og_description || a.description || "官方網站與線上訂房系統")

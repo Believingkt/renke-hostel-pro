@@ -835,6 +835,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
           heroPhotos?.[0]?.photo_url ||
           galleryPhotos?.[0]?.photo_url
         }
+        noIndex={(info as any).show_on_portal !== true}
       />
       <StructuredData
         accommodationInfo={info}

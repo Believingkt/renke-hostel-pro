@@ -36,6 +36,8 @@ interface AccRow {
   og_title: string | null;
   og_description: string | null;
   og_image_url: string | null;
+  /** 總部「前台顯示」開關；false 時輸出 noindex */
+  show_on_portal: boolean | null;
 }
 
 const esc = (s: string) =>
@@ -56,7 +58,7 @@ async function fetchAccommodations(url: string, key: string): Promise<AccRow[]> 
   if (!url || !key) return [];
   try {
     const res = await fetch(
-      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,meta_keywords,og_title,og_description,og_image_url&is_active=eq.true`,
+      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,meta_keywords,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return [];
@@ -73,7 +75,8 @@ function stripHeadMeta(html: string) {
     .replace(/<meta[^>]+name=["'](description|keywords)["'][^>]*>\s*/gi, "")
     .replace(/<meta[^>]+property=["']og:[^"']+["'][^>]*>\s*/gi, "")
     .replace(/<meta[^>]+name=["']twitter:[^"']+["'][^>]*>\s*/gi, "")
-    .replace(/<link[^>]+rel=["']canonical["'][^>]*>\s*/gi, "");
+    .replace(/<link[^>]+rel=["']canonical["'][^>]*>\s*/gi, "")
+    .replace(/<meta[^>]+name=["']robots["'][^>]*>\s*/gi, "");
 }
 
 function buildHead(acc: AccRow) {
@@ -100,6 +103,8 @@ function buildHead(acc: AccRow) {
     `<meta name="description" content="${esc(description)}" />`,
     keywords ? `<meta name="keywords" content="${esc(keywords)}" />` : null,
     `<link rel="canonical" href="${esc(canonical)}" />`,
+    // 前台隱藏的館別：明確告訴搜尋引擎不要收錄
+    `<meta name="robots" content="${acc.show_on_portal === true ? "index, follow" : "noindex, follow"}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${esc(name || "人客多線上訂房系統")}" />`,
     `<meta property="og:locale" content="zh_TW" />`,

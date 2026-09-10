@@ -10,6 +10,8 @@ interface SEOHeadProps {
   /** 社群分享標題／描述；未提供時自動沿用 SEO 標題與描述 */
   ogTitle?: string;
   ogDescription?: string;
+  /** true 時輸出 noindex，讓搜尋引擎不要收錄此頁（前台隱藏的館別） */
+  noIndex?: boolean;
 }
 
 export const SEOHead = ({
@@ -21,6 +23,7 @@ export const SEOHead = ({
   keywords = ["豪華露營", "民宿", "住宿", "日式", "山林", "度假", "台灣旅遊"],
   ogTitle,
   ogDescription,
+  noIndex = false,
 }: SEOHeadProps) => {
   const socialTitle = ogTitle?.trim() || title;
   const socialDescription = ogDescription?.trim() || description;
@@ -53,7 +56,7 @@ export const SEOHead = ({
     setMetaTag('description', description);
     setMetaTag('keywords', keywords.join(', '));
     setMetaTag('author', title.split(' ')[0]);
-    setMetaTag('robots', 'index, follow');
+    setMetaTag('robots', noIndex ? 'noindex, follow' : 'index, follow');
     setMetaTag('language', 'zh-TW');
     setMetaTag('revisit-after', '7 days');
 
@@ -100,7 +103,7 @@ export const SEOHead = ({
       document.head.appendChild(viewport);
     }
 
-  }, [title, description, url, image, type, keywords, socialTitle, socialDescription]);
+  }, [title, description, url, image, type, keywords, socialTitle, socialDescription, noIndex]);
 
   return null;
 };
