@@ -157,7 +157,11 @@ BEGIN
 
   IF v_has_tier_prices THEN
     -- isTierSellable：override 有 enabled 欄位以它為準，否則看範本層級
-    v_enabled := COALESCE(v_tpl_enabled(v_tpl, v_en_key), TRUE);
+    v_enabled := CASE v_tier
+                   WHEN 'weekday' THEN COALESCE(v_tpl.weekday_enabled, TRUE)
+                   WHEN 'peak'    THEN COALESCE(v_tpl.peak_enabled, TRUE)
+                   ELSE                COALESCE(v_tpl.weekend_enabled, TRUE)
+                 END;
     IF v_ov IS NOT NULL AND (v_ov ? v_en_key) THEN
       v_enabled := COALESCE((v_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
     END IF;
