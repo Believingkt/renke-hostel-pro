@@ -281,7 +281,6 @@ BEGIN
       v_day_price := NULL;
 
       IF v_has_pkg THEN
-        -- (1) 方案價：含 tier 分級，明確登記 0 元亦視為有效價格；方案售價完全未設定則直接報錯
         SELECT EXTRACT(DOW FROM v_current_date)::INT INTO v_dow;
         SELECT EXISTS (
           SELECT 1 FROM public.public_holidays
@@ -298,28 +297,23 @@ BEGIN
         END IF;
         v_tier_sale := NULLIF(v_pkg_tiers -> v_tier ->> 'sale', '')::NUMERIC;
         IF v_tier_sale IS NULL AND v_pkg_sale IS NULL THEN
-          -- 已選方案、但方案完全沒有設定任何售價（含分級售價）
           RAISE EXCEPTION '入住方案未設定售價：請先於方案設定中填寫售價；若此訂單不需要指定方案，請改為不選方案、並於庫存日曆登記當日房價後再建立訂單'
             USING ERRCODE = 'P0001';
         END IF;
         v_day_price := COALESCE(v_tier_sale, v_pkg_sale)::INT;
 
       ELSIF v_inv_found AND v_inv_price IS NOT NULL THEN
-        -- (2) 庫存日曆「明確登記」的價格（COALESCE 前的原始值判斷；0 元招待房放行）
         v_day_price := v_inv_price::INT;
 
       ELSIF COALESCE(v_room_type.is_exclusive_package, FALSE) THEN
-        -- (3) 包棟／方案定價房型：base_price 只是佔位，不得當成房價
         RAISE EXCEPTION '找不到有效房價：房型「%」屬於包棟／方案定價房型，% 這一晚既沒有選擇入住方案，庫存日曆也沒有登記當日房價，請先選擇入住方案，或於庫存日曆登記該日房價後再建立訂單',
           v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
 
       ELSIF v_room_type.base_price IS NULL THEN
-        -- (4) 一般房型但完全沒有基本房價可用
         RAISE EXCEPTION '找不到有效房價：房型「%」尚未設定基本房價，% 這一晚也沒有庫存日曆登記價格，請先設定房價後再建立訂單',
           v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
 
       ELSE
-        -- 一般房型：沿用基本房價（明確設定的 0 元亦放行）
         v_day_price := v_room_type.base_price::INT;
       END IF;
 
@@ -333,7 +327,6 @@ BEGIN
       v_current_date := v_current_date + 1;
     END LOOP;
 
-    -- v5.6 收尾保險：以「無法取價的晚數」判斷，不看總金額大小
     IF v_unpriced_nights > 0 THEN
       RAISE EXCEPTION '找不到有效房價：房型「%」有 % 晚無法取得有效房價，請確認入住方案或庫存日曆價格設定',
         v_room_type.name, v_unpriced_nights USING ERRCODE = 'P0001';
