@@ -139,6 +139,7 @@ const Index = () => {
               ]
         }
         image={info.og_image_url || heroPhotos?.[0]?.photo_url || galleryPhotos?.[0]?.photo_url}
+        noIndex={(info as any).show_on_portal !== true}
       />
       
       {/* 結構化資料 */}
