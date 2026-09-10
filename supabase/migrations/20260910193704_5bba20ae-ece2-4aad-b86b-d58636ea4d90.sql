@@ -1,0 +1,650 @@
+-- ---------------------------------------------------------------------
+-- (1) 新欄位（可空、加 FK、不改任何既有欄位／RLS）
+-- ---------------------------------------------------------------------
+ALTER TABLE public.orders
+  ADD COLUMN IF NOT EXISTS pricing_template_id uuid
+  REFERENCES public.pricing_templates(id) ON DELETE SET NULL;
+
+COMMENT ON COLUMN public.orders.pricing_template_id IS
+  '建單時選擇的「專案」(pricing_templates)。僅供房價 guard 重算使用；NULL = 未選專案，行為與 v5.6 相同。';
+
+
+-- ---------------------------------------------------------------------
+-- (1b) v5.7：日型判斷唯一真實來源（共用給 guard 與 resolve_template_night_price）
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.classify_day_tier(
+  p_date date,
+  p_accommodation_id uuid
+)
+RETURNS text
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_dow INT := EXTRACT(DOW FROM p_date)::INT;
+  v_is_holiday BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM public.public_holidays
+     WHERE accommodation_id = p_accommodation_id
+       AND holiday_date = p_date
+       AND holiday_type IN ('holiday', 'compensatory_day_off')
+  ) INTO v_is_holiday;
+
+  IF v_is_holiday OR v_dow = 6 THEN RETURN 'weekend';
+  ELSIF v_dow = 5 OR v_dow = 0 THEN RETURN 'peak';
+  ELSE RETURN 'weekday';
+  END IF;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.classify_day_tier(date, uuid) TO service_role;
+
+DO $check$
+DECLARE v_acl TEXT; v_pub BOOL; v_anon BOOL; v_auth BOOL;
+BEGIN
+  SELECT COALESCE(array_to_string(proacl, ','), '(default)') INTO v_acl
+    FROM pg_proc WHERE proname = 'classify_day_tier';
+  SELECT has_function_privilege('anon', 'public.classify_day_tier(date, uuid)', 'EXECUTE'),
+         has_function_privilege('authenticated', 'public.classify_day_tier(date, uuid)', 'EXECUTE'),
+         (v_acl = '(default)' OR v_acl LIKE '=X/%' OR v_acl LIKE '%,=X/%')
+    INTO v_anon, v_auth, v_pub;
+  IF v_acl = '(default)' OR v_pub OR v_anon OR v_auth THEN
+    RAISE EXCEPTION 'ACL postcheck failed (classify_day_tier): %', v_acl;
+  END IF;
+END
+$check$;
+
+
+-- ---------------------------------------------------------------------
+-- (2) resolve_template_night_price()：單晚專案房價（全文）
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.resolve_template_night_price(
+  p_template_id uuid,
+  p_room_type_id uuid,
+  p_date date,
+  p_accommodation_id uuid
+)
+RETURNS integer
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_tpl RECORD;
+  v_date_str TEXT := to_char(p_date, 'YYYY-MM-DD');
+  v_override_price INT;
+  v_dow INT;
+  v_is_holiday BOOLEAN;
+  v_tier TEXT;                 -- 'weekday' | 'peak' | 'weekend'
+  v_price_key TEXT;
+  v_en_key TEXT;
+  v_seg JSONB := NULL;
+  v_seg_ov JSONB := NULL;
+  v_ov JSONB := NULL;
+  v_has_segments BOOLEAN := FALSE;
+  v_enabled BOOLEAN;
+  v_price NUMERIC;
+  v_ov_weekday NUMERIC; v_ov_peak NUMERIC; v_ov_weekend NUMERIC;
+  v_weekday NUMERIC; v_peak NUMERIC; v_weekend NUMERIC;
+  v_has_tier_prices BOOLEAN;
+  v_meal_col TEXT;
+  v_base RECORD;
+  v_selected NUMERIC;
+  v_name TEXT;
+BEGIN
+  IF p_template_id IS NULL THEN RETURN NULL; END IF;
+
+  SELECT * INTO v_tpl FROM public.pricing_templates
+   WHERE id = p_template_id AND accommodation_id = p_accommodation_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  -- (a) 專案專屬的當日覆寫價
+  SELECT rip.price INTO v_override_price
+    FROM public.room_inventory_pricing rip
+   WHERE rip.room_type_id = p_room_type_id
+     AND rip.date = p_date
+     AND rip.pricing_template_id = p_template_id
+   LIMIT 1;
+  IF v_override_price IS NOT NULL THEN
+    RETURN v_override_price;             -- 對應 TS overrideMap（含 0 元）
+  END IF;
+
+  -- (b) 日型判斷：唯一真實來源 public.classify_day_tier()
+  v_tier := public.classify_day_tier(p_date, p_accommodation_id);
+  v_price_key := v_tier || '_price';
+  v_en_key    := v_tier || '_enabled';
+
+  -- (c) segments 模式
+  v_has_segments := jsonb_typeof(v_tpl.season_segments) = 'array'
+                    AND EXISTS (
+                      SELECT 1 FROM jsonb_array_elements(v_tpl.season_segments) s
+                       WHERE jsonb_typeof(s.value -> 'valid_from') = 'string'
+                         AND jsonb_typeof(s.value -> 'valid_until') = 'string'
+                    );
+
+  IF v_has_segments THEN
+    SELECT s.value INTO v_seg
+      FROM jsonb_array_elements(v_tpl.season_segments) WITH ORDINALITY AS s(value, ord)
+     WHERE jsonb_typeof(s.value -> 'valid_from') = 'string'
+       AND jsonb_typeof(s.value -> 'valid_until') = 'string'
+       AND NOT (COALESCE(s.value -> 'excluded_dates', '[]'::jsonb) ? v_date_str)
+       AND (
+            (COALESCE(s.value -> 'extra_dates', '[]'::jsonb) ? v_date_str)
+         OR (v_date_str >= (s.value ->> 'valid_from') AND v_date_str <= (s.value ->> 'valid_until'))
+       )
+     ORDER BY s.ord
+     LIMIT 1;
+
+    IF v_seg IS NOT NULL THEN
+      SELECT r.value INTO v_seg_ov
+        FROM jsonb_array_elements(COALESCE(v_seg -> 'room_overrides', '[]'::jsonb)) r
+       WHERE r.value ->> 'room_type_id' = p_room_type_id::text
+       LIMIT 1;
+
+      v_enabled := COALESCE((v_seg ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      IF v_seg_ov IS NOT NULL AND (v_seg_ov ? v_en_key) THEN
+        v_enabled := COALESCE((v_seg_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      END IF;
+
+      v_price := COALESCE(
+        NULLIF(v_seg_ov ->> v_price_key, '')::NUMERIC,
+        NULLIF(v_seg    ->> v_price_key, '')::NUMERIC
+      );
+
+      -- 刻意與 (d) 不同：TS segments 分支把 <=0 視為「沒有有效價」，
+      -- (d) legacy 分支則讓明確設定的 0 元通過。如實對應既有 TS 行為。
+      IF v_enabled AND v_price IS NOT NULL AND v_price > 0 THEN
+        RETURN v_price::INT;
+      END IF;
+    END IF;
+    -- 命中不到 segment、或該 segment 無有效價 → 往下走 (e) base row
+
+  ELSE
+  -- (d) legacy（無 segments）：room_overrides > 範本頂層 tier 價 > price
+  SELECT r.value INTO v_ov
+    FROM jsonb_array_elements(COALESCE(v_tpl.room_overrides, '[]'::jsonb)) r
+   WHERE r.value ->> 'room_type_id' = p_room_type_id::text
+   LIMIT 1;
+
+  v_ov_weekday := NULLIF(v_ov ->> 'weekday_price', '')::NUMERIC;
+  v_ov_peak    := NULLIF(v_ov ->> 'peak_price', '')::NUMERIC;
+  v_ov_weekend := NULLIF(v_ov ->> 'weekend_price', '')::NUMERIC;
+
+  v_has_tier_prices :=
+       COALESCE(v_tpl.weekday_price, 0) > 0
+    OR COALESCE(v_tpl.peak_price, 0) > 0
+    OR COALESCE(v_tpl.weekend_price, 0) > 0
+    OR v_ov_weekday IS NOT NULL
+    OR v_ov_peak IS NOT NULL
+    OR v_ov_weekend IS NOT NULL;
+
+  IF v_has_tier_prices THEN
+    v_enabled := CASE v_tier
+                   WHEN 'weekday' THEN COALESCE(v_tpl.weekday_enabled, TRUE)
+                   WHEN 'peak'    THEN COALESCE(v_tpl.peak_enabled, TRUE)
+                   ELSE                COALESCE(v_tpl.weekend_enabled, TRUE)
+                 END;
+    IF v_ov IS NOT NULL AND (v_ov ? v_en_key) THEN
+      v_enabled := COALESCE((v_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+    END IF;
+    -- 不可售 → 往下走 (e) base row
+    IF v_enabled THEN
+      v_weekday := COALESCE(v_ov_weekday, v_tpl.weekday_price::NUMERIC, v_tpl.price::NUMERIC, 0);
+      v_weekend := COALESCE(v_ov_weekend, v_tpl.weekend_price::NUMERIC, v_tpl.price::NUMERIC, v_weekday);
+      v_peak    := COALESCE(
+                     v_ov_peak,
+                     v_tpl.peak_price::NUMERIC,
+                     CASE WHEN v_tpl.weekday_price IS NOT NULL THEN v_tpl.weekday_price::NUMERIC ELSE v_weekend END
+                   );
+
+      RETURN (CASE v_tier WHEN 'weekend' THEN v_weekend WHEN 'peak' THEN v_peak ELSE v_weekday END)::INT;
+    END IF;
+
+  ELSIF COALESCE(v_tpl.price, 0) > 0 THEN
+    RETURN v_tpl.price;
+  END IF;
+  END IF;  -- 結束 (c)/(d) 互斥分支
+
+
+  -- (e) base row（pricing_template_id IS NULL）依範本名稱選餐型欄位
+  v_name := COALESCE(v_tpl.template_name, v_tpl.project_name, '');
+  v_meal_col := CASE
+    WHEN v_name LIKE '%三食%' OR v_name LIKE '%3食%' THEN 'price_3_meals'
+    WHEN v_name LIKE '%二食%' OR v_name LIKE '%2食%' OR v_name LIKE '%兩食%' THEN 'price_2_meals'
+    ELSE 'price' END;
+
+  SELECT rip.price, rip.price_2_meals, rip.price_3_meals, rip.last_change_source
+    INTO v_base
+    FROM public.room_inventory_pricing rip
+   WHERE rip.room_type_id = p_room_type_id
+     AND rip.date = p_date
+     AND rip.pricing_template_id IS NULL
+   LIMIT 1;
+
+  IF NOT FOUND OR COALESCE(v_base.last_change_source, 'legacy_null') = 'bulk_open' THEN
+    RETURN NULL;
+  END IF;
+
+  v_selected := CASE v_meal_col
+    WHEN 'price_3_meals' THEN v_base.price_3_meals::NUMERIC
+    WHEN 'price_2_meals' THEN v_base.price_2_meals::NUMERIC
+    ELSE v_base.price::NUMERIC END;
+
+  IF v_selected IS NOT NULL AND v_selected > 0 THEN
+    RETURN v_selected::INT;
+  END IF;
+  RETURN v_base.price::INT;               -- price 為 NOT NULL，含明確 0 元
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.resolve_template_night_price(uuid, uuid, date, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.resolve_template_night_price(uuid, uuid, date, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.resolve_template_night_price(uuid, uuid, date, uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_template_night_price(uuid, uuid, date, uuid) TO service_role;
+
+DO $check$
+DECLARE v_acl TEXT; v_pub BOOL; v_anon BOOL; v_auth BOOL;
+BEGIN
+  SELECT COALESCE(array_to_string(proacl, ','), '(default)') INTO v_acl
+    FROM pg_proc WHERE proname = 'resolve_template_night_price';
+  SELECT has_function_privilege('anon', 'public.resolve_template_night_price(uuid, uuid, date, uuid)', 'EXECUTE'),
+         has_function_privilege('authenticated', 'public.resolve_template_night_price(uuid, uuid, date, uuid)', 'EXECUTE'),
+         (v_acl = '(default)' OR v_acl LIKE '=X/%' OR v_acl LIKE '%,=X/%')
+    INTO v_anon, v_auth, v_pub;
+  IF v_acl = '(default)' OR v_pub OR v_anon OR v_auth THEN
+    RAISE EXCEPTION 'ACL postcheck failed: %', v_acl;
+  END IF;
+END
+$check$;
+
+
+-- ---------------------------------------------------------------------
+-- (3) validate_order_before_insert()：三段置換後全文（其餘逐字不動）
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.validate_order_before_insert()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_room_type RECORD;
+  v_discount_result RECORD;
+  v_calculated_discount INT := 0;
+  v_day_price INT;
+  v_calculated_total INT := 0;
+  v_room_only_total INT := 0;
+  v_current_date DATE;
+  v_nights INT;
+  v_is_past_order BOOLEAN;
+  v_has_pkg BOOLEAN := FALSE;
+  v_pkg_sale NUMERIC := NULL;
+  v_pkg_tiers JSONB := NULL;
+  v_pkg_required BOOLEAN := FALSE;
+  v_channel TEXT := NULL;
+  v_dow INT;
+  v_tier TEXT;
+  v_is_holiday BOOLEAN;
+  v_tier_sale NUMERIC;
+  v_addons INT := 0;
+  v_item JSONB;
+  v_inv_found BOOLEAN := FALSE;
+  v_inv_price NUMERIC;
+  v_inv_rooms INT;
+  v_inv_available BOOLEAN;
+  v_qty INT := 1;
+  -- v5.5C.2 新增
+  v_stay_nights INT := 1;
+  v_custom_addons INT := 0;
+  v_new_details JSONB;
+  -- v5.6：無法取得有效房價的晚數
+  v_unpriced_nights INT := 0;
+  -- v5.7：專案（pricing_templates）取價
+  v_tpl_price INT;
+  v_inv_source TEXT;
+  v_inv_trusted BOOLEAN := FALSE;
+  -- （v5.5C.2 修訂：pet 不重算，故不再需要 v_pet_unit / v_pet_mode）
+BEGIN
+  IF current_setting('app.bypass_inventory_check', true) = 'on' THEN
+    NEW.order_status := COALESCE(NEW.order_status, 'pending');
+    NEW.payment_status := COALESCE(NEW.payment_status, 'unpaid');
+    NEW.order_source := COALESCE(NEW.order_source, 'website');
+    NEW.guest_count := COALESCE(NEW.guest_count, 2);
+    NEW.final_price := COALESCE(NEW.final_price, NEW.total_price, 0);
+    RETURN NEW;
+  END IF;
+
+  IF NEW.guest_name IS NULL OR LENGTH(TRIM(NEW.guest_name)) < 1 THEN
+    RAISE EXCEPTION '請填寫訂購人姓名' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.guest_phone IS NULL OR LENGTH(TRIM(NEW.guest_phone)) < 8 THEN
+    RAISE EXCEPTION '請填寫正確的聯絡電話（至少 8 碼）' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.check_in_date IS NULL OR NEW.check_out_date IS NULL THEN
+    RAISE EXCEPTION '請選擇入住與退房日期' USING ERRCODE = 'P0001';
+  END IF;
+  IF NEW.check_out_date <= NEW.check_in_date THEN
+    RAISE EXCEPTION '退房日期必須晚於入住日期' USING ERRCODE = 'P0001';
+  END IF;
+
+  v_qty := GREATEST(1, COALESCE(NEW.room_quantity, 1));
+  NEW.room_quantity := v_qty;
+  v_is_past_order := NEW.check_in_date < CURRENT_DATE;
+
+  IF NEW.order_source IN ('manual', 'owlting', 'hotelnabe', 'group_buy') THEN
+    IF NEW.room_type_id IS NOT NULL THEN
+      SELECT * INTO v_room_type FROM public.room_types
+      WHERE id = NEW.room_type_id AND accommodation_id = NEW.accommodation_id;
+      IF NOT FOUND THEN
+        RAISE EXCEPTION '房型無效，請重新選擇房型' USING ERRCODE = 'P0001';
+      END IF;
+    END IF;
+    NEW.final_price := COALESCE(NEW.final_price, NEW.total_price, 0) - COALESCE(NEW.discount_amount, 0);
+    IF NEW.final_price < 0 THEN NEW.final_price := 0; END IF;
+    NEW.order_status := COALESCE(NEW.order_status, 'pending');
+    NEW.payment_status := COALESCE(NEW.payment_status, 'unpaid');
+    NEW.order_source := COALESCE(NEW.order_source, 'website');
+    NEW.guest_count := COALESCE(NEW.guest_count, 2);
+    RETURN NEW;
+  END IF;
+
+  -- ===== v5.5C.2：加購金額一律回查定價設定重算，不採信 payload =====
+  v_stay_nights := GREATEST(1, NEW.check_out_date - NEW.check_in_date);
+
+  -- (3) meal_plan_total 已停用
+  NEW.meal_plan_total := 0;
+
+  -- (2) pet_plan_price：本次不動，維持 payload 原值
+
+  -- (1) custom_addon_details 逐筆回查
+  IF NEW.custom_addon_details IS NOT NULL
+     AND jsonb_typeof(NEW.custom_addon_details) = 'array'
+     AND jsonb_array_length(NEW.custom_addon_details) > 0 THEN
+    SELECT
+      COALESCE(jsonb_agg(x.item ORDER BY x.ord), '[]'::jsonb),
+      COALESCE(SUM(x.line_total), 0)::INT
+    INTO v_new_details, v_custom_addons
+    FROM (
+      SELECT
+        e.ord,
+        r.line_total,
+        e.value
+          || jsonb_build_object(
+               'count', r.qty,
+               'price_per_unit', r.unit_price,
+               'total', r.line_total,
+               'price_source', r.price_source
+             ) AS item
+      FROM jsonb_array_elements(NEW.custom_addon_details) WITH ORDINALITY AS e(value, ord)
+      LEFT JOIN LATERAL (
+        SELECT a.*
+        FROM public.addon_settings a
+        WHERE a.accommodation_id = NEW.accommodation_id
+          AND a.enabled = TRUE
+          AND (
+            (
+              NULLIF(e.value->>'addon_id', '') IS NOT NULL
+              AND a.id = NULLIF(e.value->>'addon_id', '')::uuid
+            )
+            OR (
+              NULLIF(e.value->>'addon_id', '') IS NULL
+              AND a.addon_type = e.value->>'addon_type'
+              AND (
+                SELECT count(*) FROM public.addon_settings a2
+                WHERE a2.accommodation_id = NEW.accommodation_id
+                  AND a2.enabled = TRUE
+                  AND a2.addon_type = e.value->>'addon_type'
+              ) = 1
+            )
+          )
+        LIMIT 1
+      ) a ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT tp.*
+        FROM public.trip_products tp
+        WHERE e.value->>'source' = 'trip_product'
+          AND NULLIF(e.value->>'product_id', '') IS NOT NULL
+          AND tp.id = NULLIF(e.value->>'product_id', '')::uuid
+          AND tp.accommodation_id = NEW.accommodation_id
+          AND tp.is_active = TRUE
+        LIMIT 1
+      ) tp ON TRUE
+      CROSS JOIN LATERAL (
+        SELECT
+          CASE
+            WHEN tp.id IS NOT NULL THEN
+              LEAST(
+                GREATEST(0, COALESCE((e.value->>'count')::INT, 1)),
+                COALESCE(tp.stock, 2147483647)
+              )
+            WHEN a.id IS NOT NULL THEN
+              LEAST(
+                GREATEST(0, COALESCE((e.value->>'count')::INT, 1)),
+                COALESCE(a.max_quantity, 2147483647)
+              )
+            ELSE 0
+          END AS qty
+      ) q
+      CROSS JOIN LATERAL (
+        SELECT
+          q.qty,
+          CASE
+            WHEN tp.id IS NOT NULL THEN tp.price::NUMERIC
+            WHEN a.id IS NOT NULL THEN a.price_per_unit::NUMERIC
+            ELSE 0
+          END AS unit_price,
+          CASE
+            WHEN tp.id IS NOT NULL THEN 'trip_product'
+            WHEN a.id IS NOT NULL THEN 'addon_settings'
+            ELSE 'unmatched'
+          END AS price_source
+      ) p
+      CROSS JOIN LATERAL (
+        SELECT
+          p.qty,
+          p.unit_price,
+          p.price_source,
+          (
+            p.unit_price
+            * p.qty
+            * CASE
+                WHEN tp.id IS NULL AND a.id IS NOT NULL AND a.pricing_mode = 'per_night'
+                  THEN v_stay_nights
+                ELSE 1
+              END
+          )::INT AS line_total
+      ) r
+    ) x;
+
+    NEW.custom_addon_details := v_new_details;
+  ELSE
+    v_custom_addons := 0;
+  END IF;
+
+  v_addons := COALESCE(NEW.pet_plan_price, 0)::INT
+            + COALESCE(NEW.meal_plan_total, 0)::INT
+            + v_custom_addons;
+  -- ===== v5.5C.2 加購重算結束 =====
+
+  IF NEW.package_id IS NOT NULL THEN
+    SELECT sale_price, tier_prices INTO v_pkg_sale, v_pkg_tiers
+    FROM public.accommodation_packages
+    WHERE id = NEW.package_id AND accommodation_id = NEW.accommodation_id;
+    v_has_pkg := FOUND;
+    IF NOT v_has_pkg THEN
+      RAISE EXCEPTION '入住方案無效，請重新選擇入住方案' USING ERRCODE = 'P0001';
+    END IF;
+  ELSIF NEW.room_type_id IS NOT NULL THEN
+    SELECT CASE WHEN EXISTS (
+      SELECT 1 FROM public.accommodation_owlting_config c
+      WHERE c.accommodation_id = NEW.accommodation_id AND c.sync_enabled = TRUE
+    ) THEN '奧丁丁' ELSE NULL END INTO v_channel;
+
+    IF v_channel IS NOT NULL THEN
+      SELECT EXISTS (
+        SELECT 1 FROM public.accommodation_packages p
+        WHERE p.accommodation_id = NEW.accommodation_id
+          AND p.enabled = TRUE
+          AND p.room_type_ids IS NOT NULL
+          AND NEW.room_type_id::text = ANY (
+            SELECT jsonb_array_elements_text(to_jsonb(p.room_type_ids))
+          )
+      ) INTO v_pkg_required;
+      IF v_pkg_required THEN
+        RAISE EXCEPTION '此房型會同步到 %，請先選擇對應方案', v_channel USING ERRCODE = 'P0001';
+      END IF;
+    END IF;
+  END IF;
+
+  IF NEW.room_type_id IS NOT NULL THEN
+    SELECT * INTO v_room_type FROM public.room_types
+    WHERE id = NEW.room_type_id AND accommodation_id = NEW.accommodation_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION '房型無效，請重新選擇房型' USING ERRCODE = 'P0001';
+    END IF;
+
+    IF v_qty > GREATEST(1, COALESCE(v_room_type.room_count, 1)) THEN
+      RAISE EXCEPTION '訂購間數（% 間）超過此房型實際房間數（% 間）',
+        v_qty, GREATEST(1, COALESCE(v_room_type.room_count, 1)) USING ERRCODE = 'P0001';
+    END IF;
+    IF COALESCE(v_room_type.capacity, 0) > 0
+       AND COALESCE(NEW.guest_count, 0) > v_room_type.capacity * v_qty THEN
+      RAISE EXCEPTION '入住人數（% 人）超過上限：此房型每間最多 % 人，共 % 間，上限 % 人',
+        NEW.guest_count, v_room_type.capacity, v_qty, v_room_type.capacity * v_qty
+        USING ERRCODE = 'P0001';
+    END IF;
+
+    v_nights := NEW.check_out_date - NEW.check_in_date;
+    v_current_date := NEW.check_in_date;
+    WHILE v_current_date < NEW.check_out_date LOOP
+      v_inv_price := NULL;
+      v_inv_rooms := NULL;
+      v_inv_available := NULL;
+      v_inv_source := NULL;
+      SELECT rip.price, rip.available_rooms, rip.is_available, rip.last_change_source
+        INTO v_inv_price, v_inv_rooms, v_inv_available, v_inv_source
+      FROM public.room_inventory_pricing rip
+      WHERE rip.room_type_id = NEW.room_type_id
+        AND rip.date = v_current_date
+        AND rip.pricing_template_id IS NULL
+      LIMIT 1;
+      v_inv_found := FOUND;
+      -- v5.7 範圍二：bulk_open 只是「開放房量」的佔位價，不視為有效房價；
+      -- last_change_source IS NULL 為欄位上線前的舊資料，維持信任。
+      v_inv_trusted := v_inv_found AND COALESCE(v_inv_source, 'legacy_null') <> 'bulk_open';
+
+      IF v_inv_found AND NOT v_is_past_order THEN
+        IF v_inv_available = FALSE THEN
+          RAISE EXCEPTION '% 該日房型已關閉銷售，無法建立訂單', to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+        ELSIF COALESCE(v_inv_rooms, 0) <= 0 THEN
+          RAISE EXCEPTION '% 該日已無可售房間', to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+        ELSIF COALESCE(v_inv_rooms, 0) < v_qty THEN
+          RAISE EXCEPTION '% 該日僅剩 % 間，不足您訂購的 % 間',
+            to_char(v_current_date, 'YYYY-MM-DD'), COALESCE(v_inv_rooms, 0), v_qty USING ERRCODE = 'P0001';
+        END IF;
+      END IF;
+
+      -- ===== v5.6：每晚取價（依「價格來源是否存在」判斷，不用金額大小判斷） =====
+      v_day_price := NULL;
+
+      IF v_has_pkg THEN
+        -- v5.7：日型判斷改呼叫共用函式 public.classify_day_tier()，
+        -- 與 resolve_template_night_price() 共用同一份規則（不再各自計算）。
+        -- 方案 tier_prices 的 JSON key 用 'friday_sunday'，僅此處做名稱映射。
+        v_tier := public.classify_day_tier(v_current_date, NEW.accommodation_id);
+        IF v_tier = 'peak' THEN v_tier := 'friday_sunday'; END IF;
+        v_tier_sale := NULLIF(v_pkg_tiers -> v_tier ->> 'sale', '')::NUMERIC;
+        IF v_tier_sale IS NULL AND v_pkg_sale IS NULL THEN
+          RAISE EXCEPTION '入住方案未設定售價：請先於方案設定中填寫售價；若此訂單不需要指定方案，請改為不選方案、並於庫存日曆登記當日房價後再建立訂單'
+            USING ERRCODE = 'P0001';
+        END IF;
+        v_day_price := COALESCE(v_tier_sale, v_pkg_sale)::INT;
+
+      ELSIF NEW.pricing_template_id IS NOT NULL THEN
+        v_tpl_price := public.resolve_template_night_price(
+          NEW.pricing_template_id, NEW.room_type_id, v_current_date, NEW.accommodation_id
+        );
+        IF v_tpl_price IS NOT NULL THEN
+          v_day_price := v_tpl_price;
+        ELSIF v_inv_trusted AND v_inv_price IS NOT NULL THEN
+          v_day_price := v_inv_price::INT;
+        ELSIF COALESCE(v_room_type.is_exclusive_package, FALSE) THEN
+          RAISE EXCEPTION '找不到有效房價：房型「%」屬於包棟／方案定價房型，% 這一晚所選專案沒有設定價格，庫存日曆也沒有登記當日房價，請先於專案設定填寫該日型價格，或於庫存日曆登記該日房價後再建立訂單',
+            v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+        ELSIF v_room_type.base_price IS NULL THEN
+          RAISE EXCEPTION '找不到有效房價：房型「%」尚未設定基本房價，% 這一晚所選專案與庫存日曆也都沒有價格，請先設定房價後再建立訂單',
+            v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+        ELSE
+          v_day_price := v_room_type.base_price::INT;
+        END IF;
+
+      ELSIF v_inv_trusted AND v_inv_price IS NOT NULL THEN
+        v_day_price := v_inv_price::INT;
+
+      ELSIF COALESCE(v_room_type.is_exclusive_package, FALSE) THEN
+        RAISE EXCEPTION '找不到有效房價：房型「%」屬於包棟／方案定價房型，% 這一晚既沒有選擇入住方案或專案，庫存日曆也沒有登記當日房價（僅有開放房量時自動帶入的佔位價，不予採用），請先選擇方案／專案，或於庫存日曆登記該日房價後再建立訂單',
+          v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+
+      ELSIF v_room_type.base_price IS NULL THEN
+        RAISE EXCEPTION '找不到有效房價：房型「%」尚未設定基本房價，% 這一晚也沒有可採用的庫存日曆登記價格，請先設定房價後再建立訂單',
+          v_room_type.name, to_char(v_current_date, 'YYYY-MM-DD') USING ERRCODE = 'P0001';
+
+      ELSE
+        v_day_price := v_room_type.base_price::INT;
+      END IF;
+
+      IF v_day_price IS NULL THEN
+        v_unpriced_nights := v_unpriced_nights + 1;
+        v_day_price := 0;
+      END IF;
+      -- ===== v5.6 每晚取價結束 =====
+
+      v_room_only_total := v_room_only_total + v_day_price;
+      v_current_date := v_current_date + 1;
+    END LOOP;
+
+    IF v_unpriced_nights > 0 THEN
+      RAISE EXCEPTION '找不到有效房價：房型「%」有 % 晚無法取得有效房價，請確認入住方案或庫存日曆價格設定',
+        v_room_type.name, v_unpriced_nights USING ERRCODE = 'P0001';
+    END IF;
+
+    v_calculated_total := (v_room_only_total * v_qty) + v_addons;
+  ELSE
+    v_calculated_total := COALESCE(NEW.total_price, 0);
+  END IF;
+
+  IF NEW.discount_code IS NOT NULL AND LENGTH(TRIM(NEW.discount_code)) > 0 THEN
+    SELECT * INTO v_discount_result FROM public.validate_discount_code(
+      p_code => NEW.discount_code,
+      p_accommodation_id => NEW.accommodation_id,
+      p_order_amount => v_calculated_total,
+      p_room_type_id => NEW.room_type_id,
+      p_check_in_date => NEW.check_in_date
+    );
+    IF v_discount_result.is_valid THEN
+      IF v_discount_result.discount_type = 'percentage' THEN
+        v_calculated_discount := ROUND((v_calculated_total * v_discount_result.discount_value / 100.0)::numeric);
+      ELSE
+        v_calculated_discount := v_discount_result.discount_value;
+      END IF;
+      v_calculated_discount := GREATEST(0, LEAST(v_calculated_discount, v_calculated_total));
+    END IF;
+  END IF;
+
+  NEW.total_price := v_calculated_total;
+  NEW.discount_amount := v_calculated_discount;
+  NEW.final_price := GREATEST(0, v_calculated_total - v_calculated_discount);
+  NEW.order_status := COALESCE(NEW.order_status, 'pending');
+  NEW.payment_status := COALESCE(NEW.payment_status, 'unpaid');
+  NEW.order_source := COALESCE(NEW.order_source, 'website');
+  NEW.guest_count := COALESCE(NEW.guest_count, 2);
+  RETURN NEW;
+END;
+$function$;

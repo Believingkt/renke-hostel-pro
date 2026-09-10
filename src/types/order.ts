@@ -30,6 +30,7 @@ export interface Order {
   meal_plan_details: unknown;
   payment_link_created_at?: string | null;
   order_source: string;
+  pricing_template_id?: string | null;
   room_types: {
     id: string;
     name: string;

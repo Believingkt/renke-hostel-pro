@@ -7907,6 +7907,7 @@ export type Database = {
           payment_status: string
           pet_count: number | null
           pet_plan_price: number | null
+          pricing_template_id: string | null
           refund_fee_amount: number
           refund_rec_trade_id: string | null
           refund_status: string
@@ -8008,6 +8009,7 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          pricing_template_id?: string | null
           refund_fee_amount?: number
           refund_rec_trade_id?: string | null
           refund_status?: string
@@ -8109,6 +8111,7 @@ export type Database = {
           payment_status?: string
           pet_count?: number | null
           pet_plan_price?: number | null
+          pricing_template_id?: string | null
           refund_fee_amount?: number
           refund_rec_trade_id?: string | null
           refund_status?: string
@@ -8154,6 +8157,13 @@ export type Database = {
             columns: ["package_id"]
             isOneToOne: false
             referencedRelation: "accommodation_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_pricing_template_id_fkey"
+            columns: ["pricing_template_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_templates"
             referencedColumns: ["id"]
           },
           {
@@ -13814,6 +13824,10 @@ export type Database = {
           to_date: string
         }[]
       }
+      classify_day_tier: {
+        Args: { p_accommodation_id: string; p_date: string }
+        Returns: string
+      }
       cleanup_old_error_logs: { Args: never; Returns: undefined }
       cleanup_old_monitoring_logs: { Args: never; Returns: undefined }
       clear_order_room_pricing_template: {
@@ -14188,6 +14202,15 @@ export type Database = {
           id: string
           name: string
         }[]
+      }
+      resolve_template_night_price: {
+        Args: {
+          p_accommodation_id: string
+          p_date: string
+          p_room_type_id: string
+          p_template_id: string
+        }
+        Returns: number
       }
       scan_stuck_group_buy_paid_drafts: {
         Args: { p_minutes?: number }
