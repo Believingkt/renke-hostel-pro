@@ -126,19 +126,9 @@ BEGIN
     RETURN v_override_price;             -- 對應 TS overrideMap（含 0 元）
   END IF;
 
-  -- (b) 日型判斷（與 TS classifyDayTier 完全一致：
-  --     國定假日 或 週六 → weekend；週五／週日 → peak；其餘 → weekday）
-  v_dow := EXTRACT(DOW FROM p_date)::INT;
-  SELECT EXISTS (
-    SELECT 1 FROM public.public_holidays
-     WHERE accommodation_id = p_accommodation_id
-       AND holiday_date = p_date
-       AND holiday_type IN ('holiday', 'compensatory_day_off')
-  ) INTO v_is_holiday;
-  IF v_is_holiday OR v_dow = 6 THEN v_tier := 'weekend';
-  ELSIF v_dow = 5 OR v_dow = 0 THEN v_tier := 'peak';
-  ELSE v_tier := 'weekday';
-  END IF;
+  -- (b) 日型判斷：唯一真實來源 public.classify_day_tier()
+  --     （guard 的方案分支呼叫同一支，不再各自計算一次）
+  v_tier := public.classify_day_tier(p_date, p_accommodation_id);
   v_price_key := v_tier || '_price';
   v_en_key    := v_tier || '_enabled';
 
