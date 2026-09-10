@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Order } from "@/types/order";
 import { getPaymentStatusConfig } from "@/utils/orderHelpers";
+import { buildPaymentStatusDialogPatch } from "@/lib/orderFieldPatches";
 
 interface PaymentStatusDialogProps {
   order: Order | null;
@@ -61,11 +62,11 @@ export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: Pa
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
-        p_patch: {
-          payment_status: selectedStatus,
-          paid_amount: paidAmount,
+        p_patch: buildPaymentStatusDialogPatch({
+          paymentStatus: selectedStatus,
+          paidAmount,
           notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-        },
+        }) as any,
         p_source: "admin_payment_status_dialog",
         p_reason: reason.trim() || null,
       });

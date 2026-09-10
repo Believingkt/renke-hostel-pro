@@ -10,6 +10,7 @@ import { Upload, FileSpreadsheet, AlertTriangle, CheckCircle2, Loader2, Check } 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from "xlsx";
+import { buildImportDiscountCodePatch } from "@/lib/orderFieldPatches";
 
 interface RoomType {
   id: string;
@@ -483,7 +484,7 @@ export function ImportOrdersDialog({ open, onOpenChange, accommodationId, onSucc
           }
           const { error } = await supabase.rpc("update_order_fields_v1", {
             p_order_id: row.id,
-            p_patch: { discount_code: code },
+            p_patch: buildImportDiscountCodePatch({ discountCode: code }) as any,
             p_source: "import_discount_code",
             p_reason: null,
           });

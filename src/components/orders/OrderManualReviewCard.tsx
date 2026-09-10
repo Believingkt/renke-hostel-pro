@@ -17,6 +17,7 @@ import {
 import { AlertTriangle, Loader2, UserCog } from "lucide-react";
 import { toast } from "sonner";
 import { useAuditLog } from "@/hooks/use-audit-log";
+import { buildManualReviewGuestCountPatch, buildManualReviewNotePatch, buildManualReviewRepricingPatch } from "@/lib/orderFieldPatches";
 
 export interface ManualReviewTask {
   id: string;
@@ -127,7 +128,7 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
         } else if (active.requested_guest_count != null) {
           const { error } = await supabase.rpc("update_order_fields_v1", {
             p_order_id: active.order_id,
-            p_patch: { guest_count: active.requested_guest_count },
+            p_patch: buildManualReviewGuestCountPatch({ guestCount: active.requested_guest_count }) as any,
             p_source: "manual_review_guest_count",
             p_reason: note.trim() || null,
           });
@@ -144,7 +145,7 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
         if (amount !== "" && Number.isFinite(finalAmount)) {
           const { error: amtErr } = await supabase.rpc("update_order_fields_v1", {
             p_order_id: active.order_id,
-            p_patch: { final_price: finalAmount },
+            p_patch: buildManualReviewRepricingPatch({ finalPrice: finalAmount }) as any,
             p_source: "manual_review_repricing",
             p_reason: note.trim() || null,
           });
@@ -171,9 +172,9 @@ export default function OrderManualReviewCard({ orderId, orderNumber, onResolved
         .maybeSingle();
       await supabase.rpc("update_order_fields_v1", {
         p_order_id: active.order_id,
-        p_patch: {
+        p_patch: buildManualReviewNotePatch({
           notes: cur?.notes ? `${cur.notes}\n${noteLines.join("\n")}` : noteLines.join("\n"),
-        },
+        }) as any,
         p_source: "manual_review_note",
         p_reason: null,
       });

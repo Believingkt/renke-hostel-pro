@@ -11,6 +11,7 @@ import { getOrderStatusConfig } from "@/utils/orderHelpers";
 import { isHoldOrder } from "@/lib/holdOrder";
 import { buildAmenityRestoreError, type AmenityRestoreError } from "@/lib/amenityRescheduleGuard";
 import { AlertTriangle } from "lucide-react";
+import { buildOrderStatusDialogPatch } from "@/lib/orderFieldPatches";
 
 interface OrderStatusDialogProps {
   order: Order | null;
@@ -57,26 +58,13 @@ export function OrderStatusDialog({ order, open, onOpenChange, onSuccess }: Orde
         ? `\n【訂單狀態變更】${oldLabel} → ${newLabel}：${reason.trim()}`
         : `\n【訂單狀態變更】${oldLabel} → ${newLabel}`;
 
-      const updateData: any = {
-        order_status: selectedStatus,
+      const updateData: any = buildOrderStatusDialogPatch({
+        selectedStatus,
+        currentStatus: order.order_status,
         notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-      };
-
-      // Set timestamps for status transitions
-      if (selectedStatus === "confirmed" && order.order_status !== "confirmed") {
-        const confirmedAt = new Date().toISOString();
-        updateData.confirmed_at = confirmedAt;
-        // 保留單轉正：成交日改為轉正當下
-        if (isHoldOrder(order)) {
-          updateData.order_date = confirmedAt;
-        }
-      } else if (selectedStatus === "checked_in") {
-        updateData.checked_in_at = new Date().toISOString();
-      } else if (selectedStatus === "checked_out") {
-        updateData.checked_out_at = new Date().toISOString();
-      } else if (selectedStatus === "cancelled") {
-        updateData.cancelled_at = new Date().toISOString();
-      }
+        nowIso: new Date().toISOString(),
+        isHoldOrder: isHoldOrder(order),
+      });
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,

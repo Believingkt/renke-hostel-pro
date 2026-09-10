@@ -17,6 +17,7 @@ import { Minus, Plus, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
 import {
+import { buildPriceEditDialogPatch } from "@/lib/orderFieldPatches";
   canEditPaidDiscount,
   buildPaidDiscountChanges,
   PAID_DISCOUNT_SOURCE,
@@ -466,18 +467,18 @@ export function OrderPriceEditDialog({ order, open, onOpenChange, onSuccess }: O
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
-        p_patch: {
-          total_price: safeTotalPrice,
-          discount_amount: safeDiscountAmount,
-          final_price: safeFinalPrice,
-          deposit_amount: safeDepositAmount,
-          paid_amount: editPaidAmount,
-          payment_status: newPaymentStatus,
-          custom_addon_details: newCustomAddonDetails as any,
-          discount_code: safeDiscountCode.trim() || null,
-          meal_plan_details: newMealPlanDetails.length > 0 ? (newMealPlanDetails as any) : null,
+        p_patch: buildPriceEditDialogPatch({
+          totalPrice: safeTotalPrice,
+          discountAmount: safeDiscountAmount,
+          finalPrice: safeFinalPrice,
+          depositAmount: safeDepositAmount,
+          paidAmount: editPaidAmount,
+          paymentStatus: newPaymentStatus,
+          customAddonDetails: newCustomAddonDetails as any,
+          discountCode: safeDiscountCode,
+          mealPlanDetails: newMealPlanDetails as any,
           notes: nextNotes,
-        } as any,
+        }) as any,
         p_source: paidDiscountEdited ? "paid_discount_edit" : "admin_price_edit_dialog",
         p_reason: editReason.trim() || null,
       });

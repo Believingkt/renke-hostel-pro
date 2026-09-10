@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import {
+import { buildDealDateEditPatch } from "@/lib/orderFieldPatches";
   composeDealDate,
   isCommissionPeriodSettled,
   isFutureTaipeiDate,
@@ -88,7 +89,7 @@ export function DealDateEditDialog({
       const newIso = composeDealDate(currentOrderDate, dateValue);
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: orderId,
-        p_patch: { order_date: newIso },
+        p_patch: buildDealDateEditPatch({ orderDateIso: newIso }) as any,
         p_source: "admin_deal_date_edit",
         p_reason: null,
       });

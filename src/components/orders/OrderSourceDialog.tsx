@@ -11,6 +11,7 @@ import { Globe, UserPlus } from "lucide-react";
 import { useOrderSources } from "@/hooks/use-order-sources";
 import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
 import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { buildOrderSourceDialogPatch } from "@/lib/orderFieldPatches";
 
 interface OrderSourceDialogProps {
   order: Order | null;
@@ -94,13 +95,10 @@ export function OrderSourceDialog({ order, open, onOpenChange, onSuccess, accomm
 
       const noteAppend = `\n【來源變更】${oldLabel} → ${newLabel}`;
 
-      const updatePayload: any = {
-        order_source: selectedSource,
+      const updatePayload: any = buildOrderSourceDialogPatch({
+        orderSource: selectedSource,
         notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
-      };
-      if (selectedSource === "owner_provided") {
-        updatePayload.owner_direct = true;
-      }
+      });
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
