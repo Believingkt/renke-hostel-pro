@@ -4,6 +4,10 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import {
+  buildDepositChargeFailurePatch,
+  buildDepositChargeSuccessPatch,
+} from "../_shared/patchBuilders.ts";
+import {
   resolveCaller,
   canEditModule,
   isSuperAdmin,
@@ -113,11 +117,11 @@ async function chargeOne(supabase: any, orderId: string, amountOverride: number 
     const newStatus = newCharged >= (order.deposit_required_amount || 0) ? "charged" : "card_bound";
     await supabase.rpc("update_order_with_context", {
       p_order_id: order.id,
-      p_patch: {
-        deposit_charged_amount: newCharged,
-        deposit_charged_at: new Date().toISOString(),
-        deposit_status: newStatus,
-      },
+      p_patch: buildDepositChargeSuccessPatch({
+        newChargedAmount: newCharged,
+        chargedAtIso: new Date().toISOString(),
+        newStatus,
+      }),
       p_source: "deposit_charge",
       p_reason: `押金扣款成功 NT$${amount}`,
       p_actor_label: performedBy ? `押金扣款（操作者 ${performedBy}）` : "押金扣款（系統排程）",
@@ -128,7 +132,7 @@ async function chargeOne(supabase: any, orderId: string, amountOverride: number 
   } else {
     await supabase.rpc("update_order_with_context", {
       p_order_id: order.id,
-      p_patch: { deposit_status: "failed" },
+      p_patch: buildDepositChargeFailurePatch(),
       p_source: "deposit_charge",
       p_reason: `押金扣款失敗：${result.msg || `TapPay error ${result.status}`}`,
       p_actor_label: performedBy ? `押金扣款（操作者 ${performedBy}）` : "押金扣款（系統排程）",
