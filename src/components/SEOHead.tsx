@@ -56,7 +56,7 @@ export const SEOHead = ({
     setMetaTag('description', description);
     setMetaTag('keywords', keywords.join(', '));
     setMetaTag('author', title.split(' ')[0]);
-    setMetaTag('robots', 'index, follow');
+    setMetaTag('robots', noIndex ? 'noindex, follow' : 'index, follow');
     setMetaTag('language', 'zh-TW');
     setMetaTag('revisit-after', '7 days');
 
@@ -103,7 +103,7 @@ export const SEOHead = ({
       document.head.appendChild(viewport);
     }
 
-  }, [title, description, url, image, type, keywords, socialTitle, socialDescription]);
+  }, [title, description, url, image, type, keywords, socialTitle, socialDescription, noIndex]);
 
   return null;
 };

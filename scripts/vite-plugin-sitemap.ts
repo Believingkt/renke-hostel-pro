@@ -32,6 +32,8 @@ interface AccRow {
   og_title: string | null;
   og_description: string | null;
   og_image_url: string | null;
+  /** 總部「前台顯示」開關；false 代表不想被搜尋引擎收錄 */
+  show_on_portal: boolean | null;
 }
 
 const esc = (s: string) =>
