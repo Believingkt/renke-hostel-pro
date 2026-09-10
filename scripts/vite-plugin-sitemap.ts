@@ -52,7 +52,7 @@ async function fetchAccommodations(
   if (!url || !key) return { rows: [], skip: "缺少資料庫連線設定" };
   try {
     const res = await fetch(
-      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true`,
+      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true&show_on_portal=eq.true`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return { rows: [], skip: `資料庫回應 ${res.status}` };
@@ -144,8 +144,10 @@ export function sitemap(opts: { url: string; key: string; outDir?: string }): Pl
         console.warn(`[sitemap] 略過：${skip}（沿用 public/sitemap.xml）`);
         return;
       }
-      writeFileSync(resolve(outDir, "sitemap.xml"), buildSitemap(rows));
-      console.log(`[sitemap] 已產生 ${rows.length + 1} 筆網址`);
+       const sitemapXml = buildSitemap(rows);
+       writeFileSync(resolve(outDir, "sitemap.xml"), sitemapXml);
+       const entryCount = (sitemapXml.match(/<url>/g) || []).length;
+       console.log(`[sitemap] 已產生 ${entryCount} 筆網址`);
     },
   };
 }
