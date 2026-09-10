@@ -495,6 +495,10 @@ export default function OrderTimelineCard({
         .eq("order_id", orderId).in("event_type", ["email_sent", "email_failed"])
         .order("created_at", { ascending: false }).limit(50);
       emailRows = [...mapGroupBuyEmailEvents(gb ?? []), ...emailRows];
+      const prev = (gb ?? []).find((r: any) =>
+        r.event_type === "email_sent" && String(r.note ?? "").includes("guest_order_cancelled")
+      );
+      setLastCancelledEmailAt(prev?.created_at ?? null);
     }
 
     const built = buildTimelineItems({
