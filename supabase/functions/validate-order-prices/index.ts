@@ -715,6 +715,7 @@ serve(async (req) => {
       isValid: errors.length === 0,
       inventoryUnavailable,
       errors,
+      excludedDates,
 
       calculatedPrices: {
         totalPrice: calculatedTotalPrice,
