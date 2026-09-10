@@ -297,6 +297,11 @@ BEGIN
           v_tier := 'weekday';
         END IF;
         v_tier_sale := NULLIF(v_pkg_tiers -> v_tier ->> 'sale', '')::NUMERIC;
+        IF v_tier_sale IS NULL AND v_pkg_sale IS NULL THEN
+          -- 已選方案、但方案完全沒有設定任何售價（含分級售價）
+          RAISE EXCEPTION '入住方案未設定售價：請先於方案設定中填寫售價，或改用庫存日曆登記當日房價後再建立訂單'
+            USING ERRCODE = 'P0001';
+        END IF;
         v_day_price := COALESCE(v_tier_sale, v_pkg_sale)::INT;
 
       ELSIF v_inv_found AND v_inv_price IS NOT NULL THEN
