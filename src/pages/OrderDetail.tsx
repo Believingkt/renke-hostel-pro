@@ -1404,7 +1404,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     try {
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
-        p_patch: { order_status: "cancelled", cancelled_at: new Date().toISOString() },
+        p_patch: buildAdminCancelPatch({ cancelledAtIso: new Date().toISOString() }),
         p_source: "admin_order_cancel",
         p_reason: null,
       });
@@ -1517,15 +1517,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
-        p_patch: {
-          total_price: editTotalPrice,
-          discount_amount: editDiscountAmount,
-          final_price: editFinalPrice,
-          deposit_amount: editDepositAmount,
-          paid_amount: editPaidAmount,
-          payment_status: newPaymentStatus,
+        p_patch: buildAdminPriceEditPatch({
+          totalPrice: editTotalPrice,
+          discountAmount: editDiscountAmount,
+          finalPrice: editFinalPrice,
+          depositAmount: editDepositAmount,
+          paidAmount: editPaidAmount,
+          paymentStatus: newPaymentStatus,
           notes: nextNotes,
-        },
+        }),
         p_source: "admin_price_edit",
         p_reason: editReason.trim() || null,
       });
