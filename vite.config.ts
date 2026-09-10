@@ -44,6 +44,10 @@ export default defineConfig(({ mode }) => {
         url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
         key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
       }),
+      sitemap({
+        url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
+        key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
+      }),
       mcpPlugin(),
     ].filter(Boolean),
 
