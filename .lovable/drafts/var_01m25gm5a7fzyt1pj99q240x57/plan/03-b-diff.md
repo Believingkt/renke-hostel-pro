@@ -60,22 +60,33 @@ RadioGroup 內：`disabled={status.value === "cancelled" && blockCancel}`，並�
 - 送出後的錯誤處理同樣攔截 `ORDER_CANCEL_BLOCKED`。
 - 刪除死碼 `handleCancelOrder` / `buildAdminCancelPatch`（來源 `admin_order_cancel`，目前無任何 UI 呼叫）。
 
-### 6. Migration：`update_order_fields_v1` 防護
-在既有白名單處理之前插入：
+### 6. Migration：`update_order_fields_v1` 防護（已修正判斷邏輯）
+函式 `declare` 區塊新增兩個布林變數，並在既有白名單處理之前插入判斷：
 ```sql
-if (v_patch ? 'order_status') and v_patch->>'order_status' = 'cancelled'
-   and v_old.order_status is distinct from 'cancelled' then
-  if v_old.order_source = 'group_buy'
-     or (coalesce(v_old.balance_payment_method, v_old.payment_method, v_old.deposit_payment_method)
-         not in ('atm','ATM','atm_transfer')
-         and (v_old.balance_payment_method in ('credit_card','credit_card_3ds','card','信用卡')
-              or v_old.payment_method in ('credit_card','credit_card_3ds','card','信用卡')
-              or v_old.deposit_payment_method in ('credit_card','credit_card_3ds','card','信用卡')
-              or v_old.room_charge_rec_trade_id is not null)) then
-    raise exception 'ORDER_CANCEL_BLOCKED: 此訂單必須使用專屬取消流程';
+declare
+  ...既有宣告不變...
+  v_is_atm  boolean;
+  v_is_card boolean;
+begin
+  ...取得 v_old 之後...
+  v_is_atm := coalesce(v_old.balance_payment_method in ('atm','ATM','atm_transfer'), false)
+           or coalesce(v_old.payment_method in ('atm','ATM','atm_transfer'), false)
+           or coalesce(v_old.deposit_payment_method in ('atm','ATM','atm_transfer'), false);
+
+  v_is_card := coalesce(v_old.balance_payment_method in ('credit_card','credit_card_3ds','card','信用卡'), false)
+            or coalesce(v_old.payment_method in ('credit_card','credit_card_3ds','card','信用卡'), false)
+            or coalesce(v_old.deposit_payment_method in ('credit_card','credit_card_3ds','card','信用卡'), false)
+            or v_old.room_charge_rec_trade_id is not null;
+
+  if (v_patch ? 'order_status') and v_patch->>'order_status' = 'cancelled'
+     and v_old.order_status is distinct from 'cancelled' then
+    if v_old.order_source = 'group_buy' or (not v_is_atm and v_is_card) then
+      raise exception 'ORDER_CANCEL_BLOCKED: 此訂單必須使用專屬取消流程';
+    end if;
   end if;
-end if;
 ```
+- 三個付款方式欄位各自比對、各自 `coalesce(..., false)`：任一為 ATM 即不算卡付款；NULL 不會讓判斷失效。
+- 與 `cardPaymentRule.ts` 的 `isCardPaidOrderRule` 逐字對等（ATM 優先於卡別，最後才看 `room_charge_rec_trade_id`）。
 - SECURITY INVOKER 模式不變、白名單欄位不變、ACL 不變。
 - 合法路徑不受影響：團購走 `group-buy-cancel-refund`、信用卡走 `cancel-order-with-refund`，兩者以 service role 直接 update，不經此 RPC。
 
