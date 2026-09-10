@@ -19,3 +19,8 @@
 
 # Step 3 方案 B：訂單歷程統一時間線（已完成）
 - [x] OrderTimelineCard 元件與實測、掛載
+
+## guard v5.7（範圍一 template 取價 + 範圍二 bulk_open 排除）
+- [ ] 出逐字程式碼（migration / resolve_template_night_price / validate_order_before_insert / CreateOrderDialog diff）
+- [ ] src/types/order.ts 補 pricing_template_id 欄位（勿再遺漏）
+- [ ] TS↔SQL 取價一致性 parity 測試矩陣
