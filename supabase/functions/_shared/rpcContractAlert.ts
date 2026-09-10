@@ -63,6 +63,9 @@ export async function reportRpcContractDrift(
       <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請確認這次改動是否為已知的正常部署，若不是需要盡快查清楚是誰、為什麼修改</p>
       <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
       <p style="color:#374151;margin:0 0 16px;">${payload.summary}</p>
+      <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
+        若這是預期中的 migration，請重跑 scripts/dump-rpc-whitelists.ts 更新基準快照，並確認所有呼叫端送出的欄位都仍在白名單內。
+      </p>
       <table style="width:100%;border-collapse:collapse;font-size:14px;">
         <thead><tr style="background:#f3f4f6;text-align:left;">
           <th style="padding:8px;">RPC</th><th style="padding:8px;">快照 md5</th>

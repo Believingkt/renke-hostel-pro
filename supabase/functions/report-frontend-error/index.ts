@@ -9,16 +9,17 @@ const ipRateLimit = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_PER_MINUTE = 5;
 
 const BOT_KEYWORDS = [
-  "bot",
-  "crawler",
-  "spider",
   "googlebot",
   "bingbot",
-  "headless",
-  "slurp",
   "duckduckbot",
   "baiduspider",
   "yandexbot",
+  "crawler",
+  "spider",
+  "headless",
+  "slurp",
+  "robot",
+  "bot",
 ];
 
 function detectBotKeyword(userAgent?: string): string | null {
