@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import { seoPrerender } from "./scripts/vite-plugin-seo-prerender";
+import { sitemap } from "./scripts/vite-plugin-sitemap";
 
 
 // 產生 /version.json，讓前端能偵測新版本並提示重新整理
@@ -40,6 +41,10 @@ export default defineConfig(({ mode }) => {
       mode === "development" && componentTagger(),
       emitVersionJson(buildId),
       seoPrerender({
+        url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
+        key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
+      }),
+      sitemap({
         url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
         key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
       }),
