@@ -90,7 +90,7 @@ export function SystemHealthMonitor() {
         .limit(30),
     ]);
 
-    setRecipients((r.data ?? []) as AlertRecipient[]);
+    setRecipients((r.data ?? []) as unknown as AlertRecipient[]);
     setHealthLogs((h.data ?? []) as HealthLog[]);
     setErrorReports((e.data ?? []) as ErrorReport[]);
     setLoading(false);
@@ -117,7 +117,7 @@ export function SystemHealthMonitor() {
         notify_order_rooms_failure: true,
         notify_owlting_sync_failure: true,
         notify_rpc_contract_drift: true,
-      });
+      } as never);
     setAdding(false);
     if (error) {
       toast.error(error.message.includes("duplicate") ? "此 Email 已存在" : "新增失敗");
