@@ -1125,6 +1125,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       }
 
       // Auto-append locked audit line when a settled order has financial changes via inline edit
+      let auditNoteLine: string | null = null;
       if (isPaidOrDeposit) {
         const auditParts: string[] = [];
 
@@ -1178,32 +1179,31 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             who = (prof?.name && prof.name.trim()) || user.email || user.id;
           }
           const ts = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).slice(0, 16);
-          const auditLine = `🔒[金額異動 ${ts} by ${who}] ${auditParts.join("、")}`;
-          finalNotes = finalNotes ? `${finalNotes}\n${auditLine}` : auditLine;
-          updateData.notes = finalNotes;
+          auditNoteLine = `🔒[金額異動 ${ts} by ${who}] ${auditParts.join("、")}`;
         }
       }
 
-      // Handle status timestamp updates
-      if (editForm.order_status !== order.order_status) {
-        if (editForm.order_status === "confirmed") {
-          const confirmedAt = new Date().toISOString();
-          updateData.confirmed_at = confirmedAt;
-          // 保留單轉正：成交日改為轉正當下（confirmed_at 已含完整時分秒）
-          if (isHoldOrder(order)) {
-            updateData.order_date = confirmedAt;
-          }
-        }
-        if (editForm.order_status === "checked_in") {
-          updateData.checked_in_at = new Date().toISOString();
-        }
-        if (editForm.order_status === "checked_out") {
-          updateData.checked_out_at = new Date().toISOString();
-        }
-        if (editForm.order_status === "cancelled") {
-          updateData.cancelled_at = new Date().toISOString();
-        }
-      }
+      const updateData: Record<string, any> = buildInlineEditPatch({
+        order: {
+          payment_status: order.payment_status,
+          total_price: order.total_price,
+          discount_amount: order.discount_amount,
+          discount_code: order.discount_code,
+          final_price: order.final_price,
+        },
+        form: editForm as any,
+        isOlivia,
+        isHoldOrder: isHoldOrder(order),
+        effPaymentStatus,
+        effPaidAmount,
+        savedTotalPrice,
+        editFinalPriceCalc,
+        originalAddonTotal,
+        finalNotes,
+        auditNoteLine,
+        nowIso: new Date().toISOString(),
+        originalOrderStatus: order.order_status,
+      });
 
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
