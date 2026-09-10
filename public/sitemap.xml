@@ -115,4 +115,14 @@
       <image:caption>宜蘭包棟民宿首選</image:caption>
     </image:image>
   </url>
+  <url>
+    <loc>https://booking.lakeze.com/goodtime</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://booking.lakeze.com/og-image-1200x630.png</image:loc>
+      <image:title>良辰暖居</image:title>
+      <image:caption>官方網站與線上訂房系統</image:caption>
+    </image:image>
+  </url>
 </urlset>
