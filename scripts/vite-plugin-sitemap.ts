@@ -52,7 +52,7 @@ async function fetchAccommodations(
   if (!url || !key) return { rows: [], skip: "缺少資料庫連線設定" };
   try {
     const res = await fetch(
-      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true&show_on_portal=eq.true`,
+      `${url}/rest/v1/accommodation_info?select=id,name,description,short_url_alias,custom_domain,seo_title,seo_description,og_title,og_description,og_image_url,show_on_portal&is_active=eq.true`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return { rows: [], skip: `資料庫回應 ${res.status}` };
