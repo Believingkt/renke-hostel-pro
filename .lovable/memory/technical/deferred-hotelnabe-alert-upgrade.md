@@ -9,7 +9,7 @@ HotelNabe `buildOrderPayload()` 會組出包含 `order_source`、`ota_channel`�
 
 未來若需處理，可選方案：
 1. 在丟棄時寫入 error_logs，來源標為 `hotelnabe_order_receiver`。
-2. 對確實不可變的欄位，改為直接不組進 patch；對可能遺漏的的欄位，則擴充白名單。
+2. 對確實不可變的欄位，改為直接不組進 patch；對可能遺漏的欄位，則擴充白名單。
 3. 加入 owltingSyncAlert 類的內部技術告警信。
 
 此為非急迫債務，待後續評估。
