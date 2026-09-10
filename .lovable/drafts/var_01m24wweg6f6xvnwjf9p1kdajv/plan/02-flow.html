@@ -1,0 +1,56 @@
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: var(--font-sans); fill: hsl(var(--muted-foreground)); font-size: 12px; }
+    .lbl { fill: hsl(var(--foreground)); font-size: 14px; font-weight: 480; }
+    .mono { font-family: var(--font-mono); font-size: 11px; }
+    .box { fill: none; stroke: hsl(var(--muted-foreground)); stroke-width: 1; rx: 8; }
+    .wire { stroke: hsl(var(--muted-foreground)); stroke-width: 1; fill: none; }
+    .zone { fill: none; stroke: hsl(var(--border)); stroke-width: 1; stroke-dasharray: 4 3; rx: 8; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L8,4 L0,8" fill="none" stroke="hsl(var(--muted-foreground))"/>
+    </marker>
+  </defs>
+
+  <rect class="zone" x="8" y="16" width="624" height="128"/>
+  <text x="20" y="34" class="mono">daily drift check</text>
+
+  <rect class="box" x="24" y="48" width="118" height="60"/>
+  <text x="83" y="72" class="lbl" text-anchor="middle">每日排程</text>
+  <text x="83" y="92" text-anchor="middle" class="mono">20 21 * * *</text>
+
+  <rect class="box" x="182" y="48" width="140" height="60"/>
+  <text x="252" y="72" class="lbl" text-anchor="middle">合約檢查程式</text>
+  <text x="252" y="92" text-anchor="middle" class="mono">rpc-contract-check</text>
+
+  <rect class="box" x="362" y="48" width="118" height="60"/>
+  <text x="421" y="72" class="lbl" text-anchor="middle">讀取現況</text>
+  <text x="421" y="92" text-anchor="middle">5 支 RPC 定義</text>
+
+  <rect class="box" x="520" y="48" width="96" height="60"/>
+  <text x="568" y="72" class="lbl" text-anchor="middle">比對快照</text>
+  <text x="568" y="92" text-anchor="middle">md5 / 欄位</text>
+
+  <line class="wire" x1="142" y1="78" x2="176" y2="78" marker-end="url(#a)"/>
+  <line class="wire" x1="322" y1="78" x2="356" y2="78" marker-end="url(#a)"/>
+  <line class="wire" x1="480" y1="78" x2="514" y2="78" marker-end="url(#a)"/>
+
+  <path class="wire" d="M568,108 L568,170 L432,170" marker-end="url(#a)"/>
+  <path class="wire" d="M568,108 L568,240 L432,240" marker-end="url(#a)"/>
+
+  <rect class="box" x="300" y="150" width="126" height="40"/>
+  <text x="363" y="175" class="lbl" text-anchor="middle">一致 → 結束</text>
+
+  <rect class="box" x="300" y="220" width="126" height="40" fill="hsl(var(--accent))"/>
+  <text x="363" y="245" class="lbl" text-anchor="middle" fill="hsl(var(--accent-foreground))">不一致</text>
+
+  <rect class="box" x="140" y="206" width="128" height="34"/>
+  <text x="204" y="228" text-anchor="middle" class="mono">error_logs</text>
+  <rect class="box" x="140" y="248" width="128" height="34"/>
+  <text x="204" y="270" text-anchor="middle">告警信給收件人</text>
+
+  <line class="wire" x1="300" y1="232" x2="274" y2="223" marker-end="url(#a)"/>
+  <line class="wire" x1="300" y1="248" x2="274" y2="262" marker-end="url(#a)"/>
+  <text x="24" y="270" class="mono">notify_rpc_contract_drift = true</text>
+</svg>
