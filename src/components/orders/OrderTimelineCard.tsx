@@ -461,6 +461,7 @@ export default function OrderTimelineCard({
   const [showAll, setShowAll] = useState(false);
   const [resendingType, setResendingType] = useState<string | null>(null);
   const [cardOpen, setCardOpen] = useState(false);
+  const [lastCancelledEmailAt, setLastCancelledEmailAt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);

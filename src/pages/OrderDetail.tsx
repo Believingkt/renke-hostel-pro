@@ -3816,6 +3816,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           orderNumber={order.order_number}
           orderSource={order.order_source}
           paymentMethod={order.payment_method}
+          orderStatus={order.order_status}
           canManage={isAdminUser || canEditOrders}
         />
       )}
