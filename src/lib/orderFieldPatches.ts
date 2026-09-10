@@ -182,3 +182,99 @@ export function buildAdminPriceEditPatch(input: {
     notes: input.notes,
   };
 }
+
+export function buildDealDateEditPatch(input: { orderDateIso: string }): OrderFieldsPatch {
+  return { order_date: input.orderDateIso };
+}
+
+export function buildImportDiscountCodePatch(input: { discountCode: string }): OrderFieldsPatch {
+  return { discount_code: input.discountCode };
+}
+
+export function buildManualReviewGuestCountPatch(input: { guestCount: number }): OrderFieldsPatch {
+  return { guest_count: input.guestCount };
+}
+
+export function buildManualReviewRepricingPatch(input: { finalPrice: number }): OrderFieldsPatch {
+  return { final_price: input.finalPrice };
+}
+
+export function buildManualReviewNotePatch(input: { notes: string }): OrderFieldsPatch {
+  return { notes: input.notes };
+}
+
+export function buildOrderSourceDialogPatch(input: {
+  orderSource: string;
+  notes: string;
+}): OrderFieldsPatch {
+  const payload: OrderFieldsPatch = {
+    order_source: input.orderSource,
+    notes: input.notes,
+  };
+  if (input.orderSource === "owner_provided") {
+    payload.owner_direct = true;
+  }
+  return payload;
+}
+
+export function buildOrderStatusDialogPatch(input: {
+  selectedStatus: string;
+  currentStatus: string;
+  notes: string;
+  nowIso: string;
+  isHoldOrder: boolean;
+}): OrderFieldsPatch {
+  const updateData: OrderFieldsPatch = {
+    order_status: input.selectedStatus,
+    notes: input.notes,
+  };
+  if (input.selectedStatus === "confirmed" && input.currentStatus !== "confirmed") {
+    updateData.confirmed_at = input.nowIso;
+    if (input.isHoldOrder) updateData.order_date = input.nowIso;
+  } else if (input.selectedStatus === "checked_in") {
+    updateData.checked_in_at = input.nowIso;
+  } else if (input.selectedStatus === "checked_out") {
+    updateData.checked_out_at = input.nowIso;
+  } else if (input.selectedStatus === "cancelled") {
+    updateData.cancelled_at = input.nowIso;
+  }
+  return updateData;
+}
+
+export function buildPaymentStatusDialogPatch(input: {
+  paymentStatus: string;
+  paidAmount: number | null;
+  notes: string;
+}): OrderFieldsPatch {
+  return {
+    payment_status: input.paymentStatus,
+    paid_amount: input.paidAmount,
+    notes: input.notes,
+  };
+}
+
+export function buildPriceEditDialogPatch(input: {
+  totalPrice: number;
+  discountAmount: number;
+  finalPrice: number;
+  depositAmount: number;
+  paidAmount: number;
+  paymentStatus: string;
+  customAddonDetails: unknown[];
+  discountCode: string;
+  mealPlanDetails: unknown[];
+  notes: string | null;
+}): OrderFieldsPatch {
+  return {
+    total_price: input.totalPrice,
+    discount_amount: input.discountAmount,
+    final_price: input.finalPrice,
+    deposit_amount: input.depositAmount,
+    paid_amount: input.paidAmount,
+    payment_status: input.paymentStatus,
+    custom_addon_details: input.customAddonDetails,
+    discount_code: input.discountCode.trim() || null,
+    meal_plan_details: input.mealPlanDetails.length > 0 ? input.mealPlanDetails : null,
+    notes: input.notes,
+  };
+}
