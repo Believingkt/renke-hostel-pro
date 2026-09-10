@@ -78,3 +78,94 @@ export function buildTappayRefundSuccessPatch(input: {
 export function buildTappayRefundFailurePatch(input: { newNotes: string }): OrderPatch {
   return { notes: input.newNotes };
 }
+
+/* ---------- tappayWebhookProcessor（共用 webhook 處理器） ---------- */
+
+export function buildWebhookRefundSuccessPatch(input: {
+  refundedTotal: number;
+  newPaid: number;
+  notes: string;
+}): OrderPatch {
+  return {
+    refunded_amount: input.refundedTotal,
+    paid_amount: input.newPaid,
+    payment_status: "refunded",
+    notes: input.notes,
+  };
+}
+
+export function buildWebhookRefundFailurePatch(input: { notes: string }): OrderPatch {
+  return { notes: input.notes };
+}
+
+export function buildWebhookChargeSuccessPatch(input: {
+  newPaid: number;
+  newStatus: string;
+  roomChargeActive: boolean;
+  roomChargeAtIso: string;
+  recTradeId: string;
+  notes: string;
+}): OrderPatch {
+  const patch: OrderPatch = {
+    paid_amount: input.newPaid,
+    payment_status: input.newStatus,
+  };
+  if (input.roomChargeActive) {
+    patch.room_charge_status = "charged";
+    patch.room_charge_at = input.roomChargeAtIso;
+    patch.room_charge_rec_trade_id = input.recTradeId;
+    patch.room_charge_error = null;
+  }
+  patch.notes = input.notes;
+  return patch;
+}
+
+export function buildWebhookChargeFailurePatch(input: {
+  paymentStatus: string | null;
+  roomChargeActive: boolean;
+  errMsg: string;
+  notes: string;
+}): OrderPatch {
+  const patch: OrderPatch = { payment_status: input.paymentStatus };
+  if (input.roomChargeActive) {
+    patch.room_charge_status = "failed";
+    patch.room_charge_error = input.errMsg;
+  }
+  patch.notes = input.notes;
+  return patch;
+}
+
+/* ---------- cancel-order-with-refund ---------- */
+
+export function buildCancelRefundFailurePatch(input: { recTradeId: string }): OrderPatch {
+  return { refund_status: "failed", refund_rec_trade_id: input.recTradeId };
+}
+
+export function buildCancelOrderPatch(input: {
+  nowIso: string;
+  notes: string;
+  refundAction: string;
+  refundSucceeded: boolean;
+  paidAmount: number;
+  refundAmount: number;
+  recTradeId: string | null;
+}): OrderPatch {
+  const patch: OrderPatch = {
+    order_status: "cancelled",
+    cancelled_at: input.nowIso,
+    notes: input.notes,
+  };
+  if (input.refundAction === "auto_refund" && input.refundSucceeded) {
+    const newPaid = Math.max(0, input.paidAmount - input.refundAmount);
+    patch.paid_amount = newPaid;
+    patch.payment_status = newPaid === 0 ? "refunded" : "partial_refunded";
+    patch.refunded_amount = input.refundAmount;
+    patch.refund_rec_trade_id = input.recTradeId;
+    patch.refunded_at = input.nowIso;
+    patch.refund_status = newPaid === 0 ? "refunded" : "partial_refunded";
+  }
+  if (input.refundAction === "mark_manual_refund" && input.refundAmount > 0) {
+    patch.refund_status = "pending_manual";
+  }
+  return patch;
+}

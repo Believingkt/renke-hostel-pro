@@ -8,6 +8,12 @@ import {
   signatureFromRaw,
 } from "./tappayEventDedupe.ts";
 import { isLatePaymentOnCancelledOrder, recordLatePaymentException } from "./latePayment.ts";
+import {
+  buildWebhookChargeFailurePatch,
+  buildWebhookChargeSuccessPatch,
+  buildWebhookRefundFailurePatch,
+  buildWebhookRefundSuccessPatch,
+} from "./patchBuilders.ts";
 
 
 
@@ -228,7 +234,7 @@ export async function processTapPayEvent(
   // 依事件結果同步訂單狀態
   const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
   const appendNote = (line: string) => `${order.notes ? order.notes + "\n" : ""}🔒 ${stamp} ${line}`;
-  const orderPatch: Json = {};
+  let orderPatch: Json = {};
   // Q3-B：無實質變化的重送／亂序舊事件 → 不改 orders（連帶不觸發 OwlTing / Hotelnabe）、不寫 notes、不推播
   let noOp = false;
 
@@ -246,13 +252,16 @@ export async function processTapPayEvent(
       if (isStaleRefund(Number(order.refunded_amount || 0), delta)) {
         noOp = true;
       } else {
-        orderPatch.refunded_amount = newRefundedTotal;
-        orderPatch.paid_amount = newPaid;
-        orderPatch.payment_status = "refunded";
-        orderPatch.notes = appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`);
+        orderPatch = buildWebhookRefundSuccessPatch({
+          refundedTotal: newRefundedTotal,
+          newPaid,
+          notes: appendNote(`TapPay 退款成功 NT$${refunded.toLocaleString()}（交易 ${recTradeId}）`),
+        });
       }
     } else {
-      orderPatch.notes = appendNote(`TapPay 退款失敗（${errMsg}），需人工處理（交易 ${recTradeId}）`);
+      orderPatch = buildWebhookRefundFailurePatch({
+        notes: appendNote(`TapPay 退款失敗（${errMsg}），需人工處理（交易 ${recTradeId}）`),
+      });
     }
 
   } else {
@@ -273,23 +282,22 @@ export async function processTapPayEvent(
       ) {
         noOp = true;
       } else {
-        orderPatch.paid_amount = newPaid;
-        orderPatch.payment_status = newStatus;
-        if (order.room_charge_status && order.room_charge_status !== "cancelled") {
-          orderPatch.room_charge_status = "charged";
-          orderPatch.room_charge_at = new Date().toISOString();
-          orderPatch.room_charge_rec_trade_id = recTradeId;
-          orderPatch.room_charge_error = null;
-        }
-        orderPatch.notes = appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`);
+        orderPatch = buildWebhookChargeSuccessPatch({
+          newPaid,
+          newStatus,
+          roomChargeActive: !!order.room_charge_status && order.room_charge_status !== "cancelled",
+          roomChargeAtIso: new Date().toISOString(),
+          recTradeId,
+          notes: appendNote(`TapPay 扣款成功 NT$${charged.toLocaleString()}（交易 ${recTradeId}）`),
+        });
       }
     } else {
-      orderPatch.payment_status = Number(order.paid_amount || 0) > 0 ? order.payment_status : "unpaid";
-      if (order.room_charge_status && order.room_charge_status !== "cancelled") {
-        orderPatch.room_charge_status = "failed";
-        orderPatch.room_charge_error = errMsg;
-      }
-      orderPatch.notes = appendNote(`TapPay 扣款失敗（${errMsg}），已回滾付款狀態，需人工處理`);
+      orderPatch = buildWebhookChargeFailurePatch({
+        paymentStatus: Number(order.paid_amount || 0) > 0 ? (order.payment_status ?? null) : "unpaid",
+        roomChargeActive: !!order.room_charge_status && order.room_charge_status !== "cancelled",
+        errMsg,
+        notes: appendNote(`TapPay 扣款失敗（${errMsg}），已回滾付款狀態，需人工處理`),
+      });
     }
   }
 
