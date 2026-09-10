@@ -144,10 +144,10 @@ export function sitemap(opts: { url: string; key: string; outDir?: string }): Pl
         console.warn(`[sitemap] 略過：${skip}（沿用 public/sitemap.xml）`);
         return;
       }
-       const sitemapXml = buildSitemap(rows);
-       writeFileSync(resolve(outDir, "sitemap.xml"), sitemapXml);
-       const entryCount = (sitemapXml.match(/<url>/g) || []).length;
-       console.log(`[sitemap] 已產生 ${entryCount} 筆網址`);
+      const sitemapXml = buildSitemap(rows);
+      writeFileSync(resolve(outDir, "sitemap.xml"), sitemapXml);
+      const entryCount = (sitemapXml.match(/<url>/g) || []).length;
+      console.log(`[sitemap] 已產生 ${entryCount} 筆網址`);
     },
   };
 }
