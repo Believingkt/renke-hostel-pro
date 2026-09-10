@@ -7,6 +7,12 @@ import {
   buildTappayNotifyFailurePatch,
   buildTappayRefundSuccessPatch,
   buildTappayRefundFailurePatch,
+  buildWebhookRefundSuccessPatch,
+  buildWebhookRefundFailurePatch,
+  buildWebhookChargeSuccessPatch,
+  buildWebhookChargeFailurePatch,
+  buildCancelRefundFailurePatch,
+  buildCancelOrderPatch,
 } from "../../supabase/functions/_shared/patchBuilders";
 
 const CONTEXT_FIELDS = new Set(snapshot.functions.update_order_with_context.fields);
@@ -54,6 +60,46 @@ const cases: Array<{ name: string; patch: Record<string, unknown> }> = [
     }),
   },
   { name: "tappay-refund-notify 退款失敗", patch: buildTappayRefundFailurePatch({ newNotes: "note" }) },
+  {
+    name: "webhook 退款成功",
+    patch: buildWebhookRefundSuccessPatch({ refundedTotal: 5000, newPaid: 0, notes: "n" }),
+  },
+  { name: "webhook 退款失敗", patch: buildWebhookRefundFailurePatch({ notes: "n" }) },
+  {
+    name: "webhook 扣款成功（含入住扣款）",
+    patch: buildWebhookChargeSuccessPatch({
+      newPaid: 12000, newStatus: "paid", roomChargeActive: true,
+      roomChargeAtIso: "x", recTradeId: "R1", notes: "n",
+    }),
+  },
+  {
+    name: "webhook 扣款失敗（含入住扣款）",
+    patch: buildWebhookChargeFailurePatch({
+      paymentStatus: "unpaid", roomChargeActive: true, errMsg: "E", notes: "n",
+    }),
+  },
+  { name: "取消退刷失敗", patch: buildCancelRefundFailurePatch({ recTradeId: "R1" }) },
+  {
+    name: "取消訂單（自動退刷全額）",
+    patch: buildCancelOrderPatch({
+      nowIso: "x", notes: "n", refundAction: "auto_refund", refundSucceeded: true,
+      paidAmount: 8000, refundAmount: 8000, recTradeId: "R1",
+    }),
+  },
+  {
+    name: "取消訂單（手動退款）",
+    patch: buildCancelOrderPatch({
+      nowIso: "x", notes: "n", refundAction: "mark_manual_refund", refundSucceeded: false,
+      paidAmount: 8000, refundAmount: 8000, recTradeId: null,
+    }),
+  },
+  {
+    name: "取消訂單（不退款）",
+    patch: buildCancelOrderPatch({
+      nowIso: "x", notes: "n", refundAction: "no_refund", refundSucceeded: false,
+      paidAmount: 0, refundAmount: 0, recTradeId: null,
+    }),
+  },
 ];
 
 describe("update_order_with_context 呼叫端欄位契約", () => {
