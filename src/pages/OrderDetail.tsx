@@ -66,6 +66,12 @@ import { canShowPaidDiscountEntry } from "@/lib/paidDiscountEdit";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@/lib/atmPayment";
 import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
+  buildAdminCancelPatch,
+  buildAdminPriceEditPatch,
+  buildCheckinActionPatch,
+  buildInlineEditPatch,
+} from "@/lib/orderFieldPatches";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
