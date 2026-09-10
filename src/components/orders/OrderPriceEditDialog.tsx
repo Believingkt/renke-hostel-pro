@@ -16,8 +16,8 @@ import { Order } from "@/types/order";
 import { Minus, Plus, Lock } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useStaffPermissions } from "@/hooks/use-staff-permissions";
-import {
 import { buildPriceEditDialogPatch } from "@/lib/orderFieldPatches";
+import {
   canEditPaidDiscount,
   buildPaidDiscountChanges,
   PAID_DISCOUNT_SOURCE,
