@@ -286,7 +286,15 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
               const applicable: string[] = Array.isArray(p.applicable_tiers) ? p.applicable_tiers : [];
               if (!applicable.includes(tier)) continue;
               const excluded = Array.isArray(p.excluded_date_ranges) ? p.excluded_date_ranges : [];
-              if (isPackageExcludedOnDate({ excluded_date_ranges: excluded }, earliestDateObj)) continue;
+              // 逐夜檢查（此處為以最早可訂日起算的一晚）
+              const nightAfterEarliest = new Date(y, m - 1, d + 1);
+              if (
+                isPackageExcludedInRange(
+                  { excluded_date_ranges: excluded },
+                  earliestDateObj,
+                  nightAfterEarliest,
+                )
+              ) continue;
               const { sale } = getPackagePriceForTier(
                 {
                   tier_prices:
