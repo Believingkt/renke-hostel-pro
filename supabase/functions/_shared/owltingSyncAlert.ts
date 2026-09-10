@@ -68,7 +68,10 @@ export async function reportOwltingSyncFailure(
 
     const html = `
     <div style="font-family:-apple-system,sans-serif;max-width:640px;margin:0 auto;padding:24px;">
-      <h2 style="color:#dc2626;margin:0 0 12px;">🚨 OTA 同步部分失敗</h2>
+      <div style="display:inline-block;background:#fef3c7;color:#92400e;font-size:13px;font-weight:700;padding:6px 10px;border-radius:4px;margin-bottom:16px;">🟡 中急迫</div>
+      <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">有 ${payload.failed.length} 筆訂單同步到訂房網站失敗，外部通路上可能還顯示舊資料</h2>
+      <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請查看失敗清單，確認是否需要手動重新同步</p>
+      <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
       <p style="color:#374151;margin:0 0 8px;">${payload.summary}</p>
       <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
         來源：${payload.functionName}／${payload.category}${payload.successCount != null ? `　成功 ${payload.successCount} 筆` : ""}　失敗 ${payload.failed.length} 筆
@@ -88,7 +91,7 @@ export async function reportOwltingSyncFailure(
       body: JSON.stringify({
         from: "人客多系統告警 <noreply@lakeze.com>",
         to: emails,
-        subject: `🚨 [Lakeze] OTA 同步失敗 ${payload.failed.length} 筆（${payload.category}）`,
+        subject: `🟡 [Lakeze] OTA 有 ${payload.failed.length} 筆訂單同步失敗（${payload.category}）`,
         html,
       }),
     });
