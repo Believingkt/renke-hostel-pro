@@ -153,32 +153,35 @@ BEGIN
      ORDER BY s.ord
      LIMIT 1;
 
-    IF v_seg IS NULL THEN
-      RETURN NULL;                        -- TS: { enabled:false, price:null } → unresolved
+    IF v_seg IS NOT NULL THEN
+      SELECT r.value INTO v_seg_ov
+        FROM jsonb_array_elements(COALESCE(v_seg -> 'room_overrides', '[]'::jsonb)) r
+       WHERE r.value ->> 'room_type_id' = p_room_type_id::text
+       LIMIT 1;
+
+      v_enabled := COALESCE((v_seg ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      IF v_seg_ov IS NOT NULL AND (v_seg_ov ? v_en_key) THEN
+        v_enabled := COALESCE((v_seg_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
+      END IF;
+
+      v_price := COALESCE(
+        NULLIF(v_seg_ov ->> v_price_key, '')::NUMERIC,
+        NULLIF(v_seg    ->> v_price_key, '')::NUMERIC
+      );
+
+      -- 刻意與 (d) 不同：TS segments 分支把 <=0 視為「沒有有效價」(price <= 0 → unresolved)，
+      -- (d) legacy 分支則讓明確設定的 0 元通過。此差異是如實對應
+      -- src/utils/templatePriceResolverPure.ts 既有行為，改動任一邊都會破壞 parity。
+      IF v_enabled AND v_price IS NOT NULL AND v_price > 0 THEN
+        RETURN v_price::INT;
+      END IF;
     END IF;
+    -- 命中不到 segment、或該 segment 無有效價 → 不 RETURN，往下走 (e) base row，
+    -- 與 TS 的 stillUnresolved → base row fallback 完全一致。
 
-    SELECT r.value INTO v_seg_ov
-      FROM jsonb_array_elements(COALESCE(v_seg -> 'room_overrides', '[]'::jsonb)) r
-     WHERE r.value ->> 'room_type_id' = p_room_type_id::text
-     LIMIT 1;
-
-    v_enabled := COALESCE((v_seg ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
-    IF v_seg_ov IS NOT NULL AND (v_seg_ov ? v_en_key) THEN
-      v_enabled := COALESCE((v_seg_ov ->> v_en_key)::BOOLEAN, TRUE) IS NOT FALSE;
-    END IF;
-
-    v_price := COALESCE(
-      NULLIF(v_seg_ov ->> v_price_key, '')::NUMERIC,
-      NULLIF(v_seg    ->> v_price_key, '')::NUMERIC
-    );
-
-    IF NOT v_enabled OR v_price IS NULL OR v_price <= 0 THEN
-      RETURN NULL;                        -- TS segments 分支：不可售或 <=0 → unresolved
-    END IF;
-    RETURN v_price::INT;
-  END IF;
-
+  ELSE
   -- (d) legacy（無 segments）：room_overrides > 範本頂層 tier 價 > price
+  --     注意：此分支的 COALESCE 會讓明確設定的 0 元成為有效價（與 (c) 不同，見上方註解）。
   SELECT r.value INTO v_ov
     FROM jsonb_array_elements(COALESCE(v_tpl.room_overrides, '[]'::jsonb)) r
    WHERE r.value ->> 'room_type_id' = p_room_type_id::text
