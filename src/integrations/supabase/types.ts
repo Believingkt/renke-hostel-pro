@@ -1866,6 +1866,7 @@ export type Database = {
           notify_order_rooms_failure: boolean
           notify_owlting_sync_failure: boolean
           notify_payment_webhook: boolean
+          notify_rpc_contract_drift: boolean
         }
         Insert: {
           created_at?: string
@@ -1878,6 +1879,7 @@ export type Database = {
           notify_order_rooms_failure?: boolean
           notify_owlting_sync_failure?: boolean
           notify_payment_webhook?: boolean
+          notify_rpc_contract_drift?: boolean
         }
         Update: {
           created_at?: string
@@ -1890,6 +1892,7 @@ export type Database = {
           notify_order_rooms_failure?: boolean
           notify_owlting_sync_failure?: boolean
           notify_payment_webhook?: boolean
+          notify_rpc_contract_drift?: boolean
         }
         Relationships: []
       }
@@ -13995,6 +13998,15 @@ export type Database = {
               min_order_amount: number
             }[]
           }
+      get_rpc_contract: {
+        Args: { p_names: string[] }
+        Returns: {
+          fn_name: string
+          src_def: string
+          src_len: number
+          src_md5: string
+        }[]
+      }
       get_sales_service_analytics: {
         Args: { p_accommodation_id: string; p_end: string; p_start: string }
         Returns: Json
