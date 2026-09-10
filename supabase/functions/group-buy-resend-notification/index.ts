@@ -107,9 +107,31 @@ Deno.serve(async (req) => {
 
       const entry: any = { orderNumber: order.order_number, guest: null, venue: null };
 
+      const requestedTemplate = String((body as any).guestTemplate ?? "auto");
+
+      // 取消通知補寄：僅限已取消的訂單，避免對進行中訂單誤寄
+      if (requestedTemplate === "order_cancelled" && order.order_status !== "cancelled") {
+        results.push({ orderNumber: order.order_number, skipped: "not_cancelled" });
+        continue;
+      }
+
+      // 已補寄過的取消信時間（僅供前端提示，不阻擋再次補寄）
+      if (requestedTemplate === "order_cancelled") {
+        const { data: prevSent } = await admin
+          .from("group_buy_payment_events")
+          .select("created_at")
+          .eq("order_id", order.id)
+          .eq("event_type", "email_sent")
+          .ilike("note", "%guest_order_cancelled%")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        entry.lastCancelledEmailAt = prevSent?.created_at ?? null;
+      }
+
       // 旅客信：可由後台指定模板；未指定（auto）時沿用原本依付款狀態判斷的行為
       if (targets.has("guest")) {
-        const requested = String((body as any).guestTemplate ?? "auto");
+        const requested = requestedTemplate;
         const useFull = requested === "full_payment" || (requested === "auto" && isPaid && fullPayment);
         const usePaid = requested === "deposit_received" || useFull ||
           (requested === "auto" && isPaid);
