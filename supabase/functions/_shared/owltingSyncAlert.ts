@@ -72,7 +72,6 @@ export async function reportOwltingSyncFailure(
       <h2 style="color:#111827;margin:0 0 12px;font-size:22px;">有 ${payload.failed.length} 筆訂單同步到訂房網站失敗，外部通路上可能還顯示舊資料</h2>
       <p style="color:#374151;margin:0 0 20px;line-height:1.7;"><strong>建議動作：</strong>請查看失敗清單，確認是否需要手動重新同步</p>
       <div style="border-top:1px solid #d1d5db;margin:0 0 16px;padding-top:16px;color:#6b7280;font-size:13px;font-weight:700;">技術細節</div>
-      <p style="color:#374151;margin:0 0 8px;">${payload.summary}</p>
       <p style="color:#6b7280;font-size:13px;margin:0 0 16px;">
         來源：${payload.functionName}／${payload.category}${payload.successCount != null ? `　成功 ${payload.successCount} 筆` : ""}　失敗 ${payload.failed.length} 筆
       </p>
