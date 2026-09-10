@@ -17,6 +17,57 @@ COMMENT ON COLUMN public.orders.pricing_template_id IS
 
 
 -- ---------------------------------------------------------------------
+-- (1b) v5.7：日型判斷唯一真實來源（共用給 guard 與 resolve_template_night_price）
+--      回傳 'weekday' | 'peak' | 'weekend'；語意 1:1 對應前端 classifyDayTier()。
+--      方案分支需要的 'friday_sunday' 由呼叫端把 'peak' 映射過去（僅 JSON key 名不同）。
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.classify_day_tier(
+  p_date date,
+  p_accommodation_id uuid
+)
+RETURNS text
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_dow INT := EXTRACT(DOW FROM p_date)::INT;
+  v_is_holiday BOOLEAN;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM public.public_holidays
+     WHERE accommodation_id = p_accommodation_id
+       AND holiday_date = p_date
+       AND holiday_type IN ('holiday', 'compensatory_day_off')
+  ) INTO v_is_holiday;
+
+  IF v_is_holiday OR v_dow = 6 THEN RETURN 'weekend';
+  ELSIF v_dow = 5 OR v_dow = 0 THEN RETURN 'peak';
+  ELSE RETURN 'weekday';
+  END IF;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.classify_day_tier(date, uuid) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.classify_day_tier(date, uuid) TO service_role;
+
+DO $check$
+DECLARE v_acl TEXT;
+BEGIN
+  SELECT COALESCE(array_to_string(proacl, ','), '(default)') INTO v_acl
+    FROM pg_proc WHERE proname = 'classify_day_tier';
+  IF v_acl = '(default)'
+     OR v_acl ILIKE '%anon=%' OR v_acl ILIKE '%authenticated=%' OR v_acl LIKE '%=X/%' THEN
+    RAISE EXCEPTION 'ACL postcheck failed (classify_day_tier): %', v_acl;
+  END IF;
+END
+$check$;
+
+
+-- ---------------------------------------------------------------------
 -- (2) resolve_template_night_price()：單晚專案房價（全文）
 --     語意 1:1 對應前端 src/utils/templatePriceResolverPure.ts
 --     + src/utils/pricingTemplateHelpers.ts（getTierForDate / isTierSellable /
