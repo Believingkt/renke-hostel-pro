@@ -3,6 +3,10 @@ import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts
 import { notifyGroupBuyPaymentReceived } from "../_shared/groupBuyPaymentNotify.ts";
 import { completeGroupBuyCreditOrder } from "../_shared/groupBuyCreditCompletion.ts";
 import { isLatePaymentOnCancelledOrder, recordLatePaymentException } from "../_shared/latePayment.ts";
+import {
+  buildTappayNotifyFailurePatch,
+  buildTappayNotifySuccessPatch,
+} from "../_shared/patchBuilders.ts";
 
 
 // CORS headers for webhook (TapPay backend calls)
@@ -406,24 +410,14 @@ Deno.serve(async (req) => {
           ? `${order.notes}\n${transactionNote}`
           : transactionNote;
 
-        const updatePayload: Record<string, unknown> = {
-          payment_status: newPaymentStatus,
-          paid_amount: newPaidAmount,
-          payment_method: isAtm ? 'atm' : 'credit_card_3ds',
-          balance_payment_method: newPaymentStatus === 'paid'
-            ? (isAtm ? 'ATM 虛擬帳號轉帳' : '信用卡(3D驗證)')
-            : null,
-          notes: newNotes,
-        };
-
-        // 收到訂金／全額後，待確認訂單自動轉為已確認
-        if (
-          (newPaymentStatus === 'paid' || newPaymentStatus === 'deposit_paid' || newPaymentStatus === 'partial') &&
-          (order.order_status === 'pending' || order.order_status === 'pending_payment')
-        ) {
-          updatePayload.order_status = 'confirmed';
-          updatePayload.confirmed_at = new Date().toISOString();
-        }
+        const updatePayload = buildTappayNotifySuccessPatch({
+          newPaymentStatus,
+          newPaidAmount,
+          isAtm,
+          newNotes,
+          currentOrderStatus: order.order_status,
+          confirmedAtIso: new Date().toISOString(),
+        });
 
         const { error: updateError } = await supabase.rpc('update_order_with_context', {
           p_order_id: order.id,
@@ -584,7 +578,7 @@ Deno.serve(async (req) => {
 
         await supabase.rpc('update_order_with_context', {
           p_order_id: order.id,
-          p_patch: { notes: newNotes },
+          p_patch: buildTappayNotifyFailurePatch({ newNotes }),
           p_source: 'tappay_3ds_webhook',
           p_reason: `付款失敗（verified_status: ${verifiedStatus}）`,
           p_actor_label: 'TapPay',

@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildTappayRefundFailurePatch,
+  buildTappayRefundSuccessPatch,
+} from "../_shared/patchBuilders.ts";
 
 // CORS headers for webhook (TapPay backend calls)
 const corsHeaders = {
@@ -205,11 +209,7 @@ Deno.serve(async (req) => {
 
       const { error: updateError } = await supabase.rpc('update_order_with_context', {
         p_order_id: order.id,
-        p_patch: {
-          payment_status: newPaymentStatus,
-          paid_amount: newPaidAmount,
-          notes: newNotes,
-        },
+        p_patch: buildTappayRefundSuccessPatch({ newPaymentStatus, newPaidAmount, newNotes }),
         p_source: 'tappay_refund_webhook',
         p_reason: `退款成功 NT$${refundAmount}（rec_trade_id: ${rec_trade_id}）`,
         p_actor_label: 'TapPay',
@@ -268,7 +268,7 @@ Deno.serve(async (req) => {
 
       await supabase.rpc('update_order_with_context', {
         p_order_id: order.id,
-        p_patch: { notes: newNotes },
+        p_patch: buildTappayRefundFailurePatch({ newNotes }),
         p_source: 'tappay_refund_webhook',
         p_reason: `退款失敗（${msg || '未知'}）`,
         p_actor_label: 'TapPay',
