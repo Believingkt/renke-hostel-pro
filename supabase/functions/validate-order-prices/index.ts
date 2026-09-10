@@ -41,6 +41,8 @@ interface OrderValidationRequest {
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
+  /** 命中方案「不適用日期區間」的日期（YYYY-MM-DD），供前台顯示具體訊息用 */
+  excludedDates?: string[];
   calculatedPrices: {
     totalPrice: number;
     discountAmount: number;
