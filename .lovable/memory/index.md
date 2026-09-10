@@ -3,7 +3,7 @@
 - [Package Date Price](mem://features/admin/package-date-price.md) — 方案單日價格覆寫優先序（覆寫→tier→預設）、/admin/package-price-calendar 批次改價。
 - [PMS 後台網域入口](mem://features/platform/pms-domain-entry.md) — pms.lakeze.com 模式判斷、/login 三欄登入、舊網域搬家轉址、重設密碼 redirect。
 - [Hold Order Detection](mem://features/admin/hold-order-detection.md) — 保留單一律以 order_status = 'hold' 判斷；禁用 guest_name = '保留單'。
-- [Marketing Analytics Tab](mem://features/admin/marketing-analytics.md) — 行銷數據分析頁籤：歸因口徑、Meta 每日同步排程、UTM 規範、預算建議規則。
+- [Marketing Analytics Tab](mem://features/admin/marketing-analytics.md) — 行銷數據分析頁籤：歸因口徑、Meta 每日同步排程、UTM 規規範、預算建議規則。
 - [Group Buy Self Cancel](mem://features/platform/group-buy-self-cancel.md) — 團購自助取消三路分流；退款依政策級距，ATM 已收款仍走人工。
 - [Group Buy Module](mem://features/platform/group-buy-module.md) — 網紅團購頁路由、匯款對帳、72h 逾期取消、分潤與既有團隊獎金隔離。
 - [全區／全棟綁定](mem://features/admin/block-all-inventory-binding.md) — blocks_all_inventory 主控房型與範圍房型雙向整天鎖定，主控之間不互鎖。
@@ -26,3 +26,5 @@
 - [AI Config Write Scope](mem://security/ai-config-write-super-admin-only.md) — AI 六張表寫入僅 super_admin；館別／staff 政策已移除，不可重建；portal-ai-chat 讀取只取全域列。
 - [施工前必須等待明確核准](mem://preferences/approval-before-execution.md) — 使用者說「不用施工／我看過再核准」時，設計再完整也不可自行執行或上線。
 - [SECURITY DEFINER 建立即收權](mem://security/security-definer-revoke-same-migration.md) — 新函式 CREATE 與 REVOKE PUBLIC 必須同一 migration/交易；postcheck 必驗 anon/authenticated/PUBLIC 無執行權。
+- [HotelNabe 靜默丟棄欄位升級為可觀測告警](mem://technical/deferred-hotelnabe-alert-upgrade.md) — 2026-09-10 暫不處理；評估是否改為 error_logs / 技術告警信。
+- [ORDER_CONTEXT_UPDATABLE_FIELDS 與 RPC 白名單對齊](mem://technical/deferred-order-context-fields-alignment.md) — 2026-09-10 暫不處理；本地常數應與 update_order_with_context RPC 白名單一致。
