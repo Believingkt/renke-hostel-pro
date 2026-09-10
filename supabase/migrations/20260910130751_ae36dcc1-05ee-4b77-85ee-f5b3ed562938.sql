@@ -1,11 +1,8 @@
--- update_order_fields_v1：新增「已取消」防護（團購／信用卡訂單必須走專屬取消流程）
--- 僅在既有函式本體最前面新增判斷，白名單欄位、SECURITY INVOKER 模式與 ACL 皆不變。
-
 CREATE OR REPLACE FUNCTION public.update_order_fields_v1(
   p_order_id uuid,
   p_patch jsonb,
   p_source text,
-  p_reason text
+  p_reason text DEFAULT NULL::text
 )
 RETURNS integer
 LANGUAGE plpgsql
