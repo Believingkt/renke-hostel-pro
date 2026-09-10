@@ -1,9 +1,24 @@
-# Step 3 方案 B：訂單歷程統一時間線（實作＋實測，未部署）
+# RPC 白名單自動比對（做法 B）
 
-- [x] 新元件 src/components/orders/OrderTimelineCard.tsx（四來源合併＋篩選＋重送按鈕搬移）
-- [x] 以 YC6U86W2 / NJ3U85G6 / CE2V95Y5 真實資料 fixture 跑元件，輸出實際 items 與筆數
-- [x] 四種情境重送按鈕快照實測（一般 canManage / 非 canManage / 團購信用卡 / 團購匯款）
-- [x] stub supabase.functions.invoke，實際捕捉三顆按鈕的 functionName 與 body
-- [ ] 不部署、不 Publish、不改 OrderDetail 掛載點，等使用者確認
+## 階段 0（已核准，待告警類別決定後開工）
+- [ ] 白名單快照腳本（pg_get_functiondef → src/test/__snapshots__/rpc-whitelists.json）
+- [ ] 比對測試骨架（純函式 keys ↔ 白名單）
+- [ ] charge-deposit 示範抽取（A 型）
 
-備註：真實寄送測試暫不進行，測試全綠後再評估是否詢問。
+## 階段 1（已核准，B 型需先附 rollback 實測再核准施工）
+- [ ] update_order_fields_v1 全部 8 個前端呼叫點
+- [ ] tappay-notify
+- [ ] tappay-refund-notify
+- [ ] tappayWebhookProcessor（B 型，需 BEGIN…ROLLBACK 欄位集合比對）
+- [ ] cancel-order-with-refund（B 型，需 BEGIN…ROLLBACK 欄位集合比對）
+
+## 待使用者決定（阻擋每日排程告警）
+- [ ] 白名單漂移告警要沿用 notify_health_check，還是新增 notify_rpc_contract_drift（新增則同步補 HQ 系統健康監控頁開關）
+
+## 之後再提
+- [ ] 階段 2（OTA）、階段 3（低頻呼叫端）
+
+---
+
+# Step 3 方案 B：訂單歷程統一時間線（已完成）
+- [x] OrderTimelineCard 元件與實測、掛載
