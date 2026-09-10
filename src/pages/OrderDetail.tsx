@@ -1404,7 +1404,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     try {
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
-        p_patch: buildAdminCancelPatch({ cancelledAtIso: new Date().toISOString() }),
+        p_patch: buildAdminCancelPatch({ cancelledAtIso: new Date().toISOString() }) as any,
         p_source: "admin_order_cancel",
         p_reason: null,
       });
@@ -1423,14 +1423,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const handleCheckinAction = async (action: "checkin" | "undo_checkin" | "checkout" | "undo_checkout") => {
     if (!order) return;
     try {
-      const patch: Record<string, string | null> = {};
-      if (action === "checkin") patch.checked_in_at = new Date().toISOString();
-      if (action === "undo_checkin") patch.checked_in_at = null;
-      if (action === "checkout") {
-        patch.checked_out_at = new Date().toISOString();
-        if (!order.checked_in_at) patch.checked_in_at = new Date().toISOString();
-      }
-      if (action === "undo_checkout") patch.checked_out_at = null;
+      const patch = buildCheckinActionPatch({
+        action,
+        nowIso: new Date().toISOString(),
+        hasCheckedInAt: !!order.checked_in_at,
+      });
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
         p_patch: patch as any,
