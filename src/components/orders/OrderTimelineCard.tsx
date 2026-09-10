@@ -537,7 +537,7 @@ export default function OrderTimelineCard({
 
   const resendGroupBuy = async (
     target: "guest" | "venue",
-    guestTemplate: "auto" | "booking_pending" | "deposit_received" | "full_payment" = "auto",
+    guestTemplate: "auto" | "booking_pending" | "deposit_received" | "full_payment" | "order_cancelled" = "auto",
     key = `gb_${target}`,
   ) => {
     setResendingType(key);
