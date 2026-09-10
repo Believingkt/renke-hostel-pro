@@ -1,0 +1,49 @@
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: var(--font-sans); fill: hsl(var(--foreground)); }
+    .s { font-size: 12px; fill: hsl(var(--muted-foreground)); }
+    .m { font-size: 12px; font-family: var(--font-mono); fill: hsl(var(--muted-foreground)); }
+    .b { font-size: 14px; font-weight: 480; }
+    rect.box { fill: none; stroke: hsl(var(--muted-foreground)); stroke-width: 1; rx: 8; }
+    rect.zone { fill: none; stroke: hsl(var(--border)); stroke-width: 1; stroke-dasharray: 4 3; rx: 8; }
+    line, path { stroke: hsl(var(--muted-foreground)); stroke-width: 1; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L8,4 L0,8" stroke="hsl(var(--muted-foreground))" fill="none"/>
+    </marker>
+  </defs>
+
+  <rect class="zone" x="8" y="8" width="300" height="150"/>
+  <text class="s" x="18" y="26">現在</text>
+  <rect class="box" x="26" y="40" width="120" height="46"/>
+  <text class="b" x="86" y="62" text-anchor="middle">呼叫端</text>
+  <text class="s" x="86" y="78" text-anchor="middle">await + patch 字面值</text>
+  <line x1="146" y1="63" x2="196" y2="63" marker-end="url(#a)"/>
+  <rect class="box" x="196" y="40" width="96" height="46"/>
+  <text class="b" x="244" y="68" text-anchor="middle">RPC</text>
+  <text class="s" x="26" y="122">白名單不符 → 只有真的跑到那條路徑時才會炸</text>
+
+  <rect class="zone" x="332" y="8" width="300" height="284"/>
+  <text class="s" x="342" y="26">做法 B</text>
+  <rect class="box" x="350" y="40" width="120" height="46"/>
+  <text class="b" x="410" y="62" text-anchor="middle">呼叫端</text>
+  <text class="s" x="410" y="78" text-anchor="middle">await 邏輯不動</text>
+  <line x1="410" y1="86" x2="410" y2="116" marker-end="url(#a)"/>
+  <rect class="box" x="350" y="116" width="120" height="46" fill="hsl(var(--muted))"/>
+  <text class="b" x="410" y="138" text-anchor="middle">buildXxxPatch()</text>
+  <text class="s" x="410" y="154" text-anchor="middle">純函式，回傳物件</text>
+  <line x1="470" y1="139" x2="520" y2="139" marker-end="url(#a)"/>
+  <rect class="box" x="520" y="116" width="96" height="46"/>
+  <text class="b" x="568" y="144" text-anchor="middle">RPC</text>
+
+  <line x1="410" y1="162" x2="410" y2="196" marker-end="url(#a)"/>
+  <rect class="box" x="350" y="196" width="120" height="46" stroke="hsl(var(--accent))"/>
+  <text class="b" x="410" y="218" text-anchor="middle" fill="hsl(var(--accent))">測試</text>
+  <text class="s" x="410" y="234" text-anchor="middle">取 keys 比對白名單</text>
+  <line x1="470" y1="219" x2="560" y2="219" x2="560" marker-end="url(#a)"/>
+  <rect class="box" x="500" y="196" width="116" height="46"/>
+  <text class="b" x="558" y="214" text-anchor="middle">白名單快照</text>
+  <text class="m" x="558" y="232" text-anchor="middle">pg_get_functiondef</text>
+  <text class="s" x="350" y="268">無人工清單：兩邊都自動取得</text>
+</svg>
