@@ -1,0 +1,55 @@
+<svg viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: var(--font-sans); fill: hsl(var(--foreground)); }
+    .s { font-size: 12px; fill: hsl(var(--muted-foreground)); }
+    .b { font-size: 14px; font-weight: 480; }
+    rect { fill: none; stroke: hsl(var(--muted-foreground)); stroke-width: 1; }
+    .zone { stroke: hsl(var(--border)); stroke-dasharray: 4 3; }
+    line, path { stroke: hsl(var(--muted-foreground)); stroke-width: 1; fill: none; }
+  </style>
+  <defs>
+    <marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 L8 4 L0 8" stroke="hsl(var(--muted-foreground))" fill="none"/>
+    </marker>
+  </defs>
+
+  <rect class="zone" x="8" y="8" width="624" height="110" rx="8"/>
+  <text class="s" x="20" y="26">補寄（新增，只讀＋寄信）</text>
+
+  <rect x="24" y="40" width="130" height="52" rx="8"/>
+  <text class="b" x="89" y="62" text-anchor="middle">補寄對話框</text>
+  <text class="s" x="89" y="80" text-anchor="middle">選「訂單已取消」</text>
+
+  <rect x="196" y="40" width="150" height="52" rx="8"/>
+  <text class="b" x="271" y="62" text-anchor="middle">狀態檢查</text>
+  <text class="s" x="271" y="80" text-anchor="middle">cancelled 才放行</text>
+
+  <rect x="388" y="40" width="110" height="52" rx="8"/>
+  <text class="b" x="443" y="62" text-anchor="middle">組信件內容</text>
+  <text class="s" x="443" y="80" text-anchor="middle">純函式</text>
+
+  <rect x="530" y="40" width="86" height="52" rx="8" stroke="hsl(var(--accent))"/>
+  <text class="b" x="573" y="62" text-anchor="middle" fill="hsl(var(--accent-foreground))">寄出</text>
+  <text class="s" x="573" y="80" text-anchor="middle">＋稽核事件</text>
+
+  <line x1="154" y1="66" x2="192" y2="66" marker-end="url(#a)"/>
+  <line x1="346" y1="66" x2="384" y2="66" marker-end="url(#a)"/>
+  <line x1="498" y1="66" x2="526" y2="66" marker-end="url(#a)"/>
+
+  <rect class="zone" x="8" y="134" width="624" height="112" rx="8"/>
+  <text class="s" x="20" y="152">完全不觸碰（既有取消流程的副作用）</text>
+
+  <rect x="24" y="166" width="130" height="60" rx="8" stroke-dasharray="4 3"/>
+  <text class="s" x="89" y="192" text-anchor="middle">訂單狀態</text>
+  <text class="s" x="89" y="210" text-anchor="middle">與備註</text>
+
+  <rect x="196" y="166" width="150" height="60" rx="8" stroke-dasharray="4 3"/>
+  <text class="s" x="271" y="192" text-anchor="middle">退款金額</text>
+  <text class="s" x="271" y="210" text-anchor="middle">與退刷</text>
+
+  <rect x="388" y="166" width="110" height="60" rx="8" stroke-dasharray="4 3"/>
+  <text class="s" x="443" y="192" text-anchor="middle">佣金註銷</text>
+
+  <rect x="530" y="166" width="86" height="60" rx="8" stroke-dasharray="4 3"/>
+  <text class="s" x="573" y="192" text-anchor="middle">通路同步</text>
+</svg>
