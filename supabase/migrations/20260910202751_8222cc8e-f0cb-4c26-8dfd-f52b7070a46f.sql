@@ -1,0 +1,4 @@
+DELETE FROM public.notifications WHERE order_id IN ('c9e7d935-fdce-49b0-b746-f3ef7bfa68d5','1e581ffb-8203-4d39-8dfb-3b7e34c2e3a3','d24a2538-44a0-47a5-a582-85b03477df6c','adf83392-1c63-40c1-a937-1dd451be280d');
+DELETE FROM public.order_rooms WHERE order_id IN ('c9e7d935-fdce-49b0-b746-f3ef7bfa68d5','1e581ffb-8203-4d39-8dfb-3b7e34c2e3a3','d24a2538-44a0-47a5-a582-85b03477df6c','adf83392-1c63-40c1-a937-1dd451be280d');
+DELETE FROM public.order_change_log WHERE order_id IN ('c9e7d935-fdce-49b0-b746-f3ef7bfa68d5','1e581ffb-8203-4d39-8dfb-3b7e34c2e3a3','d24a2538-44a0-47a5-a582-85b03477df6c','adf83392-1c63-40c1-a937-1dd451be280d');
+DELETE FROM public.orders WHERE id IN ('c9e7d935-fdce-49b0-b746-f3ef7bfa68d5','1e581ffb-8203-4d39-8dfb-3b7e34c2e3a3','d24a2538-44a0-47a5-a582-85b03477df6c','adf83392-1c63-40c1-a937-1dd451be280d');
