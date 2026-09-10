@@ -1,104 +1,82 @@
-# 建單房價 guard v5.7：認得「專案」定價 + 分辨庫存日曆真假登記
+# guard v5.7：認得「專案」定價 + 排除 bulk_open 佔位價（逐字程式碼版）
 
-不動 `validate_order_deposit_on_insert`（訂金上限檢查維持現狀）。只改房價計算本身。
-
----
-
-## 先報告一個必須先解決的技術前提
-
-「專案」(`pricing_templates`) 選擇目前只存在 `order_rooms.template_id`，而 `order_rooms` 是**訂單建立成功之後**才寫入的（`CreateOrderDialog` 第 1589 行先 insert `orders`，第 1617 行才 insert `order_rooms`）。
-guard 跑在 `orders` 的 BEFORE INSERT，當下資料庫**看不到任何 template_id**，`orders` 也沒有任何欄位存專案。
-
-所以「讓 guard 認得專案」無法只靠改函式，必須多一條資料通道。建議做法（最小、可回溯相容）：
-
-- 新增可為空的欄位 `orders.pricing_template_id uuid`（參照 `pricing_templates`）。
-- `CreateOrderDialog` 建單時把主房型那筆 `roomSelections[0].template_id` 一併寫入（與現有 header 欄位 `room_type_id`／`room_quantity` 同層級的做法一致）。
-- 欄位為 NULL 時，guard 行為與現在**完全相同**（既有訂單、OTA、團購、匯入路徑零 diff）。
-
-其他方案（連線層 `set_config`、把驗證延到 `order_rooms` 寫入後）都需要改交易結構或新增延遲檢查，風險比新增一個可空欄位高，不建議。
+範圍二採用您核准的版本：只排除 `bulk_open`，`last_change_source IS NULL` 維持信任（歷史影響 27 筆，全部是近 90 天的 0 元佔位錯價單）。
+`validate_order_deposit_on_insert` 不動。
 
 ---
 
-## 範圍一：guard 讀得到專案價格
+## 先回答三個問題
 
-在現行「每晚取價」四分支之前，插入一條新分支，取價優先序變成：
+### 1. resolve_template_night_price() 是不是照抄既有邏輯？
 
-1. `package_id` 有值 → 現行 package tier 邏輯（**完全不動**）
-2. `pricing_template_id` 有值 → 新的專案取價（見下）
-3. 庫存日曆「真登記」價格
-4. 房型 `base_price`（非包棟房型）
-5. 都沒有 → 擋下，中文訊息
+畫面上 NT$60,000 的來源鏈是：
+`CreateOrderDialog.tsx` 第 811／1408 行 → `src/utils/templatePriceResolver.ts` 的 `resolveTemplatePricesForDates()`
+→ `src/utils/templatePriceResolverPure.ts` 的 `resolveTemplatePricesFromRows()`
+→ `src/utils/pricingTemplateHelpers.ts`（`hasSegments`／`findSegmentForDate`／`getTierForDate`／`isTierSellable`／`getRoomOverride`）。
 
-### 專案取價（新增 helper 函式 `public.resolve_template_night_price`）
+**這次 SQL 版是「照著這條鏈重寫成 PL/pgSQL」，不是複用**——PL/pgSQL 沒辦法呼叫 TS。我不隱瞞這點。
+六層順序就是照抄那條鏈的順序：專案覆寫價 → segments → room_overrides → 範本 tier → 單一 price → base row 餐型欄位；
+日型判斷（假日／週六=weekend、週五／週日=peak、其餘=weekday）與 `classifyDayTier` 逐字對應。
 
-輸入：template_id、room_type_id、日期、accommodation_id；回傳該晚房價或 NULL。依序：
+保證一致的做法（不靠人眼）：新增 parity 測試 `src/utils/__tests__/templatePriceParity.test.ts`，
+用正式環境現有的各型 template（segments 型／room_overrides 型／單一價型）× 一整個月每一天（含國定假日）
+× 有無專案覆寫價 × 有無 base row，逐格比對 TS 與 SQL 輸出，任一格不同即失敗。
+不是只驗一組 60,000；施工時這支測試必須全綠才算過。
 
-1. `room_inventory_pricing` 中 `pricing_template_id = 該專案` 的當日覆寫價（存在即採用，含 0）
-2. `season_segments` 有設定 → 取該日期區間對應 tier 的價格，該 tier 未啟用則回 NULL
-3. `room_overrides` 內該房型的 tier 價格
-4. 專案本身的 `weekday_price` / `peak_price` / `weekend_price`（對應 `*_enabled` 為 false 者不採用）
-5. `price`（單一價）
-6. 以上皆無 → NULL（交回主流程往下一層 fallback）
+若您希望徹底消滅雙實作，下一步可以讓前端改呼叫同一支 SQL（RPC），TS 版退成快取。但那會動到前台顯示價的主路徑，建議這次先不混在一起。
 
-**tier 判斷共用**：現有 package 區塊已算出 `v_tier`（假日或週六 = `weekend`；週五、週日 = `friday_sunday`；其餘 = `weekday`），與 pricing template 的三段制定義相同。設計上把這段 tier 判斷抽到迴圈開頭統一計算一次，package 分支沿用原變數與原字串（`friday_sunday`），template 分支把它映射為 `peak`。**package 分支的取價結果零 diff**。
+### 2. `orders.pricing_template_id` 要同步 `src/types/order.ts`
 
----
+已列入施工清單第 5 項，逐字 diff 見 `docs/v57/02_frontend.diff.md` B 段。
 
-## 範圍二：分辨庫存日曆的真登記 / 假登記
+### 3. RLS 要不要另外處理？
 
-沒有 package、也沒有 template 時，`room_inventory_pricing` 的價格改為依 `last_change_source` 判斷：
-
-- 視為有效（不論金額，含 0）：`template_apply`、`owlting_rate`、`manual_edit`、`system_repair`、`one_click_sync`、`revert_manual_restore`
-- 視為無效（當成查無資料，往下 fallback，包棟房型即擋下）：`bulk_open`
-
-`last_change_source IS NULL`（舊資料）如何處理，見下方掃描結果，需要您裁決。
-
-擋下時的訊息沿用已核准措辭（包棟／方案定價房型一句、未設定基本房價一句）。
+**不用。** Postgres 的 row-level policy 是「以整列為單位」判定，新增一個可空欄位不會改變任何既有 policy 的判定結果，也不會讓任何角色多看到或少看到任何一列。
+需要注意的只有欄位級授權：`orders` 目前沒有任何 column-level GRANT（都是表層級），所以新欄位自動沿用表層級權限，不需補 GRANT。
+新的 `resolve_template_night_price()` 是 SECURITY DEFINER，依既有規則在同一個 migration、同一交易內 `CREATE` ＋ `REVOKE ALL FROM PUBLIC/anon/authenticated` ＋ `GRANT` ＋ 權限 postcheck。
 
 ---
 
-## 歷史影響掃描（已實際跑過，唯讀）
+## 逐字程式碼
 
-母體：非豁免來源、`package_id IS NULL`、有房型的訂單，共 **3,817 筆**。判斷「若照新邏輯重跑會不會被擋」＝ 該訂單有任一晚是靠不受信任來源的登記價，且房型是包棟或 `base_price` 為 NULL。
+- `docs/v57/01_hunks.sql`
+  - (1) `ALTER TABLE public.orders ADD COLUMN pricing_template_id`
+  - (2) `resolve_template_night_price()` **全文**＋REVOKE/GRANT/postcheck
+  - (3) `validate_order_before_insert()` 的三段逐字置換（HUNK A 宣告、HUNK B 庫存來源、HUNK C 每晚取價分支），old → new 全部列出
+- `docs/v57/02_frontend.diff.md`：`CreateOrderDialog.tsx`、`src/types/order.ts`、parity 測試
 
-| 方案 | 受影響（曾靠該來源建單） | 會從成功變成被擋 |
-|---|---|---|
-| 只把 `bulk_open` 視為無效（NULL 仍信任） | 27 筆 | **27 筆** |
-| `bulk_open` + `last_change_source IS NULL` 都視為無效 | 606 筆 | **566 筆** |
+### 關於 validate_order_before_insert 為何用「置換」而不是重打全文
 
-補充數據：
-- 那 27 筆全部是近 90 天內、且全部是 `bulk_open` 且 price = 0 的佔位值，正是 AZ4E83W4／JV9F42D6 這一類（含多筆 `total_price = 0`、`final_price = 0` 的錯價單），也包含幾筆事後被人工改回正確金額的（例：XM2N98Y7、QG2B43W7）。
-- 566 筆那組，絕大多數是 `last_change_source IS NULL` 的舊資料（天送幸福和苑、森山寫照、淞湘卉館、哈庫納等包棟房型，2026-03 起至今），庫存價格總表中 NULL 來源就有 10,102 列。
-
-### 建議
-
-**只把 `bulk_open` 視為無效，`NULL` 維持信任。** 理由：NULL 是欄位加上去以前的舊資料，來源不明但實際被正常訂單長期採用，一律不信任會誤傷 566 筆的同類日常建單；而 `bulk_open` 是明確可辨識的「只是開放房量」佔位，正是本次 bug 的來源。這需要您確認後才寫入設計定案。
+該函式現有 358 行，其中約 300 行是加購重算、庫存／人數／間數檢查、折扣與收尾，本次一字不動。
+施工時 migration 會**以資料庫目前的 `prosrc` 為基底**，程式化套用上述三段置換後再 `CREATE OR REPLACE`，
+避免人工重打造成看不見的漂移；未改動區塊會用 md5 比對確認逐字相同。
+您要審的「所有會變的字」，`01_hunks.sql` 已 100% 列出。若您仍要看拼好的 358 行全文，我可以在您接受草稿前先產出來給您看，不進資料庫。
 
 ---
-
-## 不受影響（要求零 diff 的兩條路）
-
-- `package_id` 路徑：分支順位第一、邏輯逐字不動，只是 tier 判斷從分支內移到迴圈開頭（同樣的計算、同樣的變數值）。
-- 庫存日曆真登記路徑：條件由 `v_inv_found AND v_inv_price IS NOT NULL` 變成再加一個來源白名單；白名單涵蓋除 `bulk_open` 外全部既有來源值，故既有真登記訂單行為不變。
-- 豁免來源（`manual`／`owlting`／`hotelnabe`／`group_buy`）、加購重算、庫存/人數/間數檢查、折扣計算、`validate_order_deposit_on_insert`：全部不動。
 
 ## 施工項目清單
 
-1. migration：新增 `orders.pricing_template_id`（可空）
-2. migration：新增 `public.resolve_template_night_price()`（SECURITY DEFINER，`CREATE`＋`REVOKE ALL FROM PUBLIC, anon, authenticated`＋grant＋權限 postcheck 同一交易）
-3. migration：`CREATE OR REPLACE public.validate_order_before_insert()`（範圍一＋範圍二，同一次改完）
-4. 前端 `CreateOrderDialog.tsx`：建單 payload 帶入 `pricing_template_id`
-5. pre/postcheck：三個函式的長度／md5／prosecdef／完整 ACL，trigger 清單不變
+1. migration：`orders.pricing_template_id`（可空、FK、ON DELETE SET NULL）
+2. migration：`resolve_template_night_price()`（SECURITY DEFINER ＋ 同交易 REVOKE/GRANT/postcheck）
+3. migration：`validate_order_before_insert()` 三段置換
+4. 前端：`CreateOrderDialog.tsx` payload 帶 `pricing_template_id`
+5. 前端：`src/types/order.ts` 補欄位
+6. 測試：`templatePriceParity.test.ts`（TS ↔ SQL 逐格比對）
+7. pre/postcheck：兩支函式的長度／md5／prosecdef／完整 ACL、trigger 清單、未改動區塊 md5
 
 ## 測試計畫（全部 BEGIN…ROLLBACK）
 
-1. 哈庫納 line＋20人包棟＋「20人一泊二食」專案 → 應算出 60,000（不再是 0、不再跳訂金錯誤）
-2. 同上但改假日日期 → 取到假日 tier 價
-3. 專案有當日 `pricing_template_id` 覆寫價 → 取覆寫價
-4. package 路徑既有案例（SR7N27N4／UR8N57Q2 同型）→ 金額與現況一字不差
-5. 庫存日曆 `manual_edit` 登記 0 元招待房 → 放行，房價 0
-6. 包棟房型、無 package、無 template、只有 `bulk_open` 0 元 → 擋下並回中文訊息全文
-7. 一般房型 `base_price` 有值、只有 `bulk_open` → 走 base_price 放行
-8. 豁免來源（manual）→ 完全不進重算
+1. 哈庫納 line ＋ 20人包棟 ＋「20人一泊二食」專案 → 60,000（不再 0、不再跳訂金錯誤）
+2. 同房型改週五、週六、週日、國定假日各一組 → 與前端顯示逐格相同
+3. 該日有專案覆寫價（`pricing_template_id` 非空的庫存列）→ 取覆寫價
+4. segments 型專案：日期落在段內／段外各一組 → 段外應 fallback 或擋下
+5. room_overrides 型專案：override 覆寫 tier 價、override 關閉該 tier 各一組
+6. package 路徑既有案例 → 金額與現況一字不差（零 diff）
+7. 庫存 `manual_edit` 登記 0 元招待房 → 放行，房價 0
+8. 包棟房型、無方案無專案、只有 `bulk_open` 0 元 → 擋下並貼中文訊息全文
+9. 一般房型 `base_price` 有值、只有 `bulk_open` → 走 base_price 放行
+10. `last_change_source IS NULL` 的舊登記價 → 維持放行（566 筆那類不受影響）
+11. 豁免來源（manual／owlting／hotelnabe／group_buy）→ 完全不進重算
+12. parity 測試矩陣全綠
 
-設計稿確認後才動資料庫。
+核准後才動資料庫。
