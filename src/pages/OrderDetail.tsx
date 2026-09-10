@@ -1522,7 +1522,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           paidAmount: editPaidAmount,
           paymentStatus: newPaymentStatus,
           notes: nextNotes,
-        }),
+        }) as any,
         p_source: "admin_price_edit",
         p_reason: editReason.trim() || null,
       });
