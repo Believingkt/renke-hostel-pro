@@ -138,7 +138,41 @@ Deno.serve(async (req) => {
 
         let mail;
         let templateType;
-        if (usePaid) {
+        if (requested === "order_cancelled") {
+          // 純補寄：只組信件內容，不寫 orders、不動退款／佣金、不呼叫金流
+          templateType = "guest_order_cancelled";
+          const refundedTotal = Math.max(0, Math.round(Number(order.refunded_amount ?? 0)));
+          const refundFeeTotal = Math.max(0, Math.round(Number(order.refund_fee_amount ?? 0)));
+          const handlingFee = emailOrder.isCardOrder
+            ? 0
+            : await loadManualRefundFee(admin, order.accommodation_id);
+          const { data: accContact } = order.accommodation_id
+            ? await admin
+              .from("accommodation_info")
+              .select("phone, line_id, website_url, email")
+              .eq("id", order.accommodation_id)
+              .maybeSingle()
+            : { data: null as any };
+          mail = renderOrderCancelled(emailOrder, {
+            cancelledAtText: formatTaipei(
+              new Date(order.cancelled_at ?? order.updated_at ?? new Date().toISOString()),
+            ),
+            paidAmount: paid,
+            refundedTotal,
+            refundFeeTotal,
+            handlingFee,
+            refundStatus: String(order.refund_status ?? "none"),
+            reason: null,
+            venueContact: accContact
+              ? {
+                phone: (accContact as any).phone ?? null,
+                lineId: (accContact as any).line_id ?? null,
+                websiteUrl: (accContact as any).website_url ?? null,
+                email: (accContact as any).email ?? null,
+              }
+              : null,
+          });
+        } else if (usePaid) {
           templateType = useFull ? "full_payment_received" : "deposit_received";
           mail = renderDepositReceived(emailOrder, {
             providerLabel: emailOrder.paymentMethodText,
