@@ -394,11 +394,11 @@ const BookingVillaContent = (props: BookingVillaProps) => {
   const nights =
     checkIn && checkOut ? Math.max(1, differenceInDays(checkOut, checkIn)) : 1;
 
-  // 過濾掉「不適用日期區間」涵蓋入住日的方案；未選日期則顯示全部
+  // 過濾掉「不適用日期區間」涵蓋任一晚的方案（逐夜檢查）；未選日期則顯示全部
   const dateFilteredPackages = useMemo(() => {
     if (!checkIn) return packages;
-    return packages.filter((p) => !isPackageExcludedOnDate(p, checkIn));
-  }, [packages, checkIn]);
+    return packages.filter((p) => !isPackageExcludedInRange(p, checkIn, checkOut));
+  }, [packages, checkIn, checkOut]);
 
   // 依 check-in 當日各房型實際可訂庫存過濾方案：
   // 方案需要用到的每一個 room_type_id 當日 available_rooms > 0 且未 blocked，才顯示。
