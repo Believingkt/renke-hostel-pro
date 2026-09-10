@@ -632,6 +632,18 @@ export default function OrderTimelineCard({
                     />
                   </>
                 )}
+                {orderStatus === "cancelled" && (
+                  <ResendButton
+                    label="補寄旅客通知信：訂單已取消"
+                    description={`重新寄出「訂單已取消」通知（含取消時間、已付金額與退款說明）。此動作只寄信，不會退款或變更訂單資料。${
+                      lastCancelledEmailAt
+                        ? `上次補寄：${new Date(lastCancelledEmailAt).toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })}`
+                        : ""
+                    }`}
+                    loading={resendingType === "gb_guest_cancelled"}
+                    onConfirm={() => resendGroupBuy("guest", "order_cancelled", "gb_guest_cancelled")}
+                  />
+                )}
                 <ResendButton
                   label="補寄民宿通知信"
                   description="重新寄出團購新訂單通知給民宿／管理者收件人。"
