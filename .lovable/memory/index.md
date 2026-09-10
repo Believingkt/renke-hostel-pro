@@ -26,3 +26,5 @@
 - [AI Config Write Scope](mem://security/ai-config-write-super-admin-only.md) — AI 六張表寫入僅 super_admin；館別／staff 政策已移除，不可重建；portal-ai-chat 讀取只取全域列。
 - [施工前必須等待明確核准](mem://preferences/approval-before-execution.md) — 使用者說「不用施工／我看過再核准」時，設計再完整也不可自行執行或上線。
 - [SECURITY DEFINER 建立即收權](mem://security/security-definer-revoke-same-migration.md) — 新函式 CREATE 與 REVOKE PUBLIC 必須同一 migration/交易；postcheck 必驗 anon/authenticated/PUBLIC 無執行權。
+- [HotelNabe 靜默丟棄欄位升級為可觀測告警](mem://technical/deferred-hotelnabe-alert-upgrade.md) — 2026-09-10 暫不處理；評估是否改為 error_logs / 技術告警信。
+- [ORDER_CONTEXT_UPDATABLE_FIELDS 與 RPC 白名單對齊](mem://technical/deferred-order-context-fields-alignment.md) — 2026-09-10 暫不處理；本地常數應與 update_order_with_context RPC 白名單一致。

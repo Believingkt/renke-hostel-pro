@@ -14,6 +14,7 @@
 import { sendOrderRoomsAlertEmail } from "./orderRoomsAlert.ts";
 import { updateOrderWithContext } from "./orderContext.ts";
 import { reportOwltingSyncFailure } from "./owltingSyncAlert.ts";
+import { resolveTemplateId } from "./resolveTemplateId.ts";
 
 export function normalizeName(s: string | null | undefined): string {
   return (s ?? "").replace(/\s+/g, "").toLowerCase();
@@ -190,6 +191,7 @@ export async function autoCreatePendingOrder(
     try {
       await rebuildOrderRooms(admin, {
         orderId: inserted.id,
+        accommodationId: input.accommodation_id,
         roomTypeId,
         roomQuantity,
         total,
@@ -300,6 +302,63 @@ export async function cancelAutoPendingOrders(
 }
 
 /**
+ * 為 OwlTing 自動重建房型明細時，保守解析應套用的 pricing_template。
+ * 優先參考該訂單既有 order_rooms 中同房型的 template_id / template_name，
+ * 再用 resolveTemplateId 驗證名稱與房型是否仍吻合；無法唯一確定時回傳 null。
+ */
+async function resolveRoomTemplate(
+  admin: any,
+  opts: {
+    accommodationId: string;
+    orderId: string;
+    roomTypeId: string;
+  },
+): Promise<{ template_id: string | null; template_name: string | null }> {
+  const [{ data: templates }, { data: existingRooms }] = await Promise.all([
+    admin
+      .from("pricing_templates")
+      .select("id, template_name, room_type_id, room_type_ids")
+      .eq("accommodation_id", opts.accommodationId),
+    admin
+      .from("order_rooms")
+      .select("template_id, template_name, room_type_id")
+      .eq("order_id", opts.orderId),
+  ]);
+
+  const list = (templates ?? []) as Array<{
+    id: string;
+    template_name: string | null;
+    room_type_id?: string | null;
+    room_type_ids?: string[] | null;
+  }>;
+  if (list.length === 0) return { template_id: null, template_name: null };
+
+  const existing = ((existingRooms ?? []) as any[]).find(
+    (r: any) => r.room_type_id === opts.roomTypeId,
+  );
+  let currentTemplateId: string | null = null;
+  let templateName: string | null = null;
+  if (existing) {
+    currentTemplateId = existing.template_id ?? null;
+    templateName = existing.template_name ?? null;
+    if (!templateName && currentTemplateId) {
+      const cur = list.find((t) => t.id === currentTemplateId);
+      templateName = cur?.template_name ?? null;
+    }
+  }
+
+  const resolvedId = resolveTemplateId(list, opts.roomTypeId, templateName, currentTemplateId);
+  if (resolvedId) {
+    const resolved = list.find((t) => t.id === resolvedId);
+    return {
+      template_id: resolvedId,
+      template_name: resolved?.template_name ?? templateName ?? null,
+    };
+  }
+  return { template_id: null, template_name: null };
+}
+
+/**
  * (Re)build order_rooms for an order, auto-assigning free room units.
  * V5.5A.9: 改由 sync_order_rooms_v1 在單一交易內完成 diff 同步；
  * 任何錯誤都會 throw，由呼叫端標記 staging 並發出告警。
@@ -308,6 +367,7 @@ export async function rebuildOrderRooms(
   admin: any,
   opts: {
     orderId: string;
+    accommodationId: string;
     roomTypeId: string;
     roomQuantity: number;
     total: number;
@@ -344,6 +404,12 @@ export async function rebuildOrderRooms(
     }
   }
 
+  const { template_id, template_name } = await resolveRoomTemplate(admin, {
+    accommodationId: opts.accommodationId,
+    orderId: opts.orderId,
+    roomTypeId: opts.roomTypeId,
+  });
+
   const qty = Math.max(1, opts.roomQuantity);
   const perRoomPrice = Math.round(opts.total / qty);
   const pickedIds = new Set<string>();
@@ -357,6 +423,8 @@ export async function rebuildOrderRooms(
       quantity: 1,
       room_price: perRoomPrice,
       room_unit_id: free?.id ?? null,
+      template_id,
+      template_name,
     });
   }
 
@@ -562,6 +630,7 @@ export async function applyModificationToExistingOrder(
       try {
         await rebuildOrderRooms(admin, {
           orderId: order.id,
+          accommodationId: accId,
           roomTypeId,
           roomQuantity: qty,
           total: finalTotal,
