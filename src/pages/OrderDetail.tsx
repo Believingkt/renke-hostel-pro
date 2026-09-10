@@ -1093,63 +1093,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         }
       }
 
-      const updateData: Record<string, any> = {
-        guest_name: editForm.guest_name.trim(),
-        guest_phone: editForm.guest_phone.trim(),
-        guest_email: editForm.guest_email.trim() || null,
-        guest_address: editForm.guest_address.trim() || null,
-        guest_gender: editForm.guest_gender || null,
-        guest_nationality: editForm.guest_nationality.trim() || null,
-        guest_count: editForm.guest_count,
-        order_source: editForm.order_source,
-        owner_direct: editForm.owner_direct,
-        lock_whole_building: isOlivia ? editForm.lock_whole_building : false,
-        order_status: editForm.order_status,
-        payment_status: effPaymentStatus,
-        deposit_payment_method: editForm.deposit_payment_method === "none" ? null : editForm.deposit_payment_method,
-        balance_payment_method: editForm.balance_payment_method === "none" ? null : editForm.balance_payment_method,
-        meal_plan: editForm.meal_plan === "none" ? null : editForm.meal_plan,
-        notes: finalNotes || null,
-        room_type_id: editForm.room_type_id || null,
-        discount_code: editForm.discount_code.trim() || null,
-        paid_amount: effPaidAmount,
-        pet_count: editForm.pet_count,
-        pet_plan_price: editForm.pet_plan_price,
-        meal_plan_details: editForm.meal_plan_details.length > 0 ? editForm.meal_plan_details : null,
-        meal_plan_total: editForm.meal_plan_total,
-        custom_addon_details: editForm.custom_addon_details.length > 0 ? editForm.custom_addon_details : null,
-      };
-
-      // Financial fields are immutable after payment (DB trigger).
-      // Only include them if the order is not yet paid OR the value actually changed.
       const isPaidOrDeposit = ["paid", "fully_paid"].includes(order.payment_status);
-      const addIfChanged = (key: string, newVal: number, oldVal: number | null | undefined) => {
-        if (!isPaidOrDeposit || Number(newVal) !== Number(oldVal ?? 0)) {
-          updateData[key] = newVal;
-        }
-      };
-      addIfChanged("total_price", savedTotalPrice, order.total_price);
-      if (!isPaidOrDeposit) {
-        addIfChanged("discount_amount", editForm.discount_amount, order.discount_amount);
-        updateData.discount_code = editForm.discount_code.trim() || null;
-      } else {
-        updateData.discount_code = order.discount_code;
-      }
-      // 訂金/尾款一律允許在編輯模式調整（無論付款狀態）
-      updateData.deposit_amount = editForm.deposit_amount;
-      // final_price may legitimately change when addons are added/removed on a paid order.
-      // Always include it so the total reflects current addons; the DB trigger allows this
-      // as long as core financial fields (total_price/discount/deposit) are unchanged.
-      // 但若 total_price / discount / 加購 全都沒動，代表使用者只是編輯備註等非金額欄位，
-      // 不可用「重算公式」覆蓋歷史 final_price（避免舊資料 total-discount 與 final 不一致時被靜默改動）。
       const originalAddonTotal = savedAddonTotalOf(order);
-      const pricingUnchanged =
-        Number(savedTotalPrice) === Number(order.total_price ?? 0) &&
-        Number(editForm.discount_amount) === Number(order.discount_amount ?? 0) &&
-        Number(editForm.addon_total) === Number(originalAddonTotal);
-      if (!pricingUnchanged) {
-        addIfChanged("final_price", editFinalPriceCalc, order.final_price);
-      }
 
       // Block disallowed financial edits with friendly toast
       // 注意：total_price 內含加購金額，因此只比對「純房費」部分，
