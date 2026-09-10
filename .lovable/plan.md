@@ -1,164 +1,104 @@
-# 方案1：已結清折扣「沿用原折扣碼、只調金額」（code_keep）
+# 建單房價 guard v5.7：認得「專案」定價 + 分辨庫存日曆真假登記
 
-目標：提交的折扣碼與**資料庫中該訂單目前的 discount_code** 完全相同時，跳過折扣碼的存在性／啟用狀態／有效期限／適用範圍重新驗證，改以人工指定金額寫入；折扣碼保留，分潤記錄（commission_records）因此能用新金額自動更新。
-
----
-
-## 一、RPC：update_paid_order_discount_v2 診斷與改法
-
-現況（第 123–211 行）：`code` 與 `code_override` 共用同一段前置檢查 —— 多房型／多方案範圍判斷（128–171）→ `validate_discount_code`（181–188）→ 標準金額（190–194）→ 兩模式才分岔（197–210）。因此舊碼被停用、或多房型無法判斷範圍時，即使只想改金額也會被擋。
-
-改法（只動 `ELSE -- code / code_override` 這一段的最前面，其餘一律不動）：
-
-```sql
-   ELSE -- code / code_override
-     IF v_code IS NULL THEN
-       RAISE EXCEPTION '請輸入折扣碼' USING ERRCODE = '22023';
-     END IF;
-
-+    -- ★ code_keep：提交的折扣碼與「資料庫裡這張訂單目前的 discount_code」完全相同
-+    --   → 沿用原碼，不重新驗證存在性／啟用狀態／有效期限／適用範圍，只允許人工指定金額。
-+    --   比對基準一律是 v_old_code（來自 SELECT ... FOR UPDATE 的 o.discount_code），不是前端傳來的值。
-+    IF v_old_code IS NOT NULL AND v_code = v_old_code THEN
-+      v_keep := true;
-+      v_new_code := v_old_code;
-+      v_new_discount := COALESCE(p_applied_discount_amount, v_old_discount);
-+      IF v_new_discount < 0 THEN
-+        RAISE EXCEPTION '實際套用折扣金額不得為負數' USING ERRCODE = '22023';
-+      END IF;
-+      -- 上限兩道檢查完全比照 code_override，不放寬
-+      v_cap := LEAST(v_room_fee, COALESCE(o.total_price, 0)::integer);
-+      IF v_new_discount > v_cap THEN
-+        RAISE EXCEPTION '實際套用折扣金額不得大於折扣基準（房費 NT$%）', v_cap USING ERRCODE = '22023';
-+      END IF;
-+      v_standard := NULL;      -- 未重新驗證，無標準折扣可比對
-+      v_override := true;
-+    ELSE
-     SELECT array_agg(DISTINCT r.template_id) ... （原本 128–210 行整段內縮，內容一字不動）
-+    END IF;
-   END IF;
-```
-
-宣告區新增：`v_keep boolean := false;`、`v_mode_label text;`
-
-保持不變（不放寬）：
-- `IF v_new_discount > COALESCE(o.total_price, 0)` 訂單總額上限（213–215）
-- 樂觀鎖 `p_expected_updated_at`、`payment_status ∈ (paid, fully_paid)`、退款／取消高風險確認、`get_staff_module_permission = editable`、`v_uid IS NULL` 一律先擋
-- SECURITY INVOKER（`prosecdef=false`）與 RLS 不變；audit_logs 寫入保留
-
-稽核標記（`v_mode_label := CASE WHEN v_keep THEN 'code_keep' ELSE v_mode END`）：
-- `mode='code_keep'`、新增 `keep_existing_code=true`
-- `standard_discount_amount=null`（不做標準折扣比對，已確認可接受）
-- changes 陣列在 keep 分支改為三項：`discount_code`（before=after，附 `note:'沿用訂單原折扣碼，未重新驗證'`）、`discount_amount`（label 改「實際套用折扣（人工指定）」）、`final_price`；不再輸出 standard 那一列
-- `set_order_change_context('paid_discount_edit', 原因, '已結清折扣修改（code_keep／<settlement>）', 'user')`
-
-安全性：此分支唯一的放寬是「不再查 discount_codes 表」。金額上限兩道、權限、樂觀鎖、付款狀態、風險確認全部在此分支之前或之後執行，無法被繞過；且 `v_old_code` 取自資料庫列鎖後的值，前端無法偽造。
+不動 `validate_order_deposit_on_insert`（訂金上限檢查維持現狀）。只改房價計算本身。
 
 ---
 
-## 二、前端 diff
+## 先報告一個必須先解決的技術前提
 
-### src/components/orders/PaidAmountEditDialog.tsx
+「專案」(`pricing_templates`) 選擇目前只存在 `order_rooms.template_id`，而 `order_rooms` 是**訂單建立成功之後**才寫入的（`CreateOrderDialog` 第 1589 行先 insert `orders`，第 1617 行才 insert `order_rooms`）。
+guard 跑在 `orders` 的 BEFORE INSERT，當下資料庫**看不到任何 template_id**，`orders` 也沒有任何欄位存專案。
 
-```diff
-   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
-   const usesCode = discountMode === "code" || discountMode === "code_override";
-+  // 與訂單現有折扣碼相同 → 走 code_keep：不驗證、直接讓使用者填金額
-+  const keepExistingCode =
-+    usesCode && !!oldCode && (discountCode || "").trim().toUpperCase() === oldCode;
-   const codeOverridden =
-     usesCode && validatedStandard != null && appliedDiscountInput !== validatedStandard;
--  const effectiveDiscountMode: PaidDiscountMode = usesCode
--    ? codeOverridden ? "code_override" : "code"
--    : discountMode;
-+  const effectiveDiscountMode: PaidDiscountMode = usesCode
-+    ? keepExistingCode || codeOverridden ? "code_override" : "code"
-+    : discountMode;
-```
+所以「讓 guard 認得專案」無法只靠改函式，必須多一條資料通道。建議做法（最小、可回溯相容）：
 
-```diff
-   const previewDiscount =
-     discountMode === "none" ? 0
-     : discountMode === "manual" ? newDiscountInput
-+    : keepExistingCode ? appliedDiscountInput
-     : validatedStandard != null ? (codeOverridden ? appliedDiscountInput : validatedStandard)
-     : oldDiscount;
-```
+- 新增可為空的欄位 `orders.pricing_template_id uuid`（參照 `pricing_templates`）。
+- `CreateOrderDialog` 建單時把主房型那筆 `roomSelections[0].template_id` 一併寫入（與現有 header 欄位 `room_type_id`／`room_quantity` 同層級的做法一致）。
+- 欄位為 NULL 時，guard 行為與現在**完全相同**（既有訂單、OTA、團購、匯入路徑零 diff）。
 
-```diff
--  const codeReady = mode !== "discount" || !usesCode || validation.status === "valid";
-+  const codeReady =
-+    mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
-```
-
-```diff
-   const handleValidateCode = async () => {
-     if (!snap?.accommodation_id) return;
-+    if (keepExistingCode) return;   // 沿用原碼不需驗證
-```
-
-UI（折扣碼區塊，第 525–560 行）：`keepExistingCode` 為 true 時
-- 隱藏「驗證折扣碼」按鈕與 `scopeError` / 「尚未驗證」提示
-- 直接顯示「實際套用折扣金額」輸入框（原本只有驗證成功後才出現）
-- 顯示綠字說明：`沿用此訂單原有的折扣碼 {oldCode}，不重新檢查有效期限與適用範圍，只調整折扣金額；折扣碼與分潤／業績歸屬記錄會保留並依新金額更新。`
-
-確認頁（第 727–736 行）：`keepExistingCode` 時不顯示「系統計算標準折扣」列，改顯示 `已沿用原折扣碼並人工指定折扣金額（模式：code_keep）`。
-
-### src/components/orders/OrderPriceEditDialog.tsx（同形狀處，約第 285 行）
-
-```diff
--    // 若與訂單原有折扣碼相同且金額未變動，不重複驗證
--    if (code === (order.discount_code || "").toUpperCase() && editDiscountAmount === order.discount_amount) {
-+    // 與訂單原有折扣碼相同 → 一律不重新驗證（金額改了也一樣），保留折扣碼、只調金額
-+    if (code === (order.discount_code || "").toUpperCase()) {
-       return;
-     }
-```
-
-（`src/lib/paidDiscountEdit.ts` 不需改：`code_override` 已要求並傳遞 `p_applied_discount_amount`。）
+其他方案（連線層 `set_config`、把驗證延到 `order_rooms` 寫入後）都需要改交易結構或新增延遲檢查，風險比新增一個可空欄位高，不建議。
 
 ---
 
-## 三、BEGIN…ROLLBACK 實測（正式資料，最後刻意 RAISE EXCEPTION 回滾）
+## 範圍一：guard 讀得到專案價格
 
-同交易內建立 patched 副本 `__test_paid_discount` 執行，實際輸出：
+在現行「每晚取價」四分支之前，插入一條新分支，取價優先序變成：
 
-```
-[T1] rpc={"mode":"code_keep","changed":true,"final_price":39000,"audit_log_id":"6cf222ca-…",
-     "discount_code":"168168","discount_amount":30000,"keep_existing_code":true,
-     "standard_discount_amount":null}
-[T1] commission: discount_amount=30000 order_total=69000 commission_amount=1950
-     code_id=91dd9ca7-bc0c-456b-8528-2daa602cfbcb
-[T1] audit={"mode":"code_keep","type":"paid_discount_edit","keep_existing_code":true,
-     "standard_discount_amount":null,"applied_discount_amount":30000,"manual_override":true,
-     "settlement_handling":"data_only","changes":[
-       {"field":"discount_code","before":"168168","after":"168168","note":"沿用訂單原折扣碼，未重新驗證"},
-       {"field":"discount_amount","label":"實際套用折扣（人工指定）","before":37000,"after":30000},
-       {"field":"final_price","before":32000,"after":39000}]}
-[T1] change_log=op=update actor_type=system actor_label=已結清折扣修改（code_keep／data_only）
-     source=paid_discount_edit reason=測試1 沿用原碼調整金額
-     fields=[{"field":"final_price","from":32000,"to":39000},
-             {"field":"discount_amount","from":37000,"to":30000}]
-[T2] 走完整驗證並被擋下：此訂單包含多個房型，無法自動判斷折扣碼適用範圍，請改填手動折扣金額
-[T3] rpc={"mode":"code_keep","changed":true,"final_price":10500,"discount_code":"CYNTHIA66",
-     "discount_amount":5000,"standard_discount_amount":null,"keep_existing_code":true}
-[T3] commission=discount_amount=5000 commission=525
-[T3b] 完整驗證路徑錯誤：折扣碼無效：折扣碼不存在或已停用
-```
+1. `package_id` 有值 → 現行 package tier 邏輯（**完全不動**）
+2. `pricing_template_id` 有值 → 新的專案取價（見下）
+3. 庫存日曆「真登記」價格
+4. 房型 `base_price`（非包棟房型）
+5. 都沒有 → 擋下，中文訊息
 
-- **T1** YC6U86W2 + 168168（同碼）+ 30000：成功、折扣碼保留、分潤記錄同步改為 30000／佣金 1950（code_id 未變）。
-- **T2** 同一張訂單換成別的碼 CYNTHIA66：仍走原本完整驗證，被多房型範圍判斷擋下 → 不受本次改動影響。
-- **T3** 單一房型 TE9H24J8（CYNTHIA66，原 5950 → 5000）：成功，分潤同步 5000／佣金 525。
-- **T3b** 單一房型換不同碼 ZEN：仍完整驗證並回「折扣碼不存在或已停用」→ 回歸正常。
-- 註：`actor_type=system` 是因測試在無 `auth.uid()` 的環境跑；正式前端由登入者呼叫時為 user。
+### 專案取價（新增 helper 函式 `public.resolve_template_night_price`）
 
-回滾查證（交易外重查）：
-`YC6U86W2 = 37000/168168/32000`、`TE9H24J8 = 5950/CYNTHIA66/9550`、`commission_records=1 筆 commission_amount=1600`、暫時函式殘留 0、`update_paid_order_discount_v2` md5=`205ce832aa0a966945e8274b622b52de` 長度 `13318`（與現況一致）。
+輸入：template_id、room_type_id、日期、accommodation_id；回傳該晚房價或 NULL。依序：
+
+1. `room_inventory_pricing` 中 `pricing_template_id = 該專案` 的當日覆寫價（存在即採用，含 0）
+2. `season_segments` 有設定 → 取該日期區間對應 tier 的價格，該 tier 未啟用則回 NULL
+3. `room_overrides` 內該房型的 tier 價格
+4. 專案本身的 `weekday_price` / `peak_price` / `weekend_price`（對應 `*_enabled` 為 false 者不採用）
+5. `price`（單一價）
+6. 以上皆無 → NULL（交回主流程往下一層 fallback）
+
+**tier 判斷共用**：現有 package 區塊已算出 `v_tier`（假日或週六 = `weekend`；週五、週日 = `friday_sunday`；其餘 = `weekday`），與 pricing template 的三段制定義相同。設計上把這段 tier 判斷抽到迴圈開頭統一計算一次，package 分支沿用原變數與原字串（`friday_sunday`），template 分支把它映射為 `peak`。**package 分支的取價結果零 diff**。
 
 ---
 
-## 施工範圍（核准後才執行）
+## 範圍二：分辨庫存日曆的真登記 / 假登記
 
-1. migration：`CREATE OR REPLACE update_paid_order_discount_v2`（維持 SECURITY INVOKER，pre/postcheck 記錄 md5／長度／prosecdef）
-2. 前端：`PaidAmountEditDialog.tsx`、`OrderPriceEditDialog.tsx`
-3. 需要 Publish（含前端變更）
+沒有 package、也沒有 template 時，`room_inventory_pricing` 的價格改為依 `last_change_source` 判斷：
+
+- 視為有效（不論金額，含 0）：`template_apply`、`owlting_rate`、`manual_edit`、`system_repair`、`one_click_sync`、`revert_manual_restore`
+- 視為無效（當成查無資料，往下 fallback，包棟房型即擋下）：`bulk_open`
+
+`last_change_source IS NULL`（舊資料）如何處理，見下方掃描結果，需要您裁決。
+
+擋下時的訊息沿用已核准措辭（包棟／方案定價房型一句、未設定基本房價一句）。
+
+---
+
+## 歷史影響掃描（已實際跑過，唯讀）
+
+母體：非豁免來源、`package_id IS NULL`、有房型的訂單，共 **3,817 筆**。判斷「若照新邏輯重跑會不會被擋」＝ 該訂單有任一晚是靠不受信任來源的登記價，且房型是包棟或 `base_price` 為 NULL。
+
+| 方案 | 受影響（曾靠該來源建單） | 會從成功變成被擋 |
+|---|---|---|
+| 只把 `bulk_open` 視為無效（NULL 仍信任） | 27 筆 | **27 筆** |
+| `bulk_open` + `last_change_source IS NULL` 都視為無效 | 606 筆 | **566 筆** |
+
+補充數據：
+- 那 27 筆全部是近 90 天內、且全部是 `bulk_open` 且 price = 0 的佔位值，正是 AZ4E83W4／JV9F42D6 這一類（含多筆 `total_price = 0`、`final_price = 0` 的錯價單），也包含幾筆事後被人工改回正確金額的（例：XM2N98Y7、QG2B43W7）。
+- 566 筆那組，絕大多數是 `last_change_source IS NULL` 的舊資料（天送幸福和苑、森山寫照、淞湘卉館、哈庫納等包棟房型，2026-03 起至今），庫存價格總表中 NULL 來源就有 10,102 列。
+
+### 建議
+
+**只把 `bulk_open` 視為無效，`NULL` 維持信任。** 理由：NULL 是欄位加上去以前的舊資料，來源不明但實際被正常訂單長期採用，一律不信任會誤傷 566 筆的同類日常建單；而 `bulk_open` 是明確可辨識的「只是開放房量」佔位，正是本次 bug 的來源。這需要您確認後才寫入設計定案。
+
+---
+
+## 不受影響（要求零 diff 的兩條路）
+
+- `package_id` 路徑：分支順位第一、邏輯逐字不動，只是 tier 判斷從分支內移到迴圈開頭（同樣的計算、同樣的變數值）。
+- 庫存日曆真登記路徑：條件由 `v_inv_found AND v_inv_price IS NOT NULL` 變成再加一個來源白名單；白名單涵蓋除 `bulk_open` 外全部既有來源值，故既有真登記訂單行為不變。
+- 豁免來源（`manual`／`owlting`／`hotelnabe`／`group_buy`）、加購重算、庫存/人數/間數檢查、折扣計算、`validate_order_deposit_on_insert`：全部不動。
+
+## 施工項目清單
+
+1. migration：新增 `orders.pricing_template_id`（可空）
+2. migration：新增 `public.resolve_template_night_price()`（SECURITY DEFINER，`CREATE`＋`REVOKE ALL FROM PUBLIC, anon, authenticated`＋grant＋權限 postcheck 同一交易）
+3. migration：`CREATE OR REPLACE public.validate_order_before_insert()`（範圍一＋範圍二，同一次改完）
+4. 前端 `CreateOrderDialog.tsx`：建單 payload 帶入 `pricing_template_id`
+5. pre/postcheck：三個函式的長度／md5／prosecdef／完整 ACL，trigger 清單不變
+
+## 測試計畫（全部 BEGIN…ROLLBACK）
+
+1. 哈庫納 line＋20人包棟＋「20人一泊二食」專案 → 應算出 60,000（不再是 0、不再跳訂金錯誤）
+2. 同上但改假日日期 → 取到假日 tier 價
+3. 專案有當日 `pricing_template_id` 覆寫價 → 取覆寫價
+4. package 路徑既有案例（SR7N27N4／UR8N57Q2 同型）→ 金額與現況一字不差
+5. 庫存日曆 `manual_edit` 登記 0 元招待房 → 放行，房價 0
+6. 包棟房型、無 package、無 template、只有 `bulk_open` 0 元 → 擋下並回中文訊息全文
+7. 一般房型 `base_price` 有值、只有 `bulk_open` → 走 base_price 放行
+8. 豁免來源（manual）→ 完全不進重算
+
+設計稿確認後才動資料庫。
