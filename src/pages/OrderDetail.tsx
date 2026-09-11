@@ -118,6 +118,8 @@ interface OrderDetail {
   final_price: number;
   deposit_amount: number;
   paid_amount: number;
+  refunded_amount?: number | null;
+  refund_status?: string | null;
   payment_method: string | null;
   deposit_payment_method: string | null;
   balance_payment_method: string | null;

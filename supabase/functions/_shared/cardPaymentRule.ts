@@ -10,7 +10,7 @@
  */
 
 const CARD_METHODS = new Set(["credit_card", "credit_card_3ds", "card", "信用卡"]);
-const ATM_METHODS = new Set(["atm", "ATM", "atm_transfer"]);
+export const ATM_METHODS = new Set(["atm", "ATM", "atm_transfer"]);
 
 export interface CardPaymentOrderShape {
   payment_method?: string | null;
