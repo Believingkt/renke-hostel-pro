@@ -719,7 +719,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
     // 換房型要帶入的預設組成間數，先蒐集起來，等 setRoomSelections 之後再套用（避免在 updater 內做 side effect）
-    let pendingDefaults: { idx: number; counts: Record<string, number> } | null = null;
+    let pendingDefaults: { idx: number; isExclusive: boolean } | null = null;
     setRoomSelections(prev => prev.map((s, idx) => {
       if (s.id !== selId) return s;
       const updated = { ...s, ...updates };
@@ -739,14 +739,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         updated.room_unit_id = null;
         // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數；
         // 之後的渲染／其他欄位變動不會覆蓋客服手動改過的值。
-        const defaults = newRt?.is_exclusive_package
-          ? defaultCountsFromBreakdown(getPackageBreakdown(updates.room_type_id))
-          : {};
-        pendingDefaults = { idx, counts: defaults };
+        pendingDefaults = { idx, isExclusive: !!newRt?.is_exclusive_package };
 
       }
       return updated;
     }));
+
     if (pendingDefaults) {
       const { idx, isExclusive } = pendingDefaults as { idx: number; isExclusive: boolean };
       const targetRoomTypeId = updates.room_type_id!;
