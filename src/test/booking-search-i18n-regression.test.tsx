@@ -12,9 +12,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useParams, useLocation } from "react-router-dom";
 
-const ACC_ID = "11111111-2222-3333-4444-555555555555";
-const PKG_ID = "99999999-2222-3333-4444-555555555555";
-const RT_ID = "77777777-2222-3333-4444-555555555555";
+const IDS = vi.hoisted(() => ({
+  ACC_ID: "11111111-2222-3333-4444-555555555555",
+  PKG_ID: "99999999-2222-3333-4444-555555555555",
+  RT_ID: "77777777-2222-3333-4444-555555555555",
+}));
+const { ACC_ID, PKG_ID, RT_ID } = IDS;
 
 const state = vi.hoisted(() => ({
   fromCalls: [] as string[],
@@ -26,7 +29,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const rows: Record<string, any[]> = {
     accommodation_info: [
       {
-        id: ACC_ID,
+        id: IDS.ACC_ID,
         name: "森山四季",
         type: "villa",
         region_1: "宜蘭縣",
@@ -42,21 +45,21 @@ vi.mock("@/integrations/supabase/client", () => {
     ],
     room_types: [
       {
-        id: RT_ID,
+        id: IDS.RT_ID,
         name: "四人房",
         description: null,
         base_price: 5000,
         capacity: 4,
         size_sqm: 20,
         room_count: 2,
-        accommodation_id: ACC_ID,
+        accommodation_id: IDS.ACC_ID,
         display_order: 1,
       },
     ],
     accommodation_packages: [
       {
-        id: PKG_ID,
-        accommodation_id: ACC_ID,
+        id: IDS.PKG_ID,
+        accommodation_id: IDS.ACC_ID,
         name: "全包棟一泊二食",
         enabled: true,
         guest_count: 8,
@@ -66,8 +69,8 @@ vi.mock("@/integrations/supabase/client", () => {
         tier_prices: {},
         excluded_date_ranges: [],
         room_allocation: null,
-        primary_room_type_id: RT_ID,
-        room_type_ids: [RT_ID],
+        primary_room_type_id: IDS.RT_ID,
+        room_type_ids: [IDS.RT_ID],
         display_order: 1,
       },
     ],
@@ -103,8 +106,8 @@ vi.mock("@/integrations/supabase/client", () => {
           return Promise.resolve({
             data: {
               translations: {
-                [`accommodation_info.name.${ACC_ID}`]: "Sensan Villa",
-                [`accommodation_packages.name.${PKG_ID}`]: "Whole-house stay with two meals",
+                [`accommodation_info.name.${IDS.ACC_ID}`]: "Sensan Villa",
+                [`accommodation_packages.name.${IDS.PKG_ID}`]: "Whole-house stay with two meals",
               },
             },
             error: null,
