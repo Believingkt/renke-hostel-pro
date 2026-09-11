@@ -134,6 +134,32 @@ vi.mock("@/components/booking-portal/SearchRoomCard", () => ({
     </button>
   ),
 }));
+vi.mock("@/contexts/AccommodationContext", () => ({
+  useAccommodation: () => ({
+    currentAccommodationId: IDS.ACC_ID,
+    setCurrentAccommodationId: () => {},
+    userAccommodations: [],
+    isLoading: false,
+  }),
+}));
+vi.mock("@/hooks/use-accommodation-cache", () => ({
+  DEFAULT_SECTIONS_ORDER: [],
+  useAccommodationCache: () => ({
+    info: null,
+    heroPhotos: [],
+    galleryPhotos: [],
+    secondaryData: null,
+    isLoading: true,
+    error: null,
+    refetch: () => {},
+  }),
+}));
+vi.mock("@/hooks/use-page-analytics", () => ({ usePageAnalytics: () => {} }));
+vi.mock("@/hooks/use-accommodation-packages", async (orig) => {
+  const actual = (await orig()) as any;
+  return { ...actual, useAccommodationPackages: () => ({ packages: [], loading: false }) };
+});
+
 vi.mock("@/lib/frontendUrl", () => ({
   openFrontendBooking: (arg: any) => state.bookingCalls.push(arg),
 }));
