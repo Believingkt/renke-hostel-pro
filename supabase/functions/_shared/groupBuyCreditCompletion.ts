@@ -275,6 +275,8 @@ export async function completeGroupBuyCreditOrder(
       ok: true,
       alreadyConverted: true,
       orderId: draft.converted_order_id,
+      // TECH DEBT: orderNumberOf() 回傳 string | null，與 CompleteResult.orderNumber?: string 型別不符（TS2322，既有問題，非本次引入）。
+      // 待整理：改為 orderNumber?: string | null 或在此處 ?? undefined。行為不受影響（呼叫端已容忍 null）。
       orderNumber: await orderNumberOf(admin, draft.converted_order_id),
     };
   }
