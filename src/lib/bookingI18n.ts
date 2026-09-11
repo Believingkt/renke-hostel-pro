@@ -274,7 +274,49 @@ const en: Record<BookingI18nKey, string> = {
 
   "booking.villa.searchSheet.decrease": "Decrease",
   "booking.villa.searchSheet.increase": "Increase",
+
+  "booking.payment.loading.title": "Confirming your payment…",
+  "booking.payment.loading.desc": "Please wait while we verify the transaction with your bank.",
+  "booking.payment.creating.title": "Payment successful!",
+  "booking.payment.creating.desc": "Creating your booking, please wait…",
+  "booking.payment.booking.title": "Booking confirmed!",
+  "booking.payment.booking.desc": "Thank you for your reservation. We look forward to welcoming you.",
+  "booking.payment.booking.emailSent": "A confirmation email has been sent to your inbox.",
+  "booking.payment.field.orderNumber": "Order number",
+  "booking.payment.field.roomType": "Room type: ",
+  "booking.payment.field.checkIn": "Check-in: ",
+  "booking.payment.field.checkOut": "Check-out: ",
+  "booking.payment.field.nights": "{nights} night(s)",
+  "booking.payment.field.paidAmount": "Amount paid",
+  "booking.payment.field.amount": "Payment amount",
+  "booking.payment.field.transactionId": "Transaction ID",
+  "booking.payment.field.authCode": "Auth code",
+  "booking.payment.success.title": "Payment successful!",
+  "booking.payment.success.desc.admin": "The order has been paid and its payment status is updated.",
+  "booking.payment.success.desc.general": "Your payment is complete. Thank you for your order.",
+  "booking.payment.failed.title": "Payment not completed",
+  "booking.payment.failed.desc": "Your payment could not be completed.",
+  "booking.payment.error.title": "Something went wrong",
+  "booking.payment.error.desc": "We could not confirm the payment status.",
+  "booking.payment.error.contact":
+    "If you have already paid, please contact our team to confirm your order.",
+  "booking.payment.action.home": "Back to home",
+  "booking.payment.action.retryPayment": "Pay again",
+  "booking.payment.action.retry": "Try again",
+  "booking.payment.action.orders": "Back to order management",
+  "booking.payment.msg.missingRecTradeId":
+    "Transaction ID is missing, so the payment result cannot be checked.",
+  "booking.payment.msg.verifyFailed": "Payment verification failed.",
+  "booking.payment.msg.queryError": "An error occurred while checking the transaction status.",
+  "booking.payment.msg.orderCreateFailed": "Order creation failed.",
+  "booking.payment.msg.paidButOrderFailed":
+    "Payment succeeded but the order could not be created. Please contact our team.",
+  "booking.payment.msg.groupBuyConfirmFailed":
+    "We could not confirm the payment result. Please check the order lookup page or contact our team.",
+  "booking.payment.msg.groupBuyNetworkFailed":
+    "Unable to confirm the payment result. Please check the order lookup page later or contact our team.",
 };
+
 
 const DICTS: Record<BookingLang, Record<string, string>> = {
   "zh-TW": zh as unknown as Record<string, string>,
