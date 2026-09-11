@@ -151,9 +151,6 @@ Deno.serve(async (req) => {
       // 信用卡全額付款一律不得回傳匯款資訊
       bank: null,
       paymentDeadlineText: null,
-      // 保留原始資料供後續非信用卡情境（目前一律 null）
-      _bankUnused: bankToInfo(bankRow) ? true : false,
-      _deadlineUnused: deadline ? formatTaipei(deadline) : null,
     });
   } catch (e) {
     console.error(`[${FN}] error`, e);

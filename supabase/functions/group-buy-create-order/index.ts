@@ -130,15 +130,12 @@ Deno.serve(async (req) => {
     const balance = plan.balance;
     const guestEmail = plan.input.guestEmail;
 
-    // 匯款帳戶 + 通知信
-    const { data: bankRow } = isAtm ? { data: null } : await admin
-      .from("group_buy_bank_accounts")
-      .select("*")
-      .eq("campaign_id", campaign.id)
-      .order("is_default", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // 匯款帳戶 + 通知信（判定收斂到共用函式；ATM 訂單此時尚未配發虛擬帳號，走 fallback 文案）
+    const paymentDisplay = await resolveGroupBuyPaymentDisplay(
+      admin,
+      { ...order, payment_method: isAtm ? "atm" : order.payment_method },
+      campaign.id,
+    );
 
     const { data: acc } = await admin
       .from("accommodation_info")
