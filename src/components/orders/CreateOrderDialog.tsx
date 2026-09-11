@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { usePackageBreakdown, defaultCountsFromBreakdown } from "@/hooks/use-package-breakdown";
 import { saveOrderAllocations } from "@/lib/amenityAllocation";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -294,17 +295,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   // Phase 3: 每個包棟方案各自的房間組成（從 room_types.package_contents 讀取）。
-  // breakdownByPackage[包棟房型 id] = [{ room_type_id: 自訂房間 id, name, count }, ...]
-  type BreakdownItem = { room_type_id: string; name: string; count: number };
-  const [breakdownByPackage, setBreakdownByPackage] = useState<Record<string, BreakdownItem[]>>({});
-  const getPackageBreakdown = useCallback(
-    (pkgRoomTypeId?: string | null): BreakdownItem[] | null => {
-      if (!pkgRoomTypeId) return null;
-      const arr = breakdownByPackage[pkgRoomTypeId];
-      return arr && arr.length > 0 ? arr : null;
-    },
-    [breakdownByPackage],
+  // 與編輯訂單頁共用 usePackageBreakdown；含動態補查（新加一列或切到集合外的房型）。
+  const exclusiveRoomTypeIds = useMemo(
+    () => roomTypes.filter(r => r.is_exclusive_package).map(r => r.id),
+    [roomTypes],
   );
+  const { getBreakdown: getPackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
@@ -510,31 +506,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // Phase 3: 每個包棟方案各自從 room_types.package_contents 讀取房間組成
-      const exclusivePkgs = (roomTypesResult.data || []).filter((r: any) => r.is_exclusive_package);
-      if (exclusivePkgs.length > 0) {
-        const { data: pkgRows } = await supabase
-          .from("room_types")
-          .select("id, package_contents")
-          .in("id", exclusivePkgs.map((r: any) => r.id));
-        const map: Record<string, BreakdownItem[]> = {};
-        for (const row of (pkgRows || []) as any[]) {
-          const contents = Array.isArray(row.package_contents) ? row.package_contents : [];
-          const normalized: BreakdownItem[] = contents
-            .map((it: any) => {
-              const key = it?.id;
-              const name = it?.name;
-              const count = Number(it?.count) || 0;
-              if (!key || !name || count <= 0) return null;
-              return { room_type_id: String(key), name: String(name), count };
-            })
-            .filter(Boolean) as BreakdownItem[];
-          if (normalized.length > 0) map[row.id] = normalized;
-        }
-        setBreakdownByPackage(map);
-      } else {
-        setBreakdownByPackage({});
-      }
     };
 
     fetchData();

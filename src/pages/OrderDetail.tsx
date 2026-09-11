@@ -41,6 +41,7 @@ import { resolveTemplateId } from "@/lib/resolveTemplateId";
 import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { useToast } from "@/hooks/use-toast";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { usePackageBreakdown, defaultCountsByNameFromBreakdown, normalizePackageContents } from "@/hooks/use-package-breakdown";
 import { formatSecondary } from "@/lib/currency";
 import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
@@ -439,18 +440,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const exclusiveLabel = isSensan ? "包區" : "包棟";
   const [roomUnits, setRoomUnits] = useState<RoomUnitOption[]>([]);
   // DB-driven 包棟組成（HQ 房型與包棟設定）。沒設定 → fallback 舊三家 hardcoded。
-  const [customBreakdown, setCustomBreakdown] = useState<Array<{ name: string; count: number }> | null>(null);
-  const breakdownItems = useMemo<Array<{ name: string; max: number }>>(() => {
-    if (customBreakdown && customBreakdown.length > 0) {
-      return customBreakdown.map(b => ({ name: b.name, max: b.count }));
-    }
+  // 每一筆包棟房間各自依自己的 room_type_id 取組成，不再整頁共用第一筆。
+  const fallbackBreakdownItems = useMemo<Array<{ name: string; max: number }>>(() => {
     const maxDouble = isHakuna ? 2 : isOlivia ? 8 : 3;
     const maxQuad = isHakuna ? 4 : isOlivia ? 1 : 3;
     return [
       { name: "雙人房", max: maxDouble },
       { name: "四人房", max: maxQuad },
     ];
-  }, [customBreakdown, isHakuna, isOlivia]);
+  }, [isHakuna, isOlivia]);
   const [depositRatioRef] = useState<{ current: number }>({ current: 0 });
   const [originalDiscountCode] = useState<{ current: string }>({ current: "" });
   const [initialEditSnapshot] = useState<{ current: { rooms: any[]; exclusiveConfigs: Array<Record<string, number>> } }>({ current: { rooms: [], exclusiveConfigs: [] } });
@@ -473,37 +471,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     })();
   }, [order?.accommodation_id]);
 
-  // Load 包棟方案的內含房間清單（room_types.package_contents）
-  // 優先用編輯中的包棟房型；否則 fallback 訂單原本的 room_type_id
-  const exclusiveRoomTypeId = useMemo(() => {
-    const editExclusive = editOrderRooms.find(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package);
-    if (editExclusive) return editExclusive.room_type_id;
-    return order?.room_type_id || null;
-  }, [editOrderRooms, roomTypes, order?.room_type_id]);
-
-  useEffect(() => {
-    if (!exclusiveRoomTypeId) {
-      setCustomBreakdown(null);
-      return;
-    }
-    (async () => {
-      const { data } = await supabase
-        .from("room_types")
-        .select("package_contents, is_exclusive_package")
-        .eq("id", exclusiveRoomTypeId)
-        .maybeSingle();
-      const items = (data as any)?.package_contents;
-      if (Array.isArray(items) && items.length > 0) {
-        setCustomBreakdown(
-          items
-            .map((it: any) => ({ name: String(it.name || ""), count: Number(it.count) || 0 }))
-            .filter((it: { name: string; count: number }) => it.name && it.count > 0),
-        );
-      } else {
-        setCustomBreakdown(null);
-      }
-    })();
-  }, [exclusiveRoomTypeId]);
   const getRoomUnitPrice = useCallback((roomPrice: number, quantity: number) => {
     return quantity > 0 ? Math.round(roomPrice / quantity) : roomPrice;
   }, []);
@@ -611,6 +578,68 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     addon_note: "",
     extra_addon_amount: 0,
   });
+
+  // Load 包棟方案的內含房間清單（room_types.package_contents）
+  // 每一筆編輯中的包棟房間各自查自己的房型；另含訂單原本／編輯中的 room_type_id（單房型畫面用）。
+  const breakdownRoomTypeIds = useMemo(() => {
+    const ids = editOrderRooms
+      .filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)
+      .map(r => r.room_type_id);
+    if (order?.room_type_id) ids.push(order.room_type_id);
+    if (editForm.room_type_id) ids.push(editForm.room_type_id);
+    return ids;
+  }, [editOrderRooms, roomTypes, order?.room_type_id, editForm.room_type_id]);
+
+  const { getBreakdown } = usePackageBreakdown(breakdownRoomTypeIds);
+
+  /** 取得「某一筆房間」該顯示的組成欄位（有 DB 設定用 DB，否則 fallback 舊三家 hardcoded） */
+  const getBreakdownItemsFor = useCallback(
+    (roomTypeId?: string | null): Array<{ name: string; max: number }> => {
+      const items = getBreakdown(roomTypeId);
+      if (items && items.length > 0) return items.map(b => ({ name: b.name, max: b.count }));
+      return fallbackBreakdownItems;
+    },
+    [getBreakdown, fallbackBreakdownItems],
+  );
+  /** 訂單標題區（單一房型畫面）的組成欄位：依編輯中的 room_type_id */
+  const headerBreakdownItems = useMemo(
+    () => getBreakdownItemsFor(editForm.room_type_id),
+    [getBreakdownItemsFor, editForm.room_type_id],
+  );
+
+  /**
+   * 「換成新包棟房型」當下帶入該房型 package_contents 的預設間數。
+   * 只在切換房型這一次動作呼叫；初次開啟訂單沿用備註既有數值，之後渲染也不會覆蓋手動值。
+   */
+  const applyExclusiveDefaultsOnRoomTypeChange = useCallback(
+    async (roomsAfterChange: Array<{ id: string; room_type_id: string }>, rowId: string, newRoomTypeId: string) => {
+      const rt = roomTypes.find(t => t.id === newRoomTypeId);
+      if (!rt?.is_exclusive_package) return;
+      const exclusiveIds = roomsAfterChange
+        .filter(r => roomTypes.find(t => t.id === r.room_type_id)?.is_exclusive_package)
+        .map(r => r.id);
+      const idx = exclusiveIds.indexOf(rowId);
+      if (idx < 0) return;
+      let items = getBreakdown(newRoomTypeId);
+      if (!items) {
+        const { data } = await supabase
+          .from("room_types")
+          .select("package_contents")
+          .eq("id", newRoomTypeId)
+          .maybeSingle();
+        const normalized = normalizePackageContents((data as any)?.package_contents);
+        items = normalized.length > 0 ? normalized : null;
+      }
+      const defaults = items ? defaultCountsByNameFromBreakdown(items) : {};
+      setEditExclusiveConfigs(prev => {
+        const next = [...prev];
+        while (next.length <= idx) next.push({});
+        next[idx] = defaults;
+        return next;
+      });
+    },
+    [roomTypes, getBreakdown],
+  );
   // Sync amount refs for the currency-toggle guard defined above
   useEffect(() => {
     editFormAmountsRef.current = {
@@ -1043,7 +1072,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       packageId: (editForm as any).package_id ?? (order as any).package_id ?? null,
       packageIds: [
         (editForm as any).package_id ?? (order as any).package_id ?? null,
-        exclusiveRoomTypeId,
+        order?.room_type_id ?? null,
         ...editOrderRooms
           .filter((r) => roomTypes.find((t) => t.id === r.room_type_id)?.is_exclusive_package)
           .map((r) => r.room_type_id),
@@ -1102,7 +1131,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       if (exclusiveRows.length > 0) {
         const pkgLines = exclusiveRows.map((_, i) => {
           const cfg = editExclusiveConfigs[i] || {};
-          const parts = breakdownItems
+          const parts = getBreakdownItemsFor(exclusiveRows[i]?.room_type_id)
             .map(b => ({ name: b.name, n: Number(cfg[b.name]) || 0 }))
             .filter(p => p.n > 0)
             .map(p => `${p.name} ${p.n} 間`);
@@ -2642,6 +2671,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                           const exclusiveIdx = isThisExclusive ? exclusiveIds.indexOf(or.id) : -1;
                           const showExclusiveConfig = isThisExclusive;
                           const cfg: Record<string, number> = exclusiveIdx >= 0 ? (editExclusiveConfigs[exclusiveIdx] || {}) : {};
+                          // 每一筆房間依自己的房型取組成欄位（種類＋上限），不共用第一筆
+                          const rowBreakdownItems = getBreakdownItemsFor(or.room_type_id);
                           return (
                           <div key={or.id} className="space-y-2">
                           <div className="p-2.5 rounded-lg border bg-muted/30 space-y-2">
@@ -2663,9 +2694,14 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                 <Select
                                   value={or.room_type_id}
                                   onValueChange={async (v) => {
+                                    const changed = v !== or.room_type_id;
                                     const selectedRoomType = roomTypes.find(rt => rt.id === v);
                                     if (!selectedRoomType) {
-                                      setEditOrderRooms(prev => prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r));
+                                      setEditOrderRooms(prev => {
+                                        const next = prev.map(r => r.id === or.id ? { ...r, room_type_id: v } : r);
+                                        if (changed) void applyExclusiveDefaultsOnRoomTypeChange(next, or.id, v);
+                                        return next;
+                                      });
                                       return;
                                     }
                                     // 1) 先依「日期 + 方案」算單間總額
@@ -2681,12 +2717,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                       unitPrice = getSuggestedRoomUnitPrice(v, or.id) || selectedRoomType.base_price;
                                       roomTotal = unitPrice * or.quantity;
                                     }
-                                    setEditOrderRooms(prev => prev.map(r => r.id === or.id ? {
-                                      ...r,
-                                      room_type_id: v,
-                                      unit_price: unitPrice,
-                                      room_price: roomTotal,
-                                    } : r));
+                                    setEditOrderRooms(prev => {
+                                      const next = prev.map(r => r.id === or.id ? {
+                                        ...r,
+                                        room_type_id: v,
+                                        unit_price: unitPrice,
+                                        room_price: roomTotal,
+                                      } : r);
+                                      // 換成新房型當下才帶入該房型的預設組成間數
+                                      if (changed) void applyExclusiveDefaultsOnRoomTypeChange(next, or.id, v);
+                                      return next;
+                                    });
                                   }}
                                 >
                                   <SelectTrigger className="h-8 text-xs">
@@ -2895,8 +2936,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                           {showExclusiveConfig && (
                             <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
                               <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
-                              <div className={`grid gap-2 ${breakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
-                                {breakdownItems.map(b => {
+                              <div className={`grid gap-2 ${rowBreakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                                {rowBreakdownItems.map(b => {
                                   const val = Number(cfg[b.name]) || 0;
                                   const opts = Array.from({ length: b.max + 1 }, (_, i) => i);
                                   return (
@@ -2915,7 +2956,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                 })}
                               </div>
                               <p className="text-xs text-muted-foreground">
-                                將以備註形式儲存：{breakdownItems.map(b => `${b.name} ${Number(cfg[b.name]) || 0} 間`).join("、")}
+                                將以備註形式儲存：{rowBreakdownItems.map(b => `${b.name} ${Number(cfg[b.name]) || 0} 間`).join("、")}
                               </p>
                             </div>
                           )}
@@ -2976,12 +3017,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <Select
                       value={editForm.room_type_id}
                       onValueChange={async (v) => {
+                        const changed = v !== editForm.room_type_id;
                         setEditForm(f => ({ ...f, room_type_id: v }));
                         // 同步建立一筆 editOrderRooms，切換到新版 UI（含棟號/房號選擇）
                         const selectedRoomType = roomTypes.find(rt => rt.id === v);
                         const dateBasedTotal = await computeRoomTotalByDates(v, null);
                         const unitPrice = dateBasedTotal || getSuggestedRoomUnitPrice(v) || (selectedRoomType?.base_price ?? 0);
-                        setEditOrderRooms([{
+                        const syntheticRows = [{
                           id: `synthetic-${order.id}`,
                           room_type_id: v,
                           quantity: 1,
@@ -2990,7 +3032,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                           template_id: null,
                           template_name: null,
                           room_unit_id: null,
-                        }]);
+                        }];
+                        setEditOrderRooms(syntheticRows);
+                        // 換成新房型當下才帶入該房型的預設組成間數
+                        if (changed) void applyExclusiveDefaultsOnRoomTypeChange(syntheticRows, `synthetic-${order.id}`, v);
                       }}
                     >
                       <SelectTrigger className="w-[200px] h-10 text-sm md:h-8 md:text-xs">
@@ -3013,8 +3058,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     <Separator />
                     <div className="p-3 rounded-lg border border-dashed bg-muted/20 space-y-2">
                       <div className="text-sm font-medium">{exclusiveLabel}房間配置</div>
-                      <div className={`grid gap-2 ${breakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
-                        {breakdownItems.map(b => {
+                      <div className={`grid gap-2 ${headerBreakdownItems.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                        {headerBreakdownItems.map(b => {
                           const cfg0 = editExclusiveConfigs[0] || {};
                           const val = Number(cfg0[b.name]) || 0;
                           const opts = Array.from({ length: b.max + 1 }, (_, i) => i);
@@ -3034,7 +3079,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                         })}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        將以備註形式儲存：{breakdownItems.map(b => `${b.name} ${Number((editExclusiveConfigs[0] || {})[b.name]) || 0} 間`).join("、")}
+                        將以備註形式儲存：{headerBreakdownItems.map(b => `${b.name} ${Number((editExclusiveConfigs[0] || {})[b.name]) || 0} 間`).join("、")}
                       </p>
                     </div>
                   </>
