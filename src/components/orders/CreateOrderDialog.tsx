@@ -748,11 +748,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return updated;
     }));
     if (pendingDefaults) {
-      const { idx, counts } = pendingDefaults;
-      if (idx === 0) setExclusiveCustomCounts(counts);
-      else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+      const { idx, isExclusive } = pendingDefaults as { idx: number; isExclusive: boolean };
+      const targetRoomTypeId = updates.room_type_id!;
+      if (!isExclusive) {
+        if (idx === 0) setExclusiveCustomCounts({});
+        else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: {} }));
+      } else {
+        // 快取沒有就當場補查，確保「換到集合外的新房型」也能立刻帶入預設間數
+        void ensurePackageBreakdown(targetRoomTypeId).then((items) => {
+          const counts = defaultCountsFromBreakdown(items);
+          if (idx === 0) setExclusiveCustomCounts(counts);
+          else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+        });
+      }
     }
-  }, [getTemplatesForRoomType, roomTypes, getPackageBreakdown]);
+  }, [getTemplatesForRoomType, roomTypes, ensurePackageBreakdown]);
+
 
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
