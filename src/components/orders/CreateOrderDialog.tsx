@@ -728,6 +728,13 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (newRt?.is_exclusive_package) updated.quantity = 1;
         // 換房型時清掉房號選擇
         updated.room_unit_id = null;
+        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數；
+        // 之後的渲染／其他欄位變動不會覆蓋客服手動改過的值。
+        const defaults = newRt?.is_exclusive_package
+          ? defaultCountsFromBreakdown(getPackageBreakdown(updates.room_type_id))
+          : {};
+        if (idx === 0) setExclusiveCustomCounts(defaults);
+        else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: defaults }));
       }
       return updated;
     }));
