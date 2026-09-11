@@ -14,8 +14,13 @@ import {
   exceedsAtmDeadlineLimit,
   providerExpireDays,
 } from "../_shared/groupBuyAtmDeadline.ts";
+import { buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
+import { renderBookingWithBankInfo, sendGroupBuyEmail } from "../_shared/groupBuyEmail.ts";
 
 const FN = "group-buy-start-payment";
+
+/** 虛擬帳號配發後的通知信 template_type（冪等判定 key） */
+const ATM_VA_CREATED_TEMPLATE = "atm_va_created";
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -288,6 +293,71 @@ Deno.serve(async (req) => {
         actor_label: "system",
         note: `provider:tappay／payment_type:atm／已開立虛擬帳號 ${result.bankCode ?? ""}-${result.vaccNo}／provider 到期 ${result.expireAt}／付款期限 ${localDeadlineIso}`,
       });
+    }
+
+    /**
+     * ── 6) 虛擬帳號配發後補寄通知（帳號補齊信）──
+     * 建單當下那封 booking_pending 尚無虛擬帳號，故配發成功後補寄一封含帳號的信。
+     * 冪等 SoT = group_buy_payment_events：已有 email_sent + template_type:atm_va_created 即不再寄。
+     * 另加一道本流程專屬前置閘：reused === true（沿用既有帳號）一律不寄。
+     * 寄信失敗只記 email_failed，不影響開立虛擬帳號主流程。
+     */
+    if (!result.reused) {
+      try {
+        const { data: sentEvent } = await admin
+          .from("group_buy_payment_events")
+          .select("id")
+          .eq("order_id", order.id)
+          .eq("event_type", "email_sent")
+          .ilike("note", `%template_type:${ATM_VA_CREATED_TEMPLATE}%`)
+          .maybeSingle();
+
+        if (!sentEvent) {
+          const { data: fullOrder } = await admin
+            .from("orders")
+            .select("*")
+            .eq("id", order.id)
+            .maybeSingle();
+          if (fullOrder?.guest_email) {
+            const { data: acc } = fullOrder.accommodation_id
+              ? await admin
+                .from("accommodation_info")
+                .select("name")
+                .eq("id", fullOrder.accommodation_id)
+                .maybeSingle()
+              : { data: null as any };
+
+            const emailOrder = buildEmailOrder({
+              order: fullOrder,
+              campaign,
+              accommodationName: (acc as any)?.name ?? null,
+            });
+            const mail = await sendGroupBuyEmail(
+              fullOrder.guest_email,
+              renderBookingWithBankInfo(emailOrder, null, {
+                bankCode: result.bankCode ?? null,
+                vaccNo: String(result.vaccNo),
+                expireText: localDeadlineIso ? formatTaipei(new Date(localDeadlineIso)) : null,
+                amount: dueAmount,
+              }),
+            );
+
+            await admin.from("group_buy_payment_events").insert({
+              campaign_id: campaign.id,
+              order_id: order.id,
+              event_type: mail.ok ? "email_sent" : "email_failed",
+              actor_label: "system",
+              note: mail.ok
+                ? `recipient_type:guest／template_type:${ATM_VA_CREATED_TEMPLATE}／recipient_count:1／虛擬帳號通知信已寄出`
+                : `recipient_type:guest／template_type:${ATM_VA_CREATED_TEMPLATE}／虛擬帳號通知信寄送失敗：${
+                  mail.reason ?? "unknown"
+                }`,
+            });
+          }
+        }
+      } catch (mailErr) {
+        console.error(`[${FN}] atm va created email threw`, mailErr);
+      }
     }
 
     return json({
