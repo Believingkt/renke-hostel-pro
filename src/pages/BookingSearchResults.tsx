@@ -829,7 +829,19 @@ const BookingSearchResultsInner = () => {
     };
     for (const c of filtered) {
       push("accommodation_packages", "name", c.id, c.name);
-      push("accommodation_info", "name", c.accommodation_id, c.accommodation_name);
+      push("accommodation_packages", "room_allocation", c.id, c.room_allocation ?? null);
+      const acc = c.accommodation_id;
+      push("accommodation_info", "name", acc, c.accommodation_name);
+      push("accommodation_info", "type", acc, c.accommodation_type ?? null);
+      push("accommodation_info", "region_1", acc, c.region_1 ?? null);
+      push("accommodation_info", "region_2", acc, c.region_2 ?? null);
+      push("accommodation_info", "country", acc, c.country ?? null);
+      push("accommodation_info", "nearby_station", acc, c.nearby_station ?? null);
+      push("accommodation_info", "review_summary", acc, c.review_summary ?? null);
+      (c.feature_tags ?? []).forEach((tag, i) => {
+        if (FEATURE_TAG_I18N_KEY[tag]) return; // 系統標籤走字典
+        push("accommodation_info", "feature_tags_override", `${acc}:${i}`, tag);
+      });
     }
     return out;
   }, [filtered]);
@@ -847,9 +859,71 @@ const BookingSearchResultsInner = () => {
           id: c.accommodation_id,
           text: c.accommodation_name,
         }),
-        feature_tags: (c.feature_tags ?? []).map((tag) => {
+        accommodation_type: c.accommodation_type
+          ? tf({
+              table: "accommodation_info",
+              column: "type",
+              id: c.accommodation_id,
+              text: c.accommodation_type,
+            })
+          : c.accommodation_type,
+        region_1: c.region_1
+          ? tf({
+              table: "accommodation_info",
+              column: "region_1",
+              id: c.accommodation_id,
+              text: c.region_1,
+            })
+          : c.region_1,
+        region_2: c.region_2
+          ? tf({
+              table: "accommodation_info",
+              column: "region_2",
+              id: c.accommodation_id,
+              text: c.region_2,
+            })
+          : c.region_2,
+        country: c.country
+          ? tf({
+              table: "accommodation_info",
+              column: "country",
+              id: c.accommodation_id,
+              text: c.country,
+            })
+          : c.country,
+        nearby_station: c.nearby_station
+          ? tf({
+              table: "accommodation_info",
+              column: "nearby_station",
+              id: c.accommodation_id,
+              text: c.nearby_station,
+            })
+          : c.nearby_station,
+        review_summary: c.review_summary
+          ? tf({
+              table: "accommodation_info",
+              column: "review_summary",
+              id: c.accommodation_id,
+              text: c.review_summary,
+            })
+          : c.review_summary,
+        room_allocation: c.room_allocation
+          ? tf({
+              table: "accommodation_packages",
+              column: "room_allocation",
+              id: c.id,
+              text: c.room_allocation,
+            })
+          : c.room_allocation,
+        feature_tags: (c.feature_tags ?? []).map((tag, i) => {
           const key = FEATURE_TAG_I18N_KEY[tag];
-          return key ? t(key) || tag : tag;
+          if (key) return t(key) || tag;
+          return tf({
+            table: "accommodation_info",
+            column: "feature_tags_override",
+            id: `${c.accommodation_id}:${i}`,
+            text: tag,
+          });
         }),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
