@@ -94,5 +94,32 @@ export function usePackageBreakdown(roomTypeIds: Array<string | null | undefined
     [map],
   );
 
-  return { breakdownByRoomType: map, getBreakdown };
+  /**
+   * 立即取得某房型的組成：已快取就直接回傳，沒有就當場補查一次並寫回快取。
+   * 供「換房型當下要帶入預設間數」這種等不及 effect 補查的情境使用。
+   */
+  const ensureBreakdown = useCallback(
+    async (roomTypeId?: string | null): Promise<PackageBreakdownItem[] | null> => {
+      if (!roomTypeId) return null;
+      const cached = mapRef.current[roomTypeId];
+      if (cached && cached.length > 0) return cached;
+      if (fetchedRef.current.has(roomTypeId)) return null;
+      const { data } = await supabase
+        .from("room_types")
+        .select("id, package_contents")
+        .eq("id", roomTypeId)
+        .maybeSingle();
+      fetchedRef.current.add(roomTypeId);
+      const items = normalizePackageContents((data as any)?.package_contents);
+      if (items.length > 0) {
+        setMap((prev) => ({ ...prev, [roomTypeId]: items }));
+        return items;
+      }
+      return null;
+    },
+    [],
+  );
+
+  return { breakdownByRoomType: map, getBreakdown, ensureBreakdown };
 }
+
