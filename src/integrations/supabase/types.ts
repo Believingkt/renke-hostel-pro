@@ -12993,6 +12993,42 @@ export type Database = {
         }
         Relationships: []
       }
+      translation_cache: {
+        Row: {
+          created_at: string
+          id: string
+          lang: string
+          source_column: string
+          source_hash: string
+          source_id: string
+          source_table: string
+          translated_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lang: string
+          source_column: string
+          source_hash: string
+          source_id: string
+          source_table: string
+          translated_text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lang?: string
+          source_column?: string
+          source_hash?: string
+          source_id?: string
+          source_table?: string
+          translated_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       traveler_attributes: {
         Row: {
           accommodation_id: string | null
