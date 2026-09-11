@@ -20,14 +20,17 @@ import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import SearchRoomCard, { type SearchRoomCardData } from "@/components/booking-portal/SearchRoomCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
 
-const SORT_LABELS: Record<SortOption, string> = {
-  default: "排序",
-  price_asc: "價格由低到高",
-  price_desc: "價格由高到低",
-  capacity_asc: "人數由少到多",
-  capacity_desc: "人數由多到少",
-};
+const SORT_KEYS: SortOption[] = [
+  "default",
+  "price_asc",
+  "price_desc",
+  "capacity_asc",
+  "capacity_desc",
+];
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
@@ -99,6 +102,20 @@ const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string 
   { test: (n) => /兒童|嬰兒|kids|baby/i.test(n), label: "親子友善" },
 ];
 
+/** 系統自動標籤 → 顯示層字典 key（僅換顯示文字，篩選與資料仍用原標籤） */
+const FEATURE_TAG_I18N_KEY: Record<string, string> = {
+  寵物友善: "booking.search.tag.pet",
+  "BBQ 烤肉": "booking.search.tag.bbq",
+  獨立廚房: "booking.search.tag.kitchen",
+  泳池: "booking.search.tag.pool",
+  "KTV 歡唱": "booking.search.tag.ktv",
+  含早餐: "booking.search.tag.breakfast",
+  免費停車: "booking.search.tag.parking",
+  "免費 WiFi": "booking.search.tag.wifi",
+  桌遊娛樂: "booking.search.tag.boardgame",
+  親子友善: "booking.search.tag.family",
+};
+
 function deriveAutoTags(facilities: FacilityRow[]): string[] {
   const tags = new Set<string>();
   for (const f of facilities) {
@@ -131,9 +148,14 @@ const getTemplatePriceForDate = (
   return asPositive(v);
 };
 
-const BookingSearchResults = () => {
+const BookingSearchResultsInner = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // 顯示層語言（不影響搜尋條件、庫存查詢與價格計算）
+  const { t, dateLocale } = useBookingLocale();
+  const dateFmt = t("booking.search.date.monthDay");
+  const shortFmt = t("booking.search.date.shortRange");
+  const fmtDate = (d: Date, pattern: string) => format(d, pattern, { locale: dateLocale });
 
   // ── 解析 query string ──
   const checkInStr = searchParams.get("checkIn");
@@ -402,8 +424,8 @@ const BookingSearchResults = () => {
         console.error("[BookingSearchResults] 庫存查詢失敗", err);
         setInventoryMap(new Map());
         setClosedAccIds(new Set());
-        toast.error("即時空房資料載入失敗", {
-          description: "請稍後重新查詢；顯示的房況可能不是最新狀態。",
+        toast.error(t("booking.search.toast.inventoryFailed"), {
+          description: t("booking.search.toast.inventoryFailed.desc"),
         });
         return;
       }
@@ -697,9 +719,11 @@ const BookingSearchResults = () => {
         child_extra_fee_total: childExtraTotal > 0 ? childExtraTotal : null,
         child_blocked_reason: childBlockedByLimits
           ? childEval.blockReason ||
-            `兒童人數超過上限（${childEval.blockedTiers
-              .map((k) => childRules.tiers[k].label)
-              .join("、")}）`
+            t("booking.search.child.overLimit", {
+              tiers: childEval.blockedTiers
+                .map((k) => childRules.tiers[k].label)
+                .join(t("booking.search.child.tierSeparator")),
+            })
           : null,
       });
     });
@@ -792,6 +816,122 @@ const BookingSearchResults = () => {
     return r;
   }, [dedupedCards, q, filters, adults]);
 
+  // ── 動態內容（後台維護的中文）顯示層翻譯：英文模式才呼叫，僅換顯示文字 ──
+  const dynamicFields = useMemo<TranslatableField[]>(() => {
+    const out: TranslatableField[] = [];
+    const seen = new Set<string>();
+    const push = (table: string, column: string, id: string, text: string | null) => {
+      if (!text) return;
+      const k = `${table}.${column}.${id}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push({ table, column, id, text });
+    };
+    for (const c of filtered) {
+      push("accommodation_packages", "name", c.id, c.name);
+      push("accommodation_packages", "room_allocation", c.id, c.room_allocation ?? null);
+      const acc = c.accommodation_id;
+      push("accommodation_info", "name", acc, c.accommodation_name);
+      push("accommodation_info", "type", acc, c.accommodation_type ?? null);
+      push("accommodation_info", "region_1", acc, c.region_1 ?? null);
+      push("accommodation_info", "region_2", acc, c.region_2 ?? null);
+      if (c.country && c.country !== "台灣") push("accommodation_info", "country", acc, c.country);
+      push("accommodation_info", "nearby_station", acc, c.nearby_station ?? null);
+      push("accommodation_info", "review_summary", acc, c.review_summary ?? null);
+      (c.feature_tags ?? []).forEach((tag, i) => {
+        if (FEATURE_TAG_I18N_KEY[tag]) return; // 系統標籤走字典
+        push("accommodation_info", "feature_tags_override", `${acc}:${i}`, tag);
+      });
+    }
+    return out;
+  }, [filtered]);
+
+  const { tf } = useTranslatedFields(dynamicFields);
+
+  const displayCards = useMemo<SearchRoomCardData[]>(
+    () =>
+      filtered.map((c) => ({
+        ...c,
+        name: tf({ table: "accommodation_packages", column: "name", id: c.id, text: c.name }),
+        accommodation_name: tf({
+          table: "accommodation_info",
+          column: "name",
+          id: c.accommodation_id,
+          text: c.accommodation_name,
+        }),
+        accommodation_type: c.accommodation_type
+          ? tf({
+              table: "accommodation_info",
+              column: "type",
+              id: c.accommodation_id,
+              text: c.accommodation_type,
+            })
+          : c.accommodation_type,
+        region_1: c.region_1
+          ? tf({
+              table: "accommodation_info",
+              column: "region_1",
+              id: c.accommodation_id,
+              text: c.region_1,
+            })
+          : c.region_1,
+        region_2: c.region_2
+          ? tf({
+              table: "accommodation_info",
+              column: "region_2",
+              id: c.accommodation_id,
+              text: c.region_2,
+            })
+          : c.region_2,
+        // 「台灣」不翻譯：卡片以此值判斷是否顯示國別，翻譯後會多出國名
+        country:
+          c.country && c.country !== "台灣"
+          ? tf({
+              table: "accommodation_info",
+              column: "country",
+              id: c.accommodation_id,
+              text: c.country,
+            })
+          : c.country,
+        nearby_station: c.nearby_station
+          ? tf({
+              table: "accommodation_info",
+              column: "nearby_station",
+              id: c.accommodation_id,
+              text: c.nearby_station,
+            })
+          : c.nearby_station,
+        review_summary: c.review_summary
+          ? tf({
+              table: "accommodation_info",
+              column: "review_summary",
+              id: c.accommodation_id,
+              text: c.review_summary,
+            })
+          : c.review_summary,
+        room_allocation: c.room_allocation
+          ? tf({
+              table: "accommodation_packages",
+              column: "room_allocation",
+              id: c.id,
+              text: c.room_allocation,
+            })
+          : c.room_allocation,
+        feature_tags: (c.feature_tags ?? []).map((tag, i) => {
+          const key = FEATURE_TAG_I18N_KEY[tag];
+          if (key) return t(key) || tag;
+          return tf({
+            table: "accommodation_info",
+            column: "feature_tags_override",
+            id: `${c.accommodation_id}:${i}`,
+            text: tag,
+          });
+        }),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, tf, t],
+  );
+
   /**
    * 條件式右上角標籤：
    *  - friday：入住日為週五 → 週五專屬禮遇
@@ -833,14 +973,25 @@ const BookingSearchResults = () => {
   const summary = useMemo(() => {
     const parts: string[] = [];
     if (checkIn && checkOut) {
-      parts.push(`${format(checkIn, "M/d")} – ${format(checkOut, "M/d")} · ${nights} 晚`);
+      parts.push(
+        t("booking.search.summary.date", {
+          from: fmtDate(checkIn, shortFmt),
+          to: fmtDate(checkOut, shortFmt),
+          nights,
+        }),
+      );
     }
     if (adults || childrenCount || infantsCount || toddlersCount) {
       const childTotal = childrenCount + infantsCount + toddlersCount;
-      parts.push(`${adults} 位成人${childTotal > 0 ? ` · ${childTotal} 位兒童` : ""}`);
+      parts.push(
+        `${t("booking.search.summary.adults", { count: adults })}${
+          childTotal > 0 ? t("booking.search.summary.children", { count: childTotal }) : ""
+        }`,
+      );
     }
     return parts.join(" · ");
-  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount, t, shortFmt]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -850,13 +1001,14 @@ const BookingSearchResults = () => {
       <header data-site-chrome className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
+            <img src={lokezeLogo} alt={t("booking.search.header.logoAlt")} className="h-20 sm:h-24 object-contain" />
           </Link>
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch compact />
             {isLoggedIn ? (
               <Button variant="ghost" size="sm" onClick={() => navigate("/member/profile")} className="gap-1.5">
                 <User className="h-4 w-4" />
-                {memberName || "會員中心"}
+                {memberName || t("booking.search.header.member")}
               </Button>
             ) : (
               <button
@@ -864,7 +1016,7 @@ const BookingSearchResults = () => {
                 className="flex items-center gap-1.5 text-[hsl(25,80%,50%)] font-semibold text-sm"
               >
                 <LogIn className="h-5 w-5" />
-                登入 / 註冊
+                {t("booking.search.header.login")}
               </button>
             )}
           </div>
@@ -874,15 +1026,16 @@ const BookingSearchResults = () => {
 
       {/* 原生 App：「找房」頁提供 AI 管家找房入口 */}
       {native && (
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 flex items-center gap-2">
           <Button
             variant="outline"
-            className="w-full h-11 justify-start gap-2 border-primary/40 text-foreground"
+            className="flex-1 h-11 justify-start gap-2 border-primary/40 text-foreground"
             onClick={() => navigate("/ai-booking")}
           >
             <MessageCircle className="h-4 w-4 text-primary" />
-            用 AI 管家幫我找房
+            {t("booking.search.ai.entry")}
           </Button>
+          <BookingLanguageSwitch compact />
         </div>
       )}
 
@@ -898,14 +1051,14 @@ const BookingSearchResults = () => {
           >
             <span className="flex items-center gap-1 shrink-0">
               <span className="flex flex-col leading-tight text-sm font-semibold text-foreground">
-                <span>{checkIn ? format(checkIn, "M 月 d 日") : "選擇日期"}</span>
-                <span>{checkOut ? format(checkOut, "M 月 d 日") : "—"}</span>
+                <span>{checkIn ? fmtDate(checkIn, dateFmt) : t("booking.search.bar.pickDate")}</span>
+                <span>{checkOut ? fmtDate(checkOut, dateFmt) : t("booking.search.bar.dateEmpty")}</span>
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </span>
             <span className="w-px bg-border shrink-0" />
             <span className="flex-1 min-w-0 flex items-center text-sm font-medium text-foreground truncate">
-              {q || "全部地區"}
+              {q || t("booking.search.bar.allRegions")}
             </span>
           </button>
         </div>
@@ -916,13 +1069,13 @@ const BookingSearchResults = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9">
                 <ArrowUpDown className="h-4 w-4" />
-                {SORT_LABELS[filters.sortBy]}
+                {t(`booking.search.sort.${filters.sortBy}`)}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="bg-popover z-50">
-              {(Object.keys(SORT_LABELS) as Array<keyof typeof SORT_LABELS>).map((key) => (
+              {SORT_KEYS.map((key) => (
                 <DropdownMenuItem key={key} onSelect={() => setFilters({ ...filters, sortBy: key })}>
-                  {SORT_LABELS[key]}
+                  {t(`booking.search.sort.${key}`)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -935,18 +1088,20 @@ const BookingSearchResults = () => {
             onClick={() => setShowFilters((v) => !v)}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            篩選
+            {t("booking.search.chip.filter")}
           </Button>
 
           <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
             <MapPin className="h-4 w-4" />
-            {q || "位置"}
+            {q || t("booking.search.chip.location")}
           </Button>
 
           <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
             <Users className="h-4 w-4" />
-            {roomsParam ? `${roomsParam} 房 · ` : ""}
-            {adults + childrenCount + infantsCount + toddlersCount} 人
+            {roomsParam ? t("booking.search.chip.rooms", { count: roomsParam }) : ""}
+            {t("booking.search.chip.guests", {
+              count: adults + childrenCount + infantsCount + toddlersCount,
+            })}
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
@@ -974,7 +1129,9 @@ const BookingSearchResults = () => {
             >
               <Sparkles className="h-5 w-5 text-[hsl(25,80%,50%)] shrink-0" />
               <span className="flex-1 font-bold text-foreground text-base">
-                {loading ? "AI 搜尋中…" : `${filtered.length} 間住宿符合您的搜尋`}
+                {loading
+                  ? t("booking.search.ai.searching")
+                  : t("booking.search.ai.matched", { count: filtered.length })}
               </span>
               {aiOpen ? (
                 <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -986,15 +1143,21 @@ const BookingSearchResults = () => {
               <div className="px-4 pb-4 space-y-1.5 text-sm text-foreground/80 leading-relaxed">
                 {aiNote && <p>{aiNote}</p>}
                 <p>
-                  您的搜尋：
-                  {aiQuery ? `${aiQuery}，` : ""}
+                  {t("booking.search.ai.yourSearch")}
+                  {aiQuery ? t("booking.search.ai.queryPart", { query: aiQuery }) : ""}
                   {checkIn && checkOut
-                    ? `${format(checkIn, "M 月 d 日")} – ${format(checkOut, "M 月 d 日")}（${nights} 晚），`
+                    ? t("booking.search.ai.datePart", {
+                        from: fmtDate(checkIn, dateFmt),
+                        to: fmtDate(checkOut, dateFmt),
+                        nights,
+                      })
                     : ""}
-                  {roomsParam ? `${roomsParam} 房，` : ""}
-                  {adults} 位成人
+                  {roomsParam ? t("booking.search.ai.roomsPart", { count: roomsParam }) : ""}
+                  {t("booking.search.ai.adultsPart", { count: adults })}
                   {childrenCount + infantsCount + toddlersCount > 0
-                    ? `、${childrenCount + infantsCount + toddlersCount} 位兒童`
+                    ? t("booking.search.ai.childrenPart", {
+                        count: childrenCount + infantsCount + toddlersCount,
+                      })
                     : ""}
                 </p>
               </div>
@@ -1003,7 +1166,9 @@ const BookingSearchResults = () => {
         )}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h1 className="text-lg sm:text-xl font-bold text-foreground">
-            找到 {loading ? "…" : filtered.length} 個房型
+            {t("booking.search.results.count", {
+              count: loading ? t("booking.search.results.loading") : filtered.length,
+            })}
           </h1>
         </div>
 
@@ -1011,15 +1176,15 @@ const BookingSearchResults = () => {
         {loading ? null : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">沒有符合條件的房型</p>
-            <p className="text-sm mt-1">調整日期、人數或篩選條件再試一次</p>
+            <p className="text-lg">{t("booking.search.empty.title")}</p>
+            <p className="text-sm mt-1">{t("booking.search.empty.desc")}</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/booking")}>
-              重新搜尋
+              {t("booking.search.empty.action")}
             </Button>
           </div>
         ) : (
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((card) => (
+            {displayCards.map((card) => (
               <SearchRoomCard
                 key={card.id}
                 data={card}
@@ -1038,7 +1203,7 @@ const BookingSearchResults = () => {
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent side="top" className="p-0 max-h-[95vh] overflow-y-auto">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle className="text-left">修改搜尋條件</SheetTitle>
+            <SheetTitle className="text-left">{t("booking.search.sheet.title")}</SheetTitle>
           </SheetHeader>
           <div className="px-3 pb-4">
             <PortalSearchBar
@@ -1068,5 +1233,11 @@ const BookingSearchResults = () => {
 
   );
 };
+
+const BookingSearchResults = () => (
+  <BookingLocaleProvider>
+    <BookingSearchResultsInner />
+  </BookingLocaleProvider>
+);
 
 export default BookingSearchResults;

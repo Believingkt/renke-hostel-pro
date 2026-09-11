@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Users, BedDouble, Maximize2, TrainFront, Star, DoorOpen, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -62,6 +63,8 @@ interface Props {
 }
 
 const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
+  // 顯示層語言（無 Provider 時安全回退中文；不影響任何資料或點擊行為）
+  const { t } = useBookingLocale();
   const location =
     data.country === "台灣" || !data.country
       ? [data.region_1, data.region_2].filter(Boolean).join(" · ")
@@ -201,7 +204,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
           <>
             <div
               role="button"
-              aria-label="上一張"
+              aria-label={t("booking.search.card.prevPhoto")}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -223,7 +226,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
             </div>
             <div
               role="button"
-              aria-label="下一張"
+              aria-label={t("booking.search.card.nextPhoto")}
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -259,19 +262,19 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
         {/* 右上：售完 / 條件式促銷標籤 / 剩餘房間 */}
         {data.sold_out ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-medium border-none bg-foreground/70 text-white pointer-events-none">
-            已售完
+            {t("booking.search.card.soldOut")}
           </Badge>
         ) : promoTag === "friday" || promoTag === "sunday" ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none text-white pointer-events-none bg-[#A98467]">
-            {promoTag === "friday" ? "週五專屬禮遇" : "週日專屬禮遇"}
+            {promoTag === "friday" ? t("booking.search.card.promo.friday") : t("booking.search.card.promo.sunday")}
           </Badge>
         ) : promoTag === "hot" ? (
           <Badge className="absolute top-3 right-3 text-[11px] font-bold border-none pointer-events-none bg-[#FDF6F5] text-[#C25953]">
-            熱門檔期
+            {t("booking.search.card.promo.hot")}
           </Badge>
         ) : data.available_rooms !== null && data.available_rooms <= 2 ? (
           <Badge className="absolute top-3 right-3 rounded-md text-xs font-semibold border border-white/5 shadow-lg shadow-black/20 pointer-events-none bg-[#064E3B] text-[#FDFCF0]">
-            全棟獨享
+            {t("booking.search.card.wholeHouse")}
           </Badge>
         ) : null}
 
@@ -342,7 +345,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
                   <>
                     {data.name}
                     {data.room_count ? (
-                      <span className="opacity-80"> · 共 {data.room_count} 間</span>
+                      <span className="opacity-80">{t("booking.search.card.roomCount", { count: data.room_count })}</span>
                     ) : null}
                   </>
                 )}
@@ -389,7 +392,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
           {/* 右欄：價格區 */}
           <div className="text-right shrink-0">
             {data.sold_out || data.nightly_price == null ? (
-              <p className="text-xs text-muted-foreground">價格電洽</p>
+              <p className="text-xs text-muted-foreground">{t("booking.search.card.priceOnRequest")}</p>
             ) : (
               <>
                 {data.original_total_price &&
@@ -406,7 +409,9 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
                   NT${(data.total_price ?? data.nightly_price).toLocaleString()}
                 </p>
                 <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
-                  {nights > 0 ? `共 ${nights} 晚` : "每晚"}
+                  {nights > 0
+                    ? t("booking.search.card.totalNights", { nights })
+                    : t("booking.search.card.perNight")}
                   {data.discount_percent ? (
                     <span
                       className="ml-1 inline-block px-1 py-0.5 rounded text-white text-[10px] font-bold"
@@ -418,7 +423,7 @@ const SearchRoomCard = ({ data, nights, onClick, promoTag = null }: Props) => {
                 </p>
                 {data.child_extra_fee_total && data.child_extra_fee_total > 0 ? (
                   <p className="text-[10px] text-[hsl(25,70%,50%)] font-medium leading-none mt-0.5">
-                    含兒童加價 +NT${data.child_extra_fee_total.toLocaleString()}
+                    {t("booking.search.card.childExtra", { amount: data.child_extra_fee_total.toLocaleString() })}
                   </p>
                 ) : null}
               </>

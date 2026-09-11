@@ -14,6 +14,8 @@ import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { useState } from "react";
 import { pushRecentView } from "@/lib/recentViews";
 import { useToast } from "@/hooks/use-toast";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 // Content sections (same as Index page)
 import HeroSection from "@/components/HeroSection";
@@ -33,7 +35,7 @@ import PackagesSection from "@/components/PackagesSection";
 import SalesPackagesList from "@/components/SalesPackagesList";
 import { useAccommodationPackages } from "@/hooks/use-accommodation-packages";
 
-const BookingAccommodation = () => {
+const BookingAccommodationInner = () => {
   const { accId } = useParams<{ accId: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -44,6 +46,8 @@ const BookingAccommodation = () => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const { toast } = useToast();
+  // 顯示層語言（不影響導頁、收藏與任何資料查詢）
+  const { t } = useBookingLocale();
 
   const {
     info,
@@ -153,7 +157,10 @@ const BookingAccommodation = () => {
 
   const toggleFavorite = async () => {
     if (!isLoggedIn || !memberId) {
-      toast({ title: "請先登入會員", description: "登入後即可收藏喜愛的住宿" });
+      toast({
+        title: t("booking.acc.favorite.loginTitle"),
+        description: t("booking.acc.favorite.loginDesc"),
+      });
       navigate(`/member/auth?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
@@ -165,14 +172,14 @@ const BookingAccommodation = () => {
         .delete()
         .eq("member_id", memberId)
         .eq("accommodation_id", accId);
-      if (!error) { setIsFavorite(false); toast({ title: "已取消收藏" }); }
-      else toast({ title: "操作失敗", description: error.message, variant: "destructive" });
+      if (!error) { setIsFavorite(false); toast({ title: t("booking.acc.favorite.removed") }); }
+      else toast({ title: t("booking.acc.favorite.failed"), description: error.message, variant: "destructive" });
     } else {
       const { error } = await (supabase as any)
         .from("member_favorites")
         .insert({ member_id: memberId, accommodation_id: accId });
-      if (!error) { setIsFavorite(true); toast({ title: "已加入收藏" }); }
-      else toast({ title: "操作失敗", description: error.message, variant: "destructive" });
+      if (!error) { setIsFavorite(true); toast({ title: t("booking.acc.favorite.added") }); }
+      else toast({ title: t("booking.acc.favorite.failed"), description: error.message, variant: "destructive" });
     }
     setFavLoading(false);
   };
@@ -185,13 +192,13 @@ const BookingAccommodation = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <p className="text-lg font-semibold text-destructive mb-2">{dataError || "無法載入資料"}</p>
-          <p className="text-sm text-muted-foreground">請重新整理頁面或稍後再試</p>
+          <p className="text-lg font-semibold text-destructive mb-2">{dataError || t("booking.acc.error.title")}</p>
+          <p className="text-sm text-muted-foreground">{t("booking.acc.error.desc")}</p>
           <button
             onClick={refetch}
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            重新整理
+            {t("booking.acc.error.retry")}
           </button>
         </div>
       </div>
@@ -237,22 +244,25 @@ const BookingAccommodation = () => {
               className="gap-1 text-muted-foreground hover:text-foreground -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">返回</span>
+              <span className="hidden sm:inline">{t("booking.acc.header.back")}</span>
             </Button>
             <Link to="/booking" className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+              <img src={lokezeLogo} alt={t("booking.acc.header.logoAlt")} className="h-24 object-contain" />
             </Link>
           </div>
 
           <div className="hidden md:flex flex-1" />
 
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch compact />
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleFavorite}
               disabled={favLoading}
-              aria-label={isFavorite ? "取消收藏" : "加入收藏"}
+              aria-label={
+                isFavorite ? t("booking.acc.favorite.remove") : t("booking.acc.favorite.add")
+              }
               className="rounded-full"
             >
               <Heart
@@ -267,7 +277,7 @@ const BookingAccommodation = () => {
                 className="gap-1.5"
               >
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{memberName || "會員中心"}</span>
+                <span className="hidden sm:inline">{memberName || t("booking.acc.header.member")}</span>
               </Button>
             ) : (
               <Button
@@ -277,7 +287,7 @@ const BookingAccommodation = () => {
                 style={{ background: "hsl(25, 70%, 55%)" }}
               >
                 <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">登入 / 註冊</span>
+                <span className="hidden sm:inline">{t("booking.acc.header.login")}</span>
               </Button>
             )}
           </div>
@@ -319,8 +329,8 @@ const BookingAccommodation = () => {
                   <RoomsSection
                     roomTypes={secondaryData?.roomTypes || []}
                     sectionDescription={info.description}
-                    customTitle={hasPackages ? '房型導覽' : titles.title}
-                    customSubtitle={hasPackages ? '各房型獨立預訂選項' : titles.subtitle}
+                    customTitle={hasPackages ? t("booking.acc.rooms.title") : titles.title}
+                    customSubtitle={hasPackages ? t("booking.acc.rooms.subtitle") : titles.subtitle}
                   />
                 </div>
               );
@@ -389,5 +399,11 @@ const BookingAccommodation = () => {
     </div>
   );
 };
+
+const BookingAccommodation = () => (
+  <BookingLocaleProvider>
+    <BookingAccommodationInner />
+  </BookingLocaleProvider>
+);
 
 export default BookingAccommodation;
