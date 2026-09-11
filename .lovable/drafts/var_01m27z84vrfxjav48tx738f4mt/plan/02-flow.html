@@ -1,4 +1,4 @@
-<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+<svg viewBox="0 0 640 320" xmlns="http://www.w3.org/2000/svg">
   <style>
     text { font-family: var(--font-sans); fill: var(--fg-primary); }
     .lbl { font-size: 14px; font-weight: 480; }
@@ -16,37 +16,32 @@
     </marker>
   </defs>
 
-  <rect class="zn" x="8" y="14" width="624" height="120"/>
-  <text class="sm" x="20" y="32">官網 ATM（legacy 分支）</text>
+  <rect class="zn" x="8" y="10" width="300" height="150"/>
+  <text class="sm" x="20" y="28">既有三支呼叫方（HTTP，行為不變）</text>
+  <rect class="bx" x="24" y="40" width="264" height="30"/>
+  <text class="mono" x="156" y="60" text-anchor="middle">cancel-order-with-refund</text>
+  <rect class="bx" x="24" y="76" width="264" height="30"/>
+  <text class="mono" x="156" y="96" text-anchor="middle">member-order-manage</text>
+  <rect class="bx" x="24" y="112" width="264" height="30"/>
+  <text class="mono" x="156" y="132" text-anchor="middle">public-order-cancel</text>
 
-  <rect class="bx" x="24" y="46" width="150" height="56"/>
-  <text class="lbl" x="99" y="70" text-anchor="middle">逾期未繳款</text>
-  <text class="mono" x="99" y="88" text-anchor="middle">atm_expire_at</text>
+  <rect class="bx" x="24" y="190" width="264" height="46"/>
+  <text class="mono" x="156" y="210" text-anchor="middle">cancel-expired-atm-orders</text>
+  <text class="sm" x="156" y="228" text-anchor="middle">官網 legacy 分支・直接 import</text>
 
-  <line class="w" x1="176" y1="74" x2="216" y2="74" marker-end="url(#a)"/>
-  <rect class="bx" x="218" y="46" width="150" height="56"/>
-  <text class="lbl" x="293" y="70" text-anchor="middle">自動取消訂單</text>
-  <text class="sm" x="293" y="88" text-anchor="middle">＋後台站內通知</text>
+  <line class="w" x1="290" y1="90" x2="330" y2="90" marker-end="url(#a)"/>
+  <rect class="bx" x="332" y="66" width="180" height="48"/>
+  <text class="lbl" x="422" y="86" text-anchor="middle">薄 HTTP 入口</text>
+  <text class="mono" x="422" y="104" text-anchor="middle">send-order-cancelled-email</text>
 
-  <line class="w" x1="370" y1="74" x2="410" y2="74" marker-end="url(#a)"/>
-  <rect class="acc" x="412" y="46" width="196" height="56"/>
-  <text class="lbl accT" x="510" y="70" text-anchor="middle">新增：寄客人取消信</text>
-  <text class="mono" x="510" y="88" text-anchor="middle">send-order-cancelled-email</text>
+  <line class="w" x1="422" y1="116" x2="422" y2="188" marker-end="url(#a)"/>
+  <line class="w" x1="290" y1="213" x2="330" y2="213" marker-end="url(#a)"/>
 
-  <rect class="zn" x="8" y="150" width="624" height="120"/>
-  <text class="sm" x="20" y="168">團購 ATM（既有，一字不動）</text>
+  <rect class="acc" x="332" y="190" width="284" height="72"/>
+  <text class="lbl accT" x="474" y="212" text-anchor="middle">新增共用模組</text>
+  <text class="mono" x="474" y="230" text-anchor="middle">_shared/orderCancelledEmail.ts</text>
+  <text class="sm" x="474" y="250" text-anchor="middle">buildCancelEmail() ・ sendOrderCancelledEmail()</text>
 
-  <rect class="bx" x="24" y="182" width="150" height="56"/>
-  <text class="lbl" x="99" y="206" text-anchor="middle">逾期未繳款</text>
-  <text class="mono" x="99" y="224" text-anchor="middle">deadline_at</text>
-
-  <line class="w" x1="176" y1="210" x2="216" y2="210" marker-end="url(#a)"/>
-  <rect class="bx" x="218" y="182" width="150" height="56"/>
-  <text class="lbl" x="293" y="206" text-anchor="middle">自動取消訂單</text>
-  <text class="sm" x="293" y="224" text-anchor="middle">＋後台站內通知</text>
-
-  <line class="w" x1="370" y1="210" x2="410" y2="210" marker-end="url(#a)"/>
-  <rect class="bx" x="412" y="182" width="196" height="56"/>
-  <text class="lbl" x="510" y="206" text-anchor="middle">既有團購逾期信</text>
-  <text class="mono" x="510" y="224" text-anchor="middle">groupBuyAtmExpiredEmail</text>
+  <line class="w" x1="474" y1="264" x2="474" y2="288" marker-end="url(#a)"/>
+  <text class="sm" x="474" y="304" text-anchor="middle">Resend 寄出 ＋ 寫 booking_email_log</text>
 </svg>
