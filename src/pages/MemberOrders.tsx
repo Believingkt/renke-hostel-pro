@@ -22,7 +22,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
-import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
 import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
