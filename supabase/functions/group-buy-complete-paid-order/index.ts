@@ -6,7 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { completeGroupBuyCreditOrder } from "../_shared/groupBuyCreditCompletion.ts";
-import { bankToInfo, formatTaipei, paymentDeadline } from "../_shared/groupBuy.ts";
+
 
 const FN = "group-buy-complete-paid-order";
 
@@ -90,20 +90,8 @@ Deno.serve(async (req) => {
       ? await admin.from("room_types").select("name").eq("id", order.room_type_id).maybeSingle()
       : { data: null as any };
 
-    const { data: bankRow } = campaign?.id
-      ? await admin
-        .from("group_buy_bank_accounts")
-        .select("*")
-        .eq("campaign_id", campaign.id)
-        .order("is_default", { ascending: false })
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle()
-      : { data: null as any };
+    // 此路徑一律為信用卡全額付款：不查、也不得回傳任何共用匯款帳號或匯款期限
 
-    const deadline = order
-      ? paymentDeadline(order.created_at ?? new Date().toISOString(), campaign?.payment_deadline_hours ?? 72)
-      : null;
 
     const paidAmount = Math.max(0, Math.round(Number(order?.paid_amount) || 0));
     const total = Math.max(0, Math.round(Number(order?.total_price) || 0));

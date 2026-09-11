@@ -6,7 +6,12 @@
 
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { forbiddenResponse, isAccommodationAdmin, isSuperAdmin, resolveCaller } from "../_shared/authz.ts";
-import { bankToInfo, buildAdminGroupBuyUrl, buildEmailOrder, formatTaipei } from "../_shared/groupBuy.ts";
+import {
+  buildAdminGroupBuyUrl,
+  buildEmailOrder,
+  formatTaipei,
+  resolveGroupBuyPaymentDisplay,
+} from "../_shared/groupBuy.ts";
 import {
   renderBookingWithBankInfo,
   renderDepositReceived,
@@ -181,15 +186,9 @@ Deno.serve(async (req) => {
           });
         } else {
           templateType = "booking_pending";
-          const { data: bankRow } = await admin
-            .from("group_buy_bank_accounts")
-            .select("*")
-            .eq("campaign_id", campaign?.id ?? "00000000-0000-0000-0000-000000000000")
-            .order("is_default", { ascending: false })
-            .order("created_at", { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          mail = renderBookingWithBankInfo(emailOrder, bankToInfo(bankRow));
+          // 付款資訊一律以訂單本身判定：ATM 訂單顯示自己的虛擬帳號，不得塞共用匯款帳號
+          const display = await resolveGroupBuyPaymentDisplay(admin, order, campaign?.id ?? null);
+          mail = renderBookingWithBankInfo(emailOrder, display.bank, display.atm);
         }
 
         const sent = await sendGroupBuyEmail(previewTo ?? order.guest_email, withPreviewSubject(mail));
