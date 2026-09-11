@@ -271,6 +271,7 @@ serve(async (req) => {
     }
 
     // ===== mark_manual_refund: ATM / cash / bank_transfer =====
+    // TECH-DEBT: cancel-order-with-refund mark_manual_refund 超退上限檢查
     if (body.refundAction === "mark_manual_refund") {
       refundResultNote = `\n${auditPrefix}，需手動退款 NT$${refundAmount}（付款方式：${order.payment_method || order.deposit_payment_method || "未知"}）⚠️ 請聯絡客人退款`;
     }
