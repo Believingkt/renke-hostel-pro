@@ -2080,6 +2080,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
+                        const prevRoomTypeId = roomSelections[0]?.room_type_id || "";
                         const templates = getTemplatesForRoomType(value);
                         setRoomSelections([{
                           id: roomSelections[0]?.id || crypto.randomUUID(),
@@ -2090,7 +2091,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                           roomPrice: 0,
                           filteredTemplates: templates,
                         }]);
+                        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數
+                        if (value !== prevRoomTypeId) {
+                          void ensurePackageBreakdown(value).then((items) => {
+                            setExclusiveCustomCounts(defaultCountsFromBreakdown(items));
+                          });
+                        }
                       }}
+
                     >
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder={`選擇${exclusiveLabel}方案`} />
