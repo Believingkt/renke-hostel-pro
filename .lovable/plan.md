@@ -1,72 +1,89 @@
-# ATM 版 booking_pending 信尾文案分流（設計稿，未施工）
+# ATM 逾期自動取消 → 補寄旅客通知信（設計稿，未施工）
 
-## 一、目前文案位置（逐字）
+## 一、cancel-expired-atm-orders/index.ts 現況
 
-`supabase/functions/_shared/groupBuyEmail.ts:243-258`（`renderBookingWithBankInfo()` 結尾）
+檔案共 179 行，兩段獨立流程：
+
+- 第 12–49 行：建立 service-role client、算 `nowIso` / `taipeiIso` / `cutoffIso`（GRACE_MINUTES = 3），查「官網 legacy」逾期單：`payment_status='pending_payment'`、`atm_vacc_no not null`、`order_status<>'cancelled'`、`group_buy_payment_deadline_at is null`、`atm_expire_at < cutoff`，limit 200。
+- 第 51–94 行：**官網 legacy 迴圈**（本次唯一要接寄信的位置）
+  - 53：`paid_amount > 0` 直接跳過
+  - 55–67：再讀一次最新狀態，已取消／已入帳／狀態非 pending 一律跳過
+  - 68–80：寫 `[ATM Expire]` note，條件式 UPDATE 成 cancelled（`.eq(payment_status)`、`.neq(order_status)`，目前**沒有** `.select()`）
+  - 81–84：UPDATE 失敗 → `continue`
+  - 85：`cancelled.push(order_number)`
+  - 86–93：寫一筆 `notifications`（站內通知，**不是**寄給客人的信）
+  - 94：迴圈結束 ← 缺口就在這裡，客人完全收不到任何信
+- 第 96–168 行：團購新制迴圈，已於 163–167 行 `sendAtmDeadlineExpiredEmail(...)`，本次**一行不動**。
+- 第 170–179 行：console.log 統計與回傳 JSON。
+
+## 二、接法提案（同意你的方向）
+
+直接在本檔 import 共用模組、in-process 呼叫：
 
 ```ts
-       ${bankBlock}
-       ${o.deadlineText ? `<p><strong style="color:${BRAND.primary}">匯款期限：${esc(o.deadlineText)}</strong>（逾期系統將自動取消訂單）</p>` : ""}
-       <p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
-       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">匯款回報 / 查詢訂單</a></p>` : ""}`
+import { sendOrderCancelledEmail } from "../_shared/orderCancelledEmail.ts";
 ```
 
-結論：**這是固定共用文案，完全沒有依付款方式分流**。同一支函式上方的付款區塊 (`bankBlock`) 已經有三態分流（ATM 優先 → 共用帳號 → fallback），但信尾這兩行不論 ATM 或人工匯款都照印，所以 ATM 訂單會出現「請點我已完成匯款」的錯誤指引。
+`sendOrderCancelledEmail(supabase, { orderId, cancelKind: 'atm_expired', deadlineText, triggerSource: 'atm_expire_cron' })`
 
-（ATM 區塊內其實已有一行 `系統收到入帳通知後將自動更新訂單狀態，無需另行通知。`，與信尾文案自相矛盾。）
+可行且是最好的做法，理由：
+- 共用模組已支援 `cancelKind: 'atm_expired'`（`orderCancelledEmail.ts:57–69`），文案、`booking_email_log` 寫入都現成，不需新增任何模組。
+- 走 HTTP 會撞上 service-role 授權那道牆（就是這輪 403 的來源），in-process 直接用 cron 手上的 service-role client，沒有這個問題，也少一次網路往返與逾時風險。
+- 與團購分支的既有寫法同構（團購也是 in-process 呼叫 `sendAtmDeadlineExpiredEmail`），維護一致。
 
-## 二、ATM 自動比對入帳機制（逐字佐證）
+`deadlineText` 用既有 `formatTaipei(new Date(o.atm_expire_at))`（`formatTaipei` 檔頭已 import，無需新增）。
 
-1. 開立虛擬帳號：`group-buy-start-payment/index.ts:291` 寫入 `event_type: "atm_created"`。
-2. 客人匯款後 TapPay webhook 進入 `tappay-notify/index.ts`：
-   - 第 187-196 行以 `atm_rec_trade_id` 反查訂單；
-   - 第 391-394 行判定 ATM：`order.atm_rec_trade_id === rec_trade_id || order.payment_method === 'atm' || verifiedRecord?.acquirer === 'TW_TAPPAY_ATM' || verifiedRecord?.pay_info != null`；
-   - 第 396-429 行自動累加 `paid_amount`、更新 `payment_status`（`deposit_paid` / `paid`），以 `p_source: 'tappay_atm_webhook'`、`p_actor_type: 'system'` 呼叫 `update_order_with_context`。
-3. 團購分支第 488-495 行呼叫 `notifyGroupBuyPaymentReceived(...)`，`providerLabel: 'ATM 虛擬帳號轉帳'`。
-4. `_shared/groupBuyPaymentNotify.ts:49-74`：自動寄 `renderDepositReceived()`（【已收到訂金】），並寫入 `event_type: "atm_paid"` 與 `email_sent`／`email_failed`（`template_type:deposit_received`）。
+## 三、動的範圍界線（唯一）
 
-→ 用戶描述正確：ATM 全自動比對入帳、自動更新訂單、自動寄確認信，客人不需要回報。
+只做一件事：**在既有官網 legacy 迴圈中、一筆訂單成功取消（且已寫入 notifications）之後，多加一段寄信呼叫。**
 
-## 三、修法設計
+明確不動：
+- 取消判定條件（`paid_amount>0`、fresh 二次讀取、payment_status／order_status 檢查）
+- 兩段 SQL 查詢的欄位與 where 條件（唯一例外見下）
+- 迴圈結構、`continue` 時機、note 文字、notifications 內容
+- 團購分支（96–168 行）整段
+- `_shared/orderCancelledEmail.ts`、`send-order-cancelled-email`、任何資料表／RLS／trigger
 
-### 3.1 只動一個地方：`renderBookingWithBankInfo()` 的信尾
+唯一附帶的既有查詢調整（需你另外點頭，否則就不動）：第 34–42 行的 select 需要多帶 `guest_email` 嗎 → **不需要**，共用模組自己會重查訂單。所以查詢真的零改動。
 
-函式內已有 `atmBlock` 變數可判斷是否 ATM，直接依它分流：
+另一個可選、與團購分支對齊的小改動：第 70 行 UPDATE 補 `.select('id').maybeSingle()`，改判 `if (upErr || !updated) continue;`，避免「沒真的更新到卻寄信」。這屬於取消邏輯的判斷式，若你認定越界，就維持原樣，只靠第五點的查重把關 —— 請你裁示要或不要。
 
-- **ATM（`atmBlock` 有值）**：
-  - 不印「請點我已完成匯款」那行、**不印按鈕**。
-  - 改印：「本筆訂單為 ATM 虛擬帳號，匯款完成後系統會自動比對入帳並更新訂單狀態，我們也會另外寄出【訂房確認・已收到訂金】通知信，您**不需要**另行回報。」
-  - 另加一行小字：「如逾 1 小時仍未收到確認信，請與我們聯繫。」（避免客人焦慮）
-  - 順帶把 ATM 區塊內既有那句「系統收到入帳通知後將自動更新訂單狀態，無需另行通知。」保留不動（不重複刪改，降低 diff 風險）。
-- **非 ATM（人工匯款／fallback）**：現行兩行**逐字不變**。
+## 四、單筆寄信失敗不得中斷整批
 
-「匯款期限」那行兩者皆保留（ATM 逾期同樣自動取消）。
+寄信呼叫整段包在 `try/catch` 內，catch 只 `console.error`，不 `continue`、不 throw、不改變 `cancelled` 陣列；`sendOrderCancelledEmail` 本身也是回傳 `{ ok:false }` 而非 throw，兩層都吞掉。寄信永遠排在 UPDATE 與 notifications **之後**，因此任何寄信失敗都不影響已 commit 的取消結果，也不會影響同批其他訂單。
 
-### 3.2 查詢訂單連結
+## 五、查重機制（沿用 booking_email_log）
 
-ATM 版拿掉的是「匯款回報」語意的按鈕。若仍希望客人能查訂單，建議二選一（等您決定）：
-- (a) ATM 版完全不放按鈕（最貼近您的描述）。
-- (b) ATM 版保留按鈕但文字改成「查詢訂單」，不含「匯款回報」字樣。
+寄信前先查：
 
-## 四、影響範圍與風險
+```
+booking_email_log where order_id = o.id and email_type = 'order_cancelled' limit 1
+```
 
-**只動 1 個檔案**：`supabase/functions/_shared/groupBuyEmail.ts`（`renderBookingWithBankInfo()` 內信尾字串）。
+有紀錄就跳過寄信（訂單先前已因客人取消或後台取消寄過信，不重複騷擾）。沒有才呼叫。
 
-**受影響的呼叫端**（皆為同一模板，行為一致）：
-- `group-buy-create-order`（建單初次寄信）
-- `group-buy-resend-notification`（補寄）
-- `group-buy-start-payment`（配發虛擬帳號後補寄）
-- `group-buy-email-preview-send`（樣本 `guest_booking_with_atm_info` / `guest_booking_with_bank_info`）
+第二層保險：`sendOrderCancelledEmail` 成功／失敗都會寫一筆 `booking_email_log`（`status: sent|failed`），所以下一輪 cron 會看到紀錄而不重寄。若希望「失敗要重試」，查重條件需加 `status='sent'` —— 兩種語意請你選一種，預設採「不重寄」。
 
-**不會動到**：ATM 付款流程、`tappay-notify`、`groupBuyPaymentNotify.ts`、`renderDepositReceived`、任何 DB／RLS／RPC／前端。
+`previewTo` 有值時模組完全不寫 log，測試不會污染查重。
 
-**風險**
-1. 人工匯款版必須逐字不變 → 施工後以既有樣本寄送做 diff 核對。
-2. 若某訂單是 ATM 但虛擬帳號尚未配發（`atmBlock` 為 null），會落到非 ATM 文案（顯示「將由客服另行提供」＋回報按鈕）。此情況維持現狀，不在本次範圍；若要一併處理需再傳入付款方式旗標，請指示是否納入。
+## 六、目前符合取消條件的真實訂單數（剛重查）
 
-## 五、驗證計畫（施工後才執行）
-1. `tsgo --noEmit` 與既有團購信件測試全綠。
-2. 新增單元測試：ATM 版不含「我已完成匯款」與「匯款回報」字串；非 ATM 版輸出與施工前逐字相同。
-3. 以 `previewTo: sakithebest@gmail.com` 對 CE2V95Y5 強制 `booking_pending` 寄一封副本人工核對（不寄旅客本人）。
+| 指標 | 數量 |
+| --- | --- |
+| 現在就會被這支函式取消的官網 legacy 訂單 | **0** |
+| 其中未付款、且有 email 可寄的 | **0** |
+| 尚未到期、未來會進入此條件的待付 ATM 訂單 | **0** |
+| 團購新制待付 ATM 訂單 | **0** |
+| 歷史上曾被自動取消（notes 含 `[ATM Expire]`） | 12（近 30 天 5 筆） |
 
-目前未修改任何檔案、未部署、未 Publish。
+也就是說：現在部署，下一次排程不會有任何訂單被取消，也不會寄出任何信；風險窗口是「未來有人開新的 ATM 待付訂單並逾期」。
+
+## 七、部署前的驗證方案（不冒真實客人風險）
+
+分三層，全部在部署前完成：
+
+1. **單元測試（無副作用）**：對 `buildCancelEmail({ cancelKind:'atm_expired', deadlineText })` 加測試，斷言主旨、逾期文案、「請勿再匯款至原虛擬帳號」、且**不出現**退款／手續費區塊。純函式，不碰 DB、不寄信。
+2. **真信內容確認（只寄給你）**：用已部署的 `send-order-cancelled-email`，帶一筆真實歷史 ATM 訂單 + `cancelKind:'atm_expired'` + `previewTo: sakithebest@gmail.com`，實際收信確認版型。`previewTo` 保證不寫 log、不寄給旅客。（此步需你出手觸發或另行授權呼叫方式，因為 service-role 呼叫我這邊拿不到。）
+3. **部署後首輪安全性**：由第六點，目前符合條件筆數為 0，部署當下不可能誤發。若仍要更保守，可在建立一筆自有測試 ATM 訂單（收件人填你的測試信箱、過期時間設為過去）後再部署，觀察下一輪 cron 是否只取消該筆並只寄給你，確認後才視為驗收完成。
+
+`cancel-expired-atm-orders` 在你明確授權部署之前維持不部署，這條規則不變。本輪未改任何程式、未執行任何 DB 寫入、未部署。
