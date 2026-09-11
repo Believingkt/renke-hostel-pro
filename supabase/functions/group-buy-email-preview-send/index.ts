@@ -121,6 +121,16 @@ serve(async (req) => {
 
     const mails: { key: string; mail: { subject: string; html: string } }[] = [
       { key: "guest_booking_with_bank_info", mail: renderBookingWithBankInfo(sample, bank) },
+      // ATM 版樣本：顯示訂單專屬虛擬帳號（共用匯款帳號一律不出現）
+      {
+        key: "guest_booking_with_atm_info",
+        mail: renderBookingWithBankInfo(sample, null, {
+          bankCode: "822",
+          vaccNo: "9259626090654682",
+          expireText: "2026/09/08 23:59",
+          amount: 8000,
+        }),
+      },
       { key: "guest_deposit_received", mail: renderDepositReceived(sample, { providerLabel: "ATM 虛擬帳號轉帳", paidThisTime: 8000 }) },
       {
         key: "guest_full_payment_received",
