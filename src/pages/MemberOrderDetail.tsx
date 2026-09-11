@@ -721,7 +721,7 @@ const MemberOrderDetailInner = () => {
     const url = window.location.href;
     try {
       if (navigator.share) {
-        await navigator.share({ title: `訂單 ${order.order_number}`, url });
+        await navigator.share({ title: t("booking.member.detail.orderNumber", { order: order.order_number }), url });
       } else {
         await navigator.clipboard.writeText(url);
         toast.success(t("booking.member.detail.copiedLink"));
@@ -937,7 +937,7 @@ const MemberOrderDetailInner = () => {
                     >
                       {tf({ table: "accommodation_packages", column: "includes", id: `${order.id}:inc:${i}`, text: inc.text })}
                       {inc.price_note && (
-                        <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                        <span className="text-muted-foreground ml-1">{t("booking.member.detail.parenNote", { note: inc.price_note })}</span>
                       )}
                     </span>
                   </li>
@@ -983,9 +983,11 @@ const MemberOrderDetailInner = () => {
                     <span className="flex-1 min-w-0 text-muted-foreground">
                       {t("booking.member.detail.mealAddon")}
                       {order.meal_plan_details.length > 0
-                        ? `（${order.meal_plan_details
-                            .map((m) => `${m.date ?? ""} × ${m.count ?? 0}`)
-                            .join("、")}）`
+                        ? t("booking.member.detail.parenNote", {
+                            note: order.meal_plan_details
+                              .map((m) => `${m.date ?? ""} × ${m.count ?? 0}`)
+                              .join(t("booking.member.detail.listSep")),
+                          })
                         : ""}
                     </span>
                     <span className="shrink-0 tabular-nums">
@@ -1197,7 +1199,7 @@ const MemberOrderDetailInner = () => {
               <p className="mt-1 text-muted-foreground leading-relaxed">
                 {order.facilities
                   .map((f, i) => tf({ table: "accommodation_facilities", column: "facility_name", id: `${order.accommodation_id}:${i}`, text: f }))
-                  .join("｜")}
+                  .join(t("booking.member.detail.facilitySep"))}
               </p>
             </div>
           </div>

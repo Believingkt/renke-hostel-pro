@@ -565,7 +565,10 @@ const MemberOrdersInner = () => {
                     {!cancelled && (
                       <div className="mt-1.5 flex items-center gap-1 text-sm" style={{ color: ORANGE }}>
                         <span>
-                          {earnedLabel}：{t("booking.member.orders.pointsValue", { points: pointsEarned })}
+                          {t("booking.member.orders.earnedLine", {
+                            label: earnedLabel,
+                            points: t("booking.member.orders.pointsValue", { points: pointsEarned }),
+                          })}
                         </span>
                         <ChevronRight className="h-3.5 w-3.5" />
                       </div>
