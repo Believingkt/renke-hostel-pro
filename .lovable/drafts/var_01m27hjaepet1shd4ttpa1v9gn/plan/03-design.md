@@ -57,9 +57,63 @@
 在 `group-buy-start-payment/index.ts` 寫入 `atm_created` 事件之後，寄一封團購版 `booking_pending`（帶真正的虛擬帳號）：
 
 - 用 B 項新增的 ATM 區塊，收件人 `orders.guest_email`。
-- 冪等：比照 `_shared/groupBuyAtmExpiredEmail.ts`，先查 `group_buy_payment_events` 是否已有 `email_sent` + `template_type:atm_va_created`，有就不重寄；`reused === true`（沿用既有帳號）也不重寄。
 - 寄完寫 `email_sent`／`email_failed` 事件，寄信失敗不影響開帳號主流程。
 - 影響範圍：只有團購 ATM 訂單多收到一封含帳號的信；一般訂房不受影響（既有 `sendBookingConfirmationByOrderId` 路徑不動）。
+
+### 冪等檢查：逐字照抄 `_shared/groupBuyAtmExpiredEmail.ts`
+
+```ts
+export const ATM_DEADLINE_EXPIRED_TEMPLATE = "atm_deadline_expired";
+
+/**
+ * 寄送逾期通知信（每張訂單最多成功寄出一次）。
+ * Idempotency SoT = group_buy_payment_events：已有 email_sent + 此 template_type 即不再寄。
+ * 寄送失敗記為 email_failed（可觀察、下一輪 cron 會重試）。
+ */
+export async function sendAtmDeadlineExpiredEmail(
+  admin: any,
+  orderId: string,
+  deadlineText: string,
+): Promise<{ sent: boolean; reason?: string }> {
+  const { data: sentEvent } = await admin
+    .from("group_buy_payment_events")
+    .select("id")
+    .eq("order_id", orderId)
+    .eq("event_type", "email_sent")
+    .ilike("note", `%template_type:${ATM_DEADLINE_EXPIRED_TEMPLATE}%`)
+    .maybeSingle();
+  if (sentEvent) return { sent: false, reason: "already_sent" };
+
+  const { data: order } = await admin.from("orders").select("*").eq("id", orderId).maybeSingle();
+  if (!order?.guest_email) return { sent: false, reason: "no_recipient" };
+  ...
+  const mail = await sendGroupBuyEmail(
+    order.guest_email,
+    renderAtmDeadlineExpired(emailOrder, deadlineText),
+  );
+
+  await admin.from("group_buy_payment_events").insert({
+    campaign_id: commission?.campaign_id ?? null,
+    order_id: orderId,
+    event_type: mail.ok ? "email_sent" : "email_failed",
+    actor_label: "system",
+    note: mail.ok
+      ? `recipient_type:guest／template_type:${ATM_DEADLINE_EXPIRED_TEMPLATE}／recipient_count:1／付款逾期通知信已寄出`
+      : `recipient_type:guest／template_type:${ATM_DEADLINE_EXPIRED_TEMPLATE}／付款逾期通知信寄送失敗：${
+        mail.reason ?? "unknown"
+      }`,
+  });
+
+  return { sent: mail.ok, reason: mail.ok ? undefined : (mail.reason ?? "send_failed") };
+}
+```
+
+新通知照同一個 pattern，template_type 換成 `atm_va_created`，查詢條件照抄（`.eq("event_type","email_sent").ilike("note","%template_type:atm_va_created%")`），並多一道只有這條流程才適用的前置閘：`reused === true`（沿用既有虛擬帳號）直接不寄。
+
+**主動揭露一個差異**：「check-then-insert」不是原子操作。逾期信不怕，因為只有每小時 cron 單一觸發來源；補寄帳號信是客人可重複觸發的，同一秒內連點兩次理論上可能雙寄。做法二選一：
+
+- (a)（建議）接受這個極小窗口——連點兩次看到的是同一組帳號；且寄失敗寫 `email_failed`、下次再點因 `reused=true` 本來就不重寄，雙寄窗口只剩「第一次的並發」。
+- (b) 寄前先 insert `email_sending` 佔位事件搶佔——完全排除雙寄，但事件時間軸多一種狀態，後台稽核紀錄會多一列。
 
 ## 驗證計畫（實作後）
 
@@ -68,6 +122,6 @@
 3. 人工匯款團購訂單補寄 → 共用帳號區塊與現行 HTML 逐字相同（diff 為零）。
 4. 信用卡全額訂單走 complete-paid-order → 回應仍 `bank: null`，信件無匯款區塊。
 5. `group-buy-create-order` 兩種付款方式各一筆 → 寄出內容與改前逐字相同。
-6. 新增的配發後通知：同一訂單重複呼叫 start-payment 只寄一封。
+6. 新增的配發後通知：同一訂單重複呼叫 start-payment 只寄一封（若選 (b) 則驗證並發雙寄為零）。
 
 現況資料庫、檔案、信件、Publish 皆未變動。核准後才實作。
