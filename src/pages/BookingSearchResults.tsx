@@ -835,7 +835,7 @@ const BookingSearchResultsInner = () => {
       push("accommodation_info", "type", acc, c.accommodation_type ?? null);
       push("accommodation_info", "region_1", acc, c.region_1 ?? null);
       push("accommodation_info", "region_2", acc, c.region_2 ?? null);
-      push("accommodation_info", "country", acc, c.country ?? null);
+      if (c.country && c.country !== "台灣") push("accommodation_info", "country", acc, c.country);
       push("accommodation_info", "nearby_station", acc, c.nearby_station ?? null);
       push("accommodation_info", "review_summary", acc, c.review_summary ?? null);
       (c.feature_tags ?? []).forEach((tag, i) => {
@@ -883,7 +883,9 @@ const BookingSearchResultsInner = () => {
               text: c.region_2,
             })
           : c.region_2,
-        country: c.country
+        // 「台灣」不翻譯：卡片以此值判斷是否顯示國別，翻譯後會多出國名
+        country:
+          c.country && c.country !== "台灣"
           ? tf({
               table: "accommodation_info",
               column: "country",
