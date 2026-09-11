@@ -31,6 +31,8 @@ const BookingFooter = ({
   compactLinks,
   showSupportLink,
 }: BookingFooterProps = {}) => {
+  // 顯示層語言（無 Provider 時安全回退中文；不影響任何導頁行為）
+  const { t } = useBookingLocale();
 
   const navigate = useNavigate();
 
