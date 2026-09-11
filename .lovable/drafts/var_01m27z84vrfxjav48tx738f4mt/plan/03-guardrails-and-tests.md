@@ -27,7 +27,7 @@
 
 ### 步驟 1：先做「純新增 previewTo」（不重構）
 
-為了能對重構前的版本取得基準 HTML，第一步只在現行 `send-order-cancelled-email/index.ts` 加入 `previewTo` 支援（收件人改成 previewTo、log 標記 preview），不搬動任何組信邏輯。部署後對一張真實已取消訂單以 `guest_request` + `previewTo: sakithebest@gmail.com` 寄出，存下主旨與完整 HTML 為 `before.html`。
+為了能對重構前的版本取得基準 HTML，第一步只在現行 `send-order-cancelled-email/index.ts` 加入 `previewTo` 支援：收件人改成 previewTo，且以 `if (!previewTo)` 完全不寫 `booking_email_log`（比照 group_buy 既有慣例，不留標籤），不搬動任何組信邏輯。部署後對一張真實已取消訂單以 `guest_request` + `previewTo: sakithebest@gmail.com` 寄出，存下主旨與完整 HTML 為 `before.html`。
 
 ### 步驟 2：重構
 
@@ -49,6 +49,6 @@
 
 ### 步驟 5：atm_expired 即時驗證
 
-挑既有已取消的官網 ATM 訂單（例如 `VH2S26D9`），以 `cancelKind: 'atm_expired'` + `previewTo: sakithebest@gmail.com` 寄一次。回報：完整 request／response、完整信件內容、`booking_email_log` 前後筆數（只會多一筆 preview 紀錄）、以及該訂單本身欄位零變動的查詢佐證。
+挑既有已取消的官網 ATM 訂單（例如 `VH2S26D9`），以 `cancelKind: 'atm_expired'` + `previewTo: sakithebest@gmail.com` 寄一次。回報：完整 request／response、完整信件內容、`booking_email_log` 前後筆數（預期**前後不變，0 筆新增**——preview 完全不寫入）、以及該訂單本身欄位零變動的查詢佐證。
 
 cron 本體不手動觸發正式環境；不 Accept Draft、不 Publish（部署僅限上述驗證所需的兩支函式，且需你另外明示授權）。
