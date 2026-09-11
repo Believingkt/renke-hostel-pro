@@ -3,6 +3,7 @@ import { ArrowUp, Facebook, Instagram, Youtube, AtSign, Music2 } from "lucide-re
 import { Button } from "@/components/ui/button";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
 import { BrandLogoBar } from "@/components/BrandLogoBar";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface BookingFooterProps {
   lineId?: string;
@@ -54,30 +55,30 @@ const BookingFooter = ({
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-6 sm:py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-2 md:-ml-3">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-16 sm:h-24 object-contain" />
+            <img src={lokezeLogo} alt={t("booking.footer.logoAlt")} className="h-16 sm:h-24 object-contain" />
           </div>
 
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm text-muted-foreground">
             {!compactLinks && (
               <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
-                會員中心
+                {t("booking.footer.member")}
               </button>
             )}
-            {!compactLinks && <button className="hover:text-foreground transition-colors">關於我們</button>}
+            {!compactLinks && <button className="hover:text-foreground transition-colors">{t("booking.footer.about")}</button>}
             {(!compactLinks || showSupportLink) && (
-              <button className="hover:text-foreground transition-colors">聯繫客服</button>
+              <button className="hover:text-foreground transition-colors">{t("booking.footer.support")}</button>
             )}
             <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">
-              隱私政策
+              {t("booking.footer.privacy")}
             </button>
             {!compactLinks && (
               <button onClick={() => navigate("/data-deletion")} className="hover:text-foreground transition-colors">
-                資料刪除
+                {t("booking.footer.dataDeletion")}
               </button>
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} 人客多. All rights reserved.
+            {t("booking.footer.copyright", { year: new Date().getFullYear() })}
           </p>
         </div>
 
@@ -118,7 +119,7 @@ const BookingFooter = ({
         size="icon"
         onClick={scrollToTop}
         className="absolute right-6 -top-5 rounded-full h-10 w-10 bg-white border-border shadow-md hover:bg-accent"
-        aria-label="返回頂部"
+        aria-label={t("booking.footer.backToTop")}
       >
         <ArrowUp className="h-4 w-4" />
       </Button>
