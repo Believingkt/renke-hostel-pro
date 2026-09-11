@@ -1,6 +1,8 @@
 // 取消信「退款說明」：refund_status='none' 時需同時參考政策應退金額
 import { describe, expect, it } from "vitest";
 
+// edge function 模組載入時會讀 Deno.env（寄信設定），測試環境提供最小 shim
+(globalThis as unknown as { Deno?: unknown }).Deno ??= { env: { get: () => undefined } };
 const { renderOrderCancelled } = await import(
   "../../supabase/functions/_shared/groupBuyEmail.ts"
 );
