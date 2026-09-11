@@ -20,14 +20,17 @@ import BookingFooter from "@/components/BookingFooter";
 import MobileBottomNav from "@/components/member/MobileBottomNav";
 import SearchRoomCard, { type SearchRoomCardData } from "@/components/booking-portal/SearchRoomCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
 
-const SORT_LABELS: Record<SortOption, string> = {
-  default: "排序",
-  price_asc: "價格由低到高",
-  price_desc: "價格由高到低",
-  capacity_asc: "人數由少到多",
-  capacity_desc: "人數由多到少",
-};
+const SORT_KEYS: SortOption[] = [
+  "default",
+  "price_asc",
+  "price_desc",
+  "capacity_asc",
+  "capacity_desc",
+];
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import { isSensanAccommodation } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
@@ -131,9 +134,14 @@ const getTemplatePriceForDate = (
   return asPositive(v);
 };
 
-const BookingSearchResults = () => {
+const BookingSearchResultsInner = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // 顯示層語言（不影響搜尋條件、庫存查詢與價格計算）
+  const { t, dateLocale } = useBookingLocale();
+  const dateFmt = t("booking.search.date.monthDay");
+  const shortFmt = t("booking.search.date.shortRange");
+  const fmtDate = (d: Date, pattern: string) => format(d, pattern, { locale: dateLocale });
 
   // ── 解析 query string ──
   const checkInStr = searchParams.get("checkIn");
@@ -402,8 +410,8 @@ const BookingSearchResults = () => {
         console.error("[BookingSearchResults] 庫存查詢失敗", err);
         setInventoryMap(new Map());
         setClosedAccIds(new Set());
-        toast.error("即時空房資料載入失敗", {
-          description: "請稍後重新查詢；顯示的房況可能不是最新狀態。",
+        toast.error(t("booking.search.toast.inventoryFailed"), {
+          description: t("booking.search.toast.inventoryFailed.desc"),
         });
         return;
       }
@@ -697,9 +705,11 @@ const BookingSearchResults = () => {
         child_extra_fee_total: childExtraTotal > 0 ? childExtraTotal : null,
         child_blocked_reason: childBlockedByLimits
           ? childEval.blockReason ||
-            `兒童人數超過上限（${childEval.blockedTiers
-              .map((k) => childRules.tiers[k].label)
-              .join("、")}）`
+            t("booking.search.child.overLimit", {
+              tiers: childEval.blockedTiers
+                .map((k) => childRules.tiers[k].label)
+                .join(t("booking.search.child.tierSeparator")),
+            })
           : null,
       });
     });
