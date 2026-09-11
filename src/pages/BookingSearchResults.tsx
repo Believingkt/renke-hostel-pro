@@ -957,14 +957,14 @@ const BookingSearchResultsInner = () => {
           >
             <span className="flex items-center gap-1 shrink-0">
               <span className="flex flex-col leading-tight text-sm font-semibold text-foreground">
-                <span>{checkIn ? format(checkIn, "M 月 d 日") : "選擇日期"}</span>
-                <span>{checkOut ? format(checkOut, "M 月 d 日") : "—"}</span>
+                <span>{checkIn ? fmtDate(checkIn, dateFmt) : t("booking.search.bar.pickDate")}</span>
+                <span>{checkOut ? fmtDate(checkOut, dateFmt) : t("booking.search.bar.dateEmpty")}</span>
               </span>
               <ChevronDown className="h-4 w-4 text-muted-foreground" />
             </span>
             <span className="w-px bg-border shrink-0" />
             <span className="flex-1 min-w-0 flex items-center text-sm font-medium text-foreground truncate">
-              {q || "全部地區"}
+              {q || t("booking.search.bar.allRegions")}
             </span>
           </button>
         </div>
@@ -975,13 +975,13 @@ const BookingSearchResultsInner = () => {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9">
                 <ArrowUpDown className="h-4 w-4" />
-                {SORT_LABELS[filters.sortBy]}
+                {t(`booking.search.sort.${filters.sortBy}`)}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="bg-popover z-50">
-              {(Object.keys(SORT_LABELS) as Array<keyof typeof SORT_LABELS>).map((key) => (
+              {SORT_KEYS.map((key) => (
                 <DropdownMenuItem key={key} onSelect={() => setFilters({ ...filters, sortBy: key })}>
-                  {SORT_LABELS[key]}
+                  {t(`booking.search.sort.${key}`)}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -994,18 +994,20 @@ const BookingSearchResultsInner = () => {
             onClick={() => setShowFilters((v) => !v)}
           >
             <SlidersHorizontal className="h-4 w-4" />
-            篩選
+            {t("booking.search.chip.filter")}
           </Button>
 
           <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
             <MapPin className="h-4 w-4" />
-            {q || "位置"}
+            {q || t("booking.search.chip.location")}
           </Button>
 
           <Button variant="outline" size="sm" className="shrink-0 gap-1.5 rounded-lg h-9" onClick={openEdit}>
             <Users className="h-4 w-4" />
-            {roomsParam ? `${roomsParam} 房 · ` : ""}
-            {adults + childrenCount + infantsCount + toddlersCount} 人
+            {roomsParam ? t("booking.search.chip.rooms", { count: roomsParam }) : ""}
+            {t("booking.search.chip.guests", {
+              count: adults + childrenCount + infantsCount + toddlersCount,
+            })}
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </Button>
         </div>
@@ -1033,7 +1035,9 @@ const BookingSearchResultsInner = () => {
             >
               <Sparkles className="h-5 w-5 text-[hsl(25,80%,50%)] shrink-0" />
               <span className="flex-1 font-bold text-foreground text-base">
-                {loading ? "AI 搜尋中…" : `${filtered.length} 間住宿符合您的搜尋`}
+                {loading
+                  ? t("booking.search.ai.searching")
+                  : t("booking.search.ai.matched", { count: filtered.length })}
               </span>
               {aiOpen ? (
                 <ChevronUp className="h-5 w-5 text-muted-foreground" />
@@ -1045,15 +1049,21 @@ const BookingSearchResultsInner = () => {
               <div className="px-4 pb-4 space-y-1.5 text-sm text-foreground/80 leading-relaxed">
                 {aiNote && <p>{aiNote}</p>}
                 <p>
-                  您的搜尋：
-                  {aiQuery ? `${aiQuery}，` : ""}
+                  {t("booking.search.ai.yourSearch")}
+                  {aiQuery ? t("booking.search.ai.queryPart", { query: aiQuery }) : ""}
                   {checkIn && checkOut
-                    ? `${format(checkIn, "M 月 d 日")} – ${format(checkOut, "M 月 d 日")}（${nights} 晚），`
+                    ? t("booking.search.ai.datePart", {
+                        from: fmtDate(checkIn, dateFmt),
+                        to: fmtDate(checkOut, dateFmt),
+                        nights,
+                      })
                     : ""}
-                  {roomsParam ? `${roomsParam} 房，` : ""}
-                  {adults} 位成人
+                  {roomsParam ? t("booking.search.ai.roomsPart", { count: roomsParam }) : ""}
+                  {t("booking.search.ai.adultsPart", { count: adults })}
                   {childrenCount + infantsCount + toddlersCount > 0
-                    ? `、${childrenCount + infantsCount + toddlersCount} 位兒童`
+                    ? t("booking.search.ai.childrenPart", {
+                        count: childrenCount + infantsCount + toddlersCount,
+                      })
                     : ""}
                 </p>
               </div>
@@ -1062,7 +1072,9 @@ const BookingSearchResultsInner = () => {
         )}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h1 className="text-lg sm:text-xl font-bold text-foreground">
-            找到 {loading ? "…" : filtered.length} 個房型
+            {t("booking.search.results.count", {
+              count: loading ? t("booking.search.results.loading") : filtered.length,
+            })}
           </h1>
         </div>
 
@@ -1070,15 +1082,15 @@ const BookingSearchResultsInner = () => {
         {loading ? null : filtered.length === 0 ? (
           <div className="text-center py-20 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">沒有符合條件的房型</p>
-            <p className="text-sm mt-1">調整日期、人數或篩選條件再試一次</p>
+            <p className="text-lg">{t("booking.search.empty.title")}</p>
+            <p className="text-sm mt-1">{t("booking.search.empty.desc")}</p>
             <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate("/booking")}>
-              重新搜尋
+              {t("booking.search.empty.action")}
             </Button>
           </div>
         ) : (
           <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((card) => (
+            {displayCards.map((card) => (
               <SearchRoomCard
                 key={card.id}
                 data={card}
@@ -1097,7 +1109,7 @@ const BookingSearchResultsInner = () => {
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent side="top" className="p-0 max-h-[95vh] overflow-y-auto">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle className="text-left">修改搜尋條件</SheetTitle>
+            <SheetTitle className="text-left">{t("booking.search.sheet.title")}</SheetTitle>
           </SheetHeader>
           <div className="px-3 pb-4">
             <PortalSearchBar
@@ -1127,5 +1139,11 @@ const BookingSearchResultsInner = () => {
 
   );
 };
+
+const BookingSearchResults = () => (
+  <BookingLocaleProvider>
+    <BookingSearchResultsInner />
+  </BookingLocaleProvider>
+);
 
 export default BookingSearchResults;
