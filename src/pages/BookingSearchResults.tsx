@@ -802,6 +802,42 @@ const BookingSearchResultsInner = () => {
     return r;
   }, [dedupedCards, q, filters, adults]);
 
+  // ── 動態內容（後台維護的中文）顯示層翻譯：英文模式才呼叫，僅換顯示文字 ──
+  const dynamicFields = useMemo<TranslatableField[]>(() => {
+    const out: TranslatableField[] = [];
+    const seen = new Set<string>();
+    const push = (table: string, column: string, id: string, text: string | null) => {
+      if (!text) return;
+      const k = `${table}.${column}.${id}`;
+      if (seen.has(k)) return;
+      seen.add(k);
+      out.push({ table, column, id, text });
+    };
+    for (const c of filtered) {
+      push("accommodation_packages", "name", c.id, c.name);
+      push("accommodation_info", "name", c.accommodation_id, c.accommodation_name);
+    }
+    return out;
+  }, [filtered]);
+
+  const { tf } = useTranslatedFields(dynamicFields);
+
+  const displayCards = useMemo<SearchRoomCardData[]>(
+    () =>
+      filtered.map((c) => ({
+        ...c,
+        name: tf({ table: "accommodation_packages", column: "name", id: c.id, text: c.name }),
+        accommodation_name: tf({
+          table: "accommodation_info",
+          column: "name",
+          id: c.accommodation_id,
+          text: c.accommodation_name,
+        }),
+      })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [filtered, tf],
+  );
+
   /**
    * 條件式右上角標籤：
    *  - friday：入住日為週五 → 週五專屬禮遇
@@ -843,14 +879,25 @@ const BookingSearchResultsInner = () => {
   const summary = useMemo(() => {
     const parts: string[] = [];
     if (checkIn && checkOut) {
-      parts.push(`${format(checkIn, "M/d")} – ${format(checkOut, "M/d")} · ${nights} 晚`);
+      parts.push(
+        t("booking.search.summary.date", {
+          from: fmtDate(checkIn, shortFmt),
+          to: fmtDate(checkOut, shortFmt),
+          nights,
+        }),
+      );
     }
     if (adults || childrenCount || infantsCount || toddlersCount) {
       const childTotal = childrenCount + infantsCount + toddlersCount;
-      parts.push(`${adults} 位成人${childTotal > 0 ? ` · ${childTotal} 位兒童` : ""}`);
+      parts.push(
+        `${t("booking.search.summary.adults", { count: adults })}${
+          childTotal > 0 ? t("booking.search.summary.children", { count: childTotal }) : ""
+        }`,
+      );
     }
     return parts.join(" · ");
-  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [checkIn, checkOut, nights, adults, childrenCount, infantsCount, toddlersCount, t, shortFmt]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -860,13 +907,14 @@ const BookingSearchResultsInner = () => {
       <header data-site-chrome className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
+            <img src={lokezeLogo} alt={t("booking.search.header.logoAlt")} className="h-20 sm:h-24 object-contain" />
           </Link>
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch compact />
             {isLoggedIn ? (
               <Button variant="ghost" size="sm" onClick={() => navigate("/member/profile")} className="gap-1.5">
                 <User className="h-4 w-4" />
-                {memberName || "會員中心"}
+                {memberName || t("booking.search.header.member")}
               </Button>
             ) : (
               <button
@@ -874,7 +922,7 @@ const BookingSearchResultsInner = () => {
                 className="flex items-center gap-1.5 text-[hsl(25,80%,50%)] font-semibold text-sm"
               >
                 <LogIn className="h-5 w-5" />
-                登入 / 註冊
+                {t("booking.search.header.login")}
               </button>
             )}
           </div>
@@ -884,15 +932,16 @@ const BookingSearchResultsInner = () => {
 
       {/* 原生 App：「找房」頁提供 AI 管家找房入口 */}
       {native && (
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 flex items-center gap-2">
           <Button
             variant="outline"
-            className="w-full h-11 justify-start gap-2 border-primary/40 text-foreground"
+            className="flex-1 h-11 justify-start gap-2 border-primary/40 text-foreground"
             onClick={() => navigate("/ai-booking")}
           >
             <MessageCircle className="h-4 w-4 text-primary" />
-            用 AI 管家幫我找房
+            {t("booking.search.ai.entry")}
           </Button>
+          <BookingLanguageSwitch compact />
         </div>
       )}
 
