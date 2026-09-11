@@ -300,7 +300,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     () => roomTypes.filter(r => r.is_exclusive_package).map(r => r.id),
     [roomTypes],
   );
-  const { getBreakdown: getPackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
+  const { getBreakdown: getPackageBreakdown, ensureBreakdown: ensurePackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
