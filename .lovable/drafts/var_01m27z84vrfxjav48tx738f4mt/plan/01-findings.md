@@ -46,10 +46,12 @@ export async function sendOrderCancelledEmail(
     reason?: string | null;
     deadlineText?: string;
     triggerSource?: string;
-    previewTo?: string;      // 有值時只寄此地址，log 標記 preview
+    previewTo?: string;      // 有值時只寄此地址，且完全不寫 booking_email_log
   },
 ): Promise<{ success: boolean; skipped?: string; error?: string; status?: number }>;
 ```
+
+**preview 去重慣例（比照 group_buy）**：`sendOrderCancelledEmail()` 內的寫入邏輯採 `if (!previewTo) await admin.from('booking_email_log').insert(...)`，與 `group_buy_payment_events` 的 `if (!previewTo) ...insert(...)` 完全一致。凡是會拿來做去重判斷的紀錄表，preview 一律不寫入，不留任何標籤破口，確保未來真正到期取消時去重查詢不會誤判已寄過。
 
 職責界線：`buildCancelEmail()` 只做文案；`sendOrderCancelledEmail()` 只做取資料、寄送、寫紀錄，不做權限判斷（權限留在各呼叫端）。
 
