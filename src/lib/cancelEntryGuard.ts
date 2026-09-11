@@ -6,10 +6,10 @@
  */
 
 import {
+  ATM_METHODS,
   isCardPaidOrderDisplay,
   type CardDisplayOrderShape,
 } from "@/lib/cardPaymentDisplay";
-import { ATM_METHODS } from "../../supabase/functions/_shared/cardPaymentRule";
 
 export interface CancelGuardOrderShape extends CardDisplayOrderShape {
   order_status?: string | null;
