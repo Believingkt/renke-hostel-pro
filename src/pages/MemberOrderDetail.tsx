@@ -1106,16 +1106,18 @@ const MemberOrderDetailInner = () => {
 
       {/* 2. 住宿詳情 */}
       <Section>
-        <h3 className="text-base font-semibold">住宿詳情</h3>
+        <h3 className="text-base font-semibold">{t("booking.member.detail.stayDetails")}</h3>
 
         <div className="mt-3 flex gap-3">
           <div className="flex-1 min-w-0">
-            <h2 className="text-base font-semibold leading-snug">{order.accommodation_name}</h2>
+            <h2 className="text-base font-semibold leading-snug">
+              {tf({ table: "accommodation_info", column: "name", id: order.accommodation_id, text: order.accommodation_name })}
+            </h2>
             <button
               onClick={() => navigate(detailPath)}
               className="mt-1 text-sm underline text-muted-foreground"
             >
-              查看住宿頁面
+              {t("booking.member.detail.viewStayPage")}
             </button>
           </div>
           {order.accommodation_photo && (
@@ -1134,7 +1136,7 @@ const MemberOrderDetailInner = () => {
               href={`tel:${order.accommodation_phone}`}
               className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm"
             >
-              <Phone className="h-4 w-4" /> 電話聯絡
+              <Phone className="h-4 w-4" /> {t("booking.member.detail.callAcc")}
             </a>
           )}
           {order.accommodation_email && (
@@ -1142,7 +1144,7 @@ const MemberOrderDetailInner = () => {
               href={`mailto:${order.accommodation_email}`}
               className="flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm"
             >
-              <Mail className="h-4 w-4" /> 郵件聯絡
+              <Mail className="h-4 w-4" /> {t("booking.member.detail.emailAcc")}
             </a>
           )}
         </div>
@@ -1151,16 +1153,16 @@ const MemberOrderDetailInner = () => {
           <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
           <div className="text-sm">
             <p className="font-medium">
-              {format(new Date(order.check_in_date), "yyyy 年 M 月 d 日 EEEE", { locale: zhTW })} —{" "}
-              {format(new Date(order.check_out_date), "M 月 d 日 EEEE", { locale: zhTW })}
+              {format(new Date(order.check_in_date), t("booking.member.fmt.fullDateWeek"), { locale: dateLocale })} —{" "}
+              {format(new Date(order.check_out_date), t("booking.member.fmt.monthDayWeekFull"), { locale: dateLocale })}
               <span className="mx-1.5 text-muted-foreground/50">|</span>
-              {nights} 晚
+              {t("booking.member.detail.nights", { nights })}
             </p>
             {(order.check_in_time || order.check_out_time) && (
               <p className="mt-1 text-muted-foreground">
-                {order.check_in_time && <>入住：{order.check_in_time} 後</>}
+                {order.check_in_time && <>{t("booking.member.detail.checkInTime", { time: order.check_in_time })}</>}
                 {order.check_in_time && order.check_out_time && <br />}
-                {order.check_out_time && <>退房：{order.check_out_time} 前</>}
+                {order.check_out_time && <>{t("booking.member.detail.checkOutTime", { time: order.check_out_time })}</>}
               </p>
             )}
           </div>
@@ -1170,8 +1172,10 @@ const MemberOrderDetailInner = () => {
           <div className="mt-3 flex gap-2.5">
             <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
             <div className="text-sm">
-              <p className="font-medium">地點</p>
-              <p className="text-muted-foreground">{order.accommodation_address}</p>
+              <p className="font-medium">{t("booking.member.detail.location")}</p>
+              <p className="text-muted-foreground">
+                {tf({ table: "accommodation_info", column: "address", id: order.accommodation_id, text: order.accommodation_address })}
+              </p>
               <a
                 className="underline text-muted-foreground"
                 target="_blank"
@@ -1180,7 +1184,7 @@ const MemberOrderDetailInner = () => {
                   order.accommodation_address
                 )}`}
               >
-                查看地圖
+                {t("booking.member.detail.viewMap")}
               </a>
             </div>
           </div>
@@ -1190,9 +1194,11 @@ const MemberOrderDetailInner = () => {
           <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
             <LayoutGrid className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
             <div className="text-sm min-w-0">
-              <p className="font-medium">住宿設施</p>
+              <p className="font-medium">{t("booking.member.detail.facilities")}</p>
               <p className="mt-1 text-muted-foreground leading-relaxed">
-                {order.facilities.join("｜")}
+                {order.facilities
+                  .map((f, i) => tf({ table: "accommodation_facilities", column: "facility_name", id: `${order.accommodation_id}:${i}`, text: f }))
+                  .join("｜")}
               </p>
             </div>
           </div>
@@ -1201,16 +1207,26 @@ const MemberOrderDetailInner = () => {
         <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
           <KeyRound className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
           <div className="text-sm min-w-0">
-            <p className="font-medium">{order.check_in_title || "如何辦理入住"}</p>
+            <p className="font-medium">
+              {order.check_in_title
+                ? tf({ table: "booking_settings", column: "check_in_section_title", id: order.accommodation_id, text: order.check_in_title })
+                : t("booking.member.detail.howToCheckIn")}
+            </p>
             <div className="mt-1 space-y-1 text-muted-foreground leading-relaxed">
-              {order.check_in_subtitle && <p>{order.check_in_subtitle}</p>}
-              {order.check_in_time && <p>入住時間：{order.check_in_time} 後</p>}
-              {order.check_out_time && <p>退房時間：{order.check_out_time} 前</p>}
-              {htmlToLines(order.other_notes).map((line, i) => (
-                <p key={i}>{line}</p>
+              {order.check_in_subtitle && (
+                <p>
+                  {tf({ table: "booking_settings", column: "check_in_section_subtitle", id: order.accommodation_id, text: order.check_in_subtitle })}
+                </p>
+              )}
+              {order.check_in_time && <p>{t("booking.member.detail.checkInTime", { time: order.check_in_time })}</p>}
+              {order.check_out_time && <p>{t("booking.member.detail.checkOutTime", { time: order.check_out_time })}</p>}
+              {otherNoteLines.map((line, i) => (
+                <p key={i}>
+                  {tf({ table: "booking_settings", column: "other_notes", id: `${order.accommodation_id}:${i}`, text: line })}
+                </p>
               ))}
               {order.accommodation_phone && (
-                <p>抵達前請先致電住宿 {order.accommodation_phone} 聯繫辦理入住。</p>
+                <p>{t("booking.member.detail.callBefore", { phone: order.accommodation_phone })}</p>
               )}
             </div>
           </div>
@@ -1224,7 +1240,11 @@ const MemberOrderDetailInner = () => {
               expireAt={order.atm_expire_at}
               amount={atmTransferAmount}
 
-              amountLabel={`轉帳金額${order.notes?.match(/的\s*(\d+)%/) ? `（訂金 ${order.notes.match(/的\s*(\d+)%/)![1]}%）` : ""}`}
+              amountLabel={
+                order.notes?.match(/的\s*(\d+)%/)
+                  ? t("booking.member.atm.transferAmountWithPct", { pct: order.notes.match(/的\s*(\d+)%/)![1] })
+                  : t("booking.member.atm.transferAmount")
+              }
             />
           </div>
         )}
@@ -1233,7 +1253,7 @@ const MemberOrderDetailInner = () => {
           <div className="mt-4 pt-4 border-t border-border/70 flex gap-2.5">
             <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground shrink-0" />
             <div className="text-sm min-w-0">
-              <p className="font-medium">您的特殊需求</p>
+              <p className="font-medium">{t("booking.member.detail.specialRequests")}</p>
               <p className="mt-1 text-muted-foreground whitespace-pre-line leading-relaxed">
                 {guestNotes}
               </p>
@@ -1245,7 +1265,7 @@ const MemberOrderDetailInner = () => {
 
       {/* 3. 旅客資訊 */}
       <Section>
-        <h3 className="text-base font-semibold">旅客資訊</h3>
+        <h3 className="text-base font-semibold">{t("booking.member.detail.guestInfo")}</h3>
         <div className="mt-3 space-y-2 text-sm">
           <p className="flex items-center gap-2">
             <User className="h-4 w-4 text-muted-foreground" /> {order.guest_name}
@@ -1264,16 +1284,16 @@ const MemberOrderDetailInner = () => {
       {/* 4. 紅利 */}
       {!cancelled && (
         <Section>
-          <h3 className="text-base font-semibold">紅利</h3>
+          <h3 className="text-base font-semibold">{t("booking.member.detail.rewards")}</h3>
           <p className="mt-2 flex items-center gap-2 text-sm">
             <Gift className="h-4 w-4" style={{ color: ORANGE }} />
-            <span style={{ color: ORANGE }}>本筆訂單可獲得 {points.toLocaleString()} 點紅利</span>
+            <span style={{ color: ORANGE }}>{t("booking.member.detail.rewardPoints", { points: points.toLocaleString() })}</span>
           </p>
           <button
             onClick={() => navigate("/member/points")}
             className="mt-2 text-sm underline text-muted-foreground"
           >
-            查看紅利點數
+            {t("booking.member.detail.viewPoints")}
           </button>
         </Section>
       )}
@@ -1286,7 +1306,7 @@ const MemberOrderDetailInner = () => {
             onClick={openCancel}
             className="rounded-lg py-2.5 text-sm font-medium bg-muted text-muted-foreground disabled:opacity-50"
           >
-            取消訂單
+            {t("booking.member.detail.cancelOrder")}
           </button>
           <button
             disabled={cancelled || acting}
@@ -1302,7 +1322,7 @@ const MemberOrderDetailInner = () => {
             className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: ORANGE }}
           >
-            更改訂單
+            {t("booking.member.detail.changeOrder")}
           </button>
           <button
             disabled={cancelled}
@@ -1310,7 +1330,7 @@ const MemberOrderDetailInner = () => {
             className="rounded-lg py-2.5 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: ORANGE }}
           >
-            延長入住
+            {t("booking.member.detail.extendStay")}
           </button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1318,40 +1338,40 @@ const MemberOrderDetailInner = () => {
                 className="rounded-lg py-2.5 text-sm font-medium text-white"
                 style={{ backgroundColor: ORANGE }}
               >
-                管理訂單
+                {t("booking.member.detail.manageOrder")}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 bg-popover z-50">
               <DropdownMenuItem
                 onClick={() => {
                   navigator.clipboard?.writeText(order.order_number);
-                  toast.success("已複製訂單編號");
+                  toast.success(t("booking.member.detail.copiedOrderNumber"));
                 }}
               >
-                <Copy className="h-4 w-4 mr-2" /> 複製訂單編號
+                <Copy className="h-4 w-4 mr-2" /> {t("booking.member.detail.copyOrderNumber")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={share}>
-                <Share2 className="h-4 w-4 mr-2" /> 分享訂單連結
+                <Share2 className="h-4 w-4 mr-2" /> {t("booking.member.detail.shareLink")}
               </DropdownMenuItem>
               {order.accommodation_phone && (
                 <DropdownMenuItem asChild>
                   <a href={`tel:${order.accommodation_phone}`}>
-                    <Phone className="h-4 w-4 mr-2" /> 致電住宿
+                    <Phone className="h-4 w-4 mr-2" /> {t("booking.member.detail.callStay")}
                   </a>
                 </DropdownMenuItem>
               )}
               {order.accommodation_email && (
                 <DropdownMenuItem asChild>
                   <a href={`mailto:${order.accommodation_email}`}>
-                    <Mail className="h-4 w-4 mr-2" /> 郵件聯絡住宿
+                    <Mail className="h-4 w-4 mr-2" /> {t("booking.member.detail.emailStay")}
                   </a>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem onClick={() => navigate("/member/messages")}>
-                <MessageSquare className="h-4 w-4 mr-2" /> 聯絡客服
+                <MessageSquare className="h-4 w-4 mr-2" /> {t("booking.member.detail.contactSupport")}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate(detailPath)}>
-                <LayoutGrid className="h-4 w-4 mr-2" /> 再次預訂
+                <LayoutGrid className="h-4 w-4 mr-2" /> {t("booking.member.detail.bookAgain")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
