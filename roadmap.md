@@ -24,3 +24,10 @@
 - [ ] 出逐字程式碼（migration / resolve_template_night_price / validate_order_before_insert / CreateOrderDialog diff）
 - [ ] src/types/order.ts 補 pricing_template_id 欄位（勿再遺漏）
 - [ ] TS↔SQL 取價一致性 parity 測試矩陣
+
+---
+
+# ATM booking_pending 信尾分流（已核准）
+- [ ] ATM 改為自動核帳說明＋「查詢訂單」按鈕
+- [ ] 人工匯款／fallback 文案維持逐字不變
+- [ ] 型別檢查、既有與新增測試、CE2V95Y5 安全副本驗證
