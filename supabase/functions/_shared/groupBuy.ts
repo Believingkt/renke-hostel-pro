@@ -1,7 +1,7 @@
 // 團購模組共用邏輯：訂金／期限計算、訂單信件資料組裝。
 // deno-lint-ignore-file no-explicit-any
 
-import type { GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
+import type { GroupBuyAtmInfo, GroupBuyBankInfo, GroupBuyEmailOrder } from "./groupBuyEmail.ts";
 import { resolveCancellationPolicy } from "./cancellationPolicy.ts";
 import { isCardPaidOrder } from "./orderRefund.ts";
 
@@ -183,4 +183,72 @@ export function buildAdminGroupBuyUrl(params: {
   if (params.campaignId) qs.set("campaignId", params.campaignId);
   if (params.orderNumber) qs.set("orderNumber", params.orderNumber);
   return `${PMS_ADMIN_ORIGIN}/admin/group-buy?${qs.toString()}`;
+}
+
+/**
+ * 團購通知信「付款資訊」單一判定來源。
+ *
+ * 判定 SoT＝訂單本身（payment_provider / payment_method / atm_vacc_no），
+ * 活動層 enable_bank_transfer 只作保險絲：活動未開放銀行匯款時，一律不塞共用帳號。
+ * - channel="atm"        → 回傳該筆訂單的 TapPay 虛擬帳號（未配發則 atm=null，信件走 fallback 文案）
+ * - channel="credit_card"→ 全額預收，無匯款資訊
+ * - channel="bank"       → 才查 group_buy_bank_accounts 共用帳號
+ */
+export async function resolveGroupBuyPaymentDisplay(
+  admin: any,
+  order: any,
+  campaignId: string | null | undefined,
+): Promise<{
+  channel: "atm" | "credit_card" | "bank";
+  bank: GroupBuyBankInfo | null;
+  atm: GroupBuyAtmInfo | null;
+}> {
+  const isCardOrder = order?.payment_provider === "tappay" && isCardPaidOrder(order);
+  const paymentMethodRaw = String(order?.payment_method ?? "");
+  const isAtmOrder = paymentMethodRaw === "atm" || !!order?.atm_vacc_no;
+  const channel: "atm" | "credit_card" | "bank" = isCardOrder
+    ? "credit_card"
+    : isAtmOrder
+    ? "atm"
+    : "bank";
+
+  if (channel === "credit_card") return { channel, bank: null, atm: null };
+
+  if (channel === "atm") {
+    const vaccNo = String(order?.atm_vacc_no ?? "").trim();
+    return {
+      channel,
+      bank: null,
+      atm: vaccNo
+        ? {
+          bankCode: order?.atm_vacc_bank_code ?? null,
+          vaccNo,
+          expireText: order?.atm_expire_at ? formatTaipei(new Date(order.atm_expire_at)) : null,
+          amount: Number(order?.deposit_amount ?? 0) > 0 ? Math.round(Number(order.deposit_amount)) : null,
+        }
+        : null,
+    };
+  }
+
+  if (!campaignId) return { channel, bank: null, atm: null };
+
+  const { data: campaign } = await admin
+    .from("group_buy_campaigns")
+    .select("id, enable_bank_transfer")
+    .eq("id", campaignId)
+    .maybeSingle();
+  if (campaign && campaign.enable_bank_transfer === false) {
+    return { channel, bank: null, atm: null };
+  }
+
+  const { data: bankRow } = await admin
+    .from("group_buy_bank_accounts")
+    .select("*")
+    .eq("campaign_id", campaignId)
+    .order("is_default", { ascending: false })
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return { channel, bank: bankToInfo(bankRow), atm: null };
 }
