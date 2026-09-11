@@ -182,8 +182,14 @@ Deno.serve(async (req) => {
     const totalPrice = body.totalPrice || body.finalPrice;
     const totalGuests = body.totalGuests || 2;
 
-    // 付款後才發現不能建單（庫存被搶走）時的補償：自動退款 + 記錄
-    const refundAndFail = async (step: string, detail: unknown) => {
+    // 付款後才發現不能建單時的補償：自動退款 + 記錄
+    // kind = 'inventory'：庫存被搶走（既有行為，回應與文案完全不變）
+    // kind = 'insert_error'：orders.insert 其他錯誤（本次新增，一律退款）
+    const refundAndFail = async (
+      kind: "inventory" | "insert_error",
+      step: string,
+      detail: unknown,
+    ) => {
       let refunded = false;
       try {
         const r = await refundTapPay(partnerKey!, body.recTradeId, verifiedAmount);
@@ -194,9 +200,13 @@ Deno.serve(async (req) => {
       }
       await reportBackendError({
         functionName: "complete-3ds-booking",
-        category: "inventory_unavailable_after_payment",
+        category: kind === "inventory"
+          ? "inventory_unavailable_after_payment"
+          : "order_insert_failed_after_payment",
         step,
-        errorMessage: `庫存不足導致付款後無法建單（已${refunded ? "" : "嘗試"}退款）`,
+        errorMessage: kind === "inventory"
+          ? `庫存不足導致付款後無法建單（已${refunded ? "" : "嘗試"}退款）`
+          : `訂單寫入失敗導致付款後無法建單（已${refunded ? "" : "嘗試"}退款）`,
         accommodationId: body.accommodationId,
         idempotencyKey: body.idempotencyKey ?? undefined,
         context: {
@@ -206,16 +216,28 @@ Deno.serve(async (req) => {
           detail,
         },
       }).catch(() => {});
+      if (kind === "inventory") {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            inventoryUnavailable: true,
+            refunded,
+            message: refunded
+              ? "很抱歉，您選擇的房型剛剛被其他旅客訂走，款項已全額退回原信用卡（依發卡行作業約 3–7 個工作天入帳）。請重新選擇日期或房型。"
+              : "很抱歉，您選擇的房型剛剛被其他旅客訂走，我們已通知客服為您處理退款，將盡快與您聯繫。",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
       return new Response(
         JSON.stringify({
           success: false,
-          inventoryUnavailable: true,
           refunded,
           message: refunded
-            ? "很抱歉，您選擇的房型剛剛被其他旅客訂走，款項已全額退回原信用卡（依發卡行作業約 3–7 個工作天入帳）。請重新選擇日期或房型。"
-            : "很抱歉，您選擇的房型剛剛被其他旅客訂走，我們已通知客服為您處理退款，將盡快與您聯繫。",
+            ? "訂單建立失敗，款項已全額退回原信用卡（依發卡行作業約 3–7 個工作天入帳）。"
+            : "訂單建立失敗，我們已通知客服為您處理退款，將盡快與您聯繫。",
         }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     };
 
@@ -263,6 +285,7 @@ Deno.serve(async (req) => {
           // 庫存不足（含團購 10 分鐘保留）：卡片已扣款，必須自動退款並記錄
           if (validationResult.inventoryUnavailable) {
             return await refundAndFail(
+              "inventory",
               "inventory_unavailable_pre_insert",
               validationResult.errors,
             );
@@ -346,16 +369,38 @@ Deno.serve(async (req) => {
       console.error("[complete-3ds-booking] Order creation failed:", orderError);
       // DB 庫存閘門擋下（跨通路搶單）：卡片已扣款，自動退款
       if ((orderError.message || "").includes("inventory_unavailable")) {
-        return await refundAndFail("inventory_gate_on_insert", orderError.message);
+        return await refundAndFail("inventory", "inventory_gate_on_insert", orderError.message);
       }
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "建立訂單失敗",
-          error: orderError.message,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      // 競態保護：insert 失敗前先重查一次訂單。若其實已存在（同時送出撞唯一鍵 23505），
+      // 代表客人訂單已成立，絕對不能退款。
+      let raceOrder: { id: string; order_number: string } | null = null;
+      if (body.idempotencyKey) {
+        const { data } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .eq("idempotency_key", body.idempotencyKey)
+          .maybeSingle();
+        raceOrder = data;
+      }
+      if (!raceOrder) {
+        const { data } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .ilike("notes", `%${body.recTradeId}%`)
+          .maybeSingle();
+        raceOrder = data;
+      }
+      if (raceOrder) {
+        console.log("[complete-3ds-booking] Insert failed but order already exists:", raceOrder.order_number);
+        return new Response(
+          JSON.stringify({ success: true, message: "訂單已存在", order: raceOrder, alreadyExists: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // 確認查無訂單：款項已扣但訂單不存在，一律全額退款
+      return await refundAndFail("insert_error", "order_insert_error", orderError.message);
     }
 
 
