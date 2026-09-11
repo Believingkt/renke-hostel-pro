@@ -124,38 +124,43 @@ serve(async (req) => {
 
     if (!RESEND_API_KEY) return json({ success: false, error: "email_not_configured" }, 500);
 
+    const previewTo = body.previewTo?.trim() || "";
+    const recipient = previewTo || order.guest_email;
+
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         from: "人客多通知 <noreply@lakeze.com>",
-        to: [order.guest_email],
+        to: [recipient],
         subject,
         html,
       }),
     });
     const text = await resp.text();
 
-    try {
-      await supabase.from("booking_email_log").insert({
-        order_id: order.id,
-        order_number: order.order_number,
-        email_type: "order_cancelled",
-        recipient: order.guest_email,
-        subject,
-        status: resp.ok ? "sent" : "failed",
-        error_message: resp.ok ? null : text.slice(0, 1000),
-        trigger_source: body.triggerSource || "member_cancel",
-      });
-    } catch (logErr) {
-      console.error("[send-order-cancelled-email] log failed", logErr);
+    if (!previewTo) {
+      try {
+        await supabase.from("booking_email_log").insert({
+          order_id: order.id,
+          order_number: order.order_number,
+          email_type: "order_cancelled",
+          recipient: order.guest_email,
+          subject,
+          status: resp.ok ? "sent" : "failed",
+          error_message: resp.ok ? null : text.slice(0, 1000),
+          trigger_source: body.triggerSource || "member_cancel",
+        });
+      } catch (logErr) {
+        console.error("[send-order-cancelled-email] log failed", logErr);
+      }
     }
 
     if (!resp.ok) {
       console.error("[send-order-cancelled-email] resend failed", resp.status, text);
       return json({ success: false, error: text }, 502);
     }
-    return json({ success: true });
+    return json(previewTo ? { success: true, preview: true, subject, html } : { success: true });
   } catch (e) {
     console.error("[send-order-cancelled-email] error", e);
     return json({ success: false, error: (e as Error).message }, 500);
