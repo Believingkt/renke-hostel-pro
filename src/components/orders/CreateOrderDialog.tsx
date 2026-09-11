@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { usePackageBreakdown, defaultCountsFromBreakdown } from "@/hooks/use-package-breakdown";
 import { saveOrderAllocations } from "@/lib/amenityAllocation";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -294,17 +295,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, []);
 
   // Phase 3: 每個包棟方案各自的房間組成（從 room_types.package_contents 讀取）。
-  // breakdownByPackage[包棟房型 id] = [{ room_type_id: 自訂房間 id, name, count }, ...]
-  type BreakdownItem = { room_type_id: string; name: string; count: number };
-  const [breakdownByPackage, setBreakdownByPackage] = useState<Record<string, BreakdownItem[]>>({});
-  const getPackageBreakdown = useCallback(
-    (pkgRoomTypeId?: string | null): BreakdownItem[] | null => {
-      if (!pkgRoomTypeId) return null;
-      const arr = breakdownByPackage[pkgRoomTypeId];
-      return arr && arr.length > 0 ? arr : null;
-    },
-    [breakdownByPackage],
+  // 與編輯訂單頁共用 usePackageBreakdown；含動態補查（新加一列或切到集合外的房型）。
+  const exclusiveRoomTypeIds = useMemo(
+    () => roomTypes.filter(r => r.is_exclusive_package).map(r => r.id),
+    [roomTypes],
   );
+  const { getBreakdown: getPackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
@@ -510,31 +506,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         setPricingTemplates(templatesResult.data);
       }
 
-      // Phase 3: 每個包棟方案各自從 room_types.package_contents 讀取房間組成
-      const exclusivePkgs = (roomTypesResult.data || []).filter((r: any) => r.is_exclusive_package);
-      if (exclusivePkgs.length > 0) {
-        const { data: pkgRows } = await supabase
-          .from("room_types")
-          .select("id, package_contents")
-          .in("id", exclusivePkgs.map((r: any) => r.id));
-        const map: Record<string, BreakdownItem[]> = {};
-        for (const row of (pkgRows || []) as any[]) {
-          const contents = Array.isArray(row.package_contents) ? row.package_contents : [];
-          const normalized: BreakdownItem[] = contents
-            .map((it: any) => {
-              const key = it?.id;
-              const name = it?.name;
-              const count = Number(it?.count) || 0;
-              if (!key || !name || count <= 0) return null;
-              return { room_type_id: String(key), name: String(name), count };
-            })
-            .filter(Boolean) as BreakdownItem[];
-          if (normalized.length > 0) map[row.id] = normalized;
-        }
-        setBreakdownByPackage(map);
-      } else {
-        setBreakdownByPackage({});
-      }
     };
 
     fetchData();
@@ -693,6 +664,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
       : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
     const defaultRoomType = candidates[0];
+    let pendingNew: { id: string; roomTypeId: string; isExclusive: boolean } | null = null;
     // 雲岫散客房：自動依序代入尚未被使用的房型
     setRoomSelections(prev => {
       let chosen = defaultRoomType;
@@ -718,6 +690,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (nextUnusedExc) chosen = nextUnusedExc;
       }
       if (!chosen) return prev;
+      pendingNew = { id, roomTypeId: chosen.id, isExclusive: !!chosen.is_exclusive_package };
       const templates = getTemplatesForRoomType(chosen.id);
       // 同一組訂單共用同一個專案：若主方案的 template 在新房型的可選範圍內，直接沿用
       const primaryTplId = prev[0]?.template_id;
@@ -733,13 +706,20 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         filteredTemplates: templates,
       }];
     });
-  }, [roomTypes, getTemplatesForRoomType, isYunxiu]);
+    if (pendingNew?.isExclusive) {
+      const counts = defaultCountsFromBreakdown(getPackageBreakdown(pendingNew.roomTypeId));
+      const newId = pendingNew.id;
+      setExtraExclusiveCustomCounts(p => ({ ...p, [newId]: counts }));
+    }
+  }, [roomTypes, getTemplatesForRoomType, isYunxiu, getPackageBreakdown]);
 
   const removeRoomSelection = useCallback((selId: string) => {
     setRoomSelections(prev => prev.filter(s => s.id !== selId));
   }, []);
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
+    // 換房型要帶入的預設組成間數，先蒐集起來，等 setRoomSelections 之後再套用（避免在 updater 內做 side effect）
+    let pendingDefaults: { idx: number; counts: Record<string, number> } | null = null;
     setRoomSelections(prev => prev.map((s, idx) => {
       if (s.id !== selId) return s;
       const updated = { ...s, ...updates };
@@ -757,10 +737,22 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (newRt?.is_exclusive_package) updated.quantity = 1;
         // 換房型時清掉房號選擇
         updated.room_unit_id = null;
+        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數；
+        // 之後的渲染／其他欄位變動不會覆蓋客服手動改過的值。
+        const defaults = newRt?.is_exclusive_package
+          ? defaultCountsFromBreakdown(getPackageBreakdown(updates.room_type_id))
+          : {};
+        pendingDefaults = { idx, counts: defaults };
+
       }
       return updated;
     }));
-  }, [getTemplatesForRoomType, roomTypes]);
+    if (pendingDefaults) {
+      const { idx, counts } = pendingDefaults;
+      if (idx === 0) setExclusiveCustomCounts(counts);
+      else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+    }
+  }, [getTemplatesForRoomType, roomTypes, getPackageBreakdown]);
 
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
