@@ -8,10 +8,12 @@
  */
 
 import {
+  ATM_METHODS,
   type CardPaymentOrderShape,
   isCardPaidOrderRule,
 } from "../../supabase/functions/_shared/cardPaymentRule";
 
+export { ATM_METHODS };
 export type CardDisplayOrderShape = CardPaymentOrderShape;
 
 /** 與 server isCardPaidOrder 相同規則（ATM／轉帳／現金一律 false） */
