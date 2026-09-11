@@ -244,22 +244,25 @@ const BookingAccommodationInner = () => {
               className="gap-1 text-muted-foreground hover:text-foreground -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">返回</span>
+              <span className="hidden sm:inline">{t("booking.acc.header.back")}</span>
             </Button>
             <Link to="/booking" className="flex items-center gap-2">
-              <img src={lokezeLogo} alt="Lakeze 人客多" className="h-24 object-contain" />
+              <img src={lokezeLogo} alt={t("booking.acc.header.logoAlt")} className="h-24 object-contain" />
             </Link>
           </div>
 
           <div className="hidden md:flex flex-1" />
 
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch compact />
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleFavorite}
               disabled={favLoading}
-              aria-label={isFavorite ? "取消收藏" : "加入收藏"}
+              aria-label={
+                isFavorite ? t("booking.acc.favorite.remove") : t("booking.acc.favorite.add")
+              }
               className="rounded-full"
             >
               <Heart
@@ -274,7 +277,7 @@ const BookingAccommodationInner = () => {
                 className="gap-1.5"
               >
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{memberName || "會員中心"}</span>
+                <span className="hidden sm:inline">{memberName || t("booking.acc.header.member")}</span>
               </Button>
             ) : (
               <Button
@@ -284,7 +287,7 @@ const BookingAccommodationInner = () => {
                 style={{ background: "hsl(25, 70%, 55%)" }}
               >
                 <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">登入 / 註冊</span>
+                <span className="hidden sm:inline">{t("booking.acc.header.login")}</span>
               </Button>
             )}
           </div>
@@ -326,8 +329,8 @@ const BookingAccommodationInner = () => {
                   <RoomsSection
                     roomTypes={secondaryData?.roomTypes || []}
                     sectionDescription={info.description}
-                    customTitle={hasPackages ? '房型導覽' : titles.title}
-                    customSubtitle={hasPackages ? '各房型獨立預訂選項' : titles.subtitle}
+                    customTitle={hasPackages ? t("booking.acc.rooms.title") : titles.title}
+                    customSubtitle={hasPackages ? t("booking.acc.rooms.subtitle") : titles.subtitle}
                   />
                 </div>
               );
@@ -396,5 +399,11 @@ const BookingAccommodationInner = () => {
     </div>
   );
 };
+
+const BookingAccommodation = () => (
+  <BookingLocaleProvider>
+    <BookingAccommodationInner />
+  </BookingLocaleProvider>
+);
 
 export default BookingAccommodation;
