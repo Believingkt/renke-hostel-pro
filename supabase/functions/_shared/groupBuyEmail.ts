@@ -240,6 +240,12 @@ export function renderBookingWithBankInfo(
       </table></div>`
     : `<p>匯款資訊將由客服另行提供，請留意通知。</p>`);
 
+  const paymentFollowUp = atmBlock
+    ? `<p>本筆訂單為 ATM 虛擬帳號，匯款完成後系統會自動比對入帳並更新訂單狀態，我們也會另外寄出【訂房確認・已收到訂金】通知信，您不需要另行回報。</p>
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">查詢訂單</a></p>` : ""}`
+    : `<p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
+       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">匯款回報 / 查詢訂單</a></p>` : ""}`;
+
   return {
     subject: `【訂房成立・待匯款】${o.campaignTitle} 訂單 ${o.orderNumber}`,
     html: layout(
@@ -251,8 +257,7 @@ export function renderBookingWithBankInfo(
        ${cancellationBlock(o)}
        ${bankBlock}
        ${o.deadlineText ? `<p><strong style="color:${BRAND.primary}">匯款期限：${esc(o.deadlineText)}</strong>（逾期系統將自動取消訂單）</p>` : ""}
-       <p>匯款完成後，請至訂單查詢頁點選「我已完成匯款」，我們會盡快為您核對入帳。</p>
-       ${o.orderUrl ? `<p style="text-align:center"><a class="btn" href="${esc(o.orderUrl)}">匯款回報 / 查詢訂單</a></p>` : ""}`,
+       ${paymentFollowUp}`,
 
     ),
   };
