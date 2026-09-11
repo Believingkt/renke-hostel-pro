@@ -357,6 +357,7 @@ export async function completeGroupBuyCreditOrder(
         ok: true,
         alreadyConverted: true,
         orderId: fresh.converted_order_id,
+        // TECH DEBT: 同上（groupBuyCreditCompletion.ts:278）orderNumberOf() string | null vs CompleteResult.orderNumber?: string（TS2322，既有問題，非本次引入）。
         orderNumber: await orderNumberOf(admin, fresh.converted_order_id),
       };
     }
