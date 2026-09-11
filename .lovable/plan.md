@@ -1,82 +1,91 @@
-# guard v5.7：認得「專案」定價 + 排除 bulk_open 佔位價（逐字程式碼版）
+# ATM 已付款訂單：比照團購／信用卡補上取消防護（設計稿，未施工）
 
-範圍二採用您核准的版本：只排除 `bulk_open`，`last_change_source IS NULL` 維持信任（歷史影響 27 筆，全部是近 90 天的 0 元佔位錯價單）。
-`validate_order_deposit_on_insert` 不動。
+## 一、ATM 已付款訂單有沒有專屬取消／退款流程？
 
----
+**有，而且是同一套後端。** 不需要另外補入口。
 
-## 先回答三個問題
+- 前端入口：`src/components/orders/CancelOrderDialog.tsx`，由 `src/pages/OrderDetail.tsx:3874` 掛載，觸發按鈕在 `OrderDetail.tsx:2172`（桌機）與 `:2228`（手機選單），條件只有 `order.order_status !== 'cancelled'`。
+- 後端：`supabase/functions/cancel-order-with-refund/index.ts`。
 
-### 1. resolve_template_night_price() 是不是照抄既有邏輯？
+與團購 `canProcessRefund` / `mode:'refund'` 的對照：
 
-畫面上 NT$60,000 的來源鏈是：
-`CreateOrderDialog.tsx` 第 811／1408 行 → `src/utils/templatePriceResolver.ts` 的 `resolveTemplatePricesForDates()`
-→ `src/utils/templatePriceResolverPure.ts` 的 `resolveTemplatePricesFromRows()`
-→ `src/utils/pricingTemplateHelpers.ts`（`hasSegments`／`findSegmentForDate`／`getTierForDate`／`isTierSellable`／`getRoomOverride`）。
+| 項目 | 團購 AdminGroupBuy | ATM／一般訂單 CancelOrderDialog |
+|---|---|---|
+| 建議退款金額 | 後端算 | 後端算：`quoteCancellation()` → `suggestedRefund`，前端只用 `mode:"quote"` 取值顯示與預填 |
+| 金額上限 | 後端重算 | 後端重算 `remainingRefundable = paid_amount - refunded_amount`；`auto_refund` 分支明確擋 `refundAmount > paidAmount` |
+| 人工覆寫 | 需填原因 | 需填原因（`overrideReason.length < 2` 直接 400） |
+| ATM 行為 | 人工退款 | `refundAction: "mark_manual_refund"` → 寫稽核備註 + `flagRefundNeedsManual()`（`refund_status` 進人工退款）+ 寄取消通知信 + App 推播 |
 
-**這次 SQL 版是「照著這條鏈重寫成 PL/pgSQL」，不是複用**——PL/pgSQL 沒辦法呼叫 TS。我不隱瞞這點。
-六層順序就是照抄那條鏈的順序：專案覆寫價 → segments → room_overrides → 範本 tier → 單一 price → base row 餐型欄位；
-日型判斷（假日／週六=weekend、週五／週日=peak、其餘=weekday）與 `classifyDayTier` 逐字對應。
+差異一項要注意：`mark_manual_refund` 分支目前**沒有**像 `auto_refund` 那樣檢查 `refundAmount > remainingRefundable`（只有覆寫需填原因）。本次設計不改它，但列為後續可補的加強項。
 
-保證一致的做法（不靠人眼）：新增 parity 測試 `src/utils/__tests__/templatePriceParity.test.ts`，
-用正式環境現有的各型 template（segments 型／room_overrides 型／單一價型）× 一整個月每一天（含國定假日）
-× 有無專案覆寫價 × 有無 base row，逐格比對 TS 與 SQL 輸出，任一格不同即失敗。
-不是只驗一組 60,000；施工時這支測試必須全綠才算過。
+## 二、要擋的條件範圍與既有資料實測
 
-若您希望徹底消滅雙實作，下一步可以讓前端改呼叫同一支 SQL（RPC），TS 版退成快取。但那會動到前台顯示價的主路徑，建議這次先不混在一起。
+建議條件（與 `order_source` 無關，website／manual／line／owner_provided 一律適用）：
 
-### 2. `orders.pricing_template_id` 要同步 `src/types/order.ts`
+```
+付款方式任一欄為 atm  且  paid_amount > 0  且  refund_status ≠ 'refunded'  且  目前狀態 ≠ cancelled
+```
 
-已列入施工清單第 5 項，逐字 diff 見 `docs/v57/02_frontend.diff.md` B 段。
+實測（全庫 ATM 訂單分佈）：
 
-### 3. RLS 要不要另外處理？
+- 已取消 + ATM + `paid_amount>0`：**5 筆**，`refund_status`：`none` 4、`pending_manual` 1，**`refunded` 0 筆**。
+  - DD2A94W4（group_buy，5,558，none）、XX7C27S4（owner_provided，24,250，pending_manual）、BR2E62G8（website，1,440，none）、RE5K46Y4（manual，10，none）、JZ5C37A8（manual，10，none）。
+- 已取消 + ATM + `paid_amount=0`：24 筆 → 新規則**不會**擋（未收款本來就可直接取消）。
+- 未取消（confirmed）+ ATM + `paid_amount>0`：36 筆 → 這些才是未來會被導向專屬對話框的對象。
 
-**不用。** Postgres 的 row-level policy 是「以整列為單位」判定，新增一個可空欄位不會改變任何既有 policy 的判定結果，也不會讓任何角色多看到或少看到任何一列。
-需要注意的只有欄位級授權：`orders` 目前沒有任何 column-level GRANT（都是表層級），所以新欄位自動沿用表層級權限，不需補 GRANT。
-新的 `resolve_template_night_price()` 是 SECURITY DEFINER，依既有規則在同一個 migration、同一交易內 `CREATE` ＋ `REVOKE ALL FROM PUBLIC/anon/authenticated` ＋ `GRANT` ＋ 權限 postcheck。
+結論：目前資料庫沒有任何「已退款完成的 ATM 訂單」，也就是不存在會被誤擋的既有情境；0 元 ATM 訂單也完全不受影響。防護只作用在「狀態變成 cancelled」的當下，既有已取消訂單不會被回溯影響。
 
----
+## 三、設計
 
-## 逐字程式碼
+### 3.1 前端：擴充 `src/lib/cancelEntryGuard.ts`
 
-- `docs/v57/01_hunks.sql`
-  - (1) `ALTER TABLE public.orders ADD COLUMN pricing_template_id`
-  - (2) `resolve_template_night_price()` **全文**＋REVOKE/GRANT/postcheck
-  - (3) `validate_order_before_insert()` 的三段逐字置換（HUNK A 宣告、HUNK B 庫存來源、HUNK C 每晚取價分支），old → new 全部列出
-- `docs/v57/02_frontend.diff.md`：`CreateOrderDialog.tsx`、`src/types/order.ts`、parity 測試
+`CancelGuardOrderShape` 增加 `paid_amount`、`refunded_amount`、`refund_status`，並新增 ATM 判定：
 
-### 關於 validate_order_before_insert 為何用「置換」而不是重打全文
+- `isAtmPaidBlocked(order)`：付款三欄任一為 `atm`／`ATM`／`atm_transfer`，且 `paid_amount > 0`，且 `refund_status` 不是 `refunded`。
+- `isCancelBlockedOrder()` 改為：`group_buy` OR 卡付 OR `isAtmPaidBlocked`（維持「已是 cancelled 就不擋」）。
+- `buildCancelBlockHint()` 增加 ATM 分支文案：「ATM 已收款訂單請改用訂單詳情頁的『取消訂單』，才會依取消政策計算退款金額、標記人工退款並寄出取消通知信。」
 
-該函式現有 358 行，其中約 300 行是加購重算、庫存／人數／間數檢查、折扣與收尾，本次一字不動。
-施工時 migration 會**以資料庫目前的 `prosrc` 為基底**，程式化套用上述三段置換後再 `CREATE OR REPLACE`，
-避免人工重打造成看不見的漂移；未改動區塊會用 md5 比對確認逐字相同。
-您要審的「所有會變的字」，`01_hunks.sql` 已 100% 列出。若您仍要看拼好的 358 行全文，我可以在您接受草稿前先產出來給您看，不進資料庫。
+不會誤傷：0 元 ATM、已 `refunded` 的 ATM 都回 false；純現金／轉帳／未收款一律不變。
 
----
+### 3.2 DB：`update_order_fields_v1` 最後一道防線
 
-## 施工項目清單
+在現有 `v_is_atm` / `v_is_card` 判斷後，把條件擴為：
 
-1. migration：`orders.pricing_template_id`（可空、FK、ON DELETE SET NULL）
-2. migration：`resolve_template_night_price()`（SECURITY DEFINER ＋ 同交易 REVOKE/GRANT/postcheck）
-3. migration：`validate_order_before_insert()` 三段置換
-4. 前端：`CreateOrderDialog.tsx` payload 帶 `pricing_template_id`
-5. 前端：`src/types/order.ts` 補欄位
-6. 測試：`templatePriceParity.test.ts`（TS ↔ SQL 逐格比對）
-7. pre/postcheck：兩支函式的長度／md5／prosecdef／完整 ACL、trigger 清單、未改動區塊 md5
+```sql
+IF v_old.order_source = 'group_buy'
+   OR (NOT v_is_atm AND v_is_card)
+   OR (v_is_atm AND coalesce(v_old.paid_amount,0) > 0
+       AND coalesce(v_old.refund_status,'none') <> 'refunded') THEN
+  RAISE EXCEPTION 'ORDER_CANCEL_BLOCKED: 此訂單必須使用專屬取消流程';
+END IF;
+```
 
-## 測試計畫（全部 BEGIN…ROLLBACK）
+只加一段 OR，白名單欄位、SECURITY 模式、ACL 全部不動。合法路徑不受影響：`cancel-order-with-refund` 走 `update_order_with_context`（另一支 RPC），`group-buy-cancel-refund` 走 service role 直寫，兩者都不經此 RPC。
 
-1. 哈庫納 line ＋ 20人包棟 ＋「20人一泊二食」專案 → 60,000（不再 0、不再跳訂金錯誤）
-2. 同房型改週五、週六、週日、國定假日各一組 → 與前端顯示逐格相同
-3. 該日有專案覆寫價（`pricing_template_id` 非空的庫存列）→ 取覆寫價
-4. segments 型專案：日期落在段內／段外各一組 → 段外應 fallback 或擋下
-5. room_overrides 型專案：override 覆寫 tier 價、override 關閉該 tier 各一組
-6. package 路徑既有案例 → 金額與現況一字不差（零 diff）
-7. 庫存 `manual_edit` 登記 0 元招待房 → 放行，房價 0
-8. 包棟房型、無方案無專案、只有 `bulk_open` 0 元 → 擋下並貼中文訊息全文
-9. 一般房型 `base_price` 有值、只有 `bulk_open` → 走 base_price 放行
-10. `last_change_source IS NULL` 的舊登記價 → 維持放行（566 筆那類不受影響）
-11. 豁免來源（manual／owlting／hotelnabe／group_buy）→ 完全不進重算
-12. parity 測試矩陣全綠
+### 3.3 被擋下之後導去哪裡
 
-核准後才動資料庫。
+不需要新入口：導向同一頁的「取消訂單」按鈕（`OrderDetail` 右上／手機更多選單）→ `CancelOrderDialog`。ATM 會自動預設 `mark_manual_refund`，顯示政策級距、已付／已退／最高可退／建議退款，送出後標記人工退款並寄取消信。因此採「完全擋下」而非「警告二次確認」。
+
+### 3.4 影響範圍
+
+需要一併處理的路徑（都已共用同一個 guard，故只改 `cancelEntryGuard.ts` 即自動生效）：
+
+1. `src/components/orders/OrderStatusDialog.tsx`（列表「變更訂單狀態」）— 無需改碼。
+2. `src/pages/OrderDetail.tsx:1006 / :1403 / :2043`（內嵌編輯的狀態下拉與錯誤攔截）— 無需改碼，但需確認 `order` 物件有帶 `paid_amount` / `refunded_amount` / `refund_status`；若缺欄位需補進查詢與 `src/types/order.ts`（`refund_status`、`refunded_amount`）。
+3. 所有其他經 `update_order_fields_v1` 的寫入 — 由 DB 防線兜底。
+
+不動：`CancelOrderDialog`、`cancel-order-with-refund`、`group-buy-cancel-refund`、`validate_order_deposit_on_insert`、`sync_order_payment_fields`、任何定價／庫存資料。
+
+## 四、precheck / postcheck 規劃
+
+- precheck：`update_order_fields_v1` md5 `60491bcb6d7787f7b404bfa861323d70`、length `3101`、`prosecdef`、ACL 清單。
+- postcheck：同四項重取（僅 md5／length 變動）；`orders` 相關 guard 函式 md5 不變。
+- 交易測試（全部 BEGIN…ROLLBACK）：
+  1. ATM + paid>0 + refund_status=none → 擋下
+  2. ATM + paid>0 + refund_status=pending_manual → 擋下
+  3. ATM + paid>0 + refund_status=refunded → 放行
+  4. ATM + paid=0 → 放行
+  5. 現金／轉帳 + paid>0 → 放行（回歸）
+  6. 團購／信用卡 → 仍擋下（回歸）
+  7. 一般欄位更新不受影響
+- 前端：`tsgo --noEmit` 與既有 `src/test/group-buy-card-cancel-ui.test.ts`、新增 ATM guard 單元測試。
