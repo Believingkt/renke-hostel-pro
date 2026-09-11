@@ -21,6 +21,7 @@ import {
 } from "../_shared/groupBuyEmail.ts";
 import { loadManualRefundFee } from "../_shared/refundFee.ts";
 import { resolveOrderNotifyEmails } from "../_shared/notifyRecipients.ts";
+import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 
 const FN = "group-buy-resend-notification";
 
@@ -158,6 +159,35 @@ Deno.serve(async (req) => {
               .eq("id", order.accommodation_id)
               .maybeSingle()
             : { data: null as any };
+          /**
+           * 政策應退金額：沿用 server 唯一權威的 quoteCancellation()，不另建算法。
+           * 只讀不寫；缺入住日／取消時間時一律不提供政策欄位（信件維持原有文案）。
+           */
+          let policyRefundAmount: number | null = null;
+          let policyRefundPercent: number | null = null;
+          let policyRequiresManualReview = false;
+          const cancelledAtIso: string | null = order.cancelled_at ?? null;
+          if (order.check_in_date && cancelledAtIso) {
+            try {
+              const cancellationDate = formatTaipei(new Date(cancelledAtIso)).slice(0, 10)
+                .replace(/\//g, "-");
+              const quote = quoteCancellation({
+                order: order as any,
+                checkInDate: String(order.check_in_date),
+                cancellationDate: /^\d{4}-\d{2}-\d{2}$/.test(cancellationDate)
+                  ? cancellationDate
+                  : taipeiToday(),
+                alreadyRefunded: refundedTotal,
+              });
+              policyRefundAmount = Math.max(0, Math.round(Number(quote.refundAmount) || 0));
+              policyRefundPercent = Math.max(0, Math.round(Number(quote.refundPercent) || 0));
+              policyRequiresManualReview = quote.requiresManualReview === true;
+            } catch (_e) {
+              policyRefundAmount = null;
+              policyRefundPercent = null;
+              policyRequiresManualReview = false;
+            }
+          }
           mail = renderOrderCancelled(emailOrder, {
             cancelledAtText: formatTaipei(
               new Date(order.cancelled_at ?? order.updated_at ?? new Date().toISOString()),
@@ -168,6 +198,9 @@ Deno.serve(async (req) => {
             handlingFee,
             refundStatus: String(order.refund_status ?? "none"),
             reason: null,
+            policyRefundAmount,
+            policyRefundPercent,
+            policyRequiresManualReview,
             venueContact: accContact
               ? {
                 phone: (accContact as any).phone ?? null,
