@@ -55,7 +55,6 @@ import {
 } from "@/components/ui/dialog";
 import { format, differenceInCalendarDays, addDays } from "date-fns";
 
-import { zhTW } from "date-fns/locale";
 import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
 import ShareStayButton from "@/components/booking/ShareStayButton";
 import { toast } from "sonner";
@@ -1382,40 +1381,40 @@ const MemberOrderDetailInner = () => {
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>確定要取消這筆訂單嗎？</AlertDialogTitle>
+            <AlertDialogTitle>{t("booking.member.cancel.title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-left">
-                {quoteLoading && <p className="text-sm text-muted-foreground">正在試算取消費用…</p>}
+                {quoteLoading && <p className="text-sm text-muted-foreground">{t("booking.member.cancel.quoting")}</p>}
                 {cancelQuote && (
                   <div className="rounded-md border p-3 space-y-1.5">
                     <p className="text-sm">
-                      距離入住還有 <span className="font-semibold text-foreground">{cancelQuote.daysBefore}</span> 天，
-                      取消扣款比例 <span className="font-semibold text-foreground">{cancelQuote.percent}%</span>
+                      {t("booking.member.cancel.daysBefore", {
+                        days: cancelQuote.daysBefore,
+                        percent: cancelQuote.percent,
+                      })}
                     </p>
                     <p className="text-xs text-muted-foreground">{cancelQuote.label}</p>
                     <div className="flex justify-between text-sm pt-1 border-t">
-                      <span className="text-muted-foreground">取消手續費</span>
+                      <span className="text-muted-foreground">{t("booking.member.cancel.fee")}</span>
                       <span className="font-semibold text-foreground">NT$ {cancelQuote.feeAmount.toLocaleString()}</span>
                     </div>
                     {order.paid_amount > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">預計退款</span>
+                        <span className="text-muted-foreground">{t("booking.member.cancel.refund")}</span>
                         <span className="font-semibold text-foreground">NT$ {cancelQuote.refundAmount.toLocaleString()}</span>
                       </div>
                     )}
                     {cancelQuote.freeCancel && (
-                      <p className="text-xs text-primary font-medium">符合免費取消，不會扣任何款項。</p>
+                      <p className="text-xs text-primary font-medium">{t("booking.member.cancel.free")}</p>
                     )}
                   </div>
                 )}
-                <p className="text-sm text-muted-foreground">
-                  取消後無法復原。若卡片已綁定但尚未扣款，系統只會收取上述手續費；若已扣款，將自動退還可退金額。
-                </p>
+                <p className="text-sm text-muted-foreground">{t("booking.member.cancel.warning")}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={acting}>再想想</AlertDialogCancel>
+            <AlertDialogCancel disabled={acting}>{t("booking.member.cancel.keep")}</AlertDialogCancel>
             <AlertDialogAction
               disabled={acting}
               onClick={(e) => {
@@ -1423,7 +1422,7 @@ const MemberOrderDetailInner = () => {
                 handleCancel();
               }}
             >
-              {acting ? "處理中…" : "確認取消訂單"}
+              {acting ? t("booking.member.cancel.processing") : t("booking.member.cancel.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1433,13 +1432,13 @@ const MemberOrderDetailInner = () => {
       <Dialog open={changeOpen} onOpenChange={setChangeOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>更改訂單</DialogTitle>
-            <DialogDescription>可調整入住日期與入住人數，送出後將重新確認空房。</DialogDescription>
+            <DialogTitle>{t("booking.member.change.title")}</DialogTitle>
+            <DialogDescription>{t("booking.member.change.desc")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm font-medium">入住日</label>
+                <label className="text-sm font-medium">{t("booking.member.change.checkInLabel")}</label>
                 <input
                   type="date"
                   value={newCheckIn}
@@ -1449,7 +1448,7 @@ const MemberOrderDetailInner = () => {
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">退房日</label>
+                <label className="text-sm font-medium">{t("booking.member.change.checkOutLabel")}</label>
                 <input
                   type="date"
                   value={newCheckOut}
@@ -1461,7 +1460,7 @@ const MemberOrderDetailInner = () => {
               </div>
             </div>
             <div>
-              <label className="text-sm font-medium">入住人數</label>
+              <label className="text-sm font-medium">{t("booking.member.change.guestsLabel")}</label>
               <input
                 type="number"
                 min={1}
@@ -1477,51 +1476,54 @@ const MemberOrderDetailInner = () => {
             </div>
 
             {guestQuoteLoading && (
-              <p className="text-xs text-muted-foreground">正在確認人數變更後的金額…</p>
+              <p className="text-xs text-muted-foreground">{t("booking.member.change.quoteLoading")}</p>
             )}
 
             {!guestQuoteLoading && guestQuote?.needsManualReview && newGuests !== order.guest_count && (
               <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                {guestQuote.reason || "變更人數後的金額需由客服重新確認。"}
-                {Number(order.paid_amount || 0) > 0 &&
-                  "（此訂單已付款，送出後將轉為客服申請，由客服確認金額後與您聯繫）"}
+                {guestQuote.reason || t("booking.member.change.manualReview")}
+                {Number(order.paid_amount || 0) > 0 && t("booking.member.change.paidSuffix")}
               </p>
             )}
 
 
             {!guestQuoteLoading && guestPriceChanged && guestQuote && (
               <div className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs space-y-1.5">
-                <p className="font-medium text-foreground">人數變更將重新計算房費</p>
+                <p className="font-medium text-foreground">{t("booking.member.change.priceRecalc")}</p>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">方案</span>
+                  <span className="text-muted-foreground">{t("booking.member.change.plan")}</span>
                   <span>
                     {guestQuote.currentPackageName || "-"} → {guestQuote.newPackageName || "-"}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">房費（{guestQuote.nights} 晚）</span>
+                  <span className="text-muted-foreground">{t("booking.member.detail.roomFee", { nights: guestQuote.nights })}</span>
                   <span>
                     NT${guestQuote.currentRoomTotal.toLocaleString()} → NT$
                     {guestQuote.newRoomTotal.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">已付金額</span>
+                  <span className="text-muted-foreground">{t("booking.member.change.paidAmount")}</span>
                   <span>NT${guestQuote.paidAmount.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between font-semibold" style={{ color: ORANGE }}>
-                  <span>{guestQuote.diff > 0 ? "需補差額" : "可退差額"}</span>
+                  <span>{guestQuote.diff > 0 ? t("booking.member.change.needExtra") : t("booking.member.change.refundDiff")}</span>
                   <span>NT${Math.abs(guestQuote.diff).toLocaleString()}</span>
                 </div>
                 <p className="text-muted-foreground">
-                  變更後訂單總額 NT${guestQuote.newFinalPrice.toLocaleString()}，
                   {guestQuote.newOutstanding > 0
-                    ? `尚需支付 NT$${guestQuote.newOutstanding.toLocaleString()}，客服將與您聯繫確認付款方式。`
-                    : "已無應付款項，多付差額將由客服協助辦理退款。"}
+                    ? t("booking.member.change.newTotalNeedPay", {
+                        total: guestQuote.newFinalPrice.toLocaleString(),
+                        outstanding: guestQuote.newOutstanding.toLocaleString(),
+                      })
+                    : t("booking.member.change.newTotalNoPay", {
+                        total: guestQuote.newFinalPrice.toLocaleString(),
+                      })}
                 </p>
                 {fullyPaid ? (
                   <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1.5 text-amber-700 dark:text-amber-400">
-                    此訂單已付清，變更人數會影響金額，送出後將轉為客服申請，由客服確認後與您聯繫。
+                    {t("booking.member.change.fullyPaidNote")}
                   </p>
                 ) : (
                   <label className="flex items-start gap-2 pt-1 cursor-pointer">
@@ -1532,8 +1534,9 @@ const MemberOrderDetailInner = () => {
                       className="mt-0.5 h-4 w-4"
                     />
                     <span>
-                      我了解並同意上述金額調整
-                      {guestQuote.diff > 0 ? "，並於客服通知後補繳差額" : "，退款將由客服另行處理"}。
+                      {guestQuote.diff > 0
+                        ? t("booking.member.change.ackExtra")
+                        : t("booking.member.change.ackRefund")}
                     </span>
                   </label>
                 )}
@@ -1542,11 +1545,11 @@ const MemberOrderDetailInner = () => {
 
             {dateChangeLocked ? (
               <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
-                此訂單已付訂金／已付款，改期需由客服確認空房與價差。送出後會建立改期申請，客服將盡快與您聯繫。
+                {t("booking.member.change.lockedNote")}
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
-                更改日期將重新確認空房；若訂單已付款，改期會轉由客服人工處理。
+                {t("booking.member.change.unlockedNote")}
               </p>
             )}
           </div>
@@ -1565,11 +1568,11 @@ const MemberOrderDetailInner = () => {
               style={{ backgroundColor: ORANGE }}
             >
               {acting
-                ? "送出中…"
+                ? t("booking.member.change.submitting")
                 : dateChangeLocked &&
                     (newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date)
-                  ? "送出改期申請"
-                  : "確認更改"}
+                  ? t("booking.member.change.submitRequest")
+                  : t("booking.member.change.submitConfirm")}
             </button>
           </DialogFooter>
 
@@ -1580,5 +1583,11 @@ const MemberOrderDetailInner = () => {
     </div>
   );
 };
+
+const MemberOrderDetail = () => (
+  <BookingLocaleProvider>
+    <MemberOrderDetailInner />
+  </BookingLocaleProvider>
+);
 
 export default MemberOrderDetail;
