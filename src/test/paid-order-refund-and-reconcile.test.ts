@@ -93,6 +93,6 @@ describe("paid-draft-reconcile：補救掃描", () => {
   it("金額不符與查詢失敗一律 manual_review，未扣款標 failed", () => {
     expect(reconcile).toContain('decision: "manual_review_amount_mismatch"');
     expect(reconcile).toContain('decision: "manual_review_query_failed"');
-    expect(reconcile).toContain('decision: "failed_not_charged"');
+    expect(reconcile).toContain('"expired_not_charged" : "failed_not_charged"');
   });
 });
