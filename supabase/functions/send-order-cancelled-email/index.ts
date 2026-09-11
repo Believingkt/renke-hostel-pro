@@ -34,6 +34,7 @@ interface Body {
   refunded?: number;
   needManual?: boolean;
   triggerSource?: string;
+  previewTo?: string;
 }
 
 serve(async (req) => {
