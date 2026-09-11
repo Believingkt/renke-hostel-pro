@@ -501,7 +501,7 @@ const MemberOrderDetailInner = () => {
           paid_amount: Number(row.paid_amount ?? prev.paid_amount),
         };
         if (!isOrderPaid(prev) && isOrderPaid(next)) {
-          toast.success("已收到您的付款，訂單狀態已更新");
+          toast.success(t("booking.member.detail.paymentReceived"));
           setReloadKey((k) => k + 1);
         }
         return next;
@@ -519,6 +519,34 @@ const MemberOrderDetailInner = () => {
     return differenceInCalendarDays(new Date(order.check_out_date), new Date(order.check_in_date));
   }, [order]);
 
+  // 動態內容（後台維護的中文）自動翻譯：僅顯示層，不影響任何查詢、計價或狀態
+  const policyLines = useMemo(() => htmlToLines(order?.cancellation_policy), [order?.cancellation_policy]);
+  const otherNoteLines = useMemo(() => htmlToLines(order?.other_notes), [order?.other_notes]);
+  const translatableFields = useMemo<TranslatableField[]>(() => {
+    if (!order) return [];
+    const acc = order.accommodation_id;
+    const fields: TranslatableField[] = [];
+    const push = (table: string, column: string, id: string, text?: string | null) => {
+      if (text && text.trim()) fields.push({ table, column, id, text });
+    };
+    push("accommodation_info", "name", acc, order.accommodation_name);
+    push("accommodation_info", "address", acc, order.accommodation_address);
+    push("room_types", "name", order.room_type_name || "", order.room_type_name);
+    push("accommodation_packages", "name", `${order.id}:pkg`, order.package_name);
+    push("accommodation_packages", "subtitle", `${order.id}:pkg`, order.package_subtitle);
+    push("accommodation_packages", "room_allocation", `${order.id}:pkg`, order.room_allocation);
+    push("booking_settings", "check_in_section_title", acc, order.check_in_title);
+    push("booking_settings", "check_in_section_subtitle", acc, order.check_in_subtitle);
+    order.package_includes.forEach((inc, i) =>
+      push("accommodation_packages", "includes", `${order.id}:inc:${i}`, inc.text),
+    );
+    order.facilities.forEach((f, i) => push("accommodation_facilities", "facility_name", `${acc}:${i}`, f));
+    policyLines.forEach((line, i) => push("booking_settings", "cancellation_policy", `${acc}:${i}`, line));
+    otherNoteLines.forEach((line, i) => push("booking_settings", "other_notes", `${acc}:${i}`, line));
+    return fields;
+  }, [order, policyLines, otherNoteLines]);
+  const { tf } = useTranslatedFields(translatableFields);
+
   if (loading) {
     return (
       <div className="flex justify-center py-16">
@@ -530,19 +558,21 @@ const MemberOrderDetailInner = () => {
   if (!order) {
     return (
       <div className="py-16 text-center space-y-3">
-        <p className="text-sm text-muted-foreground">找不到這筆訂單</p>
+        <p className="text-sm text-muted-foreground">{t("booking.member.detail.notFound")}</p>
         <button
           onClick={() => navigate("/member/orders")}
           className="px-4 py-2 rounded-full border text-sm font-medium"
           style={{ borderColor: ORANGE, color: ORANGE }}
         >
-          回訂房紀錄
+          {t("booking.member.detail.backToOrders")}
         </button>
       </div>
     );
   }
 
-  const statusLabel = statusLabels[order.order_status] || order.order_status;
+  const statusLabel = statusLabelKeys[order.order_status]
+    ? t(statusLabelKeys[order.order_status])
+    : order.order_status;
   const cancelled = order.order_status === "cancelled";
   const points = Math.round(order.final_price * 0.04);
   const balance = Math.max(order.final_price - order.paid_amount, 0);
@@ -575,15 +605,15 @@ const MemberOrderDetailInner = () => {
       }
       if (error || !res.success) {
         if (res.reviewTaskCreated) {
-          toast.success(res.message || "已為您送出申請，客服將盡快與您聯繫");
+          toast.success(res.message || t("booking.member.detail.reviewCreated"));
           onDone?.();
           setReloadKey((k) => k + 1);
           return;
         }
-        toast.error(res.message || (error as Error | null)?.message || "操作失敗，請稍後再試");
+        toast.error(res.message || (error as Error | null)?.message || t("booking.member.detail.actionFailed"));
         return;
       }
-      toast.success(res.message || "已完成");
+      toast.success(res.message || t("booking.member.detail.actionDone"));
       onDone?.();
       setReloadKey((k) => k + 1);
     } finally {
@@ -652,11 +682,11 @@ const MemberOrderDetailInner = () => {
       newCheckIn !== order.check_in_date || newCheckOut !== order.check_out_date;
     const guestsChanged = newGuests !== order.guest_count;
     if (!datesChanged && !guestsChanged) {
-      toast.error("沒有任何變更");
+      toast.error(t("booking.member.change.noChange"));
       return;
     }
     if (guestsChanged && guestPriceChanged && !priceChangeAck) {
-      toast.error("請先確認人數變更後的金額調整");
+      toast.error(t("booking.member.change.confirmPriceFirst"));
       return;
     }
     if (datesChanged) {
@@ -695,7 +725,7 @@ const MemberOrderDetailInner = () => {
         await navigator.share({ title: `訂單 ${order.order_number}`, url });
       } else {
         await navigator.clipboard.writeText(url);
-        toast.success("已複製訂單連結");
+        toast.success(t("booking.member.detail.copiedLink"));
       }
     } catch { /* user cancelled */ }
   };
@@ -712,10 +742,10 @@ const MemberOrderDetailInner = () => {
       });
       const res = (data || {}) as { success?: boolean; error?: string; to?: string };
       if (error || !res.success) {
-        toast.error(res.error || error?.message || "寄送失敗，請稍後再試");
+        toast.error(res.error || error?.message || t("booking.member.detail.resendFailed"));
         return;
       }
-      toast.success(`訂單確認信已重新寄出至 ${maskEmail(res.to || order.guest_email)}`);
+      toast.success(t("booking.member.detail.resendSuccess", { email: maskEmail(res.to || order.guest_email) }));
     } finally {
       setResending(false);
     }
@@ -728,14 +758,15 @@ const MemberOrderDetailInner = () => {
         <button
           onClick={() => navigate("/member/orders")}
           className="p-1 -ml-1 text-muted-foreground hover:text-foreground"
-          aria-label="返回"
+          aria-label={t("booking.member.back")}
         >
           <ChevronLeft className="h-5 w-5" />
         </button>
         <div className="flex-1 text-center">
-          <p className="text-sm font-medium">訂單編號 {order.order_number}</p>
+          <p className="text-sm font-medium">{t("booking.member.detail.orderNumber", { order: order.order_number })}</p>
         </div>
-        <button onClick={share} className="p-1 text-muted-foreground hover:text-foreground" aria-label="分享">
+        <BookingLanguageSwitch className="mr-1" />
+        <button onClick={share} className="p-1 text-muted-foreground hover:text-foreground" aria-label={t("booking.member.share")}>
           <Share2 className="h-5 w-5" />
         </button>
       </div>
@@ -748,7 +779,7 @@ const MemberOrderDetailInner = () => {
           </h1>
           {order.guest_email && !cancelled && (
             <p className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
-              您已準備就緒！我們已寄發您的訂單確認函至 {maskEmail(order.guest_email)}。
+              {t("booking.member.detail.emailSent", { email: maskEmail(order.guest_email) })}
             </p>
           )}
           <button
@@ -757,7 +788,7 @@ const MemberOrderDetailInner = () => {
             className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground disabled:opacity-50"
           >
             {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-            重新傳送信件
+            {t("booking.member.detail.resend")}
           </button>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {!cancelled && (
