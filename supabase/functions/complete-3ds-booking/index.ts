@@ -285,6 +285,7 @@ Deno.serve(async (req) => {
           // 庫存不足（含團購 10 分鐘保留）：卡片已扣款，必須自動退款並記錄
           if (validationResult.inventoryUnavailable) {
             return await refundAndFail(
+              "inventory",
               "inventory_unavailable_pre_insert",
               validationResult.errors,
             );
@@ -368,16 +369,38 @@ Deno.serve(async (req) => {
       console.error("[complete-3ds-booking] Order creation failed:", orderError);
       // DB 庫存閘門擋下（跨通路搶單）：卡片已扣款，自動退款
       if ((orderError.message || "").includes("inventory_unavailable")) {
-        return await refundAndFail("inventory_gate_on_insert", orderError.message);
+        return await refundAndFail("inventory", "inventory_gate_on_insert", orderError.message);
       }
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: "建立訂單失敗",
-          error: orderError.message,
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+
+      // 競態保護：insert 失敗前先重查一次訂單。若其實已存在（同時送出撞唯一鍵 23505），
+      // 代表客人訂單已成立，絕對不能退款。
+      let raceOrder: { id: string; order_number: string } | null = null;
+      if (body.idempotencyKey) {
+        const { data } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .eq("idempotency_key", body.idempotencyKey)
+          .maybeSingle();
+        raceOrder = data;
+      }
+      if (!raceOrder) {
+        const { data } = await supabase
+          .from("orders")
+          .select("id, order_number")
+          .ilike("notes", `%${body.recTradeId}%`)
+          .maybeSingle();
+        raceOrder = data;
+      }
+      if (raceOrder) {
+        console.log("[complete-3ds-booking] Insert failed but order already exists:", raceOrder.order_number);
+        return new Response(
+          JSON.stringify({ success: true, message: "訂單已存在", order: raceOrder, alreadyExists: true }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // 確認查無訂單：款項已扣但訂單不存在，一律全額退款
+      return await refundAndFail("insert_error", "order_insert_error", orderError.message);
     }
 
 
