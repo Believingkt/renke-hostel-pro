@@ -1,105 +1,107 @@
-# 設計稿（未施工）：一般訂房草稿補救掃描 ＋ 3DS 舊路徑退款補齊
+# 中英雙語切換：唯讀盤點 + 設計稿（未施工）
 
-兩項都只出設計，等核准才動手。
-
----
-
-## 一、新增補救掃描排程 `paid-draft-reconcile`
-
-### 1. 「卡住」判定條件
-
-只掃 `pending_paid_order_drafts`，兩類：
-
-- `status = 'pending_3ds'` 且 `created_at < now() - 15 分鐘`（3DS 一般 5 分鐘內結束；15 分鐘是安全門檻，避免與正在進行中的付款打架）
-- `status = 'manual_review'` 且 `updated_at < now() - 15 分鐘`
-- 另補一類保險：`status = 'payment_succeeded'` 且 `updated_at < now() - 15 分鐘`（tappay-notify 已標成功但補建中斷）
-- 一律排除 `status = 'order_created'`、排除超過 7 天的舊草稿（過期不再處理，只標 `expired`）
-- 每輪 `limit 50`，逐筆處理
-
-排程頻率：每 10 分鐘（與團購對帳同節奏）。
-
-### 2. 怎麼跟 TapPay 核對
-
-用既有共用函式 `_shared/tappay.ts` 的 `queryTapPayRecord({ partnerKey, recTradeId })`（`group-buy-draft-reconcile` 用的同一支）。
-`pending_3ds` 草稿若 `rec_trade_id` 為 null，改用 `filters.order_number = idempotency_key` 的查詢無法保證，因此這種情況直接視為「無法確定」→ 走第三類處理（不會誤退、不會誤建）。
-
-### 3. 三種核對結果的處理
-
-| 核對結果 | 處理 |
-|---|---|
-| 已扣款成功（`record_status` 0/1、`amount` 等於 `expected_amount`）且查無對應訂單 | 先把草稿更新為 `payment_succeeded`，再以 service-role 呼叫既有 `create-paid-order`（post-charge 模式，帶 `alreadyChargedRecTradeId`），成功後草稿標 `order_created` 並記 `order_id` |
-| 確認未扣款成功（查無交易、或 `record_status` 為失敗） | 草稿標 `failed`（超過 7 天者標 `expired`），寫 `last_error` 說明來源為對帳排程；不動任何金流 |
-| 核對本身失敗／金額不符／`rec_trade_id` 缺失／補建仍失敗 | 草稿標 `manual_review` ＋ 寫 `last_error`，並透過既有 `reportBackendError` 寫 `error_logs`，另建一筆後台 `notifications` 告警 |
-
-金額不符一律不補建，直接 `manual_review`（與 `tappay-notify` 現行語意一致）。
-
-### 4. 不會建出重複訂單
-
-三層保護，全部沿用既有機制、不新增規則：
-
-1. 掃描時先以 `orders.idempotency_key = draft.idempotency_key` 查詢，已存在就直接把草稿標 `order_created` 並跳過。
-2. `create-paid-order` 進入點本身就有 idempotency 檢查，命中會回 `alreadyExists` 不重建。
-3. `orders.idempotency_key` 唯一鍵是最後防線，競態插入會被 DB 擋下。
-
-此外掃描只處理「更新超過 15 分鐘沒動靜」的草稿，天然避開與 `tappay-notify`／`PaymentResult` 同時處理同一筆的競態。
-
-### 5. 與 `tappay-notify` 的關係
-
-互補、不重疊：
-
-- `tappay-notify` 是事件驅動的第一線（TapPay 回調當下立刻補建）。
-- 本排程是時間驅動的第二線，只撿「第一線沒跑到或跑失敗、且已靜置 15 分鐘」的殘留草稿。
-- 兩者共用同一支 `create-paid-order` 與同一組草稿狀態機，所以就算同時觸發也只會有一筆訂單。
-- `tappay-notify` 現行邏輯完全不動。
-
-### 6. 檔案異動範圍
-
-新增（全部是新檔，不改既有程式）：
-
-- `supabase/functions/paid-draft-reconcile/index.ts`
-- cron：新增每 10 分鐘的排程呼叫這支函式
-
-不修改：`create-paid-order`、`tappay-notify`、`process-tappay-payment`、`PaymentResult.tsx`、任何 DB table／trigger／RLS。
-（本排程只 UPDATE `pending_paid_order_drafts` 自己的狀態欄位，orders 一律透過 `create-paid-order` 建立。）
-
-排程頻率說明：每 10 分鐘＝每天 144 次，屬低頻對帳型工作。因為是「錢已收、訂單沒建」的資金落差，必須有時間驅動的兜底，最長延遲 10 分鐘；再稀疏會讓客人等太久。
+本輪未修改任何程式碼、資料庫、部署或設定。以下皆為查證結果與設計提案。
 
 ---
 
-## 二、`complete-3ds-booking` 補齊 insert 失敗一律退款
+## 一、之前的殘留（有，而且品質堪用）
 
-### 1. 現有「庫存被搶」自動退款分支
+現況：上次的「固定文字＋字典」方案**確實留在專案裡，而且已經在一個頁面實際生效**（不是死碼）：
 
-- 退款輔助函式 `refundAndFail` 定義於 `supabase/functions/complete-3ds-booking/index.ts` 第 186–219 行，內部呼叫 `_shared/tappay.ts` 的 `refundTapPay(partnerKey, body.recTradeId, verifiedAmount)`，並寫 `reportBackendError`。
-- 唯一呼叫點在第 345–348 行：`if ((orderError.message || "").includes("inventory_unavailable")) return await refundAndFail("inventory_gate_on_insert", ...)`。
+- 字典檔 `src/lib/bookingI18n.ts`（275 行，約 186 組文案 key，中／英雙份，含缺字回退與變數代入）
+- 語言狀態 `src/contexts/BookingLocaleContext.tsx`（只存語言，存在瀏覽器 `booking_lang`，不碰網址、不碰訂房狀態）
+- 切換鈕 `src/components/booking/BookingLanguageSwitch.tsx`（繁中／EN）
+- 已接上線的頁面：**只有** `/booking/villa/:accId`（`BookingVilla.tsx` 及其 11 個子元件，約 158 處已翻譯）
+- 既有測試：`src/test/booking-i18n-locale-state.test.tsx`、`booking-villa-i18n-render.test.tsx`（涵蓋預設中文、記憶語言、切換不動網址）
+- 另有獨立的行程模組三語工具 `src/lib/tripI18n.ts`（中／日／英），與訂房頁互不相干
 
-### 2. 其他 insert 錯誤現在的處理
+結論：**不重做，沿用擴充**。這套設計已符合需求 6、7、8（純前端狀態、不碰網址、不觸發任何寫入）。
 
-同一個 `if (orderError)` 區塊，第 349–357 行：直接回 `{ success:false, message:"建立訂單失敗" }` 搭 HTTP 500，完全不退款。判斷「是 insert 錯誤」的依據就是 `orders.insert(...)` 回傳的 `orderError` 不為 null，範圍精確、不會涵蓋其他情境。
-
-### 3. 修改做法
-
-把 `refundAndFail` 泛用化，只動這一個區塊：
-
-- `refundAndFail` 增加參數區分情境（`kind: 'inventory' | 'insert_error'`），庫存分支的回應內容、HTTP 409、`inventoryUnavailable: true`、既有文案完全維持不變。
-- 新增 `insert_error` 分支：一樣呼叫 `refundTapPay` 退全額，`reportBackendError` 的 `category` 改為 `order_insert_failed_after_payment`，回應 HTTP 500，文案為「訂單建立失敗，款項已全額退回原信用卡（約 3–7 個工作天入帳）」；退款失敗則改為「已通知客服為您處理退款」。
-- 第 349–357 行原本的裸 500 回應改為 `return await refundAndFail("order_insert_error", orderError.message)`。
-- **新增競態保護（回應核對意見三）**：在退款之前先做一次「重查既有訂單」。因為第 148–177 行的重複判斷是在 insert 之前，理論上仍可能有兩個請求同時通過該檢查、其中一個在 insert 撞唯一鍵（23505）。因此 insert 失敗時先以 `idempotency_key` 與 `recTradeId in notes` 重查一次，查到訂單就回傳 `alreadyExists: true`、**絕不退款**；查不到才進退款分支。
-
-不受影響的情境（確認不會誤退）：
-- TapPay 本身回傳失敗／查無交易／金額不符 → 這些在 insert 之前就 return，根本沒進到 `orderError` 區塊，沒扣到錢也不會退。
-- 重複送出（第 148–177 行前置判斷命中）→ 直接回既有訂單，不進退款；競態漏網者由上述重查保護攔下。
-- insert 成功之後的行程、KOL webhook、寄信失敗 → 仍維持非致命、不退款。
-
-
-### 4. 其他邏輯保證不動
-
-3D 驗證、`tappay-query` 核對、價格驗證 fail-open、`resolveMemberId`、庫存判斷、insert 欄位內容、insert 之後的所有收尾流程，一行都不改。本項改動僅限 `refundAndFail` 函式本體與 `if (orderError)` 這一個區塊。
+確認第 2 點：資料庫目前**沒有** `translation_cache` 或任何等效翻譯快取表（已查 information_schema，名稱含 transl 的表 0 筆）；除 `/booking/villa/:accId` 外，**沒有任何頁面有語言切換**。與先前回報一致。
 
 ---
 
-## 驗證方式（施工後）
+## 二、固定文字盤點（中文字串數量為估算掃描）
 
-- 單元測試：斷言 insert 錯誤分支會呼叫退款、TapPay 失敗分支不會呼叫退款。
-- 排程：先以手動呼叫（帶單筆 draftId 參數）對既有 3 筆 `pending_3ds` 舊草稿做 dry-run 模式，只回報判定結果不寫入，確認判定正確後才掛 cron。
-- 部署前重查一次各狀態草稿筆數，確認不會波及真實資料。
+| 位置 | 檔案 | 中文片語數 | 現況 |
+|---|---|---|---|
+| 房源詳情（已完成） | `BookingVilla.tsx` + 11 元件 | 約 333 | 已抽字典 |
+| **訂房主流程（填單／付款／摘要）** | `BookingFlow.tsx`（5996 行） | 約 1519 | 全部寫死在畫面裡 |
+| 搜尋／選房列表 | `BookingSearchResults.tsx` | 約 175 | 寫死 |
+| 單館訂房頁 | `BookingAccommodation.tsx` | 約 27 | 寫死 |
+| 付款結果 | `PaymentResult.tsx` | 約 78 | 寫死 |
+| 會員訂單列表 | `MemberOrders.tsx` | 約 101 | 寫死 |
+| 會員訂單明細（取消／改期） | `MemberOrderDetail.tsx` | 約 263 | 寫死 |
+| 訂單查詢（免登入） | `CustomerOrders.tsx` | 約 471 行 | 寫死 |
+
+`BookingFlow.tsx` 是最大一塊，也是風險最高的一塊（訂房主流程、計價、付款都在同一支檔案裡）。
+
+**通知信件**：由 `send-booking-confirmation`（438 行，約 69 段中文）、`send-cancellation-email`（252 行）、`send-order-confirmation`、`send-order-cancelled-email` 等函式在伺服器端直接組 HTML 字串；固定文案佔比極高（約八成以上是固定標題／欄位名／說明），變動的只有姓名、日期、金額、房型名稱。
+
+---
+
+## 三、動態內容盤點
+
+後台維護、會顯示給客人的中文欄位（實查結果）：
+
+- `accommodation_info`：name, short_name, description, hero_main_title, hero_subtitle, hero_description, review_summary, child_age_rules, 各種標籤欄位
+- `room_types`：name（已有 `name_en`）, description, package_contents
+- `accommodation_packages`：name, subtitle, guest_count_label, child_age_note, child_age_rules_override
+- `booking_settings`：cancellation_policy, pet_policy, other_notes 及六組區塊標題／副標
+- `booking_info_sections`：section_title / subtitle / content
+- `faqs`：question, answer
+- `about_section` / `about_features` / `custom_sections` / `location_info` / `accommodation_facilities` / `room_amenities` / `amenity_items` / `addon_settings`：各自的標題與說明欄位
+
+訂單中顯示給客人的動態內容：房型／方案名稱、加購品名、取消政策文案、方案限制說明、客人自填備註（**建議不翻譯，原樣保留**）。
+
+分類：
+- **走固定字典**：日期格式、人數／房間單位、房型類別標籤、訂單狀態、付款方式、按鈕與驗證訊息
+- **走自動翻譯**：介紹、政策、常見問答、方案說明等自由文字
+- **不翻譯**：客人備註、地址門牌、電話、金額、訂單編號
+
+---
+
+## 四、技術架構
+
+1. 語言切換**不會**動到日期、房型、方案、人數、加購、表單、步驟——現有 Context 只存語言字串，切換只重繪畫面（既有測試已驗證不呼叫 history、不改網址）。新增頁面沿用同一條規則。
+2. 路由是 React Router（`src/App.tsx`），訂房頁走 `/booking/...`、`/book`。**採純前端 state，不加語言網址前綴**，避免動到需求 9 明列不可動的網址與搜尋條件。
+3. 外部翻譯：Edge Function 對外連線可用，且專案內已有現成範例 `supabase/functions/trip-translate/index.ts`（走 Lovable AI 閘道做中→日／英翻譯，不需自備金鑰）。**建議照抄這條路，不另接 Google／DeepL。**
+
+---
+
+## 設計稿
+
+### A. 固定文字（延伸現有字典）
+擴充 `src/lib/bookingI18n.ts`，依頁面分批加 key，逐檔把寫死中文換成 `t("...")`。分批順序：付款結果 → 搜尋列表 → 會員訂單／明細 → 訂單查詢 → 訂房主流程（最後做，單獨一批）。切換鈕加到各頁頁首。
+
+### B. 動態內容（新表 + 新函式）
+1. 新增 `translation_cache` 表：來源表、欄位、資料 ID、原文雜湊、語言、翻譯結果、更新時間；唯一鍵（來源表, 欄位, 資料 ID, 語言, 原文雜湊）。公開讀、只有伺服器可寫。
+2. 新增一支 `translate-content` Edge Function：收「欄位清單＋原文」，先查快取，缺的才呼叫 Lovable AI 翻譯並寫回快取。後台改中文 → 雜湊變 → 自動重譯，後台完全不需維護英文欄位。
+3. 前端加一個 `useTranslatedFields` hook：英文模式時整批送出該頁動態文字，回來後替換顯示；中文模式完全不呼叫。翻譯未回來前顯示原文，不做骨架、不閃爍。
+4. `room_types.name_en` 已有值時優先採用，不重複翻譯。
+
+### C. 通知信件
+在信件函式中依訂單語言（下單當下記錄的語言）輸出中文或中英對照。
+
+---
+
+## 需要您裁示的兩個範圍衝突（設計稿不自行決定）
+
+1. **新增 Edge Function**：需求第 12 點只開放新增 `translation_cache` 表，第 13 點禁止動 Edge Function。動態內容自動翻譯必須有伺服器端才能安全呼叫翻譯服務。請確認是否同意「**新增**一支全新函式 `translate-content`」（既有函式一律不動）。
+2. **信件雙語**：需求第 10 點要求信件雙語，但第 13 點禁止改既有 Edge Function 邏輯。信件是伺服器端組的，不改既有函式就做不到。請擇一：(a) 例外開放修改那 4 支寄信函式；(b) 信件本輪不做，只做網頁；(c) 新增獨立英文信件函式，既有中文信件不動。
+
+---
+
+## 修改前／修改後（白話）
+
+**修改前**：只有房源詳情那一頁有繁中／EN 切換鈕；其他訂房步驟、會員中心、訂單查詢、信件全是中文。切成英文後，民宿介紹、政策、常見問答等後台輸入的內容仍是中文。
+
+**修改後**：訂房從搜尋到付款完成、會員中心、訂單查詢每一頁都有切換鈕，選了英文就整頁英文。後台輸入的介紹、政策、房型與方案名稱會自動翻成英文顯示，您**不需要**在後台多打一份英文；後台改了中文，前台英文會自動跟著更新。語言會被記住，重新整理仍是英文。切換語言不會清掉已選的日期、房型、人數、加購或已填的表單，也不會重新計價或送出任何訂單。
+
+## 檔案白名單與風險
+
+新增：`translation_cache` 表、`translate-content` 函式、`useTranslatedFields` hook、相關測試。
+修改：`bookingI18n.ts`、`BookingFlow.tsx`、`BookingSearchResults.tsx`、`BookingAccommodation.tsx`、`PaymentResult.tsx`、`MemberOrders.tsx`、`MemberOrderDetail.tsx`、`CustomerOrders.tsx`（僅顯示層字串替換）。
+不動：計價、庫存、人數限制、加購、優惠、建單、付款退款、網址與搜尋、後台、/team、OTA／補單、既有 Edge Function、cron。
+
+最大風險是 `BookingFlow.tsx`（5996 行、約 1519 段中文），建議獨立一批施工並單獨驗收。
