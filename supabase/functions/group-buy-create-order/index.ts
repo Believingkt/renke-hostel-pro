@@ -8,11 +8,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import {
-  bankToInfo,
   buildEmailOrder,
   formatTaipei,
   buildAdminGroupBuyUrl,
   paymentDeadline,
+  resolveGroupBuyPaymentDisplay,
 } from "../_shared/groupBuy.ts";
 import { createGroupBuyOrderCore, validateAndPriceGroupBuyBooking } from "../_shared/groupBuyBooking.ts";
 import {
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     });
     const mailResult = await sendGroupBuyEmail(
       guestEmail,
-      renderBookingWithBankInfo(emailOrder, bankToInfo(bankRow)),
+      renderBookingWithBankInfo(emailOrder, paymentDisplay.bank, paymentDisplay.atm),
     );
     if (!mailResult.ok) console.warn(`[${FN}] email skipped: ${mailResult.reason}`);
 
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
       depositPercentage: campaign.deposit_percentage,
       paymentDeadline: deadline.toISOString(),
       paymentDeadlineText: formatTaipei(deadline),
-      bank: bankToInfo(bankRow),
+      bank: paymentDisplay.bank,
       emailSent: mailResult.ok,
     });
   } catch (e) {
