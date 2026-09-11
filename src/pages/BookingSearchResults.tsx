@@ -102,6 +102,20 @@ const FEATURE_TAG_RULES: Array<{ test: (name: string) => boolean; label: string 
   { test: (n) => /兒童|嬰兒|kids|baby/i.test(n), label: "親子友善" },
 ];
 
+/** 系統自動標籤 → 顯示層字典 key（僅換顯示文字，篩選與資料仍用原標籤） */
+const FEATURE_TAG_I18N_KEY: Record<string, string> = {
+  寵物友善: "booking.search.tag.pet",
+  "BBQ 烤肉": "booking.search.tag.bbq",
+  獨立廚房: "booking.search.tag.kitchen",
+  泳池: "booking.search.tag.pool",
+  "KTV 歡唱": "booking.search.tag.ktv",
+  含早餐: "booking.search.tag.breakfast",
+  免費停車: "booking.search.tag.parking",
+  "免費 WiFi": "booking.search.tag.wifi",
+  桌遊娛樂: "booking.search.tag.boardgame",
+  親子友善: "booking.search.tag.family",
+};
+
 function deriveAutoTags(facilities: FacilityRow[]): string[] {
   const tags = new Set<string>();
   for (const f of facilities) {
@@ -833,9 +847,13 @@ const BookingSearchResultsInner = () => {
           id: c.accommodation_id,
           text: c.accommodation_name,
         }),
+        feature_tags: (c.feature_tags ?? []).map((tag) => {
+          const key = FEATURE_TAG_I18N_KEY[tag];
+          return key ? t(key) || tag : tag;
+        }),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filtered, tf],
+    [filtered, tf, t],
   );
 
   /**
