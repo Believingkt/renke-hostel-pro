@@ -128,6 +128,14 @@ export interface GroupBuyBankInfo {
   note?: string | null;
 }
 
+/** 訂單專屬 ATM 虛擬帳號（TapPay 配發，存於 orders.atm_vacc_*） */
+export interface GroupBuyAtmInfo {
+  bankCode?: string | null;
+  vaccNo: string;
+  expireText?: string | null;
+  amount?: number | null;
+}
+
 function money(n: number): string {
   return `NT$ ${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
 }
@@ -196,11 +204,32 @@ function venueContactBlock(o: GroupBuyEmailOrder): string {
   }${notice}</div>`;
 }
 
+/**
+ * 三態付款資訊：ATM 優先於共用匯款帳號。
+ * atm 為選填，既有呼叫端不傳時行為與原本完全相同。
+ */
 export function renderBookingWithBankInfo(
   o: GroupBuyEmailOrder,
   bank: GroupBuyBankInfo | null,
+  atm?: GroupBuyAtmInfo | null,
 ): { subject: string; html: string } {
-  const bankBlock = bank
+  const atmBlock = atm && atm.vaccNo
+    ? `<div class="box"><h2>ATM 虛擬帳號</h2>
+      <p style="margin:0 0 8px 0;font-size:12px;color:#888">請於繳費期限前以 ATM、網路銀行或臨櫃匯款；此帳號為本筆訂單專用。</p>
+      <table class="info" style="margin:0">
+        <tr><td class="k">銀行代碼</td><td><strong>${esc(atm.bankCode ?? "—")}</strong></td></tr>
+        <tr><td class="k">虛擬帳號</td><td><strong style="letter-spacing:1px">${esc(atm.vaccNo)}</strong></td></tr>
+        ${
+      typeof atm.amount === "number"
+        ? `<tr><td class="k">轉帳金額</td><td><strong style="color:${BRAND.primary}">${money(atm.amount)}</strong></td></tr>`
+        : ""
+    }
+        ${atm.expireText ? `<tr><td class="k">繳費期限</td><td>${esc(atm.expireText)}</td></tr>` : ""}
+      </table>
+      <p style="margin:10px 0 0 0;font-size:12px;color:#888">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p></div>`
+    : null;
+
+  const bankBlock = atmBlock ?? (bank
     ? `<div class="box"><h2>匯款資訊</h2>
       <table class="info" style="margin:0">
         <tr><td class="k">銀行</td><td>${esc(bank.bankName)}${bank.bankCode ? `（${esc(bank.bankCode)}）` : ""}</td></tr>
@@ -209,7 +238,7 @@ export function renderBookingWithBankInfo(
         <tr><td class="k">帳號</td><td><strong>${esc(bank.accountNumber)}</strong></td></tr>
         ${bank.note ? `<tr><td class="k">備註</td><td>${esc(bank.note)}</td></tr>` : ""}
       </table></div>`
-    : `<p>匯款資訊將由客服另行提供，請留意通知。</p>`;
+    : `<p>匯款資訊將由客服另行提供，請留意通知。</p>`);
 
   return {
     subject: `【訂房成立・待匯款】${o.campaignTitle} 訂單 ${o.orderNumber}`,
