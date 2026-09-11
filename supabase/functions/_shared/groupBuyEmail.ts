@@ -411,7 +411,24 @@ function cardRefundStatusBlock(info: GroupBuyCancelInfo): string {
       </table><p style="margin:0">${CARD_REFUND_DONE_NOTE}</p>`;
   }
   if (info.refundStatus === "none") {
-    return `<p>此訂單依取消政策不進行退款，如有疑問請與我們聯繫。</p>`;
+    // 政策資訊未提供 → 維持原文案（向後相容）
+    const policyAmt = info.policyRefundAmount;
+    if (policyAmt === undefined || policyAmt === null) {
+      return `<p>此訂單依取消政策不進行退款，如有疑問請與我們聯繫。</p>`;
+    }
+    if (info.policyRequiresManualReview === true) {
+      return `<p>本次取消的退款金額需人工確認，我們會盡快與您聯繫確認後續退款事宜。</p>`;
+    }
+    const gross = Math.max(0, Math.round(Number(policyAmt) || 0));
+    if (gross <= 0) {
+      return `<p>此訂單依取消政策不進行退款，如有疑問請與我們聯繫。</p>`;
+    }
+    const pct = Math.max(0, Math.round(Number(info.policyRefundPercent) || 0));
+    return `<table class="info" style="margin:0 0 10px">
+        <tr><td class="k">政策應退金額</td><td><strong>${money(gross)}</strong></td></tr>
+        ${pct > 0 ? `<tr><td class="k">退款比例</td><td>${pct}%</td></tr>` : ""}
+        <tr><td class="k">退款狀態</td><td><strong>原信用卡退刷處理中</strong></td></tr>
+      </table><p style="margin:0">本次取消依取消政策可退還已付款項，退款作業處理中；實際金額以退款完成通知為準。${CARD_REFUND_NOTE}</p>`;
   }
   // pending_manual 等：退款尚未完成
   return `<table class="info" style="margin:0 0 10px">
