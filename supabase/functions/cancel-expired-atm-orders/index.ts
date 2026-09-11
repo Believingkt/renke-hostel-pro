@@ -68,7 +68,7 @@ serve(async (req) => {
     }
     const note = `[ATM Expire] ${taipeiIso} - 虛擬帳號逾期未繳款，系統自動取消訂單`;
     const newNotes = o.notes ? `${o.notes}\n${note}` : note;
-    const { error: upErr } = await supabase
+    const { data: updated, error: upErr } = await supabase
       .from('orders')
       .update({
         order_status: 'cancelled',
@@ -78,9 +78,12 @@ serve(async (req) => {
       })
       .eq('id', o.id)
       .eq('payment_status', 'pending_payment')
-      .neq('order_status', 'cancelled');
-    if (upErr) {
-      console.error('[cancel-expired-atm-orders] update error:', o.order_number, upErr);
+      .neq('order_status', 'cancelled')
+      .select('id')
+      .maybeSingle();
+    // 沒有真的更新到任何一列時絕不往下走：避免寄出「訂單已逾期自動取消」的錯誤通知
+    if (upErr || !updated) {
+      if (upErr) console.error('[cancel-expired-atm-orders] update error:', o.order_number, upErr);
       continue;
     }
     cancelled.push(o.order_number);
@@ -92,6 +95,33 @@ serve(async (req) => {
       order_id: o.id,
       is_read: false,
     });
+
+    // POST-CANCELLATION：取消已 commit 後才寄旅客通知信。
+    // 查重 SoT = booking_email_log（僅 status='sent' 才視為已寄過，失敗下一輪重試）。
+    // 寄信任何失敗都只記 log，不得中斷本批其他訂單、也不得回滾取消。
+    try {
+      const { data: sent } = await supabase
+        .from('booking_email_log')
+        .select('id')
+        .eq('order_id', o.id)
+        .eq('email_type', 'order_cancelled')
+        .eq('status', 'sent')
+        .limit(1)
+        .maybeSingle();
+      if (!sent) {
+        const result = await sendOrderCancelledEmail(supabase, {
+          orderId: o.id,
+          cancelKind: 'atm_expired',
+          deadlineText: o.atm_expire_at ? formatTaipei(new Date(o.atm_expire_at as string)) : null,
+          triggerSource: 'atm_expire_cron',
+        });
+        if (!result.ok) {
+          console.error('[cancel-expired-atm-orders] expired email failed:', o.order_number, result.error);
+        }
+      }
+    } catch (mailErr) {
+      console.error('[cancel-expired-atm-orders] expired email threw:', o.order_number, mailErr);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
