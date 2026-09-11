@@ -84,11 +84,13 @@
 - `refundAndFail` 增加參數區分情境（`kind: 'inventory' | 'insert_error'`），庫存分支的回應內容、HTTP 409、`inventoryUnavailable: true`、既有文案完全維持不變。
 - 新增 `insert_error` 分支：一樣呼叫 `refundTapPay` 退全額，`reportBackendError` 的 `category` 改為 `order_insert_failed_after_payment`，回應 HTTP 500，文案為「訂單建立失敗，款項已全額退回原信用卡（約 3–7 個工作天入帳）」；退款失敗則改為「已通知客服為您處理退款」。
 - 第 349–357 行原本的裸 500 回應改為 `return await refundAndFail("order_insert_error", orderError.message)`。
+- **新增競態保護（回應核對意見三）**：在退款之前先做一次「重查既有訂單」。因為第 148–177 行的重複判斷是在 insert 之前，理論上仍可能有兩個請求同時通過該檢查、其中一個在 insert 撞唯一鍵（23505）。因此 insert 失敗時先以 `idempotency_key` 與 `recTradeId in notes` 重查一次，查到訂單就回傳 `alreadyExists: true`、**絕不退款**；查不到才進退款分支。
 
 不受影響的情境（確認不會誤退）：
 - TapPay 本身回傳失敗／查無交易／金額不符 → 這些在 insert 之前就 return，根本沒進到 `orderError` 區塊，沒扣到錢也不會退。
-- 重複訂單（idempotency 命中）→ 走既有 return，不進退款。
+- 重複送出（第 148–177 行前置判斷命中）→ 直接回既有訂單，不進退款；競態漏網者由上述重查保護攔下。
 - insert 成功之後的行程、KOL webhook、寄信失敗 → 仍維持非致命、不退款。
+
 
 ### 4. 其他邏輯保證不動
 
