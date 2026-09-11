@@ -367,6 +367,15 @@ export interface GroupBuyCancelInfo {
   atmNoTransferNotice?: boolean;
   /** 信用卡已收款、但依取消政策計算退款金額為 0（非退款失敗） */
   zeroRefundByPolicy?: boolean;
+  /**
+   * 依 quoteCancellation() 算出的政策應退金額。
+   * 未提供（undefined／null）＝維持既有 refund_status 判斷行為（向後相容）。
+   */
+  policyRefundAmount?: number | null;
+  /** 政策退款成數 0–100（僅供文案顯示） */
+  policyRefundPercent?: number | null;
+  /** 政策無法可靠判定（unknown）→ 不得印出具體金額 */
+  policyRequiresManualReview?: boolean;
 }
 
 /** 信用卡（TapPay 原卡退刷）共用說明：不得出現銀行人工退款排程與匯款手續費 */
