@@ -823,24 +823,34 @@ const MemberOrderDetailInner = () => {
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
                 {order.payment_status === "paid"
-                  ? "款項已收訖，入住當日請出示訂單編號辦理報到。"
+                  ? t("booking.member.detail.paidNote")
                   : order.atm_vacc_no
                     ? order.atm_expire_at
                       ? atmExpired
-                        ? `繳費期限（${format(new Date(order.atm_expire_at), "yyyy 年 M 月 d 日 HH:mm", { locale: zhTW })}）已過，虛擬帳號已失效，系統將於數分鐘內自動取消此訂單，如已完成匯款請聯絡客服。`
-                        : `請於 ${format(new Date(order.atm_expire_at), "yyyy 年 M 月 d 日 HH:mm", { locale: zhTW })} 前完成 ATM 轉帳，逾期訂單將自動取消。`
-                      : "請於期限內完成 ATM 轉帳，逾期訂單將自動取消。"
-                    : `系統將於 ${format(new Date(order.check_in_date), "M 月 d 日", { locale: zhTW })}（住宿當地時間）向您綁定的信用卡收取房費，請確認卡片額度充足。`}
+                        ? t("booking.member.detail.atmExpiredNote", {
+                            time: format(new Date(order.atm_expire_at), t("booking.member.fmt.dateTime"), { locale: dateLocale }),
+                          })
+                        : t("booking.member.detail.atmBeforeNote", {
+                            time: format(new Date(order.atm_expire_at), t("booking.member.fmt.dateTime"), { locale: dateLocale }),
+                          })
+                      : t("booking.member.detail.atmGenericNote")
+                    : t("booking.member.detail.cardChargeNote", {
+                        date: format(new Date(order.check_in_date), t("booking.member.fmt.monthDay"), { locale: dateLocale }),
+                      })}
               </p>
             </div>
 
 
             <div className="border-t border-orange-100 pt-3">
               <p className="text-base font-semibold">
-                {differenceInCalendarDays(new Date(order.check_in_date), new Date()) >= 14 ? "現在可以免費取消" : "取消將依政策收取費用"}
+                {differenceInCalendarDays(new Date(order.check_in_date), new Date()) >= 14
+                  ? t("booking.member.detail.freeCancelTitle")
+                  : t("booking.member.detail.feeCancelTitle")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
-                於 {format(addDays(new Date(order.check_in_date), -14), "yyyy 年 M 月 d 日", { locale: zhTW })} 23:59 前（住宿當地時間）可免費取消。此後，將依取消政策收取費用。
+                {t("booking.member.detail.freeCancelNote", {
+                  date: format(addDays(new Date(order.check_in_date), -14), t("booking.member.fmt.fullDate"), { locale: dateLocale }),
+                })}
               </p>
             </div>
           </>
@@ -851,27 +861,27 @@ const MemberOrderDetailInner = () => {
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
         <div className="px-4 py-3 bg-orange-50 border-b border-border text-center">
           <p className="text-lg font-extrabold tracking-wide" style={{ color: ORANGE }}>
-            {order.accommodation_name}
+            {tf({ table: "accommodation_info", column: "name", id: order.accommodation_id, text: order.accommodation_name })}
           </p>
         </div>
 
         {/* 日期列 */}
         <div className="px-4 py-3 flex items-stretch justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground mb-1">入住</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("booking.member.detail.checkIn")}</p>
             <p className="text-base font-bold leading-tight">
-              {format(new Date(order.check_in_date), "M 月 d 日 EEE", { locale: zhTW })}
+              {format(new Date(order.check_in_date), t("booking.member.fmt.monthDayWeek"), { locale: dateLocale })}
             </p>
           </div>
           <div className="flex flex-col items-center justify-center px-2 shrink-0">
             <div className="h-px w-6 bg-border" />
-            <span className="text-xs text-muted-foreground my-1">{nights} 晚</span>
+            <span className="text-xs text-muted-foreground my-1">{t("booking.member.detail.nights", { nights })}</span>
             <div className="h-px w-6 bg-border" />
           </div>
           <div className="flex-1 min-w-0 text-right">
-            <p className="text-xs text-muted-foreground mb-1">退房</p>
+            <p className="text-xs text-muted-foreground mb-1">{t("booking.member.detail.checkOut")}</p>
             <p className="text-base font-bold leading-tight">
-              {format(new Date(order.check_out_date), "M 月 d 日 EEE", { locale: zhTW })}
+              {format(new Date(order.check_out_date), t("booking.member.fmt.monthDayWeek"), { locale: dateLocale })}
             </p>
           </div>
         </div>
@@ -883,12 +893,18 @@ const MemberOrderDetailInner = () => {
           </p>
           <p className="text-sm font-bold leading-snug">
             {order.room_allocation
-              ? `房間搭配：${order.room_allocation}`
-              : order.package_name || order.room_type_name || "住宿房型"}
+              ? t("booking.member.detail.roomAllocation", {
+                  value: tf({ table: "accommodation_packages", column: "room_allocation", id: `${order.id}:pkg`, text: order.room_allocation }),
+                })
+              : order.package_name
+                ? tf({ table: "accommodation_packages", column: "name", id: `${order.id}:pkg`, text: order.package_name })
+                : order.room_type_name
+                  ? tf({ table: "room_types", column: "name", id: order.room_type_name, text: order.room_type_name })
+                  : t("booking.member.detail.defaultRoom")}
           </p>
           <div className="flex items-center gap-1 text-xs text-muted-foreground pt-0.5">
             <Users className="h-3.5 w-3.5" />
-            <span>{order.guest_count} 位大人</span>
+            <span>{t("booking.member.detail.adults", { count: order.guest_count })}</span>
           </div>
         </div>
 
@@ -897,7 +913,11 @@ const MemberOrderDetailInner = () => {
           <div className="border-t border-border px-4 py-3 bg-muted/20 space-y-2">
             <div className="flex items-center gap-1.5">
               <Sparkles className="h-3.5 w-3.5" style={{ color: ORANGE }} />
-              <p className="text-sm font-bold">{order.package_subtitle || "尊榮禮遇"}</p>
+              <p className="text-sm font-bold">
+                {order.package_subtitle
+                  ? tf({ table: "accommodation_packages", column: "subtitle", id: `${order.id}:pkg`, text: order.package_subtitle })
+                  : t("booking.member.detail.perks")}
+              </p>
             </div>
             <ul className="space-y-1.5">
               {order.package_includes.map((inc, i) => {
@@ -916,7 +936,7 @@ const MemberOrderDetailInner = () => {
                         inc.available === "no" ? "text-muted-foreground line-through" : ""
                       }`}
                     >
-                      {inc.text}
+                      {tf({ table: "accommodation_packages", column: "includes", id: `${order.id}:inc:${i}`, text: inc.text })}
                       {inc.price_note && (
                         <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
                       )}
@@ -944,7 +964,7 @@ const MemberOrderDetailInner = () => {
             return (
               <>
                 <div className="flex items-baseline justify-between gap-3 text-sm">
-                  <span className="flex-1 min-w-0">房費（{nights} 晚）</span>
+                  <span className="flex-1 min-w-0">{t("booking.member.detail.roomFee", { nights })}</span>
                   <span className="shrink-0 font-semibold tabular-nums">
                     NT$ {roomTotal.toLocaleString()}
                   </span>
@@ -952,7 +972,7 @@ const MemberOrderDetailInner = () => {
                 {order.pet_plan_price > 0 && (
                   <div className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="flex-1 min-w-0 text-muted-foreground">
-                      寵物加購{order.pet_count > 0 ? ` × ${order.pet_count}` : ""}
+                      {t("booking.member.detail.petAddon")}{order.pet_count > 0 ? ` × ${order.pet_count}` : ""}
                     </span>
                     <span className="shrink-0 tabular-nums">
                       NT$ {order.pet_plan_price.toLocaleString()}
@@ -962,7 +982,7 @@ const MemberOrderDetailInner = () => {
                 {order.meal_plan_total > 0 && (
                   <div className="flex items-baseline justify-between gap-3 text-sm">
                     <span className="flex-1 min-w-0 text-muted-foreground">
-                      餐點加購
+                      {t("booking.member.detail.mealAddon")}
                       {order.meal_plan_details.length > 0
                         ? `（${order.meal_plan_details
                             .map((m) => `${m.date ?? ""} × ${m.count ?? 0}`)
@@ -982,7 +1002,7 @@ const MemberOrderDetailInner = () => {
                       className="flex items-baseline justify-between gap-3 text-sm"
                     >
                       <span className="flex-1 min-w-0 text-muted-foreground">
-                        {a.addon_type || "加購項目"}
+                        {a.addon_type || t("booking.member.detail.addonItem")}
                         {a.count ? ` × ${a.count}${a.unit_label || ""}` : ""}
                       </span>
                       <span className="shrink-0 tabular-nums">
@@ -995,7 +1015,7 @@ const MemberOrderDetailInner = () => {
           })()}
           {order.discount_amount > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="flex-1 min-w-0 text-muted-foreground">折扣</span>
+              <span className="flex-1 min-w-0 text-muted-foreground">{t("booking.member.detail.discount")}</span>
               <span className="shrink-0 text-red-500 tabular-nums">
                 -NT$ {order.discount_amount.toLocaleString()}
               </span>
@@ -1004,9 +1024,9 @@ const MemberOrderDetailInner = () => {
           {order.paid_amount > 0 && (
             <div className="flex items-baseline justify-between gap-3 text-sm">
               <span className="flex-1 min-w-0 text-muted-foreground flex items-center gap-2 flex-wrap">
-                已付款
+                {t("booking.member.detail.paidLabel")}
                 <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                  已付款
+                  {t("booking.member.detail.paidLabel")}
                 </span>
               </span>
               <span className="shrink-0 tabular-nums text-emerald-600">
@@ -1020,7 +1040,7 @@ const MemberOrderDetailInner = () => {
 
               <div className="flex items-baseline justify-between gap-3 text-sm">
                 <span className="flex-1 min-w-0 text-muted-foreground flex items-center gap-2 flex-wrap">
-                  待匯款訂金
+                  {t("booking.member.detail.pendingDeposit")}
                   <span
                     className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       order.order_status === "cancelled"
@@ -1031,10 +1051,10 @@ const MemberOrderDetailInner = () => {
                     }`}
                   >
                     {order.order_status === "cancelled"
-                      ? "已取消"
+                      ? t("booking.member.detail.badgeCancelled")
                       : atmExpired
-                        ? "已逾期（待自動取消）"
-                        : "未付款"}
+                        ? t("booking.member.detail.badgeExpired")
+                        : t("booking.member.detail.badgeUnpaid")}
                   </span>
                 </span>
                 <span
@@ -1052,7 +1072,7 @@ const MemberOrderDetailInner = () => {
             if (onSiteBalance <= 0) return null;
             return (
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="flex-1 min-w-0 text-muted-foreground">現場應付尾款</span>
+                <span className="flex-1 min-w-0 text-muted-foreground">{t("booking.member.detail.onSiteBalance")}</span>
                 <span className="shrink-0 font-medium tabular-nums">
                   NT$ {onSiteBalance.toLocaleString()}
                 </span>
@@ -1063,18 +1083,20 @@ const MemberOrderDetailInner = () => {
 
         {/* 總金額 */}
         <div className="border-t border-border px-4 py-3 flex items-baseline justify-between bg-muted/30">
-          <span className="text-sm text-muted-foreground">總金額</span>
+          <span className="text-sm text-muted-foreground">{t("booking.member.detail.total")}</span>
           <span className="text-xl font-bold" style={{ color: ORANGE }}>
             NT$ {order.final_price.toLocaleString()}
           </span>
         </div>
 
-        {htmlToLines(order.cancellation_policy).length > 0 && (
+        {policyLines.length > 0 && (
           <div className="border-t border-border px-4 py-3">
-            <p className="text-sm font-medium">取消政策</p>
+            <p className="text-sm font-medium">{t("booking.member.detail.cancellationPolicy")}</p>
             <ul className="mt-1.5 space-y-1 text-xs text-muted-foreground leading-relaxed">
-              {htmlToLines(order.cancellation_policy).map((line, i) => (
-                <li key={i}>{line}</li>
+              {policyLines.map((line, i) => (
+                <li key={i}>
+                  {tf({ table: "booking_settings", column: "cancellation_policy", id: `${order.accommodation_id}:${i}`, text: line })}
+                </li>
               ))}
             </ul>
           </div>
