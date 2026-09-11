@@ -689,6 +689,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         if (nextUnusedExc) chosen = nextUnusedExc;
       }
       if (!chosen) return prev;
+      pendingNew = { id, roomTypeId: chosen.id, isExclusive: !!chosen.is_exclusive_package };
       const templates = getTemplatesForRoomType(chosen.id);
       // 同一組訂單共用同一個專案：若主方案的 template 在新房型的可選範圍內，直接沿用
       const primaryTplId = prev[0]?.template_id;
@@ -704,7 +705,12 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         filteredTemplates: templates,
       }];
     });
-  }, [roomTypes, getTemplatesForRoomType, isYunxiu]);
+    if (pendingNew?.isExclusive) {
+      const counts = defaultCountsFromBreakdown(getPackageBreakdown(pendingNew.roomTypeId));
+      const newId = pendingNew.id;
+      setExtraExclusiveCustomCounts(p => ({ ...p, [newId]: counts }));
+    }
+  }, [roomTypes, getTemplatesForRoomType, isYunxiu, getPackageBreakdown]);
 
   const removeRoomSelection = useCallback((selId: string) => {
     setRoomSelections(prev => prev.filter(s => s.id !== selId));
