@@ -22,7 +22,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
-import { zhTW } from "date-fns/locale";
 import { toast } from "sonner";
 import { isMemberPreview, mockOrders } from "@/lib/memberPreviewMock";
 import { useOrderRealtime, isOrderPaid } from "@/hooks/use-order-realtime";
@@ -32,6 +31,9 @@ import { OFFLINE_KEYS, readOfflineCache, writeOfflineCache } from "@/lib/native/
 import PullToRefresh from "@/components/native/PullToRefresh";
 import OfflineBanner from "@/components/native/OfflineBanner";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
 
 interface MemberOrder {
   id: string;
@@ -56,30 +58,30 @@ interface MemberOrder {
 
 type TabKey = "all" | "upcoming" | "history" | "refunded";
 
-const tabs: { key: TabKey; label: string }[] = [
-  { key: "all", label: "所有訂單" },
-  { key: "upcoming", label: "待出發" },
-  { key: "history", label: "歷史" },
-  { key: "refunded", label: "已取消" },
+const tabs: { key: TabKey; labelKey: string }[] = [
+  { key: "all", labelKey: "booking.member.orders.tab.all" },
+  { key: "upcoming", labelKey: "booking.member.orders.tab.upcoming" },
+  { key: "history", labelKey: "booking.member.orders.tab.past" },
+  { key: "refunded", labelKey: "booking.member.orders.tab.cancelled" },
 ];
 
-const statusLabels: Record<string, string> = {
-  pending: "待確認",
-  confirmed: "已確認",
-  on_hold: "保留中",
-  checked_in: "入住中",
-  checked_out: "已完成",
-  cancelled: "已取消",
+const statusLabelKeys: Record<string, string> = {
+  pending: "booking.member.status.pending",
+  confirmed: "booking.member.status.confirmed",
+  on_hold: "booking.member.status.on_hold",
+  checked_in: "booking.member.status.checked_in",
+  checked_out: "booking.member.status.checked_out",
+  cancelled: "booking.member.status.cancelled",
 };
 
-const paymentLabels: Record<string, string> = {
-  paid: "已付款",
-  deposit_paid: "已付訂金",
-  partial: "已付部分",
-  partial_paid: "已付部分",
-  refunded: "已退款",
-  unpaid: "待付款",
-  pending_payment: "待付款",
+const paymentLabelKeys: Record<string, string> = {
+  paid: "booking.member.payment.paid",
+  deposit_paid: "booking.member.payment.deposit_paid",
+  partial: "booking.member.payment.partial",
+  partial_paid: "booking.member.payment.partial",
+  refunded: "booking.member.payment.refunded",
+  unpaid: "booking.member.payment.unpaid",
+  pending_payment: "booking.member.payment.unpaid",
 };
 
 const statusColors: Record<string, string> = {
@@ -93,8 +95,9 @@ const statusColors: Record<string, string> = {
 
 const ORANGE = "hsl(24,100%,50%)";
 
-const MemberOrders = () => {
+const MemberOrdersInner = () => {
   const navigate = useNavigate();
+  const { t, dateLocale } = useBookingLocale();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<MemberOrder[]>([]);
@@ -146,7 +149,7 @@ const MemberOrders = () => {
             paid_amount: Number(row.paid_amount ?? o.paid_amount),
           };
           if (!isOrderPaid(o) && isOrderPaid(next)) {
-            toast.success(`訂單 ${o.order_number} 已收到付款`);
+            toast.success(t("booking.member.orders.paidToast", { order: o.order_number }));
           }
           return next;
         }),
@@ -300,7 +303,7 @@ const MemberOrders = () => {
   const handleClaim = async () => {
     const last4 = claimPhoneLast4.replace(/\D/g, "");
     if (!claimOrderNumber.trim() || !claimGuestName.trim() || last4.length !== 4) {
-      toast.error("請填寫訂單編號、訂房姓名與聯絡電話末4碼");
+      toast.error(t("booking.member.claim.invalid"));
       return;
     }
     setClaiming(true);
@@ -313,11 +316,11 @@ const MemberOrders = () => {
         },
       });
       if (error || data?.error) {
-        toast.error(data?.error || "認領失敗，請稍後再試");
+        toast.error(data?.error || t("booking.member.claim.failed"));
         setClaiming(false);
         return;
       }
-      toast.success(`訂單 ${data.order_number} 認領成功！`);
+      toast.success(t("booking.member.claim.success", { order: data.order_number }));
       setClaimOpen(false);
       setClaimOrderNumber("");
       setClaimGuestName("");
@@ -330,13 +333,43 @@ const MemberOrders = () => {
       setLoading(true);
       await loadOrders();
     } catch {
-      toast.error("認領失敗，請稍後再試");
+      toast.error(t("booking.member.claim.failed"));
     } finally {
       setClaiming(false);
     }
   };
 
-  const activeTabLabel = tabs.find((t) => t.key === activeTab)?.label || "所有訂單";
+  const activeTabLabel = t(
+    tabs.find((tab) => tab.key === activeTab)?.labelKey || "booking.member.orders.tab.all",
+  );
+
+  // 動態內容（後台維護的中文）自動翻譯：僅顯示層，不影響任何查詢或狀態
+  const translatableFields = useMemo<TranslatableField[]>(() => {
+    const fields: TranslatableField[] = [];
+    const seen = new Set<string>();
+    filteredOrders.forEach((o) => {
+      if (o.accommodation_name && !seen.has(`a:${o.accommodation_id}`)) {
+        seen.add(`a:${o.accommodation_id}`);
+        fields.push({
+          table: "accommodation_info",
+          column: "name",
+          id: o.accommodation_id,
+          text: o.accommodation_name,
+        });
+      }
+      if (o.room_type_name && !seen.has(`r:${o.room_type_name}`)) {
+        seen.add(`r:${o.room_type_name}`);
+        fields.push({
+          table: "room_types",
+          column: "name",
+          id: o.room_type_name,
+          text: o.room_type_name,
+        });
+      }
+    });
+    return fields;
+  }, [filteredOrders]);
+  const { tf } = useTranslatedFields(translatableFields);
 
   return (
     <div className="-mx-4 -mt-4">
@@ -346,15 +379,16 @@ const MemberOrders = () => {
           <button
             onClick={() => navigate("/member/profile")}
             className="p-2 -ml-1 text-foreground"
-            aria-label="返回"
+            aria-label={t("booking.member.back")}
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <h1 className="flex-1 text-center text-base font-semibold">{activeTabLabel}</h1>
+          <BookingLanguageSwitch className="mr-1" />
           <button
             onClick={() => setClaimOpen(true)}
             className="p-2 -mr-1 text-foreground"
-            aria-label="搜尋訂單"
+            aria-label={t("booking.member.orders.search")}
           >
             <Search className="h-5 w-5" />
           </button>
@@ -374,7 +408,7 @@ const MemberOrders = () => {
                   fontWeight: active ? 600 : 500,
                 }}
               >
-                {tab.label}
+                {t(tab.labelKey)}
                 {tabCounts[tab.key] > 0 && (
                   <span className="ml-1 text-xs opacity-80">({tabCounts[tab.key]})</span>
                 )}
@@ -392,11 +426,11 @@ const MemberOrders = () => {
         {/* Filter chips */}
         <div className="flex gap-2 px-3 py-2.5 overflow-x-auto scrollbar-none border-t">
           <button className="flex items-center gap-1 px-3 py-1.5 rounded-full border border-border text-xs text-foreground bg-background whitespace-nowrap">
-            <SlidersHorizontal className="h-3 w-3" /> 篩選
+            <SlidersHorizontal className="h-3 w-3" /> {t("booking.member.orders.filter")}
           </button>
           <button className="px-3 py-1.5 rounded-full border text-xs whitespace-nowrap"
             style={{ borderColor: ORANGE, color: ORANGE, background: "hsl(24 100% 50% / 0.06)" }}>
-            住宿
+            {t("booking.member.orders.type.stay")}
           </button>
         </div>
       </div>
@@ -430,12 +464,12 @@ const MemberOrders = () => {
           <div className="text-center py-16 space-y-3">
             <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground/30" />
             <p className="text-sm text-muted-foreground">
-              {activeTab === "all" ? "尚無訂房紀錄" : "此分類沒有訂單"}
+              {activeTab === "all" ? t("booking.member.orders.empty") : t("booking.member.orders.emptyFiltered")}
             </p>
             {activeTab === "all" && (
               <Button variant="outline" size="sm" onClick={() => setClaimOpen(true)}>
                 <PackagePlus className="h-4 w-4 mr-1.5" />
-                認領歷史訂單
+                {t("booking.member.orders.claim")}
               </Button>
             )}
           </div>
@@ -446,7 +480,9 @@ const MemberOrders = () => {
                 new Date(order.check_out_date),
                 new Date(order.check_in_date)
               );
-              const statusLabel = statusLabels[order.order_status] || order.order_status;
+              const statusLabel = statusLabelKeys[order.order_status]
+                ? t(statusLabelKeys[order.order_status])
+                : order.order_status;
               const statusColor = statusColors[order.order_status] || "text-muted-foreground";
               const past = isPast(order.check_out_date);
               const cancelled = order.order_status === "cancelled";
@@ -460,8 +496,10 @@ const MemberOrders = () => {
                 new Date(order.atm_expire_at).getTime() < Date.now();
 
               const paymentLabel = atmExpired
-                ? "已逾期（待自動取消）"
-                : paymentLabels[order.payment_status || ""] || (isOrderPaid(order) ? "已付款" : "待付款");
+                ? t("booking.member.payment.expired")
+                : paymentLabelKeys[order.payment_status || ""]
+                  ? t(paymentLabelKeys[order.payment_status || ""])
+                  : t(isOrderPaid(order) ? "booking.member.payment.paid" : "booking.member.payment.unpaid");
               const paymentClass = atmExpired
                 ? "bg-red-50 text-red-600"
                 : order.payment_status === "paid"
@@ -470,7 +508,10 @@ const MemberOrders = () => {
                     ? "bg-sky-50 text-sky-700"
                     : "bg-amber-50 text-amber-700";
               const pointsEarned = Math.round(order.final_price * 0.04);
-              const earnedLabel = past || order.order_status === "checked_out" ? "您已賺得" : "您將賺得";
+              const earnedLabel =
+                past || order.order_status === "checked_out"
+                  ? t("booking.member.orders.earned")
+                  : t("booking.member.orders.willEarn");
 
               return (
                 <button
@@ -482,7 +523,7 @@ const MemberOrders = () => {
                   <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                     <div className="flex items-center gap-1.5 text-sm font-medium">
                       <BedDouble className="h-4 w-4" style={{ color: ORANGE }} />
-                      <span>住宿</span>
+                      <span>{t("booking.member.orders.type.stay")}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {!cancelled && paymentLabel && (
@@ -495,25 +536,40 @@ const MemberOrders = () => {
                   {/* Body */}
                   <div className="px-4 pb-4">
                     <h3 className="text-[15px] font-semibold text-foreground leading-snug">
-                      {order.accommodation_name}
+                      {tf({
+                        table: "accommodation_info",
+                        column: "name",
+                        id: order.accommodation_id,
+                        text: order.accommodation_name,
+                      })}
                     </h3>
                     {order.room_type_name && (
                       <p className="mt-0.5 text-sm text-muted-foreground truncate">
-                        {order.room_type_name}
+                        {tf({
+                          table: "room_types",
+                          column: "name",
+                          id: order.room_type_name,
+                          text: order.room_type_name,
+                        })}
                       </p>
                     )}
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {format(new Date(order.check_in_date), "M月d日", { locale: zhTW })}
+                      {format(new Date(order.check_in_date), t("booking.member.fmt.monthDayCompact"), { locale: dateLocale })}
                       {" - "}
-                      {format(new Date(order.check_out_date), "M月d日", { locale: zhTW })}
+                      {format(new Date(order.check_out_date), t("booking.member.fmt.monthDayCompact"), { locale: dateLocale })}
                       <span className="mx-1.5 text-muted-foreground/50">·</span>
-                      1 間房 {nights} 晚
+                      {t("booking.member.orders.roomNights", { nights })}
                     </p>
 
                     {/* Points earned */}
                     {!cancelled && (
                       <div className="mt-1.5 flex items-center gap-1 text-sm" style={{ color: ORANGE }}>
-                        <span>{earnedLabel}：{pointsEarned} 點</span>
+                        <span>
+                          {t("booking.member.orders.earnedLine", {
+                            label: earnedLabel,
+                            points: t("booking.member.orders.pointsValue", { points: pointsEarned }),
+                          })}
+                        </span>
                         <ChevronRight className="h-3.5 w-3.5" />
                       </div>
                     )}
@@ -526,39 +582,39 @@ const MemberOrders = () => {
                           paidAmount > 0 ? (
                             <>
                               <p className="text-sm text-muted-foreground line-through">
-                                線上預付 NT${paidAmount.toLocaleString()}
+                                {t("booking.member.orders.prepaidStrike", { amount: paidAmount.toLocaleString() })}
                               </p>
                               <p className="text-sm font-medium text-red-500 mt-0.5">
                                 {order.payment_status === "refunded"
-                                  ? `已退款 NT$${paidAmount.toLocaleString()}`
-                                  : "訂單已取消"}
+                                  ? t("booking.member.orders.refundedAmount", { amount: paidAmount.toLocaleString() })
+                                  : t("booking.member.orders.orderCancelled")}
                               </p>
                             </>
                           ) : (
                             <>
                               <p className="text-sm text-muted-foreground">
-                                訂單金額 NT${order.final_price.toLocaleString()}
+                                {t("booking.member.orders.orderAmount", { amount: order.final_price.toLocaleString() })}
                               </p>
                               <p className="text-sm font-medium text-red-500 mt-0.5">
-                                未付款，訂單已取消
+                                {t("booking.member.orders.unpaidCancelled")}
                               </p>
                             </>
                           )
                         ) : paidAmount > 0 && paidAmount < order.final_price ? (
                           <>
                             <p className="text-sm text-muted-foreground">
-                              線上預付訂金{" "}
+                              {t("booking.member.orders.depositPrepaid")}{" "}
                               <span className="text-foreground font-bold text-base ml-1">
                                 NT${paidAmount.toLocaleString()}
                               </span>
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              尾款 NT${(order.final_price - paidAmount).toLocaleString()} 入住現場支付
+                              {t("booking.member.orders.balanceOnSite", { amount: (order.final_price - paidAmount).toLocaleString() })}
                             </p>
                           </>
                         ) : (
                           <p className="text-sm text-muted-foreground">
-                            {paidAmount > 0 ? "線上預付" : "訂單金額"}{" "}
+                            {paidAmount > 0 ? t("booking.member.orders.prepaidLabel") : t("booking.member.orders.amountLabel")}{" "}
                             <span className="text-foreground font-bold text-base ml-1">
                               NT${order.final_price.toLocaleString()}
                             </span>
@@ -578,7 +634,7 @@ const MemberOrders = () => {
                         className="px-4 py-1.5 rounded-full border text-sm font-medium"
                         style={{ borderColor: ORANGE, color: ORANGE }}
                       >
-                        再次預訂
+                        {t("booking.member.orders.bookAgain")}
                       </button>
                       {past && !cancelled && (
                         <button
@@ -589,7 +645,7 @@ const MemberOrders = () => {
                           className="px-4 py-1.5 rounded-full border text-sm font-medium"
                           style={{ borderColor: ORANGE, color: ORANGE }}
                         >
-                          撰寫評論
+                          {t("booking.member.orders.writeReview")}
                         </button>
                       )}
                       {!past && !cancelled && (
@@ -601,7 +657,7 @@ const MemberOrders = () => {
                           className="px-4 py-1.5 rounded-full border text-sm font-medium"
                           style={{ borderColor: ORANGE, color: ORANGE }}
                         >
-                          修改訂單
+                          {t("booking.member.orders.modify")}
                         </button>
                       )}
                     </div>
@@ -610,7 +666,7 @@ const MemberOrders = () => {
               );
             })}
             <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
-              已顯示所有{activeTabLabel}
+              {t("booking.member.orders.allShown", { tab: activeTabLabel })}
             </p>
           </div>
         )}
@@ -623,36 +679,36 @@ const MemberOrders = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Search className="h-5 w-5" />
-              認領歷史訂單
+              {t("booking.member.claim.title")}
             </DialogTitle>
             <DialogDescription className="text-left">
-              輸入您過去的訂單編號、訂房姓名與聯絡電話末 4 碼，即可將訂單綁定到會員帳號
+              {t("booking.member.claim.desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 pt-2">
             <div className="space-y-2">
-              <Label>訂單編號</Label>
+              <Label>{t("booking.member.claim.orderNumber")}</Label>
               <Input
-                placeholder="例如：RK5M72B9"
+                placeholder={t("booking.member.claim.orderNumberPlaceholder")}
                 value={claimOrderNumber}
                 onChange={(e) => setClaimOrderNumber(e.target.value.toUpperCase())}
                 className="font-mono"
               />
             </div>
             <div className="space-y-2">
-              <Label>訂房姓名</Label>
+              <Label>{t("booking.member.claim.guestName")}</Label>
               <Input
-                placeholder="請輸入當時填寫的姓名"
+                placeholder={t("booking.member.claim.guestNamePlaceholder")}
                 value={claimGuestName}
                 onChange={(e) => setClaimGuestName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label>聯絡電話末 4 碼</Label>
+              <Label>{t("booking.member.claim.phone")}</Label>
               <Input
                 inputMode="numeric"
                 maxLength={4}
-                placeholder="例如：1234"
+                placeholder={t("booking.member.claim.phonePlaceholder")}
                 value={claimPhoneLast4}
                 onChange={(e) =>
                   setClaimPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
@@ -667,7 +723,7 @@ const MemberOrders = () => {
               style={{ background: ORANGE }}
             >
               {claiming && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              確認認領
+              {claiming ? t("booking.member.claim.submitting") : t("booking.member.claim.submit")}
             </Button>
           </div>
         </DialogContent>
@@ -675,5 +731,11 @@ const MemberOrders = () => {
     </div>
   );
 };
+
+const MemberOrders = () => (
+  <BookingLocaleProvider>
+    <MemberOrdersInner />
+  </BookingLocaleProvider>
+);
 
 export default MemberOrders;

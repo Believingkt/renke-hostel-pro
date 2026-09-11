@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { addStayToCalendar, type StayCalendarInput } from "@/lib/stayCalendar";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface AddToCalendarButtonProps extends Omit<StayCalendarInput, "accommodationName"> {
   /** 已知民宿名稱時直接傳入；未提供則以 accommodationId 查詢 */
@@ -23,6 +24,7 @@ export default function AddToCalendarButton({
   ...rest
 }: AddToCalendarButtonProps) {
   const [loading, setLoading] = useState(false);
+  const { t } = useBookingLocale();
 
   const resolveAccommodation = async (): Promise<{ name: string; address?: string | null }> => {
     if (accommodationName) return { name: accommodationName, address: rest.address };
@@ -44,13 +46,13 @@ export default function AddToCalendarButton({
         accommodationName: acc.name,
         address: acc.address,
       });
-      if (res.status === "created") toast.success("已加入行事曆");
-      else if (res.status === "already") toast.info("此訂單已加入行事曆");
-      else if (res.status === "downloaded") toast.success("已下載行事曆檔案（.ics）");
-      else if (res.status === "denied") toast.error("未取得行事曆權限");
-      else toast.error(res.message || "加入行事曆失敗");
+      if (res.status === "created") toast.success(t("booking.calendar.added"));
+      else if (res.status === "already") toast.info(t("booking.calendar.already"));
+      else if (res.status === "downloaded") toast.success(t("booking.calendar.downloaded"));
+      else if (res.status === "denied") toast.error(t("booking.calendar.denied"));
+      else toast.error(res.message || t("booking.calendar.failed"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "加入行事曆失敗");
+      toast.error(e instanceof Error ? e.message : t("booking.calendar.failed"));
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ export default function AddToCalendarButton({
       ) : (
         <CalendarPlus className="h-4 w-4 mr-2" />
       )}
-      加入行事曆
+      {t("booking.calendar.add")}
     </Button>
   );
 }
