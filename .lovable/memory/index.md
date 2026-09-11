@@ -1,3 +1,4 @@
+- [英文核對須附 HTTP 狀態](mem://preferences/i18n-manual-check-http-evidence.md) — 雙語 postcheck 第 5 項必附該頁 translate-content 實際 HTTP 狀態，不能只肉眼看畫面。
 - [Legacy Booking Page Deprecation](mem://features/frontend/legacy-booking-page-deprecation.md) — 舊版一般民宿訂房頁全面停用，一律導向 /booking/villa/{accId}。
 - [Booking Link Single Entry](mem://features/frontend/booking-link-single-entry.md) — 訂房頁連結只能用 openFrontendBooking()；canonical/sitemap 統一 /booking/villa/{id}。
 - [Package Date Price](mem://features/admin/package-date-price.md) — 方案單日價格覆寫優先序（覆寫→tier→預設）、/admin/package-price-calendar 批次改價。
