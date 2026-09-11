@@ -63,16 +63,19 @@ import { isAtmExpired } from "@/lib/atmPayment";
 import { resolvePaymentSummary } from "@/lib/paymentSummary";
 import { bookingPath } from "@/lib/frontendUrl";
 import { buildGuestNotes } from "@/utils/guestNotesWhitelist";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
 
 const ORANGE = "hsl(24,100%,50%)";
 
-const statusLabels: Record<string, string> = {
-  pending: "待確認",
-  confirmed: "已確認",
-  on_hold: "保留中",
-  checked_in: "入住中",
-  checked_out: "已完成",
-  cancelled: "已取消",
+const statusLabelKeys: Record<string, string> = {
+  pending: "booking.member.status.pending",
+  confirmed: "booking.member.status.confirmed",
+  on_hold: "booking.member.status.on_hold",
+  checked_in: "booking.member.status.checked_in",
+  checked_out: "booking.member.status.checked_out",
+  cancelled: "booking.member.status.cancelled",
 };
 
 const maskEmail = (email?: string | null) => {
@@ -107,9 +110,11 @@ const htmlToLines = (html?: string | null): string[] => {
     .filter(Boolean);
 };
 
-const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行" };
+const BANK_NAME_KEYS: Record<string, string> = { "822": "booking.member.atm.bank822" };
 
-const CopyField = ({ label, value, highlight, copyValue }: { label: string; value: string; highlight?: boolean; copyValue?: string }) => (
+const CopyField = ({ label, value, highlight, copyValue }: { label: string; value: string; highlight?: boolean; copyValue?: string }) => {
+  const { t } = useBookingLocale();
+  return (
   <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
     <div className="min-w-0 flex-1">
       <p className="text-xs text-muted-foreground">{label}</p>
@@ -122,10 +127,10 @@ const CopyField = ({ label, value, highlight, copyValue }: { label: string; valu
     </div>
     <button
       type="button"
-      aria-label={`複製${label}`}
+      aria-label={t("booking.member.atm.copy", { label })}
       onClick={() => {
         navigator.clipboard.writeText(copyValue ?? value.replace(/[^\dA-Za-z]/g, ""));
-        toast.success("已複製");
+        toast.success(t("booking.member.copied"));
       }}
 
       className="shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted"
@@ -133,7 +138,8 @@ const CopyField = ({ label, value, highlight, copyValue }: { label: string; valu
       <Copy className="h-4 w-4" />
     </button>
   </div>
-);
+  );
+};
 
 const AtmVirtualAccountCard = ({
   bankCode,
@@ -148,6 +154,7 @@ const AtmVirtualAccountCard = ({
   amount: number;
   amountLabel: string;
 }) => {
+  const { t, dateLocale } = useBookingLocale();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30000);
@@ -164,7 +171,7 @@ const AtmVirtualAccountCard = ({
   return (
     <div className="rounded-2xl border border-border p-4">
       <p className="flex items-center gap-2 text-base font-semibold">
-        <Building2 className="h-4 w-4" style={{ color: ORANGE }} /> ATM 虛擬帳號
+        <Building2 className="h-4 w-4" style={{ color: ORANGE }} /> {t("booking.member.atm.title")}
       </p>
 
       {expire && (
@@ -174,30 +181,34 @@ const AtmVirtualAccountCard = ({
         >
           <p className="flex items-center gap-2 text-sm font-medium">
             <Clock className="h-4 w-4" style={{ color: ORANGE }} />
-            {expired ? "繳費期限已到期" : "繳費期限倒數計時"}
+            {expired ? t("booking.member.atm.expiredTitle") : t("booking.member.atm.countdown")}
           </p>
           {!expired && (
             <p className="mt-1 text-xl font-bold tabular-nums" style={{ color: ORANGE }}>
-              {days} 天 {hours} 小時 {mins} 分
+              {t("booking.member.atm.remain", { days, hours, mins })}
             </p>
           )}
           <p className="mt-1 text-xs text-muted-foreground">
-            期限：{format(expire, "yyyy/M/d aa h:mm", { locale: zhTW })}
+            {t("booking.member.atm.deadlineAt", { time: format(expire, t("booking.member.fmt.atmExpire"), { locale: dateLocale }) })}
           </p>
         </div>
       )}
 
       <div className="mt-3 rounded-xl border border-border p-3">
         <p className="flex items-center gap-2 text-sm font-medium">
-          <Check className="h-4 w-4" style={{ color: ORANGE }} /> 虛擬帳號已開立
+          <Check className="h-4 w-4" style={{ color: ORANGE }} /> {t("booking.member.atm.opened")}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">請於繳費期限前以 ATM、網路銀行或臨櫃匯款。</p>
+        <p className="mt-1 text-xs text-muted-foreground">{t("booking.member.atm.hint")}</p>
         <div className="mt-3 space-y-2">
           <CopyField
-            label={`銀行代碼${bankCode && BANK_NAMES[bankCode] ? `（${BANK_NAMES[bankCode]}）` : ""}`}
+            label={
+              bankCode && BANK_NAME_KEYS[bankCode]
+                ? t("booking.member.atm.bankCodeWith", { bank: t(BANK_NAME_KEYS[bankCode]) })
+                : t("booking.member.atm.bankCode")
+            }
             value={bankCode || "—"}
           />
-          <CopyField label="虛擬帳號" value={vaccNo} />
+          <CopyField label={t("booking.member.atm.vaccNo")} value={vaccNo} />
           <CopyField label={amountLabel} value={`NT$ ${amount.toLocaleString()}`} copyValue={String(Math.round(amount))} highlight />
         </div>
         {expire && (
@@ -205,14 +216,14 @@ const AtmVirtualAccountCard = ({
             className="mt-3 rounded-xl border p-3 text-xs"
             style={{ borderColor: "hsl(45,90%,80%)", background: "hsl(45,100%,96%)" }}
           >
-            <p className="font-medium">繳費期限</p>
+            <p className="font-medium">{t("booking.member.atm.deadlineTitle")}</p>
             <p className="mt-0.5 font-semibold">
-              {format(expire, "yyyy年M月d日 aa h:mm", { locale: zhTW })}
+              {format(expire, t("booking.member.fmt.atmExpireLong"), { locale: dateLocale })}
             </p>
-            <p className="mt-0.5" style={{ color: ORANGE }}>逾期未繳款訂單將自動取消。</p>
+            <p className="mt-0.5" style={{ color: ORANGE }}>{t("booking.member.atm.autoCancel")}</p>
           </div>
         )}
-        <p className="mt-3 text-xs text-muted-foreground">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p>
+        <p className="mt-3 text-xs text-muted-foreground">{t("booking.member.atm.autoUpdate")}</p>
       </div>
     </div>
   );
@@ -299,7 +310,8 @@ const Section = ({ children }: { children: React.ReactNode }) => (
   <div className="bg-card rounded-2xl border border-border px-4 py-4">{children}</div>
 );
 
-const MemberOrderDetail = () => {
+const MemberOrderDetailInner = () => {
+  const { t, dateLocale } = useBookingLocale();
   const { orderNumber } = useParams<{ orderNumber: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
