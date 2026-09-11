@@ -51,8 +51,12 @@ export function defaultCountsByNameFromBreakdown(
 
 export function usePackageBreakdown(roomTypeIds: Array<string | null | undefined>) {
   const [map, setMap] = useState<Record<string, PackageBreakdownItem[]>>({});
+  // 最新一份快取的 ref 版本，讓 ensureBreakdown 不必依賴 map 也能讀到最新值
+  const mapRef = useRef<Record<string, PackageBreakdownItem[]>>({});
+  mapRef.current = map;
   // 已查過（含查到空結果）的 ID，避免重複打同一支查詢
   const fetchedRef = useRef<Set<string>>(new Set());
+
 
   const key = useMemo(
     () => Array.from(new Set((roomTypeIds || []).filter(Boolean) as string[])).sort().join(","),
