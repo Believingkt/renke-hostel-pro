@@ -189,6 +189,12 @@ Deno.serve(async (req) => {
       }
 
       await markDraft({ status: "order_created", order_id: created?.order?.id ?? null });
+      // 補建成功也主動告警（首次於正式環境觸發時可立即得知，不必回頭查表）
+      await admin.from("notifications").insert({
+        type: "system",
+        title: "補救排程成功補建訂單",
+        message: `補救排程已為草稿 ${d.id}（rec_trade_id ${d.rec_trade_id}，金額 ${paid}）補建訂單 ${created?.order?.order_number ?? "(未知編號)"}。`,
+      }).then(undefined, () => {});
       results.push({
         draftId: d.id,
         decision: "order_created",
