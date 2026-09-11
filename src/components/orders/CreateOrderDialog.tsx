@@ -300,7 +300,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
     () => roomTypes.filter(r => r.is_exclusive_package).map(r => r.id),
     [roomTypes],
   );
-  const { getBreakdown: getPackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
+  const { getBreakdown: getPackageBreakdown, ensureBreakdown: ensurePackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
   // 第一棟包棟：room_type_id -> 間數
   const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
   // 額外加棟：selection.id -> { room_type_id -> 間數 }
@@ -719,7 +719,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
     // 換房型要帶入的預設組成間數，先蒐集起來，等 setRoomSelections 之後再套用（避免在 updater 內做 side effect）
-    let pendingDefaults: { idx: number; counts: Record<string, number> } | null = null;
+    let pendingDefaults: { idx: number; isExclusive: boolean } | null = null;
     setRoomSelections(prev => prev.map((s, idx) => {
       if (s.id !== selId) return s;
       const updated = { ...s, ...updates };
@@ -739,20 +739,29 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         updated.room_unit_id = null;
         // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數；
         // 之後的渲染／其他欄位變動不會覆蓋客服手動改過的值。
-        const defaults = newRt?.is_exclusive_package
-          ? defaultCountsFromBreakdown(getPackageBreakdown(updates.room_type_id))
-          : {};
-        pendingDefaults = { idx, counts: defaults };
+        pendingDefaults = { idx, isExclusive: !!newRt?.is_exclusive_package };
 
       }
       return updated;
     }));
+
     if (pendingDefaults) {
-      const { idx, counts } = pendingDefaults;
-      if (idx === 0) setExclusiveCustomCounts(counts);
-      else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+      const { idx, isExclusive } = pendingDefaults as { idx: number; isExclusive: boolean };
+      const targetRoomTypeId = updates.room_type_id!;
+      if (!isExclusive) {
+        if (idx === 0) setExclusiveCustomCounts({});
+        else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: {} }));
+      } else {
+        // 快取沒有就當場補查，確保「換到集合外的新房型」也能立刻帶入預設間數
+        void ensurePackageBreakdown(targetRoomTypeId).then((items) => {
+          const counts = defaultCountsFromBreakdown(items);
+          if (idx === 0) setExclusiveCustomCounts(counts);
+          else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+        });
+      }
     }
-  }, [getTemplatesForRoomType, roomTypes, getPackageBreakdown]);
+  }, [getTemplatesForRoomType, roomTypes, ensurePackageBreakdown]);
+
 
 
   const changeRoomQuantity = useCallback((selId: string, delta: number) => {
@@ -2071,6 +2080,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                     <Select
                       value={roomSelections[0]?.room_type_id || ""}
                       onValueChange={(value) => {
+                        const prevRoomTypeId = roomSelections[0]?.room_type_id || "";
                         const templates = getTemplatesForRoomType(value);
                         setRoomSelections([{
                           id: roomSelections[0]?.id || crypto.randomUUID(),
@@ -2081,7 +2091,14 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
                           roomPrice: 0,
                           filteredTemplates: templates,
                         }]);
+                        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數
+                        if (value !== prevRoomTypeId) {
+                          void ensurePackageBreakdown(value).then((items) => {
+                            setExclusiveCustomCounts(defaultCountsFromBreakdown(items));
+                          });
+                        }
                       }}
+
                     >
                       <SelectTrigger className="h-10 text-sm">
                         <SelectValue placeholder={`選擇${exclusiveLabel}方案`} />

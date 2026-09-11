@@ -51,8 +51,12 @@ export function defaultCountsByNameFromBreakdown(
 
 export function usePackageBreakdown(roomTypeIds: Array<string | null | undefined>) {
   const [map, setMap] = useState<Record<string, PackageBreakdownItem[]>>({});
+  // 最新一份快取的 ref 版本，讓 ensureBreakdown 不必依賴 map 也能讀到最新值
+  const mapRef = useRef<Record<string, PackageBreakdownItem[]>>({});
+  mapRef.current = map;
   // 已查過（含查到空結果）的 ID，避免重複打同一支查詢
   const fetchedRef = useRef<Set<string>>(new Set());
+
 
   const key = useMemo(
     () => Array.from(new Set((roomTypeIds || []).filter(Boolean) as string[])).sort().join(","),
@@ -94,5 +98,32 @@ export function usePackageBreakdown(roomTypeIds: Array<string | null | undefined
     [map],
   );
 
-  return { breakdownByRoomType: map, getBreakdown };
+  /**
+   * 立即取得某房型的組成：已快取就直接回傳，沒有就當場補查一次並寫回快取。
+   * 供「換房型當下要帶入預設間數」這種等不及 effect 補查的情境使用。
+   */
+  const ensureBreakdown = useCallback(
+    async (roomTypeId?: string | null): Promise<PackageBreakdownItem[] | null> => {
+      if (!roomTypeId) return null;
+      const cached = mapRef.current[roomTypeId];
+      if (cached && cached.length > 0) return cached;
+      if (fetchedRef.current.has(roomTypeId)) return null;
+      const { data } = await supabase
+        .from("room_types")
+        .select("id, package_contents")
+        .eq("id", roomTypeId)
+        .maybeSingle();
+      fetchedRef.current.add(roomTypeId);
+      const items = normalizePackageContents((data as any)?.package_contents);
+      if (items.length > 0) {
+        setMap((prev) => ({ ...prev, [roomTypeId]: items }));
+        return items;
+      }
+      return null;
+    },
+    [],
+  );
+
+  return { breakdownByRoomType: map, getBreakdown, ensureBreakdown };
 }
+
