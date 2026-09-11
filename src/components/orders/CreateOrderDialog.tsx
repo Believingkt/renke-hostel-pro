@@ -664,6 +664,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
       : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
     const defaultRoomType = candidates[0];
+    let pendingNew: { id: string; roomTypeId: string; isExclusive: boolean } | null = null;
     // 雲岫散客房：自動依序代入尚未被使用的房型
     setRoomSelections(prev => {
       let chosen = defaultRoomType;
