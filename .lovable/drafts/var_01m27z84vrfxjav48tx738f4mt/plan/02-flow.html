@@ -1,0 +1,52 @@
+<svg viewBox="0 0 640 300" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    text { font-family: var(--font-sans); fill: var(--fg-primary); }
+    .lbl { font-size: 14px; font-weight: 480; }
+    .sm { font-size: 12px; fill: var(--fg-secondary); }
+    .mono { font-family: var(--font-mono); font-size: 12px; fill: var(--fg-secondary); }
+    .bx { fill: none; stroke: var(--fg-secondary); stroke-width: 1; rx: 8; }
+    .zn { fill: none; stroke: var(--border-translucent); stroke-width: 1; stroke-dasharray: 4 3; rx: 8; }
+    .w { stroke: var(--fg-secondary); stroke-width: 1; fill: none; }
+    .acc { fill: var(--bg-accent-translucent); stroke: var(--fg-accent); stroke-width: 1; rx: 8; }
+    .accT { fill: var(--fg-accent); }
+  </style>
+  <defs>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6" fill="none" stroke="var(--fg-secondary)"/>
+    </marker>
+  </defs>
+
+  <rect class="zn" x="8" y="14" width="624" height="120"/>
+  <text class="sm" x="20" y="32">官網 ATM（legacy 分支）</text>
+
+  <rect class="bx" x="24" y="46" width="150" height="56"/>
+  <text class="lbl" x="99" y="70" text-anchor="middle">逾期未繳款</text>
+  <text class="mono" x="99" y="88" text-anchor="middle">atm_expire_at</text>
+
+  <line class="w" x1="176" y1="74" x2="216" y2="74" marker-end="url(#a)"/>
+  <rect class="bx" x="218" y="46" width="150" height="56"/>
+  <text class="lbl" x="293" y="70" text-anchor="middle">自動取消訂單</text>
+  <text class="sm" x="293" y="88" text-anchor="middle">＋後台站內通知</text>
+
+  <line class="w" x1="370" y1="74" x2="410" y2="74" marker-end="url(#a)"/>
+  <rect class="acc" x="412" y="46" width="196" height="56"/>
+  <text class="lbl accT" x="510" y="70" text-anchor="middle">新增：寄客人取消信</text>
+  <text class="mono" x="510" y="88" text-anchor="middle">send-order-cancelled-email</text>
+
+  <rect class="zn" x="8" y="150" width="624" height="120"/>
+  <text class="sm" x="20" y="168">團購 ATM（既有，一字不動）</text>
+
+  <rect class="bx" x="24" y="182" width="150" height="56"/>
+  <text class="lbl" x="99" y="206" text-anchor="middle">逾期未繳款</text>
+  <text class="mono" x="99" y="224" text-anchor="middle">deadline_at</text>
+
+  <line class="w" x1="176" y1="210" x2="216" y2="210" marker-end="url(#a)"/>
+  <rect class="bx" x="218" y="182" width="150" height="56"/>
+  <text class="lbl" x="293" y="206" text-anchor="middle">自動取消訂單</text>
+  <text class="sm" x="293" y="224" text-anchor="middle">＋後台站內通知</text>
+
+  <line class="w" x1="370" y1="210" x2="410" y2="210" marker-end="url(#a)"/>
+  <rect class="bx" x="412" y="182" width="196" height="56"/>
+  <text class="lbl" x="510" y="206" text-anchor="middle">既有團購逾期信</text>
+  <text class="mono" x="510" y="224" text-anchor="middle">groupBuyAtmExpiredEmail</text>
+</svg>
