@@ -39,3 +39,15 @@
 - [ ] OrderDetail.tsx 逐列組成（顯示＋存備註），換房型才帶預設
 - [ ] CreateOrderDialog.tsx 改用共用 hook＋換房型帶預設
 - [ ] 測試：純函式、tsgo、既有測試、單一包棟回歸鎖、實測訂單（等核准才刪）
+
+---
+
+# 前台中英雙語（分階段）
+## 第一步（已核准施工）
+- [x] translation_cache 表（public 只讀、寫入僅 service role）
+- [x] translate-content Edge Function（查快取→缺才走 Lovable AI）
+- [x] useTranslatedFields hook
+- [x] 試點頁 PaymentResult.tsx（固定文字＋動態內容）
+## 之後分批（未授權）
+- [ ] BookingFlow.tsx、搜尋列表、會員中心、訂單查詢
+- [ ] 第二階段：通知信件雙語（本輪完全不動 4 支寄信函式）
