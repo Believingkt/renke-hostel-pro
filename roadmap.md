@@ -52,3 +52,12 @@
 - [ ] BookingFlow.tsx、搜尋列表、會員中心、訂單查詢
 - [ ] 第二階段：通知信件雙語（本輪完全不動 4 支寄信函式）
 - [待排] 已上線四頁（BookingSearchResults／PaymentResult／MemberOrders／MemberOrderDetail）冷啟動閃中文缺陷：第四批驗證穩定後，安排小批次改用 use-translated-fields 的可選延後顯示模式。阻塞：等第四批驗證穩定＋使用者核准。
+
+---
+
+# Apple AI 資料傳送同意補強（已核准施工 2026-09-12）
+- [x] 三家服務商完整同意文案與各介面個別揭露
+- [x] /ai-booking、入口網 AI、民宿頁 AI、語音在同意前零 AI 請求
+- [x] 語音首次使用獨立同意，拒絕時不啟動麥克風
+- [x] /privacy 兩個版本列出三家公司與各自處理資料
+- [x] 確認 iOS App 語音入口與可用條件

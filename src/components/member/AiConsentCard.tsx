@@ -27,7 +27,7 @@ const AiConsentCard = () => {
         <div className="space-y-1">
           <p className="font-medium">AI 管家小安</p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            同意後，您在 AI 管家輸入的訊息與對話紀錄會傳送給 Anthropic（Claude AI）以產生回覆。
+            同意後，您在各 AI 介面輸入的訊息與對話紀錄，會依使用介面傳送給 Anthropic PBC（Claude AI）或 Google LLC（Gemini，經 Lovable AI Gateway 轉送）；語音功能由 OpenAI, L.L.C. 處理。
             關閉後將停用 AI 管家，再次使用時需重新同意。
           </p>
         </div>

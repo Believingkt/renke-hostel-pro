@@ -26,6 +26,8 @@ import { RecommendedItemCards, type RecommendedItem } from "@/components/ai/Reco
 import AIConsentDialog from "@/components/ai/AIConsentDialog";
 import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
 import { useAiConsent } from "@/hooks/use-ai-consent";
+import VoiceConsentDialog from "@/components/ai/VoiceConsentDialog";
+import { useVoiceConsent } from "@/hooks/use-voice-consent";
 
 
 // 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
@@ -89,12 +91,15 @@ export default function AIBooking() {
   ]);
   const [input, setInput] = useState("");
   const aiConsent = useAiConsent();
+  const voiceConsent = useVoiceConsent();
+  const [showVoiceConsent, setShowVoiceConsent] = useState(false);
+  const [voiceConsentIntent, setVoiceConsentIntent] = useState<"record" | "speak">("record");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [bookingStep, setBookingStep] = useState(1);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
+  const [isVoiceEnabled, setIsVoiceEnabled] = useState(false);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [audioQueue, setAudioQueue] = useState<string[]>([]);
   const [isProcessingQueue, setIsProcessingQueue] = useState(false);
@@ -916,8 +921,13 @@ export default function AIBooking() {
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
+    } else if (!aiConsent.granted) {
+      return;
+    } else if (!voiceConsent.granted) {
+      setVoiceConsentIntent("record");
+      setShowVoiceConsent(true);
     } else {
-      startRecording();
+      void startRecording();
     }
   };
 
@@ -1121,6 +1131,11 @@ export default function AIBooking() {
   };
 
   const toggleVoice = () => {
+    if (!isVoiceEnabled && !voiceConsent.granted) {
+      setVoiceConsentIntent("speak");
+      setShowVoiceConsent(true);
+      return;
+    }
     const newState = !isVoiceEnabled;
     setIsVoiceEnabled(newState);
     
@@ -1149,6 +1164,19 @@ export default function AIBooking() {
         open={aiConsent.status === "not_granted"}
         onAccept={() => { void aiConsent.grant(); }}
         onDecline={() => { aiConsent.decline(); navigate("/"); }}
+      />
+      <VoiceConsentDialog
+        open={showVoiceConsent}
+        onAccept={() => {
+          voiceConsent.grant();
+          setShowVoiceConsent(false);
+          if (voiceConsentIntent === "record") {
+            void startRecording();
+          } else {
+            setIsVoiceEnabled(true);
+          }
+        }}
+        onDecline={() => setShowVoiceConsent(false)}
       />
 
       {/* 頂部導航 - 手機版精簡 */}
@@ -1962,7 +1990,7 @@ export default function AIBooking() {
                 )}
               </Button>
             </div>
-            <AIDisclosureNote className="pt-2" />
+            <AIDisclosureNote provider="anthropic" showVoiceDisclosure className="pt-2" />
           </div>
 
         </Card>
@@ -2036,7 +2064,7 @@ export default function AIBooking() {
               )}
             </Button>
           </div>
-          <AIDisclosureNote className="pt-1.5" />
+          <AIDisclosureNote provider="anthropic" showVoiceDisclosure className="pt-1.5" />
         </div>
 
         {/* 設定面板 */}

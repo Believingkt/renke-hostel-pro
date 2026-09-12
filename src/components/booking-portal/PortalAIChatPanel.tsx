@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import AIConsentDialog from "@/components/ai/AIConsentDialog";
 import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
 import { useAiConsent } from "@/hooks/use-ai-consent";
+import VoiceConsentDialog from "@/components/ai/VoiceConsentDialog";
+import { useVoiceConsent } from "@/hooks/use-voice-consent";
 
 interface Message {
   role: "user" | "assistant";
@@ -50,6 +52,9 @@ const HOT_PICKS = [
 const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const navigate = useNavigate();
   const aiConsent = useAiConsent();
+  const voiceConsent = useVoiceConsent();
+  const [showVoiceConsent, setShowVoiceConsent] = useState(false);
+  const [voiceConsentIntent, setVoiceConsentIntent] = useState<"record" | "speak">("record");
   const smartDefault = useMemo(() => getSmartDefault(), []);
 
   const [showAvatar, setShowAvatar] = useState(false);
@@ -85,6 +90,11 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   // 朗讀預設關閉，每次進入皆為關閉狀態（不持久化）
   const [autoSpeak, setAutoSpeak] = useState<boolean>(false);
   const toggleAutoSpeak = () => {
+    if (!autoSpeak && !voiceConsent.granted) {
+      setVoiceConsentIntent("speak");
+      setShowVoiceConsent(true);
+      return;
+    }
     setAutoSpeak((prev) => {
       const next = !prev;
       if (!next) {
@@ -297,6 +307,11 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
     if (isRecording) {
       const text = await stopRecording();
       if (text) sendMessage(text);
+    } else if (!aiConsent.granted) {
+      return;
+    } else if (!voiceConsent.granted) {
+      setVoiceConsentIntent("record");
+      setShowVoiceConsent(true);
     } else {
       await startRecording();
     }
@@ -328,6 +343,19 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
         open={aiConsent.status === "not_granted"}
         onAccept={() => { void aiConsent.grant(); }}
         onDecline={() => { aiConsent.decline(); onDecline?.(); }}
+      />
+      <VoiceConsentDialog
+        open={showVoiceConsent}
+        onAccept={() => {
+          voiceConsent.grant();
+          setShowVoiceConsent(false);
+          if (voiceConsentIntent === "record") {
+            void startRecording();
+          } else {
+            setAutoSpeak(true);
+          }
+        }}
+        onDecline={() => setShowVoiceConsent(false)}
       />
       <div className="bg-gradient-to-br from-white via-[hsl(35,85%,98%)] to-[hsl(25,80%,96%)] overflow-hidden flex flex-col relative flex-1 min-h-0">
         {/* Top bar */}
@@ -533,7 +561,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
           )}
         </div>
         <div className="bg-white/80 pb-2">
-          <AIDisclosureNote />
+          <AIDisclosureNote provider="anthropic" showVoiceDisclosure />
         </div>
       </div>
 

@@ -6,8 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
  * - 已登入會員：存在資料庫 ai_assistant_consents（跨裝置、可隨時撤回）
  * - 未登入訪客：僅存本機（localStorage），登入後以帳號紀錄為準
  */
-const LS_KEY = "ai_assistant_consent_v1";
-export const AI_CONSENT_VERSION = "v1";
+const LS_KEY = "ai_assistant_consent_v2";
+export const AI_CONSENT_VERSION = "v2";
 
 export type AiConsentStatus = "loading" | "granted" | "not_granted" | "declined";
 
@@ -23,10 +23,10 @@ export function useAiConsent() {
     if (uid) {
       const { data: row } = await supabase
         .from("ai_assistant_consents")
-        .select("consented")
+        .select("consented, consent_version")
         .eq("user_id", uid)
         .maybeSingle();
-      setStatus(row?.consented ? "granted" : "not_granted");
+      setStatus(row?.consented && row.consent_version === AI_CONSENT_VERSION ? "granted" : "not_granted");
       return;
     }
 
