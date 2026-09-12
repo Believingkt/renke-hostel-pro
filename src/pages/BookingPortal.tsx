@@ -1213,7 +1213,7 @@ const BookingPortalInner = () => {
                           <span className="text-primary font-semibold text-base">
                             NT$ {price.toLocaleString()}
                           </span>{" "}
-                          起 / 晚
+                          {t("booking.portal.featured.priceUnit")}
                         </p>
                       )}
                     </div>
@@ -1311,7 +1311,7 @@ const BookingPortalInner = () => {
                         <span className="text-primary font-semibold text-sm">
                           NT$ {price.toLocaleString()}
                         </span>{" "}
-                        起 / 晚
+                        {t("booking.portal.featured.priceUnit")}
                       </p>
                     )}
 
@@ -1349,9 +1349,9 @@ const BookingPortalInner = () => {
 
       {/* 可被搜尋引擎跟隨的館別內部連結（同時方便鍵盤／讀屏使用者） */}
       {accommodations.some((a) => a.short_url_alias) && (
-        <nav aria-label="所有館別" className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-8">
+        <nav aria-label={t("booking.portal.allProperties.title")} className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-8">
           <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">
-            所有館別
+            {t("booking.portal.allProperties.title")}
           </h2>
           <ul className="flex flex-wrap gap-x-4 gap-y-2">
             {accommodations
@@ -1362,7 +1362,7 @@ const BookingPortalInner = () => {
                     href={`/${a.short_url_alias}`}
                     className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
                   >
-                    {a.name}
+                    {td(a.id, "name", a.name) || a.name}
                   </a>
                 </li>
               ))}
@@ -1372,7 +1372,7 @@ const BookingPortalInner = () => {
 
       <button
         onClick={() => setAiOpen(true)}
-        aria-label="問問 AI 管家"
+        aria-label={t("booking.portal.ai.buttonAria")}
         aria-hidden={footerVisible}
         tabIndex={footerVisible ? -1 : 0}
         className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
@@ -1389,13 +1389,13 @@ const BookingPortalInner = () => {
           />
           <img
             src={assistantAvatar}
-            alt="AI 管家羊駝"
+            alt={t("booking.portal.ai.avatarAlt")}
             className="relative w-[90%] h-[90%] object-contain drop-shadow-sm"
             loading="eager"
           />
         </span>
         <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
-          問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
+          {t("booking.portal.ai.buttonPrefix")} <span style={{ color: "#F08A3E" }}>{t("booking.portal.ai.buttonBrand")}</span> {t("booking.portal.ai.buttonSuffix")}
         </span>
       </button>
 
@@ -1412,7 +1412,7 @@ const BookingPortalInner = () => {
               >
                 <Sparkles className="w-4 h-4" />
               </span>
-              AI 找房間
+              {t("booking.portal.ai.sheetTitle")}
             </SheetTitle>
           </SheetHeader>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
