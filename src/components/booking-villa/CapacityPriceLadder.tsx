@@ -222,15 +222,23 @@ const CapacityPriceLadder = ({
     (planIncludes || []).forEach((label, i) =>
       push(`plan_includes_${i}`, "plan_includes", label),
     );
+    // 房型名稱（僅照片標籤等顯示用途；訂單資料仍使用原文）
+    for (const rt of (roomTypes || []) as any[]) {
+      if (rt?.name && String(rt.name).trim())
+        out.push({ table: "room_types", column: "name", id: String(rt.name), text: String(rt.name) });
+    }
     return out;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [PRICING_TABLE, planIncludes]);
+  }, [PRICING_TABLE, planIncludes, roomTypes]);
   const { tf } = useTranslatedFields(dynamicPlanFields);
   /** 方案名稱顯示用翻譯（原始 planName 仍原樣傳給訂單流程） */
   const tfPlan = (text: string, id?: string | null) =>
     tf({ table: "accommodation_packages", column: "name", id: id || text, text });
   const tfPkg = (column: string, id: string, text: string) =>
     tf({ table: "accommodation_packages", column, id, text });
+  /** 房型名稱顯示用翻譯（原文仍用於配房與訂單資料） */
+  const tfRt = (text: string) =>
+    text ? tf({ table: "room_types", column: "name", id: text, text }) : text;
 
   const [activeTier, setActiveTier] = useState<PricingTier>(() =>
     detectTierByDate(checkIn, isHolidayDate?.(checkIn))
@@ -414,7 +422,7 @@ const CapacityPriceLadder = ({
             <Card className="overflow-hidden border-border/60 shadow-sm">
               {/* 1. 房型照片輪播（綁定房型的全部照片） */}
               {carouselPhotos.length > 0 && (
-                <PackagePhotoCarousel photos={carouselPhotos.map((p) => ({ url: p.url, rtName: p.rtName }))} />
+                <PackagePhotoCarousel photos={carouselPhotos.map((p) => ({ url: p.url, rtName: tfRt(p.rtName) }))} />
               )}
 
 
