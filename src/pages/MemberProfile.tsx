@@ -274,6 +274,8 @@ const MemberProfile = () => {
 
       <BiometricLoginCard />
 
+      <AiConsentCard />
+
 
 
 
