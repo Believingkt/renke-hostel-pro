@@ -56,6 +56,7 @@ interface Props {
  * 只顯示「是否可訂」(綠/灰)，不顯示價格。
  */
 const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate, onAvailabilityComputed, onAvailabilityError }: Props) => {
+  const { t } = useBookingLocale();
   const [monthOffset, setMonthOffset] = useState(0);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [hasInventory, setHasInventory] = useState<boolean | null>(null);
@@ -343,8 +344,8 @@ const VillaAvailabilityCalendar = ({ accommodationId, selectedDate, onSelectDate
       onAvailabilityError?.({
         message:
           err instanceof InventoryQueryError
-            ? "即時空房資料載入失敗（連線逾時），可訂日期可能未更新。"
-            : "即時空房資料載入失敗，可訂日期可能未更新。",
+            ? t("booking.villa.availability.error.timeout")
+            : t("booking.villa.availability.error.generic"),
         retry: () => setReloadKey((k) => k + 1),
       });
     });
