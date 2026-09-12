@@ -1124,10 +1124,24 @@ const BookingPortalInner = () => {
         const others = [secondary, ...rest].filter(Boolean) as AccommodationInfo[];
         // Mobile horizontal strip: include every accommodation except the hero
         const mobileOthers = accommodations.filter((a) => !hero || a.id !== hero.id);
-        const locOf = (a: AccommodationInfo) =>
-          a.country === "台灣" || !a.country
-            ? [a.region_1, a.region_2].filter(Boolean).join(" · ")
-            : [a.country, a.region_1, a.region_2].filter(Boolean).join(" · ");
+        // 顯示用：地區以譯文組合；country 與所有判定仍讀原始欄位
+        const locOf = (a: AccommodationInfo) => {
+          const r1 = td(a.id, "region_1", a.region_1);
+          const r2 = td(a.id, "region_2", a.region_2);
+          return a.country === "台灣" || !a.country
+            ? [r1, r2].filter(Boolean).join(" · ")
+            : [a.country, r1, r2].filter(Boolean).join(" · ");
+        };
+        const editorBodyOf = (a: AccommodationInfo) => {
+          if (a.card_editor_body) return td(a.id, "card_editor_body", a.card_editor_body);
+          if (a.about_description) return td(a.id, "about_description", a.about_description);
+          if (a.about_title) return td(a.id, "about_title", a.about_title);
+          return "";
+        };
+        const displayNameOf = (a: AccommodationInfo) =>
+          a.card_display_name
+            ? td(a.id, "card_display_name", a.card_display_name)
+            : td(a.id, "name", a.name);
         const minPriceOf = (id: string) => {
           const ps = roomTypes.filter((r) => r.accommodation_id === id).map((r) => r.base_price).filter((p) => p > 0);
           return ps.length ? Math.min(...ps) : null;
@@ -1137,22 +1151,28 @@ const BookingPortalInner = () => {
             {/* Editorial header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8 md:mb-12 gap-4">
               <div className="space-y-1.5">
-                <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">Selected Retreats</span>
-                <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">精選民宿</h2>
+                <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">{t("booking.portal.featured.eyebrow")}</span>
+                <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">{t("booking.portal.featured.title")}</h2>
               </div>
               <div className="hidden md:block h-px flex-grow mx-8 bg-border mb-3" />
-              <span className="text-muted-foreground text-sm">探索深度旅宿的質感生活</span>
+              <span className="text-muted-foreground text-sm">{t("booking.portal.featured.subtitle")}</span>
             </div>
 
             {/* ── Mobile: Immersive vertical feed ── */}
             <div className="md:hidden divide-y divide-border/40">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
-                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
-                const ctaLabel = acc.card_cta_label || "探索這間民宿";
-                const displayName = acc.card_display_name || acc.name;
-                const displayLocation = acc.card_location || locOf(acc);
+                const editorBody = editorBodyOf(acc);
+                const editorTitle = acc.card_editor_title
+                  ? td(acc.id, "card_editor_title", acc.card_editor_title)
+                  : t("booking.portal.featured.editorDefaultLong");
+                const ctaLabel = acc.card_cta_label
+                  ? td(acc.id, "card_cta_label", acc.card_cta_label)
+                  : t("booking.portal.featured.ctaDefault");
+                const displayName = displayNameOf(acc);
+                const displayLocation = acc.card_location
+                  ? td(acc.id, "card_location", acc.card_location)
+                  : locOf(acc);
                 const cardPhotos =
                   (acc.card_photos && acc.card_photos.length > 0
                     ? acc.card_photos
