@@ -1145,6 +1145,12 @@ export default function AIBooking() {
         keywords={["AI 管家", "智能助手", "線上訂房", accommodationName]}
       />
 
+      <AIConsentDialog
+        open={aiConsent.status === "not_granted"}
+        onAccept={() => { void aiConsent.grant(); }}
+        onDecline={() => { aiConsent.decline(); navigate("/"); }}
+      />
+
       {/* 頂部導航 - 手機版精簡 */}
       <div className="hidden md:block bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex items-center justify-between">
@@ -1956,6 +1962,7 @@ export default function AIBooking() {
                 )}
               </Button>
             </div>
+            <AIDisclosureNote className="pt-2" />
           </div>
 
         </Card>
@@ -2029,6 +2036,7 @@ export default function AIBooking() {
               )}
             </Button>
           </div>
+          <AIDisclosureNote className="pt-1.5" />
         </div>
 
         {/* 設定面板 */}
