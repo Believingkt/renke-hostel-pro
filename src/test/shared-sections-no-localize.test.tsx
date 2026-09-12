@@ -7,8 +7,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 
 // jsdom 環境補齊（僅測試用）
 if (!window.matchMedia) {
-  // @ts-expect-error jsdom stub
-  window.matchMedia = (query: string) => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (window as any).matchMedia = (query: string) => ({
     matches: false,
     media: query,
     onchange: null,
