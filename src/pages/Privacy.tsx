@@ -117,9 +117,9 @@ export default function Privacy() {
             <p>產生 AI 回覆、推薦合適民宿與房型、回答訂房相關問題，並在您要求時協助完成訂房。</p>
             <p className="font-medium mt-2">分享給哪些 AI 服務商</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>Anthropic PBC（Claude AI）：處理文字對話並產生回覆。</li>
-              <li>OpenAI, L.L.C.：處理語音轉文字與文字轉語音（僅在您使用語音功能時）。</li>
-              <li>部分對話功能透過 Lovable AI Gateway 轉送至 Google Gemini 模型。</li>
+              <li>Anthropic PBC（Claude AI）：處理 AI 管家小安與入口網「AI 找房間」的訊息文字、對話紀錄、查詢條件，以及您在對話中主動提供的訂房資料，並產生文字回覆。</li>
+              <li>Google LLC（Gemini，經 Lovable AI Gateway 轉送）：處理民宿頁懸浮小安的訊息文字、該次對話紀錄及目前民宿識別資料，並產生文字回覆。</li>
+              <li>OpenAI, L.L.C.：在您另行同意並主動使用語音功能時，處理錄音內容以轉成文字，或處理待朗讀的 AI 回覆文字以產生語音。</li>
             </ul>
             <p className="mt-2">
               上述服務商依其企業／API 條款，對傳送內容提供與本政策同等級的保護，不會將您的資料用於與本服務無關的用途。
@@ -127,7 +127,7 @@ export default function Privacy() {
             </p>
             <p className="font-medium mt-2">如何撤回同意</p>
             <p>
-              您可以隨時在「我的帳號」中關閉「AI 管家小安」開關撤回同意；撤回後將停止使用 AI 管家，
+              語音輸入會在首次啟動麥克風前另行說明並取得同意；不同意時不會開始錄音，仍可使用文字輸入。您可以隨時在「我的帳號」中關閉「AI 管家小安」開關撤回 AI 同意；撤回後將停止使用 AI 管家，
               下次使用時會再次請求您的同意。您也可以來信
               <a href="mailto:service@lakeze.com" className="text-[hsl(24,100%,40%)] underline mx-1">
                 service@lakeze.com

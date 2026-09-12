@@ -380,7 +380,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 </Button>
               </form>
               <div className="pb-2 -mt-1">
-                <AIDisclosureNote />
+                <AIDisclosureNote provider="google" />
               </div>
             </>
 
