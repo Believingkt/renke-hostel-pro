@@ -22,6 +22,7 @@ const F = {
   IG_URL: "1001025",
   VENUE: "1000508",
   AMOUNT: "3005533",
+  PAYFORM_NO: "3005521", // 勞報單編號（LR-xxxx）
 } as const;
 
 const ALLOWED_ROLES = ["super_admin", "hotel_admin", "scout_manager"];
@@ -83,6 +84,7 @@ Deno.serve(async (req) => {
       const m = /^KOL-([^-]+)-(\d{6})$/i.exec(code);
       return {
         ragic_id: String(r._ragicId ?? r.__key ?? ""),
+        payform_no: String(r[F.PAYFORM_NO] ?? "").trim() || null,
         recon_code: code,
         cid_code: m ? m[1].toUpperCase() : null,
         period: m ? m[2] : null,

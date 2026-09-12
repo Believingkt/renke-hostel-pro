@@ -31,6 +31,7 @@ export interface ExpectedPayout {
 
 interface RagicPayForm {
   ragic_id: string;
+  payform_no: string | null;
   recon_code: string;
   cid_code: string | null;
   period: string | null;
@@ -155,7 +156,7 @@ export default function KolPayFormReconcileTab({
         venue: e.venue || matched[0]?.venue || "—",
         expected: e.amount,
         actual,
-        ragicId: matched.map((f) => f.ragic_id).join("、") || null,
+        ragicId: matched.map((f) => f.payform_no || f.ragic_id).join("、") || null,
         reconCode: matched[0]?.recon_code ?? null,
         status,
       });
@@ -171,7 +172,7 @@ export default function KolPayFormReconcileTab({
         venue: list2[0]?.venue || "—",
         expected: null,
         actual: list2.reduce((s, f) => s + f.amount, 0),
-        ragicId: list2.map((f) => f.ragic_id).join("、"),
+        ragicId: list2.map((f) => f.payform_no || f.ragic_id).join("、"),
         reconCode: list2[0]?.recon_code ?? null,
         status: "ragic_only",
       });
@@ -325,7 +326,7 @@ export default function KolPayFormReconcileTab({
                   {unmatchable.map((f) => (
                     <TableRow key={f.ragic_id}>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
-                        {f.ragic_id}
+                        {f.payform_no || f.ragic_id}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{f.nickname || "—"}</TableCell>
                       <TableCell className="whitespace-nowrap">{f.venue || "—"}</TableCell>
