@@ -655,6 +655,8 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
         .map((b) => b.textContent)
         .filter((txt) => txt && txt.includes("鄰近測試館"));
       // 第四批：起／from 為固定介面文字，已翻譯；名稱、價格、順序仍必須完全不變
+      console.log("DBG_CARD_ZH", JSON.stringify(cardsBefore[0]));
+      console.log("DBG_CARD_EN", JSON.stringify(cardsAfter[0]));
       expect(cardsAfter).toHaveLength(cardsBefore.length);
       expect((cardsAfter[0] || "").replace(/from$/, "")).toBe(
         (cardsBefore[0] || "").replace(/起$/, ""),
@@ -1190,6 +1192,7 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
       expect(screen.getByText("Includes child surcharge +NT$12,345")).toBeInTheDocument();
       expect(priceOf()).toEqual(zhPrices);
       // 第四批：方案標題為固定介面文字，英文模式顯示英文；人數本身不得改變
+      console.log("DBG_GUEST_ZH", JSON.stringify(zhGuest), "EN", JSON.stringify(guestLine()));
       expect(guestLine()).toContain("6");
       expect(guestLine()).not.toBe(zhGuest);
 
