@@ -30,16 +30,107 @@
 4. 冷啟動直接採用第四批已驗證的 `deferUntilTranslated`（英文模式未譯前留空、不做骨架），中文模式零變化。
 5. 首頁欄位量大（民宿卡＋房型卡），必然超過 60 筆；第四批已修好的 hook 分批送出（每批 50）可直接覆蓋。
 
-### 絕對不動的邏輯（本批只換顯示層）
+### 補件 1：絕對不動的邏輯（實際程式碼佐證）
 
-搜尋與篩選是以**原文**比對，翻譯只能作用在顯示：
-- `BookingPortal.tsx:410-413、548-551` 關鍵字搜尋比對 `rt.name` / `accommodation_region_1/2` 原值
-- `:566` 地區篩選 `rt.accommodation_region_1 === filters.selectedRegion`
-- `:621` 包棟判定以 `r.name` regex 比對
-- `:654` `isSensanAccommodation(acc.name)` 館別判定
-- 價格（`room_inventory_pricing`、`classifyDayTier`）、庫存、人數、日期、`openFrontendBooking` 導頁參數
+關鍵字搜尋（`BookingPortal.tsx:407-415` 與 `546-552`，兩處同構，皆比對原文）：
+```tsx
+    return roomTypes
+      .filter(
+        (rt) =>
+          rt.name.toLowerCase().includes(q) ||
+          rt.accommodation_name.toLowerCase().includes(q) ||
+          rt.accommodation_region_1?.toLowerCase().includes(q) ||
+          rt.accommodation_region_2?.toLowerCase().includes(q)
+      )
+      .map((rt) => rt.id);
+```
 
-作法：`tf()` 只用於 JSX 顯示，所有篩選／判定／導頁一律讀原始物件欄位，不讀 `display*`。
+房況／地區／館別篩選（`555-572`）：
+```tsx
+    // Availability filter — 森山忽略散客庫存判定，永遠保留
+    if (hasDateFilter) {
+      result = result.filter(
+        (rt) =>
+          isSensanAccommodation(rt.accommodation_name) ||
+          (rt.available_rooms !== null && rt.available_rooms > 0)
+      );
+    }
+
+    // Region filter
+    if (filters.selectedRegion !== "all") {
+      result = result.filter((rt) => rt.accommodation_region_1 === filters.selectedRegion);
+    }
+
+    // Accommodation filter
+    if (filters.selectedAccommodation !== "all") {
+      result = result.filter((rt) => rt.accommodation_id === filters.selectedAccommodation);
+    }
+```
+
+包棟判定與館別判定（`619-621`、`654`）：
+```tsx
+    // 「銷售方案」(如「12 人包區」) 為虛擬人數方案，不計入實際房間數
+    const isVillaPlan = (r: RoomTypeResult) =>
+      /包棟|包區|whole|villa/i.test(r.name) || r.capacity >= 8;
+```
+```tsx
+      const isSensan = isSensanAccommodation(acc.name);
+```
+
+以上四處全部讀 `rt.name` / `rt.accommodation_name` / `rt.accommodation_region_1` 等**原始欄位**。本批作法：`tf()` 產生的 `display*` 只進 JSX，篩選、regex、館別判定、價格與導頁參數一律繼續讀原始物件，上面這些程式碼一行都不會被碰到。`isVillaPlan` 的 regex 若讀到英文譯名會直接失準（`包棟|包區` 不會命中 `exclusive area`），這正是必須維持讀原文的具體理由。
+
+### 補件 2：PortalAIChatPanel.tsx 三處敏感邏輯（目前程式碼，本批不動）
+
+同意判斷（`116-119`）：
+```tsx
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || isLoading) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
+```
+
+錄音啟動（`306-318`）：
+```tsx
+  const handleMicToggle = async () => {
+    if (isRecording) {
+      const text = await stopRecording();
+      if (text) sendMessage(text);
+    } else if (!aiConsent.granted) {
+      return;
+    } else if (!voiceConsent.granted) {
+      setVoiceConsentIntent("record");
+      setShowVoiceConsent(true);
+    } else {
+      await startRecording();
+    }
+  };
+```
+
+AI 請求 payload 組裝（`129-152`）：
+```tsx
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${...}` },
+        body: JSON.stringify({
+          messages: newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+          session_id: (...)(),
+          context: {
+            check_in_date: format(checkIn, "yyyy-MM-dd"),
+            check_out_date: format(checkOut, "yyyy-MM-dd"),
+            guest_count: defaultGuests,
+          },
+          lang,
+          guide: { active: guideActive, attrs: guideAttrs },
+        }),
+      });
+```
+
+本批對這支只改：歡迎語、快速提問 chips、輸入框 placeholder、按鈕 aria-label、toast 文案等純顯示字串。上述三段（含 `aiConsent.granted` / `voiceConsent.granted` 兩道閘、`slice(-20)` 歷史範圍、`context` 三個欄位）維持逐字不變，postcheck 會以這三段的 diff＝0 佐證。注意 payload 已含 `lang`，語言切換本來就已傳給後端，不需新增欄位。
+
+### 補件 3：首頁單次可翻譯欄位量級估計
+
+以目前正式資料實測計數：民宿 15 家（name／region_1／region_2／address 約 50 筆）、房型 51 筆名稱＋33 筆有內容的描述＝84 筆、about_section 15 組標題＋描述約 30 筆、portal_featured_cards 4 張約 8 筆。**合計約 170–180 筆**，會被切成 4 批（50／50／50／約 30）送出，全部在第四批已修好的分批機制覆蓋範圍內；若只計首屏渲染卡片則約 60–80 筆。此數字僅供備查，不改架構。
+
 
 ## 四、檔案範圍
 
