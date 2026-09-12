@@ -152,7 +152,7 @@ const BookingInfoSection = ({
                       {panel.html && (
                         <div
                           className="prose prose-sm max-w-none text-sm text-muted-foreground"
-                          dangerouslySetInnerHTML={createSanitizedHtml(panel.html)}
+                          dangerouslySetInnerHTML={createSanitizedHtml(dyn("panel_html", panel.key, panel.html))}
                         />
                       )}
                     </AccordionContent>
@@ -206,7 +206,7 @@ const BookingInfoSection = ({
                         >
                           <div
                             className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={createSanitizedHtml(panel.html)}
+                            dangerouslySetInnerHTML={createSanitizedHtml(dyn("panel_html", panel.key, panel.html))}
                           />
                         </div>
                         {longHtml && (
@@ -214,7 +214,7 @@ const BookingInfoSection = ({
                             variant="outline"
                             size="sm"
                             className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                            onClick={() => openDialog(panel.title, panel.html!)}
+                            onClick={() => openDialog(dyn("panel_title", panel.key, panel.title), dyn("panel_html", panel.key, panel.html!))}
                           >
                             {ui("booking.section.policy.viewFull", "查看完整內容")}
                           </Button>
