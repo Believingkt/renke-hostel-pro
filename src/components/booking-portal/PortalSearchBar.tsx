@@ -428,7 +428,7 @@ const PortalSearchBar = ({
                   onClick={() => onSearchQueryChange(s)}
                   className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
-                  {s}
+                  {regionLabel(s)}
                 </button>
               ))}
             </div>
@@ -515,7 +515,7 @@ const PortalSearchBar = ({
                   onClick={() => onSearchQueryChange(s)}
                   className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
-                  {s}
+                  {regionLabel(s)}
                 </button>
               ))}
             </div>

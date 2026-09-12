@@ -708,6 +708,10 @@ const zh = {
   "booking.portal.search.childrenHint": "7–12 歲",
   "booking.portal.search.childrenHintWide": "0–12 歲",
 
+  "booking.portal.search.region.yilan": "宜蘭",
+  "booking.portal.search.region.nantou": "南投",
+  "booking.portal.search.region.miaoli": "苗栗",
+
   "booking.portal.photos.prev": "上一張",
   "booking.portal.photos.next": "下一張",
 
@@ -1438,6 +1442,10 @@ const en: Record<BookingI18nKey, string> = {
   "booking.portal.search.children": "Children",
   "booking.portal.search.childrenHint": "Ages 7–12",
   "booking.portal.search.childrenHintWide": "Ages 0–12",
+
+  "booking.portal.search.region.yilan": "Yilan",
+  "booking.portal.search.region.nantou": "Nantou",
+  "booking.portal.search.region.miaoli": "Miaoli",
 
   "booking.portal.photos.prev": "Previous photo",
   "booking.portal.photos.next": "Next photo",

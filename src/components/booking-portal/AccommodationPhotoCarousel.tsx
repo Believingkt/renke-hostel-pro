@@ -113,7 +113,7 @@ const AccommodationPhotoCarousel = ({
         <>
           <div
             role="button"
-            aria-label="上一張"
+            aria-label={t("booking.portal.photos.prev")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
@@ -134,7 +134,7 @@ const AccommodationPhotoCarousel = ({
           </div>
           <div
             role="button"
-            aria-label="下一張"
+            aria-label={t("booking.portal.photos.next")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
