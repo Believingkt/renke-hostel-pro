@@ -149,8 +149,9 @@ function deriveFeatureTags(facilities: FacilityRow[]): string[] {
   return Array.from(tags);
 }
 
-const BookingPortal = () => {
+const BookingPortalInner = () => {
   const navigate = useNavigate();
+  const { t } = useBookingLocale();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [packagedAccIds, setPackagedAccIds] = useState<Set<string>>(new Set());
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
