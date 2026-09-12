@@ -1004,10 +1004,10 @@ const BookingPortalInner = () => {
         />
         <div className="relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out py-8 md:py-20">
           <h1 className="font-bold drop-shadow-sm text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3">
-            探索優質包棟民宿
+            {t("booking.portal.hero.title")}
           </h1>
           <p className="opacity-90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
-            會員優惠  |  安心付款  |  免費取消
+            {t("booking.portal.hero.subtitle")}
           </p>
 
           <div className="relative">
@@ -1034,11 +1034,11 @@ const BookingPortalInner = () => {
               isLoadingAvailability={loadingAvailability}
             />
             <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-              <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
+              <span className="text-[11px] text-white/90 mr-1">{t("booking.portal.hero.groupLabel")}</span>
               {[
-                { label: "6-10 人", value: 8 },
-                { label: "12-16 人", value: 14 },
-                { label: "16+ 人", value: 18 },
+                { label: t("booking.portal.hero.chipSmall"), value: 8 },
+                { label: t("booking.portal.hero.chipMedium"), value: 14 },
+                { label: t("booking.portal.hero.chipLarge"), value: 18 },
               ].map((chip) => {
                 const active = adults === chip.value;
                 return (
@@ -1067,29 +1067,29 @@ const BookingPortalInner = () => {
           {[
             {
               icon: Gift,
-              title: "新會員優惠",
-              desc: "註冊即享首訂折扣",
+              title: t("booking.portal.promo.member.title"),
+              desc: t("booking.portal.promo.member.desc"),
               color: "hsl(25, 80%, 55%)",
               bg: "hsl(25, 80%, 96%)",
             },
             {
               icon: Ticket,
-              title: "限時優惠券",
-              desc: "平台專屬折扣碼",
+              title: t("booking.portal.promo.coupon.title"),
+              desc: t("booking.portal.promo.coupon.desc"),
               color: "hsl(200, 70%, 50%)",
               bg: "hsl(200, 70%, 96%)",
             },
             {
               icon: TrendingUp,
-              title: "紅利回饋",
-              desc: "消費累積紅利點數",
+              title: t("booking.portal.promo.points.title"),
+              desc: t("booking.portal.promo.points.desc"),
               color: "hsl(142, 70%, 40%)",
               bg: "hsl(142, 70%, 96%)",
             },
             {
               icon: BedDouble,
-              title: "精選房型",
-              desc: `${roomTypes.length} 種房型可選`,
+              title: t("booking.portal.promo.rooms.title"),
+              desc: t("booking.portal.promo.rooms.desc", { count: roomTypes.length }),
               color: "hsl(270, 60%, 55%)",
               bg: "hsl(270, 60%, 96%)",
             },
