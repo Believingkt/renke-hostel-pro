@@ -1288,7 +1288,7 @@ const PriceLadderTable = ({
                     <span className="inline-flex items-center gap-1.5 flex-wrap">
                       <span className="text-base leading-none" aria-hidden>{getGuestScene(tier.guestCount).emoji}</span>
                       <span className="flex flex-col leading-tight">
-                        <span className="font-bold text-foreground">{tier.guestCount} 人</span>
+                        <span className="font-bold text-foreground">{t("booking.villa.ladder.guestUnitSpaced", { count: tier.guestCount })}</span>
                         <span className="text-[9.5px] text-muted-foreground">{getGuestScene(tier.guestCount).label}</span>
                       </span>
                       {tier.isFewPeople && (
@@ -1374,6 +1374,7 @@ const GuestTabsScroller = ({
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
   const { t } = useBookingLocale();
+  const tr = t; // map callback 內的 tier 也叫 t，這裡取別名避免遮蔽
 
   const updateEdges = () => {
     const el = scrollerRef.current;
@@ -1440,7 +1441,7 @@ const GuestTabsScroller = ({
                   : undefined
               }
             >
-              {t("booking.villa.ladder.guestUnit", { count: t.guestCount })}
+              {tr("booking.villa.ladder.guestUnit", { count: t.guestCount })}
             </button>
           );
         })}
