@@ -60,11 +60,32 @@ export const useBookingLocale = (): BookingLocaleValue => {
 
 搭配：`translation_cache` 命中時多為同步命中（熱快取），B 的空白窗僅出現在首次冷啟動；對已上線頁面 SEO 不影響（爬蟲取中文預設）。
 
-## 四、檔案範圍
+## 四、檔案範圍（完整逐檔清單）
 
-修改：`src/pages/BookingVilla.tsx`、`src/lib/bookingI18n.ts`（只增不改）、`src/hooks/use-translated-fields.tsx`（僅新增「未譯時回傳空字串」的可選模式，預設行為不變）、`src/components/booking-villa/` 內 CapacityPriceLadder／EditSearchSheet／VillaAvailabilityCalendar／VillaLocationCompact／VillaOverviewBar／SimilarStaysCarousel／SectionTabsNav／VillaPhotoCarousel／VillaPhotoLightbox／PackagePhotoCarousel、以及 BookingVilla 專用的 Facilities／Faq／BookingInfo／Reviews 區塊元件（施工前會先列出逐檔清單給您確認，不臨時擴張）。
+**修改（共 17 支）：**
+1. `src/pages/BookingVilla.tsx`（1666 行）
+2. `src/lib/bookingI18n.ts`（只增 key，不改既有 key）
+3. `src/hooks/use-translated-fields.tsx`（新增可選「未譯時延後顯示」模式，預設行為不變）
+4. `src/components/booking-villa/CapacityPriceLadder.tsx`（只換顯示文字）
+5. `src/components/booking-villa/EditSearchSheet.tsx`（只換顯示文字）
+6. `src/components/booking-villa/VillaAvailabilityCalendar.tsx`
+7. `src/components/booking-villa/VillaLocationCompact.tsx`
+8. `src/components/booking-villa/VillaOverviewBar.tsx`
+9. `src/components/booking-villa/SimilarStaysCarousel.tsx`
+10. `src/components/booking-villa/SectionTabsNav.tsx`
+11. `src/components/booking-villa/VillaPhotoCarousel.tsx`
+12. `src/components/booking-villa/FloatingAIChat.tsx`
+13. `src/components/FacilitiesSection.tsx`（僅加可選 `translate` prop，未傳時行為完全不變）
+14. `src/components/LocationSection.tsx`（同上）
+15. `src/components/ReviewsSection.tsx`（同上）
+16. `src/components/FaqSection.tsx`（同上）
+17. `src/components/BookingInfoSection.tsx`（同上）
 
-不動：BookingFlow.tsx、CustomerOrders.tsx、底部導覽、四支通知信件函式、任何 Edge Function、資料庫、schema、cron。
+**新增：** 1 支迴歸測試檔。
+
+**共用風險隔離**：第 13–17 支被 Index.tsx（民宿官網，本輪範圍外）與 GroupBuyCampaign.tsx（團購，範圍外）共用，故採「可選 prop、未傳 = 原樣中文」設計，對這兩個頁面行為影響為零；BookingVilla 傳入已譯內容。若發現其中任何一支非改介面預設不可，會停下來先問。
+
+**不動**：`VillaPhotoLightbox.tsx`、`PackagePhotoCarousel.tsx`（無 UI 中文字串）、BookingFlow.tsx、CustomerOrders.tsx、底部導覽（MobileBottomNav／NativeTabBar）、四支通知信件函式、任何 Edge Function、資料庫、schema、cron。
 
 ## 五、precheck／postcheck
 

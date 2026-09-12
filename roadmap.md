@@ -51,3 +51,4 @@
 ## 之後分批（未授權）
 - [ ] BookingFlow.tsx、搜尋列表、會員中心、訂單查詢
 - [ ] 第二階段：通知信件雙語（本輪完全不動 4 支寄信函式）
+- [待排] 已上線四頁（BookingSearchResults／PaymentResult／MemberOrders／MemberOrderDetail）冷啟動閃中文缺陷：第四批驗證穩定後，安排小批次改用 use-translated-fields 的可選延後顯示模式。阻塞：等第四批驗證穩定＋使用者核准。
