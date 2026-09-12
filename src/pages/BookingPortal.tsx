@@ -1402,4 +1402,10 @@ const BookingPortalInner = () => {
   );
 };
 
+const BookingPortal = () => (
+  <BookingLocaleProvider>
+    <BookingPortalInner />
+  </BookingLocaleProvider>
+);
+
 export default BookingPortal;
