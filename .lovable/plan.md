@@ -142,13 +142,13 @@ AI 請求 payload 組裝（`129-152`）：
 5. `src/components/booking-portal/RoomFilterBar.tsx`
 6. `src/components/booking-portal/AccommodationCard.tsx`
 7. `src/components/booking-portal/AccommodationPhotoCarousel.tsx`
-8. `src/components/booking-portal/ChatRoomCard.tsx`（＋ `RoomTypeCard.tsx` 單一字串，視實際渲染決定，若需動會先報備）
+8. `src/components/booking-portal/ChatRoomCard.tsx`
+
+**補件 4：`RoomTypeCard.tsx` 不列入本批修改清單。** 該檔有「剩 N 間」「人」「坪」「每晚」「立即預訂」等顯示字串，但目前首頁改用 `AccommodationCard` 聚合呈現；施工時若發現它實際仍被渲染而必須改，會**停下來先報備、等您回覆核准才動手**，不會先改後報。
 
 **新增**：1 支迴歸測試檔（證明搜尋、地區篩選、排序、導頁參數在切換語言後結果完全相同）。
 
 **不動**：SearchRoomCard、BookingFooter、SavingsBadge、底部導覽、BookingFlow、CustomerOrders、四支信件函式、任何 Edge Function／DB／cron。
-
-PortalAIChatPanel 剛因 Apple 同意流程改過，本批只改顯示文字，不碰同意判斷、錄音、AI 請求。
 
 ## 五、precheck／postcheck
 
