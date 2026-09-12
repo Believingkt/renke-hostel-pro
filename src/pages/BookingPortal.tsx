@@ -928,6 +928,33 @@ const BookingPortalInner = () => {
     filters.maxPrice > 0 || filters.selectedAccommodation !== "all" || 
     filters.selectedRegion !== "all";
 
+  // ── 顯示層動態翻譯：只用於 JSX 呈現，所有篩選／判定／導頁一律讀原始欄位 ──
+  const dynamicFields = useMemo<TranslatableField[]>(() => {
+    const fields: TranslatableField[] = [];
+    for (const a of accommodations) {
+      const push = (column: string, text?: string | null) => {
+        if (text && text.trim()) fields.push({ table: "accommodation_info", column, id: a.id, text });
+      };
+      push("name", a.name);
+      push("card_display_name", a.card_display_name);
+      push("card_location", a.card_location);
+      push("region_1", a.region_1);
+      push("region_2", a.region_2);
+      push("card_editor_title", a.card_editor_title);
+      push("card_editor_body", a.card_editor_body);
+      push("card_cta_label", a.card_cta_label);
+      push("about_title", a.about_title);
+      push("about_description", a.about_description);
+    }
+    return fields;
+  }, [accommodations]);
+
+  const { tf } = useTranslatedFields(dynamicFields, { deferUntilTranslated: true });
+
+  const td = (accId: string, column: string, text?: string | null) =>
+    text && text.trim() ? tf({ table: "accommodation_info", column, id: accId, text }) : "";
+
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
