@@ -613,7 +613,14 @@ export default function KolBonus() {
 
   const copyLink = async (row: KolRow) => {
     if (!row.public_token) return;
-    const url = `${window.location.origin}/team/kol/bonus/${row.public_token}`;
+    // 帶上目前篩選的年月，讓 KOL 點開連結時直接看到同一個月份（例如補發上一期獎金的情境）
+    const params = new URLSearchParams();
+    if (filterYear > 0 && filterMonth !== "all") {
+      params.set("y", String(filterYear));
+      params.set("m", filterMonth);
+    }
+    const qs = params.toString();
+    const url = `${window.location.origin}/team/kol/bonus/${row.public_token}${qs ? `?${qs}` : ""}`;
     try {
       await navigator.clipboard.writeText(url);
       toast.success("已複製連結");
