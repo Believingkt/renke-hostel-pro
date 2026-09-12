@@ -1260,11 +1260,17 @@ const BookingPortalInner = () => {
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
-                const editorTitle = acc.card_editor_title || "管家推薦";
-                const ctaLabel = acc.card_cta_label || "探索這間民宿";
-                const displayName = acc.card_display_name || acc.name;
-                const displayLocation = acc.card_location || locOf(acc);
+                const editorBody = editorBodyOf(acc);
+                const editorTitle = acc.card_editor_title
+                  ? td(acc.id, "card_editor_title", acc.card_editor_title)
+                  : t("booking.portal.featured.editorDefault");
+                const ctaLabel = acc.card_cta_label
+                  ? td(acc.id, "card_cta_label", acc.card_cta_label)
+                  : t("booking.portal.featured.ctaDefault");
+                const displayName = displayNameOf(acc);
+                const displayLocation = acc.card_location
+                  ? td(acc.id, "card_location", acc.card_location)
+                  : locOf(acc);
                 const cardPhotos =
                   (acc.card_photos && acc.card_photos.length > 0
                     ? acc.card_photos
