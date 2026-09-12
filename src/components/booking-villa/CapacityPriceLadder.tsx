@@ -1234,6 +1234,7 @@ const PriceLadderTable = ({
   matchedGuestCount = null,
   selectedGuestCount = null,
 }: PriceLadderTableProps) => {
+  const { t } = useBookingLocale();
   if (tiers.length === 0) return null;
 
   // 以最高人數方案的每人/晚作為「最低基準」，比例越高代表越貴
