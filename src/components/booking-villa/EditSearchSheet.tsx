@@ -248,14 +248,14 @@ const EditSearchSheet = ({
 
     const typeLabel = hasDualAxis
       ? axis === "package"
-        ? "包棟房型"
+        ? t("booking.villa.searchSheet.type.package")
         : axis === "common"
-          ? "單間房型"
-          : "房型"
-      : "房型";
+          ? t("booking.villa.searchSheet.type.common")
+          : t("booking.villa.searchSheet.type.any")
+      : t("booking.villa.searchSheet.type.any");
     const reason = missing.length === days.length
-      ? `所選日期目前無${typeLabel}可訂`
-      : `所選期間有 ${missing.length} 天無${typeLabel}可訂`;
+      ? t("booking.villa.searchSheet.issue.all", { type: typeLabel })
+      : t("booking.villa.searchSheet.issue.some", { count: missing.length, type: typeLabel });
     return { reason, suggestion };
   })();
 
@@ -289,7 +289,7 @@ const EditSearchSheet = ({
         className="z-[120] max-h-[92vh] h-auto p-0 flex flex-col rounded-t-2xl border-t-0 shadow-2xl"
       >
         <SheetHeader className="px-4 pt-4 pb-3 border-b border-border">
-          <SheetTitle className="text-[16px] font-semibold text-center">調整搜尋條件</SheetTitle>
+          <SheetTitle className="text-[16px] font-semibold text-center">{t("booking.villa.searchSheet.title")}</SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -297,19 +297,25 @@ const EditSearchSheet = ({
           <div className="pt-3">
             <div className="flex items-center gap-2 mb-2">
               <CalendarDays className="w-4 h-4 text-muted-foreground" />
-              <span className="text-[15px] font-medium">入住日期</span>
+              <span className="text-[15px] font-medium">{t("booking.villa.searchSheet.dateLabel")}</span>
               {effAvail === null ? (
-                <span className="ml-auto text-xs text-muted-foreground">庫存載入中…</span>
+                <span className="ml-auto text-xs text-muted-foreground">{t("booking.villa.searchSheet.loadingInventory")}</span>
               ) : range?.from && range?.to ? (
                 <span className="ml-auto text-xs text-muted-foreground">
-                  {format(range.from, "M月d日")} – {format(range.to, "M月d日")} · 共 {nights} 晚
+                  {t("booking.villa.searchSheet.rangeSummary", {
+                    from: format(range.from, dateFmt, { locale: dateLocale }),
+                    to: format(range.to, dateFmt, { locale: dateLocale }),
+                    nights,
+                  })}
                 </span>
               ) : range?.from ? (
                 <span className="ml-auto text-xs text-primary">
-                  已選 {format(range.from, "M月d日")} · 請選退房日
+                  {t("booking.villa.searchSheet.pickedFrom", {
+                    date: format(range.from, dateFmt, { locale: dateLocale }),
+                  })}
                 </span>
               ) : (
-                <span className="ml-auto text-xs text-muted-foreground">請選入住日</span>
+                <span className="ml-auto text-xs text-muted-foreground">{t("booking.villa.searchSheet.pickCheckIn")}</span>
               )}
               {effAvail !== null && (range?.from || range?.to) && (
                 <button
@@ -320,7 +326,7 @@ const EditSearchSheet = ({
                   }}
                   className="text-xs text-primary underline-offset-2 hover:underline ml-1"
                 >
-                  重選
+                  {t("booking.villa.searchSheet.reset")}
                 </button>
               )}
             </div>
@@ -329,8 +335,8 @@ const EditSearchSheet = ({
             {hasDualAxis && (
               <div className="mb-2 flex items-center gap-1.5 rounded-full bg-muted/50 p-1">
                 {([
-                  { key: "package", label: "包棟" },
-                  { key: "common", label: "單間房非包棟" },
+                  { key: "package", label: t("booking.villa.searchSheet.axis.package") },
+                  { key: "common", label: t("booking.villa.searchSheet.axis.common") },
                 ] as const).map((opt) => (
                   <button
                     key={opt.key}
@@ -359,13 +365,15 @@ const EditSearchSheet = ({
             {availStats && availStats.count > 0 && availStats.earliest && (
               <div className="mb-2 flex items-center justify-end rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-1.5 text-[12px] text-emerald-800">
                 <span className="tabular-nums">
-                  最快 {format(new Date(availStats.earliest + "T00:00:00"), "M月d日")} 可訂
+                  {t("booking.villa.searchSheet.earliest", {
+                    date: format(new Date(availStats.earliest + "T00:00:00"), dateFmt, { locale: dateLocale }),
+                  })}
                 </span>
               </div>
             )}
             {availStats && availStats.count === 0 && (
               <div className="mb-2 rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[12px] text-amber-900">
-                目前 12 個月內無可訂日期，請洽小幫手詢問候補。
+                {t("booking.villa.searchSheet.noneAvailable")}
               </div>
             )}
 
@@ -381,10 +389,13 @@ const EditSearchSheet = ({
                       onClick={applySuggestion}
                       className="mt-1 inline-flex items-center rounded-md bg-amber-600 text-white px-2 py-1 text-[12px] font-medium hover:bg-amber-700 transition"
                     >
-                      改選 {format(rangeIssue.suggestion.from, "M月d日")} – {format(rangeIssue.suggestion.to, "M月d日")}
+                      {t("booking.villa.searchSheet.suggest", {
+                        from: format(rangeIssue.suggestion.from, dateFmt, { locale: dateLocale }),
+                        to: format(rangeIssue.suggestion.to, dateFmt, { locale: dateLocale }),
+                      })}
                     </button>
                   ) : (
-                    <div className="mt-0.5 text-muted-foreground">請於下方日曆重新選擇。</div>
+                    <div className="mt-0.5 text-muted-foreground">{t("booking.villa.searchSheet.reselectBelow")}</div>
                   )}
                 </div>
               </div>
@@ -416,7 +427,7 @@ const EditSearchSheet = ({
                   }
                 }}
                 numberOfMonths={isDesktop ? 2 : 1}
-                locale={zhTW}
+                locale={dateLocale}
                 weekStartsOn={0}
 
                 disabled={(d) => {
@@ -477,7 +488,7 @@ const EditSearchSheet = ({
           <div className="mt-4 rounded-xl bg-muted/30 px-3 divide-y divide-border/60">
             <Counter
               icon={User}
-              label="成人"
+              label={t("booking.villa.searchSheet.adults")}
               value={a}
               onChange={setA}
               min={1}
@@ -492,10 +503,10 @@ const EditSearchSheet = ({
               >
                 <div className="flex items-center gap-2.5">
                   <Baby className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-[15px] text-foreground">兒童</span>
+                  <span className="text-[15px] text-foreground">{t("booking.villa.searchSheet.children")}</span>
                   {(i + tod + c) > 0 && (
                     <span className="text-[13px] text-muted-foreground tabular-nums">
-                      {i + tod + c} 位
+                      {t("booking.villa.searchSheet.childrenCount", { count: i + tod + c })}
                     </span>
                   )}
                 </div>
@@ -510,7 +521,7 @@ const EditSearchSheet = ({
                 <div className="pb-1 pl-6 divide-y divide-border/40">
                   <Counter
                     icon={Baby}
-                    label="嬰兒（0–2 歲）"
+                    label={t("booking.villa.searchSheet.infantLabel")}
                     value={i}
                     onChange={setI}
                     min={0}
@@ -518,7 +529,7 @@ const EditSearchSheet = ({
                   />
                   <Counter
                     icon={Baby}
-                    label="幼兒（3–6 歲）"
+                    label={t("booking.villa.searchSheet.toddlerLabel")}
                     value={tod}
                     onChange={setTod}
                     min={0}
@@ -526,7 +537,7 @@ const EditSearchSheet = ({
                   />
                   <Counter
                     icon={Baby}
-                    label="兒童（7–12 歲）"
+                    label={t("booking.villa.searchSheet.childLabel")}
                     value={c}
                     onChange={setC}
                     min={0}
@@ -551,7 +562,7 @@ const EditSearchSheet = ({
             className="w-full h-12 text-[15px] font-bold text-white rounded-lg shadow-md"
             style={{ background: "hsl(25, 76%, 50%)" }}
           >
-            套用
+            {t("booking.villa.searchSheet.apply")}
           </Button>
         </SheetFooter>
       </SheetContent>
