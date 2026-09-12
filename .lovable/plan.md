@@ -1,49 +1,72 @@
-# 第三批雙語：會員中心兩頁＋加入行事曆按鈕（設計稿，未施工）
+# 第四批設計稿：BookingVilla 動態內容雙語 ＋ 冷啟動處理（僅設計，未施工）
 
-## 範圍
+## 先回答：底部導覽的技術風險問題
 
-只做三個檔案的**畫面文字**雙語：
+`useBookingLocale` 在**沒有 Provider 的頁面不會 crash**，會安全 fallback 顯示繁中。逐字證據 `src/contexts/BookingLocaleContext.tsx:64-74`：
 
-1. `src/pages/MemberOrders.tsx`（訂單查詢清單，約 101 處中文）
-2. `src/pages/MemberOrderDetail.tsx`（訂單明細＋自助取消／改期，約 263 處中文）
-3. `src/components/booking/AddToCalendarButton.tsx`（上一批發現殘留的「加入行事曆」按鈕）
+```ts
+/** 無 Provider 時安全回退為預設中文，不 throw */
+export const useBookingLocale = (): BookingLocaleValue => {
+  const ctx = useContext(BookingLocaleContext);
+  if (ctx) return ctx;
+  return {
+    lang: DEFAULT_BOOKING_LANG,
+    setLang: () => {},
+    t: (key, vars) => translate(DEFAULT_BOOKING_LANG, key, vars),
+    dateLocale: getBookingDateLocale(DEFAULT_BOOKING_LANG),
+  };
+};
+```
 
-字典沿用 `src/lib/bookingI18n.ts`（只增 key、不改既有 key），動態內容（民宿名／房型名／方案名／政策文字）沿用已驗證的 `useTranslatedFields` + `translate-content`。
+代表：底部導覽（MobileBottomNav／NativeTabBar）可以直接改用 `t()`。在 BookingFlow.tsx 這種尚未包 Provider 的頁面，導覽列一律顯示繁中（等同現況，零行為變化）；在已包 Provider 的頁面才會跟著切英文。副作用是「同頁面語言不一致」不會發生，因為 Provider 有無是以整頁為單位。此項不在本設計稿施工範圍，僅作為後續排程的風險結論。
 
-**不動**：`BookingFlow.tsx`、`CustomerOrders.tsx`、四支通知信件函式、`member-order-manage`、`claim-order`、任何 RPC／SQL／schema／cron。
+## 一、現況盤點（BookingVilla.tsx，1666 行）
 
-## Precheck 基準（施工前）
+**舊 i18n 殘留品質**：字典 `bookingI18n.ts` 已有 176 條 `booking.villa.*` key，品質可用、命名一致（`booking.villa.tabs.*`、`booking.villa.header.*`、`booking.villa.overview.*`），但 BookingVilla.tsx 本體只呼叫了 17 次 `t()`。也就是**字典遠比使用面完整，既有 key 全部沿用、不重做、不改名**，本批只補「有畫面但還沒接 key」的部分。
 
-| 檔案 | 行數 | md5 |
-| --- | --- | --- |
-| `src/pages/MemberOrders.tsx` | 679 | `1e8490e942b8d17f8caabf7cbdab73ef` |
-| `src/pages/MemberOrderDetail.tsx` | 1499 | `97e849c37eedce58619795a388a8f41e` |
-| `src/components/booking/AddToCalendarButton.tsx` | 69 | `93f7a4bb63105f1c7d4f0f0c647cbd5a` |
-| `src/lib/bookingI18n.ts`（起點） | 529 | `41238ab41bfd6f661129cdc230e7bf6c` |
-| `src/lib/stayCalendar.ts`（不動，僅列基準） | 195 | `396aabf65f23d66e53c544db7fac00f6` |
+**尚未接上的固定文字（引號內含中文的字串數）**：
+- BookingVilla.tsx：58（含約 20 條是 log／event 字串與圖示比對關鍵字，不屬 UI，不動）
+- CapacityPriceLadder.tsx：37、EditSearchSheet.tsx：16、VillaLocationCompact.tsx：7、VillaAvailabilityCalendar.tsx：4、FloatingAIChat.tsx：5
 
-## 白話：改前 vs 改後
+**尚未接翻譯的動態內容（後台維護的中文）**：
+| 來源 | 欄位 |
+|---|---|
+| accommodation_info | name、description、address、region_1／2、check_in_notice、og/seo 文案 |
+| accommodation_packages | name、方案說明、includes、room_allocation 房型名 |
+| room_types | name |
+| facilities | facility_name |
+| FaqSection | 問題／答案 |
+| BookingInfoSection | bookingSettings 政策條文、customBookingSections |
+| VillaLocationCompact | locationInfo 交通說明 |
+| ReviewsSection / 標頭 | 評論摘要、host response、feature tags |
+| SimilarStaysCarousel | 鄰近民宿名稱／地區 |
 
-- 改前：這兩頁所有文字寫死中文，切成英文後整頁仍是中文。
-- 改後：整頁包進語言 Provider、右上角有中英切換鈕；固定文字（頁籤、狀態標籤、按鈕、欄位名、對話框、提示、驗證訊息、日期格式）走字典；民宿名／房型名／方案名等後台維護內容走自動翻譯，翻譯回來前先顯示原文不閃爍；中文模式完全不呼叫翻譯服務。
-- 語言選擇存在瀏覽器本機（同前兩批的 `booking_lang`），不進網址、不影響任何連結參數。
+## 二、動態內容怎麼接
 
-## 如何確保「取消／改期」邏輯一行都不動
+沿用第二批 `BookingSearchResults.tsx` 已驗證的模式：**父層集中翻譯、子元件維持 dumb component**。
 
-自助取消／改期的實際行為全部集中在 `MemberOrderDetail.tsx` 這四個呼叫點：第 545、590、617 行的 `member-order-manage`，以及第 694 行的 `send-order-confirmation`。施工紀律：
+1. 在 BookingVilla 內層元件建立單一 `dynamicFields` 陣列（table／column／id／text），一次送出，避免多次呼叫 `translate-content`。
+2. 以 `tf()` 產生 `displayInfo`／`displayPackages`／`displayFacilities` 等衍生物件，只覆寫顯示欄位。
+3. 子元件（Facilities／Faq／BookingInfo／Location／SimilarStays／CapacityPriceLadder）改吃已翻譯的 props；若子元件自行抓資料（FaqSection、ReviewsSection 以 accommodationId 內部查詢），則在該元件內就地加一組 `useTranslatedFields`，不上移資料抓取、不改查詢。
+4. 嚴禁事項：不改任何價格、庫存、人數、方案篩選、`packageDateOverrides`、導頁參數與 `/book` query string；`accommodationName` 等傳給訂單／分享／行事曆的值一律保留原文欄位，只換畫面顯示。
 
-1. 這四個 `functions.invoke` 的**函式名稱與 body 內容一字不動**，改動只允許發生在 JSX 顯示文字與 `toast` 訊息字串。
-2. 退款金額、取消費、可否取消／改期的判斷條件、日期計算、狀態判斷式全部禁止觸碰；不得順手重構、不得改變 `if` 條件、不得調整 `useEffect` 依賴。
-3. 後端函式 `member-order-manage`、`claim-order` 與四支信件函式，postcheck 一律出示 diff＝0。
-4. 顯示層若需要英文狀態文字，只在「顯示的那一刻」把既有狀態值映射成字典 key，不改變狀態值本身，也不改變任何送給後端的欄位。
+## 三、冷啟動處理（方案比較，建議 B）
 
-## Postcheck 會逐項附上
+現況：冷快取時約 0.7 秒仍顯示中文，約 1.2 秒才換成英文，造成「中文閃一下」。
 
-1. 三個檔案逐字 diff。
-2. `bookingI18n.ts` 只增不改的 diff（刪除行為 0）。
-3. 新增輕量迴歸測試：證明切換語言後，取消／改期送出的函式名稱與 body 參數逐字相同、呼叫次數不變、中文模式不呼叫翻譯、資料查詢不重跑。
-4. 既有 i18n 測試全綠 verbose 輸出＋型別檢查。
-5. 英文模式人工核對：畫面無殘留中文，**並附該頁對 `translate-content` 的實際 HTTP 狀態**（依新規則）。
-6. `BookingFlow.tsx`、`CustomerOrders.tsx`、四支信件函式、`member-order-manage`、`claim-order`、付款相關四支函式 diff＝0。
+- **A 骨架佔位**：翻譯未回前顯示灰塊。違反本專案「不得用骨架、避免閃爍」的既有規範，排除。
+- **B（建議）英文模式下延後顯示未譯文字**：僅在 `lang === "en"` 且該欄位尚未有譯文時，該段文字先渲染為空（保留容器高度不變的行內佔位，不做動畫），譯文到達即填入。中文模式完全不受影響，零變化。
+- **C 全頁 gate**：整頁等翻譯完成才顯示。首屏延遲最久、傷 SEO 與體感，排除。
 
-施工過程若發現任何「非改不可」但不在上表的檔案（例如共用元件），會**先停下來問您**，不會先改再回報。
+搭配：`translation_cache` 命中時多為同步命中（熱快取），B 的空白窗僅出現在首次冷啟動；對已上線頁面 SEO 不影響（爬蟲取中文預設）。
+
+## 四、檔案範圍
+
+修改：`src/pages/BookingVilla.tsx`、`src/lib/bookingI18n.ts`（只增不改）、`src/hooks/use-translated-fields.tsx`（僅新增「未譯時回傳空字串」的可選模式，預設行為不變）、`src/components/booking-villa/` 內 CapacityPriceLadder／EditSearchSheet／VillaAvailabilityCalendar／VillaLocationCompact／VillaOverviewBar／SimilarStaysCarousel／SectionTabsNav／VillaPhotoCarousel／VillaPhotoLightbox／PackagePhotoCarousel、以及 BookingVilla 專用的 Facilities／Faq／BookingInfo／Reviews 區塊元件（施工前會先列出逐檔清單給您確認，不臨時擴張）。
+
+不動：BookingFlow.tsx、CustomerOrders.tsx、底部導覽、四支通知信件函式、任何 Edge Function、資料庫、schema、cron。
+
+## 五、precheck／postcheck
+
+precheck：上列每一檔的行數與 md5。
+postcheck：逐檔逐字 diff、字典只增不改、新增迴歸測試證明 `/book` 導頁參數與計價輸入不變、既有測試全綠＋typecheck、**EN 模式實際截圖＋程式化擷取的完整中文字串清單＋`translate-content` HTTP 狀態＋冷／熱快取兩種情境**、受保護檔案 diff＝0。完工不自行 Publish。
