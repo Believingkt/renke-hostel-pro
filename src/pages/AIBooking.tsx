@@ -88,6 +88,7 @@ export default function AIBooking() {
     }
   ]);
   const [input, setInput] = useState("");
+  const aiConsent = useAiConsent();
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
