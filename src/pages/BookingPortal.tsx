@@ -962,10 +962,11 @@ const BookingPortalInner = () => {
         <AtmPaymentBanner />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
+            <img src={lokezeLogo} alt={t("booking.portal.header.logoAlt")} className="h-20 sm:h-24 object-contain" />
           </Link>
           <div className="hidden md:flex flex-1" />
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch className="mr-0.5" />
             {isLoggedIn ? (
               <Button
                 variant="ghost"
@@ -974,7 +975,7 @@ const BookingPortalInner = () => {
                 className="gap-1.5"
               >
                 <User className="h-4 w-4" />
-                {memberName || "會員中心"}
+                {memberName || t("booking.portal.header.member")}
               </Button>
             ) : (
               <button
@@ -982,7 +983,7 @@ const BookingPortalInner = () => {
                 className="flex items-center gap-1.5 text-[hsl(25,80%,50%)] font-semibold text-sm hover:opacity-80 transition-opacity"
               >
                 <LogIn className="h-5 w-5" />
-                登入 / 註冊
+                {t("booking.portal.header.login")}
               </button>
             )}
           </div>
