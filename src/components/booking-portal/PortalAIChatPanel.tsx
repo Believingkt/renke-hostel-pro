@@ -54,6 +54,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const aiConsent = useAiConsent();
   const voiceConsent = useVoiceConsent();
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
+  const [voiceConsentIntent, setVoiceConsentIntent] = useState<"record" | "speak">("record");
   const smartDefault = useMemo(() => getSmartDefault(), []);
 
   const [showAvatar, setShowAvatar] = useState(false);
@@ -90,6 +91,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const [autoSpeak, setAutoSpeak] = useState<boolean>(false);
   const toggleAutoSpeak = () => {
     if (!autoSpeak && !voiceConsent.granted) {
+      setVoiceConsentIntent("speak");
       setShowVoiceConsent(true);
       return;
     }
@@ -308,6 +310,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
     } else if (!aiConsent.granted) {
       return;
     } else if (!voiceConsent.granted) {
+      setVoiceConsentIntent("record");
       setShowVoiceConsent(true);
     } else {
       await startRecording();
@@ -346,7 +349,11 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
         onAccept={() => {
           voiceConsent.grant();
           setShowVoiceConsent(false);
-          void startRecording();
+          if (voiceConsentIntent === "record") {
+            void startRecording();
+          } else {
+            setAutoSpeak(true);
+          }
         }}
         onDecline={() => setShowVoiceConsent(false)}
       />

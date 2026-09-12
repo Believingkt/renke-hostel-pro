@@ -93,6 +93,7 @@ export default function AIBooking() {
   const aiConsent = useAiConsent();
   const voiceConsent = useVoiceConsent();
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
+  const [voiceConsentIntent, setVoiceConsentIntent] = useState<"record" | "speak">("record");
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -923,6 +924,7 @@ export default function AIBooking() {
     } else if (!aiConsent.granted) {
       return;
     } else if (!voiceConsent.granted) {
+      setVoiceConsentIntent("record");
       setShowVoiceConsent(true);
     } else {
       void startRecording();
@@ -1130,6 +1132,7 @@ export default function AIBooking() {
 
   const toggleVoice = () => {
     if (!isVoiceEnabled && !voiceConsent.granted) {
+      setVoiceConsentIntent("speak");
       setShowVoiceConsent(true);
       return;
     }
@@ -1167,7 +1170,11 @@ export default function AIBooking() {
         onAccept={() => {
           voiceConsent.grant();
           setShowVoiceConsent(false);
-          void startRecording();
+          if (voiceConsentIntent === "record") {
+            void startRecording();
+          } else {
+            setIsVoiceEnabled(true);
+          }
         }}
         onDecline={() => setShowVoiceConsent(false)}
       />
