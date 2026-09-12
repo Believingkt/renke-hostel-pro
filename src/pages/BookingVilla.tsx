@@ -519,6 +519,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
   // 兒童加價（與搜尋頁邏輯一致：民宿層 child_age_rules + URL 的 children/infants/toddlers）
   const childCtx = useMemo(() => {
     if (!info) return null;
+    const tr = t;
     const rules = resolveChildRules((info as any).child_age_rules, null);
     const sel = {
       infants: Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0),
