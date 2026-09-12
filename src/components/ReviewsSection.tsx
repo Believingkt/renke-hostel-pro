@@ -2,7 +2,11 @@ import { Star, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface ReviewsSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   accommodationId?: string;
   customTitle?: string;
   customSubtitle?: string;
@@ -37,7 +41,8 @@ interface GoogleCache {
 
 const STALE_MS = 24 * 60 * 60 * 1000; // 24h
 
-const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: ReviewsSectionProps) => {
+const ReviewsSection = ({ accommodationId, customTitle, customSubtitle, localize }: ReviewsSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   // 1. 先讀 accommodation_info 的 Google 評論快取
   const { data: googleData } = useQuery({
     queryKey: ['google-reviews', accommodationId],
@@ -175,10 +180,16 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold text-center mb-3 md:mb-3 lg:mb-4">
-            {customTitle || (useGoogle ? 'Google 評論' : '旅客評價')}
+            {customTitle
+              ? dyn("reviews_title", "custom", customTitle)
+              : useGoogle
+                ? ui("booking.section.reviews.title.google", "Google 評論")
+                : ui("booking.section.reviews.title.local", "旅客評價")}
           </h2>
           <p className="text-center text-muted-foreground text-base md:text-base lg:text-lg mb-8 md:mb-12 lg:mb-16 max-w-3xl mx-auto">
-            {customSubtitle || '來自真實旅客的住宿體驗分享'}
+            {customSubtitle
+              ? dyn("reviews_subtitle", "custom", customSubtitle)
+              : ui("booking.section.reviews.subtitle", "來自真實旅客的住宿體驗分享")}
           </p>
 
           {/* Rating Summary */}
@@ -199,7 +210,9 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
               </div>
             </div>
             <p className="text-sm md:text-sm lg:text-base text-muted-foreground">
-              來自 {totalCount} 則{useGoogle ? ' Google ' : ''}評論
+              {useGoogle
+                ? ui("booking.section.reviews.fromCountGoogle", `來自 ${totalCount} 則 Google 評論`, { count: totalCount })
+                : ui("booking.section.reviews.fromCount", `來自 ${totalCount} 則評論`, { count: totalCount })}
             </p>
             {useGoogle && googleCache?.googleMapsUri && (
               <a
@@ -208,7 +221,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 text-sm text-primary hover:underline mt-2"
               >
-                在 Google 地圖查看全部 <ExternalLink className="h-3.5 w-3.5" />
+                {ui("booking.section.reviews.viewOnGoogle", "在 Google 地圖查看全部")} <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
           </div>
@@ -216,8 +229,8 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
           {/* 手機版：水平滑動精簡卡 */}
           <div className="md:hidden -mx-4 px-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-muted-foreground">共 {items.length} 則精選</span>
-              <span className="text-xs text-muted-foreground">← 滑動 →</span>
+              <span className="text-xs text-muted-foreground">{ui("booking.section.reviews.picked", `共 ${items.length} 則精選`, { count: items.length })}</span>
+              <span className="text-xs text-muted-foreground">{ui("booking.section.reviews.swipe", "← 滑動 →")}</span>
             </div>
             <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2" style={{ scrollbarWidth: "none" }}>
               {items.map((review) => (
@@ -261,7 +274,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                     </div>
                   </div>
                   <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line line-clamp-5">
-                    {review.comment}
+                    {dyn("review_comment", review.id, review.comment)}
                   </p>
                 </div>
               ))}
@@ -311,7 +324,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                   </div>
                 </div>
                 <p className="text-sm md:text-sm lg:text-base text-foreground leading-relaxed whitespace-pre-line line-clamp-6">
-                  {review.comment}
+                  {dyn("review_comment", review.id, review.comment)}
                 </p>
               </div>
             ))}
@@ -319,7 +332,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
 
           {useGoogle && (
             <p className="text-center text-xs text-muted-foreground mt-6">
-              評論資料由 Google 提供
+              {ui("booking.section.reviews.poweredBy", "評論資料由 Google 提供")}
             </p>
           )}
         </div>

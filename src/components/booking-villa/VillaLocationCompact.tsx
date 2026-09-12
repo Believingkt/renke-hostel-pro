@@ -4,6 +4,7 @@ import { Copy, Maximize2, Check, Train, MapPin, Car, Bus } from "lucide-react";
 import { toast } from "sonner";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import type { BookingI18nKey } from "@/lib/bookingI18n";
+import { useTranslatedFields } from "@/hooks/use-translated-fields";
 
 interface Attraction {
   name: string;
@@ -37,6 +38,23 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
   const { t } = useBookingLocale();
   const [tab, setTab] = useState<TabKey>("transit");
   const [copied, setCopied] = useState(false);
+
+  // 顯示層翻譯：地址、交通說明、周邊景點（原始地址仍用於地圖與複製）
+  const { tf } = useTranslatedFields([
+    ...(address ? [{ table: "accommodation_info", column: "address", id: "address", text: address }] : []),
+    ...(locationInfo?.public_transport_info
+      ? [{ table: "accommodation_location", column: "public_transport_info", id: "loc", text: locationInfo.public_transport_info }]
+      : []),
+    ...(locationInfo?.driving_info
+      ? [{ table: "accommodation_location", column: "driving_info", id: "loc", text: locationInfo.driving_info }]
+      : []),
+    ...(locationInfo?.nearby_attractions || []).flatMap((a, i) => [
+      { table: "accommodation_location", column: `attraction_name_${i}`, id: "loc", text: a.name },
+      ...(a.description
+        ? [{ table: "accommodation_location", column: `attraction_desc_${i}`, id: "loc", text: a.description }]
+        : []),
+    ]),
+  ]);
 
   const hasAny =
     !!address ||
@@ -100,7 +118,9 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
           onClick={handleCopy}
           className="w-full text-left mb-3 flex items-center justify-between gap-2 text-[13px] text-foreground/85"
         >
-          <span className="line-clamp-2">{address}</span>
+          <span className="line-clamp-2">
+            {tf({ table: "accommodation_info", column: "address", id: "address", text: address })}
+          </span>
           {copied ? (
             <Check className="h-4 w-4 shrink-0 text-emerald-600" />
           ) : (
@@ -143,7 +163,12 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
                 <li key={i} className="py-2 flex items-center gap-3">
                   <Train className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="flex-1 text-[13px] text-foreground/90 line-clamp-1">
-                    {a.name}
+                    {tf({
+                      table: "accommodation_location",
+                      column: `attraction_name_${attractions.indexOf(a)}`,
+                      id: "loc",
+                      text: a.name,
+                    })}
                   </span>
                   <span className="text-[13px] text-foreground/80 tabular-nums shrink-0">
                     {a.distance}
@@ -155,7 +180,14 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
           {locationInfo?.public_transport_info ? (
             <div
               className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: locationInfo.public_transport_info }}
+              dangerouslySetInnerHTML={{
+                __html: tf({
+                  table: "accommodation_location",
+                  column: "public_transport_info",
+                  id: "loc",
+                  text: locationInfo.public_transport_info,
+                }),
+              }}
             />
           ) : transitAttractions.length === 0 ? (
             <p className="text-[12px] text-muted-foreground py-1">{t("booking.villa.location.empty")}</p>
@@ -170,7 +202,14 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
           {locationInfo?.driving_info ? (
             <div
               className="text-[13px] text-foreground/85 leading-relaxed [&_strong]:font-semibold [&_strong]:text-foreground [&_p]:mb-1 [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: locationInfo.driving_info }}
+              dangerouslySetInnerHTML={{
+                __html: tf({
+                  table: "accommodation_location",
+                  column: "driving_info",
+                  id: "loc",
+                  text: locationInfo.driving_info,
+                }),
+              }}
             />
           ) : (
             <p className="text-[12px] text-muted-foreground py-1">{t("booking.villa.location.empty")}</p>
@@ -198,7 +237,12 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
               <div className="p-3">
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="text-[15px] font-semibold text-foreground line-clamp-1">
-                    {a.name}
+                    {tf({
+                      table: "accommodation_location",
+                      column: `attraction_name_${attractions.indexOf(a)}`,
+                      id: "loc",
+                      text: a.name,
+                    })}
                   </span>
                   {a.distance && (
                     <span className="text-[12px] text-foreground/70 tabular-nums shrink-0">
@@ -208,7 +252,12 @@ const VillaLocationCompact = ({ address, locationInfo, rating }: Props) => {
                 </div>
                 {a.description && (
                   <p className="mt-1 text-[13px] text-muted-foreground leading-relaxed">
-                    {a.description}
+                    {tf({
+                      table: "accommodation_location",
+                      column: `attraction_desc_${attractions.indexOf(a)}`,
+                      id: "loc",
+                      text: a.description,
+                    })}
                   </p>
                 )}
               </div>

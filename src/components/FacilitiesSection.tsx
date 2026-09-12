@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Check } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ROOM_FACILITY_CATEGORY_NAMES } from "@/lib/room-facilities-catalog";
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
 
 interface Facility {
   id: string;
@@ -16,6 +17,8 @@ interface FacilitiesSectionProps {
   singleFacilities?: Facility[];
   customTitle?: string;
   customSubtitle?: string;
+  /** 可選：傳入才會翻譯；未傳＝原樣繁中（範圍外頁面行為不變） */
+  localize?: SectionLocalize;
 }
 
 type ScopeKey = "venue" | "whole" | "single";
@@ -57,7 +60,11 @@ const FacilitiesSection = ({
   singleFacilities = [],
   customTitle,
   customSubtitle,
+  localize,
 }: FacilitiesSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
+  const scopeLabel = (sc: ScopeKey) =>
+    ui(`booking.section.facilities.scope.${sc}`, scopeNames[sc]);
   const scopeOptions: ScopeKey[] = [
     ...((facilities?.length || 0) > 0 ? (["venue"] as ScopeKey[]) : []),
     ...(wholeFacilities.length > 0 ? (["whole"] as ScopeKey[]) : []),
@@ -111,10 +118,17 @@ const FacilitiesSection = ({
       <div className="container mx-auto px-4 md:px-6">
         <div className="text-center mb-8 md:mb-12 lg:mb-16">
           <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-3 lg:mb-4">
-            {customTitle || "設施服務"}
+            {customTitle
+              ? dyn("facilities_title", "custom", customTitle)
+              : ui("booking.section.facilities.title", "設施服務")}
           </h2>
           <p className="text-muted-foreground text-base md:text-base lg:text-lg max-w-3xl mx-auto">
-            {customSubtitle || "完善設施與貼心服務，讓您的住宿體驗更加舒適"}
+            {customSubtitle
+              ? dyn("facilities_subtitle", "custom", customSubtitle)
+              : ui(
+                  "booking.section.facilities.subtitle",
+                  "完善設施與貼心服務，讓您的住宿體驗更加舒適",
+                )}
           </p>
         </div>
 
@@ -131,7 +145,7 @@ const FacilitiesSection = ({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {scopeNames[sc]}
+                  {scopeLabel(sc)}
                 </button>
               ))}
             </div>
@@ -159,7 +173,7 @@ const FacilitiesSection = ({
                         isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                       }`}
                     >
-                      {shortCategoryNames[cat] || cat}
+                      {dyn("facility_category_short", cat, shortCategoryNames[cat] || cat)}
                       {isActive && (
                         <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
                       )}
@@ -179,11 +193,13 @@ const FacilitiesSection = ({
                     <Check className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" strokeWidth={2.5} />
                     <div className="flex-1 min-w-0">
                       <span className="text-sm text-foreground leading-tight">
-                        {facility.facility_name}
+                        {dyn("facility_name", facility.id, facility.facility_name)}
                       </span>
                       {facility.pricing_type && facility.pricing_type !== "included" && (
                         <span className="text-xs text-muted-foreground block">
-                          ({facility.pricing_type === "free" ? "免費" : "需付費"})
+                          ({facility.pricing_type === "free"
+                            ? ui("booking.section.facilities.free", "免費")
+                            : ui("booking.section.facilities.paid", "需付費")})
                         </span>
                       )}
                     </div>
@@ -194,10 +210,21 @@ const FacilitiesSection = ({
               {/* Summary */}
               <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
                 <p className="text-xs text-muted-foreground">
-                  共 {currentFacilities.length} 項設施服務
+                  {ui(
+                    "booking.section.facilities.summary",
+                    `共 ${currentFacilities.length} 項設施服務`,
+                    { count: currentFacilities.length },
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {categoryNames[activeCat] || activeCat} · {activeItems.length} 項
+                  {ui(
+                    "booking.section.facilities.catCount",
+                    `${categoryNames[activeCat] || activeCat} · ${activeItems.length} 項`,
+                    {
+                      name: dyn("facility_category", activeCat, categoryNames[activeCat] || activeCat),
+                      count: activeItems.length,
+                    },
+                  )}
                 </p>
               </div>
             </CardContent>
@@ -210,7 +237,7 @@ const FacilitiesSection = ({
             <Card key={category} className="hover:shadow-lg transition-all duration-300 border border-border/50 bg-card">
               <CardContent className="p-5 md:p-6 lg:p-7">
                 <h3 className="text-base md:text-lg lg:text-xl font-semibold mb-3 md:mb-4 lg:mb-4 text-foreground">
-                  {categoryNames[category] || category}
+                  {dyn("facility_category", category, categoryNames[category] || category)}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 md:gap-3">
                   {items.map((facility) => (
@@ -218,11 +245,13 @@ const FacilitiesSection = ({
                       <Check className="h-4 w-4 md:h-4 md:w-4 lg:h-5 lg:w-5 text-primary mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
                         <span className="text-xs md:text-sm lg:text-sm text-foreground">
-                          {facility.facility_name}
+                          {dyn("facility_name", facility.id, facility.facility_name)}
                         </span>
                         {facility.pricing_type && facility.pricing_type !== "included" && (
                           <span className="text-sm text-muted-foreground block">
-                            ({facility.pricing_type === "free" ? "免費提供" : "需額外付費"})
+                            ({facility.pricing_type === "free"
+                              ? ui("booking.section.facilities.freeLong", "免費提供")
+                              : ui("booking.section.facilities.paidLong", "需額外付費")})
                           </span>
                         )}
                       </div>

@@ -16,7 +16,11 @@ export interface FaqItem {
   answer: string;
 }
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface FaqSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   accommodationId?: string;
   customTitle?: string;
   customSubtitle?: string;
@@ -54,6 +58,7 @@ function FaqAnswer({ answer, formatPlainText }: { answer: string; formatPlainTex
 }
 
 const FaqSection = ({
+  localize,
   accommodationId,
   customTitle,
   customSubtitle,
@@ -61,6 +66,7 @@ const FaqSection = ({
   formatPlainText,
   mobileInitialCount,
 }: FaqSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [showAllMobile, setShowAllMobile] = useState(false);
 
@@ -103,9 +109,9 @@ const FaqSection = ({
           <div className="text-center mb-6 md:mb-12 lg:mb-16">
             <div className="flex items-center justify-center gap-2 mb-2 md:mb-3">
               <FileQuestion className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{customTitle || '常見問題'}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold">{customTitle ? dyn("faq_title", "custom", customTitle) : ui("booking.section.faq.title", "常見問題")}</h2>
             </div>
-            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle || '以下是住客最常詢問的問題，希望能幫助您更了解我們'}</p>
+            <p className="text-muted-foreground text-sm md:text-base lg:text-lg max-w-2xl mx-auto">{customSubtitle ? dyn("faq_subtitle", "custom", customSubtitle) : ui("booking.section.faq.subtitle", "以下是住客最常詢問的問題，希望能幫助您更了解我們")}</p>
           </div>
 
           {/* 手機版：精簡扁平 Accordion，單一卡片內以分隔線分項 */}
@@ -117,10 +123,10 @@ const FaqSection = ({
                 className="border-0 px-4"
               >
                 <AccordionTrigger className="text-left text-sm font-medium hover:no-underline py-3.5">
-                  {faq.question}
+                  {dyn("question", faq.id, faq.question)}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm pb-4 leading-relaxed">
-                  <FaqAnswer answer={faq.answer} formatPlainText={formatPlainText} />
+                  <FaqAnswer answer={dyn("answer", faq.id, faq.answer)} formatPlainText={formatPlainText} />
                 </AccordionContent>
               </AccordionItem>
             ))}
@@ -131,7 +137,7 @@ const FaqSection = ({
               onClick={() => setShowAllMobile(true)}
               className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline underline-offset-4 md:hidden"
             >
-              查看全部 {list.length} 個常見問題
+              {ui("booking.section.faq.viewAll", `查看全部 ${list.length} 個常見問題`, { count: list.length })}
             </button>
           )}
 
@@ -144,10 +150,10 @@ const FaqSection = ({
                 className="border border-border/50 rounded-lg px-6 bg-card hover:shadow-md transition-shadow"
               >
                 <AccordionTrigger className="text-left text-sm md:text-base hover:no-underline py-4">
-                  {faq.question}
+                  {dyn("question", faq.id, faq.question)}
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground text-sm md:text-base pb-4">
-                  <FaqAnswer answer={faq.answer} formatPlainText={formatPlainText} />
+                  <FaqAnswer answer={dyn("answer", faq.id, faq.answer)} formatPlainText={formatPlainText} />
                 </AccordionContent>
               </AccordionItem>
             ))}

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields } from "@/hooks/use-translated-fields";
 import { Card } from "@/components/ui/card";
 import { openFrontendBooking } from "@/lib/frontendUrl";
 import {
@@ -43,6 +44,15 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
   const navigate = useNavigate();
   const { t } = useBookingLocale();
   const [items, setItems] = useState<Item[]>([]);
+  // 顯示層翻譯：僅民宿名稱與地區文字，不影響任何查詢、價格或導頁
+  const { tf } = useTranslatedFields(
+    items.flatMap((it) => [
+      { table: "accommodation_info", column: "name", id: it.id, text: it.name },
+      ...(it.region
+        ? [{ table: "accommodation_info", column: "region_1", id: it.id, text: it.region }]
+        : []),
+    ]),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -214,7 +224,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
               </div>
               <div className="p-3">
                 <p className="font-semibold text-[14px] text-foreground line-clamp-2 leading-snug">
-                  {it.name}
+                  {tf({ table: "accommodation_info", column: "name", id: it.id, text: it.name })}
                 </p>
                 {it.rating != null && (
                   <div className="mt-1.5 flex items-center gap-1.5">
@@ -226,13 +236,15 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
                     </span>
                     {it.reviewCount != null && it.reviewCount > 0 && (
                       <span className="text-[11px] text-muted-foreground">
-                        {it.reviewCount} 則評論
+                        {t("booking.villa.similar.reviewCount", { count: it.reviewCount })}
                       </span>
                     )}
                   </div>
                 )}
                 {it.region && (
-                  <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-1">{it.region}</p>
+                  <p className="mt-1.5 text-[11px] text-muted-foreground line-clamp-1">
+                    {tf({ table: "accommodation_info", column: "region_1", id: it.id, text: it.region })}
+                  </p>
                 )}
                 {it.price != null && it.price > 0 && (
                   <p
@@ -240,7 +252,9 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
                     style={{ color: "hsl(25, 76%, 50%)" }}
                   >
                     NT${it.price.toLocaleString()}
-                    <span className="text-[11px] font-normal text-muted-foreground ml-1">起</span>
+                    <span className="text-[11px] font-normal text-muted-foreground ml-1">
+                      {t("booking.villa.similar.from")}
+                    </span>
                   </p>
                 )}
               </div>

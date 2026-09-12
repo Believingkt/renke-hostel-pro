@@ -20,7 +20,11 @@ import {
 
 type CustomSection = BookingNoticeCustomSection;
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface BookingInfoSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   bookingSettings: any;
   checkInNotice: string;
   customSections?: CustomSection[];
@@ -55,6 +59,7 @@ const ICONS: Record<string, LucideIcon> = {
 const iconForKey = (key: string): LucideIcon => ICONS[key] ?? LayoutList;
 
 const BookingInfoSection = ({
+  localize,
   bookingSettings,
   checkInNotice,
   customSections = [],
@@ -64,6 +69,7 @@ const BookingInfoSection = ({
   mobileSingleAccordion,
   sections,
 }: BookingInfoSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
 
@@ -88,10 +94,10 @@ const BookingInfoSection = ({
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8 md:mb-12 lg:mb-16">
             <h2 className="text-3xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-3 lg:mb-4">
-              {customTitle || "訂房須知"}
+              {customTitle ? dyn("policy_title", "custom", customTitle) : ui("booking.section.policy.title", "訂房須知")}
             </h2>
             <p className="text-muted-foreground text-base md:text-base lg:text-lg max-w-2xl mx-auto">
-              {customSubtitle || "為確保愉快的住宿體驗，請詳閱以下相關資訊"}
+              {customSubtitle ? dyn("policy_subtitle", "custom", customSubtitle) : ui("booking.section.policy.subtitle", "為確保愉快的住宿體驗，請詳閱以下相關資訊")}
             </p>
           </div>
 
@@ -118,7 +124,7 @@ const BookingInfoSection = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm text-foreground leading-tight">
-                            {panel.title}
+                            {dyn("panel_title", panel.key, panel.title)}
                           </h3>
                           {panel.subtitle && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -146,7 +152,7 @@ const BookingInfoSection = ({
                       {panel.html && (
                         <div
                           className="prose prose-sm max-w-none text-sm text-muted-foreground"
-                          dangerouslySetInnerHTML={createSanitizedHtml(panel.html)}
+                          dangerouslySetInnerHTML={createSanitizedHtml(dyn("panel_html", panel.key, panel.html))}
                         />
                       )}
                     </AccordionContent>
@@ -172,7 +178,7 @@ const BookingInfoSection = ({
                         <Icon className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-base md:text-base lg:text-lg">{panel.title}</h3>
+                        <h3 className="font-semibold text-base md:text-base lg:text-lg">{dyn("panel_title", panel.key, panel.title)}</h3>
                         {panel.subtitle && (
                           <p className="text-sm text-muted-foreground mt-0.5">{panel.subtitle}</p>
                         )}
@@ -200,7 +206,7 @@ const BookingInfoSection = ({
                         >
                           <div
                             className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={createSanitizedHtml(panel.html)}
+                            dangerouslySetInnerHTML={createSanitizedHtml(dyn("panel_html", panel.key, panel.html))}
                           />
                         </div>
                         {longHtml && (
@@ -208,9 +214,9 @@ const BookingInfoSection = ({
                             variant="outline"
                             size="sm"
                             className="mt-3 w-full text-foreground hover:bg-primary hover:text-primary-foreground border-primary/20"
-                            onClick={() => openDialog(panel.title, panel.html!)}
+                            onClick={() => openDialog(dyn("panel_title", panel.key, panel.title), dyn("panel_html", panel.key, panel.html!))}
                           >
-                            查看完整內容
+                            {ui("booking.section.policy.viewFull", "查看完整內容")}
                           </Button>
                         )}
                       </div>

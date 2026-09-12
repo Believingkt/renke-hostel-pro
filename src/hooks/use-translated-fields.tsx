@@ -31,7 +31,20 @@ export interface UseTranslatedFieldsResult {
   translating: boolean;
 }
 
-export function useTranslatedFields(fields: TranslatableField[]): UseTranslatedFieldsResult {
+export interface UseTranslatedFieldsOptions {
+  /**
+   * 冷啟動處理（可選，預設 false＝行為與過去完全相同）。
+   * 開啟後：僅在英文模式且該欄位尚未取得譯文時，先回傳空字串，
+   * 避免英文頁面先閃一下中文；中文模式完全不受影響。
+   */
+  deferUntilTranslated?: boolean;
+}
+
+export function useTranslatedFields(
+  fields: TranslatableField[],
+  options: UseTranslatedFieldsOptions = {},
+): UseTranslatedFieldsResult {
+  const { deferUntilTranslated = false } = options;
   const { lang } = useBookingLocale();
   const [map, setMap] = useState<Record<string, string>>({});
   const [translating, setTranslating] = useState(false);
@@ -81,7 +94,11 @@ export function useTranslatedFields(fields: TranslatableField[]): UseTranslatedF
 
   const tf = (field: TranslatableField) => {
     if (lang !== "en") return field.text;
-    return map[keyOf(field)] || field.text;
+    const translated = map[keyOf(field)];
+    if (translated) return translated;
+    // 冷啟動：英文模式下尚未取得譯文時先不顯示中文原文（不做骨架、不做動畫）
+    if (deferUntilTranslated && field.text?.trim()) return "";
+    return field.text;
   };
 
   return { tf, translating };

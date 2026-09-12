@@ -275,7 +275,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
               <div>
                 <SheetTitle className="text-base">{t("booking.villa.ai.title")}</SheetTitle>
                 <p className="text-[11px] text-muted-foreground leading-tight">
-                  {accommodationName || "民宿"}{t("booking.villa.ai.subtitle")}
+                  {accommodationName || t("booking.villa.ai.fallbackName")}{t("booking.villa.ai.subtitle")}
                 </p>
               </div>
             </div>
@@ -299,10 +299,10 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                     </p>
                     <div className="flex flex-wrap gap-2 justify-center pt-2">
                       {[
-                        "有哪些房型？",
-                        "可以帶寵物嗎？",
-                        "有附停車場嗎？",
-                        "幾點可以入住？",
+                        t("booking.villa.ai.suggest.rooms"),
+                        t("booking.villa.ai.suggest.pets"),
+                        t("booking.villa.ai.suggest.parking"),
+                        t("booking.villa.ai.suggest.checkin"),
                       ].map((q) => (
                         <button
                           key={q}

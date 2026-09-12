@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields } from "@/hooks/use-translated-fields";
 import { format } from "date-fns";
 import {
   TW_DEFAULT_CANCEL_RULES,
@@ -175,10 +176,21 @@ const CapacityPriceLadder = ({
 }: Props) => {
   const { t } = useBookingLocale();
   const TERM = isSensan ? "包區" : "包棟";
+  // 顯示用詞（僅畫面文字，不影響任何計價或方案判斷）
+  const TERM_LABEL = isSensan
+    ? t("booking.villa.ladder.term.sensan")
+    : t("booking.villa.ladder.term.villa");
   const TIER_HINT: Record<PricingTier, string> = {
-    weekday: isSensan ? "含少人包區早鳥優惠" : "標準銷售方案",
-    friday_sunday: `標準${TERM}方案`,
-    weekend: `假日${TERM}方案`,
+    weekday: isSensan
+      ? t("booking.villa.ladder.tierHint.weekday.sensan")
+      : t("booking.villa.ladder.tierHint.weekday.default"),
+    friday_sunday: t("booking.villa.ladder.tierHint.fridaySunday", { term: TERM_LABEL }),
+    weekend: t("booking.villa.ladder.tierHint.weekend", { term: TERM_LABEL }),
+  };
+  const TIER_SHORT: Record<PricingTier, string> = {
+    weekday: t("booking.villa.ladder.tier.weekday.short"),
+    friday_sunday: t("booking.villa.ladder.tier.fridaySunday.short"),
+    weekend: t("booking.villa.ladder.tier.weekend.short"),
   };
   const PRICING_TABLE = pricingTable || DEFAULT_PRICING_TABLE;
   const PLAN_INCLUDES = useMemo(() => {
@@ -188,6 +200,37 @@ const CapacityPriceLadder = ({
       label,
     }));
   }, [planIncludes]);
+
+  // ── 動態內容顯示翻譯（僅顯示層；不影響計價、方案篩選或 onSelect 傳出的值） ──
+  const dynamicPlanFields = useMemo(() => {
+    const out: { table: string; column: string; id: string; text: string }[] = [];
+    const push = (column: string, id: string, text?: string | null) => {
+      if (text && text.trim()) out.push({ table: "accommodation_packages", column, id, text });
+    };
+    for (const tiers of Object.values(PRICING_TABLE)) {
+      for (const tier of tiers as TierPrice[]) {
+        const id = tier.packageId || tier.planName || String(tier.guestCount);
+        push("name", id, tier.planName);
+        push("child_age_note", id, tier.childAgeNote);
+        push("room_allocation", id, tier.roomAllocation);
+        (tier.includes || []).forEach((inc, i) => {
+          push(`includes_${i}`, id, inc?.text);
+          push(`includes_note_${i}`, id, inc?.price_note);
+        });
+      }
+    }
+    (planIncludes || []).forEach((label, i) =>
+      push(`plan_includes_${i}`, "plan_includes", label),
+    );
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [PRICING_TABLE, planIncludes]);
+  const { tf } = useTranslatedFields(dynamicPlanFields);
+  /** 方案名稱顯示用翻譯（原始 planName 仍原樣傳給訂單流程） */
+  const tfPlan = (text: string, id?: string | null) =>
+    tf({ table: "accommodation_packages", column: "name", id: id || text, text });
+  const tfPkg = (column: string, id: string, text: string) =>
+    tf({ table: "accommodation_packages", column, id, text });
 
   const [activeTier, setActiveTier] = useState<PricingTier>(() =>
     detectTierByDate(checkIn, isHolidayDate?.(checkIn))
@@ -384,7 +427,15 @@ const CapacityPriceLadder = ({
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
                       <span className="mr-1" aria-hidden>👆</span>
-                      房間搭配：{activeTier_.roomAllocation || roomBreakdown}
+                      {t("booking.villa.ladder.roomPairing", {
+                        value: activeTier_.roomAllocation
+                          ? tfPkg(
+                              "room_allocation",
+                              activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                              activeTier_.roomAllocation,
+                            )
+                          : roomBreakdown,
+                      })}
                     </p>
                   </div>
                 )}
@@ -423,7 +474,7 @@ const CapacityPriceLadder = ({
                           </p>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
                             <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
-                            僅接待一組貴賓
+                            {t("booking.villa.ladder.exclusiveBadge")}
                           </span>
                         </div>
                         <ul className="space-y-2">
@@ -443,9 +494,19 @@ const CapacityPriceLadder = ({
                               <li key={i} className="flex items-start gap-2">
                                 <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: iconColor }} />
                                 <span className={`text-[13px] leading-snug ${textCls}`}>
-                                  {inc.text}
+                                  {tfPkg(
+                                    `includes_${i}`,
+                                    activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                                    inc.text!,
+                                  )}
                                   {inc.price_note && (
-                                    <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                                    <span className="text-muted-foreground ml-1">（
+                                      {tfPkg(
+                                        `includes_note_${i}`,
+                                        activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                                        inc.price_note,
+                                      )}
+                                    ）</span>
                                   )}
                                 </span>
                               </li>
@@ -465,9 +526,17 @@ const CapacityPriceLadder = ({
                   {(activeTier_.childCountMax || activeTier_.childAgeNote) && (
                     <p className="text-[12px] text-gray-600 flex items-center gap-1.5">
                       <Baby className="h-3.5 w-3.5" style={{ color: "#A98467" }} />
-                      {activeTier_.childCountMax ? `可加 ${activeTier_.childCountMax} 位兒童` : ""}
+                      {activeTier_.childCountMax
+                        ? t("booking.villa.ladder.childAdd", { count: activeTier_.childCountMax })
+                        : ""}
                       {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
-                      {activeTier_.childAgeNote || ""}
+                      {activeTier_.childAgeNote
+                        ? tfPkg(
+                            "child_age_note",
+                            activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                            activeTier_.childAgeNote,
+                          )
+                        : ""}
                     </p>
                   )}
                 </div>
@@ -477,7 +546,12 @@ const CapacityPriceLadder = ({
                 <div className="pt-1">
                   <div className="flex items-center gap-1.5">
                     <h3 className="font-semibold text-[15px] leading-tight text-foreground tracking-tight">
-                      {activeTier_.planName || `${opt.guestCount} 人${TERM}`}
+                      {activeTier_.planName
+                        ? tfPlan(activeTier_.planName, activeTier_.packageId)
+                        : t("booking.villa.ladder.planFallbackShort", {
+                            count: opt.guestCount,
+                            term: TERM_LABEL,
+                          })}
                     </h3>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
@@ -584,12 +658,12 @@ const CapacityPriceLadder = ({
                           </span>
                         </div>
                         <p className="mt-2 text-[11px] text-muted-foreground">
-                          加價已含入上方總價。實際依結帳頁明細為準。
+                          {t("booking.villa.ladder.childFee.note")}
                         </p>
                       </PopoverContent>
                     </Popover>
                   )}
-                  <p className="text-[11px] text-gray-300 mt-1">已含稅與服務費</p>
+                  <p className="text-[11px] text-gray-300 mt-1">{t("booking.villa.ladder.taxIncluded")}</p>
 
                   {/* 跨平/旺/假日 fallback 標註：逐晚明細 + 加總計算 */}
                   {opt.fallbackNotes && opt.fallbackNotes.length > 0 && opt.breakdown && opt.breakdown.length > 0 && (
@@ -602,9 +676,13 @@ const CapacityPriceLadder = ({
                             {opt.fallbackNotes.map((n, idx) => (
                               <div key={`fn-${idx}`}>
                                 <span className="font-semibold">{format(n.date, "M/d")}</span>
-                                （{TIER_LABELS[n.tier].short}）本方案不適用，改以
-                                {n.fallbackPlanName ? `「${n.fallbackPlanName}」` : "當日最低價"}
-                                NT${n.fallbackSale.toLocaleString()} 計算
+                                {t("booking.villa.ladder.fallback.line", {
+                                  tier: TIER_SHORT[n.tier],
+                                  plan: n.fallbackPlanName
+                                    ? `「${tfPlan(n.fallbackPlanName)}」`
+                                    : t("booking.villa.ladder.fallback.lowestOfDay"),
+                                  amount: n.fallbackSale.toLocaleString(),
+                                })}
                               </div>
                             ))}
                           </div>
@@ -630,10 +708,18 @@ const CapacityPriceLadder = ({
                                 {opt.breakdown.map((b, idx) => (
                                   <div key={`bd-${idx}`} className="flex items-baseline justify-between gap-2">
                                     <span>
-                                      {format(b.date, "M/d")}（{TIER_LABELS[b.tier].short}）
+                                      {format(b.date, "M/d")}（{TIER_SHORT[b.tier]}）
                                       {b.isFallback
-                                        ? `替代：${b.planName ?? "當日最低價"}`
-                                        : `本方案${b.planName ? `：${b.planName}` : ""}`}
+                                        ? t("booking.villa.ladder.fallback.alt", {
+                                            plan: b.planName
+                                              ? tfPlan(b.planName)
+                                              : t("booking.villa.ladder.fallback.lowestOfDay"),
+                                          })
+                                        : b.planName
+                                          ? t("booking.villa.ladder.fallback.selfNamed", {
+                                              plan: tfPlan(b.planName),
+                                            })
+                                          : t("booking.villa.ladder.fallback.self")}
                                     </span>
                                     <span>NT${b.sale.toLocaleString()}</span>
                                   </div>
@@ -666,7 +752,7 @@ const CapacityPriceLadder = ({
                       <ul className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1" style={{ color: "#2F5D3A" }}>
                         <li className="flex items-center gap-1 text-[12.5px] font-medium">
                           <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
-                          <span>即時確認</span>
+                          <span>{t("booking.villa.ladder.instantConfirm")}</span>
                         </li>
                         <li>
                           <Popover>
@@ -679,8 +765,10 @@ const CapacityPriceLadder = ({
                                 <Check className="h-3.5 w-3.5" strokeWidth={2.75} />
                                 <span>
                                   {deadline && isFreeNow
-                                    ? `免費取消 ${formatFreeCancelDeadline(deadline)} 之前`
-                                    : "依政策免費取消"}
+                                    ? t("booking.villa.ladder.freeCancelBefore", {
+                                        deadline: formatFreeCancelDeadline(deadline),
+                                      })
+                                    : t("booking.villa.ladder.freeCancelPolicy")}
                                 </span>
                                 <Info className="h-3 w-3 opacity-70" />
                               </button>
@@ -690,10 +778,12 @@ const CapacityPriceLadder = ({
                               align="start"
                               className="w-[280px] p-3 text-[12px] leading-relaxed"
                             >
-                              <p className="font-bold text-foreground mb-1.5">取消變更規則</p>
+                              <p className="font-bold text-foreground mb-1.5">{t("booking.villa.ladder.cancelRules.title")}</p>
                               {deadline && (
                                 <p className="text-[12px] mb-2" style={{ color: "#2F5D3A" }}>
-                                  ✓ {formatFreeCancelDeadline(deadline)} 之前取消，無須支付任何費用
+                                  {t("booking.villa.ladder.cancelRules.freeLine", {
+                                    deadline: formatFreeCancelDeadline(deadline),
+                                  })}
                                 </p>
                               )}
                               <ul className="space-y-1 text-muted-foreground">
@@ -705,7 +795,7 @@ const CapacityPriceLadder = ({
                                 ))}
                               </ul>
                               <p className="mt-2 pt-2 border-t border-border/50 text-[11px] text-muted-foreground">
-                                依交通部觀光署旅宿業定型化契約規定計算。
+                                {t("booking.villa.ladder.cancelRules.footnote")}
                               </p>
                             </PopoverContent>
                           </Popover>
@@ -747,7 +837,7 @@ const CapacityPriceLadder = ({
                   {showDisabledFewPeopleNote && (
                     <div className="mt-2 flex items-center gap-1.5 px-1 text-[10.5px] text-muted-foreground">
                       <Lock className="h-3 w-3" />
-                      少人包區（6 / 8 人）僅平日開放，改週一~四入住即可使用。
+                      {t("booking.villa.ladder.fewPeopleLocked")}
                     </div>
                   )}
                 </div>
@@ -765,7 +855,7 @@ const CapacityPriceLadder = ({
       <div className="flex items-start gap-1.5 px-1 pt-1 pb-2">
         <Info className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
         <p className="text-[10px] text-muted-foreground leading-relaxed">
-          價格依入住日期所屬時段自動套用。週六與國定假日為假日價，週五、週日為旺日價，週一至週四為平日價。
+          {t("booking.villa.ladder.footnote")}
         </p>
       </div>
     </div>
