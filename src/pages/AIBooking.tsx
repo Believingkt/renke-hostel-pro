@@ -23,6 +23,9 @@ import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
 import { RecommendedItemCards, type RecommendedItem } from "@/components/ai/RecommendedItemCards";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 
 // 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
@@ -240,6 +243,8 @@ export default function AIBooking() {
 
   const sendMessageWithContent = async (content: string) => {
     if (isLoading || !accommodationId) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
 
     const newMessages: Message[] = [
       ...messages,
