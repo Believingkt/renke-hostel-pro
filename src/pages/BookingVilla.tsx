@@ -15,6 +15,8 @@ import {
   useBookingLocale,
 } from "@/contexts/BookingLocaleContext";
 import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
+import { useLazySectionLocalize } from "@/components/section-localize";
 import { buildAccommodationCanonical } from "@/lib/canonicalUrl";
 
 import { StructuredData } from "@/components/StructuredData";
@@ -130,7 +132,7 @@ interface BookingVillaProps {
 }
 
 const BookingVillaContent = (props: BookingVillaProps) => {
-  const { t } = useBookingLocale();
+  const { t, dateLocale } = useBookingLocale();
   // 黏頂列高度動態量測（避免硬寫 px 造成重疊）
   const [isDesktopSearch, setIsDesktopSearch] = useState(
     typeof window !== "undefined" ? window.matchMedia("(min-width: 640px)").matches : false,
@@ -447,8 +449,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         console.error("[BookingVilla] 方案庫存查詢失敗", err);
         // 降級：查詢失敗時不過濾方案（維持依日期規則顯示），並提示使用者
         setRoomAvailByDate({});
-        toast.error("即時空房資料載入失敗", {
-          description: "目前顯示的方案可能未反映最新空房，送出訂單前會再次確認。",
+        toast.error(t("booking.villa.toast.inventoryFailed"), {
+          description: t("booking.villa.toast.inventoryFailedDesc"),
         });
       }
     })();
@@ -531,9 +533,19 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         const count = key === "infant" ? sel.infants : key === "toddler" ? sel.toddlers : sel.children;
         if (count <= 0) return null;
         const t = rules.tiers[key];
-        const fee = t.fee_per_night > 0 ? `+NT$${t.fee_per_night.toLocaleString()}/位/晚` : "免費";
-        const cap = t.max_count !== null ? `（上限 ${t.max_count} 位）` : "";
-        return { key, label: t.label, ageRange: `${t.min_age}-${t.max_age} 歲`, feeText: fee, capText: cap, count };
+        const fee =
+          t.fee_per_night > 0
+            ? tr("booking.villa.child.fee", { amount: t.fee_per_night.toLocaleString() })
+            : tr("booking.villa.child.free");
+        const cap = t.max_count !== null ? tr("booking.villa.child.cap", { max: t.max_count }) : "";
+        return {
+          key,
+          label: t.label,
+          ageRange: tr("booking.villa.child.ageRange", { min: t.min_age, max: t.max_age }),
+          feeText: fee,
+          capText: cap,
+          count,
+        };
       })
       .filter(Boolean) as Array<{ key: string; label: string; ageRange: string; feeText: string; capText: string; count: number }>;
     return { evalResult, ruleLines };
@@ -595,7 +607,9 @@ const BookingVillaContent = (props: BookingVillaProps) => {
   const customIncludesTitle = useMemo(() => {
     if (visiblePackages.length === 0) return undefined;
     const count = customIncludes?.length || 0;
-    return count > 0 ? `方案內容 · 含 ${count} 項` : "方案內容";
+    return count > 0
+      ? t("booking.villa.includes.titleCount", { count })
+      : t("booking.villa.includes.title");
   }, [visiblePackages, customIncludes]);
 
   // 頂部圖片輪播：使用「精選照片（gallery）」，若無則 fallback 使用「輪播圖（hero）」
@@ -656,6 +670,33 @@ const BookingVillaContent = (props: BookingVillaProps) => {
 
   if (isLoading) return null;
 
+  // ── 第四批：頁面動態內容翻譯（僅影響顯示，不影響任何業務資料） ──
+  const dynamicFields = useMemo(() => {
+    const fs: TranslatableField[] = [];
+    const id = info?.id || "-";
+    const push = (column: string, text?: string | null) => {
+      if (text && String(text).trim())
+        fs.push({ table: "accommodation_info", column, id, text: String(text) });
+    };
+    push("name", info?.name);
+    push("description", info?.description as any);
+    push("address", (info as any)?.address);
+    push("rating_label", extras?.ratingLabel);
+    push("host_response", extras?.hostResponseText);
+    push("top_review", extras?.googleTopReview?.text);
+    (extras?.featureTagsOverride || []).forEach((tag, i) => push(`feature_tag_${i}`, tag.label));
+    return fs;
+  }, [info, extras]);
+  const { tf: tfInfo } = useTranslatedFields(dynamicFields);
+  const dyn = (column: string, text?: string | null) =>
+    text
+      ? tfInfo({ table: "accommodation_info", column, id: info?.id || "-", text: String(text) })
+      : text || "";
+  const facilitiesLocalize = useLazySectionLocalize("facilities");
+  const faqLocalize = useLazySectionLocalize("accommodation_faqs");
+  const reviewsLocalize = useLazySectionLocalize("accommodation_reviews");
+  const bookingInfoLocalize = useLazySectionLocalize("booking_settings");
+
   if (dataError || !info) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -684,8 +725,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
       return;
     }
     if (childBlocked) {
-      toast.error(childBlockReason || "兒童人數不符合此民宿規範", {
-        description: "請點選上方搜尋條調整人數後再試。",
+      toast.error(childBlockReason || t("booking.villa.toast.childBlocked"), {
+        description: t("booking.villa.toast.childBlockedDesc"),
       });
       return;
     }
@@ -926,29 +967,32 @@ const BookingVillaContent = (props: BookingVillaProps) => {
             <span className="flex items-center gap-2 text-sm text-foreground font-medium">
               <Calendar className="w-4 h-4 text-muted-foreground" />
               {checkIn && checkOut ? (
-                <>{format(checkIn, "M月d日")} – {format(checkOut, "M月d日")}</>
+                <>{format(checkIn, t("booking.member.fmt.monthDayCompact"), { locale: dateLocale })} – {format(checkOut, t("booking.member.fmt.monthDayCompact"), { locale: dateLocale })}</>
               ) : (
-                <span className="text-muted-foreground">選擇日期</span>
+                <span className="text-muted-foreground">{t("booking.villa.search.selectDates")}</span>
               )}
             </span>
             <span className="h-5 w-px bg-border" />
             <span className="flex items-center gap-4 text-sm text-foreground font-medium">
               <span className="flex items-center gap-1.5">
                 <User className="w-4 h-4 text-muted-foreground" />
-                {Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1)} 大人
+                {t("booking.villa.search.adults", { count: Math.max(1, parseInt(searchParams.get("adults") || "0", 10) || 1) })}
               </span>
               <span className="flex items-center gap-1.5 text-muted-foreground">
                 <Baby className="w-4 h-4" />
-                {Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0) +
-                  Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
-                  Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0)} 兒童
+                {t("booking.villa.search.children", {
+                  count:
+                    Math.max(0, parseInt(searchParams.get("infants") || "0", 10) || 0) +
+                    Math.max(0, parseInt(searchParams.get("toddlers") || "0", 10) || 0) +
+                    Math.max(0, parseInt(searchParams.get("children") || "0", 10) || 0),
+                })}
               </span>
             </span>
             <span
               className="ml-auto h-9 px-5 text-sm font-bold text-white rounded-full inline-flex items-center"
               style={{ background: "hsl(25, 76%, 50%)" }}
             >
-              修改搜尋
+              {t("booking.villa.search.editSearch")}
             </span>
           </button>
         </div>
@@ -975,23 +1019,24 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                   <>
                     <span className="block text-[15px] max-[360px]:text-[14px] font-bold text-foreground truncate leading-tight">
                       {format(checkIn, "M/d")} – {format(checkOut, "M/d")}
-                      <span className="text-muted-foreground font-medium">・{nights} 晚</span>
+                      <span className="text-muted-foreground font-medium">・{t("booking.villa.search.nights", { count: nights })}</span>
                     </span>
                     <span className="block text-[13px] max-[360px]:text-[12px] text-muted-foreground truncate mt-0.5">
-                      {adultsN} 位大人{kidsN > 0 && <>・{kidsN} 位兒童</>}
+                      {t("booking.villa.search.adultsCount", { count: adultsN })}
+                      {kidsN > 0 && <>・{t("booking.villa.search.childrenCount", { count: kidsN })}</>}
                     </span>
                   </>
                 );
               })() : (
                 <>
-                  <span className="block text-[15px] max-[360px]:text-[14px] font-bold text-foreground leading-tight truncate">選擇日期與人數</span>
-                  <span className="block text-[13px] max-[360px]:text-[12px] text-muted-foreground mt-0.5 truncate">查看即時空房與價格</span>
+                  <span className="block text-[15px] max-[360px]:text-[14px] font-bold text-foreground leading-tight truncate">{t("booking.villa.search.emptyTitle")}</span>
+                  <span className="block text-[13px] max-[360px]:text-[12px] text-muted-foreground mt-0.5 truncate">{t("booking.villa.search.emptySub")}</span>
                 </>
               )}
             </span>
 
             <span className="flex items-center gap-1 shrink-0 h-9 max-[360px]:h-8 px-3.5 max-[360px]:px-2.5 rounded-full bg-primary text-primary-foreground text-[13px] max-[360px]:text-[12px] font-bold shadow-sm whitespace-nowrap">
-              修改
+              {t("booking.villa.search.edit")}
               <ChevronDown className="w-3.5 h-3.5" />
             </span>
           </button>
@@ -1022,7 +1067,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         {/* ── 2. Title + Region + Rating（Trip.com 風格） ── */}
         <section className="px-4 pt-4 pb-3 bg-card border-b border-border/40">
           <h1 className="text-[22px] font-bold text-foreground leading-tight flex items-center gap-2 flex-wrap">
-            <span>{info.name}</span>
+            <span>{dyn("name", info.name)}</span>
             {extras?.googleRating != null && (
               <span className="inline-flex items-center gap-0.5 text-[hsl(35,95%,55%)] text-base leading-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
@@ -1034,7 +1079,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
 
           {info.address && (
             <p className="text-[13px] text-muted-foreground mt-1.5 leading-snug">
-              {info.address}
+              {dyn("address", info.address)}
               <a
                 href="#location"
                 onClick={(e) => {
@@ -1043,7 +1088,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                 }}
                 className="ml-2 underline text-foreground/90 font-medium whitespace-nowrap"
               >
-                在地圖上檢視
+                {t("booking.villa.viewOnMap")}
               </a>
             </p>
           )}
@@ -1057,7 +1102,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                 {extras.googleRating <= 5 ? `${extras.googleRating.toFixed(1)}/5` : `${extras.googleRating.toFixed(1)}/10`}
               </span>
               <span className="text-[14px] font-semibold" style={{ color: "hsl(25, 76%, 50%)" }}>
-                {extras.ratingLabel}
+                {dyn("rating_label", extras.ratingLabel)}
               </span>
               {extras.googleTotal != null && extras.googleTotal > 0 && (
                 <button
@@ -1065,7 +1110,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                   className="text-[13px] underline"
                   style={{ color: "hsl(25, 76%, 50%)" }}
                 >
-                  {extras.googleTotal} 則評論
+                  {t("booking.villa.reviewCount", { count: extras.googleTotal })}
                 </button>
               )}
             </div>
@@ -1083,25 +1128,25 @@ const BookingVillaContent = (props: BookingVillaProps) => {
           const override = extras?.featureTagsOverride;
           let picked: { icon: typeof Wifi; label: string }[] = [];
           if (override && override.length > 0) {
-            picked = override.map((t) => ({
-              icon: getVillaFeatureIcon(t.icon) as typeof Wifi,
-              label: t.label,
+            picked = override.map((tag, i) => ({
+              icon: getVillaFeatureIcon(tag.icon) as typeof Wifi,
+              label: dyn(`feature_tag_${i}`, tag.label),
             }));
           } else {
             const all = secondaryData?.facilities || [];
             if (all.length === 0) return null;
             const matchers: { kw: string[]; icon: typeof Wifi; label: string }[] = [
-              { kw: ["wi-fi", "wifi", "無線"], icon: Wifi, label: "免費 Wi-Fi" },
-              { kw: ["停車", "parking"], icon: Car, label: "免費停車" },
-              { kw: ["早餐", "breakfast", "餐"], icon: Utensils, label: "餐飲服務" },
-              { kw: ["山景", "景觀", "view"], icon: Mountain, label: "景觀房" },
-              { kw: ["陽台", "balcony", "庭院"], icon: Trees, label: "陽台/庭院" },
-              { kw: ["親子", "嬰", "兒童", "family", "baby"], icon: Baby, label: "親子友善" },
-              { kw: ["寵物", "pet", "dog"], icon: Dog, label: "寵物友善" },
-              { kw: ["泳池", "水", "spa", "pool"], icon: Waves, label: "戲水設施" },
-              { kw: ["bbq", "烤", "火"], icon: Flame, label: "烤肉/壁爐" },
-              { kw: ["音響", "ktv", "music"], icon: Music, label: "影音設備" },
-              { kw: ["空調", "冷氣", "ac"], icon: Snowflake, label: "空調" },
+              { kw: ["wi-fi", "wifi", "無線"], icon: Wifi, label: t("booking.villa.feature.wifi") },
+              { kw: ["停車", "parking"], icon: Car, label: t("booking.villa.feature.parking") },
+              { kw: ["早餐", "breakfast", "餐"], icon: Utensils, label: t("booking.villa.feature.dining") },
+              { kw: ["山景", "景觀", "view"], icon: Mountain, label: t("booking.villa.feature.view") },
+              { kw: ["陽台", "balcony", "庭院"], icon: Trees, label: t("booking.villa.feature.balcony") },
+              { kw: ["親子", "嬰", "兒童", "family", "baby"], icon: Baby, label: t("booking.villa.feature.family") },
+              { kw: ["寵物", "pet", "dog"], icon: Dog, label: t("booking.villa.feature.pet") },
+              { kw: ["泳池", "水", "spa", "pool"], icon: Waves, label: t("booking.villa.feature.water") },
+              { kw: ["bbq", "烤", "火"], icon: Flame, label: t("booking.villa.feature.bbq") },
+              { kw: ["音響", "ktv", "music"], icon: Music, label: t("booking.villa.feature.media") },
+              { kw: ["空調", "冷氣", "ac"], icon: Snowflake, label: t("booking.villa.feature.ac") },
             ];
             const usedLabels = new Set<string>();
             for (const f of all) {
@@ -1116,8 +1161,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
               }
               if (picked.length >= 6) break;
             }
-            if (picked.length < 6) picked.unshift({ icon: Heart, label: "完善服務" });
-            if (picked.length < 6) picked.push({ icon: ShieldCheck, label: "即時確認" });
+            if (picked.length < 6) picked.unshift({ icon: Heart, label: t("booking.villa.feature.service") });
+            if (picked.length < 6) picked.push({ icon: ShieldCheck, label: t("booking.villa.feature.instant") });
           }
           if (picked.length === 0) return null;
           return (
@@ -1176,10 +1221,15 @@ const BookingVillaContent = (props: BookingVillaProps) => {
             }
           };
           const defaultLabels: Record<string, string> = {
-            phone: "聯絡人", sms: "傳簡訊", line: "LINE 聯繫",
-            whatsapp: "WhatsApp", email: "寄信", url: "前往",
+            phone: t("booking.villa.contact.label.phone"),
+            sms: t("booking.villa.contact.label.sms"),
+            line: t("booking.villa.contact.label.line"),
+            whatsapp: t("booking.villa.contact.label.whatsapp"),
+            email: t("booking.villa.contact.label.email"),
+            url: t("booking.villa.contact.label.url"),
           };
-          const btnLabel = extras?.contactLabel || defaultLabels[ctype] || "聯絡人";
+          const btnLabel =
+            extras?.contactLabel || defaultLabels[ctype] || t("booking.villa.contact.label.phone");
           const href = buildHref(ctype, cvalue);
           const external = ctype === "line" || ctype === "whatsapp" || ctype === "url";
           return (
@@ -1192,8 +1242,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                   <Phone className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-foreground leading-tight">聯繫住宿</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{extras?.hostResponseText || "房東通常在 60 分鐘內回覆"}</p>
+                  <p className="text-[14px] font-semibold text-foreground leading-tight">{t("booking.villa.contact.title")}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{extras?.hostResponseText ? dyn("host_response", extras.hostResponseText) : t("booking.villa.contact.response")}</p>
                 </div>
                 <a
                   href={href}
@@ -1239,7 +1289,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
           <div className="mx-4 mb-3 rounded-lg border border-destructive/40 bg-destructive/10 p-3">
             <p className="text-[14px] text-destructive font-medium">{availabilityError.message}</p>
             <p className="text-[14px] text-muted-foreground mt-1">
-              您仍可選擇日期查詢，系統會在結帳前重新確認空房。
+              {t("booking.villa.availability.hint")}
             </p>
             <Button
               variant="outline"
@@ -1250,7 +1300,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                 availabilityError.retry();
               }}
             >
-              重新載入空房資料
+              {t("booking.villa.availability.reload")}
             </Button>
           </div>
         )}
@@ -1286,7 +1336,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         {/* ── 5. Capacity × Price Plans (核心 CTA) ── Trip.com style ── */}
         <section id="capacity-price-section" className="py-4 bg-background">
           <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">
-            入住方案
+            {t("booking.villa.plans.title")}
           </h2>
 
 
@@ -1333,6 +1383,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
               (secondaryData?.roomScopeFacilities?.single?.length || 0) > 0)) && (
             <div id="facilities">
               <FacilitiesSection
+                localize={facilitiesLocalize}
                 facilities={secondaryData!.facilities}
                 wholeFacilities={
                   (info as any).show_room_facilities_whole !== false
@@ -1362,23 +1413,23 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         {/* ── 9. Reviews ── */}
         {info.show_reviews_section !== false && (
           <div id="reviews">
-            <ReviewsSection accommodationId={info.id} />
+            <ReviewsSection accommodationId={info.id} localize={reviewsLocalize} />
           </div>
         )}
 
         {/* ── 10. FAQ ── */}
         {info.show_faq_section !== false && (
           <div id="faq">
-            <FaqSection accommodationId={info.id} />
+            <FaqSection accommodationId={info.id} localize={faqLocalize} />
           </div>
         )}
 
         {/* ── 11. About / Description ── */}
         {info.description && (
           <section id="about" className="px-4 py-4 bg-card border-y border-border/40">
-            <h2 className="text-base font-bold text-foreground mb-2">關於這個空間</h2>
+            <h2 className="text-base font-bold text-foreground mb-2">{t("booking.villa.about.title")}</h2>
             <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
-              {info.description}
+              {dyn("description", info.description)}
             </p>
           </section>
         )}
@@ -1387,6 +1438,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         {info.show_booking_info_section !== false && (
           <div id="policy">
             <BookingInfoSection
+              localize={bookingInfoLocalize}
               bookingSettings={secondaryData?.bookingSettings}
               checkInNotice={info.check_in_notice}
               customSections={secondaryData?.customBookingSections}
@@ -1475,19 +1527,19 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                   : null;
                 const display = pkgMin ?? roomMin;
                 if (display == null) {
-                  return <span className="text-sm text-muted-foreground">查看方案</span>;
+                  return <span className="text-sm text-muted-foreground">{t("booking.villa.bottom.viewPlans")}</span>;
                 }
                 return (
                   <div className="flex flex-col">
                     <div className="flex items-baseline gap-1.5">
-                      <span className="text-[11px] text-gray-500">總價</span>
+                      <span className="text-[11px] text-gray-500">{t("booking.villa.bottom.total")}</span>
                       <span className="text-xl font-bold text-gray-800 tabular-nums">
                         NT${(display * Math.max(1, nights || 1) + childExtraTotal).toLocaleString()}
                       </span>
                     </div>
                     {childExtraTotal > 0 && (
                       <span className="text-[10px] font-medium leading-tight" style={{ color: "hsl(15, 78%, 48%)" }}>
-                        含兒童加價 +NT${childExtraTotal.toLocaleString()}
+                        {t("booking.villa.bottom.childExtra", { amount: childExtraTotal.toLocaleString() })}
                       </span>
                     )}
                   </div>
@@ -1503,7 +1555,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                   ?.scrollIntoView({ behavior: "smooth", block: "start" });
               }}
             >
-              選擇房型
+              {t("booking.villa.bottom.selectRoom")}
             </Button>
           </div>
           </div>
@@ -1548,13 +1600,13 @@ const BookingVillaContent = (props: BookingVillaProps) => {
       <AlertDialog open={missingInfoOpen} onOpenChange={setMissingInfoOpen}>
         <AlertDialogContent className="max-w-[340px] rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>請先選擇日期與人數</AlertDialogTitle>
+            <AlertDialogTitle>{t("booking.villa.missing.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              需要先選好入住／退房日期與入住人數，才能繼續下一步預約。
+              {t("booking.villa.missing.desc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-2">
-            <AlertDialogCancel className="flex-1 mt-0">稍後再說</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 mt-0">{t("booking.villa.missing.later")}</AlertDialogCancel>
             <AlertDialogAction
               className="flex-1"
               onClick={() => {
@@ -1562,7 +1614,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                 setEditSearchOpen(true);
               }}
             >
-              立即選擇
+              {t("booking.villa.missing.now")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1576,35 +1628,43 @@ const BookingVillaContent = (props: BookingVillaProps) => {
       >
         <AlertDialogContent className="max-w-[360px] rounded-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>入住人數超過此方案上限</AlertDialogTitle>
+            <AlertDialogTitle>{t("booking.villa.capacityAlert.title")}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-2 text-left">
                 <p>
-                  您選擇的「{capacityAlert?.planName}」最多可入住 {capacityAlert?.planMax} 位，
-                  目前搜尋人數為 {capacityAlert?.totalGuests} 位。
+                  {t("booking.villa.capacityAlert.line", {
+                    plan: capacityAlert?.planName ?? "",
+                    max: capacityAlert?.planMax ?? 0,
+                    guests: capacityAlert?.totalGuests ?? 0,
+                  })}
                 </p>
                 {capacityAlert?.addRooms ? (
                   capacityAlert.addRooms.available >= capacityAlert.addRooms.needed ? (
                     <p>
-                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間
-                      {capacityAlert.addRooms.roomTypeName}（所選日期尚有 {capacityAlert.addRooms.available} 間可訂）。
-                      可直接加訂足夠間數並繼續結帳，房費將以 {capacityAlert.addRooms.needed} 間計算。
+                      {t("booking.villa.capacityAlert.addOk", {
+                        guests: capacityAlert.totalGuests,
+                        needed: capacityAlert.addRooms.needed,
+                        roomType: capacityAlert.addRooms.roomTypeName,
+                        available: capacityAlert.addRooms.available,
+                      })}
                     </p>
                   ) : (
                     <p>
-                      此為單間房型，{capacityAlert.totalGuests} 位需訂 {capacityAlert.addRooms.needed} 間，
-                      但所選日期僅剩 {capacityAlert.addRooms.available} 間可訂，無法容納。
-                      建議改選包棟方案或調整日期／人數。
+                      {t("booking.villa.capacityAlert.addNo", {
+                        guests: capacityAlert.totalGuests,
+                        needed: capacityAlert.addRooms.needed,
+                        available: capacityAlert.addRooms.available,
+                      })}
                     </p>
                   )
                 ) : (
-                  <p>請重新選擇適合人數的方案，或調整搜尋人數後再試。</p>
+                  <p>{t("booking.villa.capacityAlert.generic")}</p>
                 )}
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-2">
-            <AlertDialogCancel className="flex-1 mt-0">重新選方案</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 mt-0">{t("booking.villa.capacityAlert.reselect")}</AlertDialogCancel>
             <AlertDialogAction
               className="flex-1"
               onClick={() => {
@@ -1615,8 +1675,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
               }}
             >
               {capacityAlert?.proceed
-                ? `共訂 ${capacityAlert.addRooms?.needed} 間並繼續`
-                : "調整搜尋條件"}
+                ? t("booking.villa.capacityAlert.proceed", { needed: capacityAlert.addRooms?.needed ?? 0 })
+                : t("booking.villa.capacityAlert.adjust")}
             </AlertDialogAction>
           </AlertDialogFooter>
 
