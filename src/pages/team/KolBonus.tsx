@@ -790,6 +790,30 @@ export default function KolBonus() {
                   );
                 })()}
               </div>
+              <Accordion type="single" collapsible className="mb-4 rounded-lg border bg-muted/30 px-3">
+                <AccordionItem value="month-guide" className="border-none">
+                  <AccordionTrigger className="py-2.5 text-sm hover:no-underline">
+                    <span className="flex items-center gap-1.5">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      這裡的「月份」是什麼意思？（欄位口徑說明）
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground space-y-2 pb-3">
+                    <p>
+                      本頁的月份篩選同時使用兩種統計方式：「進單」看<b>訂單建立日期</b>，「完成」看<b>客人退房日期</b>。
+                      因此同一筆訂單可能在 8 月列入進單、10 月才列入完成。
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li><b>進單筆數</b>：篩選月份內建立的訂單數，不論何時入住或退房。</li>
+                      <li><b>進單業績</b>：上述新訂單的訂單金額合計。</li>
+                      <li><b>完成筆數</b>：篩選月份內退房的有效訂單數，可能是更早月份建立的訂單。</li>
+                      <li><b>完成業績</b>：上述已退房訂單的訂單金額合計。</li>
+                      <li><b>分潤</b>：依完成訂單的「分潤基準金額 × 生效費率」計算，可能扣除不列入分潤的加購項目，因此不一定等於完成業績直接乘費率。</li>
+                      <li><b>複製專屬查詢連結</b>：連結會帶上目前篩選的年月，KOL 點開後會直接看到同一個月份，方便補發往期獎金時核對。</li>
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
               {loading ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">
                   載入中...
