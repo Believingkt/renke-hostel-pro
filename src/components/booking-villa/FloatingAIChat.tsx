@@ -104,6 +104,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
     setInput("");
     setLoading(true);
     setStreaming("");
@@ -207,6 +209,11 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
   return (
     <>
+      <AIConsentDialog
+        open={open && aiConsent.status === "not_granted"}
+        onAccept={() => { void aiConsent.grant(); }}
+        onDecline={() => { aiConsent.decline(); setOpen(false); }}
+      />
       {/* 懸浮按鈕 */}
       {!open && (
         <div className="fixed z-[45] right-3 md:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6 flex items-end gap-2">
