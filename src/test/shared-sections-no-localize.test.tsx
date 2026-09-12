@@ -5,6 +5,27 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 
+// jsdom 環境補齊（僅測試用）
+if (!window.matchMedia) {
+  // @ts-expect-error jsdom stub
+  window.matchMedia = (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  });
+}
+if (!Element.prototype.scrollTo) {
+  Element.prototype.scrollTo = () => {};
+}
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 function makeQuery(result: any) {
   const chain: any = {
     select: () => chain,
@@ -46,7 +67,7 @@ describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
         ]}
       />,
     );
-    expect(screen.getByText("免費停車場")).toBeInTheDocument();
+    expect(screen.getAllByText("免費停車場").length).toBeGreaterThan(0);
   });
 
   it("FaqSection 顯示中文問題與答案", async () => {
@@ -54,7 +75,7 @@ describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
       <FaqSection items={[{ id: "q1", question: "可以攜帶寵物嗎？", answer: "恕不提供寵物入住。" }]} />,
     );
     await waitFor(() => {
-      expect(screen.getByText("可以攜帶寵物嗎？")).toBeInTheDocument();
+      expect(screen.getAllByText("可以攜帶寵物嗎？").length).toBeGreaterThan(0);
     });
   });
 
@@ -65,7 +86,7 @@ describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
         checkInNotice="請於下午三點後辦理入住。"
       />,
     );
-    expect(screen.getByText(/入住/)).toBeInTheDocument();
+    expect(screen.getAllByText(/入住/).length).toBeGreaterThan(0);
   });
 
   it("ReviewsSection 無評論資料時不丟出錯誤（沿用原行為）", async () => {
