@@ -248,8 +248,9 @@ export default function KolBonusPublic() {
       if (o.check_out_date) set.add(Number(o.check_out_date.slice(0, 4)));
     }
     set.add(currentYear);
+    set.add(urlYear);
     return Array.from(set).sort((a, b) => b - a);
-  }, [orders, currentYear]);
+  }, [orders, currentYear, urlYear]);
 
   const isYearAll = filterMonth === "all";
   const prefix = isYearAll
