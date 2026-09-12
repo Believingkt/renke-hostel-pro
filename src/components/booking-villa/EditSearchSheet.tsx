@@ -61,6 +61,7 @@ const Counter = ({
   min?: number;
   max?: number;
 }) => {
+  const { t } = useBookingLocale();
   return (
     <div className="flex items-center justify-between py-3">
       <div className="flex items-center gap-2.5">
