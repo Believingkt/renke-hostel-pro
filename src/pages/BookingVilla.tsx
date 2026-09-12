@@ -686,6 +686,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
     push("host_response", extras?.hostResponseText);
     push("top_review", extras?.googleTopReview?.text);
     (extras?.featureTagsOverride || []).forEach((tag, i) => push(`feature_tag_${i}`, tag.label));
+    (extras?.villaTrustBadges || []).forEach((b, i) => push(`trust_badge_${i}`, b.label));
     return fs;
   }, [info, extras]);
   const { tf: tfInfo } = useTranslatedFields(dynamicFields);
@@ -1119,7 +1120,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
 
           {extras?.googleTopReview && (
             <p className="mt-1.5 text-[14px] text-foreground/85 leading-snug">
-              "{extras.googleTopReview.text}"
+              "{dyn("top_review", extras.googleTopReview.text)}"
             </p>
           )}
         </section>
@@ -1273,7 +1274,7 @@ const BookingVillaContent = (props: BookingVillaProps) => {
                 return (
                   <span key={i} className="flex items-center gap-1">
                     <Icon className="h-3.5 w-3.5 text-emerald-600" />
-                    {b.label}
+                    {dyn(`trust_badge_${i}`, b.label)}
                   </span>
                 );
               })}
