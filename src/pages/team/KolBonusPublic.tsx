@@ -151,6 +151,7 @@ const grossOf = (o: OrderRow) =>
 
 export default function KolBonusPublic() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
 
   const twNow = (() => {
     const now = new Date();
@@ -160,6 +161,16 @@ export default function KolBonusPublic() {
   const currentYear = twNow.getUTCFullYear();
   const currentMonthNum = twNow.getUTCMonth() + 1;
 
+  // 連結可帶 ?y=2026&m=8，讓 KOL 點開時直接看到星探指定的月份（無參數則預設當月）
+  const urlYear = (() => {
+    const y = Number(searchParams.get("y"));
+    return y >= 2000 && y <= 2100 ? y : currentYear;
+  })();
+  const urlMonth = (() => {
+    const m = Number(searchParams.get("m"));
+    return m >= 1 && m <= 12 ? String(m) : String(currentMonthNum);
+  })();
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [kol, setKol] = useState<KolInfo | null>(null);
@@ -167,8 +178,8 @@ export default function KolBonusPublic() {
   const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
   
   const [totals, setTotals] = useState<Totals>({ addonExcludedTotal: 0, nonTwdCount: 0 });
-  const [filterYear, setFilterYear] = useState<number>(currentYear);
-  const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum));
+  const [filterYear, setFilterYear] = useState<number>(urlYear);
+  const [filterMonth, setFilterMonth] = useState<string>(urlMonth);
   const { multiplierForDataMonth } = useBonusMultipliers();
   
 
