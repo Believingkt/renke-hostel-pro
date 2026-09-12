@@ -76,6 +76,11 @@ const PortalSearchBar = ({
   onDestinationRequired,
 }: PortalSearchBarProps) => {
   const { t, dateLocale } = useBookingLocale();
+  // 顯示用地區標籤：送出的搜尋字串維持原始中文地名，不受語系影響
+  const regionLabel = (raw: string) =>
+    ({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw]
+      ? t(({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw])
+      : raw;
   const [dateOpen, setDateOpen] = useState(false);
   const [dateOpenMobile, setDateOpenMobile] = useState(false);
   const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
@@ -468,7 +473,7 @@ const PortalSearchBar = ({
                   className="h-10 justify-start text-left font-normal border-border text-foreground gap-2 hover:bg-transparent hover:text-foreground"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
@@ -560,7 +565,7 @@ const PortalSearchBar = ({
                   className="flex-1 h-11 justify-start text-left font-normal border-border text-foreground text-base gap-2 hover:bg-transparent hover:text-foreground"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
@@ -580,8 +585,11 @@ const PortalSearchBar = ({
 
           {checkIn && checkOut && (
             <p className="text-sm text-muted-foreground text-center">
-              {format(checkIn, "M/d (EEE)", { locale: dateLocale })} 至{" "}
-              {format(checkOut, "M/d (EEE)", { locale: dateLocale })}，共 {nights} 晚
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
             </p>
           )}
         </div>
@@ -589,8 +597,11 @@ const PortalSearchBar = ({
         <div className="hidden md:block">
           {checkIn && checkOut && (
             <p className="text-sm text-muted-foreground mt-3 text-center">
-              {format(checkIn, "yyyy/M/d (EEE)", { locale: dateLocale })} 至{" "}
-              {format(checkOut, "yyyy/M/d (EEE)", { locale: dateLocale })}，共 {nights} 晚
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
             </p>
           )}
         </div>
