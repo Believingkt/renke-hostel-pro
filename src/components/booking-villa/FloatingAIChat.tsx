@@ -379,6 +379,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                   <Send className="w-4 h-4" />
                 </Button>
               </form>
+              <div className="pb-2 -mt-1">
+                <AIDisclosureNote />
+              </div>
             </>
 
         </SheetContent>
