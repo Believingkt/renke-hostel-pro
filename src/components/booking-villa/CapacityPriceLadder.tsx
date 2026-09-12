@@ -1440,7 +1440,7 @@ const GuestTabsScroller = ({
                   : undefined
               }
             >
-              {t.guestCount}人
+              {t("booking.villa.ladder.guestUnit", { count: t.guestCount })}
             </button>
           );
         })}
