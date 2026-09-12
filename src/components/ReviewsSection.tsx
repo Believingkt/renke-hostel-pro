@@ -2,7 +2,11 @@ import { Star, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface ReviewsSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   accommodationId?: string;
   customTitle?: string;
   customSubtitle?: string;
@@ -37,7 +41,8 @@ interface GoogleCache {
 
 const STALE_MS = 24 * 60 * 60 * 1000; // 24h
 
-const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: ReviewsSectionProps) => {
+const ReviewsSection = ({ accommodationId, customTitle, customSubtitle, localize }: ReviewsSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   // 1. 先讀 accommodation_info 的 Google 評論快取
   const { data: googleData } = useQuery({
     queryKey: ['google-reviews', accommodationId],
@@ -269,7 +274,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                     </div>
                   </div>
                   <p className="text-sm text-foreground/90 leading-relaxed whitespace-pre-line line-clamp-5">
-                    {review.comment}
+                    {dyn("review_comment", review.id, review.comment)}
                   </p>
                 </div>
               ))}
@@ -319,7 +324,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle }: Review
                   </div>
                 </div>
                 <p className="text-sm md:text-sm lg:text-base text-foreground leading-relaxed whitespace-pre-line line-clamp-6">
-                  {review.comment}
+                  {dyn("review_comment", review.id, review.comment)}
                 </p>
               </div>
             ))}

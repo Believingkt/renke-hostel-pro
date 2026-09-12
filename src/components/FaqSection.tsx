@@ -16,7 +16,11 @@ export interface FaqItem {
   answer: string;
 }
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface FaqSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   accommodationId?: string;
   customTitle?: string;
   customSubtitle?: string;
@@ -54,6 +58,7 @@ function FaqAnswer({ answer, formatPlainText }: { answer: string; formatPlainTex
 }
 
 const FaqSection = ({
+  localize,
   accommodationId,
   customTitle,
   customSubtitle,
@@ -61,6 +66,7 @@ const FaqSection = ({
   formatPlainText,
   mobileInitialCount,
 }: FaqSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   const [faqs, setFaqs] = useState<FaqItem[]>([]);
   const [showAllMobile, setShowAllMobile] = useState(false);
 

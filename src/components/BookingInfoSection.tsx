@@ -20,7 +20,11 @@ import {
 
 type CustomSection = BookingNoticeCustomSection;
 
+import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
 interface BookingInfoSectionProps {
+  /** 可選：傳入才翻譯；未傳＝原樣繁中 */
+  localize?: SectionLocalize;
   bookingSettings: any;
   checkInNotice: string;
   customSections?: CustomSection[];
@@ -55,6 +59,7 @@ const ICONS: Record<string, LucideIcon> = {
 const iconForKey = (key: string): LucideIcon => ICONS[key] ?? LayoutList;
 
 const BookingInfoSection = ({
+  localize,
   bookingSettings,
   checkInNotice,
   customSections = [],
@@ -64,6 +69,7 @@ const BookingInfoSection = ({
   mobileSingleAccordion,
   sections,
 }: BookingInfoSectionProps) => {
+  const { ui, dyn } = makeSectionText(localize);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState({ title: "", content: "" });
 
@@ -118,7 +124,7 @@ const BookingInfoSection = ({
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-sm text-foreground leading-tight">
-                            {panel.title}
+                            {dyn("panel_title", panel.key, panel.title)}
                           </h3>
                           {panel.subtitle && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
@@ -172,7 +178,7 @@ const BookingInfoSection = ({
                         <Icon className="h-5 w-5 md:h-5 md:w-5 lg:h-6 lg:w-6 text-primary" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-base md:text-base lg:text-lg">{panel.title}</h3>
+                        <h3 className="font-semibold text-base md:text-base lg:text-lg">{dyn("panel_title", panel.key, panel.title)}</h3>
                         {panel.subtitle && (
                           <p className="text-sm text-muted-foreground mt-0.5">{panel.subtitle}</p>
                         )}
