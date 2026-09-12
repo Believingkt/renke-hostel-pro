@@ -427,7 +427,15 @@ const CapacityPriceLadder = ({
                     </p>
                     <p className="text-[14px] font-bold text-foreground mt-0.5">
                       <span className="mr-1" aria-hidden>👆</span>
-                      房間搭配：{activeTier_.roomAllocation || roomBreakdown}
+                      {t("booking.villa.ladder.roomPairing", {
+                        value: activeTier_.roomAllocation
+                          ? tfPkg(
+                              "room_allocation",
+                              activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                              activeTier_.roomAllocation,
+                            )
+                          : roomBreakdown,
+                      })}
                     </p>
                   </div>
                 )}
@@ -466,7 +474,7 @@ const CapacityPriceLadder = ({
                           </p>
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-border/60 text-gray-600 text-[11px]">
                             <Sparkles className="h-3 w-3" style={{ color: "#A98467" }} />
-                            僅接待一組貴賓
+                            {t("booking.villa.ladder.exclusiveBadge")}
                           </span>
                         </div>
                         <ul className="space-y-2">
@@ -486,9 +494,19 @@ const CapacityPriceLadder = ({
                               <li key={i} className="flex items-start gap-2">
                                 <Icon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: iconColor }} />
                                 <span className={`text-[13px] leading-snug ${textCls}`}>
-                                  {inc.text}
+                                  {tfPkg(
+                                    `includes_${i}`,
+                                    activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                                    inc.text!,
+                                  )}
                                   {inc.price_note && (
-                                    <span className="text-muted-foreground ml-1">（{inc.price_note}）</span>
+                                    <span className="text-muted-foreground ml-1">（
+                                      {tfPkg(
+                                        `includes_note_${i}`,
+                                        activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                                        inc.price_note,
+                                      )}
+                                    ）</span>
                                   )}
                                 </span>
                               </li>
@@ -512,7 +530,13 @@ const CapacityPriceLadder = ({
                         ? t("booking.villa.ladder.childAdd", { count: activeTier_.childCountMax })
                         : ""}
                       {activeTier_.childCountMax && activeTier_.childAgeNote ? "・" : ""}
-                      {activeTier_.childAgeNote || ""}
+                      {activeTier_.childAgeNote
+                        ? tfPkg(
+                            "child_age_note",
+                            activeTier_.packageId || activeTier_.planName || String(activeTier_.guestCount),
+                            activeTier_.childAgeNote,
+                          )
+                        : ""}
                     </p>
                   )}
                 </div>
