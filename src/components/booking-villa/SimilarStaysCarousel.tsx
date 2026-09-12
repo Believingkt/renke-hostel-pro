@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { eachDayOfInterval, addDays, format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields } from "@/hooks/use-translated-fields";
 import { Card } from "@/components/ui/card";
 import { openFrontendBooking } from "@/lib/frontendUrl";
 import {
@@ -43,6 +44,15 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
   const navigate = useNavigate();
   const { t } = useBookingLocale();
   const [items, setItems] = useState<Item[]>([]);
+  // 顯示層翻譯：僅民宿名稱與地區文字，不影響任何查詢、價格或導頁
+  const { tf } = useTranslatedFields(
+    items.flatMap((it) => [
+      { table: "accommodation_info", column: "name", id: it.id, text: it.name },
+      ...(it.region
+        ? [{ table: "accommodation_info", column: "region_1", id: it.id, text: it.region }]
+        : []),
+    ]),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -214,7 +224,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
               </div>
               <div className="p-3">
                 <p className="font-semibold text-[14px] text-foreground line-clamp-2 leading-snug">
-                  {it.name}
+                  {tf({ table: "accommodation_info", column: "name", id: it.id, text: it.name })}
                 </p>
                 {it.rating != null && (
                   <div className="mt-1.5 flex items-center gap-1.5">

@@ -15,6 +15,7 @@ import {
 import { zhTW } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { cn } from "@/lib/utils";
 import {
   InventoryQueryError,
