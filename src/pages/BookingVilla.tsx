@@ -669,8 +669,6 @@ const BookingVillaContent = (props: BookingVillaProps) => {
     };
   }, [secondaryData]);
 
-  if (isLoading) return null;
-
   // ── 第四批：頁面動態內容翻譯（僅影響顯示，不影響任何業務資料） ──
   const dynamicFields = useMemo(() => {
     const fs: TranslatableField[] = [];
@@ -698,6 +696,9 @@ const BookingVillaContent = (props: BookingVillaProps) => {
   const faqLocalize = useLazySectionLocalize("accommodation_faqs");
   const reviewsLocalize = useLazySectionLocalize("accommodation_reviews");
   const bookingInfoLocalize = useLazySectionLocalize("booking_settings");
+
+  if (isLoading) return null;
+
 
   if (dataError || !info) {
     return (
