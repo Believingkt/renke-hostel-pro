@@ -532,6 +532,9 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
             </Button>
           )}
         </div>
+        <div className="bg-white/80 pb-2">
+          <AIDisclosureNote />
+        </div>
       </div>
 
       <Dialog open={showAvatar} onOpenChange={setShowAvatar}>
