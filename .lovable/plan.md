@@ -1,93 +1,65 @@
-# 第四批設計稿：BookingVilla 動態內容雙語 ＋ 冷啟動處理（僅設計，未施工）
+# 第五批設計稿：首頁 BookingPortal.tsx 雙語（僅設計，未施工）
 
-## 先回答：底部導覽的技術風險問題
+## 一、先回覆：目前全部已知殘留中文清單（現況更新）
 
-`useBookingLocale` 在**沒有 Provider 的頁面不會 crash**，會安全 fallback 顯示繁中。逐字證據 `src/contexts/BookingLocaleContext.tsx:64-74`：
+已上線／已完工批次在英文模式下仍會出現中文的地方，逐項確認如下：
 
-```ts
-/** 無 Provider 時安全回退為預設中文，不 throw */
-export const useBookingLocale = (): BookingLocaleValue => {
-  const ctx = useContext(BookingLocaleContext);
-  if (ctx) return ctx;
-  return {
-    lang: DEFAULT_BOOKING_LANG,
-    setLang: () => {},
-    t: (key, vars) => translate(DEFAULT_BOOKING_LANG, key, vars),
-    dateLocale: getBookingDateLocale(DEFAULT_BOOKING_LANG),
-  };
-};
-```
+| # | 位置 | 內容 | 性質 | 歸屬批次 |
+|---|---|---|---|---|
+| 1 | BookingLanguageSwitch | 「繁中」 | 刻意保留（語言鈕本來就該顯示該語言自稱），非缺陷 | 不處理 |
+| 2 | SavingsBadge.tsx | 「人客多優惠」 | 固定文字，結帳頁共用 | BookingFlow 批 |
+| 3 | BookingFooter → BrandLogoBar | 「技術合作」 | **動態內容**（HQ 品牌夥伴後台欄位，非寫死字串） | 需走 translate-content，排 BookingFlow 批一併 |
+| 4 | MobileBottomNav | 首頁／訊息／行程／我的帳號 | 固定文字 | 底部導覽批 |
+| 5 | NativeTabBar | 首頁／找房／訂單／訊息／我的 | 固定文字 | 底部導覽批 |
+| 6 | BookingSearchResults／PaymentResult／MemberOrders／MemberOrderDetail | 冷啟動時動態內容先閃中文 | 已知線上缺陷，`deferUntilTranslated` 尚未套用到這四頁 | 待安排小批次 |
 
-代表：底部導覽（MobileBottomNav／NativeTabBar）可以直接改用 `t()`。在 BookingFlow.tsx 這種尚未包 Provider 的頁面，導覽列一律顯示繁中（等同現況，零行為變化）；在已包 Provider 的頁面才會跟著切英文。副作用是「同頁面語言不一致」不會發生，因為 Provider 有無是以整頁為單位。此項不在本設計稿施工範圍，僅作為後續排程的風險結論。
+新增遺漏檢查：本次重新掃描核心範圍檔案，**未發現上表以外的新殘留項目**。範圍外頁面（各民宿官網 Index.tsx、ai-booking、payment-receipt、atm-info、PaymentStatus、會員周邊子頁）依先前拍板不列入，也未主動檢查。
 
-## 一、現況盤點（BookingVilla.tsx，1666 行）
+## 二、BookingPortal.tsx 唯讀盤點
 
-**舊 i18n 殘留品質**：字典 `bookingI18n.ts` 已有 176 條 `booking.villa.*` key，品質可用、命名一致（`booking.villa.tabs.*`、`booking.villa.header.*`、`booking.villa.overview.*`），但 BookingVilla.tsx 本體只呼叫了 17 次 `t()`。也就是**字典遠比使用面完整，既有 key 全部沿用、不重做、不改名**，本批只補「有畫面但還沒接 key」的部分。
+- 檔案 1374 行，**目前完全沒有語言整合**：無 `BookingLocaleProvider`、無 `useBookingLocale`、無語言切換鈕。字典 `bookingI18n.ts`（1294 行）目前 `booking.portal.*` key 數為 **0**，本批需全新建立命名空間。
+- 固定中文字串數：BookingPortal.tsx 33 處。
+- 子元件固定中文：PortalSearchBar 43、PortalAIChatPanel 44、RoomFilterBar 15、AccommodationCard 12、ChatRoomCard 2、AccommodationPhotoCarousel 2、RoomTypeCard 1。SearchRoomCard 已於第二批完成、BookingFooter 已完成，皆不重做。
+- 動態內容來源（首頁一次撈 14 張表）：`accommodation_info`（name／region_1／region_2／address）、`room_types`（name／description）、`accommodation_facilities`、`addon_settings`、`about_section`（section_title／section_description）、`portal_featured_cards`（card_display_name／card_editor_body）、`accommodation_packages`。
 
-**尚未接上的固定文字（引號內含中文的字串數）**：
-- BookingVilla.tsx：58（含約 20 條是 log／event 字串與圖示比對關鍵字，不屬 UI，不動）
-- CapacityPriceLadder.tsx：37、EditSearchSheet.tsx：16、VillaLocationCompact.tsx：7、VillaAvailabilityCalendar.tsx：4、FloatingAIChat.tsx：5
+## 三、設計
 
-**尚未接翻譯的動態內容（後台維護的中文）**：
-| 來源 | 欄位 |
-|---|---|
-| accommodation_info | name、description、address、region_1／2、check_in_notice、og/seo 文案 |
-| accommodation_packages | name、方案說明、includes、room_allocation 房型名 |
-| room_types | name |
-| facilities | facility_name |
-| FaqSection | 問題／答案 |
-| BookingInfoSection | bookingSettings 政策條文、customBookingSections |
-| VillaLocationCompact | locationInfo 交通說明 |
-| ReviewsSection / 標頭 | 評論摘要、host response、feature tags |
-| SimilarStaysCarousel | 鄰近民宿名稱／地區 |
+1. 在 BookingPortal 外層包 `BookingLocaleProvider`，header 放 `BookingLanguageSwitch compact`，與 BookingVilla 一致。
+2. 新增 `booking.portal.*` 字典（沿用既有命名慣例，不改任何既有 key）。
+3. 動態內容沿用第二／四批模式：父層集中一組 `dynamicFields` 送出，`tf()` 產生 `displayAccommodations` 等衍生物件，子元件維持 dumb component。
+4. 冷啟動直接採用第四批已驗證的 `deferUntilTranslated`（英文模式未譯前留空、不做骨架），中文模式零變化。
+5. 首頁欄位量大（民宿卡＋房型卡），必然超過 60 筆；第四批已修好的 hook 分批送出（每批 50）可直接覆蓋。
 
-## 二、動態內容怎麼接
+### 絕對不動的邏輯（本批只換顯示層）
 
-沿用第二批 `BookingSearchResults.tsx` 已驗證的模式：**父層集中翻譯、子元件維持 dumb component**。
+搜尋與篩選是以**原文**比對，翻譯只能作用在顯示：
+- `BookingPortal.tsx:410-413、548-551` 關鍵字搜尋比對 `rt.name` / `accommodation_region_1/2` 原值
+- `:566` 地區篩選 `rt.accommodation_region_1 === filters.selectedRegion`
+- `:621` 包棟判定以 `r.name` regex 比對
+- `:654` `isSensanAccommodation(acc.name)` 館別判定
+- 價格（`room_inventory_pricing`、`classifyDayTier`）、庫存、人數、日期、`openFrontendBooking` 導頁參數
 
-1. 在 BookingVilla 內層元件建立單一 `dynamicFields` 陣列（table／column／id／text），一次送出，避免多次呼叫 `translate-content`。
-2. 以 `tf()` 產生 `displayInfo`／`displayPackages`／`displayFacilities` 等衍生物件，只覆寫顯示欄位。
-3. 子元件（Facilities／Faq／BookingInfo／Location／SimilarStays／CapacityPriceLadder）改吃已翻譯的 props；若子元件自行抓資料（FaqSection、ReviewsSection 以 accommodationId 內部查詢），則在該元件內就地加一組 `useTranslatedFields`，不上移資料抓取、不改查詢。
-4. 嚴禁事項：不改任何價格、庫存、人數、方案篩選、`packageDateOverrides`、導頁參數與 `/book` query string；`accommodationName` 等傳給訂單／分享／行事曆的值一律保留原文欄位，只換畫面顯示。
+作法：`tf()` 只用於 JSX 顯示，所有篩選／判定／導頁一律讀原始物件欄位，不讀 `display*`。
 
-## 三、冷啟動處理（方案比較，建議 B）
+## 四、檔案範圍
 
-現況：冷快取時約 0.7 秒仍顯示中文，約 1.2 秒才換成英文，造成「中文閃一下」。
+**修改（8 支）**
+1. `src/pages/BookingPortal.tsx`
+2. `src/lib/bookingI18n.ts`（只增 key）
+3. `src/components/booking-portal/PortalSearchBar.tsx`
+4. `src/components/booking-portal/PortalAIChatPanel.tsx`
+5. `src/components/booking-portal/RoomFilterBar.tsx`
+6. `src/components/booking-portal/AccommodationCard.tsx`
+7. `src/components/booking-portal/AccommodationPhotoCarousel.tsx`
+8. `src/components/booking-portal/ChatRoomCard.tsx`（＋ `RoomTypeCard.tsx` 單一字串，視實際渲染決定，若需動會先報備）
 
-- **A 骨架佔位**：翻譯未回前顯示灰塊。違反本專案「不得用骨架、避免閃爍」的既有規範，排除。
-- **B（建議）英文模式下延後顯示未譯文字**：僅在 `lang === "en"` 且該欄位尚未有譯文時，該段文字先渲染為空（保留容器高度不變的行內佔位，不做動畫），譯文到達即填入。中文模式完全不受影響，零變化。
-- **C 全頁 gate**：整頁等翻譯完成才顯示。首屏延遲最久、傷 SEO 與體感，排除。
+**新增**：1 支迴歸測試檔（證明搜尋、地區篩選、排序、導頁參數在切換語言後結果完全相同）。
 
-搭配：`translation_cache` 命中時多為同步命中（熱快取），B 的空白窗僅出現在首次冷啟動；對已上線頁面 SEO 不影響（爬蟲取中文預設）。
+**不動**：SearchRoomCard、BookingFooter、SavingsBadge、底部導覽、BookingFlow、CustomerOrders、四支信件函式、任何 Edge Function／DB／cron。
 
-## 四、檔案範圍（完整逐檔清單）
-
-**修改（共 17 支）：**
-1. `src/pages/BookingVilla.tsx`（1666 行）
-2. `src/lib/bookingI18n.ts`（只增 key，不改既有 key）
-3. `src/hooks/use-translated-fields.tsx`（新增可選「未譯時延後顯示」模式，預設行為不變）
-4. `src/components/booking-villa/CapacityPriceLadder.tsx`（只換顯示文字）
-5. `src/components/booking-villa/EditSearchSheet.tsx`（只換顯示文字）
-6. `src/components/booking-villa/VillaAvailabilityCalendar.tsx`
-7. `src/components/booking-villa/VillaLocationCompact.tsx`
-8. `src/components/booking-villa/VillaOverviewBar.tsx`
-9. `src/components/booking-villa/SimilarStaysCarousel.tsx`
-10. `src/components/booking-villa/SectionTabsNav.tsx`
-11. `src/components/booking-villa/VillaPhotoCarousel.tsx`
-12. `src/components/booking-villa/FloatingAIChat.tsx`
-13. `src/components/FacilitiesSection.tsx`（僅加可選 `translate` prop，未傳時行為完全不變）
-14. `src/components/LocationSection.tsx`（同上）
-15. `src/components/ReviewsSection.tsx`（同上）
-16. `src/components/FaqSection.tsx`（同上）
-17. `src/components/BookingInfoSection.tsx`（同上）
-
-**新增：** 1 支迴歸測試檔。
-
-**共用風險隔離**：第 13–17 支被 Index.tsx（民宿官網，本輪範圍外）與 GroupBuyCampaign.tsx（團購，範圍外）共用，故採「可選 prop、未傳 = 原樣中文」設計，對這兩個頁面行為影響為零；BookingVilla 傳入已譯內容。若發現其中任何一支非改介面預設不可，會停下來先問。
-
-**不動**：`VillaPhotoLightbox.tsx`、`PackagePhotoCarousel.tsx`（無 UI 中文字串）、BookingFlow.tsx、CustomerOrders.tsx、底部導覽（MobileBottomNav／NativeTabBar）、四支通知信件函式、任何 Edge Function、資料庫、schema、cron。
+PortalAIChatPanel 剛因 Apple 同意流程改過，本批只改顯示文字，不碰同意判斷、錄音、AI 請求。
 
 ## 五、precheck／postcheck
 
-precheck：上列每一檔的行數與 md5。
-postcheck：逐檔逐字 diff、字典只增不改、新增迴歸測試證明 `/book` 導頁參數與計價輸入不變、既有測試全綠＋typecheck、**EN 模式實際截圖＋程式化擷取的完整中文字串清單＋`translate-content` HTTP 狀態＋冷／熱快取兩種情境**、受保護檔案 diff＝0。完工不自行 Publish。
+precheck：上列每檔行數與 md5。
+postcheck（沿用標準六項 ＋ 本批加項）：逐檔逐字 diff、字典只增不改、既有測試與基準逐項比對、typecheck、**EN 模式冷／熱兩種情境截圖＋程式化中文字串清單＋translate-content HTTP 狀態**、受保護檔案 diff＝0、確認 `/booking` 路由在 App.tsx 掛載且可公開訪問。完工不自行 Publish。
