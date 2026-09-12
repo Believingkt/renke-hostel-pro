@@ -17,6 +17,9 @@ import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 interface Message {
   role: "user" | "assistant";
