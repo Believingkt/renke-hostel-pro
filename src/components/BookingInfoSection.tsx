@@ -128,7 +128,7 @@ const BookingInfoSection = ({
                           </h3>
                           {panel.subtitle && (
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                              {panel.subtitle}
+                              {dyn("panel_subtitle", panel.key, panel.subtitle)}
                             </p>
                           )}
                         </div>
@@ -140,11 +140,11 @@ const BookingInfoSection = ({
                           {panel.textRows.map((row, i) => (
                             <div key={i} className="flex items-center gap-2">
                               {row.label ? (
-                                <span className="font-medium text-foreground">{row.label}：</span>
+                                <span className="font-medium text-foreground">{dyn("row_label", `${panel.key}_${i}`, row.label)}：</span>
                               ) : (
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                               )}
-                              <span>{row.value}</span>
+                              <span>{dyn("row_value", `${panel.key}_${i}`, row.value)}</span>
                             </div>
                           ))}
                         </div>
@@ -180,7 +180,7 @@ const BookingInfoSection = ({
                       <div>
                         <h3 className="font-semibold text-base md:text-base lg:text-lg">{dyn("panel_title", panel.key, panel.title)}</h3>
                         {panel.subtitle && (
-                          <p className="text-sm text-muted-foreground mt-0.5">{panel.subtitle}</p>
+                          <p className="text-sm text-muted-foreground mt-0.5">{dyn("panel_subtitle", panel.key, panel.subtitle)}</p>
                         )}
                       </div>
                     </div>
@@ -189,11 +189,11 @@ const BookingInfoSection = ({
                         {panel.textRows.map((row, i) => (
                           <div key={i} className="flex items-center gap-2 py-1.5">
                             {row.label ? (
-                              <span className="font-medium text-foreground">{row.label}：</span>
+                              <span className="font-medium text-foreground">{dyn("row_label", `${panel.key}_${i}`, row.label)}：</span>
                             ) : (
                               <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                             )}
-                            <span>{row.value}</span>
+                            <span>{dyn("row_value", `${panel.key}_${i}`, row.value)}</span>
                           </div>
                         ))}
                       </div>

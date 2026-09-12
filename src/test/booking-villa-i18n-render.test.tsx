@@ -654,7 +654,11 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
         .getAllByRole("button")
         .map((b) => b.textContent)
         .filter((txt) => txt && txt.includes("鄰近測試館"));
-      expect(cardsAfter).toEqual(cardsBefore);
+      // 第四批：起／from 為固定介面文字，已翻譯；名稱、價格、順序仍必須完全不變
+      expect(cardsAfter).toHaveLength(cardsBefore.length);
+      expect((cardsAfter[0] || "").replace(/from$/, "")).toBe(
+        (cardsBefore[0] || "").replace(/起$/, ""),
+      );
       expect(cardsAfter[0]).toContain("NT$12,345");
 
       // item 14：不呼叫 navigate
@@ -693,6 +697,13 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
  */
 describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
   const CHIP_TEXTS = ["有哪些房型？", "可以帶寵物嗎？", "有附停車場嗎？", "幾點可以入住？"];
+  // 第四批：suggestion chips 改為固定介面文字（英文模式顯示英文），點擊仍只填入輸入框、不送 AI request
+  const CHIP_TEXTS_EN = [
+    "What room types are there?",
+    "Can I bring a pet?",
+    "Is parking available?",
+    "What time is check-in?",
+  ];
   // <br /> 會把開場白拆成多個 text node，改以 <p> textContent 比對
   const expectGreeting = (text: string) =>
     expect(
@@ -793,15 +804,15 @@ describe("booking villa i18n phase 1B-2A: AI greeting display only", () => {
       const inputEn = screen.getByPlaceholderText("Type your question…") as HTMLInputElement;
       expect(inputEn.value).toBe("可以帶寵物嗎？");
 
-      // chips 中文文字、順序完全相同
-      CHIP_TEXTS.forEach((q, i) => {
-        const chip = screen.getByRole("button", { name: q });
-        expect(chip.textContent).toBe(chipsBefore[i]);
+      // chips 數量與順序完全相同（文字改為對應英文）
+      expect(chipsBefore).toHaveLength(CHIP_TEXTS.length);
+      CHIP_TEXTS_EN.forEach((q) => {
+        expect(screen.getByRole("button", { name: q })).toBeInTheDocument();
       });
 
-      // 切換後 chip click 仍寫入原始中文、不送 AI request
-      fireEvent.click(screen.getByRole("button", { name: "有附停車場嗎？" }));
-      expect((screen.getByPlaceholderText("Type your question…") as HTMLInputElement).value).toBe("有附停車場嗎？");
+      // 切換後 chip click 仍只填入輸入框、不送 AI request
+      fireEvent.click(screen.getByRole("button", { name: "Is parking available?" }));
+      expect((screen.getByPlaceholderText("Type your question…") as HTMLInputElement).value).toBe("Is parking available?");
       expect(fetchSpy).not.toHaveBeenCalled();
 
       // human-contact destination 不變
@@ -1178,7 +1189,9 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
       expect(screen.getByText("Hide breakdown")).toBeInTheDocument(); // 展開狀態不變
       expect(screen.getByText("Includes child surcharge +NT$12,345")).toBeInTheDocument();
       expect(priceOf()).toEqual(zhPrices);
-      expect(guestLine()).toBe(zhGuest);
+      // 第四批：方案標題為固定介面文字，英文模式顯示英文；人數本身不得改變
+      expect(guestLine()).toContain("6");
+      expect(guestLine()).not.toBe(zhGuest);
 
       fireEvent.click(screen.getByLabelText("切換為繁體中文"));
       expect(screen.getByText("預約這段專屬假期")).toBeInTheDocument();

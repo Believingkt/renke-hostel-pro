@@ -94,6 +94,8 @@ const zh = {
   "booking.villa.similar.title": "您可能也喜歡",
 
   "booking.villa.ladder.scrollMore": "滑動看更多 ›",
+  "booking.villa.ladder.guestUnit": "{count}人",
+  "booking.villa.ladder.guestUnitSpaced": "{count} 人",
   "booking.villa.ladder.scrollLeft": "向左滑動",
   "booking.villa.ladder.scrollRight": "向右滑動",
 
@@ -711,6 +713,8 @@ const en: Record<BookingI18nKey, string> = {
   "booking.villa.similar.title": "You may also like",
 
   "booking.villa.ladder.scrollMore": "Swipe for more ›",
+  "booking.villa.ladder.guestUnit": "{count} guests",
+  "booking.villa.ladder.guestUnitSpaced": "{count} guests",
   "booking.villa.ladder.scrollLeft": "Scroll left",
   "booking.villa.ladder.scrollRight": "Scroll right",
 
