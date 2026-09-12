@@ -9,6 +9,9 @@ import { Link, useLocation } from "react-router-dom";
 import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 type Msg = { id?: string; role: "user" | "assistant"; content: string };
 
@@ -20,6 +23,7 @@ interface Props {
 
 export default function FloatingAIChat({ accommodationId, accommodationName, contactHref }: Props) {
   const [open, setOpen] = useState(false);
+  const aiConsent = useAiConsent();
   const [userId, setUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
