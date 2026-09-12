@@ -2,7 +2,13 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Navigate, Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight, RotateCcw, History } from "lucide-react";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight, RotateCcw, History, Info } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   logKolRateChange,
   fetchKolRateAuditLogs,
