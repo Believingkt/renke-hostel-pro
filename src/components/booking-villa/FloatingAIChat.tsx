@@ -9,6 +9,9 @@ import { Link, useLocation } from "react-router-dom";
 import { parseRoomCards, RoomCardList } from "@/components/ai/RoomCards";
 import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 type Msg = { id?: string; role: "user" | "assistant"; content: string };
 
@@ -20,6 +23,7 @@ interface Props {
 
 export default function FloatingAIChat({ accommodationId, accommodationName, contactHref }: Props) {
   const [open, setOpen] = useState(false);
+  const aiConsent = useAiConsent();
   const [userId, setUserId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
@@ -100,6 +104,8 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   const send = async () => {
     const text = input.trim();
     if (!text || loading) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
     setInput("");
     setLoading(true);
     setStreaming("");
@@ -203,6 +209,11 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
 
   return (
     <>
+      <AIConsentDialog
+        open={open && aiConsent.status === "not_granted"}
+        onAccept={() => { void aiConsent.grant(); }}
+        onDecline={() => { aiConsent.decline(); setOpen(false); }}
+      />
       {/* 懸浮按鈕 */}
       {!open && (
         <div className="fixed z-[45] right-3 md:right-6 bottom-[calc(env(safe-area-inset-bottom,0px)+232px)] md:bottom-6 flex items-end gap-2">
@@ -368,6 +379,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                   <Send className="w-4 h-4" />
                 </Button>
               </form>
+              <div className="pb-2 -mt-1">
+                <AIDisclosureNote />
+              </div>
             </>
 
         </SheetContent>

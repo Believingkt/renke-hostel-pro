@@ -17,6 +17,9 @@ import { parseTripCards, TripCardList } from "@/components/ai/TripCards";
 import { format, addDays } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 interface Message {
   role: "user" | "assistant";
@@ -44,8 +47,9 @@ const HOT_PICKS = [
   { id: "miaoli-pool", emoji: "🏊", title: "苗栗泳池度假", subtitle: "親子首選", query: "苗栗有泳池的民宿，6 人入住" },
 ];
 
-const PortalAIChatPanel = () => {
+const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const navigate = useNavigate();
+  const aiConsent = useAiConsent();
   const smartDefault = useMemo(() => getSmartDefault(), []);
 
   const [showAvatar, setShowAvatar] = useState(false);
@@ -101,6 +105,8 @@ const PortalAIChatPanel = () => {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
     setShowWelcome(false);
 
     const userMsg: Message = { role: "user", content: content.trim(), timestamp: new Date() };
@@ -318,6 +324,11 @@ const PortalAIChatPanel = () => {
 
   return (
     <div className="max-w-2xl mx-auto h-full flex flex-col">
+      <AIConsentDialog
+        open={aiConsent.status === "not_granted"}
+        onAccept={() => { void aiConsent.grant(); }}
+        onDecline={() => { aiConsent.decline(); onDecline?.(); }}
+      />
       <div className="bg-gradient-to-br from-white via-[hsl(35,85%,98%)] to-[hsl(25,80%,96%)] overflow-hidden flex flex-col relative flex-1 min-h-0">
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[hsl(25,30%,90%)]/60 bg-white/60 backdrop-blur-sm">
@@ -520,6 +531,9 @@ const PortalAIChatPanel = () => {
               <Send className="h-4 w-4" />
             </Button>
           )}
+        </div>
+        <div className="bg-white/80 pb-2">
+          <AIDisclosureNote />
         </div>
       </div>
 

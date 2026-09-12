@@ -1482,6 +1482,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_assistant_consents: {
+        Row: {
+          consent_version: string
+          consented: boolean
+          consented_at: string | null
+          created_at: string
+          revoked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_version?: string
+          consented?: boolean
+          consented_at?: string | null
+          created_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_version?: string
+          consented?: boolean
+          consented_at?: string | null
+          created_at?: string
+          revoked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_conversation_logs: {
         Row: {
           accommodation_id: string | null

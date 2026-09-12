@@ -23,6 +23,9 @@ import { sanitizeAIContent } from "@/utils/sanitizeHtml";
 import { getThemeClassByAccommodation } from "@/constants/themes";
 import { InlineChatPayment } from "@/components/InlineChatPayment";
 import { RecommendedItemCards, type RecommendedItem } from "@/components/ai/RecommendedItemCards";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 
 
 // 把 AI 文字裡的 /book?... 訂購連結抽出來，改成 App 內跳轉按鈕（避免整頁重新載入）
@@ -85,6 +88,7 @@ export default function AIBooking() {
     }
   ]);
   const [input, setInput] = useState("");
+  const aiConsent = useAiConsent();
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -240,6 +244,8 @@ export default function AIBooking() {
 
   const sendMessageWithContent = async (content: string) => {
     if (isLoading || !accommodationId) return;
+    // 未取得同意前，絕不送出任何資料給第三方 AI 服務
+    if (!aiConsent.granted) return;
 
     const newMessages: Message[] = [
       ...messages,
@@ -1139,6 +1145,12 @@ export default function AIBooking() {
         keywords={["AI 管家", "智能助手", "線上訂房", accommodationName]}
       />
 
+      <AIConsentDialog
+        open={aiConsent.status === "not_granted"}
+        onAccept={() => { void aiConsent.grant(); }}
+        onDecline={() => { aiConsent.decline(); navigate("/"); }}
+      />
+
       {/* 頂部導航 - 手機版精簡 */}
       <div className="hidden md:block bg-primary text-primary-foreground shadow-lg">
         <div className="container mx-auto px-3 py-3 md:px-4 md:py-4 flex items-center justify-between">
@@ -1950,6 +1962,7 @@ export default function AIBooking() {
                 )}
               </Button>
             </div>
+            <AIDisclosureNote className="pt-2" />
           </div>
 
         </Card>
@@ -2023,6 +2036,7 @@ export default function AIBooking() {
               )}
             </Button>
           </div>
+          <AIDisclosureNote className="pt-1.5" />
         </div>
 
         {/* 設定面板 */}

@@ -29,6 +29,7 @@ import BiometricLoginCard from "@/components/member/BiometricLoginCard";
 
 
 import DeleteAccountSection from "@/components/member/DeleteAccountSection";
+import AiConsentCard from "@/components/member/AiConsentCard";
 import { useIsNativeApp } from "@/hooks/use-is-native-app";
 import { hapticSelection } from "@/lib/native/haptics";
 import { requestMemberLogout } from "@/lib/native/memberLogoutEvent";
@@ -272,6 +273,8 @@ const MemberProfile = () => {
       <PushNotificationCard />
 
       <BiometricLoginCard />
+
+      <AiConsentCard />
 
 
 
