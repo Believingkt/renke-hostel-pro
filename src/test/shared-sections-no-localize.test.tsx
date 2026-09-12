@@ -74,7 +74,7 @@ describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
   });
 
   it("LocationSection 未被本批修改，仍以原樣中文渲染", () => {
-    const { container } = render(<LocationSection locationInfo={null as any} />);
+    const { container } = render(<LocationSection address="宜蘭縣冬山鄉測試路 1 號" locationInfo={null as any} />);
     expect(container.textContent || "").not.toMatch(/undefined/);
   });
 });
