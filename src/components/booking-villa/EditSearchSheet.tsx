@@ -62,7 +62,9 @@ const Counter = ({
   min?: number;
   max?: number;
 }) => {
-  const { t } = useBookingLocale();
+  const { t, lang, dateLocale } = useBookingLocale();
+  // 僅日期顯示格式，不影響任何日期狀態或送出的查詢值
+  const dateFmt = lang === "en" ? "MMM d" : "M月d日";
   return (
     <div className="flex items-center justify-between py-3">
       <div className="flex items-center gap-2.5">
