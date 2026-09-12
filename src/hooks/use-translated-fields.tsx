@@ -31,7 +31,20 @@ export interface UseTranslatedFieldsResult {
   translating: boolean;
 }
 
-export function useTranslatedFields(fields: TranslatableField[]): UseTranslatedFieldsResult {
+export interface UseTranslatedFieldsOptions {
+  /**
+   * 冷啟動處理（可選，預設 false＝行為與過去完全相同）。
+   * 開啟後：僅在英文模式且該欄位尚未取得譯文時，先回傳空字串，
+   * 避免英文頁面先閃一下中文；中文模式完全不受影響。
+   */
+  deferUntilTranslated?: boolean;
+}
+
+export function useTranslatedFields(
+  fields: TranslatableField[],
+  options: UseTranslatedFieldsOptions = {},
+): UseTranslatedFieldsResult {
+  const { deferUntilTranslated = false } = options;
   const { lang } = useBookingLocale();
   const [map, setMap] = useState<Record<string, string>>({});
   const [translating, setTranslating] = useState(false);
