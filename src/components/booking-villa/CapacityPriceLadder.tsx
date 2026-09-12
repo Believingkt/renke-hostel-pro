@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
+import { useTranslatedFields } from "@/hooks/use-translated-fields";
 import { format } from "date-fns";
 import {
   TW_DEFAULT_CANCEL_RULES,
@@ -199,6 +200,37 @@ const CapacityPriceLadder = ({
       label,
     }));
   }, [planIncludes]);
+
+  // ── 動態內容顯示翻譯（僅顯示層；不影響計價、方案篩選或 onSelect 傳出的值） ──
+  const dynamicPlanFields = useMemo(() => {
+    const out: { table: string; column: string; id: string; text: string }[] = [];
+    const push = (column: string, id: string, text?: string | null) => {
+      if (text && text.trim()) out.push({ table: "accommodation_packages", column, id, text });
+    };
+    for (const tiers of Object.values(PRICING_TABLE)) {
+      for (const tier of tiers as TierPrice[]) {
+        const id = tier.packageId || tier.planName || String(tier.guestCount);
+        push("name", id, tier.planName);
+        push("child_age_note", id, tier.childAgeNote);
+        push("room_allocation", id, tier.roomAllocation);
+        (tier.includes || []).forEach((inc, i) => {
+          push(`includes_${i}`, id, inc?.text);
+          push(`includes_note_${i}`, id, inc?.price_note);
+        });
+      }
+    }
+    (planIncludes || []).forEach((label, i) =>
+      push(`plan_includes_${i}`, "plan_includes", label),
+    );
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [PRICING_TABLE, planIncludes]);
+  const { tf } = useTranslatedFields(dynamicPlanFields);
+  /** 方案名稱顯示用翻譯（原始 planName 仍原樣傳給訂單流程） */
+  const tfPlan = (text: string, id?: string | null) =>
+    tf({ table: "accommodation_packages", column: "name", id: id || text, text });
+  const tfPkg = (column: string, id: string, text: string) =>
+    tf({ table: "accommodation_packages", column, id, text });
 
   const [activeTier, setActiveTier] = useState<PricingTier>(() =>
     detectTierByDate(checkIn, isHolidayDate?.(checkIn))
