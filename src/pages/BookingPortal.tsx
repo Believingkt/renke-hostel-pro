@@ -41,6 +41,9 @@ import {
 } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import useTranslatedFields, { type TranslatableField } from "@/hooks/use-translated-fields";
 
 interface AccommodationInfo {
   id: string;
