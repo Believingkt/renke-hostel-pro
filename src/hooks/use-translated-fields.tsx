@@ -62,22 +62,34 @@ export function useTranslatedFields(
     setTranslating(true);
     void (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("translate-content", {
-          body: {
-            lang: "en",
-            items: valid.map((f) => ({
-              table: f.table,
-              column: f.column,
-              id: f.id,
-              text: f.text,
-            })),
-          },
-        });
+        // translate-content 每次最多處理 60 筆，超過會被截斷 → 客戶端分批送出
+        const CHUNK = 50;
+        const chunks: TranslatableField[][] = [];
+        for (let i = 0; i < valid.length; i += CHUNK) chunks.push(valid.slice(i, i + CHUNK));
+        const results = await Promise.all(
+          chunks.map((chunk) =>
+            supabase.functions.invoke("translate-content", {
+              body: {
+                lang: "en",
+                items: chunk.map((f) => ({
+                  table: f.table,
+                  column: f.column,
+                  id: f.id,
+                  text: f.text,
+                })),
+              },
+            }),
+          ),
+        );
         if (cancelled) return;
-        if (error) return;
-        const translations = (data as { translations?: Record<string, string> })?.translations;
-        if (translations && Object.keys(translations).length > 0) {
-          setMap((prev) => ({ ...prev, ...translations }));
+        const merged: Record<string, string> = {};
+        for (const { data, error } of results) {
+          if (error) continue;
+          const translations = (data as { translations?: Record<string, string> })?.translations;
+          if (translations) Object.assign(merged, translations);
+        }
+        if (Object.keys(merged).length > 0) {
+          setMap((prev) => ({ ...prev, ...merged }));
         }
       } catch {
         /* 翻譯失敗就維持原文顯示 */
@@ -85,6 +97,7 @@ export function useTranslatedFields(
         if (!cancelled) setTranslating(false);
       }
     })();
+
 
     return () => {
       cancelled = true;
