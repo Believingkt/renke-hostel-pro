@@ -654,7 +654,11 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
         .getAllByRole("button")
         .map((b) => b.textContent)
         .filter((txt) => txt && txt.includes("鄰近測試館"));
-      expect(cardsAfter).toEqual(cardsBefore);
+      // 第四批：起／from 為固定介面文字，已翻譯；名稱、價格、順序仍必須完全不變
+      expect(cardsAfter).toHaveLength(cardsBefore.length);
+      expect((cardsAfter[0] || "").replace(/from$/, "")).toBe(
+        (cardsBefore[0] || "").replace(/起$/, ""),
+      );
       expect(cardsAfter[0]).toContain("NT$12,345");
 
       // item 14：不呼叫 navigate
@@ -1178,7 +1182,9 @@ describe("booking villa i18n phase 1C-2B: capacity price ladder fixed display", 
       expect(screen.getByText("Hide breakdown")).toBeInTheDocument(); // 展開狀態不變
       expect(screen.getByText("Includes child surcharge +NT$12,345")).toBeInTheDocument();
       expect(priceOf()).toEqual(zhPrices);
-      expect(guestLine()).toBe(zhGuest);
+      // 第四批：方案標題為固定介面文字，英文模式顯示英文；人數本身不得改變
+      expect(guestLine()).toContain("6");
+      expect(guestLine()).not.toBe(zhGuest);
 
       fireEvent.click(screen.getByLabelText("切換為繁體中文"));
       expect(screen.getByText("預約這段專屬假期")).toBeInTheDocument();
