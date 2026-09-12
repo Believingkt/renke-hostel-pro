@@ -57,6 +57,13 @@ import FaqSection from "@/components/FaqSection";
 import ReviewsSection from "@/components/ReviewsSection";
 import BookingInfoSection from "@/components/BookingInfoSection";
 import LocationSection from "@/components/LocationSection";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const withQuery = (ui: React.ReactNode) => (
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    {ui}
+  </QueryClientProvider>
+);
 
 describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
   it("FacilitiesSection 顯示中文分類與設施名稱", () => {
@@ -90,7 +97,7 @@ describe("共用區塊：未傳 localize 時維持原樣繁中", () => {
   });
 
   it("ReviewsSection 無評論資料時不丟出錯誤（沿用原行為）", async () => {
-    const { container } = render(<ReviewsSection accommodationId="acc-1" />);
+    const { container } = render(withQuery(<ReviewsSection accommodationId="acc-1" />));
     await waitFor(() => expect(container).toBeTruthy());
   });
 
