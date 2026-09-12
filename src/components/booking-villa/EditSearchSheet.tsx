@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { format, addDays, differenceInDays } from "date-fns";
-import { zhTW } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
