@@ -22,6 +22,7 @@ import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
 import { useAiConsent } from "@/hooks/use-ai-consent";
 import VoiceConsentDialog from "@/components/ai/VoiceConsentDialog";
 import { useVoiceConsent } from "@/hooks/use-voice-consent";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -44,13 +45,14 @@ function getSmartDefault() {
 }
 
 const HOT_PICKS = [
-  { id: "yilan-bbq", emoji: "🔥", titleKey: "booking.portal.chat.quick.yilan.title", subtitleKey: "booking.portal.chat.quick.yilan.subtitle", query: "我想在宜蘭找可以烤肉的包棟，14 人 6 間房" },
-  { id: "nantou-pet", emoji: "🐶", titleKey: "booking.portal.chat.quick.nantou.title", subtitleKey: "booking.portal.chat.quick.nantou.subtitle", query: "南投有寵物友善的民宿嗎？" },
-  { id: "miaoli-pool", emoji: "🏊", titleKey: "booking.portal.chat.quick.miaoli.title", subtitleKey: "booking.portal.chat.quick.miaoli.subtitle", query: "苗栗有泳池的民宿，6 人入住" },
+  { id: "yilan-bbq", emoji: "🔥", title: "宜蘭烤肉包棟", subtitle: "適合 12-16 人", query: "我想在宜蘭找可以烤肉的包棟，14 人 6 間房" },
+  { id: "nantou-pet", emoji: "🐶", title: "南投寵物友善", subtitle: "山景民宿", query: "南投有寵物友善的民宿嗎？" },
+  { id: "miaoli-pool", emoji: "🏊", title: "苗栗泳池度假", subtitle: "親子首選", query: "苗栗有泳池的民宿，6 人入住" },
 ];
 
 const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const navigate = useNavigate();
+  const { t } = useBookingLocale();
   const aiConsent = useAiConsent();
   const voiceConsent = useVoiceConsent();
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
