@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from "react";
 import { format, addDays, eachDayOfInterval } from "date-fns";
-import { zhTW } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -17,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import {
   Search,
   MapPin,
@@ -75,6 +75,12 @@ const PortalSearchBar = ({
   isLoadingAvailability,
   onDestinationRequired,
 }: PortalSearchBarProps) => {
+  const { t, dateLocale } = useBookingLocale();
+  // 顯示用地區標籤：送出的搜尋字串維持原始中文地名，不受語系影響
+  const regionLabel = (raw: string) =>
+    ({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw]
+      ? t(({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw])
+      : raw;
   const [dateOpen, setDateOpen] = useState(false);
   const [dateOpenMobile, setDateOpenMobile] = useState(false);
   const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
@@ -154,8 +160,8 @@ const PortalSearchBar = ({
       }
       if (!rangeIsContinuouslyAvailable(from, to)) {
         toast({
-          title: "中間日期已無空房",
-          description: "請選擇連續有空房的日期區間",
+          title: t("booking.portal.search.gapToastTitle"),
+          description: t("booking.portal.search.gapToastDesc"),
           variant: "destructive",
         });
         onCheckInChange(from);
@@ -188,24 +194,24 @@ const PortalSearchBar = ({
 
   const childSummary = tieredChildren
     ? totalChildren > 0
-      ? ` · ${totalChildren} 兒童`
+      ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}`
       : ""
     : children > 0
-      ? ` · ${children} 兒童`
+      ? ` · ${t("booking.portal.search.childrenSummary", { count: children })}`
       : "";
 
   const renderGuestPicker = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
-        <p className="text-sm font-medium">總人數</p>
+        <p className="text-sm font-medium">{t("booking.portal.search.totalGuests")}</p>
         <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
-          {adults + totalChildren} 人
+          {t("booking.portal.search.totalGuestsValue", { count: adults + totalChildren })}
         </span>
       </div>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium">大人</p>
-          <p className="text-xs text-muted-foreground">18 歲以上</p>
+          <p className="text-sm font-medium">{t("booking.portal.search.adults")}</p>
+          <p className="text-xs text-muted-foreground">{t("booking.portal.search.adultsHint")}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onAdultsChange(Math.max(1, adults - 1))} disabled={adults <= 1}>
@@ -222,8 +228,8 @@ const PortalSearchBar = ({
         <>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">嬰兒</p>
-              <p className="text-xs text-muted-foreground">0–2 歲</p>
+              <p className="text-sm font-medium">{t("booking.portal.search.infants")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.infantsHint")}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onInfantsChange!(Math.max(0, (infants || 0) - 1))} disabled={(infants || 0) <= 0}>
@@ -237,8 +243,8 @@ const PortalSearchBar = ({
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">幼兒</p>
-              <p className="text-xs text-muted-foreground">3–6 歲</p>
+              <p className="text-sm font-medium">{t("booking.portal.search.toddlers")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.toddlersHint")}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onToddlersChange!(Math.max(0, (toddlers || 0) - 1))} disabled={(toddlers || 0) <= 0}>
@@ -252,8 +258,8 @@ const PortalSearchBar = ({
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium">兒童</p>
-              <p className="text-xs text-muted-foreground">7–12 歲</p>
+              <p className="text-sm font-medium">{t("booking.portal.search.children")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.childrenHint")}</p>
             </div>
             <div className="flex items-center gap-3">
               <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
@@ -269,8 +275,8 @@ const PortalSearchBar = ({
       ) : (
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium">兒童</p>
-            <p className="text-xs text-muted-foreground">0–12 歲</p>
+            <p className="text-sm font-medium">{t("booking.portal.search.children")}</p>
+            <p className="text-xs text-muted-foreground">{t("booking.portal.search.childrenHintWide")}</p>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
@@ -297,10 +303,10 @@ const PortalSearchBar = ({
 
   const renderRangeButtonContent = (compact = false) => {
     if (!checkIn && !checkOut) {
-      return <span className="truncate text-muted-foreground">選擇入住與退房日期</span>;
+      return <span className="truncate text-muted-foreground">{t("booking.portal.search.datesPlaceholder")}</span>;
     }
-    const inLabel = checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "入住 —";
-    const outLabel = checkOut ? format(checkOut, "M/d (EEE)", { locale: zhTW }) : "退房 —";
+    const inLabel = checkIn ? format(checkIn, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkInEmpty");
+    const outLabel = checkOut ? format(checkOut, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkOutEmpty");
     return (
       <span className={cn("flex items-center gap-1.5 truncate", compact && "text-sm")}>
         <span className="font-semibold text-foreground">{inLabel}</span>
@@ -313,7 +319,7 @@ const PortalSearchBar = ({
             className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap"
             style={{ background: "hsl(25, 80%, 95%)", color: "hsl(25, 70%, 40%)" }}
           >
-            {nights} 晚
+            {t("booking.portal.search.nights", { count: nights })}
           </span>
         )}
       </span>
@@ -326,22 +332,22 @@ const PortalSearchBar = ({
       style={{ background: "hsl(25, 80%, 97%)" }}
     >
       <p className="text-xs text-muted-foreground">
-        {!checkIn ? "選擇入住日期" : !checkOut ? "選擇退房日期" : "入住與退房日期"}
+        {!checkIn ? t("booking.portal.search.pickCheckIn") : !checkOut ? t("booking.portal.search.pickCheckOut") : t("booking.portal.search.rangeTitle")}
       </p>
       <div className="mt-1 flex items-center gap-2 text-sm flex-wrap">
         <span className={cn("font-medium", checkIn ? "text-foreground" : "text-muted-foreground")}>
-          {checkIn ? format(checkIn, "M/d (EEE)", { locale: zhTW }) : "入住 —"}
+          {checkIn ? format(checkIn, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkInEmpty")}
         </span>
         <span className="text-muted-foreground">→</span>
         <span className={cn("font-medium", checkOut ? "text-foreground" : "text-muted-foreground")}>
-          {checkOut ? format(checkOut, "M/d (EEE)", { locale: zhTW }) : "退房 —"}
+          {checkOut ? format(checkOut, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkOutEmpty")}
         </span>
         {nights > 0 && (
           <span
             className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
             style={{ background: "hsl(25, 70%, 55%)", color: "white" }}
           >
-            共 {nights} 晚
+            {t("booking.portal.search.nightsTotal", { count: nights })}
           </span>
         )}
       </div>
@@ -375,7 +381,7 @@ const PortalSearchBar = ({
       />
       <div className="flex items-center justify-between px-4 pb-3 pt-1">
         <p className="text-xs text-muted-foreground">
-          {availableDateSet ? "僅可選擇連續有空房的日期" : "點選入住，再點選退房"}
+          {availableDateSet ? t("booking.portal.search.hintAvailable") : t("booking.portal.search.hintDefault")}
         </p>
         {(checkIn || checkOut) && (
           <button
@@ -386,7 +392,7 @@ const PortalSearchBar = ({
               onCheckOutChange(undefined);
             }}
           >
-            清除
+            {t("booking.portal.search.clear")}
           </button>
         )}
       </div>
@@ -401,13 +407,13 @@ const PortalSearchBar = ({
           {/* Destination */}
           <div className="flex-1 text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              目的地 <span className="text-muted-foreground/70 text-xs">（選填）</span>
+              {t("booking.portal.search.destination")} <span className="text-muted-foreground/70 text-xs">{t("booking.portal.search.destinationOptional")}</span>
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
               <Input
                 ref={desktopDestinationInputRef}
-                placeholder="城市、地區或民宿名稱"
+                placeholder={t("booking.portal.search.destinationPlaceholder")}
                 className="!h-12 !min-h-12 !py-3 !pl-10 border-border text-foreground"
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -422,7 +428,7 @@ const PortalSearchBar = ({
                   onClick={() => onSearchQueryChange(s)}
                   className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
-                  {s}
+                  {regionLabel(s)}
                 </button>
               ))}
             </div>
@@ -431,7 +437,7 @@ const PortalSearchBar = ({
           {/* Combined date range */}
           <div className="text-left min-w-[300px]">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              入住 / 退房
+              {t("booking.portal.search.dates")}
             </label>
             <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
@@ -458,7 +464,7 @@ const PortalSearchBar = ({
           {/* Guests & Rooms */}
           <div className="text-left">
             <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
-              房客
+              {t("booking.portal.search.guests")}
             </label>
             <Popover>
               <PopoverTrigger asChild>
@@ -467,7 +473,7 @@ const PortalSearchBar = ({
                   className="h-10 justify-start text-left font-normal border-border text-foreground gap-2 hover:bg-transparent hover:text-foreground"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{totalChildren > 0 ? ` · ${totalChildren} 兒童` : ""}
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
@@ -483,7 +489,7 @@ const PortalSearchBar = ({
             onClick={onSearch}
           >
             <Search className="h-4 w-4 mr-2" />
-            搜尋
+            {t("booking.portal.search.submit")}
           </Button>
         </div>
 
@@ -494,7 +500,7 @@ const PortalSearchBar = ({
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
               <Input
                 ref={mobileDestinationInputRef}
-                placeholder="城市、地區或民宿名稱（選填）"
+                placeholder={t("booking.portal.search.destinationPlaceholderOptional")}
                 className="!pl-10 h-11 border-border text-foreground text-base"
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
@@ -509,7 +515,7 @@ const PortalSearchBar = ({
                   onClick={() => onSearchQueryChange(s)}
                   className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
                 >
-                  {s}
+                  {regionLabel(s)}
                 </button>
               ))}
             </div>
@@ -544,7 +550,7 @@ const PortalSearchBar = ({
                   disabled={!checkIn || !checkOut}
                   onClick={() => setDateOpenMobile(false)}
                 >
-                  {checkIn && checkOut ? `確認 · 共 ${nights} 晚` : "請選擇入住與退房日期"}
+                  {checkIn && checkOut ? t("booking.portal.search.confirmNights", { count: nights }) : t("booking.portal.search.selectDatesFirst")}
                 </Button>
               </div>
             </SheetContent>
@@ -559,7 +565,7 @@ const PortalSearchBar = ({
                   className="flex-1 h-11 justify-start text-left font-normal border-border text-foreground text-base gap-2 hover:bg-transparent hover:text-foreground"
                 >
                   <Users className="h-4 w-4 text-muted-foreground shrink-0" />
-                  {adults} 大人{totalChildren > 0 ? ` · ${totalChildren} 兒童` : ""}
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-72 p-4" align="start">
@@ -573,14 +579,17 @@ const PortalSearchBar = ({
               onClick={onSearch}
             >
               <Search className="h-4 w-4 mr-1.5" />
-              搜尋
+              {t("booking.portal.search.submit")}
             </Button>
           </div>
 
           {checkIn && checkOut && (
             <p className="text-sm text-muted-foreground text-center">
-              {format(checkIn, "M/d (EEE)", { locale: zhTW })} 至{" "}
-              {format(checkOut, "M/d (EEE)", { locale: zhTW })}，共 {nights} 晚
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
             </p>
           )}
         </div>
@@ -588,8 +597,11 @@ const PortalSearchBar = ({
         <div className="hidden md:block">
           {checkIn && checkOut && (
             <p className="text-sm text-muted-foreground mt-3 text-center">
-              {format(checkIn, "yyyy/M/d (EEE)", { locale: zhTW })} 至{" "}
-              {format(checkOut, "yyyy/M/d (EEE)", { locale: zhTW })}，共 {nights} 晚
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
             </p>
           )}
         </div>

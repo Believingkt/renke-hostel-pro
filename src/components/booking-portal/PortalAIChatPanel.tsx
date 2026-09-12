@@ -22,6 +22,7 @@ import AIDisclosureNote from "@/components/ai/AIDisclosureNote";
 import { useAiConsent } from "@/hooks/use-ai-consent";
 import VoiceConsentDialog from "@/components/ai/VoiceConsentDialog";
 import { useVoiceConsent } from "@/hooks/use-voice-consent";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface Message {
   role: "user" | "assistant";
@@ -51,6 +52,7 @@ const HOT_PICKS = [
 
 const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
   const navigate = useNavigate();
+  const { t } = useBookingLocale();
   const aiConsent = useAiConsent();
   const voiceConsent = useVoiceConsent();
   const [showVoiceConsent, setShowVoiceConsent] = useState(false);
@@ -152,7 +154,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
       });
 
       if (resp.status === 429) {
-        toast({ title: "請求過於頻繁", description: "請稍後再試", variant: "destructive" });
+        toast({ title: t("booking.portal.chat.rateLimitTitle"), description: t("booking.portal.chat.rateLimitDesc"), variant: "destructive" });
         setIsLoading(false);
         return;
       }
@@ -289,7 +291,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
       setIsLoading(false);
     } catch (e) {
       console.error("Portal AI chat error:", e);
-      toast({ title: "AI 管家暫時無法回應", description: "請稍後再試", variant: "destructive" });
+      toast({ title: t("booking.portal.chat.errorTitle"), description: t("booking.portal.chat.errorDesc"), variant: "destructive" });
       setIsLoading(false);
     }
   };
@@ -363,15 +365,15 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
           <div className="flex items-center gap-2">
             <img
               src={assistantAvatar}
-              alt="小安"
+              alt={t("booking.portal.chat.avatarAlt")}
               className="h-8 w-8 rounded-full object-cover ring-2 ring-[hsl(25,70%,55%)]/30 cursor-pointer"
               onClick={() => setShowAvatar(true)}
               loading="eager"
             />
             <div>
-              <p className="text-sm font-semibold text-foreground leading-tight">AI 找房間 · 小安</p>
+              <p className="text-sm font-semibold text-foreground leading-tight">{t("booking.portal.chat.headerTitle")}</p>
               <p className="text-[10px] text-muted-foreground leading-tight">
-                {isRecording ? "🎤 聆聽中..." : isTranscribing ? "辨識中..." : isLoading ? "思考中..." : isAssistantSpeaking ? "🔊 說話中" : "在線"}
+                {isRecording ? t("booking.portal.chat.statusListening") : isTranscribing ? t("booking.portal.chat.statusTranscribing") : isLoading ? t("booking.portal.chat.statusThinking") : isAssistantSpeaking ? t("booking.portal.chat.statusSpeaking") : t("booking.portal.chat.statusOnline")}
               </p>
             </div>
           </div>
@@ -381,14 +383,14 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
               size="sm"
               onClick={toggleAutoSpeak}
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
-              title={autoSpeak ? "關閉自動朗讀" : "開啟自動朗讀"}
+              title={autoSpeak ? t("booking.portal.chat.speakToggleOff") : t("booking.portal.chat.speakToggleOn")}
             >
               {autoSpeak ? <Volume2 className="h-3.5 w-3.5 mr-1 text-[hsl(25,70%,55%)]" /> : <VolumeX className="h-3.5 w-3.5 mr-1" />}
-              {autoSpeak ? "朗讀開" : "朗讀關"}
+              {autoSpeak ? t("booking.portal.chat.speakOn") : t("booking.portal.chat.speakOff")}
             </Button>
-            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title="重新開始">
+            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 text-xs text-muted-foreground hover:text-foreground" title={t("booking.portal.chat.resetTitle")}>
               <RotateCcw className="h-3.5 w-3.5 mr-1" />
-              重來
+              {t("booking.portal.chat.reset")}
             </Button>
           </div>
         </div>
@@ -398,8 +400,8 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
           {showWelcome && messages.length === 0 ? (
             <div className="w-full flex flex-col items-center text-center gap-5 animate-in fade-in duration-500">
               <div className="space-y-1">
-                <p className="text-base font-bold text-foreground">開口或輸入，就能訂房</p>
-                <p className="text-xs text-muted-foreground">告訴我「想去哪、幾個人、什麼時候」即可</p>
+                <p className="text-base font-bold text-foreground">{t("booking.portal.chat.welcomeTitle")}</p>
+                <p className="text-xs text-muted-foreground">{t("booking.portal.chat.welcomeSubtitle")}</p>
               </div>
             </div>
           ) : (
@@ -492,7 +494,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
                 <div className="flex justify-center">
                   <div className="bg-white rounded-full px-4 py-2 shadow-sm flex items-center gap-2">
                     <Loader2 className="h-4 w-4 animate-spin text-[hsl(25,70%,50%)]" />
-                    <span className="text-xs text-muted-foreground">小安思考中...</span>
+                    <span className="text-xs text-muted-foreground">{t("booking.portal.chat.thinking")}</span>
                   </div>
                 </div>
               )}
@@ -523,7 +525,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
 
         <div className="border-t border-[hsl(25,30%,90%)]/60 bg-white/80 backdrop-blur px-3 py-2.5 flex gap-2 items-center">
           <Input
-            placeholder="或輸入文字..."
+            placeholder={t("booking.portal.chat.inputPlaceholder")}
             className="flex-1 !min-h-[40px] !h-10 text-sm text-foreground border-border rounded-full px-4"
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -544,7 +546,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
                 ? "bg-red-500 text-white animate-pulse scale-110"
                 : "bg-gradient-to-br from-[hsl(25,80%,60%)] to-[hsl(15,75%,50%)] text-white hover:scale-110"
             } disabled:opacity-50`}
-            title={isRecording ? "停止錄音" : "語音輸入"}
+            title={isRecording ? t("booking.portal.chat.micStop") : t("booking.portal.chat.micStart")}
           >
             {isTranscribing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
           </button>
@@ -568,10 +570,10 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
       <Dialog open={showAvatar} onOpenChange={setShowAvatar}>
         <DialogContent className="sm:max-w-xs p-2 bg-white rounded-2xl">
           <div className="flex flex-col items-center gap-3 py-4">
-            <img src={assistantAvatar} alt="AI 管家 小安" className="w-48 h-48 rounded-full object-cover shadow-lg" />
+            <img src={assistantAvatar} alt={t("booking.portal.chat.brandName")} className="w-48 h-48 rounded-full object-cover shadow-lg" />
             <div className="text-center">
-              <p className="font-semibold text-lg text-foreground">AI 管家 小安</p>
-              <p className="text-sm text-muted-foreground">為您搜尋全平台最佳民宿</p>
+              <p className="font-semibold text-lg text-foreground">{t("booking.portal.chat.brandName")}</p>
+              <p className="text-sm text-muted-foreground">{t("booking.portal.chat.brandSubtitle")}</p>
             </div>
           </div>
         </DialogContent>

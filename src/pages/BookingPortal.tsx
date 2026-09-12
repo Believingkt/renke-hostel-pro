@@ -41,6 +41,9 @@ import {
 } from "@/lib/sensan-pricing";
 import { classifyDayTier } from "@/utils/templatePriceResolver";
 import { openFrontendBooking } from "@/lib/frontendUrl";
+import { BookingLocaleProvider, useBookingLocale } from "@/contexts/BookingLocaleContext";
+import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
+import useTranslatedFields, { type TranslatableField } from "@/hooks/use-translated-fields";
 
 interface AccommodationInfo {
   id: string;
@@ -146,8 +149,9 @@ function deriveFeatureTags(facilities: FacilityRow[]): string[] {
   return Array.from(tags);
 }
 
-const BookingPortal = () => {
+const BookingPortalInner = () => {
   const navigate = useNavigate();
+  const { t } = useBookingLocale();
   const [accommodations, setAccommodations] = useState<AccommodationInfo[]>([]);
   const [packagedAccIds, setPackagedAccIds] = useState<Set<string>>(new Set());
   const [roomTypes, setRoomTypes] = useState<RoomTypeResult[]>([]);
@@ -924,6 +928,33 @@ const BookingPortal = () => {
     filters.maxPrice > 0 || filters.selectedAccommodation !== "all" || 
     filters.selectedRegion !== "all";
 
+  // ── 顯示層動態翻譯：只用於 JSX 呈現，所有篩選／判定／導頁一律讀原始欄位 ──
+  const dynamicFields = useMemo<TranslatableField[]>(() => {
+    const fields: TranslatableField[] = [];
+    for (const a of accommodations) {
+      const push = (column: string, text?: string | null) => {
+        if (text && text.trim()) fields.push({ table: "accommodation_info", column, id: a.id, text });
+      };
+      push("name", a.name);
+      push("card_display_name", a.card_display_name);
+      push("card_location", a.card_location);
+      push("region_1", a.region_1);
+      push("region_2", a.region_2);
+      push("card_editor_title", a.card_editor_title);
+      push("card_editor_body", a.card_editor_body);
+      push("card_cta_label", a.card_cta_label);
+      push("about_title", a.about_title);
+      push("about_description", a.about_description);
+    }
+    return fields;
+  }, [accommodations]);
+
+  const { tf } = useTranslatedFields(dynamicFields, { deferUntilTranslated: true });
+
+  const td = (accId: string, column: string, text?: string | null) =>
+    text && text.trim() ? tf({ table: "accommodation_info", column, id: accId, text }) : "";
+
+
   return (
     <div className="min-h-screen bg-background pb-16 md:pb-0">
       {/* ── Header ── */}
@@ -931,10 +962,11 @@ const BookingPortal = () => {
         <AtmPaymentBanner />
         <div className="max-w-7xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between">
           <Link to="/booking" className="flex items-center gap-2">
-            <img src={lokezeLogo} alt="Lakeze 人客多" className="h-20 sm:h-24 object-contain" />
+            <img src={lokezeLogo} alt={t("booking.portal.header.logoAlt")} className="h-20 sm:h-24 object-contain" />
           </Link>
           <div className="hidden md:flex flex-1" />
           <div className="flex items-center gap-2">
+            <BookingLanguageSwitch className="mr-0.5" />
             {isLoggedIn ? (
               <Button
                 variant="ghost"
@@ -943,7 +975,7 @@ const BookingPortal = () => {
                 className="gap-1.5"
               >
                 <User className="h-4 w-4" />
-                {memberName || "會員中心"}
+                {memberName || t("booking.portal.header.member")}
               </Button>
             ) : (
               <button
@@ -951,7 +983,7 @@ const BookingPortal = () => {
                 className="flex items-center gap-1.5 text-[hsl(25,80%,50%)] font-semibold text-sm hover:opacity-80 transition-opacity"
               >
                 <LogIn className="h-5 w-5" />
-                登入 / 註冊
+                {t("booking.portal.header.login")}
               </button>
             )}
           </div>
@@ -972,10 +1004,10 @@ const BookingPortal = () => {
         />
         <div className="relative max-w-7xl mx-auto px-3 sm:px-4 text-center text-white transition-all duration-300 ease-in-out py-8 md:py-20">
           <h1 className="font-bold drop-shadow-sm text-2xl sm:text-3xl md:text-5xl mb-2 sm:mb-3">
-            探索優質包棟民宿
+            {t("booking.portal.hero.title")}
           </h1>
           <p className="opacity-90 text-sm sm:text-base md:text-lg mb-4 sm:mb-6">
-            會員優惠  |  安心付款  |  免費取消
+            {t("booking.portal.hero.subtitle")}
           </p>
 
           <div className="relative">
@@ -1002,11 +1034,11 @@ const BookingPortal = () => {
               isLoadingAvailability={loadingAvailability}
             />
             <div className="max-w-4xl mx-auto px-1 sm:px-0 mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
-              <span className="text-[11px] text-white/90 mr-1">適合人數：</span>
+              <span className="text-[11px] text-white/90 mr-1">{t("booking.portal.hero.groupLabel")}</span>
               {[
-                { label: "6-10 人", value: 8 },
-                { label: "12-16 人", value: 14 },
-                { label: "16+ 人", value: 18 },
+                { label: t("booking.portal.hero.chipSmall"), value: 8 },
+                { label: t("booking.portal.hero.chipMedium"), value: 14 },
+                { label: t("booking.portal.hero.chipLarge"), value: 18 },
               ].map((chip) => {
                 const active = adults === chip.value;
                 return (
@@ -1035,29 +1067,29 @@ const BookingPortal = () => {
           {[
             {
               icon: Gift,
-              title: "新會員優惠",
-              desc: "註冊即享首訂折扣",
+              title: t("booking.portal.promo.member.title"),
+              desc: t("booking.portal.promo.member.desc"),
               color: "hsl(25, 80%, 55%)",
               bg: "hsl(25, 80%, 96%)",
             },
             {
               icon: Ticket,
-              title: "限時優惠券",
-              desc: "平台專屬折扣碼",
+              title: t("booking.portal.promo.coupon.title"),
+              desc: t("booking.portal.promo.coupon.desc"),
               color: "hsl(200, 70%, 50%)",
               bg: "hsl(200, 70%, 96%)",
             },
             {
               icon: TrendingUp,
-              title: "紅利回饋",
-              desc: "消費累積紅利點數",
+              title: t("booking.portal.promo.points.title"),
+              desc: t("booking.portal.promo.points.desc"),
               color: "hsl(142, 70%, 40%)",
               bg: "hsl(142, 70%, 96%)",
             },
             {
               icon: BedDouble,
-              title: "精選房型",
-              desc: `${roomTypes.length} 種房型可選`,
+              title: t("booking.portal.promo.rooms.title"),
+              desc: t("booking.portal.promo.rooms.desc", { count: roomTypes.length }),
               color: "hsl(270, 60%, 55%)",
               bg: "hsl(270, 60%, 96%)",
             },
@@ -1092,10 +1124,24 @@ const BookingPortal = () => {
         const others = [secondary, ...rest].filter(Boolean) as AccommodationInfo[];
         // Mobile horizontal strip: include every accommodation except the hero
         const mobileOthers = accommodations.filter((a) => !hero || a.id !== hero.id);
-        const locOf = (a: AccommodationInfo) =>
-          a.country === "台灣" || !a.country
-            ? [a.region_1, a.region_2].filter(Boolean).join(" · ")
-            : [a.country, a.region_1, a.region_2].filter(Boolean).join(" · ");
+        // 顯示用：地區以譯文組合；country 與所有判定仍讀原始欄位
+        const locOf = (a: AccommodationInfo) => {
+          const r1 = td(a.id, "region_1", a.region_1);
+          const r2 = td(a.id, "region_2", a.region_2);
+          return a.country === "台灣" || !a.country
+            ? [r1, r2].filter(Boolean).join(" · ")
+            : [a.country, r1, r2].filter(Boolean).join(" · ");
+        };
+        const editorBodyOf = (a: AccommodationInfo) => {
+          if (a.card_editor_body) return td(a.id, "card_editor_body", a.card_editor_body);
+          if (a.about_description) return td(a.id, "about_description", a.about_description);
+          if (a.about_title) return td(a.id, "about_title", a.about_title);
+          return "";
+        };
+        const displayNameOf = (a: AccommodationInfo) =>
+          a.card_display_name
+            ? td(a.id, "card_display_name", a.card_display_name)
+            : td(a.id, "name", a.name);
         const minPriceOf = (id: string) => {
           const ps = roomTypes.filter((r) => r.accommodation_id === id).map((r) => r.base_price).filter((p) => p > 0);
           return ps.length ? Math.min(...ps) : null;
@@ -1105,22 +1151,28 @@ const BookingPortal = () => {
             {/* Editorial header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 sm:mb-8 md:mb-12 gap-4">
               <div className="space-y-1.5">
-                <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">Selected Retreats</span>
-                <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">精選民宿</h2>
+                <span className="text-primary font-medium tracking-[0.2em] uppercase text-xs">{t("booking.portal.featured.eyebrow")}</span>
+                <h2 style={serif} className="text-3xl sm:text-4xl md:text-5xl text-foreground leading-tight">{t("booking.portal.featured.title")}</h2>
               </div>
               <div className="hidden md:block h-px flex-grow mx-8 bg-border mb-3" />
-              <span className="text-muted-foreground text-sm">探索深度旅宿的質感生活</span>
+              <span className="text-muted-foreground text-sm">{t("booking.portal.featured.subtitle")}</span>
             </div>
 
             {/* ── Mobile: Immersive vertical feed ── */}
             <div className="md:hidden divide-y divide-border/40">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
-                const editorTitle = acc.card_editor_title || "管家推薦 · Editor's Pick";
-                const ctaLabel = acc.card_cta_label || "探索這間民宿";
-                const displayName = acc.card_display_name || acc.name;
-                const displayLocation = acc.card_location || locOf(acc);
+                const editorBody = editorBodyOf(acc);
+                const editorTitle = acc.card_editor_title
+                  ? td(acc.id, "card_editor_title", acc.card_editor_title)
+                  : t("booking.portal.featured.editorDefaultLong");
+                const ctaLabel = acc.card_cta_label
+                  ? td(acc.id, "card_cta_label", acc.card_cta_label)
+                  : t("booking.portal.featured.ctaDefault");
+                const displayName = displayNameOf(acc);
+                const displayLocation = acc.card_location
+                  ? td(acc.id, "card_location", acc.card_location)
+                  : locOf(acc);
                 const cardPhotos =
                   (acc.card_photos && acc.card_photos.length > 0
                     ? acc.card_photos
@@ -1161,7 +1213,7 @@ const BookingPortal = () => {
                           <span className="text-primary font-semibold text-base">
                             NT$ {price.toLocaleString()}
                           </span>{" "}
-                          起 / 晚
+                          {t("booking.portal.featured.priceUnit")}
                         </p>
                       )}
                     </div>
@@ -1208,11 +1260,17 @@ const BookingPortal = () => {
             <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
               {accommodations.map((acc, idx) => {
                 const price = minPriceOf(acc.id);
-                const editorBody = acc.card_editor_body || acc.about_description || acc.about_title;
-                const editorTitle = acc.card_editor_title || "管家推薦";
-                const ctaLabel = acc.card_cta_label || "探索這間民宿";
-                const displayName = acc.card_display_name || acc.name;
-                const displayLocation = acc.card_location || locOf(acc);
+                const editorBody = editorBodyOf(acc);
+                const editorTitle = acc.card_editor_title
+                  ? td(acc.id, "card_editor_title", acc.card_editor_title)
+                  : t("booking.portal.featured.editorDefault");
+                const ctaLabel = acc.card_cta_label
+                  ? td(acc.id, "card_cta_label", acc.card_cta_label)
+                  : t("booking.portal.featured.ctaDefault");
+                const displayName = displayNameOf(acc);
+                const displayLocation = acc.card_location
+                  ? td(acc.id, "card_location", acc.card_location)
+                  : locOf(acc);
                 const cardPhotos =
                   (acc.card_photos && acc.card_photos.length > 0
                     ? acc.card_photos
@@ -1253,7 +1311,7 @@ const BookingPortal = () => {
                         <span className="text-primary font-semibold text-sm">
                           NT$ {price.toLocaleString()}
                         </span>{" "}
-                        起 / 晚
+                        {t("booking.portal.featured.priceUnit")}
                       </p>
                     )}
 
@@ -1291,9 +1349,9 @@ const BookingPortal = () => {
 
       {/* 可被搜尋引擎跟隨的館別內部連結（同時方便鍵盤／讀屏使用者） */}
       {accommodations.some((a) => a.short_url_alias) && (
-        <nav aria-label="所有館別" className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-8">
+        <nav aria-label={t("booking.portal.allProperties.title")} className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-8">
           <h2 className="text-xs tracking-[0.2em] uppercase text-muted-foreground mb-2">
-            所有館別
+            {t("booking.portal.allProperties.title")}
           </h2>
           <ul className="flex flex-wrap gap-x-4 gap-y-2">
             {accommodations
@@ -1304,7 +1362,7 @@ const BookingPortal = () => {
                     href={`/${a.short_url_alias}`}
                     className="text-sm text-muted-foreground hover:text-primary underline-offset-4 hover:underline"
                   >
-                    {a.name}
+                    {td(a.id, "name", a.name) || a.name}
                   </a>
                 </li>
               ))}
@@ -1314,7 +1372,7 @@ const BookingPortal = () => {
 
       <button
         onClick={() => setAiOpen(true)}
-        aria-label="問問 AI 管家"
+        aria-label={t("booking.portal.ai.buttonAria")}
         aria-hidden={footerVisible}
         tabIndex={footerVisible ? -1 : 0}
         className={`group fixed z-[45] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+88px)] md:bottom-[calc(env(safe-area-inset-bottom,0px)+24px)] rounded-full shadow-lg hover:shadow-2xl flex items-center gap-1.5 sm:gap-2 pl-1.5 pr-3 py-1 sm:pl-1.5 sm:pr-4 sm:py-1.5 md:pl-2 md:pr-5 md:py-2 max-w-[92vw] bg-white/80 hover:bg-white backdrop-blur-md border border-border transition-all duration-300 ease-out hover:-translate-y-1 hover:scale-[1.03] active:scale-95 active:translate-y-0 ${
@@ -1331,13 +1389,13 @@ const BookingPortal = () => {
           />
           <img
             src={assistantAvatar}
-            alt="AI 管家羊駝"
+            alt={t("booking.portal.ai.avatarAlt")}
             className="relative w-[90%] h-[90%] object-contain drop-shadow-sm"
             loading="eager"
           />
         </span>
         <span className="text-xs sm:text-sm md:text-base font-medium text-foreground whitespace-nowrap">
-          問問 <span style={{ color: "#F08A3E" }}>AI 管家</span> 或長按說話
+          {t("booking.portal.ai.buttonPrefix")} <span style={{ color: "#F08A3E" }}>{t("booking.portal.ai.buttonBrand")}</span> {t("booking.portal.ai.buttonSuffix")}
         </span>
       </button>
 
@@ -1354,7 +1412,7 @@ const BookingPortal = () => {
               >
                 <Sparkles className="w-4 h-4" />
               </span>
-              AI 找房間
+              {t("booking.portal.ai.sheetTitle")}
             </SheetTitle>
           </SheetHeader>
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
@@ -1370,5 +1428,11 @@ const BookingPortal = () => {
     </div>
   );
 };
+
+const BookingPortal = () => (
+  <BookingLocaleProvider>
+    <BookingPortalInner />
+  </BookingLocaleProvider>
+);
 
 export default BookingPortal;

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { BedDouble, ChevronLeft, ChevronRight } from "lucide-react";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 interface Props {
   photos: string[];
@@ -22,6 +23,7 @@ const AccommodationPhotoCarousel = ({
   onClick,
   overlay,
 }: Props) => {
+  const { t } = useBookingLocale();
   const list = photos.filter(Boolean).slice(0, 8);
   const scrollerRef = useRef<HTMLDivElement>(null);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -113,7 +115,7 @@ const AccommodationPhotoCarousel = ({
         <>
           <div
             role="button"
-            aria-label="上一張"
+            aria-label={t("booking.portal.photos.prev")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
@@ -134,7 +136,7 @@ const AccommodationPhotoCarousel = ({
           </div>
           <div
             role="button"
-            aria-label="下一張"
+            aria-label={t("booking.portal.photos.next")}
             onMouseDown={(e) => e.stopPropagation()}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
