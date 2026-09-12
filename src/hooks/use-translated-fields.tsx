@@ -94,7 +94,11 @@ export function useTranslatedFields(
 
   const tf = (field: TranslatableField) => {
     if (lang !== "en") return field.text;
-    return map[keyOf(field)] || field.text;
+    const translated = map[keyOf(field)];
+    if (translated) return translated;
+    // 冷啟動：英文模式下尚未取得譯文時先不顯示中文原文（不做骨架、不做動畫）
+    if (deferUntilTranslated && field.text?.trim()) return "";
+    return field.text;
   };
 
   return { tf, translating };
