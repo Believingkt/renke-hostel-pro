@@ -56,6 +56,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookingConfirmationEmailPreview } from "@/components/admin/BookingConfirmationEmailPreview";
+import { BookingConfirmationRecipientsCard } from "@/components/admin/BookingConfirmationRecipientsCard";
 
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
