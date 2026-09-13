@@ -62,10 +62,39 @@ export function useTranslatedFields(
     setTranslating(true);
     void (async () => {
       try {
-        // translate-content 每次最多處理 60 筆，超過會被截斷 → 客戶端分批送出
-        const CHUNK = 50;
+        // 分批策略：同時看「筆數」與「字數預算」。
+        // 純看筆數會讓多段長文擠在同一批，模型輸出被 max_tokens 切斷 → 整批無譯文也無快取。
+        const MAX_ITEMS_PER_CHUNK = 25;
+        const MAX_CHARS_PER_CHUNK = 3000;
+
+        // 同一頁常重複渲染同一欄位（例如方案名稱出現三次）；重複送出會讓
+        // 後端快取 upsert 因重複衝突鍵整批失敗，這裡先去重。
+        const deduped: TranslatableField[] = [];
+        const seenKeys = new Set<string>();
+        for (const f of valid) {
+          const k = `${keyOf(f)}|${f.text}`;
+          if (seenKeys.has(k)) continue;
+          seenKeys.add(k);
+          deduped.push(f);
+        }
+
         const chunks: TranslatableField[][] = [];
-        for (let i = 0; i < valid.length; i += CHUNK) chunks.push(valid.slice(i, i + CHUNK));
+        let current: TranslatableField[] = [];
+        let currentChars = 0;
+        for (const f of deduped) {
+          const len = f.text.length;
+          if (
+            current.length > 0 &&
+            (current.length >= MAX_ITEMS_PER_CHUNK || currentChars + len > MAX_CHARS_PER_CHUNK)
+          ) {
+            chunks.push(current);
+            current = [];
+            currentChars = 0;
+          }
+          current.push(f);
+          currentChars += len;
+        }
+        if (current.length > 0) chunks.push(current);
         const results = await Promise.all(
           chunks.map((chunk) =>
             supabase.functions.invoke("translate-content", {

@@ -1,8 +1,29 @@
 import { Star, ExternalLink } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { format } from "date-fns";
+import type { Locale } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 
 import { makeSectionText, type SectionLocalize } from "@/components/section-localize";
+
+/**
+ * 評價日期（資料庫存的是「2025年11月」這類中文字串）在英文模式下重新格式化。
+ * 只在呼叫端有傳 localize（＝雙語頁面）且語言為英文時才轉換；
+ * 未傳 localize 的頁面（民宿官網首頁等）行為完全不變，也不寫回資料。
+ */
+const formatReviewDate = (raw: string, enabled: boolean, dateLocale: Locale): string => {
+  if (!enabled || !raw) return raw;
+  const m = raw.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?$/);
+  if (!m) return raw;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = m[3] ? Number(m[3]) : 1;
+  if (!year || !month || month > 12) return raw;
+  const d = new Date(year, month - 1, day);
+  if (Number.isNaN(d.getTime())) return raw;
+  return format(d, m[3] ? "d MMMM yyyy" : "MMMM yyyy", { locale: dateLocale });
+};
 
 interface ReviewsSectionProps {
   /** 可選：傳入才翻譯；未傳＝原樣繁中 */
@@ -43,6 +64,8 @@ const STALE_MS = 24 * 60 * 60 * 1000; // 24h
 
 const ReviewsSection = ({ accommodationId, customTitle, customSubtitle, localize }: ReviewsSectionProps) => {
   const { ui, dyn } = makeSectionText(localize);
+  const { lang, dateLocale } = useBookingLocale();
+  const localizeDates = !!localize && lang === "en";
   // 1. 先讀 accommodation_info 的 Google 評論快取
   const { data: googleData } = useQuery({
     queryKey: ['google-reviews', accommodationId],
@@ -163,7 +186,7 @@ const ReviewsSection = ({ accommodationId, customTitle, customSubtitle, localize
     : localReviews.map((r) => ({
         id: r.id,
         name: r.reviewer_name,
-        date: r.review_date,
+        date: formatReviewDate(r.review_date, localizeDates, dateLocale),
         rating: r.rating,
         comment: r.comment,
       }));
