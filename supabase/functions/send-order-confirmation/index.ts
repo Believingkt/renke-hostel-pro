@@ -220,8 +220,6 @@ serve(async (req: Request) => {
       subject: built.subject,
       html: built.html,
     };
-    // 沒有民宿端收件人時，payload 完全不帶 bcc 鍵（與改動前逐字相同）
-    if (bccEmails.length > 0) resendPayload.bcc = bccEmails;
 
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -238,29 +236,57 @@ serve(async (req: Request) => {
       return json({ success: false, error: "寄送失敗", details: respText }, resp.status);
     }
 
-    // 民宿副本去重紀錄：寫入失敗只記 log，不影響本次已成功寄出的信
+    // 民宿端副本：第二次獨立寄送，標題加「【副本】」。
+    // 整段靜默降級 — 任何失敗都不影響上面已成功送出的客人正本。
+    let bccSent = false;
     if (bccEmails.length > 0) {
       try {
-        let resendId: string | null = null;
-        try {
-          resendId = (JSON.parse(respText) as { id?: string })?.id ?? null;
-        } catch { /* ignore */ }
-        await supabase.from("booking_email_log").insert({
-          order_number: orderNumber,
-          email_type: BCC_EMAIL_TYPE,
-          recipient: bccEmails.join(","),
-          subject: built.subject,
-          status: "sent",
-          resend_id: resendId,
-          trigger_source: triggerSource,
+        const bccSubject = `【副本】${built.subject}`;
+        const bccResp = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: "人客多通知 <noreply@lakeze.com>",
+            to: bccEmails,
+            subject: bccSubject,
+            html: built.html,
+          }),
         });
-      } catch (logErr) {
-        console.error("[send-order-confirmation] venue bcc log insert failed", logErr);
+        const bccText = await bccResp.text();
+        if (!bccResp.ok) {
+          console.error(
+            `[send-order-confirmation] venue copy send failed [${bccResp.status}]: ${bccText}`,
+          );
+        } else {
+          bccSent = true;
+          let bccResendId: string | null = null;
+          try {
+            bccResendId = (JSON.parse(bccText) as { id?: string })?.id ?? null;
+          } catch { /* ignore */ }
+          try {
+            await supabase.from("booking_email_log").insert({
+              order_number: orderNumber,
+              email_type: BCC_EMAIL_TYPE,
+              recipient: bccEmails.join(","),
+              subject: bccSubject,
+              status: "sent",
+              resend_id: bccResendId,
+              trigger_source: triggerSource,
+            });
+          } catch (logErr) {
+            console.error("[send-order-confirmation] venue bcc log insert failed", logErr);
+          }
+        }
+      } catch (bccErr) {
+        console.error("[send-order-confirmation] venue copy exception", bccErr);
       }
     }
 
     console.log(
-      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource} bcc=${bccEmails.length}`,
+      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource} bcc=${bccEmails.length} bccSent=${bccSent}`,
     );
 
     return json({ success: true, message: "訂單確認信已寄出", to: built.to });
