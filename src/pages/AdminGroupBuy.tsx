@@ -1192,8 +1192,10 @@ export default function AdminGroupBuy() {
           </TabsContent>
 
           <TabsContent value="notify" className="space-y-3">
+            <GroupBuyVenueNotificationEmailsCard accommodationId={accommodationId} />
             <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />
           </TabsContent>
+
 
           <TabsContent value="orders" className="space-y-3">
             <Card>
