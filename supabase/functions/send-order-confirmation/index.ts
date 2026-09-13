@@ -103,19 +103,23 @@ async function resolveBookingConfirmationBccEmails(
     emails = emails.filter((e) => !blocked.has(e));
     if (emails.length === 0) return [];
 
-    // 去重：同一訂單同一 trigger_source 只寄一次民宿副本
-    const { data: logged } = await supabase
-      .from("booking_email_log")
-      .select("id")
-      .eq("order_number", orderNumber)
-      .eq("email_type", BCC_EMAIL_TYPE)
-      .eq("trigger_source", triggerSource)
-      .limit(1);
-    if ((logged?.length ?? 0) > 0) {
-      console.log(
-        `[send-order-confirmation] venue bcc already sent order=${orderNumber} source=${triggerSource}, skip`,
-      );
-      return [];
+    // 去重：首次成交信（auto）同一訂單只寄一次民宿副本。
+    // 改期（date_change / member_date_change）每次都是真實異動，客人每次都會收到一封確認信，
+    // 民宿副本同步跟著寄，維持與客人收信次數一致，故不做跨次去重。
+    if (triggerSource === "auto") {
+      const { data: logged } = await supabase
+        .from("booking_email_log")
+        .select("id")
+        .eq("order_number", orderNumber)
+        .eq("email_type", BCC_EMAIL_TYPE)
+        .eq("trigger_source", triggerSource)
+        .limit(1);
+      if ((logged?.length ?? 0) > 0) {
+        console.log(
+          `[send-order-confirmation] venue bcc already sent order=${orderNumber} source=${triggerSource}, skip`,
+        );
+        return [];
+      }
     }
 
     return emails;
