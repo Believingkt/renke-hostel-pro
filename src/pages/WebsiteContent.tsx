@@ -4421,13 +4421,20 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
-          <BookingNotificationEmailsCard accommodationId={currentAccommodationId ?? null} />
-
           <SaveButtonContainer
             onSave={handleSaveEmailNotification}
             isSaving={isSaving}
             saveText="儲存變更"
           />
+
+          {/* 區塊二：這封信要寄給誰 */}
+          <div className="rounded-lg border-l-4 border-primary bg-muted/30 px-4 py-3">
+            <h2 className="text-lg font-semibold">② 這封信要寄給誰</h2>
+            <p className="text-sm text-muted-foreground">
+              客人一定會收到。這裡設定民宿端要不要也收一份副本，留空＝只寄給客人。
+            </p>
+          </div>
+
           </div>
 
           <div className="xl:sticky xl:top-4">
