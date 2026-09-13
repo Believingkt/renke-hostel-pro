@@ -355,23 +355,23 @@ export const HeaderFooterSection = ({
             <ReadOnlyRow
               label="電話"
               value={phone}
-              hint="於「訂房確認通知」分頁維護"
+              hint="於「訂房確認信」分頁維護"
               onGo={() => goToTab('email-notification')}
-              goLabel="前往訂房確認通知"
+              goLabel="前往訂房確認信"
             />
             <ReadOnlyRow
               label="Email"
               value={email}
-              hint="於「訂房確認通知」分頁維護"
+              hint="於「訂房確認信」分頁維護"
               onGo={() => goToTab('email-notification')}
-              goLabel="前往訂房確認通知"
+              goLabel="前往訂房確認信"
             />
             <ReadOnlyRow
               label="LINE ID"
               value={lineId}
-              hint="於「訂房確認通知」分頁維護"
+              hint="於「訂房確認信」分頁維護"
               onGo={() => goToTab('email-notification')}
-              goLabel="前往訂房確認通知"
+              goLabel="前往訂房確認信"
             />
           </div>
         </div>

@@ -1769,7 +1769,7 @@ const WebsiteContent = () => {
         .eq("id", accommodationId);
       if (error) throw error;
       if (accommodationId) invalidateAccommodationCache(accommodationId);
-      toast.success('訂房確認通知設定已儲存');
+      toast.success('訂房確認信設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error saving email notification:', error);
       toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
@@ -2371,7 +2371,7 @@ const WebsiteContent = () => {
         .update({
           name: basicInfo.name,
           description: basicInfo.description,
-          // address / phone / email / line_id 由「交通地圖」與「訂房確認通知」分頁維護，此處不寫入避免覆蓋
+          // address / phone / email / line_id 由「交通地圖」與「訂房確認信」分頁維護，此處不寫入避免覆蓋
 
           facebook_url: basicInfo.facebook_url,
           instagram_url: basicInfo.instagram_url,
@@ -4278,7 +4278,7 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="email-notification" className="space-y-6">
-          <PageHeader title="訂房確認通知" icon={Mail} />
+          <PageHeader title="訂房確認信" icon={Mail} />
 
           <div className="grid gap-6 xl:grid-cols-2 items-start">
           <div className="space-y-6">
