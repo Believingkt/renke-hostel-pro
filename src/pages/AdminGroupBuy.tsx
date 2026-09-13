@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GroupBuyPaymentDraftsPanel } from "@/components/groupbuy/GroupBuyPaymentDraftsPanel";
 import { GroupBuyPageContentTab } from "@/components/admin/GroupBuyPageContentTab";
 import { GroupBuyNotificationSettings } from "@/components/admin/GroupBuyNotificationSettings";
+import { GroupBuyVenueNotificationEmailsCard } from "@/components/admin/GroupBuyVenueNotificationEmailsCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
