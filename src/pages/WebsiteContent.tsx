@@ -4281,6 +4281,14 @@ const WebsiteContent = () => {
 
           <div className="grid gap-6 xl:grid-cols-2 items-start">
           <div className="space-y-6">
+          {/* 區塊一：這封信長什麼樣 */}
+          <div className="rounded-lg border-l-4 border-primary bg-muted/30 px-4 py-3">
+            <h2 className="text-lg font-semibold">① 這封信長什麼樣</h2>
+            <p className="text-sm text-muted-foreground">
+              以下設定只影響訂房確認信的內容與版面，右側可即時預覽。
+            </p>
+          </div>
+
           <Card>
 
             <CardHeader className="pb-4">
