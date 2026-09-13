@@ -201,18 +201,30 @@ serve(async (req: Request) => {
       return json({ success: false, error: "郵件服務尚未設定" }, 500);
     }
 
+    // 民宿端副本收件人（失敗一律為空陣列，不影響客人收信）
+    const bccEmails = await resolveBookingConfirmationBccEmails(
+      supabase,
+      orderNumber,
+      triggerSource,
+      built.to,
+    );
+
+    const resendPayload: Record<string, unknown> = {
+      from: "人客多通知 <noreply@lakeze.com>",
+      to: [built.to],
+      subject: built.subject,
+      html: built.html,
+    };
+    // 沒有民宿端收件人時，payload 完全不帶 bcc 鍵（與改動前逐字相同）
+    if (bccEmails.length > 0) resendPayload.bcc = bccEmails;
+
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "人客多通知 <noreply@lakeze.com>",
-        to: [built.to],
-        subject: built.subject,
-        html: built.html,
-      }),
+      body: JSON.stringify(resendPayload),
     });
 
     const respText = await resp.text();
@@ -221,9 +233,31 @@ serve(async (req: Request) => {
       return json({ success: false, error: "寄送失敗", details: respText }, resp.status);
     }
 
+    // 民宿副本去重紀錄：寫入失敗只記 log，不影響本次已成功寄出的信
+    if (bccEmails.length > 0) {
+      try {
+        let resendId: string | null = null;
+        try {
+          resendId = (JSON.parse(respText) as { id?: string })?.id ?? null;
+        } catch { /* ignore */ }
+        await supabase.from("booking_email_log").insert({
+          order_number: orderNumber,
+          email_type: BCC_EMAIL_TYPE,
+          recipient: bccEmails.join(","),
+          subject: built.subject,
+          status: "sent",
+          resend_id: resendId,
+          trigger_source: triggerSource,
+        });
+      } catch (logErr) {
+        console.error("[send-order-confirmation] venue bcc log insert failed", logErr);
+      }
+    }
+
     console.log(
-      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource}`,
+      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource} bcc=${bccEmails.length}`,
     );
+
     return json({ success: true, message: "訂單確認信已寄出", to: built.to });
   } catch (e) {
     console.error("[send-order-confirmation] exception", e);
