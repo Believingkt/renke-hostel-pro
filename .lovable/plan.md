@@ -17,7 +17,41 @@
 - `email_send_log` 近 60 天只有 `magiclink / signup / recovery / pms_password_recovery` 四類（全是帳號信），**沒有任何訂房通知類紀錄**。
 - 民宿端實際收到通知的管道是**站內通知**，不是 email：`notifications` 表近 30 天 652 筆（`new_order` 301、`payment` 162、`status_update` 122…），由 DB trigger `create_new_order_notification` 產生，Header 鈴鐺呈現。
 
-**待你裁示**：既然一般訂房根本不讀這張表，(a) 引導流程把「通知信箱」列為必填其實不會讓民宿收到信（要另外改 `send-order-confirmation`，屬禁區）；(b) 建議這次只列為**選填／團購適用**，並在卡片上註明「目前僅團購訂單通知使用」。要 (a) 還是 (b)？
+### E-2 追加查證：這個欄位是共用，還是一般訂房有另一個被漏接的欄位？
+
+**結論：不是漏接。`booking_notification_emails` 從建立當下就是為團購設計的，一般訂房從來沒有對應的民宿端 email 欄位存在過。**
+
+**1. 原始設計意圖 —— 建表 migration 本身就是團購配對。**
+`supabase/migrations/20260822053810_d9607c28-037a-4e34-842c-ebb2b383da5a.sql` **同一支 migration、同一個 commit（`9a2610ec4`，2026-08-22 05:38 UTC）** 一次建立兩張表：`accommodation_notification_settings`（民宿層預設）與 `group_buy_campaign_notification_settings`（活動層覆寫）。兩張表欄位結構完全對稱（`text[] NOT NULL DEFAULT '{}'`），RLS 也成對撰寫。該 commit 只動了兩個檔案：這支 migration 與自動產生的 `types.ts`，**沒有夾帶任何一般訂房相關程式**。同日 commit `b3b37a9d5` 建立 `_shared/notifyRecipients.ts`，其檔頭註解寫「解析順序：活動覆寫 → 民宿預設。兩者不合併。」——「活動」即團購 campaign，語意上民宿層的存在目的就是**當團購活動沒設定時的 fallback**，不是獨立的一般訂房機制。
+
+現行 UI 文案也已明講（非我推測）：`src/components/admin/BookingNotificationEmailsCard.tsx:66` 寫「目前實際使用情境：團購新訂單、團購匯款回報」，`:74` 寫「一般訂房通知目前尚未啟用 Email，本設定暫供團購使用」。
+
+**2. 有沒有另一個專給一般訂房、但完全沒被引用的欄位？沒有。**
+掃描 `information_schema.columns` 全 public schema，欄位名含 `notif / notify / recipient / _emails` 的共 20 個，逐一比對：
+- `accommodation_notification_settings.booking_notification_emails` — 團購用（如上）
+- `group_buy_campaign_notification_settings.notification_emails` — 團購用
+- `accommodation_owners.email` / `notify_priority` — **有被引用，但只用於 OwlTing 補單**：`owlting-change-notify/index.ts:97,101`、`owlting-fillup-remind/index.ts:144,148`、`owlting-fillup-issue/index.ts:177,181`，皆按 `notify_priority` 排序後寄給業主。與一般訂房確認信無關。
+- `alert_recipients.notify_*`（6 欄）— 系統監控告警
+- `performance_notification_*.notify_time` — 業績通報
+- `booking_email_log.recipient` / `email_send_log.recipient_email` / `remarketing_sends.recipient` — 寄送紀錄，非設定
+- `kol_profiles.cid_notified`、`owlting_email_parsed_staging.notified_at`、`scout_discount_code_payouts.recipient_*` — 不相關
+
+**沒有任何一個「無程式碼引用」的一般訂房通知收件人欄位。** 亦即漏的不是「接線」，而是這個功能從未被實作。
+
+**3. `accommodation_info.email_*` 的實際用途 —— 是信件內容欄位，不是收件人欄位。**
+共 5 欄，全部有被讀取，全部是**塞進信件正文的文字**：
+- `email_important_notice`（重要提醒）：`_shared/orderConfirmationEmail.ts:166,413-415`、`send-booking-confirmation/index.ts:150,157`、`preview-booking-confirmation/index.ts:141`
+- `email_service_hours`（服務時間）：`send-booking-confirmation/index.ts:158`、`send-final-payment-received/index.ts:90,97`
+- `email_show_security_deposit_notice` / `email_security_deposit_notice_title` / `email_security_deposit_notice`（押金說明區塊開關＋標題＋內文）：`orderConfirmationEmail.ts:514-522`
+- 後台編輯入口：`src/pages/WebsiteContent.tsx:1242-1252`，預覽 `BookingConfirmationEmailPreview.tsx:81-84`
+
+另有 `accommodation_info.email` 一欄，是**對外聯絡信箱**，在信件裡當「聯絡我們」顯示（`send-booking-confirmation/index.ts:354,364`），同樣不是收件人。
+
+**因此設計稿 B 節第 13 步應拆成兩件不同的事**：
+- 13a「信件內容設定」（`accommodation_info.email_*`）— 一般訂房確認信**真的會用到**，可列入引導、可判定完成度。
+- 13b「訂房通知信箱」（`accommodation_notification_settings`）— 僅團購適用。
+
+**待你裁示（選項已依上述證據調整）**：(a) 13b 列必填 —— 但除非另批改 `send-order-confirmation`（屬禁區），一般訂房仍不會寄給民宿；(b) 13a 列必填、13b 列選填並標「目前僅團購訂單通知使用」。我建議 (b)。
 
 ---
 
