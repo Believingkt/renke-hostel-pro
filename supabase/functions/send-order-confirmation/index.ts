@@ -42,7 +42,9 @@ const json = (body: unknown, status = 200) =>
 // 刻意「不」呼叫 _shared/notifyRecipients.ts 的 resolveOrderNotifyEmails()，
 // 避免與團購的「活動覆寫 → 民宿預設」fallback 鏈混用。團購收件人永遠走 booking_notification_emails。
 // ---------------------------------------------------------------------------
-const BCC_TRIGGER_SOURCES = new Set(["auto", "date_change", "member_date_change"]);
+// 依裁示：僅 "auto"（首次成交自動寄信）與 "date_change"（管理端改期）帶 bcc。
+// "member_resend"（會員手動重寄）與 "member_date_change"（會員自行改期）一律不帶。
+const BCC_TRIGGER_SOURCES = new Set(["auto", "date_change"]);
 const BCC_EMAIL_TYPE = "booking_confirmation_venue_bcc";
 const MAX_BCC = 10;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
