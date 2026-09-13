@@ -879,6 +879,7 @@ export type Database = {
       accommodation_notification_settings: {
         Row: {
           accommodation_id: string
+          booking_confirmation_emails: string[]
           booking_notification_emails: string[]
           created_at: string
           id: string
@@ -886,6 +887,7 @@ export type Database = {
         }
         Insert: {
           accommodation_id: string
+          booking_confirmation_emails?: string[]
           booking_notification_emails?: string[]
           created_at?: string
           id?: string
@@ -893,6 +895,7 @@ export type Database = {
         }
         Update: {
           accommodation_id?: string
+          booking_confirmation_emails?: string[]
           booking_notification_emails?: string[]
           created_at?: string
           id?: string

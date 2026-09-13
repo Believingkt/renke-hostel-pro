@@ -42,8 +42,6 @@ const json = (body: unknown, status = 200) =>
 // 刻意「不」呼叫 _shared/notifyRecipients.ts 的 resolveOrderNotifyEmails()，
 // 避免與團購的「活動覆寫 → 民宿預設」fallback 鏈混用。團購收件人永遠走 booking_notification_emails。
 // ---------------------------------------------------------------------------
-// 依裁示：僅 "auto"（首次成交自動寄信）與 "date_change"（管理端改期）帶 bcc。
-// "member_resend"（會員手動重寄）與 "member_date_change"（會員自行改期）一律不帶。
 // 民宿端副本（bcc）僅在真正有異動或首次寄信時帶上：
 // auto = 首次自動寄信；date_change = 管理端改期；member_date_change = 會員自行改期。
 // 純手動重寄（member_resend，無任何異動）明確排除，避免洗版。
@@ -105,19 +103,23 @@ async function resolveBookingConfirmationBccEmails(
     emails = emails.filter((e) => !blocked.has(e));
     if (emails.length === 0) return [];
 
-    // 去重：同一訂單同一 trigger_source 只寄一次民宿副本
-    const { data: logged } = await supabase
-      .from("booking_email_log")
-      .select("id")
-      .eq("order_number", orderNumber)
-      .eq("email_type", BCC_EMAIL_TYPE)
-      .eq("trigger_source", triggerSource)
-      .limit(1);
-    if ((logged?.length ?? 0) > 0) {
-      console.log(
-        `[send-order-confirmation] venue bcc already sent order=${orderNumber} source=${triggerSource}, skip`,
-      );
-      return [];
+    // 去重：首次成交信（auto）同一訂單只寄一次民宿副本。
+    // 改期（date_change / member_date_change）每次都是真實異動，客人每次都會收到一封確認信，
+    // 民宿副本同步跟著寄，維持與客人收信次數一致，故不做跨次去重。
+    if (triggerSource === "auto") {
+      const { data: logged } = await supabase
+        .from("booking_email_log")
+        .select("id")
+        .eq("order_number", orderNumber)
+        .eq("email_type", BCC_EMAIL_TYPE)
+        .eq("trigger_source", triggerSource)
+        .limit(1);
+      if ((logged?.length ?? 0) > 0) {
+        console.log(
+          `[send-order-confirmation] venue bcc already sent order=${orderNumber} source=${triggerSource}, skip`,
+        );
+        return [];
+      }
     }
 
     return emails;
