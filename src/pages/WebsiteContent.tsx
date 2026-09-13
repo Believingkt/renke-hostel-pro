@@ -4435,7 +4435,10 @@ const WebsiteContent = () => {
             </p>
           </div>
 
+          <BookingConfirmationRecipientsCard accommodationId={currentAccommodationId ?? null} />
+
           </div>
+
 
           <div className="xl:sticky xl:top-4">
             <BookingConfirmationEmailPreview
