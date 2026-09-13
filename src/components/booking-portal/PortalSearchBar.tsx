@@ -376,6 +376,7 @@ const PortalSearchBar = ({
         disabled={rangeDayDisabled}
         defaultMonth={checkIn || today}
         numberOfMonths={numberOfMonths}
+        locale={dateLocale}
         className={cn("pointer-events-auto", mobile ? "p-3 w-full" : "p-3")}
         classNames={mobile ? mobileCalendarClassNames : undefined}
       />

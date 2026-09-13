@@ -64,12 +64,45 @@ serve(async (req) => {
       items.push({ table, column, id, text });
     }
 
+    // 去重：同一頁常重複送出同一欄位。重複項若進到 upsert，Postgres 會因
+    // 「ON CONFLICT 重複影響同一列」讓整批快取寫入失敗（先前的真實災情）。
+    const dedupedItems: ItemIn[] = [];
+    const seenItemKeys = new Set<string>();
+    for (const it of items) {
+      const k = `${keyOf(it)}|${it.text}`;
+      if (seenItemKeys.has(k)) continue;
+      seenItemKeys.add(k);
+      dedupedItems.push(it);
+    }
+    items.length = 0;
+    items.push(...dedupedItems);
+
     if (items.length === 0) return json({ translations: {} });
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    /** 告警：任何「譯文沒能落地」的情況都要留痕，不再靜默吞掉 */
+    const alertFailure = async (
+      step: string,
+      message: string,
+      context: Record<string, unknown>,
+    ) => {
+      try {
+        await supabase.from("error_logs").insert({
+          source: "backend",
+          function_name: "translate-content",
+          category: "translation_cache",
+          step,
+          error_message: String(message).substring(0, 2000),
+          context,
+        });
+      } catch (logErr) {
+        console.error("[translate-content] alert write failed", String(logErr).slice(0, 200));
+      }
+    };
 
     const hashes = await Promise.all(items.map((i) => sha256(i.text)));
     const translations: Record<string, string> = {};
@@ -110,6 +143,10 @@ serve(async (req) => {
 
     const source = missing.map((m, i) => ({ i, text: m.item.text }));
 
+    // 動態輸出上限：中文→英文字元數會膨脹，固定 4000 會讓長文批被切斷。
+    const sourceChars = missing.reduce((n, m) => n + m.item.text.length, 0);
+    const maxTokens = Math.min(16000, Math.max(2000, Math.ceil(sourceChars * 1.2) + 600));
+
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -119,7 +156,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         reasoning_effort: "none",
-        max_tokens: 4000,
+        max_tokens: maxTokens,
         messages: [
           {
             role: "system",
@@ -150,17 +187,27 @@ serve(async (req) => {
       parsedItems = Array.isArray(parsed?.items) ? parsed.items : [];
     } catch (parseErr) {
       console.error("[translate-content] parse failed", String(parseErr).slice(0, 200));
+      await alertFailure("parse_failed", String(parseErr), {
+        lang,
+        requested: items.length,
+        missing: missing.length,
+        source_chars: sourceChars,
+        max_tokens: maxTokens,
+        raw_preview: raw.slice(0, 300),
+        sample_keys: missing.slice(0, 5).map((m) => keyOf(m.item)),
+      });
       return json({ translations, error: "parse failed" }, 200);
     }
 
     const byIdx = new Map(parsedItems.map((p) => [Number(p?.i), p]));
-    const rows: Record<string, unknown>[] = [];
+    const rowByKey = new Map<string, Record<string, unknown>>();
 
     missing.forEach((m, i) => {
       const en = byIdx.get(i)?.en;
       if (typeof en !== "string" || !en.trim()) return;
       translations[keyOf(m.item)] = en;
-      rows.push({
+      // 再保險一次：同一批只保留一列相同衝突鍵，避免 upsert 整批失敗
+      rowByKey.set(`${keyOf(m.item)}|${m.hash}`, {
         source_table: m.item.table,
         source_column: m.item.column,
         source_id: m.item.id,
@@ -170,18 +217,44 @@ serve(async (req) => {
       });
     });
 
-    // 3) 寫回快取（service role），失敗不影響回傳
+    const rows = Array.from(rowByKey.values());
+    const missingAfterModel = missing.length - rows.length;
+
+    // 3) 寫回快取（service role）。寫入失敗不阻斷回應，但一定要留下紀錄與告警：
+    //    先前就是因為寫入失敗被靜默吞掉，導致該館內容永遠無法進快取。
+    let cacheWriteError: string | null = null;
     if (rows.length > 0) {
       const { error: upsertErr } = await supabase
         .from("translation_cache")
         .upsert(rows, { onConflict: "source_table,source_column,source_id,lang,source_hash" });
-      if (upsertErr) console.error("[translate-content] cache write failed", upsertErr.message);
+      if (upsertErr) {
+        cacheWriteError = upsertErr.message;
+        console.error("[translate-content] cache write failed", upsertErr.message);
+      }
+    }
+
+    if (cacheWriteError || missingAfterModel > 0) {
+      await alertFailure(
+        cacheWriteError ? "cache_upsert" : "model_incomplete",
+        cacheWriteError ?? `model returned ${rows.length}/${missing.length} items`,
+        {
+          lang,
+          requested: items.length,
+          missing: missing.length,
+          written: rows.length,
+          source_chars: sourceChars,
+          max_tokens: maxTokens,
+          sample_keys: missing.slice(0, 5).map((m) => keyOf(m.item)),
+        },
+      );
     }
 
     return json({
       translations,
       cached: items.length - missing.length,
       translated: rows.length,
+      ...(cacheWriteError ? { cache_write_error: cacheWriteError } : {}),
+      ...(missingAfterModel > 0 ? { model_incomplete: missingAfterModel } : {}),
     });
   } catch (err) {
     console.error("[translate-content] failed", err);
