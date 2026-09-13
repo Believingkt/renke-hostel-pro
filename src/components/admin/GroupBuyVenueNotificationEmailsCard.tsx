@@ -10,8 +10,13 @@ interface Props {
   accommodationId: string | null;
 }
 
-/** 民宿層「訂房通知信箱」（獨立私有表，前台無法讀取） */
-export function BookingNotificationEmailsCard({ accommodationId }: Props) {
+/**
+ * 團購通知信箱（民宿預設層）。
+ * 寫入 accommodation_notification_settings.booking_notification_emails，
+ * 後端僅由 group-buy-* 函式經 resolveOrderNotifyEmails() 讀取，與一般訂房確認信無關。
+ * 一般訂房的民宿端副本請見「官網內容 → 訂房確認信」的 booking_confirmation_emails。
+ */
+export function GroupBuyVenueNotificationEmailsCard({ accommodationId }: Props) {
   const [emails, setEmails] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -52,7 +57,7 @@ export function BookingNotificationEmailsCard({ accommodationId }: Props) {
       return;
     }
     setEmails(normalized);
-    toast({ title: "已儲存訂房通知信箱" });
+    toast({ title: "已儲存團購通知信箱" });
   };
 
   return (
@@ -61,9 +66,9 @@ export function BookingNotificationEmailsCard({ accommodationId }: Props) {
         <div className="flex items-center gap-3">
           <div className="h-10 w-1.5 bg-primary rounded-full" />
           <div>
-            <CardTitle className="text-xl">📥 訂房通知</CardTitle>
+            <CardTitle className="text-xl">📥 團購通知信箱（民宿預設）</CardTitle>
             <CardDescription>
-              當有需要人工處理的訂房事件時，可寄送通知至以下信箱。目前實際使用情境：團購新訂單、團購匯款回報。
+              團購新訂單、團購匯款回報時寄送通知給以下信箱。未在下方個別活動設定自訂信箱時，一律以這裡為準。
             </CardDescription>
           </div>
         </div>
@@ -71,10 +76,10 @@ export function BookingNotificationEmailsCard({ accommodationId }: Props) {
       <CardContent className="space-y-3">
         <NotificationEmailListField value={emails} onChange={setEmails} disabled={!accommodationId} />
         <p className="text-xs text-muted-foreground">
-          一般訂房通知目前尚未啟用 Email，本設定暫供團購使用。
+          此設定僅用於團購。一般訂房確認信的民宿端副本請到「官網內容 → 訂房確認信」設定。
         </p>
         <Button onClick={save} disabled={saving || !accommodationId}>
-          {saving ? "儲存中…" : "儲存訂房通知信箱"}
+          {saving ? "儲存中…" : "儲存團購通知信箱"}
         </Button>
       </CardContent>
     </Card>

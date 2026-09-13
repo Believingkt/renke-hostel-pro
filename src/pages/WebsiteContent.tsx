@@ -55,7 +55,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookingNotificationEmailsCard } from "@/components/admin/BookingNotificationEmailsCard";
 import { BookingConfirmationEmailPreview } from "@/components/admin/BookingConfirmationEmailPreview";
 
 import { Label } from "@/components/ui/label";
@@ -504,7 +503,7 @@ const WebsiteContent = () => {
       'gallery': '精選照片',
       'booking-info': '訂房須知',
       'faq': '常見問題',
-      'email-notification': '訂房確認通知',
+      'email-notification': '訂房確認信',
       'location': '交通地圖',
       'reviews': 'Google 評論',
       'portal-card': '精選民宿卡片'
@@ -1769,7 +1768,7 @@ const WebsiteContent = () => {
         .eq("id", accommodationId);
       if (error) throw error;
       if (accommodationId) invalidateAccommodationCache(accommodationId);
-      toast.success('訂房確認通知設定已儲存');
+      toast.success('訂房確認信設定已儲存');
     } catch (error) {
       if (import.meta.env.DEV) console.error('Error saving email notification:', error);
       toast.error('儲存失敗：' + ((error as any)?.message || '請稍後再試'));
@@ -2371,7 +2370,7 @@ const WebsiteContent = () => {
         .update({
           name: basicInfo.name,
           description: basicInfo.description,
-          // address / phone / email / line_id 由「交通地圖」與「訂房確認通知」分頁維護，此處不寫入避免覆蓋
+          // address / phone / email / line_id 由「交通地圖」與「訂房確認信」分頁維護，此處不寫入避免覆蓋
 
           facebook_url: basicInfo.facebook_url,
           instagram_url: basicInfo.instagram_url,
@@ -4278,10 +4277,18 @@ const WebsiteContent = () => {
         </TabsContent>
 
         <TabsContent value="email-notification" className="space-y-6">
-          <PageHeader title="訂房確認通知" icon={Mail} />
+          <PageHeader title="訂房確認信" icon={Mail} />
 
           <div className="grid gap-6 xl:grid-cols-2 items-start">
           <div className="space-y-6">
+          {/* 區塊一：這封信長什麼樣 */}
+          <div className="rounded-lg border-l-4 border-primary bg-muted/30 px-4 py-3">
+            <h2 className="text-lg font-semibold">① 這封信長什麼樣</h2>
+            <p className="text-sm text-muted-foreground">
+              以下設定只影響訂房確認信的內容與版面，右側可即時預覽。
+            </p>
+          </div>
+
           <Card>
 
             <CardHeader className="pb-4">
@@ -4414,13 +4421,20 @@ const WebsiteContent = () => {
             </CardContent>
           </Card>
 
-          <BookingNotificationEmailsCard accommodationId={currentAccommodationId ?? null} />
-
           <SaveButtonContainer
             onSave={handleSaveEmailNotification}
             isSaving={isSaving}
             saveText="儲存變更"
           />
+
+          {/* 區塊二：這封信要寄給誰 */}
+          <div className="rounded-lg border-l-4 border-primary bg-muted/30 px-4 py-3">
+            <h2 className="text-lg font-semibold">② 這封信要寄給誰</h2>
+            <p className="text-sm text-muted-foreground">
+              客人一定會收到。這裡設定民宿端要不要也收一份副本，留空＝只寄給客人。
+            </p>
+          </div>
+
           </div>
 
           <div className="xl:sticky xl:top-4">

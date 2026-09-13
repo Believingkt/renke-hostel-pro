@@ -37,6 +37,94 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// ---------------------------------------------------------------------------
+// 民宿端副本（bcc）：只讀 accommodation_notification_settings.booking_confirmation_emails。
+// 刻意「不」呼叫 _shared/notifyRecipients.ts 的 resolveOrderNotifyEmails()，
+// 避免與團購的「活動覆寫 → 民宿預設」fallback 鏈混用。團購收件人永遠走 booking_notification_emails。
+// ---------------------------------------------------------------------------
+// 依裁示：僅 "auto"（首次成交自動寄信）與 "date_change"（管理端改期）帶 bcc。
+// "member_resend"（會員手動重寄）與 "member_date_change"（會員自行改期）一律不帶。
+const BCC_TRIGGER_SOURCES = new Set(["auto", "date_change"]);
+const BCC_EMAIL_TYPE = "booking_confirmation_venue_bcc";
+const MAX_BCC = 10;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeBccEmails(list: unknown): string[] {
+  const arr = Array.isArray(list) ? list : [];
+  const out: string[] = [];
+  for (const raw of arr) {
+    const s = String(raw ?? "").trim().toLowerCase();
+    if (!s || s.length > 254 || !EMAIL_RE.test(s)) continue;
+    if (!out.includes(s)) out.push(s);
+  }
+  return out.slice(0, MAX_BCC);
+}
+
+/** 任何一步失敗一律回傳 []（靜默降級為只寄客人），絕不阻斷客人收信。 */
+async function resolveBookingConfirmationBccEmails(
+  supabase: ReturnType<typeof createClient>,
+  orderNumber: string,
+  triggerSource: string,
+  guestEmail: string,
+): Promise<string[]> {
+  try {
+    if (!BCC_TRIGGER_SOURCES.has(triggerSource)) return [];
+
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, accommodation_id")
+      .eq("order_number", orderNumber)
+      .maybeSingle();
+    if (!order?.accommodation_id) return [];
+
+    const { data: settings } = await supabase
+      .from("accommodation_notification_settings")
+      .select("booking_confirmation_emails")
+      .eq("accommodation_id", order.accommodation_id)
+      .maybeSingle();
+
+    let emails = normalizeBccEmails((settings as any)?.booking_confirmation_emails);
+    if (emails.length === 0) return [];
+
+    // 客人本人已在 to，不重複出現在 bcc
+    const guest = String(guestEmail ?? "").trim().toLowerCase();
+    emails = emails.filter((e) => e !== guest);
+    if (emails.length === 0) return [];
+
+    // 退信名單
+    const { data: suppressed } = await supabase
+      .from("suppressed_emails")
+      .select("email")
+      .in("email", emails);
+    const blocked = new Set(
+      (suppressed ?? []).map((r: any) => String(r.email ?? "").toLowerCase()),
+    );
+    emails = emails.filter((e) => !blocked.has(e));
+    if (emails.length === 0) return [];
+
+    // 去重：同一訂單同一 trigger_source 只寄一次民宿副本
+    const { data: logged } = await supabase
+      .from("booking_email_log")
+      .select("id")
+      .eq("order_number", orderNumber)
+      .eq("email_type", BCC_EMAIL_TYPE)
+      .eq("trigger_source", triggerSource)
+      .limit(1);
+    if ((logged?.length ?? 0) > 0) {
+      console.log(
+        `[send-order-confirmation] venue bcc already sent order=${orderNumber} source=${triggerSource}, skip`,
+      );
+      return [];
+    }
+
+    return emails;
+  } catch (e) {
+    console.error("[send-order-confirmation] resolve venue bcc failed (degraded to guest-only)", e);
+    return [];
+  }
+}
+
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -113,18 +201,30 @@ serve(async (req: Request) => {
       return json({ success: false, error: "郵件服務尚未設定" }, 500);
     }
 
+    // 民宿端副本收件人（失敗一律為空陣列，不影響客人收信）
+    const bccEmails = await resolveBookingConfirmationBccEmails(
+      supabase,
+      orderNumber,
+      triggerSource,
+      built.to,
+    );
+
+    const resendPayload: Record<string, unknown> = {
+      from: "人客多通知 <noreply@lakeze.com>",
+      to: [built.to],
+      subject: built.subject,
+      html: built.html,
+    };
+    // 沒有民宿端收件人時，payload 完全不帶 bcc 鍵（與改動前逐字相同）
+    if (bccEmails.length > 0) resendPayload.bcc = bccEmails;
+
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${RESEND_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: "人客多通知 <noreply@lakeze.com>",
-        to: [built.to],
-        subject: built.subject,
-        html: built.html,
-      }),
+      body: JSON.stringify(resendPayload),
     });
 
     const respText = await resp.text();
@@ -133,9 +233,31 @@ serve(async (req: Request) => {
       return json({ success: false, error: "寄送失敗", details: respText }, resp.status);
     }
 
+    // 民宿副本去重紀錄：寫入失敗只記 log，不影響本次已成功寄出的信
+    if (bccEmails.length > 0) {
+      try {
+        let resendId: string | null = null;
+        try {
+          resendId = (JSON.parse(respText) as { id?: string })?.id ?? null;
+        } catch { /* ignore */ }
+        await supabase.from("booking_email_log").insert({
+          order_number: orderNumber,
+          email_type: BCC_EMAIL_TYPE,
+          recipient: bccEmails.join(","),
+          subject: built.subject,
+          status: "sent",
+          resend_id: resendId,
+          trigger_source: triggerSource,
+        });
+      } catch (logErr) {
+        console.error("[send-order-confirmation] venue bcc log insert failed", logErr);
+      }
+    }
+
     console.log(
-      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource}`,
+      `[send-order-confirmation] sent order=${orderNumber} to=${built.to} source=${triggerSource} bcc=${bccEmails.length}`,
     );
+
     return json({ success: true, message: "訂單確認信已寄出", to: built.to });
   } catch (e) {
     console.error("[send-order-confirmation] exception", e);

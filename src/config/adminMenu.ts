@@ -90,7 +90,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
       { title: "增值服務", url: "/admin/website-content?tab=addon-plans", icon: Package },
       { title: "精選照片", url: "/admin/website-content?tab=gallery", icon: ImageIcon },
       { title: "精選民宿卡片", url: "/admin/website-content?tab=portal-card", icon: Sparkles },
-      { title: "訂房確認通知", url: "/admin/website-content?tab=email-notification", icon: Mail },
+      { title: "訂房確認信", url: "/admin/website-content?tab=email-notification", icon: Mail },
     ],
   },
   {

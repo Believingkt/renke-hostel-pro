@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GroupBuyPaymentDraftsPanel } from "@/components/groupbuy/GroupBuyPaymentDraftsPanel";
 import { GroupBuyPageContentTab } from "@/components/admin/GroupBuyPageContentTab";
 import { GroupBuyNotificationSettings } from "@/components/admin/GroupBuyNotificationSettings";
+import { GroupBuyVenueNotificationEmailsCard } from "@/components/admin/GroupBuyVenueNotificationEmailsCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -1192,8 +1193,10 @@ export default function AdminGroupBuy() {
           </TabsContent>
 
           <TabsContent value="notify" className="space-y-3">
+            <GroupBuyVenueNotificationEmailsCard accommodationId={accommodationId} />
             <GroupBuyNotificationSettings campaignId={activeId || null} accommodationId={accommodationId} />
           </TabsContent>
+
 
           <TabsContent value="orders" className="space-y-3">
             <Card>
