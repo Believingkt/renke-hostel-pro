@@ -44,7 +44,10 @@ const json = (body: unknown, status = 200) =>
 // ---------------------------------------------------------------------------
 // 依裁示：僅 "auto"（首次成交自動寄信）與 "date_change"（管理端改期）帶 bcc。
 // "member_resend"（會員手動重寄）與 "member_date_change"（會員自行改期）一律不帶。
-const BCC_TRIGGER_SOURCES = new Set(["auto", "date_change"]);
+// 民宿端副本（bcc）僅在真正有異動或首次寄信時帶上：
+// auto = 首次自動寄信；date_change = 管理端改期；member_date_change = 會員自行改期。
+// 純手動重寄（member_resend，無任何異動）明確排除，避免洗版。
+const BCC_TRIGGER_SOURCES = new Set(["auto", "date_change", "member_date_change"]);
 const BCC_EMAIL_TYPE = "booking_confirmation_venue_bcc";
 const MAX_BCC = 10;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
