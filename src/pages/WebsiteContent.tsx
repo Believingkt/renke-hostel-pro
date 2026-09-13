@@ -55,7 +55,6 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookingNotificationEmailsCard } from "@/components/admin/BookingNotificationEmailsCard";
 import { BookingConfirmationEmailPreview } from "@/components/admin/BookingConfirmationEmailPreview";
 
 import { Label } from "@/components/ui/label";
