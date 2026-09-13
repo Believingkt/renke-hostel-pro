@@ -12,7 +12,7 @@ import { makeSectionText, type SectionLocalize } from "@/components/section-loca
  * 只在呼叫端有傳 localize（＝雙語頁面）且語言為英文時才轉換；
  * 未傳 localize 的頁面（民宿官網首頁等）行為完全不變，也不寫回資料。
  */
-const formatReviewDate = (raw: string, enabled: boolean, dateLocale: Locale): string => {
+export const formatReviewDate = (raw: string, enabled: boolean, dateLocale: Locale): string => {
   if (!enabled || !raw) return raw;
   const m = raw.match(/^(\d{4})\s*年\s*(\d{1,2})\s*月(?:\s*(\d{1,2})\s*日)?$/);
   if (!m) return raw;
