@@ -24,7 +24,7 @@ function base(overrides: Partial<OnboardingSource> = {}): OnboardingSource {
     roomPhotoRoomTypeIds: ["rt1"],
     pricingTemplates: [{ room_type_ids: ["rt1"] }],
     inventoryRows: Array.from({ length: 10 }, (_, i) => ({ date: day(i), available_rooms: 1 })),
-    packages: [{ id: "pkg1", enabled: true }],
+    packages: [{ id: "pkg1", enabled: true, sale_price: 0, primary_room_type_id: "rt1" }],
     packagePriceRows: Array.from({ length: 10 }, (_, i) => ({
       date: day(i),
       package_id: "pkg1",
@@ -132,5 +132,117 @@ describe("上架引導判定", () => {
   it("房型：缺照片或缺人數即未完成", () => {
     expect(statusOf(base({ roomPhotoRoomTypeIds: [] }), "room_types")).toBe("pending");
     expect(statusOf(base({ roomTypes: [{ id: "rt1", name: "房", capacity: 0 }] }), "capacity")).toBe("pending");
+  });
+});
+
+describe("第 9 步：逐日房價 (a) 與方案價 (b) 複合判定", () => {
+  const inv = (n: number, start = 0) =>
+    Array.from({ length: n }, (_, i) => ({ date: day(start + i), available_rooms: 1, price: 3200 }));
+
+  it("(a) 逐日房價：6 天 → 未完成；7 天 → 完成", () => {
+    expect(statusOf(base({ packagePriceRows: [], inventoryRows: inv(6) }), "package_prices")).toBe("pending");
+    expect(statusOf(base({ packagePriceRows: [], inventoryRows: inv(7) }), "package_prices")).toBe("completed");
+  });
+
+  it("(a) 房價 > 0 但無可售房間不算；二食／三食價也算", () => {
+    const closed = Array.from({ length: 10 }, (_, i) => ({ date: day(i), available_rooms: 0, price: 3200 }));
+    expect(statusOf(base({ packagePriceRows: [], inventoryRows: closed }), "package_prices")).toBe("pending");
+    const meals = Array.from({ length: 7 }, (_, i) => ({
+      date: day(i),
+      available_rooms: 2,
+      price: 0,
+      price_2_meals: 4200,
+    }));
+    expect(statusOf(base({ packagePriceRows: [], inventoryRows: meals }), "package_prices")).toBe("completed");
+  });
+
+  it("(b) 方案基本價：完全沒有逐日資料時，啟用方案本身有售價即整個視窗達標", () => {
+    const src = base({
+      packagePriceRows: [],
+      inventoryRows: [],
+      packages: [{ id: "pkg1", enabled: true, sale_price: 8800, primary_room_type_id: "rt1" }],
+    });
+    expect(statusOf(src, "package_prices")).toBe("completed");
+  });
+
+  it("(b) 單日覆寫關閉該日（is_available=false）且方案基本價為 0 時不計入；6 天 → 未完成、7 天 → 完成", () => {
+    const mk = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({
+        date: day(i),
+        package_id: "pkg1",
+        sale_price: 3000,
+        is_available: true,
+      }));
+    expect(statusOf(base({ inventoryRows: [], packagePriceRows: mk(6) }), "package_prices")).toBe("pending");
+    expect(statusOf(base({ inventoryRows: [], packagePriceRows: mk(7) }), "package_prices")).toBe("completed");
+  });
+
+  it("(a)+(b) 同一天不重複計算：4 天房價 + 同樣那 4 天方案價 仍為未完成", () => {
+    const rows = Array.from({ length: 4 }, (_, i) => ({
+      date: day(i),
+      package_id: "pkg1",
+      sale_price: 3000,
+      is_available: true,
+    }));
+    expect(statusOf(base({ inventoryRows: inv(4), packagePriceRows: rows }), "package_prices")).toBe("pending");
+    // 房價 4 天 + 另外 3 天方案價 = 7 天 → 完成
+    const other = Array.from({ length: 3 }, (_, i) => ({
+      date: day(10 + i),
+      package_id: "pkg1",
+      sale_price: 3000,
+      is_available: true,
+    }));
+    expect(statusOf(base({ inventoryRows: inv(4), packagePriceRows: other }), "package_prices")).toBe("completed");
+  });
+});
+
+describe("第 4 步：房型照片與方案綁定照片", () => {
+  it("沒有啟用方案 → 同館任一房型有照片即達標", () => {
+    const src = base({
+      packages: [{ id: "pkg1", enabled: false }],
+      roomTypes: [
+        { id: "rt1", name: "雙人房", capacity: 2 },
+        { id: "rt2", name: "四人房", capacity: 4 },
+      ],
+      roomPhotoRoomTypeIds: ["rt2"],
+    });
+    expect(statusOf(src, "room_types")).toBe("completed");
+    expect(statusOf(base({ packages: [{ id: "pkg1", enabled: false }], roomPhotoRoomTypeIds: [] }), "room_types")).toBe(
+      "pending",
+    );
+  });
+
+  it("有啟用方案 → 每個啟用方案綁定的房型都要有照片，任一沒有即整館未達標", () => {
+    const roomTypes = [
+      { id: "rt1", name: "包棟 A", capacity: 10 },
+      { id: "rt2", name: "包棟 B", capacity: 12 },
+    ];
+    const twoPkgs = [
+      { id: "p1", enabled: true, sale_price: 8800, primary_room_type_id: "rt1" },
+      { id: "p2", enabled: true, sale_price: 9800, primary_room_type_id: "rt2" },
+    ];
+    expect(statusOf(base({ roomTypes, packages: twoPkgs, roomPhotoRoomTypeIds: ["rt1", "rt2"] }), "room_types")).toBe(
+      "completed",
+    );
+    // rt2 沒照片 → 即使 rt1 有照片（選項二會過），複合邏輯仍判未達標
+    expect(statusOf(base({ roomTypes, packages: twoPkgs, roomPhotoRoomTypeIds: ["rt1"] }), "room_types")).toBe("pending");
+  });
+
+  it("結構化房型分配優先於綁定主房型", () => {
+    const roomTypes = [
+      { id: "rt1", name: "包棟 A", capacity: 10 },
+      { id: "rt2", name: "包棟 B", capacity: 12 },
+    ];
+    const pkg = {
+      id: "p1",
+      enabled: true,
+      sale_price: 8800,
+      primary_room_type_id: "rt1",
+      room_type_allocation: [{ room_type_id: "rt2" }],
+    };
+    // 分配指到 rt2：只有 rt1 有照片 → 未達標
+    expect(statusOf(base({ roomTypes, packages: [pkg], roomPhotoRoomTypeIds: ["rt1"] }), "room_types")).toBe("pending");
+    // rt2 有照片 → 達標
+    expect(statusOf(base({ roomTypes, packages: [pkg], roomPhotoRoomTypeIds: ["rt2"] }), "room_types")).toBe("completed");
   });
 });
