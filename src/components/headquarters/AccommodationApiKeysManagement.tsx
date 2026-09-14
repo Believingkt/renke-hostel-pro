@@ -248,13 +248,28 @@ export function AccommodationApiKeysManagement() {
               <p className="text-xs text-destructive">⚠️ 此金鑰僅顯示一次，請立即複製保存</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label>名稱</Label>
-              <Input
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="例：PMS 整合"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>名稱</Label>
+                <Input
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="例：PMS 整合"
+                />
+              </div>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="api-key-readonly"
+                  checked={newKeyReadOnly}
+                  onCheckedChange={(v) => setNewKeyReadOnly(v === true)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="api-key-readonly" className="cursor-pointer">唯讀金鑰（建議）</Label>
+                  <p className="text-xs text-muted-foreground">
+                    只能查詢房型、房價與可售房數，無法新增或修改任何資料。給外部系統串接報價時請務必勾選。
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
