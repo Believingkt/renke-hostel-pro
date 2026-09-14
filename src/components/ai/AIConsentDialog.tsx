@@ -36,7 +36,7 @@ export default function AIConsentDialog({ open, onAccept, onDecline }: Props) {
               <p className="font-semibold">會送給誰</p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Anthropic PBC（Claude AI）：AI 管家小安與入口網「AI 找房間」的文字對話。</li>
-                <li>Google LLC（Gemini，經 Lovable AI Gateway 轉送）：民宿頁懸浮小安的文字對話。</li>
+                <li>Google LLC（Gemini）：民宿頁懸浮小安的文字對話。</li>
                 <li>OpenAI, L.L.C.：語音輸入轉文字與 AI 回覆語音朗讀；僅在您主動使用語音功能時處理。</li>
               </ul>
             </div>
