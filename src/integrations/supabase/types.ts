@@ -5781,6 +5781,7 @@ export type Database = {
           task_pre_stay: boolean | null
           token_expires_at: string | null
           updated_at: string | null
+          updated_by: string | null
           venue_id: string | null
           venue_name: string | null
         }
@@ -5837,6 +5838,7 @@ export type Database = {
           task_pre_stay?: boolean | null
           token_expires_at?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           venue_id?: string | null
           venue_name?: string | null
         }
@@ -5893,6 +5895,7 @@ export type Database = {
           task_pre_stay?: boolean | null
           token_expires_at?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           venue_id?: string | null
           venue_name?: string | null
         }
@@ -7675,6 +7678,7 @@ export type Database = {
           traffic_source: string | null
           trip_id: string | null
           updated_at: string | null
+          updated_by: string | null
           video_creator_id: string | null
           voucher_count: number | null
           voucher_used: boolean | null
@@ -7720,6 +7724,7 @@ export type Database = {
           traffic_source?: string | null
           trip_id?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           video_creator_id?: string | null
           voucher_count?: number | null
           voucher_used?: boolean | null
@@ -7765,6 +7770,7 @@ export type Database = {
           traffic_source?: string | null
           trip_id?: string | null
           updated_at?: string | null
+          updated_by?: string | null
           video_creator_id?: string | null
           voucher_count?: number | null
           voucher_used?: boolean | null
