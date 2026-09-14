@@ -24,7 +24,7 @@ function base(overrides: Partial<OnboardingSource> = {}): OnboardingSource {
     roomPhotoRoomTypeIds: ["rt1"],
     pricingTemplates: [{ room_type_ids: ["rt1"] }],
     inventoryRows: Array.from({ length: 10 }, (_, i) => ({ date: day(i), available_rooms: 1 })),
-    packages: [{ id: "pkg1", enabled: true }],
+    packages: [{ id: "pkg1", enabled: true, sale_price: 0, primary_room_type_id: "rt1" }],
     packagePriceRows: Array.from({ length: 10 }, (_, i) => ({
       date: day(i),
       package_id: "pkg1",
