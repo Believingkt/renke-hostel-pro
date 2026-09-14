@@ -17,6 +17,12 @@ import {
   isValidDateStr,
   MAX_RANGE_DAYS,
 } from "./availability.ts";
+import {
+  ACCOMMODATION_API_READ_LIMIT,
+  ACCOMMODATION_API_WRITE_LIMIT,
+  consumeRateLimit,
+  rateLimitHeaders,
+} from "../_shared/apiRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,10 +42,10 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders },
   });
 }
 
@@ -58,10 +64,30 @@ async function authenticate(req: Request) {
   if (error || !data || data.length === 0) {
     return { error: jsonResponse({ error: "Invalid or inactive API key" }, 401) };
   }
-  return { supabase, accommodationId: data[0].accommodation_id as string };
+
+  // 讀取該把金鑰的唯讀旗標（fail-closed：查不到或出錯一律視為唯讀）
+  const keyId = (data[0] as Record<string, unknown>).key_id as string | undefined;
+  let isReadOnly = true;
+  if (keyId) {
+    const { data: keyRow, error: keyErr } = await supabase
+      .from("accommodation_api_keys")
+      .select("is_read_only")
+      .eq("id", keyId)
+      .maybeSingle();
+    if (!keyErr && keyRow) isReadOnly = keyRow.is_read_only === true;
+  }
+
+  return {
+    supabase,
+    accommodationId: data[0].accommodation_id as string,
+    keyHash,
+    isReadOnly,
+  };
 }
 
-Deno.serve(async (req) => {
+const limitHeadersByReq = new WeakMap<Request, Record<string, string>>();
+
+async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -95,7 +121,32 @@ Deno.serve(async (req) => {
 
     const auth = await authenticate(req);
     if ("error" in auth) return auth.error;
-    const { supabase, accommodationId } = auth;
+    const { supabase, accommodationId, keyHash, isReadOnly } = auth;
+
+    // ---- 唯讀金鑰：方法層預設拒絕（任何非 GET 一律擋，未來新增寫入端點自動受保護）----
+    if (isReadOnly && req.method !== "GET") {
+      return jsonResponse(
+        { error: "This API key is read-only. Write operations are not permitted." },
+        403,
+      );
+    }
+
+    // ---- 流量限制（每把金鑰：GET 300 次/小時、寫入 60 次/小時）----
+    const isRead = req.method === "GET";
+    const limit = consumeRateLimit(
+      `${keyHash}:${isRead ? "read" : "write"}`,
+      isRead ? ACCOMMODATION_API_READ_LIMIT : ACCOMMODATION_API_WRITE_LIMIT,
+    );
+    const limitHeaders = rateLimitHeaders(limit);
+    if (!limit.allowed) {
+      const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
+      return jsonResponse(
+        { error: "Rate limit exceeded", retry_after: retryAfter },
+        429,
+        { ...limitHeaders, "Retry-After": retryAfter.toString() },
+      );
+    }
+    limitHeadersByReq.set(req, limitHeaders);
 
     // ---- ROOM TYPES ----
     if (route[0] === "room-types") {
@@ -362,4 +413,17 @@ Deno.serve(async (req) => {
   } catch (e) {
     return jsonResponse({ error: (e as Error).message }, 500);
   }
+}
+
+Deno.serve(async (req) => {
+  const res = await handleRequest(req);
+  // 把本次請求的流量額度資訊附加到回應標頭（429 已自帶，這裡補一般回應）
+  const headers = limitHeadersByReq.get(req);
+  if (headers) {
+    for (const [k, v] of Object.entries(headers)) {
+      if (!res.headers.has(k)) res.headers.set(k, v);
+    }
+    limitHeadersByReq.delete(req);
+  }
+  return res;
 });

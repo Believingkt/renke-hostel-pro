@@ -19,3 +19,10 @@
 - [ ] 已上線頁面英文冷啟動閃中文修補
 - [ ] 通知信箱兩張表 RLS 跨館別漏洞（is_admin_or_super 不綁館別，已查證確認）—— 待評估是否修
 - [ ] 重新實跑一次完整安全掃描（兩次回報皆為 stale，需取得真實現況）
+
+## 對外 API 唯讀金鑰＋流量限制（核准施工 2026-09-14）
+- [ ] migration 新增 accommodation_api_keys.is_read_only
+- [ ] accommodation-api 唯讀擋寫入＋流量限制
+- [ ] _shared/apiRateLimit.ts 新建（kol-api 本輪不動）
+- [ ] 後台唯讀勾選 UI
+- [ ] postcheck 端到端實測（唯讀金鑰 GET 200/POST 403、既有兩把不受影響、429 標頭、測試金鑰刪除）

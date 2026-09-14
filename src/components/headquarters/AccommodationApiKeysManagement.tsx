@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -19,6 +20,7 @@ interface ApiKey {
   name: string;
   key_prefix: string;
   is_active: boolean;
+  is_read_only: boolean;
   last_used_at: string | null;
   created_at: string;
 }
@@ -51,6 +53,7 @@ export function AccommodationApiKeysManagement() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [newKeyReadOnly, setNewKeyReadOnly] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -94,6 +97,7 @@ export function AccommodationApiKeysManagement() {
       name: newKeyName.trim(),
       key_hash: keyHash,
       key_prefix: keyPrefix,
+      is_read_only: newKeyReadOnly,
     });
     if (error) {
       toast.error("建立失敗：" + error.message);
@@ -149,7 +153,7 @@ export function AccommodationApiKeysManagement() {
                 </Link>
               </CardDescription>
             </div>
-            <Button onClick={() => { setCreatedKey(null); setCreateOpen(true); }} disabled={!selectedAccId}>
+            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setCreateOpen(true); }} disabled={!selectedAccId}>
               新增 API Key
             </Button>
           </div>
@@ -173,6 +177,7 @@ export function AccommodationApiKeysManagement() {
                 <TableHead>名稱</TableHead>
                 <TableHead>金鑰前綴</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead>權限</TableHead>
                 <TableHead>最後使用</TableHead>
                 <TableHead>建立時間</TableHead>
                 <TableHead className="text-right">操作</TableHead>
@@ -180,9 +185,9 @@ export function AccommodationApiKeysManagement() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">載入中...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">載入中...</TableCell></TableRow>
               ) : keys.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">尚無 API Keys</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無 API Keys</TableCell></TableRow>
               ) : (
                 keys.map((k) => (
                   <TableRow key={k.id}>
@@ -191,6 +196,11 @@ export function AccommodationApiKeysManagement() {
                     <TableCell>
                       <Badge variant={k.is_active ? "default" : "secondary"}>
                         {k.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={k.is_read_only ? "secondary" : "outline"}>
+                        {k.is_read_only ? "唯讀" : "可讀寫"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
@@ -238,13 +248,28 @@ export function AccommodationApiKeysManagement() {
               <p className="text-xs text-destructive">⚠️ 此金鑰僅顯示一次，請立即複製保存</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              <Label>名稱</Label>
-              <Input
-                value={newKeyName}
-                onChange={(e) => setNewKeyName(e.target.value)}
-                placeholder="例：PMS 整合"
-              />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>名稱</Label>
+                <Input
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="例：PMS 整合"
+                />
+              </div>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="api-key-readonly"
+                  checked={newKeyReadOnly}
+                  onCheckedChange={(v) => setNewKeyReadOnly(v === true)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="api-key-readonly" className="cursor-pointer">唯讀金鑰（建議）</Label>
+                  <p className="text-xs text-muted-foreground">
+                    只能查詢房型、房價與可售房數，無法新增或修改任何資料。給外部系統串接報價時請務必勾選。
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
