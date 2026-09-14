@@ -136,7 +136,9 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
     inventory: sellableInventoryDays >= ONBOARDING_MIN_SELLABLE_DAYS,
     packages: enabledPackageIds.size > 0,
     package_prices: pricedPackageDays >= ONBOARDING_MIN_SELLABLE_DAYS,
-    payment_methods: (src.bookingSettings?.payment_methods ?? []).length > 0,
+    payment_methods: Array.isArray(src.bookingSettings?.payment_methods)
+      ? src.bookingSettings!.payment_methods!.length > 0
+      : false,
     notification_emails: src.notificationEmails.length > 0,
   };
 
