@@ -136,7 +136,6 @@ const KolDashboardPublic = lazy(() => import("./pages/kol/KolDashboardPublic"));
 const KolReferralJoin = lazy(() => import("./pages/kol/KolReferralJoin"));
 const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
 
-const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
 const SaaSWorkspace = lazy(() => import("./pages/SaaSWorkspace"));
@@ -159,7 +158,6 @@ const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const TravelerCdp = lazy(() => import("./pages/TravelerCdp"));
 const RemarketingAdmin = lazy(() => import("./pages/admin/RemarketingAdmin"));
 const TravelerProfileDetail = lazy(() => import("./pages/TravelerProfileDetail"));
-const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
