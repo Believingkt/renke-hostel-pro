@@ -1,7 +1,10 @@
 # Roadmap
 
 ## 進行中
-- （無）
+- [ ] 第一批：order_meta / kol_profiles 補稽核（updated_by 欄位＋set_updated_by trigger）— 設計已完成，等核准施工
+- [ ] 第二批：order_meta_update policy 收緊（補 WITH CHECK、finance）— 等第一批觀察後個別核准
+- [ ] 第三批：kol_profiles_update policy 收緊（scout 限本人）— 等 updated_by 觀察 venue_manager/hotel_admin 是否寫入
+
 
 ## 已完成
 - [x] 一般訂房通知信箱（`booking_confirmation_emails`）＋通知信箱架構整理（已上線）
