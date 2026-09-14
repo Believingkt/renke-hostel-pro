@@ -210,7 +210,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   return (
     <>
       <AIConsentDialog
-        open={open && aiConsent.status === "not_granted"}
+        open={open && (aiConsent.status === "not_granted" || aiConsent.status === "declined")}
         onAccept={() => { void aiConsent.grant(); }}
         onDecline={() => { aiConsent.decline(); setOpen(false); }}
       />
@@ -267,7 +267,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
       )}
 
 
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open && aiConsent.status === "granted"} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
           className="h-[67dvh] max-h-[67dvh] sm:h-[66dvh] sm:max-h-[560px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-md sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"
