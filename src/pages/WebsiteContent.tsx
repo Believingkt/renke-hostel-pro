@@ -3894,7 +3894,7 @@ const WebsiteContent = () => {
                   ))}
                 </div>
                 <div className="space-y-1.5 pt-2">
-                  <Label className="text-sm font-medium">轉帳匯款帳戶資訊</Label>
+                  <Label className="text-sm font-medium">銀行轉帳帳戶資訊</Label>
                   <p className="text-xs text-muted-foreground">此帳戶資訊目前僅供內部記錄，前台訂房流程不會顯示（銀行、戶名、帳號等）</p>
                   <Textarea
                     value={bookingInfo.bankAccountInfo}
