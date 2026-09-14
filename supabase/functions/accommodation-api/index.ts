@@ -58,7 +58,25 @@ async function authenticate(req: Request) {
   if (error || !data || data.length === 0) {
     return { error: jsonResponse({ error: "Invalid or inactive API key" }, 401) };
   }
-  return { supabase, accommodationId: data[0].accommodation_id as string };
+
+  // 讀取該把金鑰的唯讀旗標（fail-closed：查不到或出錯一律視為唯讀）
+  const keyId = (data[0] as Record<string, unknown>).id as string | undefined;
+  let isReadOnly = true;
+  if (keyId) {
+    const { data: keyRow, error: keyErr } = await supabase
+      .from("accommodation_api_keys")
+      .select("is_read_only")
+      .eq("id", keyId)
+      .maybeSingle();
+    if (!keyErr && keyRow) isReadOnly = keyRow.is_read_only === true;
+  }
+
+  return {
+    supabase,
+    accommodationId: data[0].accommodation_id as string,
+    keyHash,
+    isReadOnly,
+  };
 }
 
 Deno.serve(async (req) => {
