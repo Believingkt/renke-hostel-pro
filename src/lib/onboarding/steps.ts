@@ -52,6 +52,19 @@ export const ONBOARDING_STEPS: StepDef[] = [
 ];
 
 /** 判定所需的原始資料（由 hook 取得後餵進來） */
+export interface OnboardingPackage {
+  id: string;
+  enabled: boolean | null;
+  sale_price?: number | null;
+  original_price?: number | null;
+  tier_prices?: any;
+  applicable_tiers?: PackageTier[] | null;
+  /** 結構化房型分配（縮圖來源，優先） */
+  room_type_allocation?: Array<{ room_type_id?: string | null }> | null;
+  room_type_ids?: string[] | null;
+  primary_room_type_id?: string | null;
+}
+
 export interface OnboardingSource {
   /** 今日（台北）yyyy-MM-dd */
   today: string;
@@ -63,11 +76,25 @@ export interface OnboardingSource {
   roomTypes: Array<{ id: string; name: string | null; capacity: number | null }>;
   roomPhotoRoomTypeIds: string[];
   pricingTemplates: Array<{ room_type_ids: string[] | null }>;
-  /** 未來 30 天內的庫存列（已由查詢限定日期區間與本館房型） */
-  inventoryRows: Array<{ date: string; available_rooms: number | null }>;
-  packages: Array<{ id: string; enabled: boolean | null }>;
-  /** 未來 30 天內的前台價格列（已由查詢限定日期區間與本館） */
-  packagePriceRows: Array<{ date: string; package_id: string; sale_price: number | null; is_available: boolean | null }>;
+  /** 未來 30 天內的庫存＋逐日房價列（已由查詢限定日期區間與本館房型） */
+  inventoryRows: Array<{
+    date: string;
+    available_rooms: number | null;
+    price?: number | null;
+    price_2_meals?: number | null;
+    price_3_meals?: number | null;
+  }>;
+  packages: OnboardingPackage[];
+  /** 未來 30 天內的方案單日覆寫列（已由查詢限定日期區間與本館） */
+  packagePriceRows: Array<{
+    date: string;
+    package_id: string;
+    sale_price: number | null;
+    original_price?: number | null;
+    is_available: boolean | null;
+  }>;
+  /** 國定假日 yyyy-MM-dd（用於平假日分級，與前台同一套 classifyDayTier） */
+  publicHolidays?: string[];
   bookingSettings: { payment_methods: string[] | null; deposit_percentage: number | null; security_deposit_amount: number | null; free_cancel_days: number | null } | null;
   notificationEmails: string[];
   /** accommodation_onboarding_steps：step_key → status */
