@@ -4,10 +4,11 @@
 - [ ] 新手業主上架引導流程（A–F）最終施工計畫（等核准，尚未施工）
   - [x] 第 13 步接上 `booking_confirmation_emails`（判定邏輯已定案：非空＝完成，選填不擋關）
   - [x] 七點細節對齊澄清（庫存/價格 7 天門檻、設施欄位、status 列舉、RLS helper、DELETE 範圍、橫幅關閉鈕、第 15 步條件）
-  - [ ] `accommodation_onboarding_steps` migration（SQL 已列出，待核准後執行）
-  - [ ] Onboarding.tsx / use-onboarding-progress / OnboardingBanner 實作
-  - [ ] 兩條孤兒路由改 Navigate 轉址
-  - [ ] postcheck（保護檔 diff=0、測試基準比對、真實資料驗證、15 家完成度快照）
+  - [x] `accommodation_onboarding_steps` migration（已執行）
+  - [x] Onboarding.tsx / use-onboarding-progress / steps.ts / OnboardingBanner 實作
+  - [x] 兩條孤兒路由改 Navigate 轉址
+  - [x] postcheck 完成（等 Publish 核准）
+  - [ ] 待裁示：第 4／9 步判定與正式資料落差（房型照片、前台價格來源）
 
 ## 已完成
 - [x] 一般訂房通知信箱（`booking_confirmation_emails`）＋通知信箱架構整理（已上線）
