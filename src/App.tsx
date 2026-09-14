@@ -444,6 +444,11 @@ function App() {
                     } />
 
                     {/* 後台管理頁面 */}
+                    <Route path="admin/onboarding" element={
+                      <RequireModule module="onboarding">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Onboarding /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin" element={
                       <RequireModule module="analytics">
                         <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
