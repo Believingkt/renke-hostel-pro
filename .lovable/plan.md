@@ -4,6 +4,35 @@
 
 ---
 
+## 七點對齊澄清（本版已全數修正）
+
+**1. 庫存（第 7 步）與前台價格（第 9 步）門檻＝7 天，不是 1 天。**
+上一版表格寫「有列」是我漏寫門檻，不是刻意放寬。已改為：未來 30 天中需有 **≥ 7 個不重複日期**且該日可售（庫存 `available_rooms > 0`／價格 > 0）。7 天內若不足 7 個可售日則判為未完成。
+
+**2. 第 3 步讀的是設施自己的欄位，不是整館 `is_active`。**
+`accommodation_facilities` 這張表**沒有** `is_active` 欄位，它的欄位是 `is_available`（型別檔 `src/integrations/supabase/types.ts:230`）。判定改寫明確：該館別 `is_available IS NOT false` 的設施列 ≥ 1。整份判定邏輯**完全不讀** `accommodation_info.is_active`，該欄位的語意缺陷留給獨立後續批次。
+
+**3. status 列舉改回 `not_applicable`，不用 `skipped`。**
+上一版改字是我自己換詞，沒有語意理由，不是有意設計。語意差別：`skipped` 有「跳過／未做」的暗示，`not_applicable` 是「這館別不適用」。已改回先前定案的 `(pending, confirmed, not_applicable)`。設定權限：`confirmed` 由該館別 `hotel_admin`（或 `super_admin`）按確認鈕寫入；`not_applicable` **僅 `super_admin` 可設**（UI 只在總部身分顯示該選項，DB 層由 UPDATE 政策＋前端共同約束）。
+
+**4. 兩組是本來就存在的不同函式，不是改名。**
+- `user_has_access_to_accommodation(uuid, uuid)` / `user_has_role(...)`：建立於 `20251029095631_*.sql` 與 `20260124090703_*.sql`，帶明確參數。
+- `is_admin_or_super()` / `is_hotel_admin_of(uuid)`：分別建立於 `20260520084059_*.sql:16` 與 `20260628110514_*.sql:4`，是後來為避免 `user_roles` RLS 遞迴而加的無參數／單參數版。
+我上一版直接沿用 `accommodation_notification_settings` 的寫法。**但查到一個問題並已修正**：`is_admin_or_super()` 不綁館別——它只檢查「在任一館別是 super_admin 或 hotel_admin」，等於 A 館老闆能讀寫 B 館的引導狀態。本版已改為 `public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id)`，館別綁定明確。
+**確認：本批不新建任何 SECURITY DEFINER 函式**，全部使用既有函式。
+
+**5. DELETE 已收回為僅 super_admin。**
+不是刻意放寬，是沿用既有寫法帶進來的。`is_admin_or_super()` 確實涵蓋任一館別的 `hotel_admin`，範圍比先前講的寬。本版 DELETE 政策改為 `USING (public.is_super_admin(auth.uid()))`。
+
+**6.「稍後再說」按鈕恢復。**
+上一版拿掉是我依「空區塊直接隱藏」原則自行判斷，沒有報備，是我的疏失。已恢復：按鈕寫 `localStorage`（key 帶 accommodationId，存日期），**當天隱藏、隔天自動再出現**，不寫任何資料庫。
+
+**7. 第 15 步啟用條件已加入第 14 步。**
+上一版漏列。已改為「1–10 全綠 **且第 14 步（取消政策）已確認**」才可按；第 13 步（通知信箱）維持選填、不列入。
+
+---
+
+
 ## 0. 通知信箱子專案完工後的適用性重新確認（第 2 點）
 
 逐項重驗結果：
@@ -41,19 +70,19 @@ A 型＝純讀既有表自動推導；B 型＝讀 `accommodation_onboarding_step
 | --- | --- | --- | --- |
 | 1 | 基本資料 | A | `accommodation_info` 名稱／地址／電話／簡介皆非空 |
 | 2 | 介紹與照片 | A | `about_section` 有內容且 `accommodation_photos` ≥ 3 |
-| 3 | 設施服務 | A | `accommodation_facilities` ≥ 1 且 `is_active` |
+| 3 | 設施服務 | A | `accommodation_facilities` 中該館別 **`is_available IS NOT false`** 的列 ≥ 1（讀設施自己的欄位，**不讀** `accommodation_info.is_active`） |
 | 4 | 房型與房間照片 | A | `room_types` ≥ 1，且每個房型 `room_photos` ≥ 1 |
 | 5 | 入住人數 | A | 所有房型 `capacity` > 0 |
 | 6 | 房價設定 | A | `pricing_templates` ≥ 1 且綁到現有房型 |
-| 7 | 庫存 | A | `room_inventory_pricing` 未來 30 天內有列 |
+| 7 | 庫存 | A | 未來 30 天中，`room_inventory_pricing` 有 **≥ 7 個不重複日期**且該日 `available_rooms > 0` |
 | 8 | 訂房方案 | A | `accommodation_packages` ≥ 1 且 `enabled = true` |
-| 9 | 前台價格 | A | `package_date_prices` 對應啟用方案有列 |
+| 9 | 前台價格 | A | 未來 30 天中，`package_date_prices` 對應啟用方案有 **≥ 7 個不重複日期**且價格 > 0 |
 | 10 | 付款方式 | A | `booking_settings.payment_methods` 非空 |
 | 11 | 訂金比例 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
 | 12 | 入住押金 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
 | 13 | 通知信箱 | A（**本次接上**） | `booking_confirmation_emails` 非空＝完成；空＝待確認；**選填** |
 | 14 | 取消政策與注意事項 | B | 文字欄位有預設種子值，無法用非空判斷 → 由業主按「我已確認」寫入新表；退款天數本身仍為 HQ 唯讀 |
-| 15 | 上架前最終確認 | B | 1–10 全綠後才可按；按下寫入新表，僅作紀錄，不自動改 `is_active` |
+| 15 | 上架前最終確認 | B | **1–10 全綠且第 14 步已確認**才可按；第 13 步選填不列入。按下寫入新表，僅作紀錄，不自動改 `is_active` |
 
 HQ 三項（11、12、以及 14 內的退款天數）呈現方式：卡片底色 `bg-muted`、欄位唯讀、右上角標「總部設定」、底部一行「需要調整請聯絡總部」，不計入完成度分母。
 
@@ -73,7 +102,7 @@ CREATE TABLE public.accommodation_onboarding_steps (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT accommodation_onboarding_steps_status_check
-    CHECK (status IN ('pending', 'confirmed', 'skipped')),
+    CHECK (status IN ('pending', 'confirmed', 'not_applicable')),
   CONSTRAINT accommodation_onboarding_steps_unique UNIQUE (accommodation_id, step_key)
 );
 
@@ -84,20 +113,20 @@ ALTER TABLE public.accommodation_onboarding_steps ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "onboarding_steps_select"
   ON public.accommodation_onboarding_steps FOR SELECT TO authenticated
-  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  USING (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_insert"
   ON public.accommodation_onboarding_steps FOR INSERT TO authenticated
-  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  WITH CHECK (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_update"
   ON public.accommodation_onboarding_steps FOR UPDATE TO authenticated
-  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id))
-  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  USING (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id))
+  WITH CHECK (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_delete"
   ON public.accommodation_onboarding_steps FOR DELETE TO authenticated
-  USING (public.is_admin_or_super());
+  USING (public.is_super_admin(auth.uid()));
 
 CREATE TRIGGER update_accommodation_onboarding_steps_updated_at
   BEFORE UPDATE ON public.accommodation_onboarding_steps
@@ -107,7 +136,10 @@ COMMENT ON TABLE public.accommodation_onboarding_steps IS
   '上架引導的「業主已確認」狀態紀錄。純 UI 引導用，不存訂房核心資料，不被訂單／計價／庫存／分潤讀取。';
 ```
 
-RLS 判定沿用既有 `accommodation_notification_settings` 同一組函式（`is_admin_or_super()` / `is_hotel_admin_of()`），不新增任何 SECURITY DEFINER 函式。
+RLS 全部使用既有函式，**不新建任何 SECURITY DEFINER 函式**：
+- `public.is_super_admin(uuid)` — 建立於 `20260124102710_*.sql:7`
+- `public.is_hotel_admin_of(uuid)` — 建立於 `20260628110514_*.sql:4`（判定該館別的 `super_admin` / `hotel_admin`）
+- `public.update_updated_at_column()` — 既有共用 trigger 函式
 
 ---
 
@@ -116,7 +148,8 @@ RLS 判定沿用既有 `accommodation_notification_settings` 同一組函式（`
 - 位置：`src/pages/Dashboard.tsx` 最上方，標題列之下。
 - 顯示條件：目前館別的 A 型必要步驟（1–10）**未全綠**時顯示。第 13 步選填、11/12 HQ 項皆不列入。
 - 內容：一行文字「上架設定尚未完成（已完成 X／10）」＋進度條＋按鈕「前往上架引導」。
-- 消失條件：1–10 全綠後元件回傳 `null`（比照專案既有「空區塊直接隱藏、不留骨架」原則），無需手動關閉、無 localStorage 記憶。
+- 關閉：保留「稍後再說」按鈕，按下寫入 `localStorage`（key `onboarding_banner_dismissed_<accommodationId>`，存當日日期字串），**當天不再顯示、隔天自動再出現**；不寫任何資料庫。
+- 自動消失條件：1–10 全綠後元件回傳 `null`（比照專案既有「空區塊直接隱藏、不留骨架」原則）。
 - 讀取失敗或無館別 → 一律回傳 `null`，不顯示錯誤狀態。
 
 ---
