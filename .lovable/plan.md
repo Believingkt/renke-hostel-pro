@@ -73,7 +73,7 @@ CREATE TABLE public.accommodation_onboarding_steps (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT accommodation_onboarding_steps_status_check
-    CHECK (status IN ('pending', 'confirmed', 'skipped')),
+    CHECK (status IN ('pending', 'confirmed', 'not_applicable')),
   CONSTRAINT accommodation_onboarding_steps_unique UNIQUE (accommodation_id, step_key)
 );
 
@@ -84,20 +84,20 @@ ALTER TABLE public.accommodation_onboarding_steps ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "onboarding_steps_select"
   ON public.accommodation_onboarding_steps FOR SELECT TO authenticated
-  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  USING (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_insert"
   ON public.accommodation_onboarding_steps FOR INSERT TO authenticated
-  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  WITH CHECK (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_update"
   ON public.accommodation_onboarding_steps FOR UPDATE TO authenticated
-  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id))
-  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+  USING (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id))
+  WITH CHECK (public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id));
 
 CREATE POLICY "onboarding_steps_delete"
   ON public.accommodation_onboarding_steps FOR DELETE TO authenticated
-  USING (public.is_admin_or_super());
+  USING (public.is_super_admin(auth.uid()));
 
 CREATE TRIGGER update_accommodation_onboarding_steps_updated_at
   BEFORE UPDATE ON public.accommodation_onboarding_steps
@@ -107,7 +107,10 @@ COMMENT ON TABLE public.accommodation_onboarding_steps IS
   '上架引導的「業主已確認」狀態紀錄。純 UI 引導用，不存訂房核心資料，不被訂單／計價／庫存／分潤讀取。';
 ```
 
-RLS 判定沿用既有 `accommodation_notification_settings` 同一組函式（`is_admin_or_super()` / `is_hotel_admin_of()`），不新增任何 SECURITY DEFINER 函式。
+RLS 全部使用既有函式，**不新建任何 SECURITY DEFINER 函式**：
+- `public.is_super_admin(uuid)` — 建立於 `20260124102710_*.sql:7`
+- `public.is_hotel_admin_of(uuid)` — 建立於 `20260628110514_*.sql:4`（判定該館別的 `super_admin` / `hotel_admin`）
+- `public.update_updated_at_column()` — 既有共用 trigger 函式
 
 ---
 
@@ -116,7 +119,8 @@ RLS 判定沿用既有 `accommodation_notification_settings` 同一組函式（`
 - 位置：`src/pages/Dashboard.tsx` 最上方，標題列之下。
 - 顯示條件：目前館別的 A 型必要步驟（1–10）**未全綠**時顯示。第 13 步選填、11/12 HQ 項皆不列入。
 - 內容：一行文字「上架設定尚未完成（已完成 X／10）」＋進度條＋按鈕「前往上架引導」。
-- 消失條件：1–10 全綠後元件回傳 `null`（比照專案既有「空區塊直接隱藏、不留骨架」原則），無需手動關閉、無 localStorage 記憶。
+- 關閉：保留「稍後再說」按鈕，按下寫入 `localStorage`（key `onboarding_banner_dismissed_<accommodationId>`，存當日日期字串），**當天不再顯示、隔天自動再出現**；不寫任何資料庫。
+- 自動消失條件：1–10 全綠後元件回傳 `null`（比照專案既有「空區塊直接隱藏、不留骨架」原則）。
 - 讀取失敗或無館別 → 一律回傳 `null`，不顯示錯誤狀態。
 
 ---
