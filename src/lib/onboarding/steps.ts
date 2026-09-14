@@ -15,6 +15,16 @@
  *  - 第 15 步：需 1–10 全綠 **且** 第 14 步已確認才可按。
  */
 
+// 取價與平假日分級：直接沿用前台／驗價實際在跑的既有函式，不另外重寫一份規則。
+import {
+  resolvePackagePriceForDate,
+  resolvePackageAvailabilityForDate,
+  overrideKey,
+  type PackageDatePriceMap,
+} from "@/lib/packageDatePrice";
+import { classifyDayTier } from "@/utils/templatePriceResolverPure";
+import type { PackageTier } from "@/hooks/use-accommodation-packages";
+
 export const ONBOARDING_WINDOW_DAYS = 30;
 export const ONBOARDING_MIN_SELLABLE_DAYS = 7;
 
