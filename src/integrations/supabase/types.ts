@@ -145,6 +145,7 @@ export type Database = {
           created_by: string | null
           id: string
           is_active: boolean
+          is_read_only: boolean
           key_hash: string
           key_prefix: string
           last_used_at: string | null
@@ -157,6 +158,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_read_only?: boolean
           key_hash: string
           key_prefix: string
           last_used_at?: string | null
@@ -169,6 +171,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           is_active?: boolean
+          is_read_only?: boolean
           key_hash?: string
           key_prefix?: string
           last_used_at?: string | null
