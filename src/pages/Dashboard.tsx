@@ -24,6 +24,7 @@ import { MonthlyOccupancyRateChart } from "@/components/charts/MonthlyOccupancyR
 import { MonthlyAveragePriceChart } from "@/components/charts/MonthlyAveragePriceChart";
 import { ChartErrorBoundary } from "@/components/charts/ChartErrorBoundary";
 import { AdminPageHeader } from "@/components/AdminPageHeader";
+import { OnboardingBanner } from "@/components/admin/OnboardingBanner";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OrderSourceAnalyticsTab } from "@/components/analytics/OrderSourceAnalyticsTab";
 import { CheckInRevenueTab } from "@/components/analytics/CheckInRevenueTab";
@@ -267,6 +268,7 @@ const Dashboard = () => {
 
   const dashboardContent = (
     <div className="space-y-6">
+      <OnboardingBanner accommodationId={accommodationId} />
       <AdminPageHeader
         title="營運分析"
         icon={BarChart3}
