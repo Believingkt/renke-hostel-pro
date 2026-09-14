@@ -88,7 +88,12 @@ export function useOnboardingProgress(accommodationId: string | null | undefined
         .eq("accommodation_id", accommodationId)
         .gte("date", today)
         .lte("date", windowEnd),
-      supabase.from("public_holidays").select("date").gte("date", today).lte("date", windowEnd),
+      supabase
+        .from("public_holidays")
+        .select("holiday_date")
+        .eq("accommodation_id", accommodationId)
+        .gte("holiday_date", today)
+        .lte("holiday_date", windowEnd),
     ]);
 
     const src: OnboardingSource = {
