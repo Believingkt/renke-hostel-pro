@@ -41,19 +41,19 @@ A 型＝純讀既有表自動推導；B 型＝讀 `accommodation_onboarding_step
 | --- | --- | --- | --- |
 | 1 | 基本資料 | A | `accommodation_info` 名稱／地址／電話／簡介皆非空 |
 | 2 | 介紹與照片 | A | `about_section` 有內容且 `accommodation_photos` ≥ 3 |
-| 3 | 設施服務 | A | `accommodation_facilities` ≥ 1 且 `is_active` |
+| 3 | 設施服務 | A | `accommodation_facilities` 中該館別 **`is_available IS NOT false`** 的列 ≥ 1（讀設施自己的欄位，**不讀** `accommodation_info.is_active`） |
 | 4 | 房型與房間照片 | A | `room_types` ≥ 1，且每個房型 `room_photos` ≥ 1 |
 | 5 | 入住人數 | A | 所有房型 `capacity` > 0 |
 | 6 | 房價設定 | A | `pricing_templates` ≥ 1 且綁到現有房型 |
-| 7 | 庫存 | A | `room_inventory_pricing` 未來 30 天內有列 |
+| 7 | 庫存 | A | 未來 30 天中，`room_inventory_pricing` 有 **≥ 7 個不重複日期**且該日 `available_rooms > 0` |
 | 8 | 訂房方案 | A | `accommodation_packages` ≥ 1 且 `enabled = true` |
-| 9 | 前台價格 | A | `package_date_prices` 對應啟用方案有列 |
+| 9 | 前台價格 | A | 未來 30 天中，`package_date_prices` 對應啟用方案有 **≥ 7 個不重複日期**且價格 > 0 |
 | 10 | 付款方式 | A | `booking_settings.payment_methods` 非空 |
 | 11 | 訂金比例 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
 | 12 | 入住押金 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
 | 13 | 通知信箱 | A（**本次接上**） | `booking_confirmation_emails` 非空＝完成；空＝待確認；**選填** |
 | 14 | 取消政策與注意事項 | B | 文字欄位有預設種子值，無法用非空判斷 → 由業主按「我已確認」寫入新表；退款天數本身仍為 HQ 唯讀 |
-| 15 | 上架前最終確認 | B | 1–10 全綠後才可按；按下寫入新表，僅作紀錄，不自動改 `is_active` |
+| 15 | 上架前最終確認 | B | **1–10 全綠且第 14 步已確認**才可按；第 13 步選填不列入。按下寫入新表，僅作紀錄，不自動改 `is_active` |
 
 HQ 三項（11、12、以及 14 內的退款天數）呈現方式：卡片底色 `bg-muted`、欄位唯讀、右上角標「總部設定」、底部一行「需要調整請聯絡總部」，不計入完成度分母。
 
