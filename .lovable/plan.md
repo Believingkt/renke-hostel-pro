@@ -1,197 +1,165 @@
-# 一般訂房通知信箱（新）＋通知信箱架構整理 — 唯讀調查與設計稿
+# 業主上架引導流程（A–F）— 最終統一施工計畫（僅計畫，未施工）
 
-狀態：僅調查與設計，未施工。未建立／未執行任何 migration，未修改任何檔案或資料。
-（上架引導 A–F 那批已暫停，等本案欄位定案後再回頭定案第 13 步。）
+狀態：未建立任何檔案、未執行任何 migration、未修改任何既有程式。等核准。
 
 ---
 
-## 第一部分：唯讀調查結果（附證據）
+## 0. 通知信箱子專案完工後的適用性重新確認（第 2 點）
 
-### 1. `accommodation_notification_settings` 完整欄位
+逐項重驗結果：
 
-建表 migration：`supabase/migrations/20260822053810_d9607c28-037a-4e34-842c-ebb2b383da5a.sql:1-9`
-
-| 欄位 | 型別 | 說明 |
+| 原設計項目 | 現況重驗 | 是否需調整 |
 | --- | --- | --- |
-| `id` | uuid PK | `gen_random_uuid()` |
-| `accommodation_id` | uuid NOT NULL **UNIQUE** | FK → `accommodation_info(id)` ON DELETE CASCADE |
-| `booking_notification_emails` | `text[]` NOT NULL DEFAULT `'{}'` | 唯一的收件人欄位 |
-| `created_at` / `updated_at` | timestamptz NOT NULL DEFAULT now() | 有 updated_at trigger |
+| 新表 `accommodation_onboarding_steps` 結構 | 全庫仍無 onboarding/checklist 類表 | **不變** |
+| 第 13 步（通知設定）判定 | `accommodation_notification_settings` 已新增 `booking_confirmation_emails text[] NOT NULL DEFAULT '{}'`（型別檔 `src/integrations/supabase/types.ts:882` 已同步） | **改為 A 型純讀既有表**（原本因無欄位只能列 B 型確認制） |
+| Onboalding 15 步驟卡片 | 第 13 步從「無法自動判定」變成可自動判定 → 需讀新表的步驟由 4 項降為 3 項 | **調整** |
+| 側邊欄第 14 項「訂房確認信」連結 | `src/config/adminMenu.ts:93` 已由「訂房確認通知」改名為「訂房確認信」 | 引導頁連結文案沿用新名 |
+| 團購通知卡位置 | 已搬至團購管理→通知設定，不再出現在訂房確認信頁 | 引導頁不再把團購通知列為上架步驟 |
+| Dashboard 橫幅 | `src/pages/Dashboard.tsx` 仍存在、仍是登入後預設頁（`getAdminPath()` 無角色分支） | **不變** |
+| 孤兒路由改 Navigate | 重驗 `admin/user-roles`（App.tsx:593）與 `admin/public-holidays`（App.tsx:627）全庫無任何連結指向 | **不變** |
+| Postcheck 計畫 | 需補一項：新欄位判定的真實資料驗證 | **微調** |
 
-欄位就這五個，沒有任何「一般訂房 vs 團購」的區分欄位。型別檔同步佐證：`src/integrations/supabase/types.ts:879-909`。
-
-關鍵事實：**同一個 migration 檔同時建立了 `accommodation_notification_settings` 與 `group_buy_campaign_notification_settings`（同檔 line 34 起），且 `group_buy_campaign_notification_settings` 的 RLS 全部以 `group_buy_campaigns` 做權限判定。** 也就是說這張「民宿層」表從出生第一天起就是團購那條路徑的 fallback 層，不是先為一般訂房設計、後來被團購借用。
-
-RLS（同檔 line 14-30）：SELECT/INSERT/UPDATE/DELETE 皆為 `is_admin_or_super() OR is_hotel_admin_of(accommodation_id)`。
-
-資料現況（即時查詢）：`accommodation_notification_settings` **0 列**（15 間館別全空）；`group_buy_campaign_notification_settings` 1 列且有收件人；`suppressed_emails` 0 列。→ 目前正式環境「民宿端通知信」實際上一封都沒在寄。
-
-### 2. `_shared/notifyRecipients.ts` 完整邏輯
-
-檔案 70 行，兩個 export：
-
-- `normalizeEmails(list)`（line 7-16）：`String().trim().toLowerCase()` → 過濾空值／長度 >254／不符 `/^[^\s@]+@[^\s@]+\.[^\s@]+$/` → 去重 → `slice(0, 10)`。
-- `resolveOrderNotifyEmails(admin, { accommodationId, campaignId })`（line 22-70），解析順序：
-  1. 有 `campaignId` → 讀 `group_buy_campaign_notification_settings.notification_emails`，正規化後若非空即採用，`source = "campaign"`（line 31-41）。
-  2. 上一步為空且有 `accommodationId` → 讀 `accommodation_notification_settings.booking_notification_emails`，非空即採用，`source = "accommodation"`（line 43-54）。
-  3. **兩者不合併**（檔頭註解 line 19 明寫）。
-  4. 最後以 `suppressed_emails` 過濾退信名單（line 56-63）。
-  5. 任何例外 → 回傳 `{ emails: [], source: "none" }`，永不 throw（line 64-67）。
-
-呼叫端（全部 5 支、100% 團購）：
-- `group-buy-create-order/index.ts:173`
-- `group-buy-resend-notification/index.ts:243`
-- `group-buy-order-lookup/index.ts:145 / 490 / 595`
-- `_shared/groupBuyCreditCompletion.ts:197`
-
-**`send-order-confirmation` 從未 import 這支模組。**
-
-### 3. `send-order-confirmation/index.ts` 收件人組成脈絡
-
-- 收件人 `built.to` 由 `_shared/orderConfirmationEmail.ts` 的 `buildOrderConfirmationEmail()` 產生，來源是訂單本身的 `guest_email`；缺 email 回 `no_email`（`index.ts:94-102`）。
-- 實際寄送 `index.ts:116-128`：`to: [built.to]`，`from: "人客多通知 <noreply@lakeze.com>"`，**沒有 cc、沒有 bcc、沒有 reply_to**。
-- 團購訂單在 `index.ts:80-83` 直接 return，不寄共用確認信。
-- 權限：service_role 呼叫直接放行；帶使用者 JWT 時比對 `guest_email`（`index.ts:66-92`）。
-- 限流：`rateMap`，同一訂單 60 秒最多 3 封（`index.ts:17-32, 60-62`）。注意這是 **per-instance in-memory**，多實例不共用。
-
-**觸發點共 4 類**（加 bcc 的重複寄送風險就在這裡）：
-1. `_shared/sendBookingEmail.ts:78` — 所有付款方式（信用卡／3DS／LINE Pay／ATM）的自動寄信總入口，由 `create-paid-order:404`、`complete-3ds-booking:441`、`tappay-notify:529`、`tappay-atm-create:335`、`create-card-bound-order:317`、`admin-resend-booking-email:103`、`notify-booking-confirmation:23` 呼叫。
-2. `change-order-dates/index.ts:298` — 管理端改期後重寄。
-3. `member-order-manage/index.ts:586` — 會員自行改期後重寄。
-4. `src/pages/MemberOrderDetail.tsx:735` — 會員在訂單詳情頁手動按「重新傳送信件」。
-
-風險評估：
-- **對客人收信邏輯零影響**：Resend 的 `bcc` 是獨立欄位，`to` 陣列不變、信件內容不變。
-- **重複寄送風險：有，且不可忽略。** 上面 2/3/4 每次都會重跑整支函式，若無條件加 bcc，民宿端會在每次改期、每次會員手動重寄時都收到一封完整客人版確認信（含遮罩前的訂單細節）。第 4 點是會員可自行無限觸發的（僅受 60 秒 3 封限流保護）。
-- **既有邏輯混用風險：有一處。** `_shared/sendBookingEmail.ts:41-45` 與 `send-order-confirmation:80-83` 兩層都擋掉 `order_source = 'group_buy'`，所以新欄位若走這條路徑，天然不會碰到團購；但若未來有人把新欄位塞進 `resolveOrderNotifyEmails`，就會和團購 fallback 混在一起——設計上必須明確禁止。
-- `booking_email_log` 表存在（`types.ts:2161`，有 `order_id`、`email_type`），可作為民宿副本的去重依據，目前 `send-order-confirmation` 未寫入。
-
-### 4. `?tab=email-notification` 頁面現況
-
-入口：`src/config/adminMenu.ts:93` 「訂房確認通知」→ `/admin/website-content?tab=email-notification`。
-內容在 `src/pages/WebsiteContent.tsx:4280-4430`，左欄由上到下：
-
-1. `PageHeader「訂房確認通知」`（:4281）
-2. Card「⚠️ 重要提醒」— 信件內容（:4285）
-3. Card「📞 聯絡方式」— 電話／LINE／Email／客服時間，信件內容（:4313）
-4. Card「🏦 入住押金提醒」— 開關＋標題＋內容，信件內容（:4376）
-5. **`<BookingNotificationEmailsCard />`（:4417）— 唯一的收件人設定，卻是團購專用**
-6. `SaveButtonContainer`（:4419）— 只儲存 1–4，卡 5 有自己的儲存按鈕
-右欄：`BookingConfirmationEmailPreview`（sticky 即時預覽）。
-
-→ 混淆確認：整頁四張卡有三張在講「信件長什麼樣」，第四張在講「寄給誰」，而且那個「誰」其實只服務團購。卡片本身有小字免責（`BookingNotificationEmailsCard.tsx:66, 74`），但標題「📥 訂房通知」＋頁面標題「訂房確認通知」的脈絡壓過小字。另有兩套儲存按鈕語意不一致。
-
-`HeaderFooterSection.tsx:359/366/373` 有三處 `goToTab('email-notification')` 的跳轉入口。
-
-### 5. 團購「通知設定」tab 資料流
-
-`src/pages/AdminGroupBuy.tsx:1186`（TabsTrigger）→ `:1194-1196`（TabsContent）→ `<GroupBuyNotificationSettings campaignId={activeId} accommodationId={accommodationId} />`。
-
-元件 `src/components/admin/GroupBuyNotificationSettings.tsx`：
-- 讀民宿層 fallback（:28-32）與活動層覆寫（:42-48）
-- `override` 開關＝活動層陣列是否非空（:52）
-- 存檔走 `writeWithRowCheck` upsert `group_buy_campaign_notification_settings`（:74-80）；關閉 override 即存空陣列＝回退民宿層
-- 面板明確顯示「目前實際收件人（來源：…）」（:101-124）
-
-寄送端：`group-buy-create-order/index.ts:173-216` 取得 `venueEmails` 後以 `sendGroupBuyEmail` 寄團購專屬模板 `renderVenueNewOrder`，並寫 `group_buy_payment_events` 稽核。**與 `send-order-confirmation` 完全不同的函式、模板與表。**
-
-→ 結論：只要新欄位不被塞進 `resolveOrderNotifyEmails`，兩者在程式層完全獨立、互不影響。
-
-### 6. 新欄位需不需要支援多收件人
-
-需要，**應比照團購用 `text[]` 陣列**。理由：現成的 `NotificationEmailListField.tsx` 與 `src/lib/notificationEmails.ts`（`MAX_NOTIFICATION_EMAILS = 10`、`normalizeNotificationEmails`、`validateNotificationEmails`）已是共用元件，後端 `normalizeEmails` 規則與前端同語意；改單一 string 反而要另寫一套。實務上民宿常需要「老闆＋櫃檯＋管家」多人同時收。
+結論：整份設計仍適用，只有第 13 步的判定方式與 postcheck 多一項要調整，其餘一致。
 
 ---
 
-## 第二部分：設計稿
+## 1. 第 13 步完成度判定（第 1 點）
 
-### A. 資料架構方案（二選一）
-
-**方案 A1：在現有表新增獨立欄位（建議）**
-
-```
-accommodation_notification_settings
-  + booking_confirmation_emails  text[]  NOT NULL DEFAULT '{}'
-```
-既有 `booking_notification_emails` 原封不動，僅在後台改標示為「團購通知信箱」。
-
-- 優點：一間館別一列（既有 UNIQUE 約束），一次查詢拿到兩種設定；RLS/GRANT/updated_at trigger 全部沿用，不需新增任何 policy；`resolveOrderNotifyEmails` 一行都不用改（它只 select 舊欄位）；新舊欄位在 DB 層物理分離，不可能互相覆寫。
-- 缺點：表名 `accommodation_notification_settings` 仍是通用名，兩種用途同表；語意靠欄位名與 UI 分區承擔。
-- 風險：極低。新增欄位有 DEFAULT，不影響既有 0 列資料與任何既有查詢。
-
-**方案 A2：新建獨立表 `accommodation_booking_notification_settings`**
-
-- 優點：表名即語意，徹底物理隔離。
-- 缺點：要新寫一整組 RLS（4 條 policy）＋GRANT＋trigger；多一次查詢；`accommodation_notification_settings` 這個「通用名卻只服務團購」的錯名仍然留著，架構混亂只是換位置；未來兩張幾乎一樣的表更容易被誤用。
-- 真要徹底，正解其實是「把舊表改名為 `group_buy_*`」，但那會動到 4 支已上線團購函式，本案明確不碰。
-
-**評估結論：A1 對解決混亂比較徹底，因為真正的混亂來源是 UI 標籤與頁面位置，不是表結構**；A2 付出 schema 成本卻沒消除錯名。建議 A1，搭配 B 節的頁面拆分。
-
-（migration SQL 草稿等你選定方案後再出，本次不建立、不執行。）
-
-### B. 畫面重新設計
-
-**B-1 `?tab=email-notification` 改為兩塊、標題改名**
-
-- 側邊欄 `adminMenu.ts:93` 「訂房確認通知」→ 建議改為「**訂房確認信**」（強調是信）。
-- 頁面分成兩個明確區塊，中間有分隔與說明：
-  - 區塊一「**這封信長什麼樣**」：重要提醒／聯絡方式／押金提醒＋右側即時預覽（＝現有 1–4 卡，內容一行不改）。
-  - 區塊二「**這封信要寄給誰**」：新卡 `BookingConfirmationRecipientsCard`，寫入 `booking_confirmation_emails`。文案明說「客人一定會收到，這裡填的是民宿端要不要也收一份副本；留空＝只寄給客人」。
-- **`BookingNotificationEmailsCard`（團購那張）從此頁移除。**
-
-**B-2 團購那張卡移到 AdminGroupBuy**
-
-搬到 `AdminGroupBuy.tsx` 的「通知設定」tab（:1194），放在 `GroupBuyNotificationSettings` 上方，標題改「團購通知信箱（民宿預設）」。這樣「民宿預設」與「活動覆寫」上下相鄰，來源關係一眼看懂，也不再出現在訂房確認信頁面誤導老闆。
-元件檔建議重新命名為 `GroupBuyVenueNotificationEmailsCard.tsx`，寫入邏輯（表名、欄位、upsert）**byte-for-byte 不變**。
-
-**B-3 過渡防呆**
-
-`GroupBuyNotificationSettings` 的「目前實際收件人」面板文案加一句「此設定僅用於團購」。舊頁面若有人以書籤直達，仍能正常到達新位置（tab 名不變）。
-
-### C. 新欄位如何安全接進 `send-order-confirmation`
-
-**採「同一封信加 bcc」而非另外寄一封**（Resend 單次 API call 即可，不增加寄送次數、不需新模板）。
-
-具體改動（僅 `send-order-confirmation/index.ts`）：
-
-1. 在 `buildOrderConfirmationEmail` 成功後、`fetch` 之前，以 service role 讀 `orders.accommodation_id` → 查 `accommodation_notification_settings.booking_confirmation_emails`，經與 `notifyRecipients.normalizeEmails` 同語意的正規化＋`suppressed_emails` 過濾。
-2. **不呼叫 `resolveOrderNotifyEmails`**，避免與團購 fallback 鏈混用；新增一支 `resolveBookingConfirmationBccEmails()`，只讀新欄位、無 campaign fallback。
-3. 只有在 `triggerSource === "auto"`（首次成交自動寄信）時才帶 bcc。`date_change` / `member_date_change` / 會員手動重寄一律不帶 bcc，直接消除「每次重寄都轟炸民宿」的風險。**若你希望改期也通知民宿，請明講，我會改成白名單 `["auto","date_change"]`。**
-4. 額外去重：寄出後寫 `booking_email_log`（`order_id`, `email_type='booking_confirmation_venue_bcc'`），同訂單已有紀錄則不再帶 bcc。
-5. 任一步失敗（查不到設定、正規化後為空、寫 log 失敗）一律 **靜默降級為只寄客人**，絕不阻斷客人收信；錯誤只進 `console.error`。
-6. `preview === true` 路徑不受影響；團購 early return（:80-83）在 bcc 邏輯之前，順序不變。
-
-對現有客人收信邏輯的影響：`to`、`subject`、`html`、`from`、限流、權限判定全部不變；`built.to` 組成不變。信件內容即客人版，含訂單完整資訊——**請確認民宿端收客人版副本可接受**，若不可接受要改成另寄精簡的民宿版模板（工作量較大，本設計未含）。
-
-回歸測試（新增，不改既有）：
-- 未設定新欄位 → Resend payload 無 `bcc` 鍵，且 `to` 不變
-- 設定 3 筆 → `bcc` 恰為 3 筆、lowercase、去重、排除 suppressed
-- `triggerSource = date_change` / 會員手動重寄 → 無 `bcc`
-- `order_source = group_buy` → 仍在 :80-83 return，完全不進 bcc 邏輯
-- 同一訂單第二次 auto → 因 `booking_email_log` 去重而無 `bcc`
-- 團購路徑 `resolveOrderNotifyEmails` 回傳值與呼叫次數不變（既有 5 個呼叫點快照測試）
-
-### D. Postcheck 計畫（比照既有標準）
-
-1. **保護檔 diff = 0**：`_shared/notifyRecipients.ts`、`_shared/sendBookingEmail.ts`、`_shared/orderConfirmationEmail.ts`、`group-buy-create-order/index.ts`、`group-buy-resend-notification/index.ts`、`group-buy-order-lookup/index.ts`、`_shared/groupBuyCreditCompletion.ts`、`GroupBuyNotificationSettings.tsx`（僅檔名搬移時附逐字 diff 證明寫入段不變）、所有 `/team`、所有分潤／退款／OTA 相關檔。附 md5 對照表。
-2. **完整測試套件基準比對**：以施工前 commit `git archive` 實跑，與施工後逐項檔名比對，預期仍為既有 23 項固定失敗，不得新增。
-3. **型別檢查**通過（`tsgo`）。
-4. **正式環境真實寄信測試（不接受文字保證）**：
-   - 在一間測試館別填入可收信的真實信箱，建立一筆真實訂單走完付款 → 附 Resend API HTTP 狀態、`send-order-confirmation` 函式日誌、**客人端與民宿端兩邊實際收到信的截圖**。
-   - 對同一筆訂單按「重新傳送信件」→ 證明民宿端**沒有**再收到第二封。
-   - 對同一筆訂單執行一次改期 → 證明客人收到改期信、民宿端未收到。
-   - 一筆團購訂單 → 證明 `send-order-confirmation` 仍在 :80-83 return，團購民宿信仍由 `group-buy-*` 正常寄出。
-   - 新欄位留空的館別 → 客人正常收信、無 bcc。
-5. **資料佐證**：附施工前後 `accommodation_notification_settings` 欄位結構與列數對照、`booking_email_log` 新增列查詢結果。
-6. 過關後 **不自動 Publish**，等你裁示。
+- 判定型：**A 型（純讀既有表，不寫新表）**
+- 資料來源：`accommodation_notification_settings.booking_confirmation_emails`（以 `accommodation_id` 查，`maybeSingle`）
+- 規則：陣列長度 > 0 → `completed`；空陣列或整列不存在 → `pending`
+- 性質：**選填**。不計入上架完成度分母，不會讓現有 12 家已營運館別被打回「未完成」；卡片右側顯示灰色「選填」標籤而非紅色警示。
+- 團購通知信箱（`booking_notification_emails`）**不納入**此判定。
 
 ---
 
-## 需要你裁示的問題
+## 2. 15 步驟完成度判定總表
 
-1. 資料架構採 **A1（現有表加欄位）** 還是 A2（新建表）？
-2. 民宿端副本用 **bcc 同一封客人版信**，還是要另寫民宿專屬精簡模板？
-3. bcc 觸發範圍只限首次自動寄信，還是也要包含**改期**？（會員手動重寄建議一律排除）
-4. 團購那張卡是否確認**整張搬到** AdminGroupBuy 通知設定 tab？
-5. 側邊欄「訂房確認通知」是否改名為「訂房確認信」？
-6. 新欄位對老闆是**必填**（上架引導第 13 步擋關）還是選填？
+A 型＝純讀既有表自動推導；B 型＝讀 `accommodation_onboarding_steps` 的業主確認狀態；HQ＝唯讀顯示「請聯絡總部」。
+
+| # | 步驟 | 型 | 判定 |
+| --- | --- | --- | --- |
+| 1 | 基本資料 | A | `accommodation_info` 名稱／地址／電話／簡介皆非空 |
+| 2 | 介紹與照片 | A | `about_section` 有內容且 `accommodation_photos` ≥ 3 |
+| 3 | 設施服務 | A | `accommodation_facilities` ≥ 1 且 `is_active` |
+| 4 | 房型與房間照片 | A | `room_types` ≥ 1，且每個房型 `room_photos` ≥ 1 |
+| 5 | 入住人數 | A | 所有房型 `capacity` > 0 |
+| 6 | 房價設定 | A | `pricing_templates` ≥ 1 且綁到現有房型 |
+| 7 | 庫存 | A | `room_inventory_pricing` 未來 30 天內有列 |
+| 8 | 訂房方案 | A | `accommodation_packages` ≥ 1 且 `enabled = true` |
+| 9 | 前台價格 | A | `package_date_prices` 對應啟用方案有列 |
+| 10 | 付款方式 | A | `booking_settings.payment_methods` 非空 |
+| 11 | 訂金比例 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
+| 12 | 入住押金 | HQ | 唯讀顯示現值＋「請聯絡總部調整」 |
+| 13 | 通知信箱 | A（**本次接上**） | `booking_confirmation_emails` 非空＝完成；空＝待確認；**選填** |
+| 14 | 取消政策與注意事項 | B | 文字欄位有預設種子值，無法用非空判斷 → 由業主按「我已確認」寫入新表；退款天數本身仍為 HQ 唯讀 |
+| 15 | 上架前最終確認 | B | 1–10 全綠後才可按；按下寫入新表，僅作紀錄，不自動改 `is_active` |
+
+HQ 三項（11、12、以及 14 內的退款天數）呈現方式：卡片底色 `bg-muted`、欄位唯讀、右上角標「總部設定」、底部一行「需要調整請聯絡總部」，不計入完成度分母。
+
+---
+
+## 3. 建表 migration SQL（僅列出，未執行）
+
+```sql
+CREATE TABLE public.accommodation_onboarding_steps (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  accommodation_id uuid NOT NULL REFERENCES public.accommodation_info(id) ON DELETE CASCADE,
+  step_key text NOT NULL,
+  status text NOT NULL DEFAULT 'pending',
+  confirmed_by uuid,
+  confirmed_at timestamptz,
+  note text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT accommodation_onboarding_steps_status_check
+    CHECK (status IN ('pending', 'confirmed', 'skipped')),
+  CONSTRAINT accommodation_onboarding_steps_unique UNIQUE (accommodation_id, step_key)
+);
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.accommodation_onboarding_steps TO authenticated;
+GRANT ALL ON public.accommodation_onboarding_steps TO service_role;
+
+ALTER TABLE public.accommodation_onboarding_steps ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "onboarding_steps_select"
+  ON public.accommodation_onboarding_steps FOR SELECT TO authenticated
+  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+
+CREATE POLICY "onboarding_steps_insert"
+  ON public.accommodation_onboarding_steps FOR INSERT TO authenticated
+  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+
+CREATE POLICY "onboarding_steps_update"
+  ON public.accommodation_onboarding_steps FOR UPDATE TO authenticated
+  USING (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id))
+  WITH CHECK (public.is_admin_or_super() OR public.is_hotel_admin_of(accommodation_id));
+
+CREATE POLICY "onboarding_steps_delete"
+  ON public.accommodation_onboarding_steps FOR DELETE TO authenticated
+  USING (public.is_admin_or_super());
+
+CREATE TRIGGER update_accommodation_onboarding_steps_updated_at
+  BEFORE UPDATE ON public.accommodation_onboarding_steps
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+COMMENT ON TABLE public.accommodation_onboarding_steps IS
+  '上架引導的「業主已確認」狀態紀錄。純 UI 引導用，不存訂房核心資料，不被訂單／計價／庫存／分潤讀取。';
+```
+
+RLS 判定沿用既有 `accommodation_notification_settings` 同一組函式（`is_admin_or_super()` / `is_hotel_admin_of()`），不新增任何 SECURITY DEFINER 函式。
+
+---
+
+## 4. Dashboard 提醒橫幅（C 節）
+
+- 位置：`src/pages/Dashboard.tsx` 最上方，標題列之下。
+- 顯示條件：目前館別的 A 型必要步驟（1–10）**未全綠**時顯示。第 13 步選填、11/12 HQ 項皆不列入。
+- 內容：一行文字「上架設定尚未完成（已完成 X／10）」＋進度條＋按鈕「前往上架引導」。
+- 消失條件：1–10 全綠後元件回傳 `null`（比照專案既有「空區塊直接隱藏、不留骨架」原則），無需手動關閉、無 localStorage 記憶。
+- 讀取失敗或無館別 → 一律回傳 `null`，不顯示錯誤狀態。
+
+---
+
+## 5. 孤兒路由清理（D 節，重驗後）
+
+本批只動這兩條，兩條皆已重驗全庫（`src`、`supabase`）無任何連結指向：
+
+| 路由 | 現況 | 處理 | 風險 |
+| --- | --- | --- | --- |
+| `admin/user-roles`（App.tsx:593） | 與 `/admin/accounts` 功能重複，側邊欄未列 | 改為 `<Navigate to="/admin/accounts" replace />` | 低。舊書籤自動轉址，不會 404 |
+| `admin/public-holidays`（App.tsx:627） | 與 `/admin/holidays` 重複，側邊欄未列 | 改為 `<Navigate to="/admin/holidays" replace />` | 低。同上 |
+
+其餘孤兒路由（`/admin/faq`、`/admin/permission-templates`、`/admin/notifications`、`/admin/backup`、`/admin/email-test` 等）本批**不動**，另案處理。`InventoryManagement.tsx` 等死碼本批**不刪**。
+
+---
+
+## 6. 檔案異動清單
+
+新增：
+- `src/pages/admin/Onboarding.tsx`
+- `src/hooks/use-onboarding-progress.tsx`
+- `src/lib/onboarding/steps.ts`
+- `src/components/admin/OnboardingBanner.tsx`
+- 測試：`src/lib/onboarding/__tests__/steps.test.ts`
+
+修改：
+- `src/config/adminMenu.ts`（新增「上架引導」入口）
+- `src/App.tsx`（掛 `/admin/onboarding` 路由＋兩條 Navigate 轉址）
+- `src/pages/Dashboard.tsx`（掛橫幅一行）
+- `roadmap.md`
+
+**完全不動**：`RoomTypeForm.tsx`、`PricingTemplateManager.tsx`、`InventoryManagement.tsx`、`AdminPackages.tsx`、`PackagePriceCalendar.tsx`、`RoomPriceCalendar.tsx`、`WebsiteContent.tsx` 寫入邏輯、所有 `/team`、所有分潤／退款／OTA／團購檔、所有 Edge Function、所有既有 RLS／trigger／cron。引導頁一律以連結導向既有頁面，**本身不寫入任何訂房核心資料表**。
+
+---
+
+## 7. Postcheck 計畫（F 節，含本次新增項）
+
+1. **保護檔 diff = 0**（附施工前後 md5）：上列「完全不動」清單全部，外加 `supabase/functions/send-order-confirmation/index.ts`、`_shared/orderConfirmationEmail.ts`。
+2. **完整測試套件基準比對**：以施工前 commit `git archive` 實跑，逐項檔名比對，`only-in-base = 0`、`only-in-current = 0`，維持既有 23 項固定失敗。
+3. **型別檢查**通過。
+4. **新增單元測試**：15 步驟判定函式（含第 13 步空／非空兩種情形）。
+5. **真實資料驗證（本次新增）**：對一間館別實際填入 `booking_confirmation_emails` → 第 13 步轉綠；清空 → 回「待確認」且**上架完成度分母與百分比皆不變**（證明選填不擋關）。測試後資料還原。
+6. **既有 12 家館別回歸**：附 15 家館別完成度快照，證明沒有任何一家因第 13 步被判為「未完成上架」。
+7. **新表零外溢**：查詢證明 `accommodation_onboarding_steps` 僅被引導頁讀寫，訂單／計價／庫存／分潤路徑無任何引用。
+8. 過關後**不自動 Publish**，等裁示。
