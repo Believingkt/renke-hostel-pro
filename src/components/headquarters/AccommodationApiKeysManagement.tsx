@@ -194,7 +194,7 @@ export function AccommodationApiKeysManagement() {
                 </Link>
               </CardDescription>
             </div>
-            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setCreateOpen(true); }} disabled={!selectedAccId}>
+            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setExtraAccIds([]); setCreateOpen(true); }} disabled={!selectedAccId}>
               新增 API Key
             </Button>
           </div>
@@ -219,6 +219,8 @@ export function AccommodationApiKeysManagement() {
                 <TableHead>金鑰前綴</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead>權限</TableHead>
+                <TableHead>可存取館別</TableHead>
+
                 <TableHead>最後使用</TableHead>
                 <TableHead>建立時間</TableHead>
                 <TableHead className="text-right">操作</TableHead>
