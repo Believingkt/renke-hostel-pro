@@ -4,6 +4,35 @@
 
 ---
 
+## 七點對齊澄清（本版已全數修正）
+
+**1. 庫存（第 7 步）與前台價格（第 9 步）門檻＝7 天，不是 1 天。**
+上一版表格寫「有列」是我漏寫門檻，不是刻意放寬。已改為：未來 30 天中需有 **≥ 7 個不重複日期**且該日可售（庫存 `available_rooms > 0`／價格 > 0）。7 天內若不足 7 個可售日則判為未完成。
+
+**2. 第 3 步讀的是設施自己的欄位，不是整館 `is_active`。**
+`accommodation_facilities` 這張表**沒有** `is_active` 欄位，它的欄位是 `is_available`（型別檔 `src/integrations/supabase/types.ts:230`）。判定改寫明確：該館別 `is_available IS NOT false` 的設施列 ≥ 1。整份判定邏輯**完全不讀** `accommodation_info.is_active`，該欄位的語意缺陷留給獨立後續批次。
+
+**3. status 列舉改回 `not_applicable`，不用 `skipped`。**
+上一版改字是我自己換詞，沒有語意理由，不是有意設計。語意差別：`skipped` 有「跳過／未做」的暗示，`not_applicable` 是「這館別不適用」。已改回先前定案的 `(pending, confirmed, not_applicable)`。設定權限：`confirmed` 由該館別 `hotel_admin`（或 `super_admin`）按確認鈕寫入；`not_applicable` **僅 `super_admin` 可設**（UI 只在總部身分顯示該選項，DB 層由 UPDATE 政策＋前端共同約束）。
+
+**4. 兩組是本來就存在的不同函式，不是改名。**
+- `user_has_access_to_accommodation(uuid, uuid)` / `user_has_role(...)`：建立於 `20251029095631_*.sql` 與 `20260124090703_*.sql`，帶明確參數。
+- `is_admin_or_super()` / `is_hotel_admin_of(uuid)`：分別建立於 `20260520084059_*.sql:16` 與 `20260628110514_*.sql:4`，是後來為避免 `user_roles` RLS 遞迴而加的無參數／單參數版。
+我上一版直接沿用 `accommodation_notification_settings` 的寫法。**但查到一個問題並已修正**：`is_admin_or_super()` 不綁館別——它只檢查「在任一館別是 super_admin 或 hotel_admin」，等於 A 館老闆能讀寫 B 館的引導狀態。本版已改為 `public.is_super_admin(auth.uid()) OR public.is_hotel_admin_of(accommodation_id)`，館別綁定明確。
+**確認：本批不新建任何 SECURITY DEFINER 函式**，全部使用既有函式。
+
+**5. DELETE 已收回為僅 super_admin。**
+不是刻意放寬，是沿用既有寫法帶進來的。`is_admin_or_super()` 確實涵蓋任一館別的 `hotel_admin`，範圍比先前講的寬。本版 DELETE 政策改為 `USING (public.is_super_admin(auth.uid()))`。
+
+**6.「稍後再說」按鈕恢復。**
+上一版拿掉是我依「空區塊直接隱藏」原則自行判斷，沒有報備，是我的疏失。已恢復：按鈕寫 `localStorage`（key 帶 accommodationId，存日期），**當天隱藏、隔天自動再出現**，不寫任何資料庫。
+
+**7. 第 15 步啟用條件已加入第 14 步。**
+上一版漏列。已改為「1–10 全綠 **且第 14 步（取消政策）已確認**」才可按；第 13 步（通知信箱）維持選填、不列入。
+
+---
+
+
 ## 0. 通知信箱子專案完工後的適用性重新確認（第 2 點）
 
 逐項重驗結果：
