@@ -53,20 +53,54 @@ Deno.serve(async (req) => {
   const targetCheckIn = addDays(today, -14);
 
   try {
-    // 1. 撈 KOL 主要記錄
+    // 1. 撈 KOL 主要記錄（不再以 booking_status 欄位篩選，改為與畫面一致的派生判定）
     const { data: kolsRaw, error: kolErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id")
+      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id, order_number, booking_status")
       .eq("check_in_date", targetCheckIn)
-      .eq("booking_status", "成功訂房")
       // 同住合拍的附屬記錄也要收到發文提醒（各自都要發影片），故不再排除子檔
       .eq("is_error", false);
 
     if (kolErr) throw kolErr;
 
+    // 1b. 依 order_number 批次查 orders.order_status，派生「成功訂房」（比照 TeamKOL 畫面邏輯）
+    const orderNumbers = Array.from(
+      new Set(
+        (kolsRaw ?? [])
+          .map((k: any) => (k.order_number ?? "").trim())
+          .filter((s: string) => s.length > 0)
+      )
+    );
+    const orderStatusMap = new Map<string, string>();
+    if (orderNumbers.length > 0) {
+      const { data: ordRows, error: ordErr } = await supabase
+        .from("orders")
+        .select("order_number, order_status")
+        .in("order_number", orderNumbers);
+      if (ordErr) throw ordErr;
+      (ordRows ?? []).forEach((o: any) => {
+        if (o.order_number) orderStatusMap.set(o.order_number, o.order_status);
+      });
+    }
+    // 派生規則與畫面 deriveBookingStatus 完全一致：
+    // 無訂單編號 → 保留 DB booking_status；有編號時以 PMS 訂單狀態為準
+    // confirmed → 成功訂房；cancelled → 已取消；查無此單 → 保留 DB 原值（非 PMS 館別）；其他 → 訂房確認中
+    const deriveBookingStatus = (orderNumber: any, fallback: any): string => {
+      const key = (orderNumber ?? "").trim();
+      if (!key) return fallback ?? "";
+      const os = orderStatusMap.get(key);
+      if (os === "confirmed") return "成功訂房";
+      if (os === "cancelled") return "已取消";
+      if (os === undefined) return fallback ?? "";
+      return "訂房確認中";
+    };
+    const eligibleByStatus = (kolsRaw ?? []).filter(
+      (k: any) => deriveBookingStatus(k.order_number, k.booking_status) === "成功訂房"
+    );
+
     // 過濾：排除 publish_date 與 publish_url 皆有值（非空字串）的已完成記錄
     const hasVal = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
-    const kols = (kolsRaw ?? []).filter((k: any) => !(hasVal(k.publish_date) && hasVal(k.publish_url)));
+    const kols = eligibleByStatus.filter((k: any) => !(hasVal(k.publish_date) && hasVal(k.publish_url)));
 
     if (!kols || kols.length === 0) {
       return new Response(
