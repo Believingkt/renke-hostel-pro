@@ -114,26 +114,3 @@ CREATE POLICY "Managers can delete accommodation notification settings"
   - `src/hooks/use-onboarding-progress.tsx`（select，帶 accommodation_id）。
   兩者都是操作「自己目前所在館別」，super_admin 與該館 hotel_admin 修正後皆照常通過。唯一會改變的是「A 館 hotel_admin 硬切到 B 館」這種越權情境。
 
-## 六、測試計畫（本批不執行）
-
-真實資料庫驗證，不做程式碼審查式推論。
-
-前置（全部用臨時資料，測完刪除）：
-1. 以 service_role 建兩個測試帳號 `rlstest_a@…`、`rlstest_b@…`（email_confirm）。
-2. 在 `user_roles` 各插入一列 `hotel_admin`：A 綁「奧丁丁測試」館、B 綁「旅行日-十一鳴」館（沿用先前批次的低風險測試館）。
-3. 若該兩館在 `accommodation_notification_settings` 尚無列，以 service_role 先建空列（`booking_confirmation_emails = '{}'`），並記錄原始值以便還原；已有列則只記錄原值，測試中不做破壞性寫入（UPDATE 測試改寫入原值＋一個 sentinel 後立即還原）。
-
-執行方式：用 anon key 的 supabase-js client 以 A 帳號 `signInWithPassword` 登入（等同真實後台身分，RLS 生效），對 B 館的列發四種操作。
-
-| # | 操作 | 修正前預期 | 修正後預期 |
-|---|---|---|---|
-| T1 | A 登入 SELECT B 館列 | 回 1 列（漏洞成立） | 回 0 列 |
-| T2 | A 登入 UPDATE B 館 `booking_confirmation_emails` | 成功、資料被改 | 影響 0 列（RLS 過濾） |
-| T3 | A 登入 INSERT 一列 B 館 `accommodation_id` | 成功 | 42501 new row violates RLS |
-| T4 | A 登入 DELETE B 館列 | 成功 | 影響 0 列 |
-| T5（不得退化） | A 登入對 **A 館自己**的列 SELECT/UPDATE | 成功 | 仍成功 |
-| T6（不得退化） | super_admin 帳號讀寫任一館 | 成功 | 仍成功 |
-| T7（不得退化） | 以 service_role 重跑一次 send-order-confirmation 的查詢（純 SELECT，不寄信） | 有資料 | 仍有資料 |
-
-執行順序：先在修正前跑 T1-T4 存證（截圖／回傳原文），並立即還原被改動的資料；再套用第四節 migration；最後重跑 T1-T7。
-收尾：刪除兩個測試帳號與其 user_roles 列，還原兩館設定為原始值，附上還原後的即時查詢結果作為證據。
