@@ -113,7 +113,32 @@ Deno.serve(async (req) => {
 
     const auth = await authenticate(req);
     if ("error" in auth) return auth.error;
-    const { supabase, accommodationId } = auth;
+    const { supabase, accommodationId, keyHash, isReadOnly } = auth;
+
+    // ---- 唯讀金鑰：方法層預設拒絕（任何非 GET 一律擋，未來新增寫入端點自動受保護）----
+    if (isReadOnly && req.method !== "GET") {
+      return jsonResponse(
+        { error: "This API key is read-only. Write operations are not permitted." },
+        403,
+      );
+    }
+
+    // ---- 流量限制（每把金鑰：GET 300 次/小時、寫入 60 次/小時）----
+    const isRead = req.method === "GET";
+    const limit = consumeRateLimit(
+      `${keyHash}:${isRead ? "read" : "write"}`,
+      isRead ? ACCOMMODATION_API_READ_LIMIT : ACCOMMODATION_API_WRITE_LIMIT,
+    );
+    const limitHeaders = rateLimitHeaders(limit);
+    if (!limit.allowed) {
+      const retryAfter = Math.max(1, Math.ceil((limit.resetAt - Date.now()) / 1000));
+      return jsonResponse(
+        { error: "Rate limit exceeded", retry_after: retryAfter },
+        429,
+        { ...limitHeaders, "Retry-After": retryAfter.toString() },
+      );
+    }
+    rateLimitResponseHeaders = limitHeaders;
 
     // ---- ROOM TYPES ----
     if (route[0] === "room-types") {
