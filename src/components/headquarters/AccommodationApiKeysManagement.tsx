@@ -177,6 +177,7 @@ export function AccommodationApiKeysManagement() {
                 <TableHead>名稱</TableHead>
                 <TableHead>金鑰前綴</TableHead>
                 <TableHead>狀態</TableHead>
+                <TableHead>權限</TableHead>
                 <TableHead>最後使用</TableHead>
                 <TableHead>建立時間</TableHead>
                 <TableHead className="text-right">操作</TableHead>
@@ -184,9 +185,9 @@ export function AccommodationApiKeysManagement() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">載入中...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">載入中...</TableCell></TableRow>
               ) : keys.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">尚無 API Keys</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無 API Keys</TableCell></TableRow>
               ) : (
                 keys.map((k) => (
                   <TableRow key={k.id}>
@@ -195,6 +196,11 @@ export function AccommodationApiKeysManagement() {
                     <TableCell>
                       <Badge variant={k.is_active ? "default" : "secondary"}>
                         {k.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={k.is_read_only ? "secondary" : "outline"}>
+                        {k.is_read_only ? "唯讀" : "可讀寫"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
