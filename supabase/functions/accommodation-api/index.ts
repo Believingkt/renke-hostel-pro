@@ -136,7 +136,7 @@ async function handleRequest(req: Request): Promise<Response> {
         runtime: "deno",
         endpoints: [
           "GET /version",
-          "GET /availability",
+          "GET /availability (optional accommodation_id=uuid[,uuid] — must be within key scope)",
           "GET /room-types",
           "GET /room-types/:id",
           "POST /room-types",
