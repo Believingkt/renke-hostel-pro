@@ -153,7 +153,7 @@ export function AccommodationApiKeysManagement() {
                 </Link>
               </CardDescription>
             </div>
-            <Button onClick={() => { setCreatedKey(null); setCreateOpen(true); }} disabled={!selectedAccId}>
+            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setCreateOpen(true); }} disabled={!selectedAccId}>
               新增 API Key
             </Button>
           </div>
