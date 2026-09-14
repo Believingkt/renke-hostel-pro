@@ -590,11 +590,8 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/user-roles" element={
-                      <RequireModule module="accounts">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><UserRoles /></Suspense>
-                      </RequireModule>
-                    } />
+                    {/* 孤兒路由：側邊欄已無入口，統一轉址到帳號管理 */}
+                    <Route path="admin/user-roles" element={<Navigate to="/admin/accounts" replace />} />
                     <Route path="admin/customers" element={
                       <RequireModule module="customers">
                         <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
@@ -624,11 +621,8 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/public-holidays" element={
-                      <RequireModule module="room_price">
-                        <Suspense fallback={<FormSkeleton fields={2} />}><PublicHolidays /></Suspense>
-                      </RequireModule>
-                    } />
+                    {/* 孤兒路由：側邊欄入口為 /admin/holidays，統一轉址 */}
+                    <Route path="admin/public-holidays" element={<Navigate to="/admin/holidays" replace />} />
                     <Route path="admin/backup" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
