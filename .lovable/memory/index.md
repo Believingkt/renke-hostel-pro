@@ -30,3 +30,4 @@
 - [HotelNabe 靜默丟棄欄位升級為可觀測告警](mem://technical/deferred-hotelnabe-alert-upgrade.md) — 2026-09-10 暫不處理；評估是否改為 error_logs / 技術告警信。
 - [ORDER_CONTEXT_UPDATABLE_FIELDS 與 RPC 白名單對齊](mem://technical/deferred-order-context-fields-alignment.md) — 2026-09-10 暫不處理；本地常數應與 update_order_with_context RPC 白名單一致。
 - [Accommodation API 流量限制資料庫計數重設計](mem://technical/accommodation-api-rate-limit-db-redesign.md) — 記憶體計數在雲端函式多執行個體環境無法真正限流；kol-api 既有 100 次/小時限制同樣從未真正生效，需改用資料庫計數。
+- [Accommodation Notification Settings 跨館 RLS 修正](mem://security/accommodation-notification-settings-rls-fix.md) — 四條 policy 改為 is_super_admin(auth.uid()) OR is_hotel_admin_of(...)，已核准完工；甲案未執行原因留存。
