@@ -79,7 +79,9 @@ async function authenticate(req: Request) {
   };
 }
 
-Deno.serve(async (req) => {
+const limitHeadersByReq = new WeakMap<Request, Record<string, string>>();
+
+async function handleRequest(req: Request): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
