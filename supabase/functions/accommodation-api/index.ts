@@ -405,4 +405,17 @@ Deno.serve(async (req) => {
   } catch (e) {
     return jsonResponse({ error: (e as Error).message }, 500);
   }
+}
+
+Deno.serve(async (req) => {
+  const res = await handleRequest(req);
+  // 把本次請求的流量額度資訊附加到回應標頭（429 已自帶，這裡補一般回應）
+  const headers = limitHeadersByReq.get(req);
+  if (headers) {
+    for (const [k, v] of Object.entries(headers)) {
+      if (!res.headers.has(k)) res.headers.set(k, v);
+    }
+    limitHeadersByReq.delete(req);
+  }
+  return res;
 });
