@@ -48,7 +48,12 @@ export function useOnboardingProgress(accommodationId: string | null | undefined
         supabase.from("accommodation_facilities").select("is_available").eq("accommodation_id", accommodationId),
         supabase.from("room_types").select("id, name, capacity").eq("accommodation_id", accommodationId),
         supabase.from("pricing_templates").select("room_type_ids").eq("accommodation_id", accommodationId),
-        supabase.from("accommodation_packages").select("id, enabled").eq("accommodation_id", accommodationId),
+        supabase
+          .from("accommodation_packages")
+          .select(
+            "id, enabled, sale_price, original_price, tier_prices, applicable_tiers, room_type_allocation, room_type_ids, primary_room_type_id",
+          )
+          .eq("accommodation_id", accommodationId),
         supabase
           .from("booking_settings")
           .select("payment_methods, deposit_percentage, security_deposit_amount, free_cancel_days")
