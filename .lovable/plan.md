@@ -1,181 +1,268 @@
-# accommodation_notification_settings 跨館 RLS 漏洞：唯讀調查與修正設計稿（未施工）
+# 設計稿：order_meta / kol_profiles 補稽核 ＋ 收緊 RLS
 
-本批未新增/修改/執行任何 migration，未動任何資料，未碰 `supabase/functions/send-order-confirmation/index.ts`。
+狀態：**只設計，未施工**。本稿不建立、不執行任何 migration。
 
-## 一、現況 policy SQL 原文（共 4 條，皆 TO authenticated）
+---
+
+## 現況查證（本輪即時查詢）
+
+**order_meta_update（UPDATE，USING）**
+```
+super_admin OR admin OR closer_manager
+OR filled_by = auth.uid() OR closer_id = auth.uid()
+OR scout_id = auth.uid() OR video_creator_id = auth.uid()
+OR (accommodation_id IS NOT NULL AND user_has_access_to_accommodation(auth.uid(), accommodation_id))
+```
+→ 整列可寫，無欄位級限制。
+
+**既有業務規則已存在，不需另行發明。** 分潤欄位實際上已由 trigger
+`trg_enforce_order_meta_commission_fields`（函式 `enforce_order_meta_commission_fields`）把關，語意為：
+- `auth.uid() IS NULL`（service_role／背景工作）→ 直接放行
+- 巢狀 trigger 自動重算 `team_commission_price` 的唯一白名單路徑 → 放行
+- `super_admin / admin / finance` → 全放行
+- `scout_commission_rate` / `closer_commission_rate` 任何變動 → 只有上述管理層可改，其餘一律 42501
+- `force_*` 欄位 → 需 `closer_manager`
+- `team_commission_price` 等定價欄位 → 需「OLD 與 NEW 的 closer_id 都等於自己」
+
+前端 `src/lib/commissionBaseAccess.ts` 與此逐條對齊（檔頭註解即明示契約）。
+**結論：RLS 的收緊方向＝把 trigger 既有語意複製到 policy 層，不新增規則。**
+
+**kol_profiles_update（UPDATE，USING）**
+```
+created_by = auth.uid() OR super_admin OR admin OR scout_manager
+OR scout OR venue_manager OR hotel_admin
+```
+→ 只要具 `scout` 角色即可改全部列。表上有 `scout_id uuid`、`created_by uuid`、`updated_at`，**無 `updated_by`**。
+
+兩表皆無 `updated_by`，稽核僅靠應用層寫 `audit_logs`（只涵蓋後台 UI 路徑）。
+
+---
+
+## 一、補稽核
+
+### 1. 共用 trigger 函式（新建，原子撤權）
 
 ```sql
-CREATE POLICY "Managers can view accommodation notification settings"
-  ON public.accommodation_notification_settings FOR SELECT TO authenticated
-  USING (is_admin_or_super() OR is_hotel_admin_of(accommodation_id));
+CREATE OR REPLACE FUNCTION public.set_updated_by()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER          -- 不需提權，不做 DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at := now();
+  NEW.updated_by := auth.uid();   -- service_role / cron 時為 NULL，代表「系統路徑」
+  RETURN NEW;
+END;
+$$;
 
-CREATE POLICY "Managers can insert accommodation notification settings"
-  ON public.accommodation_notification_settings FOR INSERT TO authenticated
-  WITH CHECK (is_admin_or_super() OR is_hotel_admin_of(accommodation_id));
-
-CREATE POLICY "Managers can update accommodation notification settings"
-  ON public.accommodation_notification_settings FOR UPDATE TO authenticated
-  USING (is_admin_or_super() OR is_hotel_admin_of(accommodation_id))
-  WITH CHECK (is_admin_or_super() OR is_hotel_admin_of(accommodation_id));
-
-CREATE POLICY "Managers can delete accommodation notification settings"
-  ON public.accommodation_notification_settings FOR DELETE TO authenticated
-  USING (is_admin_or_super() OR is_hotel_admin_of(accommodation_id));
+REVOKE ALL ON FUNCTION public.set_updated_by() FROM PUBLIC;
 ```
+說明：SECURITY INVOKER 不涉及提權，但仍依專案規則在同一 migration 內收權。
+`auth.uid()` 為 NULL 時寫入 NULL 而非中止 —— 與 deposit trigger 規則一致，
+不得因背景工作而擋掉寫入。
 
-漏洞成因（函式原文查證）：
+### 2. order_meta
 
 ```sql
--- is_admin_or_super()：不看 accommodation_id
-SELECT auth.uid() IS NOT NULL AND EXISTS (
-  SELECT 1 FROM public.user_roles
-  WHERE user_id = auth.uid()
-    AND role IN ('super_admin','hotel_admin'));
+ALTER TABLE public.order_meta ADD COLUMN IF NOT EXISTS updated_by uuid;
+
+CREATE TRIGGER trg_order_meta_set_updated_by
+BEFORE INSERT OR UPDATE ON public.order_meta
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_by();
 ```
+觸發順序：trigger 名稱以 `trg_order_meta_s…` 排序，晚於
+`trg_enforce_order_meta_commission_fields`（`trg_e…`），故授權檢查先跑、
+稽核欄位後寫，不影響既有 `to_jsonb(NEW) - 'team_commission_price'` 比對
+（該比對發生在授權 trigger 內、稽核 trigger 之前）。
 
-即「任一館的 hotel_admin」→ 對全表所有館別皆 true，讀寫刪都成立。
+`updated_by` 不加入任何既有 policy 或 trigger 的判斷式，純記錄。
 
-## 二、歷史原因調查（依實際檔案，非推測）
-
-- 建表 migration：`supabase/migrations/20260822053810_...sql` 第 1-33 行，四條 policy 自建表當天即寫成 `is_admin_or_super() OR is_hotel_admin_of(accommodation_id)`，**檔內沒有任何註解說明為何用 is_admin_or_super()**。
-- 同一支 migration 第 35 行起建的 `group_buy_campaign_notification_settings` 用了完全相同的 `is_admin_or_super() OR ...` 前綴，顯示這是當時的**樣板複製習慣**，不是為了規避遞迴。
-- 遞迴規避證據不成立：`is_admin_or_super()`、`is_hotel_admin_of()`、`is_super_admin()` 三者皆為 `SECURITY DEFINER` + `SET search_path = public`，查 `user_roles` 時一律繞過 RLS。既然同一條 policy 裡已經在用 `is_hotel_admin_of()`（同樣查 user_roles），就不可能是為了避開 user_roles 遞迴才多加 `is_admin_or_super()`。
-- 結論：這是「super_admin 全域放行」的便宜寫法，副作用是把 hotel_admin 一起全域放行，屬設計疏漏。
-- 後續 migration `20260913162343_...sql` 只加 `booking_confirmation_emails` 欄位與兩欄註解，未動 policy。
-
-## 三、is_super_admin(auth.uid()) 可否替換
-
-可以，無遞迴風險：
+### 3. kol_profiles
 
 ```sql
-CREATE OR REPLACE FUNCTION public.is_super_admin(user_uuid uuid)
- RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path TO 'public'
-AS $$ SELECT EXISTS (SELECT 1 FROM user_roles WHERE user_id = user_uuid AND role = 'super_admin'); $$
+ALTER TABLE public.kol_profiles ADD COLUMN IF NOT EXISTS updated_by uuid;
+
+CREATE TRIGGER trg_kol_profiles_set_updated_by
+BEFORE INSERT OR UPDATE ON public.kol_profiles
+FOR EACH ROW EXECUTE FUNCTION public.set_updated_by();
 ```
+名稱排序晚於三支既有 `trg_kol_profiles_*`（assign／normalize／sync），不干擾其輸出。
 
-- SECURITY DEFINER 讓它以 owner 身分讀 `user_roles`，不觸發 user_roles 自身的 RLS（user_roles 的 SELECT policy 本身也在呼叫 `is_super_admin`／`can_view_user_roles`，若無 DEFINER 才會遞迴）。
-- 語意差異：只認 `super_admin`，不含 `hotel_admin`，正是本次要收斂的部分。
-- 唯一需注意：`is_super_admin` 未標 `STABLE`（`is_admin_or_super`/`is_hotel_admin_of` 有）。這只影響 planner 快取，不影響正確性；本批不改動該函式定義。
+### 4. 既有資料
 
-## 四、修正後 SQL 設計稿（逐條，未執行）
+`updated_by` 對歷史列一律 NULL，**不回填、不猜測**。歷史黑箱維持黑箱，
+本批只保證「從上線那一刻起，所有 UPDATE 來源（含直接打 API）都留下操作者」。
+
+---
+
+## 二、收緊 policy
+
+### 5. order_meta_update
+
+RLS 無法做欄位級判斷，因此收緊採「policy 收列級 + trigger 保欄位級」分工，
+policy 僅移除「非利害關係人也能改」的破口，欄位級授權仍由既有 trigger 負責（不動）。
 
 ```sql
--- 1) SELECT
-DROP POLICY "Managers can view accommodation notification settings"
-  ON public.accommodation_notification_settings;
-CREATE POLICY "Managers can view accommodation notification settings"
-  ON public.accommodation_notification_settings FOR SELECT TO authenticated
-  USING (is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id));
+DROP POLICY IF EXISTS "order_meta_update" ON public.order_meta;
 
--- 2) INSERT
-DROP POLICY "Managers can insert accommodation notification settings"
-  ON public.accommodation_notification_settings;
-CREATE POLICY "Managers can insert accommodation notification settings"
-  ON public.accommodation_notification_settings FOR INSERT TO authenticated
-  WITH CHECK (is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id));
-
--- 3) UPDATE
-DROP POLICY "Managers can update accommodation notification settings"
-  ON public.accommodation_notification_settings;
-CREATE POLICY "Managers can update accommodation notification settings"
-  ON public.accommodation_notification_settings FOR UPDATE TO authenticated
-  USING (is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))
-  WITH CHECK (is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id));
-
--- 4) DELETE
-DROP POLICY "Managers can delete accommodation notification settings"
-  ON public.accommodation_notification_settings;
-CREATE POLICY "Managers can delete accommodation notification settings"
-  ON public.accommodation_notification_settings FOR DELETE TO authenticated
-  USING (is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id));
+CREATE POLICY "order_meta_update"
+ON public.order_meta
+FOR UPDATE
+TO authenticated
+USING (
+  public.user_has_team_role(auth.uid(), 'super_admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'finance'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'closer_manager'::public.app_role)
+  OR filled_by = auth.uid()
+  OR closer_id = auth.uid()
+  OR scout_id  = auth.uid()
+  OR video_creator_id = auth.uid()
+  OR (
+    accommodation_id IS NOT NULL
+    AND public.user_has_access_to_accommodation(auth.uid(), accommodation_id)
+  )
+)
+WITH CHECK (
+  -- 不得把訂單的歸屬人改成別人以外洗權，也不得讓 accommodation_id 漂移
+  (
+    public.user_has_team_role(auth.uid(), 'super_admin'::public.app_role)
+    OR public.user_has_team_role(auth.uid(), 'admin'::public.app_role)
+    OR public.user_has_team_role(auth.uid(), 'finance'::public.app_role)
+    OR public.user_has_team_role(auth.uid(), 'closer_manager'::public.app_role)
+  )
+  OR EXISTS (
+    SELECT 1 FROM public.orders o
+    WHERE o.id = order_meta.order_id
+      AND o.accommodation_id IS NOT NULL
+      AND public.user_has_access_to_accommodation(auth.uid(), o.accommodation_id)
+      AND (order_meta.accommodation_id IS NULL
+           OR order_meta.accommodation_id = o.accommodation_id)
+  )
+  OR filled_by = auth.uid()
+  OR closer_id = auth.uid()
+  OR scout_id  = auth.uid()
+  OR video_creator_id = auth.uid()
+);
 ```
 
-逐條差異：四條都只有一處改動 —— `is_admin_or_super()` → `is_super_admin(auth.uid())`。
+差異說明：
+- 原 policy **沒有 WITH CHECK**，代表通過 USING 後可把 `accommodation_id`
+  改成任意館別（與 `order_meta_insert` 既有的 payload 一致性契約相牴觸）。本次補上，
+  語意直接沿用 `order_meta_insert` 已核准的契約。
+- 新增 `finance`（既有 trigger 與前端都視 finance 為管理層，policy 卻漏列，
+  finance 目前只靠 accommodation 條件偶然通過）。
+- **分潤四欄位的授權不在此處改**：維持 trigger 為唯一判準，policy 不重複發明。
 
-| 身分 | 修正前 | 修正後 |
-|---|---|---|
-| super_admin | 全館可讀寫 | 全館可讀寫（不變） |
-| A 館 hotel_admin，操作 A 館 | 可 | 可（不變，走 is_hotel_admin_of） |
-| A 館 hotel_admin，操作 B 館 | **可（漏洞）** | 被擋 |
-| staff / 其他角色 | 不可 | 不可（不變） |
-| service_role（Edge Function） | 繞過 RLS | 繞過 RLS（不變） |
-
-本批不動 `group_buy_campaign_notification_settings`（同樣有 `is_admin_or_super()`，另案處理）。
-
-## 五、對既有資料與 send-order-confirmation 的交叉比對
-
-- 只 DROP/CREATE POLICY，無 `ALTER TABLE`、無 DML，`booking_confirmation_emails` 與 `booking_notification_emails` 兩欄的資料與欄位定義完全不受影響。
-- `supabase/functions/send-order-confirmation/index.ts` 本批不修改。其查詢路徑（第 157 行建 client、第 81-85 行查表）：
-  - `createClient(SUPABASE_URL, SERVICE_KEY)`，SERVICE_KEY = `SUPABASE_SERVICE_ROLE_KEY`；
-  - `.from("accommodation_notification_settings").select("booking_confirmation_emails").eq("accommodation_id", ...).maybeSingle()`。
-  - service_role 不受 RLS 限制（且建表 migration 已 `GRANT ALL ... TO service_role`），policy 改動對它無效力，寄信副本行為 0 影響。
-- 前台/後台以 authenticated 身分存取的兩處也一併確認：
-  - `src/components/admin/BookingConfirmationRecipientsCard.tsx`（select + upsert，帶 accommodation_id）；
-  - `src/hooks/use-onboarding-progress.tsx`（select，帶 accommodation_id）。
-  兩者都是操作「自己目前所在館別」，super_admin 與該館 hotel_admin 修正後皆照常通過。唯一會改變的是「A 館 hotel_admin 硬切到 B 館」這種越權情境。
-
-## 六、測試計畫 v2（本批不執行；已移除對真實營運館的寫入）
-
-### 6.1 測試館查證結果（實查，非看名稱）
-
-| 館別 | is_active | 全部訂單 | 非取消訂單 | notification_settings 列 | 判定 |
-|---|---|---|---|---|---|
-| 奧丁丁測試 | false | 1（DY7C72S2，客名「測試客人」，order_source=manual，已取消、未付款） | 0 | 0 | **sandbox，可用** |
-| 旅行日-十一鳴 | false | 2（GF8N78S8、HV9A58D5，KOL 單，客名為真實姓名） | 0 | 0 | **含真實客人資料，不可寫入** |
-| 旅行日-心齋之翼 | false | 5（皆真實 KOL/LINE 客名） | 0 | 0 | 不可寫入 |
-| 其餘 12 家 | 多為 true | 4～3376 | 皆 >0 | 森山寫照 1 列、其餘 0 | 正式營運，不可寫入 |
-
-結論：**全庫沒有第二家零訂單、非營運的 sandbox 館**。唯一安全的是「奧丁丁測試」，且它的唯一訂單是已取消的手動測試單。因此改採第 3 案：**交易內測試、全程 ROLLBACK，不對任何真實館別留下寫入**。
-
-### 6.2 替代做法：單一交易內模擬身分 + 強制 ROLLBACK
-
-用 `psql "$SUPABASE_DB_URL"` 直連（sandbox 已確認可用），整段包在 `BEGIN; ... ROLLBACK;` 內，並以 `SET LOCAL ROLE authenticated` + `SET LOCAL request.jwt.claims` 模擬指定使用者，讓 RLS 真正生效。
-
-- **不需要新增 auth 使用者**：`is_hotel_admin_of()` / `is_super_admin()` 只讀 `user_roles`，身分由 jwt claims 的 `sub` 決定，因此直接沿用資料庫既有的真實 hotel_admin user_id 即可（純讀，不改他們的角色）。
-- A 館身分 = 只綁單一館別的既有 hotel_admin（挑選時以 `user_roles` 查證該 user 沒有 super_admin、且沒有 B 館角色）。
-- B 館 = 奧丁丁測試（`0a3d6160-…`）。其 `accommodation_notification_settings` 目前 0 列，測試用的列在交易內建立、交易結束即消失。
-- 全程 `ROLLBACK`，不使用還原步驟；即使腳本中途失敗或連線中斷，Postgres 也會自動回滾，資料庫不可能留下殘留。
-- 交易期間對真實訂單流程零影響：`send-order-confirmation` 讀的是 committed 資料，看不到未提交的變更。
-
-骨架（示意，實跑時才填 uuid）：
+### 6. kol_profiles_update
 
 ```sql
-BEGIN;
-SET LOCAL ROLE authenticated;
-SET LOCAL request.jwt.claims = '{"sub":"<A館 hotel_admin uuid>","role":"authenticated"}';
+DROP POLICY IF EXISTS "kol_profiles_update" ON public.kol_profiles;
 
--- T3 INSERT 越權
-INSERT INTO public.accommodation_notification_settings(accommodation_id, booking_confirmation_emails)
-VALUES ('0a3d6160-2e50-4a7d-a1c8-8558eb6d15f8', ARRAY['rlstest@example.invalid']);
--- T1 SELECT 越權
-SELECT count(*) FROM public.accommodation_notification_settings
- WHERE accommodation_id = '0a3d6160-2e50-4a7d-a1c8-8558eb6d15f8';
--- T2 UPDATE 越權 / T4 DELETE 越權（看 ROW_COUNT）
-...
-ROLLBACK;
+CREATE POLICY "kol_profiles_update"
+ON public.kol_profiles
+FOR UPDATE
+TO authenticated
+USING (
+  public.user_has_team_role(auth.uid(), 'super_admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'scout_manager'::public.app_role)
+  OR scout_id = auth.uid()
+  OR created_by = auth.uid()
+)
+WITH CHECK (
+  public.user_has_team_role(auth.uid(), 'super_admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'admin'::public.app_role)
+  OR public.user_has_team_role(auth.uid(), 'scout_manager'::public.app_role)
+  OR scout_id = auth.uid()
+  OR created_by = auth.uid()
+);
+```
+- 移除無條件的 `scout` / `venue_manager` / `hotel_admin` 三項。
+- `scout` 改為「`scout_id` 是本人」；保留 `created_by = auth.uid()`（原本就有，
+  避免剛建立但尚未指派 scout_id 的列鎖死自己）。
+- WITH CHECK 與 USING 同式 → 無法把別人的 KOL 改成掛到自己名下（改後仍須自己可見的歸屬）。
+
+**上線前必須先做影響評估**：`venue_manager` 與 `hotel_admin` 目前可改，收緊後不行。
+需先查這兩類角色實際是否在改 kol_profiles（靠新 `updated_by` 觀察最準，
+因此建議「先補稽核、觀察一段時間、再收 kol policy」的兩階段施工，順序見下。）
+
+---
+
+## 三、施工順序建議（待授權）
+
+1. 第一批：只做「一、補稽核」（欄位＋trigger）。零行為變更、零風險。
+2. 第二批：`order_meta_update` 收緊（僅補 WITH CHECK 與 finance）。
+3. 第三批：`kol_profiles_update` 收緊，前提是第 1 批稽核已觀察到
+   `venue_manager` / `hotel_admin` 沒有實際寫入需求。
+
+---
+
+## 四、驗證方案（比照 accommodation_notification_settings 那批）
+
+沙盒連線角色 `rolbypassrls = t`，無法 `SET ROLE authenticated` 模擬身分，
+因此沿用上批已核准的**乙案：代入真實 uid 對判斷式求值**。
+
+### A. 修正前存證
+對每個測試 uid，直接以 SQL 求值舊 policy 判斷式，記錄 true/false。
+
+### B. 修正後同式重跑
+以相同 uid 求值新判斷式，逐條列出前後對照表。
+
+測試矩陣（uid 皆取自 `user_roles` 既有真實帳號，不新建帳號、不寫入資料）：
+
+| # | 身分 | 目標列 | 期望（修正後） |
+|---|------|--------|----------------|
+| T1 | scout A | `scout_id = A` 的 kol_profiles | 允許 |
+| T2 | scout A | `scout_id = B` 的 kol_profiles | 阻擋（修正前：允許） |
+| T3 | scout_manager | 任意列 | 允許（不變） |
+| T4 | super_admin | 任意列 | 允許（不變） |
+| T5 | venue_manager | 非自己的列 | 阻擋（修正前：允許）— 需事前確認無營運需求 |
+| T6 | closer A | `closer_id = A` 的 order_meta | 允許（不變） |
+| T7 | closer A | 他人訂單 order_meta | 阻擋（不變，USING 即擋） |
+| T8 | closer A | 自己訂單但改 `accommodation_id` 成別館 | 阻擋（修正前：允許，WITH CHECK 新增） |
+| T9 | finance | 任意 order_meta | 允許（修正前靠館別偶然通過） |
+
+求值範例（純 SELECT，零寫入）：
+```sql
+SELECT k.id,
+       (public.user_has_team_role('<uid>'::uuid,'scout_manager'::public.app_role)
+        OR k.scout_id = '<uid>'::uuid
+        OR k.created_by = '<uid>'::uuid) AS new_allows
+FROM public.kol_profiles k
+WHERE k.id IN ('<自己的>','<別人的>');
 ```
 
-### 6.3 測試矩陣
+### C. 稽核 trigger 驗證
+在非營運館別的測試列上（需先以查詢證明該列無真實訂單關聯），
+執行一次無實質意義的自我更新（例如 `SET updated_at = updated_at`），
+確認 `updated_by` 被寫入預期 uid；驗證後**原樣保留該列**、不清理、回報結果。
+若專案不允許任何寫入，則此項改以「trigger 定義 + pg_trigger 存在性」靜態證明替代，
+並明確標註「未做實際寫入驗證」。
 
-| # | 身分 | 動作 | 修正前預期 | 修正後預期 |
-|---|---|---|---|---|
-| T1 | A 館 hotel_admin | SELECT B 館列 | 看得到（漏洞成立） | 0 列 |
-| T2 | A 館 hotel_admin | UPDATE B 館列 | ROW_COUNT=1 | ROW_COUNT=0 |
-| T3 | A 館 hotel_admin | INSERT B 館 accommodation_id | 成功 | 42501 violates RLS |
-| T4 | A 館 hotel_admin | DELETE B 館列 | ROW_COUNT=1 | ROW_COUNT=0 |
-| T5 | A 館 hotel_admin | 對**自己 A 館**列 SELECT/UPDATE | 成功 | 仍成功（不得退化） |
-| T6 | super_admin | 讀寫任一館 | 成功 | 仍成功（不得退化） |
-| T7 | service_role（`SET LOCAL ROLE service_role`） | SELECT booking_confirmation_emails（複製 send-order-confirmation 的查詢） | 有資料 | 仍有資料，證明寄信路徑不被擋 |
+### D. Postcheck
+- `pg_policy` 即時查詢，貼出兩條 policy 的最終原文。
+- `information_schema.columns` 確認 `updated_by` 存在且為 nullable uuid。
+- `pg_trigger` 確認兩支新 trigger 存在、`tgenabled = 'O'`、排序在既有 trigger 之後。
+- `routine_privileges` / `has_function_privilege` 確認 `set_updated_by`
+  的 anon / authenticated / PUBLIC 均無 EXECUTE。
+- 兩表列數與抽樣內容與施工前逐字一致。
+- 測試套件與基準比對（目前基準：1516 項、23 失敗）。
 
-### 6.4 為什麼這樣一樣算真實驗證
+---
 
-- RLS 是在 SQL 執行當下由 planner 套用，與是否 COMMIT 無關：交易內的 INSERT 被 42501 擋下、UPDATE/DELETE 回 ROW_COUNT=0，都是 policy 真的生效的結果，不是程式碼推論。
-- T1-T4 會在**同一個資料庫、同一組 policy、真實角色身分**下各跑兩次（套 migration 前 / 後），拿到可貼出的實際輸出差異。
-- 唯一與線上不同的是「不 commit」，而 RLS 判斷不看提交狀態，因此結論等價，風險則降為 0。
+## 五、本批明確不會動到的範圍
 
-### 6.5 執行順序（待核准後）
-
-1. 修正前：跑一次 6.2 腳本，貼出 T1-T4 輸出＝漏洞存證，ROLLBACK。
-2. 套用第四節 migration（四條 policy DROP/CREATE）。
-3. 修正後：同一份腳本重跑，加跑 T5-T7，貼出輸出。
-4. Postcheck：貼出 `pg_policies` 即時查詢，確認四條 policy 已不含 `is_admin_or_super()`；貼出 `accommodation_notification_settings` 全表即時查詢，確認列數與內容與修正前完全一致（森山寫照 1 列、其餘 0 列）。
+- **分潤／獎金計算**：`calc_team_commission_price`、
+  `enforce_order_meta_commission_fields`、`set_default_team_commission_price`、
+  `create_commission_record`、`closer_commission_*` 相關表與函式 — 全部 diff = 0。
+- **前端**：`src/lib/commissionBaseAccess.ts`、`src/pages/team/**`、
+  `OrderMetaDrawer` 及任何 `/team` 頁面判斷邏輯 — 零檔案異動。
+- **業主月結**：`owner_settlement_pricing_rules`、
+  `course_profit_*`、`franchise_*` — 完全不碰。
+- **其他表**：除 `order_meta`、`kol_profiles` 外不新增／不修改任何表、欄位、policy，
+  包含仍待處理的 `group_buy_campaign_notification_settings` 舊債。
+- **不回填** 任何歷史 `updated_by`。
+- **不修復、不忽略** 安全掃描中的其他 finding。
+- 不 Publish、不部署 Edge Function。
