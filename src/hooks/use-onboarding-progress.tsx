@@ -108,7 +108,7 @@ export function useOnboardingProgress(accommodationId: string | null | undefined
       inventoryRows: (invRes.data ?? []) as any[],
       packages: (pkgRes.data ?? []) as any[],
       packagePriceRows: (priceRes.data ?? []) as any[],
-      publicHolidays: ((holidayRes.data ?? []) as any[]).map((r) => String(r.date).slice(0, 10)),
+      publicHolidays: ((holidayRes.data ?? []) as any[]).map((r) => String(r.holiday_date).slice(0, 10)),
       bookingSettings: (bsRes.data as any) ?? null,
       notificationEmails: ((notifyRes.data as any)?.booking_confirmation_emails as string[] | null) ?? [],
       confirmations: Object.fromEntries(
