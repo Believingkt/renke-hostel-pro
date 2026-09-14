@@ -148,7 +148,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
     const auth = await authenticate(req);
     if ("error" in auth) return auth.error;
-    const { supabase, accommodationId, keyHash, isReadOnly } = auth;
+    const { supabase, accommodationId, keyHash, isReadOnly, allowedAccommodationIds } = auth;
 
     // ---- 唯讀金鑰：方法層預設拒絕（任何非 GET 一律擋，未來新增寫入端點自動受保護）----
     if (isReadOnly && req.method !== "GET") {
