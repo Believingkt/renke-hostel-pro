@@ -112,20 +112,41 @@ export function AccommodationApiKeysManagement() {
     const fullKey = generateKey();
     const keyHash = await sha256Hex(fullKey);
     const keyPrefix = fullKey.slice(0, 12) + "...";
-    const { error } = await supabase.from("accommodation_api_keys").insert({
-      accommodation_id: selectedAccId,
-      name: newKeyName.trim(),
-      key_hash: keyHash,
-      key_prefix: keyPrefix,
-      is_read_only: newKeyReadOnly,
-    });
-    if (error) {
-      toast.error("建立失敗：" + error.message);
+    const isMulti = extraAccIds.length > 0;
+    const { data: inserted, error } = await supabase
+      .from("accommodation_api_keys")
+      .insert({
+        accommodation_id: selectedAccId,
+        name: newKeyName.trim(),
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        // 多館金鑰強制唯讀
+        is_read_only: isMulti ? true : newKeyReadOnly,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      toast.error("建立失敗：" + (error?.message ?? "未知錯誤"));
       return;
     }
+
+    if (isMulti) {
+      const { error: scopeErr } = await supabase
+        .from("accommodation_api_key_scopes")
+        .insert(extraAccIds.map((id) => ({ api_key_id: inserted.id, accommodation_id: id })));
+      if (scopeErr) {
+        // 範圍寫入失敗就撤掉金鑰，避免留下範圍不完整的金鑰
+        await supabase.from("accommodation_api_keys").delete().eq("id", inserted.id);
+        toast.error("建立失敗（館別範圍寫入失敗）：" + scopeErr.message);
+        return;
+      }
+    }
+
     setCreatedKey(fullKey);
     setNewKeyName("");
+    setExtraAccIds([]);
     loadKeys();
+
   };
 
   const toggleActive = async (key: ApiKey) => {
