@@ -138,6 +138,42 @@ export type Database = {
         }
         Relationships: []
       }
+      accommodation_api_key_scopes: {
+        Row: {
+          accommodation_id: string
+          api_key_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          accommodation_id: string
+          api_key_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          accommodation_id?: string
+          api_key_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_api_key_scopes_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accommodation_api_key_scopes_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_api_keys: {
         Row: {
           accommodation_id: string
