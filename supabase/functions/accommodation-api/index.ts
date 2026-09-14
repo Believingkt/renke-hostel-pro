@@ -66,7 +66,7 @@ async function authenticate(req: Request) {
   }
 
   // 讀取該把金鑰的唯讀旗標（fail-closed：查不到或出錯一律視為唯讀）
-  const keyId = (data[0] as Record<string, unknown>).id as string | undefined;
+  const keyId = (data[0] as Record<string, unknown>).key_id as string | undefined;
   let isReadOnly = true;
   if (keyId) {
     const { data: keyRow, error: keyErr } = await supabase
