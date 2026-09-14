@@ -22,8 +22,7 @@ import {
   overrideKey,
   type PackageDatePriceMap,
 } from "@/lib/packageDatePrice";
-import { classifyDayTier } from "@/utils/templatePriceResolverPure";
-import type { PackageTier } from "@/hooks/use-accommodation-packages";
+import { detectTierByDate, type PackageTier } from "@/hooks/use-accommodation-packages";
 
 export const ONBOARDING_WINDOW_DAYS = 30;
 export const ONBOARDING_MIN_SELLABLE_DAYS = 7;
@@ -159,7 +158,7 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
   );
 
   // (b) 該日有啟用方案，依「單日覆寫 → 平假日價 → 方案基本價」算出的有效售價 > 0 且當日適用。
-  //     取價與適用判定直接呼叫 packageDatePrice.ts 既有函式，平假日分級用 classifyDayTier。
+  //     取價與適用判定直接呼叫 packageDatePrice.ts 既有函式，平假日分級用 use-accommodation-packages 的 detectTierByDate。
   const overrideMap: PackageDatePriceMap = new Map();
   for (const r of src.packagePriceRows) {
     overrideMap.set(overrideKey(r.package_id, dayOnly(r.date)), {
@@ -175,7 +174,7 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
   if (enabledPackages.length > 0) {
     for (const date of window) {
       if (sellablePriceDays.has(date)) continue;
-      const tier = classifyDayTier(new Date(`${date}T00:00:00`), holidaySet) as PackageTier;
+      const tier: PackageTier = detectTierByDate(new Date(`${date}T00:00:00`), holidaySet.has(date));
       const ok = enabledPackages.some((pkg) => {
         const avail = resolvePackageAvailabilityForDate(
           { id: pkg.id, applicable_tiers: pkg.applicable_tiers ?? null },
