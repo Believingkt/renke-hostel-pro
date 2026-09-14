@@ -310,19 +310,45 @@ export function AccommodationApiKeysManagement() {
                   placeholder="例：PMS 整合"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>額外可存取館別（選填）</Label>
+                <p className="text-xs text-muted-foreground">
+                  勾選後，這把金鑰除了「{accName(selectedAccId)}」之外，也能查詢下列館別。勾選任一館別即成為多館金鑰，一律強制唯讀。
+                </p>
+                <div className="max-h-48 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {accommodations
+                    .filter((a) => a.id !== selectedAccId)
+                    .map((a) => (
+                      <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                        <Checkbox
+                          checked={extraAccIds.includes(a.id)}
+                          onCheckedChange={(v) =>
+                            setExtraAccIds((prev) =>
+                              v === true ? [...prev, a.id] : prev.filter((x) => x !== a.id),
+                            )
+                          }
+                        />
+                        <span className="text-sm">{a.name}</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
               <div className="flex items-start gap-2 rounded-md border p-3">
                 <Checkbox
                   id="api-key-readonly"
-                  checked={newKeyReadOnly}
+                  checked={extraAccIds.length > 0 ? true : newKeyReadOnly}
+                  disabled={extraAccIds.length > 0}
                   onCheckedChange={(v) => setNewKeyReadOnly(v === true)}
                 />
                 <div className="space-y-1">
                   <Label htmlFor="api-key-readonly" className="cursor-pointer">唯讀金鑰（建議）</Label>
                   <p className="text-xs text-muted-foreground">
                     只能查詢房型、房價與可售房數，無法新增或修改任何資料。給外部系統串接報價時請務必勾選。
+                    {extraAccIds.length > 0 && "（多館金鑰強制唯讀，無法取消）"}
                   </p>
                 </div>
               </div>
+
             </div>
           )}
 
