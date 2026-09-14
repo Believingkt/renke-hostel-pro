@@ -1,7 +1,7 @@
 # Roadmap
 
 ## 進行中
-- [ ] 新手業主上架引導流程（A–F）最終施工計畫（等核准，尚未施工）
+- [ ] 新手業主上架引導流程（A–F）—— 已施工完成，等 Publish 核准
   - [x] 第 13 步接上 `booking_confirmation_emails`（判定邏輯已定案：非空＝完成，選填不擋關）
   - [x] 七點細節對齊澄清（庫存/價格 7 天門檻、設施欄位、status 列舉、RLS helper、DELETE 範圍、橫幅關閉鈕、第 15 步條件）
   - [x] `accommodation_onboarding_steps` migration（已執行）
