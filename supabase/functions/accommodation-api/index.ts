@@ -17,6 +17,12 @@ import {
   isValidDateStr,
   MAX_RANGE_DAYS,
 } from "./availability.ts";
+import {
+  ACCOMMODATION_API_READ_LIMIT,
+  ACCOMMODATION_API_WRITE_LIMIT,
+  consumeRateLimit,
+  rateLimitHeaders,
+} from "../_shared/apiRateLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,10 +42,10 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
-function jsonResponse(body: unknown, status = 200) {
+function jsonResponse(body: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json", ...extraHeaders },
   });
 }
 
