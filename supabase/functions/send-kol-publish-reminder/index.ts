@@ -1,7 +1,9 @@
 // Daily KOL publish deadline reminder
 // Trigger: pg_cron (daily 09:30 Taipei = 01:30 UTC)
-// Finds KOL profiles with check_in_date = today (Taipei) - 14 days, booking_status='成功訂房',
-// is_error=false（含同住合拍的附屬記錄）, and pushes a LINE reminder to line_push_targets
+// Finds KOL profiles with check_in_date = today (Taipei) - 14 days, is_error=false
+//（含同住合拍的附屬記錄），且「成功訂房」以訂單狀態派生判定（與 TeamKOL 畫面一致：
+// 有訂單編號時以 PMS 訂單 order_status 為準，無編號時保留 DB booking_status），
+// then pushes a LINE reminder to line_push_targets
 // subscribed to event_type 'kol_publish_reminder'.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
