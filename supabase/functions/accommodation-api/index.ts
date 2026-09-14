@@ -65,6 +65,8 @@ async function authenticate(req: Request) {
     return { error: jsonResponse({ error: "Invalid or inactive API key" }, 401) };
   }
 
+  const accommodationId = data[0].accommodation_id as string;
+
   // 讀取該把金鑰的唯讀旗標（fail-closed：查不到或出錯一律視為唯讀）
   const keyId = (data[0] as Record<string, unknown>).key_id as string | undefined;
   let isReadOnly = true;
@@ -77,13 +79,38 @@ async function authenticate(req: Request) {
     if (!keyErr && keyRow) isReadOnly = keyRow.is_read_only === true;
   }
 
+  // 多館範圍：有效範圍 = 主館別 ∪ scopes 表。呼叫端只能縮小範圍，永遠不能擴大。
+  const allowedAccommodationIds = new Set<string>([accommodationId]);
+  let hasExtraScopes = false;
+  if (keyId) {
+    const { data: scopeRows, error: scopeErr } = await supabase
+      .from("accommodation_api_key_scopes")
+      .select("accommodation_id")
+      .eq("api_key_id", keyId);
+    if (scopeErr) {
+      // fail-closed：範圍查詢失敗一律退回單館
+      return {
+        error: jsonResponse({ error: "Unable to resolve API key scope" }, 500),
+      };
+    }
+    for (const row of scopeRows || []) {
+      allowedAccommodationIds.add(row.accommodation_id as string);
+      hasExtraScopes = true;
+    }
+  }
+
+  // 多館金鑰一律視為唯讀（即使資料庫旗標被改成 false，也 fail-closed）
+  if (hasExtraScopes) isReadOnly = true;
+
   return {
     supabase,
-    accommodationId: data[0].accommodation_id as string,
+    accommodationId,
     keyHash,
     isReadOnly,
+    allowedAccommodationIds,
   };
 }
+
 
 const limitHeadersByReq = new WeakMap<Request, Record<string, string>>();
 
