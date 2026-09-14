@@ -34,6 +34,7 @@ import {
 
   Plug,
   Receipt,
+  Rocket,
   ShoppingBag,
   Sparkles,
   Star,
@@ -59,6 +60,7 @@ export interface AdminMenuItem {
 }
 
 export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
+  { title: "上架引導", url: "/admin/onboarding", icon: Rocket, moduleKey: "onboarding" },
   { title: "營運分析", url: "/admin", icon: BarChart3, moduleKey: "analytics" },
   { title: "櫃檯接待", url: "/admin/reception", icon: ConciergeBell, moduleKey: "reception" },
   {

@@ -128,6 +128,7 @@ const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
 
 const Accounts = lazy(() => import("./pages/Accounts"));
+const Onboarding = lazy(() => import("./pages/admin/Onboarding"));
 const PermissionTemplates = lazy(() => import("./pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("./pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("./pages/DiscountCodeOrders"));
@@ -136,7 +137,6 @@ const KolDashboardPublic = lazy(() => import("./pages/kol/KolDashboardPublic"));
 const KolReferralJoin = lazy(() => import("./pages/kol/KolReferralJoin"));
 const AdminKolOverview = lazy(() => import("./pages/AdminKolOverview"));
 
-const UserRoles = lazy(() => import("./pages/UserRoles"));
 const Headquarters = lazy(() => import("./pages/Headquarters"));
 const TeamLayout = lazy(() => import("./components/team/TeamLayout"));
 const SaaSWorkspace = lazy(() => import("./pages/SaaSWorkspace"));
@@ -159,7 +159,6 @@ const CustomerOrders = lazy(() => import("./pages/CustomerOrders"));
 const TravelerCdp = lazy(() => import("./pages/TravelerCdp"));
 const RemarketingAdmin = lazy(() => import("./pages/admin/RemarketingAdmin"));
 const TravelerProfileDetail = lazy(() => import("./pages/TravelerProfileDetail"));
-const PublicHolidays = lazy(() => import("./pages/PublicHolidays"));
 const Notifications = lazy(() => import("./pages/Notifications"));
 const DataBackup = lazy(() => import("./pages/DataBackup"));
 const EmailTest = lazy(() => import("./pages/EmailTest"));
@@ -445,6 +444,11 @@ function App() {
                     } />
 
                     {/* 後台管理頁面 */}
+                    <Route path="admin/onboarding" element={
+                      <RequireModule module="onboarding">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Onboarding /></Suspense>
+                      </RequireModule>
+                    } />
                     <Route path="admin" element={
                       <RequireModule module="analytics">
                         <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
@@ -590,11 +594,8 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/user-roles" element={
-                      <RequireModule module="accounts">
-                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><UserRoles /></Suspense>
-                      </RequireModule>
-                    } />
+                    {/* 孤兒路由：側邊欄已無入口，統一轉址到帳號管理 */}
+                    <Route path="admin/user-roles" element={<Navigate to="/admin/accounts" replace />} />
                     <Route path="admin/customers" element={
                       <RequireModule module="customers">
                         <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
@@ -624,11 +625,8 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
                       </RequireModule>
                     } />
-                    <Route path="admin/public-holidays" element={
-                      <RequireModule module="room_price">
-                        <Suspense fallback={<FormSkeleton fields={2} />}><PublicHolidays /></Suspense>
-                      </RequireModule>
-                    } />
+                    {/* 孤兒路由：側邊欄入口為 /admin/holidays，統一轉址 */}
+                    <Route path="admin/public-holidays" element={<Navigate to="/admin/holidays" replace />} />
                     <Route path="admin/backup" element={
                       <RequireModule module="accounts">
                         <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
