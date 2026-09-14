@@ -19,6 +19,7 @@ interface ApiKey {
   name: string;
   key_prefix: string;
   is_active: boolean;
+  is_read_only: boolean;
   last_used_at: string | null;
   created_at: string;
 }
@@ -51,6 +52,7 @@ export function AccommodationApiKeysManagement() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [newKeyReadOnly, setNewKeyReadOnly] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
