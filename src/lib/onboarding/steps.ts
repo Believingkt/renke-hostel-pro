@@ -230,7 +230,7 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
       (nonEmpty(src.about?.section_title) || nonEmpty(src.about?.section_description)) && src.photoCount >= 3,
     // 讀設施自己的 is_available，不讀 accommodation_info.is_active
     facilities: src.facilities.some((f) => f.is_available !== false),
-    room_types: src.roomTypes.length > 0 && src.roomTypes.every((rt) => nonEmpty(rt.name) && roomPhotoSet.has(rt.id)),
+    room_types: src.roomTypes.length > 0 && src.roomTypes.every((rt) => nonEmpty(rt.name)) && photosOk,
     capacity: src.roomTypes.length > 0 && src.roomTypes.every((rt) => Number(rt.capacity ?? 0) > 0),
     pricing_template: src.pricingTemplates.some((t) => (t.room_type_ids ?? []).some((id) => roomTypeIds.has(id))),
     inventory: sellableInventoryDays >= ONBOARDING_MIN_SELLABLE_DAYS,
