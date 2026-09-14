@@ -54,6 +54,8 @@ export function AccommodationApiKeysManagement() {
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [newKeyReadOnly, setNewKeyReadOnly] = useState(true);
+  const [extraAccIds, setExtraAccIds] = useState<string[]>([]);
+  const [scopesByKey, setScopesByKey] = useState<Record<string, string[]>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,9 +82,27 @@ export function AccommodationApiKeysManagement() {
       .eq("accommodation_id", selectedAccId)
       .order("created_at", { ascending: false });
     if (error) toast.error("無法載入 API Keys");
-    setKeys((data || []) as ApiKey[]);
+    const rows = (data || []) as ApiKey[];
+    setKeys(rows);
+
+    if (rows.length > 0) {
+      const { data: scopeRows } = await supabase
+        .from("accommodation_api_key_scopes")
+        .select("api_key_id, accommodation_id")
+        .in("api_key_id", rows.map((r) => r.id));
+      const map: Record<string, string[]> = {};
+      (scopeRows || []).forEach((s) => {
+        (map[s.api_key_id] ||= []).push(s.accommodation_id);
+      });
+      setScopesByKey(map);
+    } else {
+      setScopesByKey({});
+    }
     setLoading(false);
   };
+
+  const accName = (id: string) => accommodations.find((a) => a.id === id)?.name || id.slice(0, 8);
+
 
   const handleCreate = async () => {
     if (!newKeyName.trim()) {
