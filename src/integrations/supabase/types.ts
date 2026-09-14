@@ -911,6 +911,50 @@ export type Database = {
           },
         ]
       }
+      accommodation_onboarding_steps: {
+        Row: {
+          accommodation_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          note: string | null
+          status: string
+          step_key: string
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          step_key: string
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          step_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_onboarding_steps_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accommodation_order_sources: {
         Row: {
           accommodation_id: string
