@@ -246,6 +246,16 @@ export function AccommodationApiKeysManagement() {
                         {k.is_read_only ? "唯讀" : "可讀寫"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-sm">
+                      {(scopesByKey[k.id]?.length ?? 0) === 0 ? (
+                        <span className="text-muted-foreground">本館</span>
+                      ) : (
+                        <span>
+                          本館 ＋ {scopesByKey[k.id].map(accName).join("、")}
+                        </span>
+                      )}
+                    </TableCell>
+
                     <TableCell className="text-sm text-muted-foreground">
                       {k.last_used_at ? new Date(k.last_used_at).toLocaleString("zh-TW") : "—"}
                     </TableCell>
