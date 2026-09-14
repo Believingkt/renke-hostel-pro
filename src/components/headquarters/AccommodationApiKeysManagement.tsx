@@ -96,6 +96,7 @@ export function AccommodationApiKeysManagement() {
       name: newKeyName.trim(),
       key_hash: keyHash,
       key_prefix: keyPrefix,
+      is_read_only: newKeyReadOnly,
     });
     if (error) {
       toast.error("建立失敗：" + error.message);
