@@ -118,7 +118,7 @@ export default function Privacy() {
             <p className="font-medium mt-2">分享給哪些 AI 服務商</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>Anthropic PBC（Claude AI）：處理 AI 管家小安與入口網「AI 找房間」的訊息文字、對話紀錄、查詢條件，以及您在對話中主動提供的訂房資料，並產生文字回覆。</li>
-              <li>Google LLC（Gemini，經 Lovable AI Gateway 轉送）：處理民宿頁懸浮小安的訊息文字、該次對話紀錄及目前民宿識別資料，並產生文字回覆。</li>
+              <li>Google LLC（Gemini）：處理民宿頁懸浮小安的訊息文字、該次對話紀錄及目前民宿識別資料，並產生文字回覆。</li>
               <li>OpenAI, L.L.C.：在您另行同意並主動使用語音功能時，處理錄音內容以轉成文字，或處理待朗讀的 AI 回覆文字以產生語音。</li>
             </ul>
             <p className="mt-2">
