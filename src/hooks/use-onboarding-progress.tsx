@@ -70,24 +70,25 @@ export function useOnboardingProgress(accommodationId: string | null | undefined
     const roomTypes = (rtRes.data ?? []) as Array<{ id: string; name: string | null; capacity: number | null }>;
     const roomTypeIds = roomTypes.map((r) => r.id);
 
-    const [photoByRtRes, invRes, priceRes] = await Promise.all([
+    const [photoByRtRes, invRes, priceRes, holidayRes] = await Promise.all([
       roomTypeIds.length
         ? supabase.from("room_photos").select("room_type_id").in("room_type_id", roomTypeIds)
         : Promise.resolve({ data: [] as any[] }),
       roomTypeIds.length
         ? supabase
             .from("room_inventory_pricing")
-            .select("date, available_rooms")
+            .select("date, available_rooms, price, price_2_meals, price_3_meals")
             .in("room_type_id", roomTypeIds)
             .gte("date", today)
             .lte("date", windowEnd)
         : Promise.resolve({ data: [] as any[] }),
       supabase
         .from("package_date_prices")
-        .select("date, package_id, sale_price, is_available")
+        .select("date, package_id, sale_price, original_price, is_available")
         .eq("accommodation_id", accommodationId)
         .gte("date", today)
         .lte("date", windowEnd),
+      supabase.from("public_holidays").select("date").gte("date", today).lte("date", windowEnd),
     ]);
 
     const src: OnboardingSource = {
