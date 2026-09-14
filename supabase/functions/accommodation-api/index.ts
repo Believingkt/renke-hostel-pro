@@ -146,7 +146,7 @@ async function handleRequest(req: Request): Promise<Response> {
         { ...limitHeaders, "Retry-After": retryAfter.toString() },
       );
     }
-    rateLimitResponseHeaders = limitHeaders;
+    limitHeadersByReq.set(req, limitHeaders);
 
     // ---- ROOM TYPES ----
     if (route[0] === "room-types") {
