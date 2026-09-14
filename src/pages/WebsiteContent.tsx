@@ -3879,7 +3879,7 @@ const WebsiteContent = () => {
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {['信用卡', '現金', '線上支付', 'ATM轉帳', '行動支付'].map((method) => (
+                  {['信用卡', '現金', '線上支付', 'ATM轉帳', '行動支付', '銀行轉帳'].map((method) => (
                     <div key={method} className="flex items-center space-x-2">
                       <Checkbox
                         id={`payment-${method}`}
@@ -3895,7 +3895,7 @@ const WebsiteContent = () => {
                 </div>
                 <div className="space-y-1.5 pt-2">
                   <Label className="text-sm font-medium">轉帳匯款帳戶資訊</Label>
-                  <p className="text-xs text-muted-foreground">前台訂房選擇「轉帳匯款」時會顯示此區塊內容（銀行、戶名、帳號等）</p>
+                  <p className="text-xs text-muted-foreground">此帳戶資訊目前僅供內部記錄，前台訂房流程不會顯示（銀行、戶名、帳號等）</p>
                   <Textarea
                     value={bookingInfo.bankAccountInfo}
                     onChange={(e) => setBookingInfo(prev => ({ ...prev, bankAccountInfo: e.target.value }))}
