@@ -7,6 +7,8 @@ import MobileBottomNav from "@/components/member/MobileBottomNav";
 import AtmPaymentBanner from "@/components/member/AtmPaymentBanner";
 import PortalSearchBar from "@/components/booking-portal/PortalSearchBar";
 import PortalAIChatPanel from "@/components/booking-portal/PortalAIChatPanel";
+import AIConsentDialog from "@/components/ai/AIConsentDialog";
+import { useAiConsent } from "@/hooks/use-ai-consent";
 import { type RoomTypeResult } from "@/components/booking-portal/RoomTypeCard";
 import RoomFilterBar, { type RoomFilters, type SortOption } from "@/components/booking-portal/RoomFilterBar";
 import AccommodationCard, { type AccommodationCardData } from "@/components/booking-portal/AccommodationCard";
@@ -184,6 +186,7 @@ const BookingPortalInner = () => {
   const [rooms, setRooms] = useState(1);
   const [hasSearched, setHasSearched] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
+  const portalAiConsent = useAiConsent();
   const [footerVisible, setFooterVisible] = useState(false);
   const footerSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -1399,7 +1402,13 @@ const BookingPortalInner = () => {
         </span>
       </button>
 
-      <Sheet open={aiOpen} onOpenChange={setAiOpen}>
+      <AIConsentDialog
+        open={aiOpen && (portalAiConsent.status === "not_granted" || portalAiConsent.status === "declined")}
+        onAccept={() => { void portalAiConsent.grant(); }}
+        onDecline={() => { portalAiConsent.decline(); setAiOpen(false); }}
+      />
+
+      <Sheet open={aiOpen && portalAiConsent.status === "granted"} onOpenChange={setAiOpen}>
         <SheetContent
           side="bottom"
           className="h-[67dvh] max-h-[67dvh] sm:h-[86dvh] sm:max-h-[860px] p-0 flex flex-col rounded-t-2xl z-[80] sm:max-w-xl sm:mx-auto sm:mb-4 sm:rounded-2xl overflow-hidden"

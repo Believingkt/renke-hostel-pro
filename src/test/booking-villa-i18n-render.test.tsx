@@ -18,6 +18,18 @@ import EditSearchSheet from "@/components/booking-villa/EditSearchSheet";
 // 1B-1：mock Supabase client（僅本測試檔，避免網路呼叫；不改任何 global mock）
 // coverage remediation：在同一 mock 內補上登入使用者、聊天歷史、帶價方案，
 // 並記錄所有 mutating method（insert/update/delete/upsert）呼叫，供 invariant 斷言。
+// AI 同意狀態：本測試檔聚焦 i18n 呈現，直接視為已同意（未同意時聊天面板依設計不會開啟）
+vi.mock("@/hooks/use-ai-consent", () => ({
+  useAiConsent: () => ({
+    status: "granted",
+    granted: true,
+    grant: vi.fn(),
+    revoke: vi.fn(),
+    decline: vi.fn(),
+    reload: vi.fn(),
+  }),
+}));
+
 const mockState = vi.hoisted(() => ({
   mutations: [] as string[],
   villaMessages: [
