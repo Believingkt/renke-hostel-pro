@@ -1,7 +1,7 @@
 # Roadmap
 
 ## 進行中
-- [ ] 多館範圍金鑰（accommodation_api_key_scopes + accommodation-api 多館查詢 + 後台多選館別，強制唯讀）
+- （無）
 
 ## 已完成
 - [x] 一般訂房通知信箱（`booking_confirmation_emails`）＋通知信箱架構整理（已上線）
