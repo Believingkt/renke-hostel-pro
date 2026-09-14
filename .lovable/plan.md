@@ -50,7 +50,6 @@ SECURITY INVOKER          -- 不需提權，不做 DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  NEW.updated_at := now();
   NEW.updated_by := auth.uid();   -- service_role / cron 時為 NULL，代表「系統路徑」
   RETURN NEW;
 END;
@@ -58,23 +57,28 @@ $$;
 
 REVOKE ALL ON FUNCTION public.set_updated_by() FROM PUBLIC;
 ```
-說明：SECURITY INVOKER 不涉及提權，但仍依專案規則在同一 migration 內收權。
-`auth.uid()` 為 NULL 時寫入 NULL 而非中止 —— 與 deposit trigger 規則一致，
-不得因背景工作而擋掉寫入。
+說明：
+- 刻意**不碰 `updated_at`**，避免改變兩表既有的時間戳語意。本函式只寫 `updated_by`。
+- SECURITY INVOKER 不涉及提權，但仍依專案規則在同一 migration 內收權。
+- `auth.uid()` 為 NULL 時寫入 NULL 而非中止 —— 與 deposit trigger 規則一致，
+  不得因背景工作而擋掉寫入。
 
 ### 2. order_meta
 
 ```sql
 ALTER TABLE public.order_meta ADD COLUMN IF NOT EXISTS updated_by uuid;
 
-CREATE TRIGGER trg_order_meta_set_updated_by
+CREATE TRIGGER trg_order_meta_zz_set_updated_by
 BEFORE INSERT OR UPDATE ON public.order_meta
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_by();
 ```
-觸發順序：trigger 名稱以 `trg_order_meta_s…` 排序，晚於
-`trg_enforce_order_meta_commission_fields`（`trg_e…`），故授權檢查先跑、
-稽核欄位後寫，不影響既有 `to_jsonb(NEW) - 'team_commission_price'` 比對
-（該比對發生在授權 trigger 內、稽核 trigger 之前）。
+觸發順序（BEFORE ROW 同時機依名稱字母序）：
+`trg_enforce_order_meta_commission_fields` →
+`trg_order_meta_default_team_commission_price` →
+`trg_order_meta_zz_set_updated_by`（最後）。
+`zz_` 前綴是為了**保證**稽核 trigger 最後執行，這點很關鍵：
+授權 trigger 內有 `to_jsonb(NEW) - 'team_commission_price' IS NOT DISTINCT FROM to_jsonb(OLD)…`
+的整列比對，若稽核 trigger 先跑就會多出一個欄位差異、打掉系統自動重算白名單路徑。
 
 `updated_by` 不加入任何既有 policy 或 trigger 的判斷式，純記錄。
 
@@ -83,11 +87,13 @@ FOR EACH ROW EXECUTE FUNCTION public.set_updated_by();
 ```sql
 ALTER TABLE public.kol_profiles ADD COLUMN IF NOT EXISTS updated_by uuid;
 
-CREATE TRIGGER trg_kol_profiles_set_updated_by
+CREATE TRIGGER trg_kol_profiles_zz_set_updated_by
 BEFORE INSERT OR UPDATE ON public.kol_profiles
 FOR EACH ROW EXECUTE FUNCTION public.set_updated_by();
 ```
-名稱排序晚於三支既有 `trg_kol_profiles_*`（assign／normalize／sync），不干擾其輸出。
+同樣以 `zz_` 保證排在既有三支 `trg_kol_profiles_*`（assign／normalize／sync）之後，
+不干擾其輸出。
+
 
 ### 4. 既有資料
 
