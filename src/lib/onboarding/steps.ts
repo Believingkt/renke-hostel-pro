@@ -142,23 +142,86 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
       .map((r) => dayOnly(r.date)),
   ).size;
 
-  const enabledPackageIds = new Set(src.packages.filter((p) => p.enabled === true).map((p) => p.id));
+  const enabledPackages = src.packages.filter((p) => p.enabled === true);
+  const enabledPackageIds = new Set(enabledPackages.map((p) => p.id));
 
-  // 第 9 步：視窗 30 天內，啟用方案且有正價格的「不重複日期」數
-  const pricedPackageDays = new Set(
-    src.packagePriceRows
+  // 第 9 步：視窗 30 天內，「可售且有效出價」的不重複日期數。
+  // (a) 該日任一房型逐日房價 > 0 且 available_rooms > 0
+  const priceDaysFromRooms = new Set(
+    src.inventoryRows
       .filter(
         (r) =>
-          enabledPackageIds.has(r.package_id) &&
-          r.is_available !== false &&
-          Number(r.sale_price ?? 0) > 0 &&
-          window.has(dayOnly(r.date)),
+          window.has(dayOnly(r.date)) &&
+          Number(r.available_rooms ?? 0) > 0 &&
+          (Number(r.price ?? 0) > 0 || Number(r.price_2_meals ?? 0) > 0 || Number(r.price_3_meals ?? 0) > 0),
       )
       .map((r) => dayOnly(r.date)),
-  ).size;
+  );
+
+  // (b) 該日有啟用方案，依「單日覆寫 → 平假日價 → 方案基本價」算出的有效售價 > 0 且當日適用。
+  //     取價與適用判定直接呼叫 packageDatePrice.ts 既有函式，平假日分級用 classifyDayTier。
+  const overrideMap: PackageDatePriceMap = new Map();
+  for (const r of src.packagePriceRows) {
+    overrideMap.set(overrideKey(r.package_id, dayOnly(r.date)), {
+      package_id: r.package_id,
+      date: dayOnly(r.date),
+      sale_price: r.sale_price != null ? Number(r.sale_price) : null,
+      original_price: r.original_price != null ? Number(r.original_price) : null,
+      is_available: r.is_available ?? null,
+    });
+  }
+  const holidaySet = new Set(src.publicHolidays ?? []);
+  const sellablePriceDays = new Set(priceDaysFromRooms);
+  if (enabledPackages.length > 0) {
+    for (const date of window) {
+      if (sellablePriceDays.has(date)) continue;
+      const tier = classifyDayTier(new Date(`${date}T00:00:00`), holidaySet) as PackageTier;
+      const ok = enabledPackages.some((pkg) => {
+        const avail = resolvePackageAvailabilityForDate(
+          { id: pkg.id, applicable_tiers: pkg.applicable_tiers ?? null },
+          date,
+          tier,
+          overrideMap,
+        ).available;
+        if (!avail) return false;
+        const price = resolvePackagePriceForDate(
+          {
+            id: pkg.id,
+            sale_price: Number(pkg.sale_price ?? 0),
+            original_price: pkg.original_price ?? null,
+            tier_prices: pkg.tier_prices ?? null,
+          },
+          date,
+          tier,
+          overrideMap,
+        ).sale;
+        return Number(price) > 0;
+      });
+      if (ok) sellablePriceDays.add(date);
+    }
+  }
+  const pricedPackageDays = sellablePriceDays.size;
 
   const roomPhotoSet = new Set(src.roomPhotoRoomTypeIds);
   const roomTypeIds = new Set(src.roomTypes.map((r) => r.id));
+
+  // 第 4 步照片判定：
+  //  - 無啟用方案 → 同館任一房型有照片即可
+  //  - 有啟用方案 → 每個啟用方案都要有照片（先看結構化房型分配，未設定才退回綁定房型）
+  const packagePhotoRoomTypeIds = (pkg: OnboardingPackage): string[] => {
+    const alloc = (pkg.room_type_allocation ?? [])
+      .map((a) => a?.room_type_id)
+      .filter((v): v is string => !!v);
+    if (alloc.length > 0) return alloc;
+    if (Array.isArray(pkg.room_type_ids) && pkg.room_type_ids.filter(Boolean).length > 0) {
+      return pkg.room_type_ids.filter(Boolean) as string[];
+    }
+    return pkg.primary_room_type_id ? [pkg.primary_room_type_id] : [];
+  };
+  const photosOk =
+    enabledPackages.length > 0
+      ? enabledPackages.every((pkg) => packagePhotoRoomTypeIds(pkg).some((id) => roomPhotoSet.has(id)))
+      : src.roomTypes.some((rt) => roomPhotoSet.has(rt.id));
 
   const auto: Record<string, boolean> = {
     basic_info:
