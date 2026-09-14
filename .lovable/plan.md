@@ -1,38 +1,112 @@
-# 上架引導 第 9 步 / 第 4 步 判定邏輯修正（施工前檔案清單）
+# 對外 API 唯讀金鑰 ＋ 流量限制（設計稿，尚未施工）
 
-## 會改到的檔案（共 3 個）
+目標：在把 `accommodation-api` 交給人客多（外部 AI 客服）之前，先做出「只能讀、不能寫」的金鑰，並加上呼叫頻率上限。
 
-1. `src/lib/onboarding/steps.ts`
-   - 第 9 步 `package_prices`：改為「未來 30 天視窗內，至少 7 個不重複日期」符合 (a) 或 (b)。
-     - (a) 該日任一房型逐日房價 > 0（純住宿／二食／三食任一欄）且 `available_rooms > 0`
-     - (b) 該日有啟用方案，依「特定日期覆寫 → 平假日價 → 方案基本價」算出有效售價 > 0 且該日適用
-   - 第 4 步 `room_types`：
-     - 無啟用方案 → 同館任一房型有照片即達標（房型名稱仍需齊全）
-     - 有啟用方案 → 每個啟用方案都要有照片（先看方案自己的結構化房型分配縮圖，未設定才退回綁定房型的房型照片），任一沒有即整館未達標
-   - `OnboardingSource` 介面擴充：逐日房價列（含餐型價欄位）、方案完整取價欄位（`sale_price`/`tier_prices`/`applicable_tiers`/`room_type_allocation`/`primary_room_type_id`/`room_type_ids`）、國定假日清單。
-   - 取價與平假日分級沿用既有純函式（`classifyDayTier`、與 `packageDatePrice.ts` 相同的優先序規則），不改寫任何核心檔。
+---
 
-2. `src/hooks/use-onboarding-progress.tsx`
-   - 只是把上述欄位多讀出來（`room_inventory_pricing` 加讀價格欄位、`accommodation_packages` 加讀取價與房型分配欄位、加讀 `public_holidays`）。全部唯讀 select，無任何寫入變動。
+## 1. 唯讀金鑰怎麼標記與實作
 
-3. `src/lib/onboarding/__tests__/steps.test.ts`
-   - 新增涵蓋：第 9 步 (a) 路徑 6 天／7 天門檻、(b) 路徑 6 天／7 天門檻、(a)+(b) 同日不重複計算；第 4 步無啟用方案沿用同館任一、有啟用方案逐案綁定照片、結構化分配縮圖優先、某一方案沒照片即整館未達標。
+### 資料面
+`accommodation_api_keys` 目前欄位：id / accommodation_id / name / key_hash / key_prefix / is_active / last_used_at / created_by / created_at / updated_at，**沒有任何權限範圍欄位**。
 
-## 明確不會動到的檔案
+建議新增一個布林旗標 `is_read_only boolean NOT NULL DEFAULT false`。
 
-- `src/components/booking-villa/BookingFlow.tsx`
-- `supabase/functions/validate-order-prices/index.ts`
-- `src/lib/packageDatePrice.ts`
-- `src/hooks/use-room-pricing.tsx`
-- `src/hooks/use-accommodation-packages.tsx`
-- 任何 `/team`、分潤、退款、OTA 補單、Edge Function、cron
-- 任何 DB schema／RLS／trigger／RPC —— 本批零 migration，`accommodation_onboarding_steps` 也不改
-- `src/pages/admin/Onboarding.tsx`、`OnboardingBanner.tsx`、`adminMenu.ts`、`App.tsx`、`Dashboard.tsx`（判定邏輯不在這些檔內，無需更動）
+選布林而非 `scope text` 的理由：目前只有「讀 / 讀寫」兩種，布林不需要 CHECK 約束，預設 false 代表既有兩把金鑰行為零變化。
 
-## 已知可接受狀態
+### 判斷邏輯放哪
+`accommodation-api/index.ts` 的 `authenticate()`（第 45–62 行）目前只呼叫 RPC `verify_accommodation_api_key`，該 RPC 只回傳 accommodation_id 與 key id。
 
-天送幸福和苑、奧莉薇雅生活小酒店這輪維持第 9 步未達標，不為其調整邏輯。
+作法：**不改那支 RPC**（改回傳型別要 DROP + CREATE，風險高）。改在 `authenticate()` 內，於 RPC 驗證成功後，用同一個 service-role client 再做一次極輕量查詢：
 
-## Postcheck 會回報
+```
+select is_read_only from accommodation_api_keys where id = <RPC 回傳的 key id> limit 1
+```
 
-①改動檔案清單 ②5 個保護檔 md5 施工前後對照（diff=0）③15 家逐一列出第 9、4 步結果 ④完整測試套件 git-archive 基準逐項比對 ⑤新增測試清單。完工不 Publish。
+把 `isReadOnly` 一起回傳給主流程。
+
+### 怎麼擋寫入路由
+在 `Deno.serve` 主流程、`authenticate()` 之後、任何路由分支之前，加一道**預設拒絕**的關卡：
+
+```
+if (isReadOnly && req.method !== "GET") -> 403 { error: "This API key is read-only" }
+```
+
+放在方法層而不是逐條路由判斷，是為了「以後新增任何寫入端點，唯讀金鑰自動被擋」，不會因為漏改某一條路由而破口。`GET /version` 在認證之前就回應，不受影響。
+
+---
+
+## 2. 既有兩把金鑰會不會被影響
+
+目前只有兩把，都在啟用中：
+
+| 館別 | 名稱 | 前綴 | 最後使用 |
+|---|---|---|---|
+| 森山寫照 | 第三方訂房系統 | acc_68027551… | 從未使用 |
+| 旅行日-DAIDODO | 第三方訂房系統 | acc_55113dcc… | 2026-04-21 |
+
+新欄位 `DEFAULT false`，兩把都會是「非唯讀」＝維持現有讀寫權限，行為與現在一字不差，**既有用途不會中斷**。
+
+新欄位只影響「之後勾選唯讀建立的新金鑰」。給人客多的是一把新發的唯讀金鑰，不是沿用這兩把。
+
+（流量限制則會同時套到這兩把，見第 3 點的上限設定說明。）
+
+---
+
+## 3. 流量限制
+
+`kol-api` 現有作法：函式檔內的記憶體 Map，每把金鑰每小時 100 次，回應帶 `X-RateLimit-Limit / Remaining / Reset`，超過回 429 + `Retry-After`（kol-api/index.ts 第 30–56、361–386 行）。
+
+**能不能直接共用同一份實作？**技術上可以抽成 `supabase/functions/_shared/apiRateLimit.ts` 讓兩支共用，但那必須修改 `kol-api/index.ts` —— 你這次明確限定不得動 accommodation-api 以外的 Edge Function。
+
+因此建議分兩階段：
+
+- 本批：**新建** `supabase/functions/_shared/apiRateLimit.ts`，把 kol-api 那套邏輯原樣搬成共用模組（同樣的視窗、同樣的回應標頭格式），`accommodation-api` import 使用。kol-api 一行都不動。
+- 之後另開一批（需你另外核准）：把 kol-api 改成 import 這支共用模組，刪掉它自己那份，達成真正單一實作。
+
+這樣不會出現「兩份各自演進」的長期問題，但也不會在這批偷動別支函式。
+
+**上限建議**：AI 客服報價會比人工頻繁，建議 `availability` 類查詢每把金鑰每小時 300 次（非 100），寫入方法維持較嚴格的 60 次。實際數字待你裁示；沿用 100 也可以。
+
+超量回應：429、`{ error, retry_after }`、帶三個 `X-RateLimit-*` 標頭，與 kol-api 一致。
+
+---
+
+## 4. 施工範圍
+
+### 會改動的檔案（3 個）
+- `supabase/functions/accommodation-api/index.ts` —— `authenticate()` 多讀 `is_read_only`；主流程加唯讀寫入攔截；加流量限制呼叫與回應標頭；`GET /version` 的 endpoints 清單附註唯讀說明。
+- `supabase/functions/_shared/apiRateLimit.ts` —— **新建**。
+- `src/components/headquarters/AccommodationApiKeysManagement.tsx` —— 建立金鑰表單加一個「唯讀金鑰」勾選（第 92 行的 insert 多帶一個欄位）、列表顯示唯讀標籤。
+
+（如需，另加 `supabase/functions/accommodation-api/readonly_test.ts` 純函式測試。）
+
+### 資料庫異動：需要一支 migration（僅列出，未執行）
+
+```sql
+ALTER TABLE public.accommodation_api_keys
+  ADD COLUMN is_read_only boolean NOT NULL DEFAULT false;
+
+COMMENT ON COLUMN public.accommodation_api_keys.is_read_only IS
+  '為 true 時，該金鑰只允許 GET 查詢，任何寫入方法一律 403';
+```
+
+僅新增欄位，不改既有欄位、不改 RLS、不改任何函式或觸發程序、不刪除任何東西。既有兩列自動帶 false。
+
+### 明確不會動到的檔案
+- 其他所有 Edge Function，特別是 `kol-api/index.ts`（本批 0 行變更）
+- `supabase/functions/accommodation-api/availability.ts` 與 `_shared/availability.ts`（算房算價邏輯）
+- 前台訂房／計價／庫存：`BookingFlow.tsx`、`validate-order-prices/index.ts`、`packageDatePrice.ts`、`use-room-pricing.tsx`、`use-accommodation-packages.tsx`
+- 任何 RLS 政策、觸發程序、cron、既有 RPC（含 `verify_accommodation_api_key`）
+
+### 權限隔離自檢（比照通知信箱那次教訓）
+本設計的館別隔離完全靠「金鑰 → accommodation_id」，呼叫端無法傳入任何館別識別碼，不存在「權限判斷沒綁 accommodation_id」的路徑。唯讀判斷同樣綁在該把金鑰那一列，不是靠呼叫端宣告。
+
+---
+
+## 待你裁示
+1. 唯讀標記採 `is_read_only` 布林，是否同意（或你偏好可擴充的 `scope` 文字欄位）。
+2. 流量上限數字：查詢 300 次/小時是否可接受，或沿用 100。
+3. 流量限制分兩階段（本批不動 kol-api）是否同意。
+4. 後台是否要加「唯讀」勾選 UI（不加的話新金鑰只能由我用 SQL 標記）。
+
+核准後才施工，不會自動 Publish。
