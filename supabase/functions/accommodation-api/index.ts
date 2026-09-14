@@ -65,6 +65,8 @@ async function authenticate(req: Request) {
     return { error: jsonResponse({ error: "Invalid or inactive API key" }, 401) };
   }
 
+  const accommodationId = data[0].accommodation_id as string;
+
   // 讀取該把金鑰的唯讀旗標（fail-closed：查不到或出錯一律視為唯讀）
   const keyId = (data[0] as Record<string, unknown>).key_id as string | undefined;
   let isReadOnly = true;
@@ -77,13 +79,38 @@ async function authenticate(req: Request) {
     if (!keyErr && keyRow) isReadOnly = keyRow.is_read_only === true;
   }
 
+  // 多館範圍：有效範圍 = 主館別 ∪ scopes 表。呼叫端只能縮小範圍，永遠不能擴大。
+  const allowedAccommodationIds = new Set<string>([accommodationId]);
+  let hasExtraScopes = false;
+  if (keyId) {
+    const { data: scopeRows, error: scopeErr } = await supabase
+      .from("accommodation_api_key_scopes")
+      .select("accommodation_id")
+      .eq("api_key_id", keyId);
+    if (scopeErr) {
+      // fail-closed：範圍查詢失敗一律退回單館
+      return {
+        error: jsonResponse({ error: "Unable to resolve API key scope" }, 500),
+      };
+    }
+    for (const row of scopeRows || []) {
+      allowedAccommodationIds.add(row.accommodation_id as string);
+      hasExtraScopes = true;
+    }
+  }
+
+  // 多館金鑰一律視為唯讀（即使資料庫旗標被改成 false，也 fail-closed）
+  if (hasExtraScopes) isReadOnly = true;
+
   return {
     supabase,
-    accommodationId: data[0].accommodation_id as string,
+    accommodationId,
     keyHash,
     isReadOnly,
+    allowedAccommodationIds,
   };
 }
+
 
 const limitHeadersByReq = new WeakMap<Request, Record<string, string>>();
 
@@ -109,7 +136,7 @@ async function handleRequest(req: Request): Promise<Response> {
         runtime: "deno",
         endpoints: [
           "GET /version",
-          "GET /availability",
+          "GET /availability (optional accommodation_id=uuid[,uuid] — must be within key scope)",
           "GET /room-types",
           "GET /room-types/:id",
           "POST /room-types",
@@ -121,7 +148,7 @@ async function handleRequest(req: Request): Promise<Response> {
 
     const auth = await authenticate(req);
     if ("error" in auth) return auth.error;
-    const { supabase, accommodationId, keyHash, isReadOnly } = auth;
+    const { supabase, accommodationId, keyHash, isReadOnly, allowedAccommodationIds } = auth;
 
     // ---- 唯讀金鑰：方法層預設拒絕（任何非 GET 一律擋，未來新增寫入端點自動受保護）----
     if (isReadOnly && req.method !== "GET") {
@@ -315,6 +342,7 @@ async function handleRequest(req: Request): Promise<Response> {
       const from = url.searchParams.get("from") || "";
       const to = url.searchParams.get("to") || "";
       const rtParam = url.searchParams.get("room_type_id");
+      const accParam = url.searchParams.get("accommodation_id");
 
       if (!from || !to) return jsonResponse({ error: "from and to are required (YYYY-MM-DD)" }, 400);
       if (!isValidDateStr(from) || !isValidDateStr(to)) {
@@ -326,88 +354,121 @@ async function handleRequest(req: Request): Promise<Response> {
         return jsonResponse({ error: `Date range exceeds ${MAX_RANGE_DAYS} days (got ${span})` }, 400);
       }
 
-      // Fetch room types for this accommodation (optionally filtered)
-      let rtQuery = supabase
-        .from("room_types")
-        .select("id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
-        .eq("accommodation_id", accommodationId)
-        .order("display_order", { ascending: true, nullsFirst: false });
-      if (rtParam) {
-        const requested = rtParam.split(",").map((s) => s.trim()).filter(Boolean);
-        if (requested.length > 0) rtQuery = rtQuery.in("id", requested);
+      // 多館範圍：未帶 accommodation_id 時沿用金鑰主館別（回應維持單館物件格式）
+      const multiMode = accParam !== null;
+      let targets = [accommodationId];
+      if (multiMode) {
+        const requestedAccs = accParam.split(",").map((s) => s.trim()).filter(Boolean);
+        if (requestedAccs.length === 0) {
+          return jsonResponse({ error: "accommodation_id must not be empty" }, 400);
+        }
+        // 超出金鑰綁定範圍者整批拒絕，不靜默過濾
+        const outOfScope = requestedAccs.filter((id) => !allowedAccommodationIds.has(id));
+        if (outOfScope.length > 0) {
+          return jsonResponse(
+            {
+              error: "One or more accommodation_id values are outside this API key's scope",
+              out_of_scope: outOfScope,
+            },
+            403,
+          );
+        }
+        targets = Array.from(new Set(requestedAccs));
       }
-      const { data: roomTypes, error: rtErr } = await rtQuery;
-      if (rtErr) return jsonResponse({ error: rtErr.message }, 500);
-      if (!roomTypes || roomTypes.length === 0) {
+
+      const dates = enumerateDates(from, to);
+
+      const perAccommodation = [] as Array<{ accommodation_id: string; room_types: unknown }>;
+      for (const accId of targets) {
+        let rtQuery = supabase
+          .from("room_types")
+          .select("id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
+          .eq("accommodation_id", accId)
+          .order("display_order", { ascending: true, nullsFirst: false });
+        if (rtParam) {
+          const requested = rtParam.split(",").map((s) => s.trim()).filter(Boolean);
+          if (requested.length > 0) rtQuery = rtQuery.in("id", requested);
+        }
+        const { data: roomTypes, error: rtErr } = await rtQuery;
+        if (rtErr) return jsonResponse({ error: rtErr.message }, 500);
+        if (!roomTypes || roomTypes.length === 0) {
+          perAccommodation.push({ accommodation_id: accId, room_types: [] });
+          continue;
+        }
+
+        const rtIds = roomTypes.map((r: any) => r.id);
+
+        const [invRes, ordersRes, tmplRes, holRes] = await Promise.all([
+          supabase
+            .from("room_inventory_pricing")
+            .select("room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available")
+            .in("room_type_id", rtIds)
+            .is("pricing_template_id", null)
+            .gte("date", from)
+            .lte("date", to),
+          supabase
+            .from("orders")
+            .select("id, room_type_id, check_in_date, check_out_date, order_status, lock_whole_building")
+            .eq("accommodation_id", accId)
+            .in("order_status", ACTIVE_ORDER_STATUSES)
+            .gt("check_out_date", from)
+            .lte("check_in_date", to),
+          supabase
+            .from("pricing_templates")
+            .select("room_type_id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order")
+            .eq("accommodation_id", accId)
+            .order("display_order", { ascending: true, nullsFirst: false }),
+          supabase
+            .from("public_holidays")
+            .select("holiday_date, holiday_type")
+            .eq("accommodation_id", accId)
+            .gte("holiday_date", dates[0])
+            .lte("holiday_date", dates[dates.length - 1]),
+        ]);
+
+        let orderRoomsData: any[] = [];
+        const orderIds = (ordersRes.data || []).map((o: any) => o.id);
+        if (orderIds.length > 0) {
+          const { data: orRows } = await supabase
+            .from("order_rooms")
+            .select("order_id, room_type_id, quantity")
+            .in("order_id", orderIds);
+          orderRoomsData = orRows || [];
+        }
+
+        const result = buildAvailability({
+          from,
+          to,
+          roomTypes: roomTypes as any,
+          inventory: (invRes.data || []) as any,
+          orders: (ordersRes.data || []) as any,
+          orderRooms: orderRoomsData as any,
+          templates: (tmplRes.data || []) as any,
+          holidays: (holRes.data || []) as any,
+        });
+
+        perAccommodation.push({ accommodation_id: accId, room_types: result });
+      }
+
+      // 未帶 accommodation_id → 與既有行為完全相同的單館物件格式
+      if (!multiMode) {
         return jsonResponse({
           accommodation_id: accommodationId,
           from,
           to,
           currency: "TWD",
-          room_types: [],
+          room_types: perAccommodation[0]?.room_types ?? [],
         });
       }
 
-      const rtIds = roomTypes.map((r: any) => r.id);
-      const dates = enumerateDates(from, to);
-
-      const [invRes, ordersRes, tmplRes, holRes] = await Promise.all([
-        supabase
-          .from("room_inventory_pricing")
-          .select("room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available")
-          .in("room_type_id", rtIds)
-          .is("pricing_template_id", null)
-          .gte("date", from)
-          .lte("date", to),
-        supabase
-          .from("orders")
-          .select("id, room_type_id, check_in_date, check_out_date, order_status, lock_whole_building")
-          .eq("accommodation_id", accommodationId)
-          .in("order_status", ACTIVE_ORDER_STATUSES)
-          .gt("check_out_date", from)
-          .lte("check_in_date", to),
-        supabase
-          .from("pricing_templates")
-          .select("room_type_id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order")
-          .eq("accommodation_id", accommodationId)
-          .order("display_order", { ascending: true, nullsFirst: false }),
-        supabase
-          .from("public_holidays")
-          .select("holiday_date, holiday_type")
-          .eq("accommodation_id", accommodationId)
-          .gte("holiday_date", dates[0])
-          .lte("holiday_date", dates[dates.length - 1]),
-      ]);
-
-      let orderRoomsData: any[] = [];
-      const orderIds = (ordersRes.data || []).map((o: any) => o.id);
-      if (orderIds.length > 0) {
-        const { data: orRows } = await supabase
-          .from("order_rooms")
-          .select("order_id, room_type_id, quantity")
-          .in("order_id", orderIds);
-        orderRoomsData = orRows || [];
-      }
-
-      const result = buildAvailability({
-        from,
-        to,
-        roomTypes: roomTypes as any,
-        inventory: (invRes.data || []) as any,
-        orders: (ordersRes.data || []) as any,
-        orderRooms: orderRoomsData as any,
-        templates: (tmplRes.data || []) as any,
-        holidays: (holRes.data || []) as any,
-      });
-
       return jsonResponse({
-        accommodation_id: accommodationId,
         from,
         to,
         currency: "TWD",
-        room_types: result,
+        accommodations: perAccommodation,
       });
     }
+
 
     return jsonResponse({ error: "Not found" }, 404);
   } catch (e) {

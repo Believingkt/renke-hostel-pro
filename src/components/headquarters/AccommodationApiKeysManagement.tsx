@@ -54,6 +54,8 @@ export function AccommodationApiKeysManagement() {
   const [newKeyName, setNewKeyName] = useState("");
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [newKeyReadOnly, setNewKeyReadOnly] = useState(true);
+  const [extraAccIds, setExtraAccIds] = useState<string[]>([]);
+  const [scopesByKey, setScopesByKey] = useState<Record<string, string[]>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,9 +82,27 @@ export function AccommodationApiKeysManagement() {
       .eq("accommodation_id", selectedAccId)
       .order("created_at", { ascending: false });
     if (error) toast.error("無法載入 API Keys");
-    setKeys((data || []) as ApiKey[]);
+    const rows = (data || []) as ApiKey[];
+    setKeys(rows);
+
+    if (rows.length > 0) {
+      const { data: scopeRows } = await supabase
+        .from("accommodation_api_key_scopes")
+        .select("api_key_id, accommodation_id")
+        .in("api_key_id", rows.map((r) => r.id));
+      const map: Record<string, string[]> = {};
+      (scopeRows || []).forEach((s) => {
+        (map[s.api_key_id] ||= []).push(s.accommodation_id);
+      });
+      setScopesByKey(map);
+    } else {
+      setScopesByKey({});
+    }
     setLoading(false);
   };
+
+  const accName = (id: string) => accommodations.find((a) => a.id === id)?.name || id.slice(0, 8);
+
 
   const handleCreate = async () => {
     if (!newKeyName.trim()) {
@@ -92,20 +112,41 @@ export function AccommodationApiKeysManagement() {
     const fullKey = generateKey();
     const keyHash = await sha256Hex(fullKey);
     const keyPrefix = fullKey.slice(0, 12) + "...";
-    const { error } = await supabase.from("accommodation_api_keys").insert({
-      accommodation_id: selectedAccId,
-      name: newKeyName.trim(),
-      key_hash: keyHash,
-      key_prefix: keyPrefix,
-      is_read_only: newKeyReadOnly,
-    });
-    if (error) {
-      toast.error("建立失敗：" + error.message);
+    const isMulti = extraAccIds.length > 0;
+    const { data: inserted, error } = await supabase
+      .from("accommodation_api_keys")
+      .insert({
+        accommodation_id: selectedAccId,
+        name: newKeyName.trim(),
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        // 多館金鑰強制唯讀
+        is_read_only: isMulti ? true : newKeyReadOnly,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      toast.error("建立失敗：" + (error?.message ?? "未知錯誤"));
       return;
     }
+
+    if (isMulti) {
+      const { error: scopeErr } = await supabase
+        .from("accommodation_api_key_scopes")
+        .insert(extraAccIds.map((id) => ({ api_key_id: inserted.id, accommodation_id: id })));
+      if (scopeErr) {
+        // 範圍寫入失敗就撤掉金鑰，避免留下範圍不完整的金鑰
+        await supabase.from("accommodation_api_keys").delete().eq("id", inserted.id);
+        toast.error("建立失敗（館別範圍寫入失敗）：" + scopeErr.message);
+        return;
+      }
+    }
+
     setCreatedKey(fullKey);
     setNewKeyName("");
+    setExtraAccIds([]);
     loadKeys();
+
   };
 
   const toggleActive = async (key: ApiKey) => {
@@ -153,7 +194,7 @@ export function AccommodationApiKeysManagement() {
                 </Link>
               </CardDescription>
             </div>
-            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setCreateOpen(true); }} disabled={!selectedAccId}>
+            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setExtraAccIds([]); setCreateOpen(true); }} disabled={!selectedAccId}>
               新增 API Key
             </Button>
           </div>
@@ -178,6 +219,8 @@ export function AccommodationApiKeysManagement() {
                 <TableHead>金鑰前綴</TableHead>
                 <TableHead>狀態</TableHead>
                 <TableHead>權限</TableHead>
+                <TableHead>可存取館別</TableHead>
+
                 <TableHead>最後使用</TableHead>
                 <TableHead>建立時間</TableHead>
                 <TableHead className="text-right">操作</TableHead>
@@ -203,6 +246,16 @@ export function AccommodationApiKeysManagement() {
                         {k.is_read_only ? "唯讀" : "可讀寫"}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-sm">
+                      {(scopesByKey[k.id]?.length ?? 0) === 0 ? (
+                        <span className="text-muted-foreground">本館</span>
+                      ) : (
+                        <span>
+                          本館 ＋ {scopesByKey[k.id].map(accName).join("、")}
+                        </span>
+                      )}
+                    </TableCell>
+
                     <TableCell className="text-sm text-muted-foreground">
                       {k.last_used_at ? new Date(k.last_used_at).toLocaleString("zh-TW") : "—"}
                     </TableCell>
@@ -257,19 +310,45 @@ export function AccommodationApiKeysManagement() {
                   placeholder="例：PMS 整合"
                 />
               </div>
+              <div className="space-y-2">
+                <Label>額外可存取館別（選填）</Label>
+                <p className="text-xs text-muted-foreground">
+                  勾選後，這把金鑰除了「{accName(selectedAccId)}」之外，也能查詢下列館別。勾選任一館別即成為多館金鑰，一律強制唯讀。
+                </p>
+                <div className="max-h-48 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {accommodations
+                    .filter((a) => a.id !== selectedAccId)
+                    .map((a) => (
+                      <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                        <Checkbox
+                          checked={extraAccIds.includes(a.id)}
+                          onCheckedChange={(v) =>
+                            setExtraAccIds((prev) =>
+                              v === true ? [...prev, a.id] : prev.filter((x) => x !== a.id),
+                            )
+                          }
+                        />
+                        <span className="text-sm">{a.name}</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
               <div className="flex items-start gap-2 rounded-md border p-3">
                 <Checkbox
                   id="api-key-readonly"
-                  checked={newKeyReadOnly}
+                  checked={extraAccIds.length > 0 ? true : newKeyReadOnly}
+                  disabled={extraAccIds.length > 0}
                   onCheckedChange={(v) => setNewKeyReadOnly(v === true)}
                 />
                 <div className="space-y-1">
                   <Label htmlFor="api-key-readonly" className="cursor-pointer">唯讀金鑰（建議）</Label>
                   <p className="text-xs text-muted-foreground">
                     只能查詢房型、房價與可售房數，無法新增或修改任何資料。給外部系統串接報價時請務必勾選。
+                    {extraAccIds.length > 0 && "（多館金鑰強制唯讀，無法取消）"}
                   </p>
                 </div>
               </div>
+
             </div>
           )}
 
