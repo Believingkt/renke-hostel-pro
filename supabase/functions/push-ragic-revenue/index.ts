@@ -431,6 +431,79 @@ Deno.serve(async (req) => {
     }
 
 
+    // 5. 課程收入（總部層級，與館別無關）：依「匯款日期」落在該月認列，合併為一列送 Ragic。
+    //    僅在未指定單一館別時產生（單館預覽不摻入總部收入）。
+    if (!accommodation_id) {
+      const { data: courseRows, error: courseErr } = await supabase
+        .from("course_profit_months")
+        .select("month, surplus_amount, remittance_date")
+        .gte("remittance_date", monthStartStr)
+        .lt("remittance_date", monthEndStr)
+        .order("remittance_date", { ascending: true });
+      if (courseErr) throw courseErr;
+
+      const details = (courseRows || []).map((c: any) => ({
+        month: String(c.month ?? "").slice(0, 10),
+        amount: Math.round(Number(c.surplus_amount) || 0),
+        remittance_date: String(c.remittance_date ?? "").slice(0, 10),
+      }));
+      const courseTotal = details.reduce((s, d) => s + d.amount, 0);
+
+      if (details.length === 0) {
+        // 該月無任何匯款紀錄 → 明確列出略過原因，不靜默消失
+        const { data: pendingRows } = await supabase
+          .from("course_profit_months")
+          .select("month, surplus_amount")
+          .is("remittance_date", null)
+          .gt("surplus_amount", 0);
+        const pendingCount = (pendingRows || []).length;
+        skipped.push({
+          accommodation_id: "course-profit",
+          accommodation_name: "課程事業（總部）",
+          scope: "venue",
+          gate: "課程",
+          income_type: "課程收入",
+          skip_reason: pendingCount > 0 ? "course_no_remittance_date" : "course_no_remittance_in_month",
+          detail:
+            pendingCount > 0
+              ? `本月無匯款紀錄；另有 ${pendingCount} 筆課程盈餘尚未填寫匯款日期，填寫後才會認列`
+              : "本月無任何課程盈餘匯款紀錄",
+        });
+      } else {
+        const courseRow: Record<string, string> = {
+          [FIELD.DATA_SOURCE]: "PMS",
+          [FIELD.YEAR_MONTH]: yyyyMm,
+          [FIELD.BUSINESS_UNIT]: "人客多總部",
+          [FIELD.INCOME_TYPE]: "課程收入",
+          [FIELD.AMOUNT]: String(courseTotal),
+          [FIELD.VENUE]: "人客多總部",
+          [FIELD.COMMISSION_RATE]: "",
+          [FIELD.COMMISSION_FEE]: "",
+          [FIELD.NOTE]: details
+            .map((d) => `${d.month.slice(0, 7)} 課程結算 ${d.amount.toLocaleString()}（匯款 ${d.remittance_date}）`)
+            .join("；"),
+        };
+        const coursePosts = dry_run ? [] : await pushRows([courseRow], yyyyMm, mode);
+        results.push({
+          accommodation_id: "course-profit",
+          accommodation_name: "人客多總部",
+          is_franchise: false,
+          revenue_twd: courseTotal,
+          gross_revenue_twd: courseTotal,
+          management_fee_twd: 0,
+          marketing_fee_twd: 0,
+          charges_marketing_fee: false,
+          marketing_rule: null,
+          fee_config: null,
+          course_total: courseTotal,
+          course_details: details,
+          payloads: [courseRow],
+          ...(dry_run ? {} : { ragic_responses: coursePosts }),
+        });
+      }
+    }
+
+
     return new Response(
       JSON.stringify({
         year_month: yyyyMm,

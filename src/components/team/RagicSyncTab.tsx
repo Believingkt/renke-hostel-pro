@@ -36,6 +36,13 @@ interface MarketingRule {
   marketing_fee_per_extra_property: number;
 }
 
+interface CourseDetail {
+  month: string;
+  amount: number;
+  remittance_date: string;
+}
+
+
 interface RagicRow {
   venue: string;
   business_unit: string;
@@ -56,6 +63,8 @@ interface RagicRow {
     rate: number;
     marketing_rule?: MarketingRule | null;
   };
+  /** 課程收入：合併前的逐筆匯款明細 */
+  course_details?: CourseDetail[];
   post_result?: {
     ok: boolean;
     action?: string;
@@ -79,6 +88,8 @@ interface AccomResult {
   skipped?: boolean;
   reason?: string;
   ragic_responses?: Array<any>;
+  course_total?: number;
+  course_details?: CourseDetail[];
 }
 
 
@@ -105,6 +116,8 @@ const SKIP_REASON_LABEL: Record<string, string> = {
   no_revenue: "當月無可計營收",
   marketing_fee_not_contracted: "合約未約定行銷推廣費",
   excluded_special_cost_structure: "另有成本，排除計算",
+  course_no_remittance_in_month: "本月無課程匯款紀錄",
+  course_no_remittance_date: "課程盈餘未填匯款日期",
 };
 
 const GATE_LABEL: Record<string, string> = {
@@ -113,6 +126,7 @@ const GATE_LABEL: Record<string, string> = {
   B: "抽成設定",
   C: "月費勾選",
   "B+C": "抽成設定 + 月費勾選",
+  課程: "課程匯款日期",
 };
 
 // Field IDs must stay in sync with the edge function
@@ -166,7 +180,11 @@ function flatten(results: AccomResult[]): RagicRow[] {
         exchange_rate: p[F.EXCHANGE_RATE] || "",
         commission_rate: p[F.COMMISSION_RATE] || "",
         note: p[F.NOTE] || "",
-        no_fee_warning: !!p[F.NOTE] && r.revenue_twd > 0 && r.management_fee_twd === 0,
+        no_fee_warning:
+          p[F.INCOME_TYPE] !== "課程收入" &&
+          !!p[F.NOTE] &&
+          r.revenue_twd > 0 &&
+          r.management_fee_twd === 0,
         calc: {
           revenue_twd: r.revenue_twd,
           gross_revenue_twd: r.gross_revenue_twd ?? r.revenue_twd,
@@ -174,6 +192,7 @@ function flatten(results: AccomResult[]): RagicRow[] {
           rate: r.fee_config?.rate ?? 0,
           marketing_rule: r.marketing_rule ?? null,
         },
+        course_details: r.course_details,
 
         post_result: resp
           ? {
@@ -189,9 +208,9 @@ function flatten(results: AccomResult[]): RagicRow[] {
   return rows;
 }
 
-const STORAGE_KEY = "ragic-sync-preview-v2";
-const LEGACY_STORAGE_KEYS = ["ragic-sync-preview-v1"];
-const CACHE_VERSION = 2;
+const STORAGE_KEY = "ragic-sync-preview-v3";
+const LEGACY_STORAGE_KEYS = ["ragic-sync-preview-v1", "ragic-sync-preview-v2"];
+const CACHE_VERSION = 3;
 const DETAILS_KEY = "ragic-sync-show-details";
 
 const RAGIC_FORM_URL = "https://ap15.ragic.com/lakeze/income-source/2?PAGEID=yj4";
@@ -219,6 +238,11 @@ function incomeTypeHelp(type: string): { formula: string; desc: string } | null 
         formula: "門市運營 = 當月入住營收（夜次均攤）",
         desc: "加盟／直營門市館別專用，將該館當月入住營收全額列入，不乘抽成。",
       };
+    case "課程收入":
+      return {
+        formula: "課程收入 = 當月所有「匯款日期」落在該月的課程盈餘加總",
+        desc: "來自總部設定頁「課程分潤」所登錄的每月課程結算盈餘，依匯款日期認列（非資料月份）。同月多筆匯款合併為一列，明細可在本列展開查看；尚未填寫匯款日期的盈餘不會認列。",
+      };
     default:
       return null;
   }
@@ -226,6 +250,17 @@ function incomeTypeHelp(type: string): { formula: string; desc: string } | null 
 
 /** 該列「目前實際設定值」摘要（簡化版，顯示門檻與費率數字） */
 function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
+  if (r.income_type === "課程收入") {
+    const d = r.course_details ?? [];
+    if (d.length === 0) return null;
+    return [
+      ...d.map((x) => ({
+        label: `${x.month.slice(0, 7)} 課程結算（匯款 ${x.remittance_date}）`,
+        value: `${n(x.amount)} 元`,
+      })),
+      { label: `合計（${d.length} 筆）`, value: `${n(r.amount_twd)} 元` },
+    ];
+  }
   if (!r.calc) return null;
   const c = r.calc;
   if (r.income_type === "平台抽成") {
@@ -265,7 +300,13 @@ function rowSettings(r: RagicRow): { label: string; value: string }[] | null {
 
 /** 金額欄要顯示的實際代入數字 */
 function amountFormula(r: RagicRow): string | null {
-  if (r.skipped || !r.calc) return null;
+  if (r.skipped) return null;
+  if (r.income_type === "課程收入") {
+    const d = r.course_details ?? [];
+    if (d.length === 0) return null;
+    return `${n(r.amount_twd)} = ${d.map((x) => n(x.amount)).join(" + ")}（依匯款日期認列，共 ${d.length} 筆）`;
+  }
+  if (!r.calc) return null;
   const c = r.calc;
   if (r.income_type === "平台抽成") {
     return `${n(r.amount_twd)} = max(0, ${n(c.revenue_twd)} − ${n(c.threshold)}) × ${pct(c.rate)}`;
@@ -599,7 +640,7 @@ export default function RagicSyncTab() {
                       </TooltipTrigger>
                       <TooltipContent className="z-50 max-w-sm bg-popover text-left">
                         <div className="space-y-2 text-xs">
-                          {["平台抽成", "行銷推廣費", "門市運營"].map((t) => {
+                          {["平台抽成", "行銷推廣費", "門市運營", "課程收入"].map((t) => {
                             const h = incomeTypeHelp(t)!;
                             return (
                               <div key={t}>
@@ -841,7 +882,7 @@ export default function RagicSyncTab() {
             </section>
             <section className="space-y-2">
               <h4 className="font-medium">③ 各收入類型計算公式</h4>
-              {["平台抽成", "行銷推廣費", "門市運營"].map((t) => {
+              {["平台抽成", "行銷推廣費", "門市運營", "課程收入"].map((t) => {
                 const h = incomeTypeHelp(t)!;
                 return (
                   <div key={t} className="rounded-md border p-3">
