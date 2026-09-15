@@ -1,4 +1,5 @@
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { useSubdomain } from "@/hooks/use-subdomain";
 import { useAccommodationCache, DEFAULT_SECTIONS_ORDER } from "@/hooks/use-accommodation-cache";
@@ -41,6 +42,28 @@ const Index = () => {
     error: dataError,
     refetch
   } = useAccommodationCache(accommodationId);
+
+  // 真實 Google 評論快取（無快取時不輸出 aggregateRating，避免虛假評分）
+  const [googleRating, setGoogleRating] = useState<{ rating: number; total: number } | null>(null);
+  useEffect(() => {
+    if (!info?.id) return;
+    let cancelled = false;
+    (supabase as any)
+      .from("accommodation_info")
+      .select("google_reviews_cache")
+      .eq("id", info.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (cancelled) return;
+        const cache = data?.google_reviews_cache;
+        const rating = cache?.rating;
+        const total = cache?.totalReviews;
+        if (typeof rating === "number" && typeof total === "number" && total > 0) {
+          setGoogleRating({ rating, total });
+        }
+      });
+    return () => { cancelled = true; };
+  }, [info?.id]);
 
   // 從資料庫讀取的主題設定
   const themeClass = info?.theme_preset ? getThemeClass(info.theme_preset) : '';
@@ -146,8 +169,8 @@ const Index = () => {
       <StructuredData
         accommodationInfo={info}
         roomTypes={secondaryData?.roomTypes || []}
-        averageRating={4.8}
-        reviewCount={4}
+        averageRating={googleRating?.rating}
+        reviewCount={googleRating?.total}
       />
 
       <Navigation 
