@@ -65,8 +65,8 @@ const toFiniteNumber = (v: unknown): number | undefined => {
 export const StructuredData = ({
   accommodationInfo,
   roomTypes = [],
-  averageRating = 4.8,
-  reviewCount = 4,
+  averageRating,
+  reviewCount,
 }: StructuredDataProps) => {
   useEffect(() => {
     // 清除舊的結構化資料
