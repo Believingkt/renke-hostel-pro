@@ -45,6 +45,8 @@ const BookingAccommodationInner = () => {
   const [memberId, setMemberId] = useState<string | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
+  // 真實 Google 評論快取（無快取時不輸出 aggregateRating，避免虛假評分）
+  const [googleRating, setGoogleRating] = useState<{ rating: number; total: number } | null>(null);
   const { toast } = useToast();
   // 顯示層語言（不影響導頁、收藏與任何資料查詢）
   const { t } = useBookingLocale();
@@ -80,6 +82,26 @@ const BookingAccommodationInner = () => {
       setCurrentAccommodationId(accId);
     }
   }, [accId, setCurrentAccommodationId]);
+
+  useEffect(() => {
+    if (!accId) return;
+    let cancelled = false;
+    (supabase as any)
+      .from("accommodation_info")
+      .select("google_reviews_cache")
+      .eq("id", accId)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (cancelled) return;
+        const cache = data?.google_reviews_cache;
+        const rating = cache?.rating;
+        const total = cache?.totalReviews;
+        if (typeof rating === "number" && typeof total === "number" && total > 0) {
+          setGoogleRating({ rating, total });
+        }
+      });
+    return () => { cancelled = true; };
+  }, [accId]);
 
   // If roomId is in search params, redirect to booking flow
   useEffect(() => {
@@ -229,8 +251,8 @@ const BookingAccommodationInner = () => {
       <StructuredData
         accommodationInfo={info}
         roomTypes={secondaryData?.roomTypes || []}
-        averageRating={4.8}
-        reviewCount={4}
+        averageRating={googleRating?.rating}
+        reviewCount={googleRating?.total}
       />
 
       {/* ── BookingPortal-style Header ── */}
