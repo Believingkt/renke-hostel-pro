@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBookingLocale } from "@/contexts/BookingLocaleContext";
 import { useTranslatedFields } from "@/hooks/use-translated-fields";
 import { Card } from "@/components/ui/card";
-import { openFrontendBooking } from "@/lib/frontendUrl";
+import { openFrontendBooking, bookingPath } from "@/lib/frontendUrl";
 import {
   detectTierByDate,
   getPackagePriceForTier,
@@ -21,6 +21,7 @@ interface Item {
   reviewCount: number | null;
   price: number | null;
   region: string | null;
+  alias: string | null;
 }
 
 interface Props {
@@ -66,7 +67,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
       // 1. 同 region_1 的物業（排除自己）
       const { data } = await (supabase
         .from("accommodation_info") as any)
-        .select("id, name, region_1, google_reviews_cache, og_image_url")
+        .select("id, name, region_1, google_reviews_cache, og_image_url, short_url_alias")
         .ilike("region_1", `${regionKey}%`)
         .neq("id", excludeId)
         .limit(12);
@@ -187,6 +188,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
           reviewCount: typeof cache?.totalReviews === "number" ? cache.totalReviews : null,
           price: priceMap.get(d.id) ?? null,
           region: d.region_1 || null,
+          alias: d.short_url_alias || null,
         };
       });
 
@@ -204,10 +206,14 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
       <h2 className="text-[20px] font-bold text-foreground px-4 mb-3">{t("booking.villa.similar.title")}</h2>
       <div className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 scrollbar-none">
         {items.map((it) => (
-          <button
+          <a
             key={it.id}
-            onClick={() => openFrontendBooking(it.id, { navigate })}
-            className="snap-start shrink-0 w-[68%] text-left"
+            href={bookingPath({ accommodationId: it.id, alias: it.alias })}
+            onClick={(e) => {
+              e.preventDefault();
+              openFrontendBooking(it.id, { navigate });
+            }}
+            className="snap-start shrink-0 w-[68%] text-left block"
           >
             <Card className="overflow-hidden border-border/60 h-full">
               <div className="aspect-[4/3] bg-muted overflow-hidden">
@@ -259,7 +265,7 @@ const SimilarStaysCarousel = ({ excludeId, region, adults = 2, checkIn, checkOut
                 )}
               </div>
             </Card>
-          </button>
+          </a>
         ))}
       </div>
     </section>
