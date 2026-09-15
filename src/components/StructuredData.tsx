@@ -119,13 +119,18 @@ export const StructuredData = ({
             }
           }
         : {}),
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": averageRating.toString(),
-        "bestRating": "5",
-        "worstRating": "1",
-        "ratingCount": reviewCount.toString()
-      },
+      // 僅在有真實評分資料時才輸出，避免虛假評分觸發 Google 結構化資料人工處罰
+      ...(averageRating !== undefined && reviewCount !== undefined && reviewCount > 0
+        ? {
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": averageRating.toString(),
+              "bestRating": "5",
+              "worstRating": "1",
+              "ratingCount": reviewCount.toString()
+            }
+          }
+        : {}),
       "priceRange": positivePrices.length > 0
         ? `NT$${Math.min(...positivePrices)} - NT$${Math.max(...positivePrices)}`
         : "$$",
