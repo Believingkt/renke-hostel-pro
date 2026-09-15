@@ -650,7 +650,7 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
 
       // 卡片資料快照（切換前）：名稱、價格、順序
       const cardsBefore = screen
-        .getAllByRole("button")
+        .getAllByRole("link")
         .map((b) => b.textContent)
         .filter((txt) => txt && txt.includes("鄰近測試館"));
       expect(cardsBefore).toHaveLength(1);
@@ -663,7 +663,7 @@ describe("booking villa i18n phase 1B-1: coverage remediation (items 1-17)", () 
 
       // item 12 + 17：卡片價格 / 內容 / 順序切換前後完全相同
       const cardsAfter = screen
-        .getAllByRole("button")
+        .getAllByRole("link")
         .map((b) => b.textContent)
         .filter((txt) => txt && txt.includes("鄰近測試館"));
       // 第四批：起／from 為固定介面文字，已翻譯；名稱、價格、順序仍必須完全不變
