@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowUp, Facebook, Instagram, Youtube, AtSign, Music2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import lokezeLogo from "@/assets/lakeze-portal-logo.png";
@@ -16,7 +16,7 @@ interface BookingFooterProps {
   hidePartnershipInfo?: boolean;
   /** 團購前台：精簡連結（只留隱私政策，可另選是否保留客服入口） */
   compactLinks?: boolean;
-  /** compactLinks 時是否保留「聯繫客服」（頁面前面已有客服 CTA 時請設為 false） */
+  /** @deprecated 「聯繫客服」原為無目標的假連結，已移除；保留此 prop 僅為呼叫端相容 */
   showSupportLink?: boolean;
 }
 
@@ -29,12 +29,9 @@ const BookingFooter = ({
   tiktokUrl,
   hidePartnershipInfo,
   compactLinks,
-  showSupportLink,
 }: BookingFooterProps = {}) => {
   // 顯示層語言（無 Provider 時安全回退中文；不影響任何導頁行為）
   const { t } = useBookingLocale();
-
-  const navigate = useNavigate();
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -62,21 +59,18 @@ const BookingFooter = ({
 
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 sm:gap-x-6 text-sm text-muted-foreground">
             {!compactLinks && (
-              <button onClick={() => navigate("/member/auth")} className="hover:text-foreground transition-colors">
+              <Link to="/member/auth" className="hover:text-foreground transition-colors">
                 {t("booking.footer.member")}
-              </button>
+              </Link>
             )}
-            {!compactLinks && <button className="hover:text-foreground transition-colors">{t("booking.footer.about")}</button>}
-            {(!compactLinks || showSupportLink) && (
-              <button className="hover:text-foreground transition-colors">{t("booking.footer.support")}</button>
-            )}
-            <button onClick={() => navigate("/privacy")} className="hover:text-foreground transition-colors">
+            {/* 「關於我們」「聯繫客服」目前無對應頁面，原按鈕無 onClick 也無 href（假連結），依 SEO 規範移除 */}
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
               {t("booking.footer.privacy")}
-            </button>
+            </Link>
             {!compactLinks && (
-              <button onClick={() => navigate("/data-deletion")} className="hover:text-foreground transition-colors">
+              <Link to="/data-deletion" className="hover:text-foreground transition-colors">
                 {t("booking.footer.dataDeletion")}
-              </button>
+              </Link>
             )}
           </div>
           <p className="text-sm text-muted-foreground">

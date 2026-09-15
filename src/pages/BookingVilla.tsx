@@ -18,6 +18,7 @@ import BookingLanguageSwitch from "@/components/booking/BookingLanguageSwitch";
 import { useTranslatedFields, type TranslatableField } from "@/hooks/use-translated-fields";
 import { useLazySectionLocalize } from "@/components/section-localize";
 import { buildAccommodationCanonical } from "@/lib/canonicalUrl";
+import { bookingPath } from "@/lib/frontendUrl";
 
 import { StructuredData } from "@/components/StructuredData";
 import { Button } from "@/components/ui/button";
@@ -1566,6 +1567,8 @@ const BookingVillaContent = (props: BookingVillaProps) => {
       </div>
 
 
+      <AllStaysLinks currentId={info.id} />
+
       <BookingFooter
         lineId={(info as any)?.line_id}
         facebookUrl={(info as any)?.facebook_url}
@@ -1717,6 +1720,63 @@ const BookingVillaContent = (props: BookingVillaProps) => {
         }}
       />
     </div>
+  );
+};
+
+/**
+ * 「所有館別」靜態連結清單（SEO 內部連結）。
+ * - 列出總部設定為前台顯示（show_on_portal）的上架館別，排除本館
+ * - 一律使用 a href（/{alias} 正式網址），讓爬蟲可抓取；點擊仍走 SPA 導頁
+ * - 查無資料時整區隱藏，不渲染空區塊
+ */
+const AllStaysLinks = ({ currentId }: { currentId?: string }) => {
+  const navigate = useNavigate();
+  const [stays, setStays] = useState<{ id: string; name: string; alias: string | null }[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await (supabase.from("accommodation_info") as any)
+        .select("id, name, short_url_alias")
+        .eq("is_active", true)
+        .eq("show_on_portal", true)
+        .order("display_order", { ascending: true, nullsFirst: false });
+      if (cancelled || !data) return;
+      setStays(
+        (data as any[])
+          .filter((d) => d.id && d.id !== currentId && d.name)
+          .map((d) => ({ id: d.id, name: d.name, alias: d.short_url_alias || null })),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentId]);
+
+  if (stays.length === 0) return null;
+
+  return (
+    <nav aria-label="所有館別" className="border-t border-border bg-background">
+      <div className="max-w-3xl mx-auto px-4 py-5">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-2">所有館別</h2>
+        <ul className="flex flex-wrap gap-x-4 gap-y-2">
+          {stays.map((s) => (
+            <li key={s.id}>
+              <a
+                href={bookingPath({ accommodationId: s.id, alias: s.alias })}
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(bookingPath({ accommodationId: s.id, alias: s.alias }));
+                }}
+                className="text-sm text-foreground hover:underline"
+              >
+                {s.name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </nav>
   );
 };
 
