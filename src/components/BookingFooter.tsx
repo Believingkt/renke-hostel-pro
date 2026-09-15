@@ -16,7 +16,7 @@ interface BookingFooterProps {
   hidePartnershipInfo?: boolean;
   /** 團購前台：精簡連結（只留隱私政策，可另選是否保留客服入口） */
   compactLinks?: boolean;
-  /** compactLinks 時是否保留「聯繫客服」（頁面前面已有客服 CTA 時請設為 false） */
+  /** @deprecated 「聯繫客服」原為無目標的假連結，已移除；保留此 prop 僅為呼叫端相容 */
   showSupportLink?: boolean;
 }
 
@@ -29,7 +29,6 @@ const BookingFooter = ({
   tiktokUrl,
   hidePartnershipInfo,
   compactLinks,
-  showSupportLink,
 }: BookingFooterProps = {}) => {
   // 顯示層語言（無 Provider 時安全回退中文；不影響任何導頁行為）
   const { t } = useBookingLocale();
