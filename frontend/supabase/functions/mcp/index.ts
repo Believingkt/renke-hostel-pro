@@ -3,10 +3,10 @@
 // supabase function: mcp
 // Bundled from src/lib/mcp/index.ts by @lovable.dev/mcp-js.
 // src/lib/mcp/index.ts
-import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { auth, defineMcp } from "npm:@lovable.dev/mcp-js@0.25.1";
 
 // src/lib/mcp/tools/list-accommodations.ts
-import { defineTool } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { defineTool } from "npm:@lovable.dev/mcp-js@0.25.1";
 
 // src/lib/mcp/supabase.ts
 import { createClient } from "npm:@supabase/supabase-js@^2.110.2";
@@ -46,7 +46,7 @@ var list_accommodations_default = defineTool({
 });
 
 // src/lib/mcp/tools/list-orders.ts
-import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.25.1";
 import { z } from "npm:zod@3.25.76";
 var ORDER_FIELDS = "order_number, accommodation_id, guest_name, guest_phone, guest_email, check_in_date, check_out_date, guest_count, order_status, payment_status, final_price, paid_amount, order_source, order_date, notes";
 var list_orders_default = defineTool2({
@@ -80,7 +80,7 @@ var list_orders_default = defineTool2({
 });
 
 // src/lib/mcp/tools/get-order.ts
-import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.25.1";
 import { z as z2 } from "npm:zod@3.25.76";
 var ORDER_DETAIL_FIELDS = [
   "id",
@@ -144,7 +144,7 @@ var get_order_default = defineTool3({
 });
 
 // src/lib/mcp/tools/list-room-types.ts
-import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.25.1";
 import { z as z3 } from "npm:zod@3.25.76";
 var list_room_types_default = defineTool4({
   name: "list_room_types",
@@ -169,7 +169,7 @@ var list_room_types_default = defineTool4({
 });
 
 // src/lib/mcp/tools/revenue-summary.ts
-import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.25.0";
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.25.1";
 import { z as z4 } from "npm:zod@3.25.76";
 var revenue_summary_default = defineTool5({
   name: "revenue_summary",
@@ -222,5 +222,5 @@ var mcp_default = defineMcp({
 });
 
 // lovable-mcp-supabase-entry.ts
-import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.25.0/stacks/supabase";
+import { createSupabaseHandler } from "npm:@lovable.dev/mcp-js@0.25.1/stacks/supabase";
 Deno.serve(createSupabaseHandler(mcp_default, { functionName: "mcp" }));

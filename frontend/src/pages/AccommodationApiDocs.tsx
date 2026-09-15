@@ -430,7 +430,7 @@ export default function AccommodationApiDocs() {
                     </div>
 
                     <div>
-                      <CodeBlock label="2. 指定民宿（單一）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=4ee31aca-5641-4d05-80e2-1c67626be83d' \\
+                      <CodeBlock label="2. 指定民宿（單一）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=app-staging-lab-5' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 

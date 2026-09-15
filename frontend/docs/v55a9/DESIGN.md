@@ -35,7 +35,7 @@ GRANT EXECUTE TO authenticated, service_role（REVOKE FROM PUBLIC）
 先前 (a)(b)(c) 三個測試都是以 SQL 連線的既有身分執行（`request.jwt.claims` 未設 → `v_role` 非 service_role、`auth.uid()` 為 NULL 的路徑未被觸發，權限段等同未實測）。補測結果（BEGIN…ROLLBACK，正式資料 0 異動）：
 
 ```text
-setup            order=91bf002d-22b5-4c9f-806d-5231467741fb rows=6
+setup            order=app-staging-lab-5 rows=6
 auth_uid         2693a019-449f-46e1-8b00-ba29b0db75fa   (super_admin)
 (d) super_admin  {"ok": true, "deleted": [], "inserted": [], "updated": [6 筆 id], "conflicts": []}
 (e) no-role      BLOCKED=NOT_AUTHORIZED

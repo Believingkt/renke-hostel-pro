@@ -28,8 +28,13 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   return {
     server: {
-      host: "::",
-      port: 8080,
+      host: "0.0.0.0",
+      port: 3000,
+      strictPort: true,
+      allowedHosts: true,
+      hmr: {
+        clientPort: 443,
+      },
     },
     define: {
       __BUILD_ID__: JSON.stringify(buildId),
