@@ -43,6 +43,7 @@ interface RagicPayForm {
   amount: number;
   created_at: string | null;
   remit_date: string | null;
+  account_name: string | null;
 }
 
 type StatusKey =
