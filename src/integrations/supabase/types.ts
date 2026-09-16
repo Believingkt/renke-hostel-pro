@@ -3027,6 +3027,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_email: string | null
+          entry_mode: string
           id: string
           month: string
           note: string | null
@@ -3041,6 +3042,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_email?: string | null
+          entry_mode?: string
           id?: string
           month: string
           note?: string | null
@@ -3055,6 +3057,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_email?: string | null
+          entry_mode?: string
           id?: string
           month?: string
           note?: string | null
@@ -3072,33 +3075,42 @@ export type Database = {
           amount: number
           created_at: string
           id: string
+          is_manual: boolean
           month: string
+          note: string | null
           payout_month: string
           percent_snapshot: number
           surplus_snapshot: number
           updated_at: string
+          updated_by: string | null
           user_id: string
         }
         Insert: {
           amount?: number
           created_at?: string
           id?: string
+          is_manual?: boolean
           month: string
+          note?: string | null
           payout_month: string
           percent_snapshot?: number
           surplus_snapshot?: number
           updated_at?: string
+          updated_by?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           created_at?: string
           id?: string
+          is_manual?: boolean
           month?: string
+          note?: string | null
           payout_month?: string
           percent_snapshot?: number
           surplus_snapshot?: number
           updated_at?: string
+          updated_by?: string | null
           user_id?: string
         }
         Relationships: []
