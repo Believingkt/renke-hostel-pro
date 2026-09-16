@@ -234,6 +234,10 @@ export default function KolPayFormReconcileTab({
       const vals = fs.map((f) => f[key]).filter(Boolean) as string[];
       return vals.length ? vals.sort().slice(-1)[0] : null;
     };
+    const pickAccountNames = (fs: RagicPayForm[]) => {
+      const names = [...new Set(fs.map((f) => f.account_name ?? "").filter(Boolean))];
+      return names.length ? names.join("、") : null;
+    };
 
     for (const e of expected) {
       const cid = e.cid_code.toUpperCase();
@@ -434,6 +438,7 @@ export default function KolPayFormReconcileTab({
                   <TableHead className="whitespace-nowrap">合作場域</TableHead>
                   <TableHead className="whitespace-nowrap text-right">系統應發</TableHead>
                   <TableHead className="whitespace-nowrap text-right">勞報單金額</TableHead>
+                  <TableHead className="whitespace-nowrap">勞報單戶名</TableHead>
                   <TableHead className="whitespace-nowrap">勞報單編號</TableHead>
                   <TableHead className="whitespace-nowrap">對帳編號</TableHead>
                   <TableHead className="whitespace-nowrap">勞報單期別</TableHead>
@@ -444,7 +449,7 @@ export default function KolPayFormReconcileTab({
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="py-6 text-center text-muted-foreground">
+                    <TableCell colSpan={12} className="py-6 text-center text-muted-foreground">
                       此期別無資料
                     </TableCell>
                   </TableRow>
@@ -477,6 +482,9 @@ export default function KolPayFormReconcileTab({
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-right tabular-nums">
                         {r.actual === null ? "—" : fmtMoney(r.actual)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.accountName || "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         {r.ragicId || "—"}
