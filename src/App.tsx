@@ -124,6 +124,7 @@ const GroupBuyOrderLookup = lazy(() => import("./pages/GroupBuyOrderLookup"));
 const GroupBuyOrderConfirmation = lazy(() => import("./pages/GroupBuyOrderConfirmation"));
 const AdminGroupBuy = lazy(() => import("./pages/AdminGroupBuy"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
+const AdminAiFaq = lazy(() => import("./pages/admin/ai-faq/AdminAiFaq"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
 
