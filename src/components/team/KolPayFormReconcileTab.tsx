@@ -270,6 +270,7 @@ export default function KolPayFormReconcileTab({
         homePeriod: periodKey,
         submittedAt: pick(matched, "created_at"),
         remitDate: pick(matched, "remit_date"),
+        accountName: pickAccountNames(matched),
         status,
       });
       byCid.delete(cid);
@@ -290,6 +291,7 @@ export default function KolPayFormReconcileTab({
         homePeriod: periodKey,
         submittedAt: pick(list2, "created_at"),
         remitDate: pick(list2, "remit_date"),
+        accountName: pickAccountNames(list2),
         status: "ragic_only",
       });
     }
@@ -316,6 +318,7 @@ export default function KolPayFormReconcileTab({
           homePeriod: items[0]?.home ?? null,
           submittedAt: pick(fs, "created_at"),
           remitDate: pick(fs, "remit_date"),
+          accountName: pickAccountNames(fs),
           status: "other_period",
         });
       }
