@@ -61,6 +61,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const period = String(body?.period ?? "").trim(); // YYYYMM
+    // 容許前後 N 期一併回傳（延後送單／填錯期別時仍能配對），預設 3
+    const rawWindow = Number(body?.window_months ?? 3);
+    const windowMonths = Number.isFinite(rawWindow)
+      ? Math.max(0, Math.min(12, Math.trunc(rawWindow)))
+      : 3;
 
     // Ragic 分頁讀取（唯讀）
     const records: any[] = [];
