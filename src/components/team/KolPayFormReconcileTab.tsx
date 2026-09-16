@@ -306,12 +306,15 @@ export default function KolPayFormReconcileTab({
                   <TableHead className="whitespace-nowrap text-right">勞報單金額</TableHead>
                   <TableHead className="whitespace-nowrap">勞報單編號</TableHead>
                   <TableHead className="whitespace-nowrap">對帳編號</TableHead>
+                  <TableHead className="whitespace-nowrap">勞報單期別</TableHead>
+                  <TableHead className="whitespace-nowrap">送單日</TableHead>
+                  <TableHead className="whitespace-nowrap">實際匯款日</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-6 text-center text-muted-foreground">
+                    <TableCell colSpan={11} className="py-6 text-center text-muted-foreground">
                       此期別無資料
                     </TableCell>
                   </TableRow>
