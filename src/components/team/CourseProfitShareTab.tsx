@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DateField } from "@/components/admin/DateFields";
 import { toast } from "@/hooks/use-toast";
@@ -45,6 +54,8 @@ interface MonthRow {
   updated_at: string;
   updated_by_email: string | null;
   created_by_email: string | null;
+  /** manual = 逐人手動輸入金額（新月份預設）；percent = 依分潤 % 自動計算 */
+  entry_mode: string;
 }
 
 interface RateVersion {
@@ -64,6 +75,8 @@ interface PayoutRow {
   user_id: string;
   amount: number;
   percent_snapshot: number;
+  is_manual: boolean;
+  note: string | null;
 }
 
 interface MemberRow {
@@ -189,7 +202,15 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     surplus: "",
     note: "",
     remittance: null as string | null,
+    /** 新月份預設手動輸入金額 */
+    entry_mode: "manual" as "manual" | "percent",
   });
+  /** 手動名單：展開中的月份 id */
+  const [expandedMonthId, setExpandedMonthId] = useState<string | null>(null);
+  /** 手動名單草稿（key = 月份 id） */
+  const [manualDraft, setManualDraft] = useState<
+    Record<string, { key: string; id: string | null; user_id: string; amount: string; note: string }[]>
+  >({});
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
@@ -205,7 +226,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email, entry_mode")
           .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
@@ -214,7 +235,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           .order("effective_from", { ascending: false }),
         supabase
           .from("course_profit_payouts")
-          .select("id, month, payout_month, user_id, amount, percent_snapshot"),
+          .select("id, month, payout_month, user_id, amount, percent_snapshot, is_manual, note"),
       ]);
 
     const rolesByUser = new Map<string, string[]>();
@@ -335,6 +356,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
 
   const totalCurrentPercent = selectedMembers.reduce((s, m) => s + (currentPercent(m.user_id) ?? 0), 0);
   const latestMonth = months[0];
+  /** 只要還有「依比例自動」的月份，才顯示分潤 % 設定區塊 */
+  const hasPercentMonth = months.some((m) => m.entry_mode === "percent");
 
   /* ---------------- 課程盈餘 ---------------- */
 
@@ -345,19 +368,26 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     }
     setSavingId("__new__");
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("course_profit_months").insert({
-      month: `${newMonth.month}-01`,
-      payout_month: `${newMonth.payout}-01`,
-      surplus_amount: Number(newMonth.surplus || 0),
-      note: newMonth.note || null,
-      remittance_date: newMonth.remittance || null,
-      created_by: userData?.user?.id ?? null,
-      created_by_email: userData?.user?.email ?? null,
-      updated_by: userData?.user?.id ?? null,
-      updated_by_email: userData?.user?.email ?? null,
-    } as any);
-    setSavingId(null);
+    const monthDate = `${newMonth.month}-01`;
+    const payoutDate = `${newMonth.payout}-01`;
+    const { data: inserted, error } = await supabase
+      .from("course_profit_months")
+      .insert({
+        month: monthDate,
+        payout_month: payoutDate,
+        surplus_amount: Number(newMonth.surplus || 0),
+        note: newMonth.note || null,
+        remittance_date: newMonth.remittance || null,
+        entry_mode: newMonth.entry_mode,
+        created_by: userData?.user?.id ?? null,
+        created_by_email: userData?.user?.email ?? null,
+        updated_by: userData?.user?.id ?? null,
+        updated_by_email: userData?.user?.email ?? null,
+      } as any)
+      .select("id")
+      .maybeSingle();
     if (error) {
+      setSavingId(null);
       toast({
         title: "新增失敗",
         description: error.message.includes("duplicate") ? "該月份已存在，請直接於下方修改" : error.message,
@@ -365,8 +395,169 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "", remittance: null });
-    toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
+
+    // 手動模式：自動帶入上一個月的名單與金額當草稿
+    let seeded = 0;
+    if (newMonth.entry_mode === "manual") {
+      seeded = await seedFromPreviousMonth(monthDate, payoutDate, userData?.user?.id ?? null);
+    }
+    setSavingId(null);
+    setNewMonth({
+      month: prevYm(),
+      payout: defaultPayoutYm(),
+      surplus: "",
+      note: "",
+      remittance: null,
+      entry_mode: "manual",
+    });
+    if (inserted?.id) setExpandedMonthId(String((inserted as any).id));
+    toast({
+      title:
+        newMonth.entry_mode === "manual"
+          ? seeded > 0
+            ? `已新增，並帶入上個月 ${seeded} 位夥伴的名單與金額`
+            : "已新增，請於名單中逐人填寫金額"
+          : "已新增該月課程盈餘，獎金已自動計算",
+    });
+    load();
+  };
+
+  /**
+   * 手動月份：複製「上一個資料月」的名單與金額到新月份。
+   * 找不到上個月資料時回傳 0（空白名單）。
+   */
+  const seedFromPreviousMonth = async (
+    monthDate: string,
+    payoutDate: string,
+    actorId: string | null,
+  ): Promise<number> => {
+    const prev = months
+      .filter((m) => m.month < monthDate)
+      .sort((a, b) => (a.month < b.month ? 1 : -1))[0];
+    if (!prev) return 0;
+    const src = payouts.filter((p) => p.month === prev.month);
+    if (src.length === 0) return 0;
+    const { error } = await supabase.from("course_profit_payouts").insert(
+      src.map((p) => ({
+        month: monthDate,
+        payout_month: payoutDate,
+        user_id: p.user_id,
+        amount: Number(p.amount),
+        note: p.note ?? null,
+        percent_snapshot: 0,
+        surplus_snapshot: 0,
+        is_manual: true,
+        updated_by: actorId,
+      })) as any,
+    );
+    if (error) {
+      toast({ title: "帶入上個月名單失敗", description: error.message, variant: "destructive" });
+      return 0;
+    }
+    return src.length;
+  };
+
+  /** 切換某月的分配方式（手動 / 依比例） */
+  const setEntryMode = async (row: MonthRow, mode: "manual" | "percent") => {
+    if (row.entry_mode === mode) return;
+    setSavingId(row.id);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("course_profit_months")
+      .update({
+        entry_mode: mode,
+        updated_by: userData?.user?.id ?? null,
+        updated_by_email: userData?.user?.email ?? null,
+      } as any)
+      .eq("id", row.id);
+    setSavingId(null);
+    if (error) {
+      toast({ title: "切換失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: mode === "manual" ? "已改為手動輸入金額" : "已改為依分潤 % 自動計算" });
+    if (mode === "manual") setExpandedMonthId(row.id);
+    load();
+  };
+
+  /* ---------------- 手動名單 ---------------- */
+
+  const manualRowsOf = (row: MonthRow) =>
+    manualDraft[row.id] ??
+    payouts
+      .filter((p) => p.month === row.month)
+      .map((p) => ({
+        key: p.id,
+        id: p.id,
+        user_id: p.user_id,
+        amount: String(Number(p.amount)),
+        note: p.note ?? "",
+      }));
+
+  const updateManualRows = (
+    row: MonthRow,
+    updater: (rows: { key: string; id: string | null; user_id: string; amount: string; note: string }[]) => typeof rows,
+  ) => {
+    const current = manualRowsOf(row);
+    setManualDraft((p) => ({ ...p, [row.id]: updater(current) }));
+  };
+
+  const saveManualRows = async (row: MonthRow) => {
+    const draft = manualDraft[row.id];
+    if (!draft) return;
+    if (draft.some((r) => !r.user_id)) {
+      toast({ title: "請為每一列選擇成員", variant: "destructive" });
+      return;
+    }
+    const ids = draft.map((r) => r.user_id);
+    if (new Set(ids).size !== ids.length) {
+      toast({ title: "同一位成員只能出現一次", variant: "destructive" });
+      return;
+    }
+    setSavingId(row.id);
+    const { data: userData } = await supabase.auth.getUser();
+    const actorId = userData?.user?.id ?? null;
+    const existing = payouts.filter((p) => p.month === row.month);
+    const keptIds = new Set(draft.map((r) => r.id).filter(Boolean) as string[]);
+    const removed = existing.filter((p) => !keptIds.has(p.id));
+
+    for (const p of removed) {
+      const { error } = await supabase.from("course_profit_payouts").delete().eq("id", p.id);
+      if (error) {
+        setSavingId(null);
+        toast({ title: "刪除名單列失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    for (const r of draft) {
+      const payload = {
+        month: row.month,
+        payout_month: row.payout_month,
+        user_id: r.user_id,
+        amount: Number(r.amount || 0),
+        note: r.note || null,
+        percent_snapshot: 0,
+        surplus_snapshot: 0,
+        is_manual: true,
+        updated_by: actorId,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = r.id
+        ? await supabase.from("course_profit_payouts").update(payload as any).eq("id", r.id)
+        : await supabase.from("course_profit_payouts").insert(payload as any);
+      if (error) {
+        setSavingId(null);
+        toast({ title: "儲存名單失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    setSavingId(null);
+    setManualDraft((p) => {
+      const next = { ...p };
+      delete next[row.id];
+      return next;
+    });
+    toast({ title: "已儲存當期名單金額" });
     load();
   };
 
@@ -635,6 +826,22 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
               </div>
 
 
+              <div className="space-y-1 w-full sm:w-auto">
+                <div className="text-xs text-muted-foreground">分配方式</div>
+                <Select
+                  value={newMonth.entry_mode}
+                  onValueChange={(v) => setNewMonth((p) => ({ ...p, entry_mode: v as "manual" | "percent" }))}
+                >
+                  <SelectTrigger className="h-9 w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">手動輸入金額</SelectItem>
+                    <SelectItem value="percent">依比例自動</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"} className="w-full sm:w-auto">
                 {savingId === "__new__" ? (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -655,6 +862,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                   <TableRow>
                     <TableHead className="w-40 whitespace-nowrap">發放期別</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">盈餘月份</TableHead>
+                    <TableHead className="w-44 whitespace-nowrap">分配方式</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">課程盈餘</TableHead>
                     <TableHead className="w-44 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1">
@@ -683,8 +891,14 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                       remittance: d ? d.remittance : (row.remittance_date ?? null),
                       ...over,
                     });
+                    const isManual = row.entry_mode === "manual";
+                    const expanded = expandedMonthId === row.id;
+                    const manualRows = manualRowsOf(row);
+                    const manualTotal = manualRows.reduce((s, r) => s + Number(r.amount || 0), 0);
+                    const manualDirty = !!manualDraft[row.id];
                     return (
-                      <TableRow key={row.id}>
+                      <Fragment key={row.id}>
+                      <TableRow>
                         <TableCell className="whitespace-nowrap tabular-nums">
                           {locked || readOnly ? (
                             `${row.payout_month.slice(0, 7)}-10`
@@ -703,6 +917,34 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">{row.month.slice(0, 7)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {locked || readOnly ? (
+                            <span className="text-sm">{isManual ? "手動輸入金額" : "依比例自動"}</span>
+                          ) : (
+                            <Select
+                              value={row.entry_mode}
+                              onValueChange={(v) => setEntryMode(row, v as "manual" | "percent")}
+                            >
+                              <SelectTrigger className="h-9 w-36">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="manual">手動輸入金額</SelectItem>
+                                <SelectItem value="percent">依比例自動</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {isManual && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-6 px-0 text-xs"
+                              onClick={() => setExpandedMonthId(expanded ? null : row.id)}
+                            >
+                              {expanded ? "收合名單" : `編輯名單（${manualRows.length} 人）`}
+                            </Button>
+                          )}
+                        </TableCell>
                         <TableCell className="tabular-nums">
                           {locked || readOnly ? (
                             `$${Number(row.surplus_amount).toLocaleString()}`
@@ -777,6 +1019,140 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           )}
                         </TableCell>
                       </TableRow>
+                      {isManual && expanded && (
+                        <TableRow>
+                          <TableCell colSpan={9} className="bg-muted/30">
+                            <div className="space-y-2 py-1">
+                              <div className="text-sm font-medium">
+                                {row.month.slice(0, 7)} 當期名單（手動輸入金額）
+                              </div>
+                              {manualRows.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">尚未加入任何夥伴。</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {manualRows.map((r, idx) => (
+                                    <div key={r.key} className="flex flex-wrap items-center gap-2">
+                                      <Select
+                                        value={r.user_id || undefined}
+                                        disabled={locked || readOnly}
+                                        onValueChange={(v) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, user_id: v } : x)),
+                                          )
+                                        }
+                                      >
+                                        <SelectTrigger className="h-9 w-56">
+                                          <SelectValue placeholder="選擇成員" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-72">
+                                          {memberGroups.map((g) => (
+                                            <SelectGroup key={g.role}>
+                                              <SelectLabel>{ROLE_LABEL[g.role] ?? g.role}</SelectLabel>
+                                              {g.members.map((m) => (
+                                                <SelectItem key={m.user_id} value={m.user_id}>
+                                                  {m.display_name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectGroup>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        placeholder="金額"
+                                        value={r.amount}
+                                        disabled={locked || readOnly}
+                                        onChange={(e) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, amount: e.target.value } : x)),
+                                          )
+                                        }
+                                        className="h-9 w-32 tabular-nums"
+                                      />
+                                      <Input
+                                        placeholder="備註（選填）"
+                                        value={r.note}
+                                        disabled={locked || readOnly}
+                                        onChange={(e) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, note: e.target.value } : x)),
+                                          )
+                                        }
+                                        className="h-9 min-w-[10rem] flex-1"
+                                      />
+                                      {!locked && !readOnly && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 px-1"
+                                          onClick={() =>
+                                            updateManualRows(row, (list) => list.filter((_, i) => i !== idx))
+                                          }
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex flex-wrap items-center gap-3 pt-1">
+                                {!locked && !readOnly && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      updateManualRows(row, (list) => [
+                                        ...list,
+                                        {
+                                          key: `new-${Date.now()}-${list.length}`,
+                                          id: null,
+                                          user_id: "",
+                                          amount: "",
+                                          note: "",
+                                        },
+                                      ])
+                                    }
+                                  >
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    新增一位
+                                  </Button>
+                                )}
+                                <span className="text-sm tabular-nums">
+                                  合計 ${manualTotal.toLocaleString()} / 課程盈餘 $
+                                  {Number(row.surplus_amount).toLocaleString()}
+                                </span>
+                                {manualTotal !== Number(row.surplus_amount) && (
+                                  <span className="text-sm text-muted-foreground tabular-nums">
+                                    差額 ${(Number(row.surplus_amount) - manualTotal).toLocaleString()}（僅提示，仍可儲存）
+                                  </span>
+                                )}
+                                {!locked && !readOnly && (
+                                  <Button
+                                    size="sm"
+                                    disabled={!manualDirty || savingId === row.id}
+                                    onClick={() => saveManualRows(row)}
+                                  >
+                                    {savingId === row.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      "儲存名單"
+                                    )}
+                                  </Button>
+                                )}
+                                {locked && (
+                                  <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                    <Lock className="h-3.5 w-3.5" />
+                                    已發放，名單鎖定
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </TableBody>
@@ -786,7 +1162,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         </CardContent>
       </Card>
 
-      {/* B. 參與夥伴與分潤 %（版本制） */}
+      {/* B. 參與夥伴與分潤 %（版本制）— 全部月份都是手動輸入時收合隱藏 */}
+      {hasPercentMonth && (
       <Card>
         <CardHeader>
           <CardTitle>參與夥伴與分潤 %（版本制）</CardTitle>
@@ -946,6 +1323,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           )}
         </CardContent>
       </Card>
+      )}
 
       <AlertDialog open={!!pendingRate} onOpenChange={(o) => !o && setPendingRate(null)}>
         <AlertDialogContent>

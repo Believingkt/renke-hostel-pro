@@ -401,7 +401,7 @@ export default function TeamHome() {
   /** 課程分潤（資料月手動輸入盈餘 × 個人分潤%，由後端 trigger 自動計算） */
   const [courseProfit, setCourseProfit] = useState<{
     amount: number;
-    lines: Array<{ month: string; amount: number; percent: number; surplus: number }>;
+    lines: Array<{ month: string; amount: number; percent: number; surplus: number; isManual: boolean }>;
   } | null>(null);
 
   // ===== 期別（台北時間）=====
@@ -497,7 +497,7 @@ export default function TeamHome() {
     (async () => {
       const { data } = await db
         .from("course_profit_payouts")
-        .select("month, amount, percent_snapshot, surplus_snapshot")
+        .select("month, amount, percent_snapshot, surplus_snapshot, is_manual")
         .eq("user_id", viewUserId)
         .eq("payout_month", `${monthInfo.payoutMonthKey}-01`)
         .order("month", { ascending: true });
@@ -510,6 +510,7 @@ export default function TeamHome() {
           amount: Number(r.amount ?? 0),
           percent: Number(r.percent_snapshot ?? 0),
           surplus: Number(r.surplus_snapshot ?? 0),
+          isManual: r.is_manual === true,
         })),
       });
     })();
@@ -2367,12 +2368,13 @@ export default function TeamHome() {
         `${courseProfit.lines.length} 個盈餘月份合計`,
         "不列入加倍活動",
       ].join("・"),
+      // 手動輸入金額的月份不顯示分潤 %，只顯示金額
       lines: courseProfit.lines.map((l) => ({
         label: `${l.month} 課程盈餘`,
-        revenue: Math.round(l.surplus),
+        revenue: l.isManual ? 0 : Math.round(l.surplus),
         amount: l.amount,
         multiplier: 1,
-        rateNote: { main: `× ${l.percent}%` },
+        rateNote: l.isManual ? undefined : { main: `× ${l.percent}%` },
       })),
       alwaysShowLines: true,
     });
