@@ -150,8 +150,16 @@ export default function KolPayFormReconcileTab({
       actual: number | null;
       ragicId: string | null;
       reconCode: string | null;
+      formPeriods: string[];
+      submittedAt: string | null;
+      remitDate: string | null;
       status: StatusKey;
     }[] = [];
+
+    const pick = (fs: RagicPayForm[], key: "created_at" | "remit_date") => {
+      const vals = fs.map((f) => f[key]).filter(Boolean) as string[];
+      return vals.length ? vals.sort().slice(-1)[0] : null;
+    };
 
     for (const e of expected) {
       const cid = e.cid_code.toUpperCase();
@@ -159,12 +167,18 @@ export default function KolPayFormReconcileTab({
       const actual = matched.length
         ? matched.reduce((s, f) => s + f.amount, 0)
         : null;
+      const periods = [...new Set(matched.map((f) => f.period ?? "").filter(Boolean))];
+      const hasOtherPeriod = periods.some((p) => p !== periodKey);
+      const amountOk =
+        actual !== null && Math.round(actual) === Math.round(e.amount);
       const status: StatusKey =
         actual === null
           ? "not_submitted"
-          : Math.round(actual) === Math.round(e.amount)
-            ? "matched"
-            : "amount_diff";
+          : !amountOk
+            ? "amount_diff"
+            : hasOtherPeriod
+              ? "period_mismatch"
+              : "matched";
       out.push({
         key: cid,
         cid,
@@ -173,29 +187,37 @@ export default function KolPayFormReconcileTab({
         expected: e.amount,
         actual,
         ragicId: matched.map((f) => f.payform_no || f.ragic_id).join("、") || null,
-        reconCode: matched[0]?.recon_code ?? null,
+        reconCode: matched.map((f) => f.recon_code).join("、") || null,
+        formPeriods: periods,
+        submittedAt: pick(matched, "created_at"),
+        remitDate: pick(matched, "remit_date"),
         status,
       });
       byCid.delete(cid);
     }
 
-    // Ragic 有、系統沒有
+    // Ragic 有、系統沒有：只列出「對帳編號就是本期」的，鄰近期別不算假警訊
     for (const [cid, list2] of byCid.entries()) {
+      const thisPeriod = list2.filter((f) => f.period === periodKey);
+      if (thisPeriod.length === 0) continue;
       out.push({
         key: `ragic-${cid}`,
         cid,
-        name: list2[0]?.nickname || "—",
-        venue: list2[0]?.venue || "—",
+        name: thisPeriod[0]?.nickname || "—",
+        venue: thisPeriod[0]?.venue || "—",
         expected: null,
-        actual: list2.reduce((s, f) => s + f.amount, 0),
-        ragicId: list2.map((f) => f.payform_no || f.ragic_id).join("、"),
-        reconCode: list2[0]?.recon_code ?? null,
+        actual: thisPeriod.reduce((s, f) => s + f.amount, 0),
+        ragicId: thisPeriod.map((f) => f.payform_no || f.ragic_id).join("、"),
+        reconCode: thisPeriod.map((f) => f.recon_code).join("、") || null,
+        formPeriods: [...new Set(thisPeriod.map((f) => f.period ?? "").filter(Boolean))],
+        submittedAt: pick(thisPeriod, "created_at"),
+        remitDate: pick(thisPeriod, "remit_date"),
         status: "ragic_only",
       });
     }
 
     return out;
-  }, [forms, expected]);
+  }, [forms, expected, periodKey]);
 
   /** 無對帳編號的勞報單無法精準比對，另外列出提醒 */
   const unmatchable = useMemo(
