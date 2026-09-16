@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { RefreshCw } from "lucide-react";
 
 /** 系統端當期應發（已依 CID 彙總） */
