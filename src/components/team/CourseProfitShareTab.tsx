@@ -963,6 +963,140 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           )}
                         </TableCell>
                       </TableRow>
+                      {isManual && expanded && (
+                        <TableRow>
+                          <TableCell colSpan={9} className="bg-muted/30">
+                            <div className="space-y-2 py-1">
+                              <div className="text-sm font-medium">
+                                {row.month.slice(0, 7)} 當期名單（手動輸入金額）
+                              </div>
+                              {manualRows.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">尚未加入任何夥伴。</p>
+                              ) : (
+                                <div className="space-y-2">
+                                  {manualRows.map((r, idx) => (
+                                    <div key={r.key} className="flex flex-wrap items-center gap-2">
+                                      <Select
+                                        value={r.user_id || undefined}
+                                        disabled={locked || readOnly}
+                                        onValueChange={(v) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, user_id: v } : x)),
+                                          )
+                                        }
+                                      >
+                                        <SelectTrigger className="h-9 w-56">
+                                          <SelectValue placeholder="選擇成員" />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-72">
+                                          {memberGroups.map((g) => (
+                                            <SelectGroup key={g.role}>
+                                              <SelectLabel>{ROLE_LABEL[g.role] ?? g.role}</SelectLabel>
+                                              {g.members.map((m) => (
+                                                <SelectItem key={m.user_id} value={m.user_id}>
+                                                  {m.display_name}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectGroup>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <Input
+                                        type="number"
+                                        inputMode="numeric"
+                                        placeholder="金額"
+                                        value={r.amount}
+                                        disabled={locked || readOnly}
+                                        onChange={(e) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, amount: e.target.value } : x)),
+                                          )
+                                        }
+                                        className="h-9 w-32 tabular-nums"
+                                      />
+                                      <Input
+                                        placeholder="備註（選填）"
+                                        value={r.note}
+                                        disabled={locked || readOnly}
+                                        onChange={(e) =>
+                                          updateManualRows(row, (list) =>
+                                            list.map((x, i) => (i === idx ? { ...x, note: e.target.value } : x)),
+                                          )
+                                        }
+                                        className="h-9 min-w-[10rem] flex-1"
+                                      />
+                                      {!locked && !readOnly && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 px-1"
+                                          onClick={() =>
+                                            updateManualRows(row, (list) => list.filter((_, i) => i !== idx))
+                                          }
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                              <div className="flex flex-wrap items-center gap-3 pt-1">
+                                {!locked && !readOnly && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                      updateManualRows(row, (list) => [
+                                        ...list,
+                                        {
+                                          key: `new-${Date.now()}-${list.length}`,
+                                          id: null,
+                                          user_id: "",
+                                          amount: "",
+                                          note: "",
+                                        },
+                                      ])
+                                    }
+                                  >
+                                    <Plus className="mr-1 h-4 w-4" />
+                                    新增一位
+                                  </Button>
+                                )}
+                                <span className="text-sm tabular-nums">
+                                  合計 ${manualTotal.toLocaleString()} / 課程盈餘 $
+                                  {Number(row.surplus_amount).toLocaleString()}
+                                </span>
+                                {manualTotal !== Number(row.surplus_amount) && (
+                                  <span className="text-sm text-muted-foreground tabular-nums">
+                                    差額 ${(Number(row.surplus_amount) - manualTotal).toLocaleString()}（僅提示，仍可儲存）
+                                  </span>
+                                )}
+                                {!locked && !readOnly && (
+                                  <Button
+                                    size="sm"
+                                    disabled={!manualDirty || savingId === row.id}
+                                    onClick={() => saveManualRows(row)}
+                                  >
+                                    {savingId === row.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      "儲存名單"
+                                    )}
+                                  </Button>
+                                )}
+                                {locked && (
+                                  <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                                    <Lock className="h-3.5 w-3.5" />
+                                    已發放，名單鎖定
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     );
                   })}
                 </TableBody>
