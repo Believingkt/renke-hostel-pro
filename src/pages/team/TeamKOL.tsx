@@ -384,6 +384,72 @@ function computeContractProgress(
 }
 
 
+async function enrichKolRows(
+  rowsData: any[],
+  accommodations: Accommodation[],
+  venues: KolVenue[],
+): Promise<KolRow[]> {
+  const scoutIds = Array.from(
+    new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]),
+  );
+  let scoutMap = new Map<string, string>();
+  if (scoutIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("team_member_profiles")
+      .select("user_id, display_name")
+      .in("user_id", scoutIds);
+    profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
+  }
+  const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
+
+  const orderNumbers = Array.from(
+    new Set(
+      rowsData
+        .map((r: any) => (r.order_number ?? "").trim())
+        .filter((s: string) => s.length > 0),
+    ),
+  );
+  const orderStatusMap = new Map<string, string>();
+  if (orderNumbers.length > 0) {
+    const { data: ordRows } = await supabase
+      .from("orders")
+      .select("order_number, order_status")
+      .in("order_number", orderNumbers);
+    (ordRows ?? []).forEach((o: any) => {
+      if (o.order_number) orderStatusMap.set(o.order_number, o.order_status);
+    });
+  }
+
+  const deriveBookingStatus = (orderNumber: string | null, fallback: string | null) => {
+    const key = (orderNumber ?? "").trim();
+    if (!key) return fallback;
+    const os = orderStatusMap.get(key);
+    if (os === "confirmed") return "成功訂房";
+    if (os === "cancelled") return "已取消";
+    if (os === undefined) return fallback;
+    return "訂房確認中";
+  };
+
+  const venueById = new Map(venues.map((v) => [v.id, v]));
+  const resolveVenueDisplay = (r: any): string => {
+    const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
+    if (vRow) {
+      if (vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
+        return accMap.get(vRow.accommodation_id) ?? vRow.name ?? "-";
+      }
+      return vRow.name ?? "-";
+    }
+    return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
+  };
+
+  return rowsData.map((r: any) => ({
+    ...r,
+    _accommodation_name: resolveVenueDisplay(r),
+    _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
+    _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
+  })) as KolRow[];
+}
+
 function calcDayOfWeek(dateStr: string): string {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -734,20 +800,44 @@ function InvitationsTab({
   const deepLinkAction = deepLinkParams.get("action");
   const deepLinkHandledRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!deepLinkKolId || deepLinkHandledRef.current === deepLinkKolId) return;
-    const target = rows.find((r) => r.id === deepLinkKolId);
-    if (!target) return;
+    if (!deepLinkKolId || deepLinkHandledRef.current === deepLinkKolId || accommodations.length === 0) return;
     deepLinkHandledRef.current = deepLinkKolId;
-    if (deepLinkAction === "publish") {
-      setPublishBackfillRow(target);
-    } else {
-      setViewingRow(target);
-    }
+
+    // 清掉篩選條件，讓該筆資料不會因分頁或篩選被擋住
+    setSearchInput("");
+    setSearch("");
+    setFilterRarity([]);
+    setFilterTags([]);
+    setFilterScout("all");
+    setFilterYear("all");
+    setFilterMonth("all");
+    setFilterQualified("all");
+    setFilterProgress("all");
+    setPage(1);
+    setFilterAccsInitialized(false);
+
+    (async () => {
+      const { data } = await supabase
+        .from("kol_profiles_with_progress" as any)
+        .select("*")
+        .eq("id", deepLinkKolId)
+        .maybeSingle();
+      if (!data) return;
+      const enriched = await enrichKolRows([data], accommodations, venues);
+      const target = enriched[0];
+      if (!target) return;
+      if (deepLinkAction === "publish") {
+        setPublishBackfillRow(target);
+      } else {
+        setViewingRow(target);
+      }
+    })();
+
     const next = new URLSearchParams(deepLinkParams);
     next.delete("kolId");
     next.delete("action");
     setDeepLinkParams(next, { replace: true });
-  }, [deepLinkKolId, deepLinkAction, rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deepLinkKolId, deepLinkAction, accommodations, venues]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // 稀有度版本 & 標籤字典
@@ -1073,69 +1163,9 @@ function InvitationsTab({
         .in("primary_profile_id", primaryRows.map((r) => r.id));
       childRowsData = (kids ?? []) as any[];
     }
-    // 取 scout 姓名
     const rowsData = [...primaryRows, ...childRowsData];
-    const scoutIds = Array.from(new Set(rowsData.map((r) => r.scout_id).filter(Boolean) as string[]));
-
-    let scoutMap = new Map<string, string>();
-    if (scoutIds.length > 0) {
-      const { data: profs } = await supabase
-        .from("team_member_profiles")
-        .select("user_id, display_name")
-        .in("user_id", scoutIds);
-      profs?.forEach((p) => scoutMap.set(p.user_id, p.display_name ?? p.user_id));
-    }
-    const accMap = new Map(accommodations.map((a) => [a.id, a.name]));
-
-    // 依 order_number 批次查 orders.order_status，自動連動「狀態」欄位
-    const orderNumbers = Array.from(
-      new Set(
-        rowsData
-          .map((r: any) => (r.order_number ?? "").trim())
-          .filter((s: string) => s.length > 0)
-      )
-    );
-    const orderStatusMap = new Map<string, string>();
-    if (orderNumbers.length > 0) {
-      const { data: ordRows } = await supabase
-        .from("orders")
-        .select("order_number, order_status")
-        .in("order_number", orderNumbers);
-      (ordRows ?? []).forEach((o: any) => {
-        if (o.order_number) orderStatusMap.set(o.order_number, o.order_status);
-      });
-    }
-    const deriveBookingStatus = (orderNumber: string | null, fallback: string | null) => {
-      const key = (orderNumber ?? "").trim();
-      if (!key) return fallback;
-      const os = orderStatusMap.get(key);
-      if (os === "confirmed") return "成功訂房";
-      if (os === "cancelled") return "已取消";
-      // PMS 查無此單：非 PMS 館別（農場／餐廳／外部館）本來就不會有訂單，
-      // 不可一律改寫成「訂房確認中」，改為保留 DB 原值。
-      if (os === undefined) return fallback;
-      return "訂房確認中";
-    };
-
-
-    const venueById = new Map(venues.map((v) => [v.id, v]));
-    const resolveVenueDisplay = (r: any): string => {
-      const vRow = r.venue_id ? venueById.get(r.venue_id) : null;
-      if (vRow) {
-        // 若子館別已停用，fallback 顯示母館名稱
-        if (vRow.room_type_id && vRow.is_active === false && vRow.accommodation_id) {
-          return accMap.get(vRow.accommodation_id) ?? vRow.name ?? "-";
-        }
-        return vRow.name ?? "-";
-      }
-      return r.accommodation_id ? (accMap.get(r.accommodation_id) ?? "-") : (r.venue_name ?? "-");
-    };
-    const enriched = rowsData.map((r: any) => ({
-      ...r,
-      _accommodation_name: resolveVenueDisplay(r),
-      _scout_name: r.scout_id ? (scoutMap.get(r.scout_id) ?? "-") : "-",
-      _effective_booking_status: deriveBookingStatus(r.order_number, r.booking_status),
-    })) as KolRow[];
+    // 補上顯示用欄位（館別、星探姓名、即時訂房狀態）
+    const enriched = await enrichKolRows(rowsData, accommodations, venues);
     if (isStale()) return;
     setRows(enriched);
     // 搜尋命中子檔時，自動展開對應主檔，避免使用者以為搜不到
