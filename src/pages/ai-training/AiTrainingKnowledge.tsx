@@ -62,7 +62,9 @@ export default function AiTrainingKnowledge() {
   const [search, setSearch] = useState("");
 
   const [editing, setEditing] = useState<Row | null>(null);
-  const [form, setForm] = useState<Omit<Row, "id" | "updated_at">>(empty());
+  const [form, setForm] = useState<FormState>(empty());
+  const [accNames, setAccNames] = useState<Record<string, string>>({});
+  const [editorNames, setEditorNames] = useState<Record<string, string>>({});
   const [tagInput, setTagInput] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [contentTab, setContentTab] = useState<"edit" | "preview">("edit");
