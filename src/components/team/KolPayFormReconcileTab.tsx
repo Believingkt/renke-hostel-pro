@@ -341,6 +341,21 @@ export default function KolPayFormReconcileTab({
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         {r.reconCode || "—"}
                       </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.formPeriods.length === 0
+                          ? "—"
+                          : r.formPeriods.map(fmtPeriod).join("、")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {fmtDate(r.submittedAt)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.remitDate ? (
+                          <span className="text-green-700">{fmtDate(r.remitDate)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">未匯款</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
