@@ -114,7 +114,7 @@ export default function KolPayFormReconcileTab({
     setFetching(true);
     const { data, error } = await supabase.functions.invoke(
       "fetch-ragic-kol-payforms",
-      { body: { period: periodKey } },
+      { body: { period: periodKey, window_months: WINDOW_MONTHS } },
     );
     setFetching(false);
     if (error) {
