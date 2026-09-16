@@ -24,6 +24,7 @@ const F = {
   AMOUNT: "3005533",
   PAYFORM_NO: "3005521", // 勞報單編號（LR-xxxx）
   REMIT_DATE: "1000649", // 會計實際匯款日期
+  ACCOUNT_NAME: "3005541", // 勞報單戶名（匯款帳戶戶名）
 } as const;
 
 /** 期別（YYYYMM）位移 n 個月 */
@@ -108,6 +109,7 @@ Deno.serve(async (req) => {
         amount: toNumber(r[F.AMOUNT]),
         created_at: String(r._create_date ?? "").trim() || null,
         remit_date: String(r[F.REMIT_DATE] ?? "").trim() || null,
+        account_name: String(r[F.ACCOUNT_NAME] ?? "").trim() || null,
       };
     });
 
