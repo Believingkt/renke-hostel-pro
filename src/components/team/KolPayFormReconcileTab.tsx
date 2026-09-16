@@ -19,6 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { RefreshCw } from "lucide-react";
 
 /** 系統端當期應發（已依 CID 彙總） */
@@ -46,6 +48,7 @@ interface RagicPayForm {
 type StatusKey =
   | "matched"
   | "period_mismatch"
+  | "other_period"
   | "amount_diff"
   | "not_submitted"
   | "ragic_only";
@@ -53,6 +56,7 @@ type StatusKey =
 const STATUS_LABEL: Record<StatusKey, string> = {
   matched: "金額相符",
   period_mismatch: "期別不符（延後送單）",
+  other_period: "他期應發（延後送單）",
   amount_diff: "金額不符",
   not_submitted: "未送單",
   ragic_only: "Ragic 有、系統沒有",
@@ -61,6 +65,7 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 const STATUS_CLASS: Record<StatusKey, string> = {
   matched: "bg-green-100 text-green-700 border-green-200",
   period_mismatch: "bg-amber-100 text-amber-700 border-amber-200",
+  other_period: "bg-slate-100 text-slate-700 border-slate-200",
   amount_diff: "bg-red-100 text-red-700 border-red-200",
   not_submitted: "bg-orange-100 text-orange-700 border-orange-200",
   ragic_only: "bg-blue-100 text-blue-700 border-blue-200",
@@ -86,6 +91,8 @@ interface Props {
   yearOptions: number[];
   /** 系統端當期應發清單 */
   expected: ExpectedPayout[];
+  /** 前後數期的系統應發（key = YYYYMM 發放期別），用於跨期歸戶 */
+  expectedByPeriod?: Record<string, ExpectedPayout[]>;
   loading?: boolean;
 }
 
@@ -96,10 +103,13 @@ export default function KolPayFormReconcileTab({
   onChangePeriod,
   yearOptions,
   expected,
+  expectedByPeriod,
   loading,
 }: Props) {
   const [forms, setForms] = useState<RagicPayForm[] | null>(null);
   const [fetching, setFetching] = useState(false);
+  /** 以「系統應發期別」歸戶檢視（B 方案） */
+  const [byExpectedPeriod, setByExpectedPeriod] = useState(false);
 
   const periodKey =
     payoutPeriod === "all"
@@ -132,8 +142,43 @@ export default function KolPayFormReconcileTab({
     setForms(null);
   }, [periodKey]);
 
+  /** CID → 該 CID 在視窗內有系統應發的期別清單 */
+  const expectedPeriodsByCid = useMemo(() => {
+    const map = new Map<string, { period: string; amount: number }[]>();
+    for (const [pk, list] of Object.entries(expectedByPeriod ?? {})) {
+      for (const e of list) {
+        const cid = e.cid_code.toUpperCase();
+        map.set(cid, [...(map.get(cid) ?? []), { period: pk, amount: e.amount }]);
+      }
+    }
+    return map;
+  }, [expectedByPeriod]);
+
+  /** 勞報單歸戶：找出這筆錢實際屬於哪一個系統應發期別 */
+  const homePeriodOf = useCallback(
+    (f: RagicPayForm) => {
+      const cid = (f.cid_code ?? "").toUpperCase();
+      const candidates = expectedPeriodsByCid.get(cid) ?? [];
+      if (candidates.length === 0) return f.period ?? null;
+      if (candidates.length === 1) return candidates[0].period;
+      const amountHit = candidates.filter(
+        (c) => Math.round(c.amount) === Math.round(f.amount),
+      );
+      const pool = amountHit.length ? amountHit : candidates;
+      const idx = (p: string | null) =>
+        p && p.length === 6 ? Number(p.slice(0, 4)) * 12 + Number(p.slice(4, 6)) : 0;
+      const base = idx(f.period);
+      return [...pool].sort((a, b) => Math.abs(idx(a.period) - base) - Math.abs(idx(b.period) - base))[0]
+        .period;
+    },
+    [expectedPeriodsByCid],
+  );
+
   const rows = useMemo(() => {
-    const list = forms ?? [];
+    const all = forms ?? [];
+    const list = byExpectedPeriod
+      ? all.filter((f) => homePeriodOf(f) === periodKey)
+      : all;
     const byCid = new Map<string, RagicPayForm[]>();
     for (const f of list) {
       const cid = (f.cid_code ?? "").toUpperCase();
@@ -151,6 +196,7 @@ export default function KolPayFormReconcileTab({
       ragicId: string | null;
       reconCode: string | null;
       formPeriods: string[];
+      homePeriod: string | null;
       submittedAt: string | null;
       remitDate: string | null;
       status: StatusKey;
@@ -189,6 +235,7 @@ export default function KolPayFormReconcileTab({
         ragicId: matched.map((f) => f.payform_no || f.ragic_id).join("、") || null,
         reconCode: matched.map((f) => f.recon_code).join("、") || null,
         formPeriods: periods,
+        homePeriod: periodKey,
         submittedAt: pick(matched, "created_at"),
         remitDate: pick(matched, "remit_date"),
         status,
@@ -196,10 +243,12 @@ export default function KolPayFormReconcileTab({
       byCid.delete(cid);
     }
 
-    // Ragic 有、系統沒有：只列出「對帳編號就是本期」的，鄰近期別不算假警訊
+    // 剩下的勞報單：對帳編號寫本期，但系統本期沒有應發
     for (const [cid, list2] of byCid.entries()) {
       const thisPeriod = list2.filter((f) => f.period === periodKey);
       if (thisPeriod.length === 0) continue;
+      const home = homePeriodOf(thisPeriod[0]);
+      const isOther = !!home && home !== periodKey;
       out.push({
         key: `ragic-${cid}`,
         cid,
@@ -210,14 +259,24 @@ export default function KolPayFormReconcileTab({
         ragicId: thisPeriod.map((f) => f.payform_no || f.ragic_id).join("、"),
         reconCode: thisPeriod.map((f) => f.recon_code).join("、") || null,
         formPeriods: [...new Set(thisPeriod.map((f) => f.period ?? "").filter(Boolean))],
+        homePeriod: home,
         submittedAt: pick(thisPeriod, "created_at"),
         remitDate: pick(thisPeriod, "remit_date"),
-        status: "ragic_only",
+        status: isOther ? "other_period" : "ragic_only",
       });
     }
 
     return out;
-  }, [forms, expected, periodKey]);
+  }, [forms, expected, periodKey, byExpectedPeriod, homePeriodOf]);
+
+  const goToPeriod = useCallback(
+    (p: string | null) => {
+      if (!p || p.length !== 6) return;
+      onChangeYear(Number(p.slice(0, 4)));
+      onChangePeriod(String(Number(p.slice(4, 6))));
+    },
+    [onChangeYear, onChangePeriod],
+  );
 
   /** 無對帳編號的勞報單無法精準比對，另外列出提醒 */
   const unmatchable = useMemo(
@@ -229,6 +288,7 @@ export default function KolPayFormReconcileTab({
     const c: Record<StatusKey, number> = {
       matched: 0,
       period_mismatch: 0,
+      other_period: 0,
       amount_diff: 0,
       not_submitted: 0,
       ragic_only: 0,
@@ -244,7 +304,8 @@ export default function KolPayFormReconcileTab({
         <p className="text-sm text-muted-foreground">
           以 CID 比對系統應發金額與 KOL 已送出的 Ragic 勞報單，並一併讀取前後 {WINDOW_MONTHS} 期，
           KOL 晚送單或對帳編號填錯期別仍配得上（標示為「期別不符」）。「實際匯款日」為會計在勞報單上填寫的匯款日期，
-          是款項實際發出的依據。此頁純唯讀，不會修改 Ragic 或任何獎金數字。
+          是款項實際發出的依據。若勞報單的錢其實屬於其他期別，會標示「他期應發」並可一鍵切到該期。
+          此頁純唯讀，不會修改 Ragic 或任何獎金數字。
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -278,7 +339,22 @@ export default function KolPayFormReconcileTab({
             <RefreshCw className={`mr-2 h-4 w-4 ${fetching ? "animate-spin" : ""}`} />
             {fetching ? "讀取中…" : "讀取 Ragic 勞報單"}
           </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Switch
+              id="by-expected-period"
+              checked={byExpectedPeriod}
+              onCheckedChange={setByExpectedPeriod}
+            />
+            <Label htmlFor="by-expected-period" className="text-sm">
+              以應發期別檢視
+            </Label>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          {byExpectedPeriod
+            ? "目前依「系統應發期別」歸戶：不論勞報單編號寫哪一期，都歸到系統實際應發的期別，本期只會看到真正屬於本期的款項。"
+            : "目前依「勞報單對帳編號」檢視：編號寫本期但實際屬於其他期別的單，會標示為「他期應發」。"}
+        </p>
 
         {!periodKey && (
           <p className="text-sm text-muted-foreground">請選擇單一發放期別後再讀取。</p>
@@ -326,6 +402,19 @@ export default function KolPayFormReconcileTab({
                         <Badge variant="outline" className={STATUS_CLASS[r.status]}>
                           {STATUS_LABEL[r.status]}
                         </Badge>
+                        {r.status === "other_period" && r.homePeriod && (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            應發期別 {fmtPeriod(r.homePeriod)}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto px-1 py-0 text-xs"
+                              onClick={() => goToPeriod(r.homePeriod)}
+                            >
+                              切到該期
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">{r.cid}</TableCell>
