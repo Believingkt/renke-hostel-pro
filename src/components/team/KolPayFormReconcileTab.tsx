@@ -228,6 +228,7 @@ export default function KolPayFormReconcileTab({
   const summary = useMemo(() => {
     const c: Record<StatusKey, number> = {
       matched: 0,
+      period_mismatch: 0,
       amount_diff: 0,
       not_submitted: 0,
       ragic_only: 0,
