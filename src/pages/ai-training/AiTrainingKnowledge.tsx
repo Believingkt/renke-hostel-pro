@@ -275,6 +275,8 @@ export default function AiTrainingKnowledge() {
               <TableHead>分類</TableHead>
               <TableHead>標籤</TableHead>
               <TableHead className="w-20">優先權</TableHead>
+              <TableHead className="w-36">來源</TableHead>
+              <TableHead className="w-32">最後編輯者</TableHead>
               <TableHead className="w-40">最後更新</TableHead>
               <TableHead className="w-20">啟用</TableHead>
               <TableHead className="w-24 text-right">操作</TableHead>
