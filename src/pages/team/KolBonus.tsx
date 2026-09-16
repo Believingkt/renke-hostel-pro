@@ -1115,6 +1115,7 @@ export default function KolBonus() {
               onChangePeriod={setPayoutPeriod}
               yearOptions={yearOptions}
               expected={reconcileExpected}
+              expectedByPeriod={reconcileExpectedByPeriod}
               loading={loading}
             />
           </TabsContent>
