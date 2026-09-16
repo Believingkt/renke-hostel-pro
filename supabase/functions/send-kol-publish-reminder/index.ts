@@ -51,8 +51,16 @@ async function pushOne(token: string, to: string, message: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // 測試用參數（僅供人工乾跑）：?dry_run=1&target_date=YYYY-MM-DD
+  // dry_run 時只回傳組好的訊息，不推播、不寫 dedup。篩選邏輯完全共用。
+  const url = new URL(req.url);
+  const dryRun = ["1", "true", "yes"].includes((url.searchParams.get("dry_run") ?? "").toLowerCase());
+  const overrideDate = url.searchParams.get("target_date");
+
   const today = taipeiToday();
-  const targetCheckIn = addDays(today, -14);
+  const targetCheckIn = /^\d{4}-\d{2}-\d{2}$/.test(overrideDate ?? "")
+    ? overrideDate!
+    : addDays(today, -14);
 
   try {
     // 1. 撈 KOL 主要記錄（不再以 booking_status 欄位篩選，改為與畫面一致的派生判定）
