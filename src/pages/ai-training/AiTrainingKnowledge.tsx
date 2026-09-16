@@ -37,9 +37,21 @@ type Row = {
   priority: number;
   is_active: boolean;
   updated_at: string;
+  accommodation_id?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 };
 
-const empty = (): Omit<Row, "id" | "updated_at"> => ({
+type FormState = {
+  category: Category;
+  title: string;
+  content: string;
+  tags: string[];
+  priority: number;
+  is_active: boolean;
+};
+
+const empty = (): FormState => ({
   category: "faq", title: "", content: "", tags: [], priority: 5, is_active: true,
 });
 
