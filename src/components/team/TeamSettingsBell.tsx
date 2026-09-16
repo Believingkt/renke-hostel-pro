@@ -54,6 +54,7 @@ import {
   passesPrefs,
   NOTIFICATION_KINDS,
 } from "@/hooks/use-notification-prefs";
+import { visibleNotificationKinds } from "@/lib/notifications/kindVisibility";
 import { useNotificationReadState } from "@/hooks/use-notification-read-state";
 import { useKolNotifications } from "@/hooks/use-kol-notifications";
 import { RAGIC_COLUMNS } from "@/lib/settingsCompleteness/ragicChecks";
@@ -111,6 +112,11 @@ export function TeamSettingsBell() {
 
 
   const { prefs, update } = useNotificationPrefs(userId, roles);
+  /** 只列出這個角色真的可能收到的事件類型 */
+  const visibleKinds = useMemo(
+    () => visibleNotificationKinds(NOTIFICATION_KINDS, roles),
+    [roles],
+  );
   /** AM 設定完增值服務抽成後，提醒管理員審查（綠燈） */
   const reviewItems = useCommissionExclusionReviewNotifications(roles);
 
@@ -644,10 +650,12 @@ export function TeamSettingsBell() {
                 onCheckedChange={(v) => update({ actionableOnly: v })}
               />
             </div>
+            {visibleKinds.length > 0 && (
+            <>
             <Separator />
             <div className="space-y-2">
               <p className="text-xs font-medium">通知事件類型</p>
-              {NOTIFICATION_KINDS.map((k) => (
+              {visibleKinds.map((k) => (
                 <div key={k.kind} className="flex items-center justify-between gap-3">
                   <Label htmlFor={`kind-${k.kind}`} className="text-xs">
                     <span className="mr-1.5 text-[10px] text-muted-foreground">
@@ -669,6 +677,8 @@ export function TeamSettingsBell() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </div>
         )}
 
