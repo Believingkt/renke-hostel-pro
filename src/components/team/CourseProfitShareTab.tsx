@@ -863,8 +863,14 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                       remittance: d ? d.remittance : (row.remittance_date ?? null),
                       ...over,
                     });
+                    const isManual = row.entry_mode === "manual";
+                    const expanded = expandedMonthId === row.id;
+                    const manualRows = manualRowsOf(row);
+                    const manualTotal = manualRows.reduce((s, r) => s + Number(r.amount || 0), 0);
+                    const manualDirty = !!manualDraft[row.id];
                     return (
-                      <TableRow key={row.id}>
+                      <Fragment key={row.id}>
+                      <TableRow>
                         <TableCell className="whitespace-nowrap tabular-nums">
                           {locked || readOnly ? (
                             `${row.payout_month.slice(0, 7)}-10`
@@ -966,7 +972,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         </CardContent>
       </Card>
 
-      {/* B. 參與夥伴與分潤 %（版本制） */}
+      {/* B. 參與夥伴與分潤 %（版本制）— 全部月份都是手動輸入時收合隱藏 */}
+      {hasPercentMonth && (
       <Card>
         <CardHeader>
           <CardTitle>參與夥伴與分潤 %（版本制）</CardTitle>
@@ -1126,6 +1133,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           )}
         </CardContent>
       </Card>
+      )}
 
       <AlertDialog open={!!pendingRate} onOpenChange={(o) => !o && setPendingRate(null)}>
         <AlertDialogContent>
