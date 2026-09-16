@@ -33,6 +33,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { KolStatsTab } from "@/components/team/KolStatsTab";
 import { KolPublishProgressCard } from "@/components/team/KolPublishProgressCard";
+import { KolPublishBackfillDialog } from "@/components/team/KolPublishBackfillDialog";
 import { KolReciprocalQuotaTab } from "@/components/team/KolReciprocalQuotaTab";
 import { useAccommodation } from "@/contexts/AccommodationContext";
 import { Link, useSearchParams } from "react-router-dom";
@@ -722,21 +723,31 @@ function InvitationsTab({
 
   // 詳情 Drawer
   const [viewingRow, setViewingRow] = useState<KolRow | null>(null);
+  // 回填上片資料視窗（小鈴鐺上片提醒深連結）
+  const [publishBackfillRow, setPublishBackfillRow] = useState<KolRow | null>(null);
 
-  // 通知小鈴鐺深連結：/team/kol?tab=invitations&kolId=xxx → 自動開啟該筆詳情
+  // 通知小鈴鐺深連結：
+  //  /team/kol?tab=invitations&kolId=xxx                 → 自動開啟該筆詳情
+  //  /team/kol?tab=invitations&kolId=xxx&action=publish  → 直接開啟回填上片資料視窗
   const [deepLinkParams, setDeepLinkParams] = useSearchParams();
   const deepLinkKolId = deepLinkParams.get("kolId");
+  const deepLinkAction = deepLinkParams.get("action");
   const deepLinkHandledRef = useRef<string | null>(null);
   useEffect(() => {
     if (!deepLinkKolId || deepLinkHandledRef.current === deepLinkKolId) return;
     const target = rows.find((r) => r.id === deepLinkKolId);
     if (!target) return;
     deepLinkHandledRef.current = deepLinkKolId;
-    setViewingRow(target);
+    if (deepLinkAction === "publish") {
+      setPublishBackfillRow(target);
+    } else {
+      setViewingRow(target);
+    }
     const next = new URLSearchParams(deepLinkParams);
     next.delete("kolId");
+    next.delete("action");
     setDeepLinkParams(next, { replace: true });
-  }, [deepLinkKolId, rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deepLinkKolId, deepLinkAction, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   // 稀有度版本 & 標籤字典
