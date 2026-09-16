@@ -45,6 +45,8 @@ interface MonthRow {
   updated_at: string;
   updated_by_email: string | null;
   created_by_email: string | null;
+  /** manual = 逐人手動輸入金額（新月份預設）；percent = 依分潤 % 自動計算 */
+  entry_mode: string;
 }
 
 interface RateVersion {
@@ -64,6 +66,8 @@ interface PayoutRow {
   user_id: string;
   amount: number;
   percent_snapshot: number;
+  is_manual: boolean;
+  note: string | null;
 }
 
 interface MemberRow {
@@ -205,7 +209,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
         supabase.from("user_roles").select("user_id, role").is("accommodation_id", null),
         supabase
           .from("course_profit_months")
-          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email")
+          .select("id, month, payout_month, surplus_amount, note, remittance_date, updated_at, updated_by_email, created_by_email, entry_mode")
           .order("payout_month", { ascending: false })
           .order("month", { ascending: false }),
         supabase
@@ -214,7 +218,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
           .order("effective_from", { ascending: false }),
         supabase
           .from("course_profit_payouts")
-          .select("id, month, payout_month, user_id, amount, percent_snapshot"),
+          .select("id, month, payout_month, user_id, amount, percent_snapshot, is_manual, note"),
       ]);
 
     const rolesByUser = new Map<string, string[]>();
