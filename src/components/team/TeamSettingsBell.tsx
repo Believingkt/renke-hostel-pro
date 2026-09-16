@@ -645,10 +645,12 @@ export function TeamSettingsBell() {
                 onCheckedChange={(v) => update({ actionableOnly: v })}
               />
             </div>
+            {visibleKinds.length > 0 && (
+            <>
             <Separator />
             <div className="space-y-2">
               <p className="text-xs font-medium">通知事件類型</p>
-              {NOTIFICATION_KINDS.map((k) => (
+              {visibleKinds.map((k) => (
                 <div key={k.kind} className="flex items-center justify-between gap-3">
                   <Label htmlFor={`kind-${k.kind}`} className="text-xs">
                     <span className="mr-1.5 text-[10px] text-muted-foreground">
