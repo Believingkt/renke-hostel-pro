@@ -356,6 +356,8 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
 
   const totalCurrentPercent = selectedMembers.reduce((s, m) => s + (currentPercent(m.user_id) ?? 0), 0);
   const latestMonth = months[0];
+  /** 只要還有「依比例自動」的月份，才顯示分潤 % 設定區塊 */
+  const hasPercentMonth = months.some((m) => m.entry_mode === "percent");
 
   /* ---------------- 課程盈餘 ---------------- */
 
