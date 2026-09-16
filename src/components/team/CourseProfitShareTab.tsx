@@ -357,19 +357,26 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     }
     setSavingId("__new__");
     const { data: userData } = await supabase.auth.getUser();
-    const { error } = await supabase.from("course_profit_months").insert({
-      month: `${newMonth.month}-01`,
-      payout_month: `${newMonth.payout}-01`,
-      surplus_amount: Number(newMonth.surplus || 0),
-      note: newMonth.note || null,
-      remittance_date: newMonth.remittance || null,
-      created_by: userData?.user?.id ?? null,
-      created_by_email: userData?.user?.email ?? null,
-      updated_by: userData?.user?.id ?? null,
-      updated_by_email: userData?.user?.email ?? null,
-    } as any);
-    setSavingId(null);
+    const monthDate = `${newMonth.month}-01`;
+    const payoutDate = `${newMonth.payout}-01`;
+    const { data: inserted, error } = await supabase
+      .from("course_profit_months")
+      .insert({
+        month: monthDate,
+        payout_month: payoutDate,
+        surplus_amount: Number(newMonth.surplus || 0),
+        note: newMonth.note || null,
+        remittance_date: newMonth.remittance || null,
+        entry_mode: newMonth.entry_mode,
+        created_by: userData?.user?.id ?? null,
+        created_by_email: userData?.user?.email ?? null,
+        updated_by: userData?.user?.id ?? null,
+        updated_by_email: userData?.user?.email ?? null,
+      } as any)
+      .select("id")
+      .maybeSingle();
     if (error) {
+      setSavingId(null);
       toast({
         title: "新增失敗",
         description: error.message.includes("duplicate") ? "該月份已存在，請直接於下方修改" : error.message,
@@ -377,8 +384,169 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
       });
       return;
     }
-    setNewMonth({ month: prevYm(), payout: defaultPayoutYm(), surplus: "", note: "", remittance: null });
-    toast({ title: "已新增該月課程盈餘，獎金已自動計算" });
+
+    // 手動模式：自動帶入上一個月的名單與金額當草稿
+    let seeded = 0;
+    if (newMonth.entry_mode === "manual") {
+      seeded = await seedFromPreviousMonth(monthDate, payoutDate, userData?.user?.id ?? null);
+    }
+    setSavingId(null);
+    setNewMonth({
+      month: prevYm(),
+      payout: defaultPayoutYm(),
+      surplus: "",
+      note: "",
+      remittance: null,
+      entry_mode: "manual",
+    });
+    if (inserted?.id) setExpandedMonthId(String((inserted as any).id));
+    toast({
+      title:
+        newMonth.entry_mode === "manual"
+          ? seeded > 0
+            ? `已新增，並帶入上個月 ${seeded} 位夥伴的名單與金額`
+            : "已新增，請於名單中逐人填寫金額"
+          : "已新增該月課程盈餘，獎金已自動計算",
+    });
+    load();
+  };
+
+  /**
+   * 手動月份：複製「上一個資料月」的名單與金額到新月份。
+   * 找不到上個月資料時回傳 0（空白名單）。
+   */
+  const seedFromPreviousMonth = async (
+    monthDate: string,
+    payoutDate: string,
+    actorId: string | null,
+  ): Promise<number> => {
+    const prev = months
+      .filter((m) => m.month < monthDate)
+      .sort((a, b) => (a.month < b.month ? 1 : -1))[0];
+    if (!prev) return 0;
+    const src = payouts.filter((p) => p.month === prev.month);
+    if (src.length === 0) return 0;
+    const { error } = await supabase.from("course_profit_payouts").insert(
+      src.map((p) => ({
+        month: monthDate,
+        payout_month: payoutDate,
+        user_id: p.user_id,
+        amount: Number(p.amount),
+        note: p.note ?? null,
+        percent_snapshot: 0,
+        surplus_snapshot: 0,
+        is_manual: true,
+        updated_by: actorId,
+      })) as any,
+    );
+    if (error) {
+      toast({ title: "帶入上個月名單失敗", description: error.message, variant: "destructive" });
+      return 0;
+    }
+    return src.length;
+  };
+
+  /** 切換某月的分配方式（手動 / 依比例） */
+  const setEntryMode = async (row: MonthRow, mode: "manual" | "percent") => {
+    if (row.entry_mode === mode) return;
+    setSavingId(row.id);
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from("course_profit_months")
+      .update({
+        entry_mode: mode,
+        updated_by: userData?.user?.id ?? null,
+        updated_by_email: userData?.user?.email ?? null,
+      } as any)
+      .eq("id", row.id);
+    setSavingId(null);
+    if (error) {
+      toast({ title: "切換失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: mode === "manual" ? "已改為手動輸入金額" : "已改為依分潤 % 自動計算" });
+    if (mode === "manual") setExpandedMonthId(row.id);
+    load();
+  };
+
+  /* ---------------- 手動名單 ---------------- */
+
+  const manualRowsOf = (row: MonthRow) =>
+    manualDraft[row.id] ??
+    payouts
+      .filter((p) => p.month === row.month)
+      .map((p) => ({
+        key: p.id,
+        id: p.id,
+        user_id: p.user_id,
+        amount: String(Number(p.amount)),
+        note: p.note ?? "",
+      }));
+
+  const updateManualRows = (
+    row: MonthRow,
+    updater: (rows: { key: string; id: string | null; user_id: string; amount: string; note: string }[]) => typeof rows,
+  ) => {
+    const current = manualRowsOf(row);
+    setManualDraft((p) => ({ ...p, [row.id]: updater(current) }));
+  };
+
+  const saveManualRows = async (row: MonthRow) => {
+    const draft = manualDraft[row.id];
+    if (!draft) return;
+    if (draft.some((r) => !r.user_id)) {
+      toast({ title: "請為每一列選擇成員", variant: "destructive" });
+      return;
+    }
+    const ids = draft.map((r) => r.user_id);
+    if (new Set(ids).size !== ids.length) {
+      toast({ title: "同一位成員只能出現一次", variant: "destructive" });
+      return;
+    }
+    setSavingId(row.id);
+    const { data: userData } = await supabase.auth.getUser();
+    const actorId = userData?.user?.id ?? null;
+    const existing = payouts.filter((p) => p.month === row.month);
+    const keptIds = new Set(draft.map((r) => r.id).filter(Boolean) as string[]);
+    const removed = existing.filter((p) => !keptIds.has(p.id));
+
+    for (const p of removed) {
+      const { error } = await supabase.from("course_profit_payouts").delete().eq("id", p.id);
+      if (error) {
+        setSavingId(null);
+        toast({ title: "刪除名單列失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    for (const r of draft) {
+      const payload = {
+        month: row.month,
+        payout_month: row.payout_month,
+        user_id: r.user_id,
+        amount: Number(r.amount || 0),
+        note: r.note || null,
+        percent_snapshot: 0,
+        surplus_snapshot: 0,
+        is_manual: true,
+        updated_by: actorId,
+        updated_at: new Date().toISOString(),
+      };
+      const { error } = r.id
+        ? await supabase.from("course_profit_payouts").update(payload as any).eq("id", r.id)
+        : await supabase.from("course_profit_payouts").insert(payload as any);
+      if (error) {
+        setSavingId(null);
+        toast({ title: "儲存名單失敗", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+    setSavingId(null);
+    setManualDraft((p) => {
+      const next = { ...p };
+      delete next[row.id];
+      return next;
+    });
+    toast({ title: "已儲存當期名單金額" });
     load();
   };
 
