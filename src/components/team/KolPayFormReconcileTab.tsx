@@ -227,6 +227,7 @@ export default function KolPayFormReconcileTab({
       homePeriod: string | null;
       submittedAt: string | null;
       remitDate: string | null;
+      accountName: string | null;
       status: StatusKey;
     }[] = [];
 
