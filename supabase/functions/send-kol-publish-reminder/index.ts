@@ -174,24 +174,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 5. 組訊息 - 依 publish_date / publish_url 狀態分兩種格式
-    const pendingBlocks: string[] = []; // 兩者皆空 → 第一種
-    const partialBlocks: string[] = []; // 任一有值但未完成 → 第二種
+    // 5. 組訊息 - 依 publish_url 有無分兩種格式
+    const pendingBlocks: string[] = []; // 無 publish_url → 請星探追蹤
+    const uploadedBlocks: string[] = []; // 有 publish_url → 已上片帶連結
     for (const k of kols as any[]) {
       const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
       const venue = venueOf(k);
-      const hasDate = hasVal(k.publish_date);
       const hasUrl = hasVal(k.publish_url);
 
-      if (!hasDate && !hasUrl) {
+      if (!hasUrl) {
         const deadline = addDays(k.check_in_date, 14);
         pendingBlocks.push(
           `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n入住日期：${k.check_in_date}\n上片期限：${deadline}\n負責星探：${scoutName}`,
         );
       } else {
-        partialBlocks.push(
-          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n發布日期：${hasDate ? k.publish_date : "請補填"}\n發布連結：${hasUrl ? k.publish_url : "請補填"}\n負責星探：${scoutName}`,
+        const publishDate = hasVal(k.publish_date) ? k.publish_date : "未填發布日期";
+        uploadedBlocks.push(
+          `網紅名稱：${k.name || "未提供"}\n網紅社群連結：${social}\n入住館別：${venue}\n入住日期：${k.check_in_date}\n發布日期：${publishDate}\n上片連結：${k.publish_url}\n負責星探：${scoutName}`,
         );
       }
     }
@@ -200,8 +200,8 @@ Deno.serve(async (req) => {
     if (pendingBlocks.length > 0) {
       sections.push(`KOL上片期限通知‼️請星探追蹤\n\n${pendingBlocks.join("\n\n")}`);
     }
-    if (partialBlocks.length > 0) {
-      sections.push(`KOL上片期限通知 ⚠️ 請補填資訊\n\n${partialBlocks.join("\n\n")}`);
+    if (uploadedBlocks.length > 0) {
+      sections.push(`KOL上片期限通知 ✅ 已上片\n\n${uploadedBlocks.join("\n\n")}`);
     }
     const message = sections.join("\n\n");
 
