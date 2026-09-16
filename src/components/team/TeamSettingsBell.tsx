@@ -54,6 +54,7 @@ import {
   passesPrefs,
   NOTIFICATION_KINDS,
 } from "@/hooks/use-notification-prefs";
+import { visibleNotificationKinds } from "@/lib/notifications/kindVisibility";
 import { useNotificationReadState } from "@/hooks/use-notification-read-state";
 import { useKolNotifications } from "@/hooks/use-kol-notifications";
 import { RAGIC_COLUMNS } from "@/lib/settingsCompleteness/ragicChecks";
