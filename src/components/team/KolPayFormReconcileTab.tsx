@@ -89,6 +89,8 @@ interface Props {
   yearOptions: number[];
   /** 系統端當期應發清單 */
   expected: ExpectedPayout[];
+  /** 前後數期的系統應發（key = YYYYMM 發放期別），用於跨期歸戶 */
+  expectedByPeriod?: Record<string, ExpectedPayout[]>;
   loading?: boolean;
 }
 
@@ -99,10 +101,13 @@ export default function KolPayFormReconcileTab({
   onChangePeriod,
   yearOptions,
   expected,
+  expectedByPeriod,
   loading,
 }: Props) {
   const [forms, setForms] = useState<RagicPayForm[] | null>(null);
   const [fetching, setFetching] = useState(false);
+  /** 以「系統應發期別」歸戶檢視（B 方案） */
+  const [byExpectedPeriod, setByExpectedPeriod] = useState(false);
 
   const periodKey =
     payoutPeriod === "all"
