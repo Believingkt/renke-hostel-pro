@@ -213,6 +213,23 @@ Deno.serve(async (req) => {
     }
     const message = sections.join("\n\n");
 
+    if (dryRun) {
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          dry_run: true,
+          today,
+          target_check_in: targetCheckIn,
+          kol_count: kols.length,
+          pending_count: pendingBlocks.length,
+          uploaded_count: uploadedBlocks.length,
+          target_count: targets.length,
+          message,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const messageHash = await sha256Hex(message);
     const minuteBucket = currentMinuteBucket();
 
