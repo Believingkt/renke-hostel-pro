@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.course_profit_month_locked(date) TO authenticated;
