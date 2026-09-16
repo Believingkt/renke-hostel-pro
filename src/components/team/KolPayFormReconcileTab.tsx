@@ -140,8 +140,43 @@ export default function KolPayFormReconcileTab({
     setForms(null);
   }, [periodKey]);
 
+  /** CID → 該 CID 在視窗內有系統應發的期別清單 */
+  const expectedPeriodsByCid = useMemo(() => {
+    const map = new Map<string, { period: string; amount: number }[]>();
+    for (const [pk, list] of Object.entries(expectedByPeriod ?? {})) {
+      for (const e of list) {
+        const cid = e.cid_code.toUpperCase();
+        map.set(cid, [...(map.get(cid) ?? []), { period: pk, amount: e.amount }]);
+      }
+    }
+    return map;
+  }, [expectedByPeriod]);
+
+  /** 勞報單歸戶：找出這筆錢實際屬於哪一個系統應發期別 */
+  const homePeriodOf = useCallback(
+    (f: RagicPayForm) => {
+      const cid = (f.cid_code ?? "").toUpperCase();
+      const candidates = expectedPeriodsByCid.get(cid) ?? [];
+      if (candidates.length === 0) return f.period ?? null;
+      if (candidates.length === 1) return candidates[0].period;
+      const amountHit = candidates.filter(
+        (c) => Math.round(c.amount) === Math.round(f.amount),
+      );
+      const pool = amountHit.length ? amountHit : candidates;
+      const idx = (p: string | null) =>
+        p && p.length === 6 ? Number(p.slice(0, 4)) * 12 + Number(p.slice(4, 6)) : 0;
+      const base = idx(f.period);
+      return [...pool].sort((a, b) => Math.abs(idx(a.period) - base) - Math.abs(idx(b.period) - base))[0]
+        .period;
+    },
+    [expectedPeriodsByCid],
+  );
+
   const rows = useMemo(() => {
-    const list = forms ?? [];
+    const all = forms ?? [];
+    const list = byExpectedPeriod
+      ? all.filter((f) => homePeriodOf(f) === periodKey)
+      : all;
     const byCid = new Map<string, RagicPayForm[]>();
     for (const f of list) {
       const cid = (f.cid_code ?? "").toUpperCase();
@@ -159,6 +194,7 @@ export default function KolPayFormReconcileTab({
       ragicId: string | null;
       reconCode: string | null;
       formPeriods: string[];
+      homePeriod: string | null;
       submittedAt: string | null;
       remitDate: string | null;
       status: StatusKey;
@@ -197,6 +233,7 @@ export default function KolPayFormReconcileTab({
         ragicId: matched.map((f) => f.payform_no || f.ragic_id).join("、") || null,
         reconCode: matched.map((f) => f.recon_code).join("、") || null,
         formPeriods: periods,
+        homePeriod: periodKey,
         submittedAt: pick(matched, "created_at"),
         remitDate: pick(matched, "remit_date"),
         status,
@@ -204,10 +241,12 @@ export default function KolPayFormReconcileTab({
       byCid.delete(cid);
     }
 
-    // Ragic 有、系統沒有：只列出「對帳編號就是本期」的，鄰近期別不算假警訊
+    // 剩下的勞報單：對帳編號寫本期，但系統本期沒有應發
     for (const [cid, list2] of byCid.entries()) {
       const thisPeriod = list2.filter((f) => f.period === periodKey);
       if (thisPeriod.length === 0) continue;
+      const home = homePeriodOf(thisPeriod[0]);
+      const isOther = !!home && home !== periodKey;
       out.push({
         key: `ragic-${cid}`,
         cid,
@@ -218,14 +257,24 @@ export default function KolPayFormReconcileTab({
         ragicId: thisPeriod.map((f) => f.payform_no || f.ragic_id).join("、"),
         reconCode: thisPeriod.map((f) => f.recon_code).join("、") || null,
         formPeriods: [...new Set(thisPeriod.map((f) => f.period ?? "").filter(Boolean))],
+        homePeriod: home,
         submittedAt: pick(thisPeriod, "created_at"),
         remitDate: pick(thisPeriod, "remit_date"),
-        status: "ragic_only",
+        status: isOther ? "other_period" : "ragic_only",
       });
     }
 
     return out;
-  }, [forms, expected, periodKey]);
+  }, [forms, expected, periodKey, byExpectedPeriod, homePeriodOf]);
+
+  const goToPeriod = useCallback(
+    (p: string | null) => {
+      if (!p || p.length !== 6) return;
+      onChangeYear(Number(p.slice(0, 4)));
+      onChangePeriod(String(Number(p.slice(4, 6))));
+    },
+    [onChangeYear, onChangePeriod],
+  );
 
   /** 無對帳編號的勞報單無法精準比對，另外列出提醒 */
   const unmatchable = useMemo(
