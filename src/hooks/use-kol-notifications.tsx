@@ -25,6 +25,8 @@ const QUALIFICATION_ROLES = ["super_admin", "admin", "scout_manager"];
 const QUALIFICATION_LOOKBACK_DAYS = 30;
 
 const KOL_HREF = "/team/kol?tab=invitations";
+/** 上片類提醒：點進去直接開「回填上片資料」視窗 */
+const PUBLISH_ACTION = "&action=publish";
 
 interface KolRow {
   id: string;
