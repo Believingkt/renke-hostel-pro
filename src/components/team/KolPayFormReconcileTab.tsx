@@ -337,7 +337,22 @@ export default function KolPayFormReconcileTab({
             <RefreshCw className={`mr-2 h-4 w-4 ${fetching ? "animate-spin" : ""}`} />
             {fetching ? "讀取中…" : "讀取 Ragic 勞報單"}
           </Button>
+          <div className="ml-auto flex items-center gap-2">
+            <Switch
+              id="by-expected-period"
+              checked={byExpectedPeriod}
+              onCheckedChange={setByExpectedPeriod}
+            />
+            <Label htmlFor="by-expected-period" className="text-sm">
+              以應發期別檢視
+            </Label>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          {byExpectedPeriod
+            ? "目前依「系統應發期別」歸戶：不論勞報單編號寫哪一期，都歸到系統實際應發的期別，本期只會看到真正屬於本期的款項。"
+            : "目前依「勞報單對帳編號」檢視：編號寫本期但實際屬於其他期別的單，會標示為「他期應發」。"}
+        </p>
 
         {!periodKey && (
           <p className="text-sm text-muted-foreground">請選擇單一發放期別後再讀取。</p>
