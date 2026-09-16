@@ -42,8 +42,26 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
+  // 僅接受帶最高權限金鑰的伺服器對伺服器呼叫，不開放任何公開入口
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  const authHeader = req.headers.get("authorization") ?? "";
+  const bearer = authHeader.toLowerCase().startsWith("bearer ")
+    ? authHeader.slice(7).trim()
+    : "";
+  const timingSafeEqual = (a: string, b: string) => {
+    if (a.length !== b.length || a.length === 0) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+  };
+  if (!serviceKey || !timingSafeEqual(bearer, serviceKey)) {
+    console.warn("[send-push] unauthorized call rejected");
+    return json({ success: false, error: "unauthorized" }, 401);
+  }
+
   try {
     const input: Body = await req.json().catch(() => ({}));
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
