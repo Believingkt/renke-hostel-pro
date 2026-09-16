@@ -23,7 +23,16 @@ const F = {
   VENUE: "1000508",
   AMOUNT: "3005533",
   PAYFORM_NO: "3005521", // 勞報單編號（LR-xxxx）
+  REMIT_DATE: "1000649", // 會計實際匯款日期
 } as const;
+
+/** 期別（YYYYMM）位移 n 個月 */
+function shiftPeriod(period: string, delta: number): string {
+  const y = Number(period.slice(0, 4));
+  const m = Number(period.slice(4, 6));
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 const ALLOWED_ROLES = ["super_admin", "hotel_admin", "scout_manager"];
 
