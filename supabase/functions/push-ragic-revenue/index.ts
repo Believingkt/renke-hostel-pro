@@ -476,7 +476,7 @@ Deno.serve(async (req) => {
           [FIELD.BUSINESS_UNIT]: "人客多總部",
           [FIELD.INCOME_TYPE]: "課程收入",
           [FIELD.AMOUNT]: String(courseTotal),
-          [FIELD.VENUE]: "人客多總部",
+          [FIELD.VENUE]: "",
           [FIELD.COMMISSION_RATE]: "",
           [FIELD.COMMISSION_FEE]: "",
           [FIELD.NOTE]: details
