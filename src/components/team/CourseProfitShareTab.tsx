@@ -826,6 +826,22 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
               </div>
 
 
+              <div className="space-y-1 w-full sm:w-auto">
+                <div className="text-xs text-muted-foreground">分配方式</div>
+                <Select
+                  value={newMonth.entry_mode}
+                  onValueChange={(v) => setNewMonth((p) => ({ ...p, entry_mode: v as "manual" | "percent" }))}
+                >
+                  <SelectTrigger className="h-9 w-full sm:w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manual">手動輸入金額</SelectItem>
+                    <SelectItem value="percent">依比例自動</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <Button size="sm" onClick={addMonth} disabled={savingId === "__new__"} className="w-full sm:w-auto">
                 {savingId === "__new__" ? (
                   <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -846,6 +862,7 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                   <TableRow>
                     <TableHead className="w-40 whitespace-nowrap">發放期別</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">盈餘月份</TableHead>
+                    <TableHead className="w-44 whitespace-nowrap">分配方式</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">課程盈餘</TableHead>
                     <TableHead className="w-44 whitespace-nowrap">
                       <span className="inline-flex items-center gap-1">
@@ -900,6 +917,34 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
                           )}
                         </TableCell>
                         <TableCell className="whitespace-nowrap tabular-nums">{row.month.slice(0, 7)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {locked || readOnly ? (
+                            <span className="text-sm">{isManual ? "手動輸入金額" : "依比例自動"}</span>
+                          ) : (
+                            <Select
+                              value={row.entry_mode}
+                              onValueChange={(v) => setEntryMode(row, v as "manual" | "percent")}
+                            >
+                              <SelectTrigger className="h-9 w-36">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="manual">手動輸入金額</SelectItem>
+                                <SelectItem value="percent">依比例自動</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                          {isManual && (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-6 px-0 text-xs"
+                              onClick={() => setExpandedMonthId(expanded ? null : row.id)}
+                            >
+                              {expanded ? "收合名單" : `編輯名單（${manualRows.length} 人）`}
+                            </Button>
+                          )}
+                        </TableCell>
                         <TableCell className="tabular-nums">
                           {locked || readOnly ? (
                             `$${Number(row.surplus_amount).toLocaleString()}`
