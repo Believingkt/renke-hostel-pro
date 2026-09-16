@@ -672,6 +672,8 @@ export function TeamSettingsBell() {
                 </div>
               ))}
             </div>
+            </>
+            )}
           </div>
         )}
 
