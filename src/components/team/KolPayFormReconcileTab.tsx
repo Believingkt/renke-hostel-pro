@@ -165,22 +165,45 @@ export default function KolPayFormReconcileTab({
         (c) => Math.round(c.amount) === Math.round(f.amount),
       );
       const pool = amountHit.length ? amountHit : candidates;
-      const idx = (p: string | null) =>
-        p && p.length === 6 ? Number(p.slice(0, 4)) * 12 + Number(p.slice(4, 6)) : 0;
-      const base = idx(f.period);
-      return [...pool].sort((a, b) => Math.abs(idx(a.period) - base) - Math.abs(idx(b.period) - base))[0]
-        .period;
+      const base = periodIdx(f.period) ?? 0;
+      return [...pool].sort(
+        (a, b) =>
+          Math.abs((periodIdx(a.period) ?? 0) - base) -
+          Math.abs((periodIdx(b.period) ?? 0) - base),
+      )[0].period;
     },
     [expectedPeriodsByCid],
   );
 
   const rows = useMemo(() => {
-    const all = forms ?? [];
-    const list = byExpectedPeriod
-      ? all.filter((f) => homePeriodOf(f) === periodKey)
-      : all;
+    const all = (forms ?? []).filter((f) => f.cid_code);
+    const cur = periodIdx(periodKey);
+
+    // 每張勞報單先歸戶到唯一一個期別（沒有系統應發時退回對帳編號的期別）
+    const withHome = all.map((f) => ({
+      f,
+      home: homePeriodOf(f) ?? f.period ?? null,
+    }));
+
+    // (1) 只往回看：對帳編號與應發期別都晚於本期的單，不納入本期畫面
+    const inScope = withHome.filter(({ f, home }) => {
+      if (cur === null) return true;
+      const codeIdx = periodIdx(f.period);
+      const homeIdx = periodIdx(home);
+      const laterCode = codeIdx !== null && codeIdx > cur;
+      const laterHome = homeIdx !== null && homeIdx > cur;
+      return !(laterCode && laterHome);
+    });
+
+    // (2) 一張單只屬於一期：只有歸戶到本期的單，才算進本期的「勞報單金額」
+    // (3) 歸戶在其他期別的單（含已匯款者）視為已封存，不再灌進本期金額
+    const owned = inScope.filter(({ home }) => home === periodKey);
+    const leftover = inScope.filter(
+      ({ f, home }) => home !== periodKey && f.period === periodKey,
+    );
+
     const byCid = new Map<string, RagicPayForm[]>();
-    for (const f of list) {
+    for (const { f } of owned) {
       const cid = (f.cid_code ?? "").toUpperCase();
       if (!cid) continue;
       byCid.set(cid, [...(byCid.get(cid) ?? []), f]);
@@ -243,27 +266,50 @@ export default function KolPayFormReconcileTab({
       byCid.delete(cid);
     }
 
-    // 剩下的勞報單：對帳編號寫本期，但系統本期沒有應發
+    // 歸戶在本期、但系統本期沒有應發名單的勞報單
     for (const [cid, list2] of byCid.entries()) {
-      const thisPeriod = list2.filter((f) => f.period === periodKey);
-      if (thisPeriod.length === 0) continue;
-      const home = homePeriodOf(thisPeriod[0]);
-      const isOther = !!home && home !== periodKey;
       out.push({
         key: `ragic-${cid}`,
         cid,
-        name: thisPeriod[0]?.nickname || "—",
-        venue: thisPeriod[0]?.venue || "—",
+        name: list2[0]?.nickname || "—",
+        venue: list2[0]?.venue || "—",
         expected: null,
-        actual: thisPeriod.reduce((s, f) => s + f.amount, 0),
-        ragicId: thisPeriod.map((f) => f.payform_no || f.ragic_id).join("、"),
-        reconCode: thisPeriod.map((f) => f.recon_code).join("、") || null,
-        formPeriods: [...new Set(thisPeriod.map((f) => f.period ?? "").filter(Boolean))],
-        homePeriod: home,
-        submittedAt: pick(thisPeriod, "created_at"),
-        remitDate: pick(thisPeriod, "remit_date"),
-        status: isOther ? "other_period" : "ragic_only",
+        actual: list2.reduce((s, f) => s + f.amount, 0),
+        ragicId: list2.map((f) => f.payform_no || f.ragic_id).join("、"),
+        reconCode: list2.map((f) => f.recon_code).join("、") || null,
+        formPeriods: [...new Set(list2.map((f) => f.period ?? "").filter(Boolean))],
+        homePeriod: periodKey,
+        submittedAt: pick(list2, "created_at"),
+        remitDate: pick(list2, "remit_date"),
+        status: "ragic_only",
       });
+    }
+
+    // 對帳編號寫本期、但實際應發在其他期別（延後送單）→ 灰色提示，不影響本期金額
+    if (!byExpectedPeriod) {
+      const otherByCid = new Map<string, { f: RagicPayForm; home: string | null }[]>();
+      for (const item of leftover) {
+        const cid = (item.f.cid_code ?? "").toUpperCase();
+        otherByCid.set(cid, [...(otherByCid.get(cid) ?? []), item]);
+      }
+      for (const [cid, items] of otherByCid.entries()) {
+        const fs = items.map((i) => i.f);
+        out.push({
+          key: `other-${cid}`,
+          cid,
+          name: fs[0]?.nickname || "—",
+          venue: fs[0]?.venue || "—",
+          expected: null,
+          actual: fs.reduce((s, f) => s + f.amount, 0),
+          ragicId: fs.map((f) => f.payform_no || f.ragic_id).join("、"),
+          reconCode: fs.map((f) => f.recon_code).join("、") || null,
+          formPeriods: [...new Set(fs.map((f) => f.period ?? "").filter(Boolean))],
+          homePeriod: items[0]?.home ?? null,
+          submittedAt: pick(fs, "created_at"),
+          remitDate: pick(fs, "remit_date"),
+          status: "other_period",
+        });
+      }
     }
 
     return out;
