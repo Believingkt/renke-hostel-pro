@@ -100,9 +100,12 @@ Deno.serve(async (req) => {
       (k: any) => deriveBookingStatus(k.order_number, k.booking_status) === "成功訂房"
     );
 
-    // 過濾：排除 publish_date 與 publish_url 皆有值（非空字串）的已完成記錄
+    // 方案 A：保留 14 天範圍內所有「成功訂房」的 KOL。
+    // 有 publish_url 視為「已上片」，通知帶連結；
+    // 無 publish_url 視為「未上片」，維持原追蹤提醒。
+    // 不再因 publish_date 也有值就排除。
     const hasVal = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
-    const kols = eligibleByStatus.filter((k: any) => !(hasVal(k.publish_date) && hasVal(k.publish_url)));
+    const kols = eligibleByStatus;
 
     if (!kols || kols.length === 0) {
       return new Response(
