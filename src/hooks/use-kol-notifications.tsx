@@ -25,6 +25,8 @@ const QUALIFICATION_ROLES = ["super_admin", "admin", "scout_manager"];
 const QUALIFICATION_LOOKBACK_DAYS = 30;
 
 const KOL_HREF = "/team/kol?tab=invitations";
+/** 上片類提醒：點進去直接開「回填上片資料」視窗 */
+const PUBLISH_ACTION = "&action=publish";
 
 interface KolRow {
   id: string;
@@ -119,7 +121,7 @@ export function buildKolNotifications(
           scope: label(row),
           title: "今日名單・已上片",
           detail: `發布日期 ${hasVal(row.publish_date) ? String(row.publish_date) : "未填"}，上片連結：${row.publish_url}`,
-          href: `${KOL_HREF}&kolId=${row.id}`,
+          href: `${KOL_HREF}&kolId=${row.id}${PUBLISH_ACTION}`,
           editable: canEdit,
           reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限。",
           meta: [
@@ -137,13 +139,13 @@ export function buildKolNotifications(
           scope: label(row),
           title: "今日名單・未上片",
           detail: `上片期限 ${today} 到期，尚未回填上片連結，請星探追蹤。`,
-          href: `${KOL_HREF}&kolId=${row.id}`,
+          href: `${KOL_HREF}&kolId=${row.id}${PUBLISH_ACTION}`,
           editable: canEdit,
           reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
           meta: [
             { label: "口徑", value: `入住日 + ${PUBLISH_DEADLINE_DAYS} 天 = 今天，與 LINE 每日提醒相同` },
             { label: "入住日期", value: String(row.check_in_date) },
-            { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 回填發布日期與連結。" },
+            { label: "怎麼處理", value: "點這則通知會直接開啟該筆的「回填上片資料」視窗，填寫發布日期與上片連結後儲存。" },
           ],
         });
       }
@@ -158,13 +160,13 @@ export function buildKolNotifications(
         scope: label(row),
         title: "上片逾期未回填",
         detail: `預計上片日 ${deadline} 已過，仍缺${hasVal(row.publish_date) ? "" : "發布日期"}${!hasVal(row.publish_date) && !hasVal(row.publish_url) ? "與" : ""}${hasVal(row.publish_url) ? "" : "發布連結"}。`,
-        href: `${KOL_HREF}&kolId=${row.id}`,
+        href: `${KOL_HREF}&kolId=${row.id}${PUBLISH_ACTION}`,
         editable: canEdit,
         reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
         meta: [
           { label: "資料表", value: "kol_profiles.publish_date / publish_url" },
           { label: "口徑", value: `預計上片日 = 入住日 + ${PUBLISH_DEADLINE_DAYS} 天` },
-          { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 回填發布日期與連結。" },
+          { label: "怎麼處理", value: "點這則通知會直接開啟該筆的「回填上片資料」視窗，填寫發布日期與上片連結後儲存。" },
         ],
       });
     }
