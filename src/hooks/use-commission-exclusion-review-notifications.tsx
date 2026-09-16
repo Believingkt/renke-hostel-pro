@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TeamNotification } from "@/lib/notifications/types";
+import { COMMISSION_REVIEW_ROLES } from "@/lib/notifications/roles";
 
 /**
  * 「增值服務抽成設定已更新，建議審查」綠燈提醒（衍生式，不建表）。
@@ -11,7 +12,7 @@ import type { TeamNotification } from "@/lib/notifications/types";
  */
 
 export const COMMISSION_EXCLUSION_REVIEW_KIND = "commission-exclusion-review";
-const REVIEW_ROLES = ["super_admin", "admin"];
+const REVIEW_ROLES = COMMISSION_REVIEW_ROLES;
 
 interface RuleRow {
   accommodation_id: string;

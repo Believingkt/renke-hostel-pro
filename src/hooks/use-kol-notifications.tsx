@@ -7,6 +7,7 @@ import {
   taipeiToday,
 } from "@/lib/kolPublishSchedule";
 import type { TeamNotification } from "@/lib/notifications/types";
+import { KOL_NOTIFY_ROLES, KOL_QUALIFICATION_ROLES } from "@/lib/notifications/roles";
 
 /**
  * KOL 進度事件通知（衍生式，不建表）。
@@ -19,8 +20,8 @@ import type { TeamNotification } from "@/lib/notifications/types";
  * 通知對象：super_admin / admin / scout_manager / scout（scout 只會看到 RLS 允許的自家資料）。
  */
 
-const KOL_ROLES = ["super_admin", "admin", "scout_manager", "scout"];
-const QUALIFICATION_ROLES = ["super_admin", "admin", "scout_manager"];
+const KOL_ROLES = KOL_NOTIFY_ROLES;
+const QUALIFICATION_ROLES = KOL_QUALIFICATION_ROLES;
 /** 新邀約待勾選資格的回溯天數（避免整份歷史名單都跳通知） */
 const QUALIFICATION_LOOKBACK_DAYS = 30;
 
