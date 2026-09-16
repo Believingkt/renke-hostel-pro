@@ -105,6 +105,50 @@ export function buildKolNotifications(
       ? addDaysYmd(String(row.check_in_date), PUBLISH_DEADLINE_DAYS)
       : null;
     const published = hasVal(row.publish_date) && hasVal(row.publish_url);
+
+    // B2. 當日上片名單（與 LINE 每日推播同口徑：入住日 = 今天 − 14 天）
+    // 有上片連結 → 已上片（資訊）；沒有 → 未上片追蹤（提醒）
+    const isTodayCohort = hasVal(row.check_in_date) && deadline === today;
+    if (isTodayCohort) {
+      if (hasVal(row.publish_url)) {
+        out.push({
+          id: `kol:publish-today-uploaded:${row.id}`,
+          kind: "kol-publish-today-uploaded",
+          category: "kol",
+          severity: "info",
+          scope: label(row),
+          title: "今日名單・已上片",
+          detail: `發布日期 ${hasVal(row.publish_date) ? String(row.publish_date) : "未填"}，上片連結：${row.publish_url}`,
+          href: `${KOL_HREF}&kolId=${row.id}`,
+          editable: canEdit,
+          reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限。",
+          meta: [
+            { label: "口徑", value: `入住日 + ${PUBLISH_DEADLINE_DAYS} 天 = 今天，與 LINE 每日提醒相同` },
+            { label: "入住日期", value: String(row.check_in_date) },
+            { label: "上片連結", value: String(row.publish_url) },
+          ],
+        });
+      } else {
+        out.push({
+          id: `kol:publish-today-pending:${row.id}`,
+          kind: "kol-publish-today-pending",
+          category: "kol",
+          severity: "warn",
+          scope: label(row),
+          title: "今日名單・未上片",
+          detail: `上片期限 ${today} 到期，尚未回填上片連結，請星探追蹤。`,
+          href: `${KOL_HREF}&kolId=${row.id}`,
+          editable: canEdit,
+          reason: canEdit ? null : "你沒有編輯 KOL 邀約的權限，請通知該筆的星探。",
+          meta: [
+            { label: "口徑", value: `入住日 + ${PUBLISH_DEADLINE_DAYS} 天 = 今天，與 LINE 每日提醒相同` },
+            { label: "入住日期", value: String(row.check_in_date) },
+            { label: "怎麼處理", value: "團隊後台 →「KOL 星探」→ 正式邀約 → 回填發布日期與連結。" },
+          ],
+        });
+      }
+    }
+
     if (deadline && !published && deadline < today) {
       out.push({
         id: `kol:publish:${row.id}`,
