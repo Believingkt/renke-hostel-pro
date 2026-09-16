@@ -402,6 +402,19 @@ export default function KolPayFormReconcileTab({
                         <Badge variant="outline" className={STATUS_CLASS[r.status]}>
                           {STATUS_LABEL[r.status]}
                         </Badge>
+                        {r.status === "other_period" && r.homePeriod && (
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            應發期別 {fmtPeriod(r.homePeriod)}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto px-1 py-0 text-xs"
+                              onClick={() => goToPeriod(r.homePeriod)}
+                            >
+                              切到該期
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="whitespace-nowrap">{r.name}</TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">{r.cid}</TableCell>
