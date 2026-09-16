@@ -78,6 +78,10 @@ const fmtPeriod = (p: string | null) =>
 
 const fmtDate = (v: string | null) => (v ? v.slice(0, 10) : "—");
 
+/** YYYYMM → 可比較的月份序號 */
+const periodIdx = (p: string | null) =>
+  p && p.length === 6 ? Number(p.slice(0, 4)) * 12 + Number(p.slice(4, 6)) : null;
+
 /** 同一期別視窗內的所有期別（±WINDOW_MONTHS） */
 const WINDOW_MONTHS = 3;
 
