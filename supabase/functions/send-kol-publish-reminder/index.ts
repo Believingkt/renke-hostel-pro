@@ -26,6 +26,15 @@ function addDays(ymd: string, days: number): string {
   return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
 }
 
+function formatSocialUrl(igUrl: any, igHandle: any): string {
+  const hasVal = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+  if (hasVal(igUrl)) return String(igUrl).trim();
+  const h = String(igHandle ?? "").trim();
+  if (!h) return "未提供";
+  if (/^https?:\/\//i.test(h)) return h;
+  return `https://www.instagram.com/${h.replace(/^@/, "")}`;
+}
+
 async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", buf);
@@ -66,7 +75,7 @@ Deno.serve(async (req) => {
     // 1. 撈 KOL 主要記錄（不再以 booking_status 欄位篩選，改為與畫面一致的派生判定）
     const { data: kolsRaw, error: kolErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id, order_number, booking_status")
+      .select("id, name, ig_handle, ig_url, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id, order_number, booking_status")
       .eq("check_in_date", targetCheckIn)
       // 同住合拍的附屬記錄也要收到發文提醒（各自都要發影片），故不再排除子檔
       .eq("is_error", false);
@@ -186,7 +195,7 @@ Deno.serve(async (req) => {
     const pendingBlocks: string[] = []; // 無 publish_url → 請星探追蹤
     const uploadedBlocks: string[] = []; // 有 publish_url → 已上片帶連結
     for (const k of kols as any[]) {
-      const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
+      const social = formatSocialUrl(k.ig_url, k.ig_handle);
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
       const venue = venueOf(k);
       const hasUrl = hasVal(k.publish_url);
