@@ -571,6 +571,63 @@ export default function KolBonus() {
     return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
   }, [tab2FilteredRows, tab2Metrics, tab2CommissionMultiplier]);
 
+  /** 勞報單對帳：前後 3 期的系統應發（key = YYYYMM 發放期別），供跨期歸戶判斷 */
+  const reconcileExpectedByPeriod = useMemo(() => {
+    const out: Record<
+      string,
+      { cid_code: string; name: string | null; venue: string | null; amount: number }[]
+    > = {};
+    if (payoutPeriod === "all") return out;
+    const baseMonth = Number(payoutPeriod);
+    for (let d = -3; d <= 3; d += 1) {
+      const pd = new Date(Date.UTC(payoutYear, baseMonth - 1 + d, 1));
+      const py = pd.getUTCFullYear();
+      const pm = pd.getUTCMonth() + 1;
+      const periodKey = `${py}${String(pm).padStart(2, "0")}`;
+      // 發放期別 P 對應退房月 = P-1
+      const cd = new Date(Date.UTC(py, pm - 2, 1));
+      const prefix = `${cd.getUTCFullYear()}-${String(cd.getUTCMonth() + 1).padStart(2, "0")}`;
+      const multiplier = multiplierForDataMonth("kol_commission", prefix);
+      const map = new Map<
+        string,
+        { cid_code: string; name: string | null; venue: string | null; amount: number }
+      >();
+      for (const k of rows) {
+        if (scoutFilter !== "all" && k.scout_id !== scoutFilter) continue;
+        const cid = (k.cid_code ?? "").trim().toUpperCase();
+        if (!cid) continue;
+        const list = ordersByKey.get(k.rowKey) ?? [];
+        let commission = 0;
+        let has = false;
+        for (const o of list) {
+          if (o.order_status === "cancelled") continue;
+          if (!o.check_out_date?.startsWith(prefix)) continue;
+          has = true;
+          commission += baseOf(o) * (getRate(o.accommodation_id, o.check_out_date) / 100);
+        }
+        if (!has) continue;
+        const amount = Math.round(boostedAmount(Math.round(commission), multiplier));
+        const prev = map.get(cid);
+        if (prev) {
+          prev.amount += amount;
+          if (!prev.venue && k.accommodation_name) prev.venue = k.accommodation_name;
+        } else {
+          map.set(cid, { cid_code: cid, name: k.name, venue: k.accommodation_name, amount });
+        }
+      }
+      out[periodKey] = Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+    }
+    return out;
+  }, [
+    rows,
+    ordersByKey,
+    getRate,
+    payoutYear,
+    payoutPeriod,
+    scoutFilter,
+    multiplierForDataMonth,
+  ]);
+
   const tab1DrawerInitialMonth =
     filterMonth === "all"
       ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
