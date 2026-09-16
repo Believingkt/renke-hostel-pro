@@ -4551,6 +4551,14 @@ function InvitationsTab({
         </SheetContent>
       </Sheet>
 
+      {/* 回填上片資料（小鈴鐺深連結） */}
+      <KolPublishBackfillDialog
+        row={publishBackfillRow}
+        canEdit={!!publishBackfillRow && canEditRow(publishBackfillRow)}
+        onOpenChange={(o) => !o && setPublishBackfillRow(null)}
+        onSaved={() => fetchRows()}
+      />
+
       {/* 粉絲數格式錯誤 Dialog */}
       <AlertDialog open={!!followerError} onOpenChange={(o) => !o && setFollowerError(null)}>
         <AlertDialogContent>
