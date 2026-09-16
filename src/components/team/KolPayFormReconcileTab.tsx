@@ -242,8 +242,9 @@ export default function KolPayFormReconcileTab({
       <CardHeader>
         <CardTitle>勞報單對帳</CardTitle>
         <p className="text-sm text-muted-foreground">
-          以對帳編號（KOL-CID-結算月）比對系統應發金額與 KOL 已送出的 Ragic
-          勞報單。此頁純唯讀，不會修改 Ragic 或任何獎金數字。
+          以 CID 比對系統應發金額與 KOL 已送出的 Ragic 勞報單，並一併讀取前後 {WINDOW_MONTHS} 期，
+          KOL 晚送單或對帳編號填錯期別仍配得上（標示為「期別不符」）。「實際匯款日」為會計在勞報單上填寫的匯款日期，
+          是款項實際發出的依據。此頁純唯讀，不會修改 Ragic 或任何獎金數字。
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
