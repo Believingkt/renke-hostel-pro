@@ -26,6 +26,15 @@ function addDays(ymd: string, days: number): string {
   return `${dt.getUTCFullYear()}-${pad(dt.getUTCMonth() + 1)}-${pad(dt.getUTCDate())}`;
 }
 
+function formatSocialUrl(igUrl: any, igHandle: any): string {
+  const hasVal = (v: any) => v !== null && v !== undefined && String(v).trim() !== "";
+  if (hasVal(igUrl)) return String(igUrl).trim();
+  const h = String(igHandle ?? "").trim();
+  if (!h) return "未提供";
+  if (/^https?:\/\//i.test(h)) return h;
+  return `https://www.instagram.com/${h.replace(/^@/, "")}`;
+}
+
 async function sha256Hex(input: string): Promise<string> {
   const buf = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", buf);
