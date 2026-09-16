@@ -193,7 +193,15 @@ export default function CourseProfitShareTab({ readOnly = false }: { readOnly?: 
     surplus: "",
     note: "",
     remittance: null as string | null,
+    /** 新月份預設手動輸入金額 */
+    entry_mode: "manual" as "manual" | "percent",
   });
+  /** 手動名單：展開中的月份 id */
+  const [expandedMonthId, setExpandedMonthId] = useState<string | null>(null);
+  /** 手動名單草稿（key = 月份 id） */
+  const [manualDraft, setManualDraft] = useState<
+    Record<string, { key: string; id: string | null; user_id: string; amount: string; note: string }[]>
+  >({});
   const [rateDraft, setRateDraft] = useState<Record<string, { percent: string; effective_from: string; note: string }>>({});
   /** 使用者在下拉複選中額外勾選、但尚未建立任何 % 版本的成員 */
   const [pendingSelected, setPendingSelected] = useState<Set<string>>(new Set());
