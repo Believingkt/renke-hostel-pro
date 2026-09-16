@@ -78,8 +78,25 @@ export default function AiTrainingKnowledge() {
     const { data } = await supabase.from("ai_knowledge").select("*")
       .order("priority", { ascending: false })
       .order("updated_at", { ascending: false });
-    setRows((data as Row[]) || []);
+    const list = (data as Row[]) || [];
+    setRows(list);
     setLoading(false);
+
+    const accIds = Array.from(new Set(list.map((r) => r.accommodation_id).filter(Boolean))) as string[];
+    const userIds = Array.from(new Set(
+      list.flatMap((r) => [r.created_by, r.updated_by]).filter(Boolean),
+    )) as string[];
+
+    const [accRes, userRes] = await Promise.all([
+      accIds.length
+        ? supabase.from("accommodation_info").select("id, name").in("id", accIds)
+        : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      userIds.length
+        ? supabase.from("profiles").select("id, name").in("id", userIds)
+        : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
+    ]);
+    setAccNames(Object.fromEntries((accRes.data || []).map((a: any) => [a.id, a.name])));
+    setEditorNames(Object.fromEntries((userRes.data || []).map((u: any) => [u.id, u.name || "—"])));
   }, []);
   useEffect(() => { void load(); }, [load]);
 
