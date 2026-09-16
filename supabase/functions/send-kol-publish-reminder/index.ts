@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
     const pendingBlocks: string[] = []; // 無 publish_url → 請星探追蹤
     const uploadedBlocks: string[] = []; // 有 publish_url → 已上片帶連結
     for (const k of kols as any[]) {
-      const social = hasVal(k.ig_handle) ? k.ig_handle : "未提供";
+      const social = formatSocialUrl(k.ig_url, k.ig_handle);
       const scoutName = k.scout_id ? (scoutMap.get(k.scout_id) || "未指定") : "未指定";
       const venue = venueOf(k);
       const hasUrl = hasVal(k.publish_url);
