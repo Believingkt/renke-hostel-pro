@@ -285,7 +285,7 @@ export default function AiTrainingKnowledge() {
           <TableBody>
             {loading ? null : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無資料</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">尚無資料</TableCell>
               </TableRow>
             ) : filtered.map((r) => (
               <TableRow key={r.id}>
