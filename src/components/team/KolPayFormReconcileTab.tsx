@@ -46,6 +46,7 @@ interface RagicPayForm {
 type StatusKey =
   | "matched"
   | "period_mismatch"
+  | "other_period"
   | "amount_diff"
   | "not_submitted"
   | "ragic_only";
@@ -53,6 +54,7 @@ type StatusKey =
 const STATUS_LABEL: Record<StatusKey, string> = {
   matched: "金額相符",
   period_mismatch: "期別不符（延後送單）",
+  other_period: "他期應發（延後送單）",
   amount_diff: "金額不符",
   not_submitted: "未送單",
   ragic_only: "Ragic 有、系統沒有",
@@ -61,6 +63,7 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 const STATUS_CLASS: Record<StatusKey, string> = {
   matched: "bg-green-100 text-green-700 border-green-200",
   period_mismatch: "bg-amber-100 text-amber-700 border-amber-200",
+  other_period: "bg-slate-100 text-slate-700 border-slate-200",
   amount_diff: "bg-red-100 text-red-700 border-red-200",
   not_submitted: "bg-orange-100 text-orange-700 border-orange-200",
   ragic_only: "bg-blue-100 text-blue-700 border-blue-200",
