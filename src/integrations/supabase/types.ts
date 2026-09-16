@@ -1803,6 +1803,7 @@ export type Database = {
           category: Database["public"]["Enums"]["ai_knowledge_category"]
           content: string
           created_at: string
+          created_by: string | null
           id: string
           is_active: boolean
           priority: number
@@ -1810,12 +1811,14 @@ export type Database = {
           tags: string[]
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
           accommodation_id?: string | null
           category?: Database["public"]["Enums"]["ai_knowledge_category"]
           content?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           priority?: number
@@ -1823,12 +1826,14 @@ export type Database = {
           tags?: string[]
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
           accommodation_id?: string | null
           category?: Database["public"]["Enums"]["ai_knowledge_category"]
           content?: string
           created_at?: string
+          created_by?: string | null
           id?: string
           is_active?: boolean
           priority?: number
@@ -1836,6 +1841,7 @@ export type Database = {
           tags?: string[]
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

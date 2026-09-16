@@ -37,9 +37,21 @@ type Row = {
   priority: number;
   is_active: boolean;
   updated_at: string;
+  accommodation_id?: string | null;
+  created_by?: string | null;
+  updated_by?: string | null;
 };
 
-const empty = (): Omit<Row, "id" | "updated_at"> => ({
+type FormState = {
+  category: Category;
+  title: string;
+  content: string;
+  tags: string[];
+  priority: number;
+  is_active: boolean;
+};
+
+const empty = (): FormState => ({
   category: "faq", title: "", content: "", tags: [], priority: 5, is_active: true,
 });
 
@@ -50,7 +62,9 @@ export default function AiTrainingKnowledge() {
   const [search, setSearch] = useState("");
 
   const [editing, setEditing] = useState<Row | null>(null);
-  const [form, setForm] = useState<Omit<Row, "id" | "updated_at">>(empty());
+  const [form, setForm] = useState<FormState>(empty());
+  const [accNames, setAccNames] = useState<Record<string, string>>({});
+  const [editorNames, setEditorNames] = useState<Record<string, string>>({});
   const [tagInput, setTagInput] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [contentTab, setContentTab] = useState<"edit" | "preview">("edit");
@@ -64,8 +78,25 @@ export default function AiTrainingKnowledge() {
     const { data } = await supabase.from("ai_knowledge").select("*")
       .order("priority", { ascending: false })
       .order("updated_at", { ascending: false });
-    setRows((data as Row[]) || []);
+    const list = (data as Row[]) || [];
+    setRows(list);
     setLoading(false);
+
+    const accIds = Array.from(new Set(list.map((r) => r.accommodation_id).filter(Boolean))) as string[];
+    const userIds = Array.from(new Set(
+      list.flatMap((r) => [r.created_by, r.updated_by]).filter(Boolean),
+    )) as string[];
+
+    const [accRes, userRes] = await Promise.all([
+      accIds.length
+        ? supabase.from("accommodation_info").select("id, name").in("id", accIds)
+        : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+      userIds.length
+        ? supabase.from("profiles").select("id, name").in("id", userIds)
+        : Promise.resolve({ data: [] as { id: string; name: string | null }[] }),
+    ]);
+    setAccNames(Object.fromEntries((accRes.data || []).map((a: any) => [a.id, a.name])));
+    setEditorNames(Object.fromEntries((userRes.data || []).map((u: any) => [u.id, u.name || "—"])));
   }, []);
   useEffect(() => { void load(); }, [load]);
 
@@ -244,6 +275,8 @@ export default function AiTrainingKnowledge() {
               <TableHead>分類</TableHead>
               <TableHead>標籤</TableHead>
               <TableHead className="w-20">優先權</TableHead>
+              <TableHead className="w-36">來源</TableHead>
+              <TableHead className="w-32">最後編輯者</TableHead>
               <TableHead className="w-40">最後更新</TableHead>
               <TableHead className="w-20">啟用</TableHead>
               <TableHead className="w-24 text-right">操作</TableHead>
@@ -252,7 +285,7 @@ export default function AiTrainingKnowledge() {
           <TableBody>
             {loading ? null : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無資料</TableCell>
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">尚無資料</TableCell>
               </TableRow>
             ) : filtered.map((r) => (
               <TableRow key={r.id}>
@@ -267,6 +300,18 @@ export default function AiTrainingKnowledge() {
                   </div>
                 </TableCell>
                 <TableCell>{r.priority}</TableCell>
+                <TableCell className="text-xs">
+                  {r.created_by ? (
+                    <Badge variant="outline" className="text-xs">
+                      館別自編{r.accommodation_id && accNames[r.accommodation_id] ? `・${accNames[r.accommodation_id]}` : ""}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">總部維護</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {r.updated_by ? (editorNames[r.updated_by] || "—") : "—"}
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {new Date(r.updated_at).toLocaleString("zh-TW")}
                 </TableCell>

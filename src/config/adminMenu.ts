@@ -132,7 +132,14 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
   { title: "金流稽核", url: "/admin/payment-audit", icon: Receipt, moduleKey: "payment_audit" },
   { title: "購物商品", url: "/admin/addon-center", icon: Package, moduleKey: "addon_center" },
   { title: "通路管理", url: "/admin/channel-manager", icon: Plug, moduleKey: "channel_manager" },
-  // AI 管家相關頁面已搬遷至總部後台（hq.lakeze.com）
+  // AI 管家其餘設定頁仍在總部後台（hq.lakeze.com），館別端只保留常見問題維護
+  {
+    title: "AI 客服",
+    url: "/admin/ai-faq",
+    icon: Headset,
+    moduleKey: "ai_faq",
+    subItems: [{ title: "常見問題", url: "/admin/ai-faq", icon: HelpCircle }],
+  },
   { title: "帳號管理", url: "/admin/accounts", icon: KeyRound, moduleKey: "accounts" },
 ];
 

@@ -124,6 +124,7 @@ const GroupBuyOrderLookup = lazy(() => import("./pages/GroupBuyOrderLookup"));
 const GroupBuyOrderConfirmation = lazy(() => import("./pages/GroupBuyOrderConfirmation"));
 const AdminGroupBuy = lazy(() => import("./pages/AdminGroupBuy"));
 const KolReciprocalQuota = lazy(() => import("./pages/admin/KolReciprocalQuota"));
+const AdminAiFaq = lazy(() => import("./pages/admin/ai-faq/AdminAiFaq"));
 const RoomPriceCalendar = lazy(() => import("./pages/RoomPriceCalendar"));
 const PackagePriceCalendar = lazy(() => import("./pages/PackagePriceCalendar"));
 
@@ -547,6 +548,11 @@ function App() {
                     <Route path="admin/kol-reciprocal-quota" element={
                       <RequireModule module="kol_quota">
                         <Suspense fallback={<FormSkeleton fields={4} />}><KolReciprocalQuota /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/ai-faq" element={
+                      <RequireModule module="ai_faq">
+                        <Suspense fallback={<TableSkeleton rows={6} columns={5} />}><AdminAiFaq /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/room-price-calendar" element={
