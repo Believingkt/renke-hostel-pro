@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     // 1. 撈 KOL 主要記錄（不再以 booking_status 欄位篩選，改為與畫面一致的派生判定）
     const { data: kolsRaw, error: kolErr } = await supabase
       .from("kol_profiles")
-      .select("id, name, ig_handle, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id, order_number, booking_status")
+      .select("id, name, ig_handle, ig_url, short_url, check_in_date, scout_id, publish_date, publish_url, venue_name, venue_id, accommodation_id, order_number, booking_status")
       .eq("check_in_date", targetCheckIn)
       // 同住合拍的附屬記錄也要收到發文提醒（各自都要發影片），故不再排除子檔
       .eq("is_error", false);
