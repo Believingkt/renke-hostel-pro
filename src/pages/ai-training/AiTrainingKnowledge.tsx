@@ -300,6 +300,18 @@ export default function AiTrainingKnowledge() {
                   </div>
                 </TableCell>
                 <TableCell>{r.priority}</TableCell>
+                <TableCell className="text-xs">
+                  {r.created_by ? (
+                    <Badge variant="outline" className="text-xs">
+                      館別自編{r.accommodation_id && accNames[r.accommodation_id] ? `・${accNames[r.accommodation_id]}` : ""}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">總部維護</Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
+                  {r.updated_by ? (editorNames[r.updated_by] || "—") : "—"}
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">
                   {new Date(r.updated_at).toLocaleString("zh-TW")}
                 </TableCell>
