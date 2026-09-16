@@ -23,7 +23,16 @@ const F = {
   VENUE: "1000508",
   AMOUNT: "3005533",
   PAYFORM_NO: "3005521", // 勞報單編號（LR-xxxx）
+  REMIT_DATE: "1000649", // 會計實際匯款日期
 } as const;
+
+/** 期別（YYYYMM）位移 n 個月 */
+function shiftPeriod(period: string, delta: number): string {
+  const y = Number(period.slice(0, 4));
+  const m = Number(period.slice(4, 6));
+  const d = new Date(Date.UTC(y, m - 1 + delta, 1));
+  return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
 
 const ALLOWED_ROLES = ["super_admin", "hotel_admin", "scout_manager"];
 
@@ -52,6 +61,11 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const period = String(body?.period ?? "").trim(); // YYYYMM
+    // 容許前後 N 期一併回傳（延後送單／填錯期別時仍能配對），預設 3
+    const rawWindow = Number(body?.window_months ?? 3);
+    const windowMonths = Number.isFinite(rawWindow)
+      ? Math.max(0, Math.min(12, Math.trunc(rawWindow)))
+      : 3;
 
     // Ragic 分頁讀取（唯讀）
     const records: any[] = [];
@@ -93,13 +107,26 @@ Deno.serve(async (req) => {
         venue: String(r[F.VENUE] ?? "").trim(),
         amount: toNumber(r[F.AMOUNT]),
         created_at: String(r._create_date ?? "").trim() || null,
+        remit_date: String(r[F.REMIT_DATE] ?? "").trim() || null,
       };
     });
 
-    const filtered = period ? rows.filter((r) => r.period === period) : rows;
+    let periodsInScope: string[] = [];
+    if (period) {
+      for (let d = -windowMonths; d <= windowMonths; d += 1) {
+        periodsInScope.push(shiftPeriod(period, d));
+      }
+      periodsInScope = [...new Set(periodsInScope)];
+    }
+
+    const filtered = period
+      ? rows.filter((r) => r.period && periodsInScope.includes(r.period))
+      : rows;
 
     return json({
       period: period || null,
+      window_months: period ? windowMonths : null,
+      periods_in_scope: period ? periodsInScope : null,
       total_fetched: rows.length,
       count: filtered.length,
       rows: filtered,

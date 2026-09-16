@@ -40,12 +40,19 @@ interface RagicPayForm {
   venue: string;
   amount: number;
   created_at: string | null;
+  remit_date: string | null;
 }
 
-type StatusKey = "matched" | "amount_diff" | "not_submitted" | "ragic_only";
+type StatusKey =
+  | "matched"
+  | "period_mismatch"
+  | "amount_diff"
+  | "not_submitted"
+  | "ragic_only";
 
 const STATUS_LABEL: Record<StatusKey, string> = {
   matched: "金額相符",
+  period_mismatch: "期別不符（延後送單）",
   amount_diff: "金額不符",
   not_submitted: "未送單",
   ragic_only: "Ragic 有、系統沒有",
@@ -53,12 +60,21 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 
 const STATUS_CLASS: Record<StatusKey, string> = {
   matched: "bg-green-100 text-green-700 border-green-200",
+  period_mismatch: "bg-amber-100 text-amber-700 border-amber-200",
   amount_diff: "bg-red-100 text-red-700 border-red-200",
   not_submitted: "bg-orange-100 text-orange-700 border-orange-200",
   ragic_only: "bg-blue-100 text-blue-700 border-blue-200",
 };
 
 const fmtMoney = (n: number) => `NT$ ${Number(n || 0).toLocaleString()}`;
+
+const fmtPeriod = (p: string | null) =>
+  p && p.length === 6 ? `${p.slice(0, 4)}-${p.slice(4, 6)}` : "—";
+
+const fmtDate = (v: string | null) => (v ? v.slice(0, 10) : "—");
+
+/** 同一期別視窗內的所有期別（±WINDOW_MONTHS） */
+const WINDOW_MONTHS = 3;
 
 interface Props {
   /** 發放期別（獎金結算月）年 */
@@ -98,7 +114,7 @@ export default function KolPayFormReconcileTab({
     setFetching(true);
     const { data, error } = await supabase.functions.invoke(
       "fetch-ragic-kol-payforms",
-      { body: { period: periodKey } },
+      { body: { period: periodKey, window_months: WINDOW_MONTHS } },
     );
     setFetching(false);
     if (error) {
@@ -134,8 +150,16 @@ export default function KolPayFormReconcileTab({
       actual: number | null;
       ragicId: string | null;
       reconCode: string | null;
+      formPeriods: string[];
+      submittedAt: string | null;
+      remitDate: string | null;
       status: StatusKey;
     }[] = [];
+
+    const pick = (fs: RagicPayForm[], key: "created_at" | "remit_date") => {
+      const vals = fs.map((f) => f[key]).filter(Boolean) as string[];
+      return vals.length ? vals.sort().slice(-1)[0] : null;
+    };
 
     for (const e of expected) {
       const cid = e.cid_code.toUpperCase();
@@ -143,12 +167,18 @@ export default function KolPayFormReconcileTab({
       const actual = matched.length
         ? matched.reduce((s, f) => s + f.amount, 0)
         : null;
+      const periods = [...new Set(matched.map((f) => f.period ?? "").filter(Boolean))];
+      const hasOtherPeriod = periods.some((p) => p !== periodKey);
+      const amountOk =
+        actual !== null && Math.round(actual) === Math.round(e.amount);
       const status: StatusKey =
         actual === null
           ? "not_submitted"
-          : Math.round(actual) === Math.round(e.amount)
-            ? "matched"
-            : "amount_diff";
+          : !amountOk
+            ? "amount_diff"
+            : hasOtherPeriod
+              ? "period_mismatch"
+              : "matched";
       out.push({
         key: cid,
         cid,
@@ -157,29 +187,37 @@ export default function KolPayFormReconcileTab({
         expected: e.amount,
         actual,
         ragicId: matched.map((f) => f.payform_no || f.ragic_id).join("、") || null,
-        reconCode: matched[0]?.recon_code ?? null,
+        reconCode: matched.map((f) => f.recon_code).join("、") || null,
+        formPeriods: periods,
+        submittedAt: pick(matched, "created_at"),
+        remitDate: pick(matched, "remit_date"),
         status,
       });
       byCid.delete(cid);
     }
 
-    // Ragic 有、系統沒有
+    // Ragic 有、系統沒有：只列出「對帳編號就是本期」的，鄰近期別不算假警訊
     for (const [cid, list2] of byCid.entries()) {
+      const thisPeriod = list2.filter((f) => f.period === periodKey);
+      if (thisPeriod.length === 0) continue;
       out.push({
         key: `ragic-${cid}`,
         cid,
-        name: list2[0]?.nickname || "—",
-        venue: list2[0]?.venue || "—",
+        name: thisPeriod[0]?.nickname || "—",
+        venue: thisPeriod[0]?.venue || "—",
         expected: null,
-        actual: list2.reduce((s, f) => s + f.amount, 0),
-        ragicId: list2.map((f) => f.payform_no || f.ragic_id).join("、"),
-        reconCode: list2[0]?.recon_code ?? null,
+        actual: thisPeriod.reduce((s, f) => s + f.amount, 0),
+        ragicId: thisPeriod.map((f) => f.payform_no || f.ragic_id).join("、"),
+        reconCode: thisPeriod.map((f) => f.recon_code).join("、") || null,
+        formPeriods: [...new Set(thisPeriod.map((f) => f.period ?? "").filter(Boolean))],
+        submittedAt: pick(thisPeriod, "created_at"),
+        remitDate: pick(thisPeriod, "remit_date"),
         status: "ragic_only",
       });
     }
 
     return out;
-  }, [forms, expected]);
+  }, [forms, expected, periodKey]);
 
   /** 無對帳編號的勞報單無法精準比對，另外列出提醒 */
   const unmatchable = useMemo(
@@ -190,6 +228,7 @@ export default function KolPayFormReconcileTab({
   const summary = useMemo(() => {
     const c: Record<StatusKey, number> = {
       matched: 0,
+      period_mismatch: 0,
       amount_diff: 0,
       not_submitted: 0,
       ragic_only: 0,
@@ -203,8 +242,9 @@ export default function KolPayFormReconcileTab({
       <CardHeader>
         <CardTitle>勞報單對帳</CardTitle>
         <p className="text-sm text-muted-foreground">
-          以對帳編號（KOL-CID-結算月）比對系統應發金額與 KOL 已送出的 Ragic
-          勞報單。此頁純唯讀，不會修改 Ragic 或任何獎金數字。
+          以 CID 比對系統應發金額與 KOL 已送出的 Ragic 勞報單，並一併讀取前後 {WINDOW_MONTHS} 期，
+          KOL 晚送單或對帳編號填錯期別仍配得上（標示為「期別不符」）。「實際匯款日」為會計在勞報單上填寫的匯款日期，
+          是款項實際發出的依據。此頁純唯讀，不會修改 Ragic 或任何獎金數字。
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -267,12 +307,15 @@ export default function KolPayFormReconcileTab({
                   <TableHead className="whitespace-nowrap text-right">勞報單金額</TableHead>
                   <TableHead className="whitespace-nowrap">勞報單編號</TableHead>
                   <TableHead className="whitespace-nowrap">對帳編號</TableHead>
+                  <TableHead className="whitespace-nowrap">勞報單期別</TableHead>
+                  <TableHead className="whitespace-nowrap">送單日</TableHead>
+                  <TableHead className="whitespace-nowrap">實際匯款日</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-6 text-center text-muted-foreground">
+                    <TableCell colSpan={11} className="py-6 text-center text-muted-foreground">
                       此期別無資料
                     </TableCell>
                   </TableRow>
@@ -298,6 +341,21 @@ export default function KolPayFormReconcileTab({
                       </TableCell>
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         {r.reconCode || "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.formPeriods.length === 0
+                          ? "—"
+                          : r.formPeriods.map(fmtPeriod).join("、")}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {fmtDate(r.submittedAt)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">
+                        {r.remitDate ? (
+                          <span className="text-green-700">{fmtDate(r.remitDate)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">未匯款</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))
