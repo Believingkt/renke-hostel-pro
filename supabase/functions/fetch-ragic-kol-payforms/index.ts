@@ -107,13 +107,26 @@ Deno.serve(async (req) => {
         venue: String(r[F.VENUE] ?? "").trim(),
         amount: toNumber(r[F.AMOUNT]),
         created_at: String(r._create_date ?? "").trim() || null,
+        remit_date: String(r[F.REMIT_DATE] ?? "").trim() || null,
       };
     });
 
-    const filtered = period ? rows.filter((r) => r.period === period) : rows;
+    let periodsInScope: string[] = [];
+    if (period) {
+      for (let d = -windowMonths; d <= windowMonths; d += 1) {
+        periodsInScope.push(shiftPeriod(period, d));
+      }
+      periodsInScope = [...new Set(periodsInScope)];
+    }
+
+    const filtered = period
+      ? rows.filter((r) => r.period && periodsInScope.includes(r.period))
+      : rows;
 
     return json({
       period: period || null,
+      window_months: period ? windowMonths : null,
+      periods_in_scope: period ? periodsInScope : null,
       total_fetched: rows.length,
       count: filtered.length,
       rows: filtered,
