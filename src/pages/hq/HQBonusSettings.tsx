@@ -111,10 +111,10 @@ export default function HQBonusSettings() {
     setSearchParams(next, { replace: true });
   };
 
-  /** 依目前選到的館別（?acc=）導向該館 PMS 業主月結頁；未選館別則退回總表 */
+  /** 依目前選到的館別（?acc=）導向該館 PMS 業主月結頁；未選館別則導向 PMS 總表 */
   const goOwnerSettlement = async () => {
     if (!override) {
-      navigate("/admin/owner-settlement");
+      window.location.href = pmsHref("/admin/owner-settlement");
       return;
     }
     const { data } = await supabase
@@ -124,7 +124,7 @@ export default function HQBonusSettings() {
       .maybeSingle();
     const alias = (data as { short_url_alias?: string } | null)?.short_url_alias;
     if (!alias) {
-      navigate("/admin/owner-settlement");
+      window.location.href = pmsHref("/admin/owner-settlement");
       return;
     }
     window.location.href = pmsHref(`/${alias}/admin/owner-settlement`);
@@ -141,7 +141,7 @@ export default function HQBonusSettings() {
   return (
     <div className="container mx-auto space-y-4 py-6">
       <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => navigate("/team")}>
+        <Button variant="outline" size="sm" onClick={() => { window.location.href = pmsHref("/team"); }}>
           <ArrowLeft className="mr-1 h-4 w-4" />
           回團隊獎金頁
         </Button>
