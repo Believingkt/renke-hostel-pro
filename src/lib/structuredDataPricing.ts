@@ -43,13 +43,18 @@ export async function fetchRoomPriceRanges(
   const today = new Date();
   const until = new Date(today.getTime() + HORIZON_DAYS * 24 * 60 * 60 * 1000);
 
-  const [dailyRes, packagesRes] = await Promise.all([
-    supabase
-      .from("room_inventory_pricing")
-      .select("room_type_id, price, is_available, date")
-      .in("room_type_id", roomTypeIds)
-      .gte("date", toDateString(today))
-      .lte("date", toDateString(until)),
+  // 逐房型查詢，避免多房型合併查詢被單次回傳筆數上限截斷
+  const [dailyResults, packagesRes] = await Promise.all([
+    Promise.all(
+      roomTypeIds.map((roomTypeId) =>
+        supabase
+          .from("room_inventory_pricing")
+          .select("room_type_id, price, is_available, date")
+          .eq("room_type_id", roomTypeId)
+          .gte("date", toDateString(today))
+          .lte("date", toDateString(until))
+      )
+    ),
     supabase
       .from("accommodation_packages")
       .select(
