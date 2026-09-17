@@ -104,6 +104,7 @@ export async function fetchRoomPriceRanges(
   }
 
   const dailyRanges = toRanges(dailyMap);
+  const dailyRangesAny = toRanges(dailyMapAny);
   const packageRanges = toRanges(packageMap);
 
   const result: Record<string, RoomPriceRange> = {};
