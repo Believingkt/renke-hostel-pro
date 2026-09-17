@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { buildAccommodationCanonical, BOOKING_PORTAL_ORIGIN } from "@/lib/canonicalUrl";
+import { fetchRoomPriceRanges, type RoomPriceRange } from "@/lib/structuredDataPricing";
 
 interface AccommodationInfo {
   id?: string | null;
