@@ -207,14 +207,14 @@ export const StructuredData = ({
           "@type": "Brand",
           "name": accommodationInfo.name
         },
-        ...(price !== undefined && price > 0
+        ...(range
           ? {
               "offers": {
                 "@type": "AggregateOffer",
                 "availability": "https://schema.org/InStock",
                 "priceCurrency": "TWD",
-                "lowPrice": price.toString(),
-                "highPrice": price.toString(),
+                "lowPrice": range.low.toString(),
+                "highPrice": range.high.toString(),
                 "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 "url": `${pageUrl}#rooms`
               }
