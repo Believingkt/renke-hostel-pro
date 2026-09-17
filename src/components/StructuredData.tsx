@@ -112,9 +112,18 @@ export const StructuredData = ({
 
     const lat = toFiniteNumber(accommodationInfo.latitude);
     const lng = toFiniteNumber(accommodationInfo.longitude);
+    // 實際售價優先（每日房價／方案），沒有資料才退回房型基本房價
+    const effectiveRange = (room: RoomType): RoomPriceRange | undefined => {
+      const fetched = priceRanges[room.id];
+      if (fetched) return fetched;
+      const base = toFiniteNumber(room.base_price);
+      return base !== undefined && base > 0 ? { low: base, high: base } : undefined;
+    };
     const positivePrices = roomTypes
-      .map((r) => toFiniteNumber(r.base_price))
-      .filter((p): p is number => p !== undefined && p > 0);
+      .flatMap((r) => {
+        const range = effectiveRange(r);
+        return range ? [range.low, range.high] : [];
+      });
 
     // 旅館/企業資訊
     const hotelData = pruneEmpty({
