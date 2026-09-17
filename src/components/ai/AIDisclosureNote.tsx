@@ -11,7 +11,7 @@ interface Props {
 /** AI 對話框內固定顯示的實際服務商揭露文字。 */
 export default function AIDisclosureNote({ provider, showVoiceDisclosure = false, className }: Props) {
   const message = provider === "google"
-    ? "您的訊息會經 Lovable AI Gateway 傳送給 Google LLC（Gemini）以產生回覆。"
+    ? "您的訊息會傳送給 Google LLC（Gemini）以產生回覆。"
     : "您的訊息會傳送給 Anthropic PBC（Claude AI）以產生回覆。";
 
   return (
