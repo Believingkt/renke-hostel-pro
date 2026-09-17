@@ -183,7 +183,7 @@ export const StructuredData = ({
 
     // 房型資訊（每個房型作為一個產品）
     const roomsData = roomTypes.map((room) => {
-      const price = toFiniteNumber(room.base_price);
+      const range = effectiveRange(room);
       const capacity = toFiniteNumber(room.capacity);
       const size = toFiniteNumber(room.size_sqm);
 
