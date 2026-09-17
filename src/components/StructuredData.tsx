@@ -285,7 +285,7 @@ export const StructuredData = ({
       const scripts = document.querySelectorAll('script[data-structured-data]');
       scripts.forEach(script => script.remove());
     };
-  }, [accommodationInfo, roomTypes, averageRating, reviewCount]);
+  }, [accommodationInfo, roomTypes, averageRating, reviewCount, priceRanges]);
 
   return null; // 這個組件不渲染任何內容
 };
