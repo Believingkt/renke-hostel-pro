@@ -69,6 +69,29 @@ export const StructuredData = ({
   averageRating,
   reviewCount,
 }: StructuredDataProps) => {
+  const [priceRanges, setPriceRanges] = useState<Record<string, RoomPriceRange>>({});
+  const roomTypeIdsKey = roomTypes.map((r) => r.id).join(",");
+
+  // 取得房型實際售價區間（每日房價優先，其次方案售價），供 offers 使用
+  useEffect(() => {
+    let cancelled = false;
+    const ids = roomTypeIdsKey ? roomTypeIdsKey.split(",").filter(Boolean) : [];
+    if (!accommodationInfo.id || ids.length === 0) {
+      setPriceRanges({});
+      return;
+    }
+    fetchRoomPriceRanges(accommodationInfo.id, ids)
+      .then((ranges) => {
+        if (!cancelled) setPriceRanges(ranges);
+      })
+      .catch(() => {
+        if (!cancelled) setPriceRanges({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationInfo.id, roomTypeIdsKey]);
+
   useEffect(() => {
     // 清除舊的結構化資料
     const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
