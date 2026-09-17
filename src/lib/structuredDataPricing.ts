@@ -59,12 +59,17 @@ export async function fetchRoomPriceRanges(
       .eq("enabled", true),
   ]);
 
+  // 先取「可售日」的房價；某些房型未來全部關房（例如僅開放包棟），
+  // 此時退而採用所有有效房價，避免結構化資料完全沒有價格。
   const dailyMap = new Map<string, number[]>();
+  const dailyMapAny = new Map<string, number[]>();
   for (const row of dailyRes.data ?? []) {
-    if (row.is_available === false) continue;
     const price = positive(row.price);
     if (price === undefined) continue;
-    pushPrice(dailyMap, row.room_type_id as string, price);
+    const roomTypeId = row.room_type_id as string;
+    pushPrice(dailyMapAny, roomTypeId, price);
+    if (row.is_available === false) continue;
+    pushPrice(dailyMap, roomTypeId, price);
   }
 
   const packageMap = new Map<string, number[]>();
