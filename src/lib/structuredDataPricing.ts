@@ -110,7 +110,8 @@ export async function fetchRoomPriceRanges(
   const result: Record<string, RoomPriceRange> = {};
   for (const roomTypeId of roomTypeIds) {
     // 每日房價優先；沒有每日房價的房型（例如包區）改用方案售價
-    const range = dailyRanges[roomTypeId] ?? packageRanges[roomTypeId];
+    const range =
+      dailyRanges[roomTypeId] ?? packageRanges[roomTypeId] ?? dailyRangesAny[roomTypeId];
     if (range) result[roomTypeId] = range;
   }
   return result;
