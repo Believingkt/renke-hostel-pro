@@ -2274,6 +2274,7 @@ button > svg,
 
 .native-shell {
   overflow-x: hidden;
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 @media (prefers-reduced-motion: reduce) {

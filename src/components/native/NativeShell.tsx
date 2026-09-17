@@ -51,9 +51,9 @@ export function NativeShell({ children }: Props) {
   return (
     <div className="native-shell">
       {hasNavBar && <NativeNavBar />}
-      {/* 導覽列高度佔位（固定定位的 NavBar 不佔流） */}
+      {/* 導覽列高度佔位（固定定位的 NavBar 不佔流；安全區域由 .native-shell 統一預留） */}
       {hasNavBar && (
-        <div style={{ height: "calc(2.75rem + env(safe-area-inset-top, 0px))" }} aria-hidden />
+        <div style={{ height: "2.75rem" }} aria-hidden />
       )}
       <OfflineBanner show={!online} />
       <AnimatePresence mode="popLayout" initial={false}>
