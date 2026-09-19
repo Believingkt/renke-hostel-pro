@@ -6,3 +6,5 @@ diff/
 *.log
 *.err
 storage-sync-failures.txt
+restore-schema.list
+dump-toc.list

@@ -7,7 +7,8 @@
 |---|---|---|---|
 | 0 | `00-preflight.sh` | 檢查工具、env、連線 | Day 1 早上 |
 | 1 | `01-set-secrets.sh` | 把 `secrets.env` 批次寫入新專案 Edge Function secrets，並比對 | Day 1 |
-| 2 | `02-build-schema.sh` | `supabase link` + `db push` 957 個 migration 建 schema；失敗時印出卡住的檔名 | Day 1（先在測試專案跑一次） |
+| 2 | `02-build-schema.sh` | **由匯出檔還原 schema**（pg_restore --schema-only，public 全部 + auth/storage/realtime 上使用者建的物件），再把 957 個 migration 標記為已套用 | Day 1（9/19 已在測試專案驗證 db push 路線不可行） |
+| 2b | `02b-build-schema-by-db-push.sh` | 備用：`db push` 重播 migrations（9/19 測試：有 drift、seed 撞 FK，需逐一修，不建議） | — |
 | 3 | `03-schema-diff.sh` | Lovable 匯出的 schema vs 新專案 schema，正規化後 diff | Day 1 |
 | 4 | `04-rebuild-cron.sh` | 從匯出資料的 `cron.job` 產生 `rebuild-cron.sql`（換 URL 與 key），套到新專案 | Day 4 切換時（資料匯入後） |
 | 5 | `05-storage-sync.sh` + `../../supabase/functions/migration-storage-sync/` | 透過暫時部署在 Lovable 端的函式，把 storage 物件複製到新專案 | Day 2 先全量、Day 4 增量 |
