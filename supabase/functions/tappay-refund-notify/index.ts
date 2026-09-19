@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { maybeForward } from "../_shared/migrationForward.ts";
 import {
   buildTappayRefundFailurePatch,
   buildTappayRefundSuccessPatch,
@@ -39,6 +40,7 @@ interface TapPayRefundNotifyPayload {
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

@@ -9,6 +9,9 @@ ROOT="$(cd ../.. && pwd)"
 cd "$ROOT"
 # config.toml 的 project_id 仍是舊 ref；link 用 --project-ref 明示，不改檔案
 supabase link --project-ref "$REF"
+echo "-- 先啟用 migrations 會用到的 extensions（pg_cron 在 migrations 中第一次被引用前就要存在）"
+psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "create extension if not exists pg_cron; create extension if not exists pg_net; create extension if not exists pgmq; create extension if not exists supabase_vault; create extension if not exists pgcrypto; create extension if not exists \"uuid-ossp\"; grant usage on schema cron to postgres;"
+echo "-- 舊專案有 22 個 active cron job；db push 只會建 migrations 內的 7 個，其餘由 04-rebuild-cron.sh 從匯出檔重建"
 echo "-- 先看新專案已套用的 migration 版本（應為空或少量）"
 supabase migration list --linked | tail -n 5
 echo "-- db push（--include-all 保證全部按檔名順序套用）"

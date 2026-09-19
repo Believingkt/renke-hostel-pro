@@ -2,6 +2,7 @@
 // POST { staging_id: uuid }
 // Internal: invoked from owlting-email-ingest after a cancel/modify row is staged.
 // Idempotent: skips if last_send_status already 'success' for the same message_type.
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 
 const corsHeaders = {
@@ -45,6 +46,7 @@ function renderEmail(opts: {
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {

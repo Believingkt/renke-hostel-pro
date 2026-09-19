@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { notifyGroupBuyPaymentReceived } from "../_shared/groupBuyPaymentNotify.ts";
 import { completeGroupBuyCreditOrder } from "../_shared/groupBuyCreditCompletion.ts";
@@ -96,6 +97,7 @@ async function verifyWithTapPay(recTradeId: string): Promise<{ verified: boolean
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

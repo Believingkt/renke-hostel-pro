@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { createHmac } from "https://deno.land/std@0.177.0/node/crypto.ts";
 import { Resend } from "https://esm.sh/resend@4.0.0";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
@@ -333,6 +334,7 @@ async function sendWebhook(
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

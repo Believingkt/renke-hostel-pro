@@ -1,6 +1,7 @@
 // SendGrid Inbound Parse webhook for OwlTing order notifications
 // Receives multipart/form-data POST, persists raw payload, lightly parses subject.
 // IMPORTANT: Always return 200 so SendGrid does not retry indefinitely.
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
@@ -100,6 +101,7 @@ async function recordOutcome(
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

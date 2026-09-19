@@ -1,8 +1,11 @@
 -- Remove the three cron jobs that called super_admin-protected edge functions
 -- with only the anon apikey (they were rejected with 401 since deployment).
-SELECT cron.unschedule('calculate-scout-payout-daily');
-SELECT cron.unschedule('create-commission-snapshots-daily');
-SELECT cron.unschedule('create-commission-adjustments-daily');
+-- 2026-09-19 遷移前置：改為存在才 unschedule（新專案不存在這些 job 時不會失敗）
+DO $$ DECLARE n text; BEGIN
+  FOREACH n IN ARRAY ARRAY['calculate-scout-payout-daily','create-commission-snapshots-daily','create-commission-adjustments-daily'] LOOP
+    IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = n) THEN PERFORM cron.unschedule(n); END IF;
+  END LOOP;
+END $$;
 
 -- Single dispatcher job. 23:59 Asia/Taipei == 15:59 UTC.
 SELECT cron.schedule(

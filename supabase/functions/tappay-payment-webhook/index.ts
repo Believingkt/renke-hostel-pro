@@ -3,6 +3,7 @@
 // 處理失敗時：落地事件並排入自動重試（tappay-webhook-retry 每 10 分鐘掃描）。
 //
 // 安全性：以 query string ?key=<TAPPAY_WEBHOOK_SECRET> 驗證來源（於 TapPay 後台 notify_url 設定）。
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import {
@@ -17,6 +18,7 @@ import { reportBackendError } from "../_shared/errorReporter.ts";
 type Json = Record<string, unknown>;
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   const corsHeaders = buildCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 

@@ -17,6 +17,7 @@
  *   HotelCode    = accommodation_owlting_config.owlting_hotel_code
  *   InvTypeCode  = same as RoomTypeCode
  */
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { reportOwltingSyncFailure } from "../_shared/owltingSyncAlert.ts";
@@ -953,6 +954,7 @@ function uniqueIdItem(otaUniqueId: string, ourOrderNumber: string): string {
 
 // ============== Server ==============
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") return new Response("ok", { headers: SOAP_HEADERS });
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405, headers: SOAP_HEADERS });

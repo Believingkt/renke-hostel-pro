@@ -4,6 +4,7 @@
 //
 // This module is INDEPENDENT from owlting-order-push.
 // Do NOT import or share code with the sending side.
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { updateOrderWithContext, pickUpdatableOrderFields } from "../_shared/orderContext.ts";
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -37,6 +38,7 @@ function xmlResponse(body: string, status = 200) {
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

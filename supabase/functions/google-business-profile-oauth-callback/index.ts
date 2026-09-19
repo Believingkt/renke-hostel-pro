@@ -12,6 +12,7 @@
 //  - Redirect back to the app carries a coarse status only — never a code,
 //    state, client id, secret or token.
 // deno-lint-ignore-file no-explicit-any
+import { maybeForward } from "../_shared/migrationForward.ts";
 import {
   adminClient,
   callbackRedirectUri,
@@ -49,6 +50,7 @@ const SAFE_STATUS = [
 type SafeStatus = typeof SAFE_STATUS[number];
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }

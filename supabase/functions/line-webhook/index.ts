@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { maybeForward } from "../_shared/migrationForward.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { handleButlerEvent } from "../_shared/lineButler.ts";
 
@@ -227,6 +228,7 @@ async function handleButlerEvents(events: any[], accessToken: string | null) {
 }
 
 Deno.serve(async (req) => {
+  { const fw = await maybeForward(req); if (fw) return fw; }
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
