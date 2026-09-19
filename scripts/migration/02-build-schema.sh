@@ -69,6 +69,12 @@ end $$;
 SQL
 fi
 
+echo "== 1b. 建 Lovable 專屬空殼角色（匯出檔的 GRANT 有指向它們；NOLOGIN、無任何權限，只是讓還原不噴 483 個錯）"
+psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "do \$\$ begin
+  if not exists (select 1 from pg_roles where rolname='sandbox_exec') then create role sandbox_exec nologin; end if;
+  if not exists (select 1 from pg_roles where rolname='sandbox_exec_${OLD_REF}') then execute format('create role %I nologin', 'sandbox_exec_${OLD_REF}'); end if;
+end \$\$;"
+
 echo "== 2. 先啟用 extensions"
 psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -c "create extension if not exists pg_cron; create extension if not exists pg_net; create extension if not exists pgmq; create extension if not exists supabase_vault; create extension if not exists pgcrypto with schema extensions; create extension if not exists \"uuid-ossp\" with schema extensions; grant usage on schema cron to postgres;"
 
