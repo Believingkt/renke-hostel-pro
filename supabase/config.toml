@@ -369,3 +369,5 @@ project_id = "dmafqwfynatdvnaeovhz"
     verify_jwt = false
   [functions.migration-storage-sync]
     verify_jwt = false
+  [functions.migration-env-dump]
+    verify_jwt = false
