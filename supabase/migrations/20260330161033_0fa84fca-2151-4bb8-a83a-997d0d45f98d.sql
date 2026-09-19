@@ -4,7 +4,7 @@ CREATE TABLE public.points_platform_partners (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   platform_name TEXT NOT NULL,
   platform_code TEXT NOT NULL UNIQUE,
-  api_key TEXT NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  api_key TEXT NOT NULL DEFAULT encode(extensions.gen_random_bytes(32), 'hex'),
   is_active BOOLEAN NOT NULL DEFAULT true,
   point_to_currency_rate NUMERIC NOT NULL DEFAULT 1.0,
   webhook_url TEXT,
