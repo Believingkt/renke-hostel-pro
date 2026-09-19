@@ -1,0 +1,8 @@
+migration.env
+secrets.env
+rebuild-cron.sql
+restore.list
+diff/
+*.log
+*.err
+storage-sync-failures.txt
