@@ -194,6 +194,19 @@ serve(async (req) => {
       }
     }
 
+    // 取得操作者名稱（必須在 RPC 使用前初始化）
+    let operatorName = userEmail;
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("name")
+        .eq("id", userId)
+        .maybeSingle();
+      if (profile?.name) operatorName = profile.name;
+    } catch (_) {
+      /* ignore */
+    }
+
     // 呼叫 RPC 執行原子改期
     const { data: rpcData, error: rpcErr } = await supabase.rpc("change_order_dates", {
       _order_id: order.id,
@@ -216,19 +229,6 @@ serve(async (req) => {
         isInventory ? 409 : 500,
         corsHeaders,
       );
-    }
-
-    // 取得操作者名稱
-    let operatorName = userEmail;
-    try {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("name")
-        .eq("id", userId)
-        .maybeSingle();
-      if (profile?.name) operatorName = profile.name;
-    } catch (_) {
-      /* ignore */
     }
 
     // Audit log
