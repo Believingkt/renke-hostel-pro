@@ -178,3 +178,192 @@ project_id = "dmafqwfynatdvnaeovhz"
   [functions.team-view-query]
     verify_jwt = false
 
+
+  # ---- 遷移前置補齊（2026-09-19）：以下函式存在於 functions/ 但原 config.toml 未列。
+  # 一律明示 verify_jwt = false，授權由函式內部自行驗證（與新版 Supabase API key 相容）。
+  [functions.admin-create-user-with-password]
+    verify_jwt = false
+  [functions.admin-resend-booking-email]
+    verify_jwt = false
+  [functions.ai-ops-insights]
+    verify_jwt = false
+  [functions.bind-deposit-card]
+    verify_jwt = false
+  [functions.calculate-scout-payout]
+    verify_jwt = false
+  [functions.calculate-starlink-payout]
+    verify_jwt = false
+  [functions.cancel-expired-atm-orders]
+    verify_jwt = false
+  [functions.cancel-order-with-refund]
+    verify_jwt = false
+  [functions.change-order-dates]
+    verify_jwt = false
+  [functions.charge-deposit]
+    verify_jwt = false
+  [functions.charge-room-on-checkin]
+    verify_jwt = false
+  [functions.claim-order]
+    verify_jwt = false
+  [functions.cleanup-unverified-members]
+    verify_jwt = false
+  [functions.closer-team-pool]
+    verify_jwt = false
+  [functions.create-card-bound-order]
+    verify_jwt = false
+  [functions.create-commission-adjustments]
+    verify_jwt = false
+  [functions.create-commission-snapshots]
+    verify_jwt = false
+  [functions.create-paid-order]
+    verify_jwt = false
+  [functions.create-team-bonus-snapshots]
+    verify_jwt = false
+  [functions.cron-dispatcher-commission]
+    verify_jwt = false
+  [functions.debug-order-rls]
+    verify_jwt = false
+  [functions.delete-account]
+    verify_jwt = false
+  [functions.facebook-oauth-exchange]
+    verify_jwt = false
+  [functions.generate-accommodation-short-name]
+    verify_jwt = false
+  [functions.group-buy-campaign-admin]
+    verify_jwt = false
+  [functions.group-buy-cancel-refund]
+    verify_jwt = false
+  [functions.group-buy-complete-paid-order]
+    verify_jwt = false
+  [functions.group-buy-create-payment-draft]
+    verify_jwt = false
+  [functions.group-buy-draft-reconcile]
+    verify_jwt = false
+  [functions.group-buy-email-preview-send]
+    verify_jwt = false
+  [functions.group-buy-release-payment-draft]
+    verify_jwt = false
+  [functions.group-buy-resend-notification]
+    verify_jwt = false
+  [functions.group-buy-resume-payment-draft]
+    verify_jwt = false
+  [functions.hotelnabe-backfill-inventory]
+    verify_jwt = false
+  [functions.import-ryoan-orders]
+    verify_jwt = false
+  [functions.knowledge-search]
+    verify_jwt = false
+  [functions.kol-dashboard]
+    verify_jwt = false
+  [functions.kol-referral-join]
+    verify_jwt = false
+  [functions.line-butler-api]
+    verify_jwt = false
+  [functions.line-oauth-exchange]
+    verify_jwt = false
+  [functions.line-webhook]
+    verify_jwt = false
+  [functions.mcp]
+    verify_jwt = false
+  [functions.member-order-manage]
+    verify_jwt = false
+  [functions.notify-booking-confirmation]
+    verify_jwt = false
+  [functions.notify-order-status-change]
+    verify_jwt = false
+  [functions.owlting-cleanup-stale-pending]
+    verify_jwt = false
+  [functions.owlting-cm-self-test]
+    verify_jwt = false
+  [functions.owlting-email-reparse-dates]
+    verify_jwt = false
+  [functions.owlting-fillup-issue]
+    verify_jwt = false
+  [functions.owlting-selfpush-link]
+    verify_jwt = false
+  [functions.paid-draft-reconcile]
+    verify_jwt = false
+  [functions.payment-audit-resolve]
+    verify_jwt = false
+  [functions.points-booking-api]
+    verify_jwt = false
+  [functions.portal-ai-chat]
+    verify_jwt = false
+  [functions.preview-closer-commission]
+    verify_jwt = false
+  [functions.public-order-cancel]
+    verify_jwt = false
+  [functions.referral-hook]
+    verify_jwt = false
+  [functions.refund-deposit]
+    verify_jwt = false
+  [functions.remarketing-copy]
+    verify_jwt = false
+  [functions.remarketing-preview]
+    verify_jwt = false
+  [functions.remarketing-send]
+    verify_jwt = false
+  [functions.remarketing-track]
+    verify_jwt = false
+  [functions.request-member-otp]
+    verify_jwt = false
+  [functions.resend-direct-test]
+    verify_jwt = false
+  [functions.rls-policy]
+    verify_jwt = false
+  [functions.rpc-contract-check]
+    verify_jwt = false
+  [functions.save-google-business-profile-accommodation-secret]
+    verify_jwt = false
+  [functions.seed-app-review-account]
+    verify_jwt = false
+  [functions.send-daily-performance]
+    verify_jwt = false
+  [functions.send-final-payment-received]
+    verify_jwt = false
+  [functions.send-kol-cid-notify]
+    verify_jwt = false
+  [functions.send-kol-publish-reminder]
+    verify_jwt = false
+  [functions.send-line-push]
+    verify_jwt = false
+  [functions.send-order-cancelled-email]
+    verify_jwt = false
+  [functions.send-order-confirmation]
+    verify_jwt = false
+  [functions.send-resend-email]
+    verify_jwt = false
+  [functions.send-team-invite]
+    verify_jwt = false
+  [functions.sync-meta-ad-insights]
+    verify_jwt = false
+  [functions.sync-meta-ads]
+    verify_jwt = false
+  [functions.sync-taiwan-holidays]
+    verify_jwt = false
+  [functions.tappay-atm-create]
+    verify_jwt = false
+  [functions.tappay-payment-webhook]
+    verify_jwt = false
+  [functions.tappay-sync-refund]
+    verify_jwt = false
+  [functions.tappay-webhook-retry]
+    verify_jwt = false
+  [functions.team-list-emails]
+    verify_jwt = false
+  [functions.team-lookup-user-by-email]
+    verify_jwt = false
+  [functions.translate-content]
+    verify_jwt = false
+  [functions.traveler-guide]
+    verify_jwt = false
+  [functions.traveler-sync]
+    verify_jwt = false
+  [functions.traveler-tagging]
+    verify_jwt = false
+  [functions.trip-recommend]
+    verify_jwt = false
+  [functions.trip-translate]
+    verify_jwt = false
+  [functions.verify-dns]
+    verify_jwt = false
