@@ -40,7 +40,12 @@ USING (public.user_has_access_to_accommodation(auth.uid(), accommodation_id));
 -- Topic conventions used by the app are typically:
 --   "orders:{accommodationId}", "notifications:{accommodationId}", "user:{userId}"
 -- ============================================
-ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+-- 2026-09-19 遷移前置：realtime.messages 的擁有者不是 postgres（Supabase 預設已啟用 RLS），無權限時略過
+DO $$ BEGIN
+  ALTER TABLE realtime.messages ENABLE ROW LEVEL SECURITY;
+EXCEPTION WHEN insufficient_privilege THEN
+  RAISE NOTICE 'skip: not owner of realtime.messages (RLS is enabled by default on Supabase)';
+END $$;
 
 DROP POLICY IF EXISTS "Authenticated users can subscribe to scoped topics" ON realtime.messages;
 
