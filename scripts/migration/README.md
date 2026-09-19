@@ -14,4 +14,9 @@
 | 6 | `06-import-data.sh` | data-only 匯入（public / auth 等），停觸發器、跳過 storage/cron/vault | Day 4 切換時 |
 | 7 | `07-deploy-functions.sh` | 部署全部 181 個函式到新專案（含 config.toml 的 verify_jwt） | Day 1 |
 
-匯出檔：Lovable 後台 Cloud → Export（每天 1 次、≤ 5 GB），存到 `migration.env` 的 `DUMP_FILE`。
+匯出檔：Lovable 後台 Cloud → Advanced settings → Export data（每 24h 一次），完成後寄 email 連結並放在 storage bucket `database_export_<日期>`；路徑填到 `migration.env` 的 `DUMP_FILE`。
+
+9/19 實際檢查匯出檔（`renke-hostel-pro_260919.backup`，19.4 MB）：pg_dump 18.6 的 **custom 格式（archive v1.16）**，需 pg_restore ≥ 17。
+內含：public 246 表資料、**auth 27 表（含 auth.users.encrypted_password → 密碼直接搬，會員不用重設）**、auth.identities、cron.job（25 個）、
+storage.buckets/objects（只有 metadata，檔案本體仍要用 05 同步）、vault.secrets（金鑰不可攜，GBP 的 OAuth secret 要重填）、pgmq 佇列、
+realtime、supabase_migrations.schema_migrations（957 筆歷史；匯入時排除，新專案以 db push 的紀錄為準）。
