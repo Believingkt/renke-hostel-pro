@@ -34,7 +34,7 @@ const USE_CASE_HINT =
 const SCOPE = "https://www.googleapis.com/auth/business.manage";
 
 const REDIRECT_URI =
-  "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/google-business-profile-oauth-callback";
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-business-profile-oauth-callback`;
 
 const OFFICIAL_LINKS = [
   { label: "Google Cloud Console", url: "https://console.cloud.google.com/" },

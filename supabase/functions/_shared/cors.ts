@@ -1,3 +1,4 @@
+import { matchesExtraHost } from "./previewHosts.ts";
 // Shared CORS helper that returns headers reflecting an allow-listed origin.
 // Use this for sensitive edge functions instead of `Access-Control-Allow-Origin: *`.
 //
@@ -24,6 +25,7 @@ function isAllowedOrigin(origin: string | null): boolean {
     const host = url.hostname.toLowerCase();
     if (host === "localhost" || host === "127.0.0.1") return true;
     if (ALLOWED_EXACT_HOSTS.has(host)) return true;
+    if (matchesExtraHost(host)) return true;
     return ALLOWED_HOST_SUFFIXES.some((suffix) => host.endsWith(suffix));
   } catch {
     return false;

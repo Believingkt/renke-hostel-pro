@@ -13,6 +13,7 @@
 
 import { getBookingAliasEntry } from "@/lib/bookingAliasRegistry";
 
+import { isDevOrPreviewHost } from "@/lib/previewHost";
 export const BOOKING_PORTAL_HOST = "booking.lakeze.com";
 
 export interface BookingTarget {
@@ -76,11 +77,7 @@ export function bookingAbsoluteUrl(target: BookingTarget | string | null | undef
   if (domain) return `https://${domain}${path}`;
 
   const host = typeof window !== "undefined" ? window.location.hostname.toLowerCase() : "";
-  const isLocalOrPreview =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host.includes("lovableproject.com") ||
-    host.includes("lovable.app");
+  const isLocalOrPreview = isDevOrPreviewHost(host);
   if (isLocalOrPreview) return `${window.location.origin}${path}`;
 
   return `https://${BOOKING_PORTAL_HOST}${path}`;

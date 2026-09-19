@@ -1,3 +1,4 @@
+import { llmFetch, llmKey } from "./llm.ts";
 // 共用：動態行旅導引（七項旅遊屬性逐題收集）
 // /trips/guide 獨立頁（traveler-guide）與官網小安對話（portal-ai-chat）共用同一份提示詞與擷取邏輯。
 
@@ -117,7 +118,7 @@ export async function runGuideTurn(opts: {
   known?: Partial<GuideAttrs> | null;
   lang?: GuideLang;
 }): Promise<GuideTurnResult> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  const LOVABLE_API_KEY = llmKey();
   if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
   const cleaned = (opts.messages || [])
@@ -134,7 +135,7 @@ export async function runGuideTurn(opts: {
 
   const known = opts.known ?? {};
   const t0 = Date.now();
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
     body: JSON.stringify({

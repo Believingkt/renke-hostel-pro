@@ -1,3 +1,4 @@
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 // 依館別名稱／簡介／地區，用 Lovable AI 產生 SEO 標題、描述、關鍵字與社群分享文案。
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
       return json({ error: "name is required" }, 400);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
     const prompt = `你是台灣民宿／旅宿的 SEO 文案專家。請依下列資訊，產生繁體中文（台灣用語）的 SEO 內容。
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
 - 不要杜撰未提供的設施、價格、電話或獎項。
 只回傳 JSON 物件，不要任何額外文字或程式碼區塊標記。`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

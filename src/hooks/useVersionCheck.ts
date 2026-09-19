@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
+import { isPreviewHost } from "@/lib/previewHost";
 declare const __BUILD_ID__: string;
 
 /**
@@ -16,13 +17,7 @@ export function useVersionCheck() {
   useEffect(() => {
     if (!import.meta.env.PROD) return;
     const host = window.location.hostname;
-    if (
-      host.startsWith("id-preview--") ||
-      host.startsWith("preview--") ||
-      host.endsWith(".lovableproject.com") ||
-      host.endsWith(".lovableproject-dev.com") ||
-      host.endsWith(".beta.lovable.dev")
-    ) {
+    if (isPreviewHost(host)) {
       return;
     }
 

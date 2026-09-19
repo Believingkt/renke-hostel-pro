@@ -3,6 +3,7 @@
 // body: { limit?: number, traveler_id?: string, days?: number }
 // 冪等：同一旅客重跑會「覆蓋」interest_tags / custom_needs（AI 段），非累加重複
 // deno-lint-ignore-file no-explicit-any
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCustomerKey } from "../_shared/travelerKey.ts";
@@ -54,7 +55,7 @@ Deno.serve(async (req) => {
       if (!allowed) return json({ error: "Forbidden" }, 403);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
     let body: any = {};
@@ -155,7 +156,7 @@ Deno.serve(async (req) => {
         `只依對話內容判斷，不可臆測。以 JSON 回覆：{"keywords":[],"interest_tags":[],"custom_needs":[]}\n\n` +
         `=== 對話 ===\n${t.text.join("\n---\n").slice(0, 12000)}`;
 
-      const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const aiRes = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

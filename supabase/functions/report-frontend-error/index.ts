@@ -51,9 +51,8 @@ async function sendAlertEmail(
     userAgent?: string;
   },
 ): Promise<boolean> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
-  if (!lovableKey || !resendKey) return false;
+  if (!resendKey) return false;
 
   const botKeyword = detectBotKeyword(payload.userAgent);
   const isBot = botKeyword !== null;

@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
@@ -56,7 +55,7 @@ function extractLineUserId(email: string | null): string | null {
 }
 
 async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-  if (!LOVABLE_API_KEY || !RESEND_API_KEY) {
+  if (!RESEND_API_KEY) {
     console.warn("[notify-status] Resend not configured");
     return false;
   }

@@ -9,7 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 
-const BASE_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/accommodation-api";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accommodation-api`;
 
 function toYMD(d: Date | undefined): string {
   return d ? format(d, "yyyy-MM-dd") : "";

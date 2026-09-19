@@ -86,11 +86,10 @@ async function sendAlertEmail(
   subject: string,
   htmlBody: string,
 ): Promise<boolean> {
-  const lovableKey = Deno.env.get("LOVABLE_API_KEY");
   const resendKey = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 
-  if (!lovableKey || !resendKey) {
-    console.error("Missing LOVABLE_API_KEY or RESEND_API_KEY");
+  if (!resendKey) {
+    console.error("Missing RESEND_API_KEY");
     return false;
   }
 

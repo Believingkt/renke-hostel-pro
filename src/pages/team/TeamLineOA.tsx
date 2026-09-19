@@ -109,7 +109,7 @@ type VenueOption = {
 };
 
 const WEBHOOK_URL =
-  "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/line-webhook";
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/line-webhook`;
 
 const ROLE_OPTIONS = [
   "super_admin",

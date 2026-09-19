@@ -8,7 +8,6 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
@@ -30,7 +29,7 @@ function encodeNonAscii(s: string) {
 }
 
 async function sendNotice(to: string, days: number): Promise<boolean> {
-  if (!LOVABLE_API_KEY || !RESEND_API_KEY) return false;
+  if (!RESEND_API_KEY) return false;
   const subject = "您的帳號已因未完成驗證而移除";
   const html = encodeNonAscii(`<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="margin:0;background:#f6f6f7;font-family:-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;color:#2d3344">

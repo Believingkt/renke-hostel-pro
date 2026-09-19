@@ -9,6 +9,7 @@
 
 import { PMS_RESERVED_FIRST_SEGMENT_SET } from "@/lib/reservedRoutes";
 
+import { isDevOrPreviewHost as isDevOrPreviewHostShared } from "@/lib/previewHost";
 export const PMS_ORIGIN = "https://pms.lakeze.com";
 export const BOOKING_ORIGIN = "https://booking.lakeze.com";
 /** 密碼重設信固定回到 PMS 網域（勿用 window.location.origin 硬拼） */
@@ -30,13 +31,7 @@ export function isBookingHost(hostname = window.location.hostname): boolean {
 }
 
 function isDevOrPreviewHost(hostname: string): boolean {
-  const h = hostname.toLowerCase();
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h.includes("lovableproject.com") ||
-    h.includes("lovable.app")
-  );
+  return isDevOrPreviewHostShared(hostname);
 }
 
 /** 讀取（並記住）開發/預覽環境的模式覆寫 */

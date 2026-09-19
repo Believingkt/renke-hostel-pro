@@ -8,6 +8,7 @@
  *
  * 效能約束：本函式沒有任何排程，只在使用者「進頁面讀快取／按重新生成」時執行。
  */
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -88,7 +89,7 @@ serve(async (req) => {
 
     if (action !== "generate") return jsonRes({ error: "未知的 action" }, 400);
 
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const lovableKey = llmKey();
     if (!lovableKey) return jsonRes({ error: "AI 服務未設定（缺少金鑰）" }, 500);
 
     const systemPrompt = `你是台灣旅宿集團的資深營運顧問。你只會拿到一份已聚合好的 JSON 指標，
@@ -112,7 +113,7 @@ serve(async (req) => {
 異常判讀請優先檢查：高瀏覽低轉換的館別、熱門對話意圖但站內無對應商品、近期庫存過低的日期、加購率偏低。
 最多列 5 項異常，每項都必須引用 JSON 內的真實數字。`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 // E2 AI 文案產生（小安語氣）
 // POST /functions/v1/remarketing-copy  body: { segment_summary, interest_tags?, product_names?, goal? }
 // deno-lint-ignore-file no-explicit-any
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -32,7 +33,7 @@ Deno.serve(async (req) => {
       if (!(roles ?? []).some((r: any) => ADMIN_ROLES.includes(r.role))) return json({ error: "Forbidden" }, 403);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
     const body = await req.json().catch(() => ({}));
@@ -51,7 +52,7 @@ Deno.serve(async (req) => {
       `限制：內文 ≤3 句、不要誇大不實、不要用 emoji 以外的符號堆疊。\n` +
       `以 JSON 回覆：{"subject":"","body":"","cta_text":""}`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
       body: JSON.stringify({

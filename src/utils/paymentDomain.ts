@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
+import { isDevOrPreviewHost } from "@/lib/previewHost";
 type AccommodationDomainRow = {
   custom_domain: string | null;
   short_url_alias: string | null;
@@ -31,13 +32,7 @@ const LIVE_DOMAINS = new Set([
 
 /** 預覽 / 開發環境：一律留在當前網域，方便測試與避免跨網域 session 遺失 */
 function isPreviewHost(hostname: string) {
-  const h = hostname.toLowerCase();
-  return (
-    h === "localhost" ||
-    h === "127.0.0.1" ||
-    h.endsWith(".lovableproject.com") ||
-    h.includes("id-preview--")
-  );
+  return isDevOrPreviewHost(hostname);
 }
 
 

@@ -1,7 +1,6 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 import { seoPrerender } from "./scripts/vite-plugin-seo-prerender";
 import { sitemap } from "./scripts/vite-plugin-sitemap";
@@ -38,7 +37,6 @@ export default defineConfig(({ mode }) => {
       react({
         jsxImportSource: 'react',
       }),
-      mode === "development" && componentTagger(),
       emitVersionJson(buildId),
       seoPrerender({
         url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",

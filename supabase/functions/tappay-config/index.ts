@@ -1,3 +1,4 @@
+import { matchesExtraHost } from "../_shared/previewHosts.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -28,7 +29,8 @@ serve(async (req) => {
     NATIVE_APP_ORIGINS.has(origin) ||
     origin.endsWith('.lovable.app') ||
     origin.endsWith('.lovableproject.com') ||
-    origin.includes('lakeze.com');
+    origin.includes('lakeze.com') ||
+    (() => { try { return matchesExtraHost(new URL(origin).hostname); } catch { return false; } })();
 
   if (!isTrustedOrigin) {
     console.warn("[tappay-config] Blocked request from untrusted origin:", origin);

@@ -57,7 +57,7 @@ const OAUTH_RUNTIME_READY = true;
 
 /** 所有館共用的 OAuth callback（各館把它加入自己的 OAuth Client 授權重新導向 URI）。 */
 const REDIRECT_URI =
-  "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/google-business-profile-oauth-callback";
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-business-profile-oauth-callback`;
 
 
 const APPLICATION_STATUS_LABEL: Record<string, string> = {

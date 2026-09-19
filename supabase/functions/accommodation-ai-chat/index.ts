@@ -3,6 +3,7 @@
 //   - 外部呼叫：x-api-key (SHA-256 比對 accommodation_ai_api_keys.key_hash)
 //   - 內部呼叫（民宿後台 Playground）：Authorization Bearer + 驗證該使用者對 accommodation 有存取權
 
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
@@ -303,10 +304,10 @@ serve(async (req) => {
 
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${LOVABLE_API_KEY}`,

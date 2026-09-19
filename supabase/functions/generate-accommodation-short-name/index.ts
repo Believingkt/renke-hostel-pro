@@ -1,3 +1,4 @@
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 // Generate a short LINE-push name (emoji + 2-4 字) for a Taiwan B&B via Lovable AI Gateway.
 // Public function (no JWT required) — used in HQ admin UI.
 
@@ -21,7 +22,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
         status: 500,
@@ -38,7 +39,7 @@ Deno.serve(async (req) => {
 
 範例：🌲 森山、🏡 天送、🦛 哈庫`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,

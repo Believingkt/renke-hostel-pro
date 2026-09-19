@@ -1,3 +1,4 @@
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 // 語音辨識：接收前端錄音（base64），轉送 Lovable AI Gateway 進行轉文字
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = llmKey();
     if (!apiKey) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY 未設定" }), {
         status: 500,
@@ -69,7 +70,7 @@ Deno.serve(async (req) => {
     form.append("model", "openai/gpt-4o-mini-transcribe");
     form.append("file", new Blob([bytes], { type: baseMime }), `recording.${ext}`);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
+    const response = await llmFetch("https://ai.gateway.lovable.dev/v1/audio/transcriptions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}` },
       body: form,

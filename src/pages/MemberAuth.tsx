@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import lokezeLogo2 from "@/assets/lakeze-portal-logo.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
+import { oauth as lovable } from "@/integrations/oauth";
 import { readInviteCode, clearInviteCode, registerReferral } from "@/lib/referral";
 
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
@@ -153,6 +153,11 @@ const MemberAuth = () => {
           .eq("user_id", user.id)
           .maybeSingle();
         if (member) {
+          navigate(redirectTo, { replace: true });
+        } else if (["google", "apple"].includes(String(user.app_metadata?.provider))) {
+          // Supabase OAuth 整頁導向回來、尚無會員資料：補建後跳轉
+          await ensureMemberProfile();
+          toast.success(`${user.app_metadata?.provider === "google" ? "Google" : "Apple"} 登入成功`);
           navigate(redirectTo, { replace: true });
         }
       }
@@ -334,8 +339,9 @@ const MemberAuth = () => {
         return; // session arrives via the appUrlOpen listener
       }
 
+      // 回到本頁（帶 redirect），讓下方 checkExisting 幫首次 OAuth 登入的會員建立 platform_members
       const result = await lovable.auth.signInWithOAuth(provider, {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/member/auth?redirect=${encodeURIComponent(redirectTo)}`,
       });
       if (result.error) throw result.error;
       if (result.redirected) return;

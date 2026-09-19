@@ -1,3 +1,4 @@
+import { matchesExtraHost } from "../_shared/previewHosts.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -5,7 +6,7 @@ const corsHeaders = {
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
-const LOGO_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/storage/v1/object/public/email-assets/lakeze-logo.png";
+const LOGO_URL = `${Deno.env.get("SUPABASE_URL")}/storage/v1/object/public/email-assets/lakeze-logo.png`;
 
 // Brand colors (from index.css)
 const BRAND = {
@@ -242,7 +243,7 @@ const ALLOWED_URL_HOSTS = new Set<string>([
   "lakeze.com",
   "renke-hostel-pro.lovable.app",
   "id-preview--8d9d267e-a00c-4a5b-82fc-c8e538340567.lovable.app",
-  "dmafqwfynatdvnaeovhz.supabase.co",
+  new URL(Deno.env.get("SUPABASE_URL") ?? "https://dmafqwfynatdvnaeovhz.supabase.co").hostname,
 ]);
 
 function isAllowedUrl(rawUrl: unknown): boolean {
@@ -251,6 +252,7 @@ function isAllowedUrl(rawUrl: unknown): boolean {
     const u = new URL(rawUrl);
     if (u.protocol !== "https:" && u.protocol !== "http:") return false;
     const host = u.hostname.toLowerCase();
+    if (matchesExtraHost(host)) return true;
     for (const allowed of ALLOWED_URL_HOSTS) {
       if (host === allowed || host.endsWith(`.${allowed}`)) return true;
     }
@@ -282,8 +284,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");

@@ -30,8 +30,7 @@ const API_STATUS_LABEL: Record<string, string> = {
   REJECTED: "被拒絕",
 };
 
-const PROJECT_REF = "dmafqwfynatdvnaeovhz";
-const REDIRECT_URI = `https://${PROJECT_REF}.supabase.co/functions/v1/google-business-profile-oauth-callback`;
+const REDIRECT_URI = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-business-profile-oauth-callback`;
 
 export default function HQGoogleBusinessProfile() {
   const [rowId, setRowId] = useState<string | null>(null);

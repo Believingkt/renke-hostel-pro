@@ -6,6 +6,7 @@
  *   命中就直接回；沒命中才走 Lovable AI 閘道翻譯，並寫回快取。
  * - 只做「文字 → 文字」翻譯，不讀取也不寫入任何業務資料表。
  */
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -135,7 +136,7 @@ serve(async (req) => {
     }
 
     // 2) 未命中才呼叫 Lovable AI 閘道
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) {
       console.error("[translate-content] LOVABLE_API_KEY is not configured");
       return json({ translations, error: "translation unavailable" }, 200);
@@ -147,7 +148,7 @@ serve(async (req) => {
     const sourceChars = missing.reduce((n, m) => n + m.item.text.length, 0);
     const maxTokens = Math.min(16000, Math.max(2000, Math.ceil(sourceChars * 1.2) + 600));
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

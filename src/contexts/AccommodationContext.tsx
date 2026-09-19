@@ -4,6 +4,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { isPmsHost, extractAliasFromPath } from "@/lib/appMode";
 import { GLOBAL_VIEWER_ROLES, GLOBAL_VIEWER_ROLE_TAG } from "@/lib/globalViewerRoles";
 
+import { isDevOrPreviewHost } from "@/lib/previewHost";
 const { createContext, useContext, useState, useEffect, useRef, useCallback } = React;
 
 const ACCOMMODATION_ID_PARAM = 'accId';
@@ -97,10 +98,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     const hostname = window.location.hostname.toLowerCase();
     const isHQDomain = hostname === "hq.lakeze.com" || hostname === "www.hq.lakeze.com";
     const isBookingDomain = hostname === "booking.lakeze.com" || hostname === "www.booking.lakeze.com";
-    const isDevOrPreview = hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      hostname.includes("lovableproject.com") ||
-      hostname.includes("lovable.app");
+    const isDevOrPreview = isDevOrPreviewHost(hostname);
 
     // ===== PMS 網域：一律以路徑首段 alias 為準（登入時輸入的民宿代號） =====
     if (isPmsHost(hostname)) {
@@ -183,10 +181,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     const hostname = window.location.hostname.toLowerCase();
     const isHQDomain = hostname === "hq.lakeze.com" || hostname === "www.hq.lakeze.com";
     const isBookingDomain = hostname === "booking.lakeze.com" || hostname === "www.booking.lakeze.com";
-    const isDevOrPreview = hostname === "localhost" ||
-      hostname === "127.0.0.1" ||
-      hostname.includes("lovableproject.com") ||
-      hostname.includes("lovable.app");
+    const isDevOrPreview = isDevOrPreviewHost(hostname);
 
     // Booking 網域帶有 alias 路徑時也視為「自訂網域 context」
     if (isBookingDomain) {

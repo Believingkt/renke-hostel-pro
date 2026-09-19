@@ -8,7 +8,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AvailabilityTryIt } from "@/components/docs/AvailabilityTryIt";
 
-const BASE_URL = "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/accommodation-api";
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accommodation-api`;
+const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
 function CodeBlock({ children, label }: { children: string; label?: string }) {
   const [copied, setCopied] = useState(false);
@@ -394,7 +395,7 @@ export default function AccommodationApiDocs() {
 
                     <div>
                       <p className="font-semibold mb-1">端點</p>
-                      <CodeBlock label="GET">{`GET https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability`}</CodeBlock>
+                      <CodeBlock label="GET">{`GET ${FUNCTIONS_URL}/all-availability`}</CodeBlock>
                     </div>
 
                     <div>
@@ -425,43 +426,43 @@ export default function AccommodationApiDocs() {
 
                     <div>
                       <p className="font-semibold mb-1">cURL 範例</p>
-                      <CodeBlock label="1. 全平台 · 房型 + 庫存 + 房價 + 包棟方案（預設 include）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15' \\
+                      <CodeBlock label="1. 全平台 · 房型 + 庫存 + 房價 + 包棟方案（預設 include）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="2. 指定民宿（單一）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=4ee31aca-5641-4d05-80e2-1c67626be83d' \\
+                      <CodeBlock label="2. 指定民宿（單一）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=4ee31aca-5641-4d05-80e2-1c67626be83d' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="3. 指定民宿（多家，逗號分隔）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B,UUID_C' \\
+                      <CodeBlock label="3. 指定民宿（多家，逗號分隔）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B,UUID_C' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="4. 只要房型/庫存/房價（省略 packages）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
+                      <CodeBlock label="4. 只要房型/庫存/房價（省略 packages）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="5. 只要包棟方案清單（不算庫存，最快）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-05&include=packages' \\
+                      <CodeBlock label="5. 只要包棟方案清單（不算庫存，最快）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-05&include=packages' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="6. 單日 snapshot（from == to，最省時）">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-05&to=2026-07-05' \\
+                      <CodeBlock label="6. 單日 snapshot（from == to，最省時）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-05' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
-                      <CodeBlock label="7. 完整組合：指定民宿 + 完整內容 + 60 天上限">{`curl 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?from=2026-07-01&to=2026-08-29&accommodation_ids=UUID_A,UUID_B&include=room_types,packages' \\
+                      <CodeBlock label="7. 完整組合：指定民宿 + 完整內容 + 60 天上限">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-01&to=2026-08-29&accommodation_ids=UUID_A,UUID_B&include=room_types,packages' \\
   -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
                     </div>
 
                     <div>
                       <CodeBlock label="8. Node.js（fetch）">{`const res = await fetch(
-  'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability?' +
+  '${FUNCTIONS_URL}/all-availability?' +
   new URLSearchParams({
     from: '2026-07-05',
     to: '2026-07-15',

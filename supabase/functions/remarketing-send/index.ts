@@ -110,7 +110,6 @@ Deno.serve(async (req) => {
     const funcBase = `${supabaseUrl}/functions/v1`;
 
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     const results: any[] = [];
     let sent = 0, failed = 0, skipped = 0;
@@ -144,7 +143,7 @@ Deno.serve(async (req) => {
         sendRow.status = "skipped";
         sendRow.error_message = "dry_run";
         skipped++;
-      } else if (!RESEND_API_KEY || !LOVABLE_API_KEY) {
+      } else if (!RESEND_API_KEY) {
         sendRow.status = "failed";
         sendRow.error_message = "Resend 未設定";
         failed++;

@@ -1,8 +1,8 @@
 import * as React from 'npm:react@18.3.1'
+import { matchesExtraHost } from '../_shared/previewHosts.ts'
 import { renderToStaticMarkup } from 'npm:react-dom@18.3.1/server'
 import { htmlToText } from 'npm:html-to-text@9.0.5'
-import { parseEmailWebhookPayload } from 'npm:@lovable.dev/email-js'
-import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
+import { Webhook } from 'npm:standardwebhooks@1.0.0'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { SignupEmail } from '../_shared/email-templates/signup.tsx'
 import { InviteEmail } from '../_shared/email-templates/invite.tsx'
@@ -14,7 +14,7 @@ import { ReauthenticationEmail } from '../_shared/email-templates/reauthenticati
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-lovable-signature, x-lovable-timestamp, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+    'authorization, x-client-info, apikey, content-type, webhook-id, webhook-timestamp, webhook-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 }
 
 function buildSubject(type: string, token?: string): string {
@@ -88,7 +88,7 @@ const PMS_HOST = 'pms.lakeze.com'
 const BOOKING_HOST = 'booking.lakeze.com'
 
 function isDefaultHost(host: string) {
-  return DEFAULT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
+  return matchesExtraHost(host) || DEFAULT_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
 }
 
 /**
@@ -143,9 +143,9 @@ async function handlePreview(req: Request): Promise<Response> {
   }
   if (req.method === 'OPTIONS') return new Response(null, { headers: previewCorsHeaders })
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const previewKey = hookSecret()
   const authHeader = req.headers.get('Authorization')
-  if (!apiKey || authHeader !== `Bearer ${apiKey}`) {
+  if (!previewKey || authHeader !== `Bearer ${previewKey}`) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401, headers: { ...previewCorsHeaders, 'Content-Type': 'application/json' },
     })
@@ -196,10 +196,44 @@ async function sendViaResend(params: {
   return { ok: resp.ok, status: resp.status, body, messageId }
 }
 
+// Supabase Auth「Send Email」Hook（HTTPS）：Standard Webhooks 簽章，secret 由 Dashboard 產生，格式 v1,whsec_<base64>
+// 同一值設為 Edge Function secret AUTH_HOOK_SECRET。
+function hookSecret(): string | undefined {
+  const raw = Deno.env.get('AUTH_HOOK_SECRET')
+  if (!raw) return undefined
+  return raw.replace(/^v1,/, '').replace(/^whsec_/, '')
+}
+
+// Supabase 原生 hook payload → 本檔既有的 { run_id, data: { action_type, email, token, url, old_email, new_email } }
+function normalizePayload(raw: any, supabaseUrl: string) {
+  if (raw?.data?.action_type) return raw // 舊格式（相容）
+  const user = raw?.user ?? {}
+  const d = raw?.email_data ?? {}
+  const type: string = d.email_action_type
+  const redirectTo: string = d.redirect_to || d.site_url || ''
+  // 官方驗證連結：/auth/v1/verify?token=<token_hash>&type=<type>&redirect_to=<redirect_to>
+  const verifyType = type === 'email_change' && d.token_hash_new ? 'email_change' : type
+  const tokenHash = type === 'email_change' && d.token_hash_new ? d.token_hash_new : d.token_hash
+  const url = tokenHash
+    ? `${supabaseUrl}/auth/v1/verify?token=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(verifyType)}&redirect_to=${encodeURIComponent(redirectTo)}`
+    : undefined
+  return {
+    run_id: raw?.run_id ?? crypto.randomUUID(),
+    data: {
+      action_type: type,
+      email: type === 'email_change' && user.new_email ? user.new_email : user.email,
+      token: type === 'email_change' && d.token_new ? d.token_new : d.token,
+      url,
+      old_email: user.email,
+      new_email: user.new_email ?? user.email_change,
+    },
+  }
+}
+
 async function handleWebhook(req: Request): Promise<Response> {
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
-  if (!apiKey) {
-    console.error('LOVABLE_API_KEY not configured')
+  const secret = hookSecret()
+  if (!secret) {
+    console.error('AUTH_HOOK_SECRET not configured')
     return new Response(JSON.stringify({ error: 'Server configuration error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
@@ -207,19 +241,18 @@ async function handleWebhook(req: Request): Promise<Response> {
 
   let payload: any
   try {
-    const verified = await verifyWebhookRequest({ req, secret: apiKey, parser: parseEmailWebhookPayload })
-    payload = verified.payload
+    const bodyText = await req.text()
+    const wh = new Webhook(secret)
+    const verified = wh.verify(bodyText, {
+      'webhook-id': req.headers.get('webhook-id') ?? '',
+      'webhook-timestamp': req.headers.get('webhook-timestamp') ?? '',
+      'webhook-signature': req.headers.get('webhook-signature') ?? '',
+    })
+    payload = normalizePayload(verified, Deno.env.get('SUPABASE_URL')!)
   } catch (error) {
-    if (error instanceof WebhookError) {
-      console.error('Webhook verification failed', { code: error.code, message: error.message })
-      const status = ['invalid_signature','missing_timestamp','invalid_timestamp','stale_timestamp'].includes(error.code) ? 401 : 400
-      return new Response(JSON.stringify({ error: error.code }), {
-        status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-    console.error('Webhook verification error', { error })
-    return new Response(JSON.stringify({ error: 'Invalid webhook payload' }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    console.error('Webhook verification failed', { message: (error as Error)?.message })
+    return new Response(JSON.stringify({ error: 'invalid_signature' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
 

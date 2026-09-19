@@ -12,6 +12,7 @@ import { Building2, X, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { isNativeApp } from "@/lib/appMode";
 
+import { isPreviewHost } from "@/lib/previewHost";
 interface Accommodation {
   id: string;
   name: string;
@@ -30,7 +31,7 @@ export function DevAccommodationSwitcher() {
   const isNative = isNativeApp();
   const isDevOrPreview =
     !isNative &&
-    (import.meta.env.DEV || window.location.hostname.includes('lovableproject.com'));
+    (import.meta.env.DEV || isPreviewHost(window.location.hostname));
 
   useEffect(() => {
     if (!isDevOrPreview) return;

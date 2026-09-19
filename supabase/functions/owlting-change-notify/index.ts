@@ -10,7 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "人客多 Lakeze <noreply@lakeze.com>";
@@ -107,7 +106,7 @@ Deno.serve(async (req) => {
     let emailedTo: string[] = [];
     let emailErrors: string[] = [];
 
-    if (LOVABLE_API_KEY && RESEND_API_KEY && owners && owners.length > 0) {
+    if (RESEND_API_KEY && owners && owners.length > 0) {
       for (const o of owners) {
         const html = renderEmail({
           ownerName: o.owner_name ?? "",

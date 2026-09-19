@@ -4,6 +4,7 @@
  *   ai_prompts(published) + ai_knowledge + ai_examples + ai_reply_templates
  * - 對話一律寫入 ai_conversation_logs（source = 'line'），總部訓練中心可檢視
  */
+import { llmFetch, llmKey } from "./llm.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { taipeiToday } from "./taipeiDate.ts";
 
@@ -72,7 +73,7 @@ export async function askLlm(
   sb: SupabaseClient,
   opts: { text: string; history?: { role: "user" | "assistant"; content: string }[] },
 ): Promise<LlmAnswer> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const apiKey = llmKey();
   if (!apiKey) {
     console.error("[butler-llm] LOVABLE_API_KEY missing");
     return { text: FALLBACK_TEXT, promptVersion: null };
@@ -84,7 +85,7 @@ export async function askLlm(
     version = v;
     const history = (opts.history || []).slice(-6);
     // 低延遲模型：LINE 佔位→push 目標 < 5 秒
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({

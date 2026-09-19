@@ -1,3 +1,4 @@
+import { llmFetch, llmKey } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -276,9 +277,9 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
 
     if (fast) {
       // LINE 情境：低延遲模型 + 只生中文 + 極短輸出
-      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      const LOVABLE_API_KEY = llmKey();
       if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await llmFetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
         body: JSON.stringify({

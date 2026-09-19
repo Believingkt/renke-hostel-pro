@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cacheAccommodationTheme } from "@/constants/themes";
 import { isNativeBookingApp } from "@/lib/appMode";
 
+import { isDevOrPreviewHost } from "@/lib/previewHost";
 interface AccommodationData {
   id: string;
   short_url_alias: string | null;
@@ -133,10 +134,7 @@ export function useSubdomain() {
       }
       
       // 判斷是否為開發環境或 Lovable 預覽環境
-      const isDevOrPreview = hostname === 'localhost' || 
-                             hostname === '127.0.0.1' || 
-                             hostname.includes('lovableproject.com') || 
-                             hostname.includes('lovable.app');
+      const isDevOrPreview = isDevOrPreviewHost(hostname);
       
       if (isDevOrPreview) {
         // 開發/預覽環境：使用 ?acc= 查詢參數或 localStorage
