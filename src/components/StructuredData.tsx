@@ -1,5 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { buildAccommodationCanonical, BOOKING_PORTAL_ORIGIN } from "@/lib/canonicalUrl";
+import { fetchRoomPriceRanges, type RoomPriceRange } from "@/lib/structuredDataPricing";
 
 interface AccommodationInfo {
   id?: string | null;
@@ -68,6 +69,29 @@ export const StructuredData = ({
   averageRating,
   reviewCount,
 }: StructuredDataProps) => {
+  const [priceRanges, setPriceRanges] = useState<Record<string, RoomPriceRange>>({});
+  const roomTypeIdsKey = roomTypes.map((r) => r.id).join(",");
+
+  // 取得房型實際售價區間（每日房價優先，其次方案售價），供 offers 使用
+  useEffect(() => {
+    let cancelled = false;
+    const ids = roomTypeIdsKey ? roomTypeIdsKey.split(",").filter(Boolean) : [];
+    if (!accommodationInfo.id || ids.length === 0) {
+      setPriceRanges({});
+      return;
+    }
+    fetchRoomPriceRanges(accommodationInfo.id, ids)
+      .then((ranges) => {
+        if (!cancelled) setPriceRanges(ranges);
+      })
+      .catch(() => {
+        if (!cancelled) setPriceRanges({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationInfo.id, roomTypeIdsKey]);
+
   useEffect(() => {
     // 清除舊的結構化資料
     const existingScripts = document.querySelectorAll('script[type="application/ld+json"]');
@@ -88,9 +112,18 @@ export const StructuredData = ({
 
     const lat = toFiniteNumber(accommodationInfo.latitude);
     const lng = toFiniteNumber(accommodationInfo.longitude);
+    // 實際售價優先（每日房價／方案），沒有資料才退回房型基本房價
+    const effectiveRange = (room: RoomType): RoomPriceRange | undefined => {
+      const fetched = priceRanges[room.id];
+      if (fetched) return fetched;
+      const base = toFiniteNumber(room.base_price);
+      return base !== undefined && base > 0 ? { low: base, high: base } : undefined;
+    };
     const positivePrices = roomTypes
-      .map((r) => toFiniteNumber(r.base_price))
-      .filter((p): p is number => p !== undefined && p > 0);
+      .flatMap((r) => {
+        const range = effectiveRange(r);
+        return range ? [range.low, range.high] : [];
+      });
 
     // 旅館/企業資訊
     const hotelData = pruneEmpty({
@@ -150,7 +183,7 @@ export const StructuredData = ({
 
     // 房型資訊（每個房型作為一個產品）
     const roomsData = roomTypes.map((room) => {
-      const price = toFiniteNumber(room.base_price);
+      const range = effectiveRange(room);
       const capacity = toFiniteNumber(room.capacity);
       const size = toFiniteNumber(room.size_sqm);
 
@@ -174,14 +207,14 @@ export const StructuredData = ({
           "@type": "Brand",
           "name": accommodationInfo.name
         },
-        ...(price !== undefined && price > 0
+        ...(range
           ? {
               "offers": {
                 "@type": "AggregateOffer",
                 "availability": "https://schema.org/InStock",
                 "priceCurrency": "TWD",
-                "lowPrice": price.toString(),
-                "highPrice": price.toString(),
+                "lowPrice": range.low.toString(),
+                "highPrice": range.high.toString(),
                 "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 "url": `${pageUrl}#rooms`
               }
@@ -252,7 +285,7 @@ export const StructuredData = ({
       const scripts = document.querySelectorAll('script[data-structured-data]');
       scripts.forEach(script => script.remove());
     };
-  }, [accommodationInfo, roomTypes, averageRating, reviewCount]);
+  }, [accommodationInfo, roomTypes, averageRating, reviewCount, priceRanges]);
 
   return null; // 這個組件不渲染任何內容
 };
