@@ -42,7 +42,7 @@ for (const b of buckets) {
   }
   let after = "", total = 0;
   while (true) {
-    const { objects, next } = await old({ action: "list", bucket: b.name, after, limit: 1000, updatedAfter: args.since });
+    const { objects, next } = await old({ action: "list", bucket: b.name, updatedAfter: args.since });
     total += objects.length;
     for (let i = 0; i < objects.length; i += 100) {
       const chunk = objects.slice(i, i + 100);

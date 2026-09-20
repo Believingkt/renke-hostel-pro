@@ -27,28 +27,26 @@ Deno.serve(async (req) => {
   }
 
   if (action === "list") {
-    // 用 storage.objects 直接查，避免遞迴 list 目錄；回傳 name/size/mimetype/updated_at
-    const { bucket, after = "", limit = 1000, updatedAfter } = body;
-    let q = admin
-      .schema("storage")
-      .from("objects")
-      .select("name, updated_at, metadata")
-      .eq("bucket_id", bucket)
-      .gt("name", after)
-      .order("name", { ascending: true })
-      .limit(limit);
-    if (updatedAfter) q = q.gt("updated_at", updatedAfter);
-    const { data, error } = await q;
-    if (error) return json({ error: error.message }, 500);
-    return json({
-      objects: (data ?? []).map((o) => ({
-        name: o.name,
-        updated_at: o.updated_at,
-        size: o.metadata?.size ?? null,
-        mimetype: o.metadata?.mimetype ?? null,
-      })),
-      next: data && data.length === limit ? data[data.length - 1].name : null,
-    });
+    // 用 storage SDK 遞迴列目錄（storage.objects 不在 PostgREST 開放的 schema 內）
+    const { bucket, prefix = "", updatedAfter } = body as { bucket: string; prefix?: string; updatedAfter?: string };
+    const out: { name: string; updated_at: string; size: number | null; mimetype: string | null }[] = [];
+    const walk = async (dir: string) => {
+      let offset = 0;
+      while (true) {
+        const { data, error } = await admin.storage.from(bucket).list(dir, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
+        if (error) throw new Error(`list ${bucket}/${dir}: ${error.message}`);
+        for (const e of data ?? []) {
+          const full = dir ? `${dir}/${e.name}` : e.name;
+          if (e.id === null) { await walk(full); continue; } // 目錄
+          if (updatedAfter && e.updated_at && e.updated_at <= updatedAfter) continue;
+          out.push({ name: full, updated_at: e.updated_at ?? "", size: e.metadata?.size ?? null, mimetype: e.metadata?.mimetype ?? null });
+        }
+        if (!data || data.length < 1000) break;
+        offset += 1000;
+      }
+    };
+    try { await walk(prefix); } catch (e) { return json({ error: (e as Error).message }, 500); }
+    return json({ objects: out, next: null });
   }
 
   if (action === "sign") {
