@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 set -a; source migration.env; set +a
 ROOT="$(cd ../.. && pwd)"; cd "$ROOT"
-if [ $# -gt 0 ]; then fns=("$@"); else mapfile -t fns < <(ls supabase/functions | grep -vE '^_shared$|^migration-storage-sync$'); fi
+if [ $# -gt 0 ]; then fns=("$@"); else fns=(); while IFS= read -r f; do fns+=("$f"); done < <(ls supabase/functions | grep -vE '^_shared$|^migration-storage-sync$|^migration-env-dump$'); fi
 echo "-- 部署 ${#fns[@]} 個函式到 $NEW_REF"
 fail=()
 for f in "${fns[@]}"; do
