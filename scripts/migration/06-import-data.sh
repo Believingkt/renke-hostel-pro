@@ -17,7 +17,9 @@ if ! pg_restore -l "$DUMP_FILE" >/dev/null 2>&1; then echo "DUMP_FILE 不是 pg_
 # 靠 TOC 順序處理 FK。realtime / pgmq / storage / cron / vault 不灌。
 pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' | grep -E ' public ' > restore-public.list
 pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' | grep -E ' auth ' \
-  | grep -vE ' auth (schema_migrations|audit_log_entries|sessions|refresh_tokens|flow_state|mfa_amr_claims|one_time_tokens) ' > restore-auth.list
+  | grep -vE ' auth (schema_migrations|audit_log_entries|sessions|refresh_tokens|flow_state|mfa_amr_claims|one_time_tokens) ' > restore-auth.tmp
+# TOC 內資料是字母序（identities 排在 users 前）→ users 先灌，其餘依原順序
+{ grep -E ' auth users ' restore-auth.tmp; grep -vE ' auth users ' restore-auth.tmp; } > restore-auth.list; rm -f restore-auth.tmp
 echo "-- 將匯入 public $(grep -c 'TABLE DATA' restore-public.list) 張表、auth $(grep -c 'TABLE DATA' restore-auth.list) 張表（不含 sessions/refresh_tokens：登入狀態不搬）"
 t0=$(date +%s)
 echo "== 1/2 auth（users, identities, instances, sso…）"
