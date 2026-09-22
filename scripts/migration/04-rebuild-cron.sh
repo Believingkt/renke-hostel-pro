@@ -40,6 +40,6 @@ PY
 rm -f cron.list cron-job.sql
 echo "-- 產生 rebuild-cron.sql：$(grep -c 'cron.schedule' rebuild-cron.sql) 個 job；殘留舊 ref：$(grep -c "$OLD_REF" rebuild-cron.sql || true)（應為 0）"
 grep -oE "cron\.schedule\('[^']+'" rebuild-cron.sql | sed "s/cron.schedule('//;s/'//" | tr '\n' ' '; echo
-read -rp "套用到新專案 $NEW_REF？(yes/no) " a; [ "$a" = yes ] || exit 0
+read -rp "套用到新專案 ${NEW_REF}？(yes/no) " a; [ "$a" = yes ] || exit 0
 psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -q -f rebuild-cron.sql
 psql "$NEW_DB_URL" -Atc "select jobid||' '||jobname||' '||schedule||' active='||active from cron.job order by jobid"
