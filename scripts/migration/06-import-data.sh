@@ -12,21 +12,21 @@ echo "-- 新專案目前 public 資料列數（應為 0 或只有 seed）"
 psql "$NEW_DB_URL" -Atc "select coalesce(sum(n_live_tup),0) from pg_stat_user_tables where schemaname='public'"
 read -rp "確認 Lovable 已停止寫入（維護中頁面已上、cron 已停）且以上為 0？(yes/no) " a; [ "$a" = yes ] || exit 1
 
-if pg_restore -l "$DUMP_FILE" >/dev/null 2>&1; then
-  # custom format：先產生 list，只留 TABLE DATA / SEQUENCE SET，排除不要的 schema
-  pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' \
-    | grep -vE ' (storage|cron|net|vault|supabase_functions|realtime|supabase_migrations|graphql|pgsodium|extensions|_realtime) ' \
-    > restore.list
-  echo "-- 將匯入 $(grep -c 'TABLE DATA' restore.list) 張表"
-  pg_restore --data-only --disable-triggers --no-owner --no-privileges --single-transaction \
-    --use-list=restore.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee "$LOG"
-else
-  # plain SQL：假設匯出為 schema+data 的 .sql。用 psql 匯入資料段落前，先確認格式（COPY ... FROM stdin）
-  grep -c '^COPY ' "$DUMP_FILE" | sed 's/^/COPY 區塊數：/'
-  echo "plain SQL 匯出建議先還原到 scratch DB（03 已做），再用 pg_dump --data-only 從 scratch 產 custom 檔："
-  echo "  pg_dump -Fc --data-only --schema=public --schema=auth \"\$SCRATCH_DB_URL\" > data.dump ；然後把 DUMP_FILE 指向 data.dump 重跑本腳本"
-  exit 1
-fi
+if ! pg_restore -l "$DUMP_FILE" >/dev/null 2>&1; then echo "DUMP_FILE 不是 pg_dump custom 格式"; exit 1; fi
+# 分兩趟：public 用 --disable-triggers（postgres 是 owner）；auth 不能 disable triggers（owner 是 supabase_auth_admin），
+# 靠 TOC 順序處理 FK。realtime / pgmq / storage / cron / vault 不灌。
+pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' | grep -E ' public ' > restore-public.list
+pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' | grep -E ' auth ' \
+  | grep -vE ' auth (schema_migrations|audit_log_entries|sessions|refresh_tokens|flow_state|mfa_amr_claims|one_time_tokens) ' > restore-auth.list
+echo "-- 將匯入 public $(grep -c 'TABLE DATA' restore-public.list) 張表、auth $(grep -c 'TABLE DATA' restore-auth.list) 張表（不含 sessions/refresh_tokens：登入狀態不搬）"
+t0=$(date +%s)
+echo "== 1/2 auth（users, identities, instances, sso…）"
+pg_restore --data-only --no-owner --no-privileges --single-transaction \
+  --use-list=restore-auth.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee "$LOG"
+echo "== 2/2 public（$(grep -c 'TABLE DATA' restore-public.list) 張表，停觸發器）"
+pg_restore --data-only --disable-triggers --no-owner --no-privileges --single-transaction \
+  --use-list=restore-public.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee -a "$LOG"
+echo "-- 耗時 $(( $(date +%s) - t0 )) 秒"
 
 echo "-- 匯入後檢查：列數對照（scratch=舊 vs new）前 25 大表"
 psql "$NEW_DB_URL" -Atc "select relname||'='||n_live_tup from pg_stat_user_tables where schemaname='public' order by n_live_tup desc limit 25" | tr '\n' ' '; echo
