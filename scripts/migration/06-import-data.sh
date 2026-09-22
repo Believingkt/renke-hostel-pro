@@ -23,11 +23,19 @@ pg_restore -l "$DUMP_FILE" | grep -E 'TABLE DATA|SEQUENCE SET' | grep -E ' auth 
 echo "-- 將匯入 public $(grep -c 'TABLE DATA' restore-public.list) 張表、auth $(grep -c 'TABLE DATA' restore-auth.list) 張表（不含 sessions/refresh_tokens：登入狀態不搬）"
 t0=$(date +%s)
 echo "== 1/2 auth（users, identities, instances, sso…）"
-pg_restore --data-only --no-owner --no-privileges --single-transaction \
-  --use-list=restore-auth.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee "$LOG"
-echo "== 2/2 public（$(grep -c 'TABLE DATA' restore-public.list) 張表，停觸發器）"
-pg_restore --data-only --disable-triggers --no-owner --no-privileges --single-transaction \
-  --use-list=restore-public.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee -a "$LOG"
+if [ "$(psql "$NEW_DB_URL" -Atc 'select count(*) from auth.users')" != "0" ]; then
+  echo "auth.users 已有資料，略過 auth 這趟（要重灌請先清空 auth.users）"
+else
+  pg_restore --data-only --no-owner --no-privileges --single-transaction \
+    --use-list=restore-auth.list -d "$NEW_DB_URL" "$DUMP_FILE" 2>&1 | tee "$LOG"
+fi
+echo "== 2/2 public（$(grep -c 'TABLE DATA' restore-public.list) 張表）"
+# Supabase 的 postgres 不是 superuser，不能 DISABLE TRIGGER ALL（FK 觸發器是系統觸發器）。
+# 改用 session_replication_role = replica（Supabase 有授權），同樣跳過 FK 與觸發器，整批一個交易。
+{ echo "BEGIN;"; echo "SET session_replication_role = replica;";
+  pg_restore --data-only --no-owner --no-privileges --use-list=restore-public.list -f - "$DUMP_FILE";
+  echo "SET session_replication_role = DEFAULT;"; echo "COMMIT;"; } \
+  | psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -q 2>&1 | tee -a "$LOG"
 echo "-- 耗時 $(( $(date +%s) - t0 )) 秒"
 
 echo "-- 匯入後檢查：列數對照（scratch=舊 vs new）前 25 大表"
