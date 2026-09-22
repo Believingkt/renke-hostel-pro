@@ -5,7 +5,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 set -a; source migration.env; set +a
 SECRETS=secrets.env   # 由 secrets.template.env 複製填值；一行 KEY=value；不進 git
-[ -f "$SECRETS" ] || { echo "缺 $SECRETS（cp secrets.template.env secrets.env 後填值）"; exit 1; }
+[ -f "$SECRETS" ] || { echo "缺 ${SECRETS}（cp secrets.template.env secrets.env 後填值）"; exit 1; }
 # 檢查空值
 empty=$(grep -E '^[A-Z0-9_]+=$' "$SECRETS" || true)
 if [ -n "$empty" ]; then echo "以下 key 尚未填值（若確定不需要請整行刪除）："; echo "$empty"; [ "${1:-}" = "--check" ] || exit 1; fi

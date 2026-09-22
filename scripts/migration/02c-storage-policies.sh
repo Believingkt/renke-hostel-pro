@@ -22,4 +22,4 @@ PY
 before=$(psql "$NEW_DB_URL" -Atc "select count(*) from pg_policies where schemaname in ('storage','realtime')")
 psql "$NEW_DB_URL" -v ON_ERROR_STOP=1 -q -f ./restore-policies.sql
 after=$(psql "$NEW_DB_URL" -Atc "select count(*) from pg_policies where schemaname in ('storage','realtime')")
-echo "== 新專案 storage+realtime policy：$before → $after（預期 $n）"
+echo "== 新專案 storage+realtime policy：${before} → ${after}（預期 ${n}）"
