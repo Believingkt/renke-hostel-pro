@@ -37,7 +37,9 @@ for line in open("./dump-toc.list"):
     elif schema == "public":
         ok = True
     elif schema in ("auth","storage","realtime") and owner == "postgres":
-        ok = True                       # 使用者在系統 schema 上建的 trigger / function / policy
+        ok = True                       # 使用者在系統 schema 上建的 trigger / function
+    elif schema in ("storage","realtime") and typ == "POLICY":
+        ok = True                       # policy 的 owner 顯示為表的 owner（supabase_storage_admin），不能用 owner 過濾（9/22 發現漏掉 37+2 條）
     elif schema == "-" and typ == "COMMENT":
         ok = False
     if ok: out.write(line); keep += 1

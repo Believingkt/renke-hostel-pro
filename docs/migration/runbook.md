@@ -15,7 +15,7 @@
 | Google OAuth Client 已設 `https://<NEW_REF>.supabase.co/auth/v1/callback`，新專案 Google provider 測過 | ☐ | |
 | Supabase Auth：Site URL、Redirect URLs、Send Email Hook（AUTH_HOOK_SECRET）已設，收得到驗證信 | ☐ | |
 | `01-set-secrets.sh --check` 無缺漏 | ☐ | |
-| `02` 在正式新專案已跑過、`03` diff 已看過且無非預期差異 | ☐ | |
+| `02` 在正式新專案已跑過、`02c` storage/realtime policy = 39、`03` diff 已看過且無非預期差異 | ☐ | |
 | `07` 181 函式全部部署成功 | ☐ | |
 | `05` 全量 storage 已同步（Day 2），失敗清單為空 | ☐ | |
 | Emergent 已 build 出可部署的前端（指向新專案）並在預覽網域驗過 | ☐ | |

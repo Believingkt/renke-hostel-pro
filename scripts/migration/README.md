@@ -8,6 +8,7 @@
 | 0 | `00-preflight.sh` | 檢查工具、env、連線 | Day 1 早上 |
 | 1 | `01-set-secrets.sh` | 把 `secrets.env` 批次寫入新專案 Edge Function secrets，並比對 | Day 1 |
 | 2 | `02-build-schema.sh` | **由匯出檔還原 schema**（pg_restore --schema-only，public 全部 + auth/storage/realtime 上使用者建的物件），再把 957 個 migration 標記為已套用 | Day 1（9/19 已在測試專案驗證 db push 路線不可行） |
+| 2c | `02c-storage-policies.sh` | 補還原 storage.objects / realtime.messages 的 39 條 RLS policy（02 的 owner 過濾漏掉；9/22 在 prod 發現 storage policy = 0）。冪等，02 之後跑 | 9/22 補跑；週四若重跑 02 則跟著再跑 |
 | 2b | `02b-build-schema-by-db-push.sh` | 備用：`db push` 重播 migrations（9/19 測試：有 drift、seed 撞 FK，需逐一修，不建議） | — |
 | 3 | `03-schema-diff.sh` | Lovable 匯出的 schema vs 新專案 schema，正規化後 diff | Day 1 |
 | 4 | `04-rebuild-cron.sh` | 從匯出資料的 `cron.job` 產生 `rebuild-cron.sql`（換 URL 與 key），套到新專案 | Day 4 切換時（資料匯入後） |
