@@ -12,7 +12,7 @@ URL 規則：`https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/<fn>` → `h
 
 | # | 合作方 | 用途 | 函式（新舊路徑相同，僅換 ref） | 對方後台設定位置 | 切換方式 | 負責 |
 |---|---|---|---|---|---|---|
-| 1 | TapPay | 付款結果通知（notify_url） | `tappay-notify` | TapPay Portal → 應用程式 → Notify URL | **阻斷項**：需 TapPay 端改設定；改前先確認新專案可收到測試通知 | Nokimi 提出、Kenneth 授權 |
+| 1 | TapPay | 付款結果通知（notify_url） | `tappay-notify` | 每筆交易由程式帶入 | **不需改後台**（9/22 確認）；切換前建立、切換後才回呼的 ATM 待付款靠舊→新轉發 | — |
 | 2 | TapPay | Webhook（交易/退款事件） | `tappay-payment-webhook`（`?key=` 或 `x-webhook-key`，用 `TAPPAY_WEBHOOK_SECRET`） | TapPay Portal → Webhook | 同上；secret 沿用 | Nokimi |
 | 3 | TapPay | 退款通知 | `tappay-refund-notify` | TapPay Portal | 同上 | Nokimi |
 | 4 | TapPay | ATM 虛擬帳號付款通知 | `tappay-atm-create`（建立）/ `tappay-notify`（結果） | TapPay Portal | 同上 | Nokimi |
@@ -22,14 +22,14 @@ URL 規則：`https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/<fn>` → `h
 | 8 | Facebook Login | OAuth callback | `facebook-oauth-exchange` | Meta for Developers → Facebook Login → Valid OAuth Redirect URIs | 同上（前台網域），確認即可 | Nokimi |
 | 9 | Google（會員登入） | OAuth | 現由 Lovable `@lovable.dev/cloud-auth-js` 代管 | Google Cloud Console → OAuth Client | **改為 Supabase Auth Google provider**：需 Kenneth 提供/建立 Google OAuth Client，Authorized redirect URI 填 `https://<NEW_REF>.supabase.co/auth/v1/callback` | Kenneth 提供 client、Nokimi 設定 |
 | 10 | Google Business Profile | OAuth callback | `google-business-profile-oauth-callback` | Google Cloud Console → 該 OAuth Client → Authorized redirect URIs | 新增新 URL（舊的先保留） | Nokimi |
-| 11 | 旭海（HotelNabe） | 訂單接收 | `hotelnabe-order-receiver` | 旭海端設定（需對方改） | 切換日前通知，過渡期由 Lovable 舊函式轉發 | Nokimi 通知 |
-| 12 | 奧丁丁（OwlTing） | Channel Manager 回呼 / 變更通知 | `owlting-cm`、`owlting-change-notify`、`owlting-ari-push`、`owlting-order-push` | OwlTing 端設定（需對方改） | 同上 | Nokimi 通知 |
-| 13 | 奧丁丁（Email 收單） | Email ingest | `owlting-email-ingest` | 收件轉送（Resend inbound / 郵件規則） | 確認觸發來源後改指向 | Nokimi |
-| 14 | KOL 平台 | Webhook | `kol-webhook`（config 原為 verify_jwt=true；函式內自驗 7 處） | 對方後台 | 切換日前通知 | Nokimi |
+| 11 | 旭海（HotelNabe） | 訂單接收 | `hotelnabe-order-receiver` | 旭海端設定 | **已切到新 URL（9/22）**，切換前由新→舊轉發 | ☑ |
+| 12 | 奧丁丁（OwlTing） | Channel Manager 回呼 | `owlting-cm` | OwlTing 端設定 | 已通知；對方 10 月上旬才能切，切換後由舊→新轉發撐到對方完成 | 等對方 |
+| 13 | 奧丁丁（Email 收單） | Email ingest | `owlting-email-ingest` | **SendGrid Inbound Parse**（帳號所有者待確認） | 改 Inbound Parse 目的 URL；找不到帳號前靠舊→新轉發 | Kenneth 找帳號 |
+| 14 | KOL 平台 | Webhook（我方對外送） | `kol-webhook` | — | 不需對方改 | ☑ |
 | 15 | Supabase Auth Hook | Send Email Hook | `auth-email-hook`（現用 `LOVABLE_API_KEY` 當 webhook secret → 改 `AUTH_HOOK_SECRET`） | 新專案 Dashboard → Auth → Hooks | 我方自行設定，用新產生的 secret | Nokimi |
 | 16 | Resend | 寄信 / inbound | `send-resend-email`、`send-push` 等 | Resend Dashboard → Domains / Webhooks | 若有 inbound webhook 指向舊 ref 則更新 | Nokimi |
 
-過渡期做法（合作方尚未改 URL 時）：在 Lovable Cloud 保留舊函式，改成純轉發（把原 request 原封 POST 到新 URL），只做到合作方確認改好為止。**TapPay 為阻斷項**，未改好不切換（依工作計畫「三、切換條件」）。
+過渡期做法：10 個入口函式已內建 `maybeForward`（`_shared/migrationForward.ts`），由 secret `MIGRATION_FORWARD_URL` 決定方向。9/22 起新專案設新→舊（合作方可提前切）；切換當晚對調成 Lovable 端舊→新（runbook §3 步驟 11），撐到奧丁丁與 SendGrid 改完為止。
 
 ---
 

@@ -19,21 +19,24 @@
 |---|---|---|---|
 | B1 | Google Cloud Console → OAuth Client（會員 Google 登入） | 新增 Authorized redirect URI：`https://<NEW_REF>.supabase.co/auth/v1/callback`；把 Client ID / Secret 給 Nokimi 設進 Supabase Auth | ☐ |
 | B2 | Google Business Profile OAuth Client | 同上，加新 callback：`https://<NEW_REF>.supabase.co/functions/v1/google-business-profile-oauth-callback` | ☐ |
-| B3 | TapPay Portal 登入權限（或 Kenneth 在線操作） | Day 4 晚上改 Notify URL / Webhook URL；**切換阻斷項**，Day 1 先向 TapPay 確認可自行修改或需申請 | ☐ |
+| B3 | ~~TapPay Portal~~ | 9/22 確認：notify URL 每筆交易帶入，**不需改後台**；Webhook 若後台有設，切換後由 Nokimi 檢查 | ☑ |
 | B4 | LINE Developers（LINE Login、Messaging API 管家 OA）、LINE Pay 商家後台 | 改 Webhook URL；確認 Nokimi 有 Admin | ☐ |
 | B5 | Meta for Developers（Facebook Login） | 確認 Redirect URI（前台網域，通常不用改） | ☐ |
 | B6 | DNS 管理（lakeze.com 及各民宿自訂網域） | Day 3 把 TTL 降到 300；Day 4 晚上改指向；Nokimi 需要能登入或 Kenneth 在線 | ☐ |
 | B7 | Resend 後台 | 確認 lakeze.com 網域驗證狀態、API key 沿用 | ☐ |
+| B9 | SendGrid 帳號（Inbound Parse → `owlting-email-ingest`） | 誰持有帳號？需把 Inbound Parse 的目的 URL 改到新專案；找不到帳號則奧丁丁 Email 收單在切換後會斷 | ☐ |
+| B10 | Lovable 訂閱保留 | 舊專案要撐到奧丁丁切換完成（對方說 10 月上旬）+ 回退保留期，**至少到 10/20 不要退訂** | ☐ |
+| B11 | Supabase org 加入 | Nokimi 先邀 Kenneth 的 Email 進 org 當 Owner，切換後再正式移轉；請提供要用的 Email | ☐ |
 | B8 | Lovable 後台 Cloud → Secrets | Nokimi 逐一抄出約 60 個 secret（Kenneth 給 Lovable 專案 Editor 權限即可） | ☐ |
 
 ## C. 合作方聯絡窗口（Day 1 通知、Day 4 前確認）
 
 | # | 合作方 | 要對方做的事 | 窗口 | 完成 |
 |---|---|---|---|---|
-| C1 | TapPay | 改 Notify / Webhook URL（見 `callback-url-map.md` §1） | | ☐ |
-| C2 | 旭海 HotelNabe | 改訂單接收 URL | | ☐ |
-| C3 | 奧丁丁 OwlTing | 改 Channel Manager 回呼 URL | | ☐ |
-| C4 | KOL 平台 | 改 Webhook URL | | ☐ |
+| C1 | ~~TapPay~~ | 不需通知（9/22 確認） | | ☑ |
+| C2 | 旭海 HotelNabe | 改訂單接收 URL | Victor | ☑ 9/22 已切，實測 OK |
+| C3 | 奧丁丁 OwlTing | 改 Channel Manager 回呼 URL | 小洪 / Frank | 已通知；對方佈署流程需到 10 月上旬，期間走舊→新轉發 |
+| C4 | ~~KOL 平台~~ | `kol-webhook` 是我方對外送，不需對方改 | | ☑ |
 | C5 | 外部 API 使用者（若有人直接串 `accommodation-api` / `all-availability`） | 通知新 base URL | | ☐ |
 
 ## D. 對內公告（Kenneth 發）

@@ -43,7 +43,7 @@
    - 失敗時：整批回滾；看 log 修（enum 值缺 → schema diff 沒看到的差異，補 migration 後重跑 02→06）。
 6. `./04-rebuild-cron.sh`（換 URL/key 後重建排程；同時設定 `app.settings.service_role_key`）。**只在此時套用**——提前套用會把舊庫存推給合作方。9/22 預演已產出 25 job、0 舊 ref。
    - 驗證：`select jobname, schedule, active from cron.job` 與舊專案一致；5 分鐘後 `cron.job_run_details` 有成功紀錄。
-7. `./05-storage-sync.sh --since <Day 2 全量同步的時間>`（增量）
+7. Lovable 端 Secrets 先加回 `MIGRATION_KEY`（值見 `scripts/migration/migration.env`）→ `./05-storage-sync.sh --since <Day 2 全量同步的時間>`（增量）→ 跑完立刻刪 `MIGRATION_KEY`
    - 驗證：`storage-sync-failures.txt` 不存在；隨機抽 3 張房型照片新 URL 可開。
 8. 密碼：9/22 預演已驗證 `encrypted_password` 隨匯出帶入，既有帳號直接登入成功；無需額外處理（原「密碼處理方案」取消）。
 
