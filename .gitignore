@@ -35,3 +35,10 @@ memory/
 test_result.md
 tests/
 test_reports/
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
