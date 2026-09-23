@@ -22,3 +22,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build output (monorepo apps)
+apps/*/dist
+packages/*/dist
+
+# Emergent preview-environment artifacts (never commit)
+frontend/
+backend/
+.emergent/
+memory/
+test_result.md
+tests/
+test_reports/
