@@ -44,18 +44,18 @@
 ## D. 驗證 00:30–01:30（任一紅燈 → 看 runbook §6）
 | # | 項目 | 通過 |
 |---|---|---|
-| V1 | 既有會員 Email/OTP 登入 | ☐ |
-| V2 | Facebook / LINE 登入（Google 按鈕本來就不在會員頁） | ☐ |
-| V3 | 重設密碼信收到、連結指向 lakeze.com | ☐ |
-| V4 | 訂房 → 付款（小額真卡）→ `tappay-notify` 進新專案 → 訂單 paid → 確認信 → 退款 | ☐ |
-| V6 | PMS `pms.lakeze.com` 登入、房況、改訂單 | ☐ |
+| V1 | 既有會員 Email/OTP 登入 | ☑ PMS 既有帳號登入 |
+| V2 | Facebook / LINE 登入（Google 按鈕本來就不在會員頁） | ☑ FB + LINE（手機） |
+| V3 | 重設密碼信收到、連結指向 lakeze.com | ☑ 收到 |
+| V4 | 訂房 → 付款（小額真卡）→ `tappay-notify` 進新專案 → 訂單 paid → 確認信 → 退款 | ☑ MM9F86Y2 NT$35,250 paid + 確認信；退款被 TapPay 風控擋（TP36/10016），已取消訂單標記手動退款，待 TapPay 取消授權 |
+| V6 | PMS `pms.lakeze.com` 登入、房況、改訂單 | ☑ |
 | V7 | HQ `hq.lakeze.com` 報表 | ☐ |
-| V8 | 旭海推庫存一次（手動觸發 `hotelnabe-push-inventory-worker`）| ☐ |
+| V8 | 旭海推庫存一次（手動觸發 `hotelnabe-push-inventory-worker`）| ☑ 佇列 3h 內無變動（明早看首筆 push_log） |
 | V9 | 小安 LINE OA 傳一句 → 有回 | ☑ 00:50 |
-| V10 | `select * from cron.job_run_details order by start_time desc limit 20` 有 succeeded | ☐ |
-| V11 | 房型照片、logo、信內圖片全從新專案載 | ☐ |
-| V12 | Functions Logs 無 5xx 洪水 | ☐ |
-| V13 | TapPay 後台 23:00 後交易 vs 新 DB 訂單，一致或已人工補 | ☐ |
+| V10 | `select * from cron.job_run_details order by start_time desc limit 20` 有 succeeded | ☑ 27 succeeded / 0 failed |
+| V11 | 房型照片、logo、信內圖片全從新專案載 | ☑ 圖片全從新專案、舊專案 0 請求 |
+| V12 | Functions Logs 無 5xx 洪水 | ☑ 僅 charge-room-on-checkin 401（舊系統既有問題） |
+| V13 | TapPay 後台 23:00 後交易 vs 新 DB 訂單，一致或已人工補 | ☑ TapPay 22:14 後僅 MM9F86Y2 |
 
 ## E. 收尾 02:00
 - [ ] E1 LINE 群公告完成（Kenneth）
@@ -65,3 +65,15 @@
 
 ## 回退一句話
 DNS 還沒改 → 什麼都不用回，延後。DNS 已改 → 7 筆 IP 改回 `185.158.133.1`（5 分鐘生效）、Lovable 把 7 個網域加回去、C4 反向做；02:00 前 Kenneth 拍板。
+
+## 結果（2026-09-25 01:15）
+切換完成。22:10 開始（比公告提早 50 分鐘），22:14 Export 快照，23:50 起 DNS 指向 Vercel、資料與排程在新專案、舊專案只做轉發。
+
+## 明天 09:00（與 Kenneth）
+- [ ] TapPay 客服：recTradeId `D20260925hp4PUf` TWD 35,250 取消授權（後台/API 退款皆 TP36 風控拒絕）
+- [ ] `hotelnabe_ari_push_log` 有新紀錄且 success=true（旭海第一次庫存變動後）
+- [ ] `charge-room-on-checkin` 排程帶 anon key → 401（舊系統既有；入住日自動扣尾款從未執行）。要不要修 = 業務決策，Kenneth 決定
+- [ ] Supabase status 頁（切換當晚有平台事件公告）
+- [ ] Functions Logs、`cron.job_run_details` 每 2 小時看一次到明晚
+- [ ] Kenneth：Gemini 儲值移交（runbook §5-17）、Vercel 帳號/Pro（checklist B12）、Lovable 訂閱保留 ≥10/20
+- [ ] 奧丁丁 10 月上旬切新端點前，舊→新轉發不能停
