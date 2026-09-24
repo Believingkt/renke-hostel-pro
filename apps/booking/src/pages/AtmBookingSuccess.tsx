@@ -1,0 +1,604 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+import AddToCalendarButton from "@/components/booking/AddToCalendarButton";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/ui/alert";
+import { Separator } from "@lakeze/shared/components/ui/separator";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import {
+  Building2,
+  CheckCircle2,
+  Loader2,
+  AlertTriangle,
+  Calendar,
+  User,
+  Receipt,
+  Clock,
+  Info,
+  Home,
+  Timer,
+} from "lucide-react";
+import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@lakeze/shared/utils/paymentDomain";
+
+
+
+interface OrderRow {
+  id: string;
+  order_number: string;
+  guest_name: string;
+  guest_phone: string;
+  guest_email: string | null;
+  check_in_date: string;
+  check_out_date: string;
+  final_price: number;
+  paid_amount: number;
+  payment_status: string;
+  order_status: string;
+  atm_vacc_no: string | null;
+  atm_vacc_bank_code: string | null;
+  atm_expire_at: string | null;
+  accommodation_id: string | null;
+  payment_summary?: {
+    totalAmount: number;
+    paidAmount: number;
+    bookingDepositAmount: number;
+    bookingDepositPercentage: number | null;
+  } | null;
+}
+
+const TAPPAY_FALLBACK_EMAIL = "noreply@lakeze.com";
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+function sanitizeEmailForTapPay(email: string | null | undefined): string {
+  const v = (email || "").trim();
+  if (!v) return TAPPAY_FALLBACK_EMAIL;
+  // 內部合成 email（LINE / Facebook 綁定用）TapPay 會拒（Out of range）
+  if (/@(?:line|facebook)\.lakeze\.local$/i.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (/\.local$/i.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (!EMAIL_RE.test(v)) return TAPPAY_FALLBACK_EMAIL;
+  if (v.length > 100) return TAPPAY_FALLBACK_EMAIL;
+  return v;
+}
+
+function formatCountdown(ms: number) {
+  if (ms <= 0) return { expired: true as const, text: "已逾期" };
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+  const seconds = Math.floor((ms % 60000) / 1000);
+  // 一小時內（前台訂金 20 分鐘制）用 mm:ss 顯示
+  if (days === 0 && hours === 0) {
+    return {
+      expired: false as const,
+      text: `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`,
+    };
+  }
+  const parts: string[] = [];
+  if (days > 0) parts.push(`${days} 天`);
+  parts.push(`${hours} 小時`);
+  parts.push(`${minutes} 分`);
+  return { expired: false as const, text: parts.join(" ") };
+}
+
+function AtmDeadlineAlert({ expireAt, onExpired }: { expireAt: string; onExpired?: () => void }) {
+  const [now, setNow] = useState(Date.now());
+  const notifiedRef = useRef<Set<number>>(new Set());
+  const expiredNotifiedRef = useRef(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const deadline = new Date(expireAt).getTime();
+
+  // 到期前提醒（10 / 5 / 1 分鐘）
+  useEffect(() => {
+    const left = deadline - now;
+    if (left <= 0) {
+      if (!expiredNotifiedRef.current) {
+        expiredNotifiedRef.current = true;
+        onExpired?.();
+      }
+      return;
+    }
+    for (const mark of [10, 5, 1]) {
+      const ms = mark * 60_000;
+      if (left <= ms && left > ms - 1500 && !notifiedRef.current.has(mark)) {
+        notifiedRef.current.add(mark);
+        toast.warning(`訂金繳款剩下 ${mark} 分鐘`, {
+          description: "逾期未收到訂金，系統將自動取消此訂單並釋出房間。",
+          duration: 8000,
+        });
+      }
+    }
+  }, [now, deadline, onExpired]);
+
+  const diff = deadline - now;
+  const { expired, text } = formatCountdown(diff);
+
+  if (expired) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-5 w-5" />
+        <AlertTitle className="text-sm font-semibold">繳費期限已過</AlertTitle>
+        <AlertDescription className="text-xs leading-relaxed">
+          此虛擬帳號已於 {new Date(expireAt).toLocaleString("zh-TW")} 逾期。訂單可能已被自動取消，房間庫存已釋出。如已匯款請聯繫客服處理。
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const urgent = diff < 5 * 60_000; // < 5 分鐘
+  const warning = diff < 10 * 60_000; // < 10 分鐘
+
+  return (
+    <div
+      className={`mb-4 rounded-lg border px-4 py-3 flex items-start gap-3 ${
+        urgent
+          ? "border-destructive bg-destructive/10 text-destructive"
+          : warning
+          ? "border-amber-400 bg-amber-50 text-amber-900"
+          : "border-primary/40 bg-primary/5 text-primary"
+      }`}
+    >
+      <Timer className={`h-5 w-5 shrink-0 mt-0.5 ${urgent ? "animate-pulse" : ""}`} />
+      <div>
+        <div className="text-sm font-semibold">
+          {urgent
+            ? "⚠️ 即將逾期取消，請立即完成匯款"
+            : warning
+            ? "繳費期限將至，請盡速匯款"
+            : "繳費期限倒數計時"}
+        </div>
+        <div className={`text-lg font-bold mt-1 font-mono ${urgent ? "animate-pulse" : ""}`}>
+          {text}
+        </div>
+        <div className="text-xs mt-1 opacity-80">
+          期限：{new Date(expireAt).toLocaleString("zh-TW")}（逾期未收到訂金將自動取消訂單）
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AtmBookingSuccess() {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const orderNumber = params.get("order_number") || "";
+  const accId = params.get("acc") || "";
+
+  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [paidDetected, setPaidDetected] = useState(false);
+
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!accId) return;
+
+    getPaymentOriginForAccommodation(accId).then((origin) => {
+      if (!cancelled) redirectToPaymentOrigin(origin);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accId]);
+
+  const isPaid = (o: OrderRow | null) =>
+    !!o &&
+    (o.payment_status === "paid" ||
+      o.payment_status === "deposit_paid" ||
+      o.payment_status === "partial" ||
+      o.payment_status === "partial_paid" ||
+      (o.paid_amount || 0) > 0 ||
+      o.order_status === "confirmed");
+
+  const goViewOrder = () => {
+    navigate(`/member/orders`);
+  };
+
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!orderNumber) {
+        setError("缺少訂單編號");
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: orderNumber, ...(accId ? { accommodation_id: accId } : {}) },
+      });
+      if (!alive) return;
+      const found = (data as any)?.order;
+      if (error || !found) {
+        setError((data as any)?.error === "not_found" ? "找不到訂單" : error?.message || "找不到訂單");
+      } else {
+        setOrder(found as OrderRow);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [orderNumber, accId]);
+
+
+  // Auto-refresh: realtime + polling fallback. When payment confirmed, redirect.
+  useEffect(() => {
+    if (!order?.id) return;
+    if (isPaid(order) && !paidDetected) setPaidDetected(true);
+    if (paidDetected) return;
+
+    const refetch = async () => {
+      const { data } = await supabase.functions.invoke("get-public-order", {
+        body: { order_number: order.order_number },
+      });
+      const next = (data as any)?.order as OrderRow | undefined;
+      if (next) {
+        setOrder(next);
+        if (isPaid(next)) {
+          setPaidDetected(true);
+          toast.success("已收到您的匯款，訂單付款完成！");
+        }
+      }
+    };
+
+
+    const channel = supabase
+      .channel(`atm-order-${order.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${order.id}` },
+        (payload) => {
+          const next = payload.new as OrderRow;
+          // realtime 回傳的是資料表原始列，沒有 payment_summary，合併時要保留既有摘要
+          setOrder((prev) => ({
+            ...(prev as OrderRow),
+            ...next,
+            payment_summary: prev?.payment_summary ?? null,
+          }));
+          if (isPaid(next)) {
+            setPaidDetected(true);
+            toast.success("已收到您的匯款，訂單付款完成！");
+          }
+        },
+      )
+      .subscribe();
+
+    const pollId = setInterval(refetch, 15000);
+    const visHandler = () => {
+      if (document.visibilityState === "visible") refetch();
+    };
+    document.addEventListener("visibilitychange", visHandler);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(pollId);
+      document.removeEventListener("visibilitychange", visHandler);
+    };
+  }, [order?.id, paidDetected]);
+
+
+
+
+
+  const nights = useMemo(() => {
+    if (!order) return 0;
+    const a = new Date(order.check_in_date).getTime();
+    const b = new Date(order.check_out_date).getTime();
+    return Math.max(1, Math.round((b - a) / 86400000));
+  }, [order]);
+
+  const remainingAmount = useMemo(() => {
+    if (!order) return 0;
+    return Math.max(0, (order.final_price || 0) - (order.paid_amount || 0));
+  }, [order]);
+
+  /**
+   * 付款摘要改由伺服器端（get-public-order）計算後回傳 payment_summary，
+   * 前端不再取得訂單備註原文，也不再自行解析訂金。
+   */
+  const summary = useMemo(
+    () => ({
+      totalAmount: order?.payment_summary?.totalAmount ?? Math.max(0, Math.round(order?.final_price ?? 0)),
+      paidAmount: order?.payment_summary?.paidAmount ?? Math.max(0, Math.round(order?.paid_amount ?? 0)),
+      bookingDepositAmount: order?.payment_summary?.bookingDepositAmount ?? 0,
+      bookingDepositPercentage: order?.payment_summary?.bookingDepositPercentage ?? null,
+    }),
+    [order],
+  );
+  const depositPercentLabel = summary.bookingDepositPercentage != null ? `${summary.bookingDepositPercentage}%` : "";
+
+  /** 本次應匯款金額＝訂房訂金扣掉已付款；無訂金快照則為全額未付金額 */
+  const amountDueNow = useMemo(
+    () =>
+      summary.bookingDepositAmount > 0
+        ? Math.max(0, summary.bookingDepositAmount - summary.paidAmount)
+        : Math.max(0, summary.totalAmount - summary.paidAmount),
+    [summary],
+  );
+
+
+  const orderPaid = isPaid(order) || paidDetected;
+  const atmActive =
+    !!order?.atm_vacc_no &&
+    !!order?.atm_expire_at &&
+    (orderPaid || new Date(order.atm_expire_at) > new Date());
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 mx-auto animate-spin text-primary mb-2" />
+          <p className="text-sm text-muted-foreground">載入訂單中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !order) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-6 space-y-4 text-center">
+            <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
+            <p className="text-base font-semibold">{error || "找不到訂單"}</p>
+            <Button onClick={() => navigate("/")} variant="outline">
+              <Home className="h-4 w-4 mr-2" />
+              回首頁
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-muted/20 py-6 md:py-10 px-4">
+      <div className="max-w-3xl mx-auto space-y-6">
+
+
+
+        {/* 成功標題 */}
+        <div className="text-center space-y-3">
+          <div className={`inline-flex items-center justify-center h-14 w-14 rounded-full ${orderPaid ? "bg-emerald-100" : "bg-primary/10"}`}>
+            <CheckCircle2 className={`h-8 w-8 ${orderPaid ? "text-emerald-600" : "text-primary"}`} />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold">{orderPaid ? "訂金已收款，訂單已確認" : "訂單已建立"}</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            {orderPaid ? (
+              <>
+                我們已收到您的訂金 <span className="font-semibold text-emerald-700">NT$ {(order.paid_amount || 0).toLocaleString()}</span>，
+                訂房已確認，確認信將寄送至您的 Email。尾款 NT$ {remainingAmount.toLocaleString()} 請於入住當天現場付清。
+              </>
+            ) : (
+              <>
+                本次僅需匯款 <span className="font-semibold text-primary">訂金 NT$ {amountDueNow.toLocaleString()}</span>{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，
+                我們收到入帳通知後將自動確認您的訂房，尾款請於入住當天現場付清。
+              </>
+            )}
+          </p>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Badge variant="secondary" className="text-sm">訂單編號 {order.order_number}</Badge>
+            {orderPaid ? (
+              <Badge className="text-sm bg-emerald-600 hover:bg-emerald-600">已收訂金</Badge>
+            ) : (
+              <Badge variant="outline" className="text-sm">待付款</Badge>
+            )}
+          </div>
+        </div>
+
+
+        {/* 訂單摘要 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Receipt className="h-4 w-4 text-primary" />
+              訂單摘要
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-start gap-2">
+              <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <div className="text-xs text-muted-foreground">訂房人</div>
+                <div className="font-medium">{order.guest_name}　{order.guest_phone}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <div className="text-xs text-muted-foreground">入住期間</div>
+                <div className="font-medium">
+                  {order.check_in_date} → {order.check_out_date}（共 {nights} 晚）
+                </div>
+              </div>
+            </div>
+            <Separator />
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">訂單總金額</span>
+              <span className="font-semibold">NT$ {order.final_price.toLocaleString()}</span>
+            </div>
+            {orderPaid ? (
+              <>
+                <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                  <span className="font-semibold text-emerald-900 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4" />
+                    已付訂金
+                  </span>
+                  <span className="font-bold text-emerald-700 text-lg">NT$ {(order.paid_amount || 0).toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-base">
+                  <span className="font-semibold">入住現場付清尾款</span>
+                  <span className="font-bold text-lg">NT$ {remainingAmount.toLocaleString()}</span>
+                </div>
+                <Alert className="border-emerald-300 bg-emerald-50">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  <AlertTitle className="text-sm font-semibold text-emerald-900">訂金已收款完成</AlertTitle>
+                  <AlertDescription className="text-xs leading-relaxed text-emerald-900/90">
+                    您的訂金 NT$ {(order.paid_amount || 0).toLocaleString()} 已入帳，訂房正式確認，<span className="font-semibold">請勿再次匯款</span>。
+                    剩餘尾款 NT$ {remainingAmount.toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
+                  </AlertDescription>
+                </Alert>
+              </>
+            ) : (
+              <>
+                {order.paid_amount > 0 && (
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>已付</span>
+                    <span>NT$ {order.paid_amount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-base">
+                  <span className="font-semibold">本次需匯款訂金{depositPercentLabel ? `（${depositPercentLabel}）` : ""}</span>
+                  <span className="font-bold text-primary text-lg">NT$ {amountDueNow.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>入住現場付清尾款</span>
+                  <span>NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span>
+                </div>
+                <Alert className="border-primary/30 bg-primary/5">
+                  <Info className="h-4 w-4 text-primary" />
+                  <AlertTitle className="text-sm font-semibold">本次僅需匯款訂金</AlertTitle>
+                  <AlertDescription className="text-xs leading-relaxed">
+                    虛擬帳號金額為訂金 NT$ {amountDueNow.toLocaleString()}{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，請勿更改匯款金額，以免無法自動核帳。
+                    收到入帳通知後訂房即確認，剩餘尾款 NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()} 於入住當天現場以現金、刷卡或匯款付清。
+                  </AlertDescription>
+                </Alert>
+              </>
+            )}
+
+
+          </CardContent>
+        </Card>
+
+        {/* ATM 虛擬帳號區塊 */}
+        <Card className="border-primary/40">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              ATM 虛擬帳號
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {order.atm_expire_at && !isPaid(order) && (
+              <AtmDeadlineAlert
+                expireAt={order.atm_expire_at}
+                onExpired={() => {
+                  // 到期瞬間再抓一次最新狀態，避免款項已入帳卻顯示逾期
+                  supabase.functions
+                    .invoke("get-public-order", { body: { order_number: order.order_number } })
+                    .then(({ data }) => {
+                      const next = (data as any)?.order as Partial<OrderRow> | undefined;
+                      if (next) setOrder((prev) => (prev ? { ...prev, ...next } : prev));
+                    });
+                }}
+
+              />
+            )}
+            <AtmPaymentPanel
+              orderId={order.id}
+              orderNumber={order.order_number}
+              amount={amountDueNow || remainingAmount || order.final_price}
+              amountLabel={orderPaid ? "已收款金額（訂金）" : `轉帳金額（訂金${depositPercentLabel ? ` ${depositPercentLabel}` : ""}）`}
+              expireInMinutes={20}
+              paid={orderPaid}
+              paidAmount={order.paid_amount || 0}
+              cardholder={{
+                name: order.guest_name,
+                email: sanitizeEmailForTapPay(order.guest_email),
+                phoneNumber: order.guest_phone,
+              }}
+              initialAtmInfo={
+                atmActive
+                  ? {
+                      vaccNo: order.atm_vacc_no!,
+                      bankCode: order.atm_vacc_bank_code,
+                      expireAt: order.atm_expire_at!,
+                      amount: orderPaid
+                        ? order.paid_amount || amountDueNow
+                        : amountDueNow || remainingAmount || order.final_price,
+                    }
+                  : null
+              }
+
+              onCreated={(info) => {
+                setOrder((prev) =>
+                  prev
+                    ? {
+                        ...prev,
+                        atm_vacc_no: info.vaccNo,
+                        atm_vacc_bank_code: info.bankCode || null,
+                        atm_expire_at: info.expireAt,
+                      }
+                    : prev,
+                );
+              }}
+            />
+
+          </CardContent>
+        </Card>
+
+        {/* 匯款說明 */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              {orderPaid ? "後續說明" : "匯款說明"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm space-y-3">
+            <ol className="list-decimal pl-5 space-y-2 text-muted-foreground leading-relaxed">
+              {orderPaid ? (
+                <>
+                  <li>訂金 <span className="font-medium text-foreground">NT$ {(order.paid_amount || 0).toLocaleString()}</span> 已入帳，訂房已確認，<span className="font-medium text-foreground">請勿再次匯款</span>。</li>
+                  <li>訂房確認信將寄至您的 Email，可於「我的訂單」查看完整訂單資訊。</li>
+                  <li>剩餘尾款 <span className="font-medium text-foreground">NT$ {remainingAmount.toLocaleString()}</span> 請於入住當天現場以現金、刷卡或匯款付清。</li>
+                  <li>如需修改或取消訂單，請聯繫客服並提供訂單編號 <span className="font-mono font-medium text-foreground">{order.order_number}</span>。</li>
+                </>
+              ) : (
+                <>
+                  <li>本次匯款金額為 <span className="font-medium text-foreground">訂金 NT$ {amountDueNow.toLocaleString()}</span>{depositPercentLabel ? `（訂單總額的 ${depositPercentLabel}）` : ""}，非訂單全額。</li>
+                  <li>取得虛擬帳號後，請於繳費期限內以 <span className="font-medium text-foreground">ATM、網路銀行或臨櫃</span> 方式匯款。</li>
+                  <li>轉帳金額請務必與顯示金額一致，<span className="font-medium text-foreground">不可分次匯款</span>，否則無法自動對帳。</li>
+                  <li>系統收到訂金入帳通知後將自動確認訂房，並寄發訂房確認信至您的 Email。</li>
+                  <li>剩餘尾款 <span className="font-medium text-foreground">NT$ {Math.max(0, remainingAmount - amountDueNow).toLocaleString()}</span> 請於入住當天現場以現金、刷卡或匯款付清。</li>
+                  <li>逾期未繳訂金，訂單將自動取消，房間庫存會釋出供其他旅客預訂。</li>
+                  <li>若已完成匯款但長時間未收到確認信，請聯繫客服並提供訂單編號 <span className="font-mono font-medium text-foreground">{order.order_number}</span>。</li>
+                </>
+              )}
+            </ol>
+
+
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+          <AddToCalendarButton
+            orderNumber={order.order_number}
+            accommodationId={order.accommodation_id || accId || null}
+            checkInDate={order.check_in_date}
+            checkOutDate={order.check_out_date}
+          />
+          <Button variant="outline" onClick={() => navigate("/")}>
+            <Home className="h-4 w-4 mr-2" />
+            回首頁
+          </Button>
+
+          {accId && (
+            <Button variant="ghost" onClick={() => navigate(`/member/orders`)}>
+              查看我的訂單
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

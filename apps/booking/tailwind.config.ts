@@ -1,15 +1,12 @@
 import type { Config } from "tailwindcss";
-import animate from "tailwindcss-animate";
+import preset from "../../packages/shared/tailwind.preset";
 
 export default {
-  darkMode: ["class"],
+  presets: [preset],
   content: [
     "./index.html",
     "./src/**/*.{ts,tsx}",
     "../../packages/shared/src/**/*.{ts,tsx}",
+    "../../node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
   ],
-  theme: {
-    extend: {},
-  },
-  plugins: [animate],
 } satisfies Config;

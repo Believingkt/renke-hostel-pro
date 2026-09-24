@@ -3,12 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*"
-  },
+  "main": "./src/lib/utils.ts",
   "peerDependencies": {
     "react": "^19.2.1",
     "react-dom": "^19.2.1"

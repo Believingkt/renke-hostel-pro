@@ -2,11 +2,169 @@
 <html lang="zh-TW">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>booking · Lakeze</title>
-  </head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <title>人客多線上訂房系統</title>
+    
+    <!-- DNS Prefetch & Preconnect for faster loading -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+    
+    <meta name="description" content="官方網站與線上訂房系統">
+    <meta name="author" content="Lakeze" />
+
+    <meta property="og:title" content="人客多線上訂房系統" />
+    <meta property="og:description" content="官方網站與線上訂房系統" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="人客多線上訂房系統" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta property="og:url" content="https://booking.lakeze.com/" />
+    <meta property="og:image" content="https://booking.lakeze.com/og-image-1200x630.png">
+    <meta property="og:image:secure_url" content="https://booking.lakeze.com/og-image-1200x630.png">
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="人客多線上訂房系統" />
+    <meta property="og:image" content="https://booking.lakeze.com/og-image-600x315.png">
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="600" />
+    <meta property="og:image:height" content="315" />
+    <meta property="og:image:alt" content="人客多線上訂房系統" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="人客多線上訂房系統" />
+    <meta name="twitter:description" content="官方網站與線上訂房系統" />
+    <meta name="twitter:image" content="https://booking.lakeze.com/og-image-1200x630.png">
+    <meta name="twitter:image:alt" content="人客多線上訂房系統" />
+
+    
+    <!-- Inline critical CSS for instant rendering -->
+    <style>
+      /* 重置與基礎樣式 */
+      * { 
+        -webkit-font-smoothing: antialiased; 
+        -moz-osx-font-smoothing: grayscale;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+      }
+      
+      /* 字體已由 Google Fonts 載入 */
+      
+      /* 首屏圖片立即顯示 - 無過渡 */
+      .hero-first-image {
+        opacity: 1 !important;
+        transition: none !important;
+      }
+      
+      /* Hero 標題固定樣式 - 避免閃爍 */
+      .hero-title {
+        font-size: clamp(1.875rem, 5vw, 5rem) !important;
+        font-family: 'Noto Sans TC', sans-serif !important;
+        font-weight: 700 !important;
+        line-height: 1.2 !important;
+      }
+      
+      /* 設計系統 - 關鍵顏色變數 */
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --primary: 240 5.9% 10%;
+        --primary-foreground: 0 0% 98%;
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --border: 240 5.9% 90%;
+        --radius: 0.5rem;
+      }
+      
+      /* 基礎佈局 */
+      html { 
+        scroll-behavior: smooth;
+        -webkit-text-size-adjust: 100%;
+      }
+      
+      body { 
+        margin: 0; 
+        padding: 0;
+        font-family: 'Noto Sans TC', sans-serif;
+        font-weight: 400;
+        line-height: 1.5;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+      
+      /* 根元素 */
+      #root { 
+        min-height: 100vh;
+      }
+      
+      /* 載入動畫 */
+      .loading { 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh;
+        color: hsl(var(--muted-foreground));
+      }
+      
+      /* 標題字體 - 無後備 */
+      h1, h2, h3, h4, h5, h6 {
+        font-family: 'Noto Sans TC', sans-serif;
+        font-weight: 700;
+        line-height: 1.2;
+        margin: 0;
+      }
+      
+      /* 圖片優化 */
+      img { 
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        max-width: 100%;
+        height: auto;
+      }
+      
+      /* 連結基礎樣式 */
+      a { 
+        color: inherit; 
+        text-decoration: none; 
+      }
+      
+      /* 按鈕基礎樣式 */
+      button {
+        font-family: inherit;
+        cursor: pointer;
+      }
+    </style>
+    <meta property="og:title" content="人客多線上訂房系統">
+  <meta name="twitter:title" content="人客多線上訂房系統">
+  <meta property="og:description" content="官方網站與線上訂房系統">
+  <meta name="twitter:description" content="官方網站與線上訂房系統">
+</head>
+
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // 全域錯誤捕捉 - 防止空白頁
+      window.onerror = function(msg, src, line, col, err) {
+        var root = document.getElementById('root');
+        if (root && !root.hasChildNodes()) {
+          root.innerHTML = '<div style="padding:2rem;text-align:center;font-family:sans-serif">' +
+            '<h2>載入失敗</h2>' +
+            '<p style="color:#666">' + msg + '</p>' +
+            '<p style="color:#999;font-size:12px">' + (src || '') + ':' + (line || '') + '</p>' +
+            '<button onclick="location.reload()" style="margin-top:1rem;padding:8px 16px;cursor:pointer">重新整理</button>' +
+            '</div>';
+        }
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        console.error('Unhandled rejection:', e.reason);
+      });
+    </script>
+    <script type="module" src="/src/main.tsx" fetchpriority="high"></script>
   </body>
 </html>

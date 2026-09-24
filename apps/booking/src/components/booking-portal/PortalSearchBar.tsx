@@ -1,0 +1,614 @@
+import { useMemo, useRef, useState } from "react";
+import { format, addDays, eachDayOfInterval } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Calendar } from "@lakeze/shared/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@lakeze/shared/components/ui/popover";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@lakeze/shared/components/ui/sheet";
+import { Input } from "@lakeze/shared/components/ui/input";
+import { cn } from "@lakeze/shared/lib/utils";
+import { toast } from "@lakeze/shared/hooks/use-toast";
+import { useBookingLocale } from "@lakeze/shared/contexts/BookingLocaleContext";
+import {
+  Search,
+  MapPin,
+  CalendarDays,
+  Users,
+  Minus,
+  Plus,
+  Loader2,
+} from "lucide-react";
+
+interface PortalSearchBarProps {
+  searchQuery: string;
+  onSearchQueryChange: (q: string) => void;
+  checkIn: Date | undefined;
+  checkOut: Date | undefined;
+  onCheckInChange: (d: Date | undefined) => void;
+  onCheckOutChange: (d: Date | undefined) => void;
+  adults: number;
+  onAdultsChange: (n: number) => void;
+  /** 兒童（兼容舊參數；當 infants/toddlers/onInfantsChange/onToddlersChange 提供時，會以三段年齡層顯示） */
+  children: number;
+  onChildrenChange: (n: number) => void;
+  infants?: number;
+  onInfantsChange?: (n: number) => void;
+  toddlers?: number;
+  onToddlersChange?: (n: number) => void;
+  rooms: number;
+  onRoomsChange: (n: number) => void;
+  onSearch: () => void;
+  availableDateSet?: Set<string> | null;
+  isStayRangeAvailable?: (start: Date, endExclusive: Date) => boolean;
+  isLoadingAvailability?: boolean;
+  onDestinationRequired?: () => void;
+}
+
+const PortalSearchBar = ({
+  searchQuery,
+  onSearchQueryChange,
+  checkIn,
+  checkOut,
+  onCheckInChange,
+  onCheckOutChange,
+  adults,
+  onAdultsChange,
+  children,
+  onChildrenChange,
+  infants,
+  onInfantsChange,
+  toddlers,
+  onToddlersChange,
+  rooms,
+  onRoomsChange,
+  onSearch,
+  availableDateSet,
+  isStayRangeAvailable,
+  isLoadingAvailability,
+  onDestinationRequired,
+}: PortalSearchBarProps) => {
+  const { t, dateLocale } = useBookingLocale();
+  // 顯示用地區標籤：送出的搜尋字串維持原始中文地名，不受語系影響
+  const regionLabel = (raw: string) =>
+    ({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw]
+      ? t(({ "宜蘭": "booking.portal.search.region.yilan", "南投": "booking.portal.search.region.nantou", "苗栗": "booking.portal.search.region.miaoli" } as Record<string, string>)[raw])
+      : raw;
+  const [dateOpen, setDateOpen] = useState(false);
+  const [dateOpenMobile, setDateOpenMobile] = useState(false);
+  const desktopDestinationInputRef = useRef<HTMLInputElement>(null);
+  const mobileDestinationInputRef = useRef<HTMLInputElement>(null);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const isDateUnavailable = (date: Date) => {
+    if (!availableDateSet) return false;
+    const key = format(date, "yyyy-MM-dd");
+    return !availableDateSet.has(key);
+  };
+
+  // For range mode: disable past dates and unavailable nights (the night
+  // starting on that date). The "退房" date itself does not need a night,
+  // so we still allow selecting one day after the last available night.
+  const rangeDayDisabled = (date: Date) => {
+    if (date < today) return true;
+    if (!availableDateSet) return false;
+    // Allow if either this date has an available night, or the previous
+    // night is available (so it can serve as a check-out date).
+    const thisKey = format(date, "yyyy-MM-dd");
+    const prevKey = format(addDays(date, -1), "yyyy-MM-dd");
+    return !availableDateSet.has(thisKey) && !availableDateSet.has(prevKey);
+  };
+
+  const rangeIsContinuouslyAvailable = (from: Date, toExclusive: Date) => {
+    if (!availableDateSet) return true;
+    if (isStayRangeAvailable) return isStayRangeAvailable(from, toExclusive);
+    const nights = eachDayOfInterval({ start: from, end: addDays(toExclusive, -1) });
+    return nights.every((n) => availableDateSet.has(format(n, "yyyy-MM-dd")));
+  };
+
+  const selectedRange: DateRange | undefined = checkIn
+    ? { from: checkIn, to: checkOut }
+    : undefined;
+
+  const handleRangeSelect = (
+    range: DateRange | undefined,
+    selectedDay?: Date
+  ) => {
+    // Case A: 已選完入住+退房，再點任何一天 → 以該天為新的入住，重新選
+    if (checkIn && checkOut && selectedDay) {
+      onCheckInChange(selectedDay);
+      onCheckOutChange(undefined);
+      return;
+    }
+
+    if (!range) {
+      // 取消（例如點到同一天）→ 若有 selectedDay 視為新入住
+      if (selectedDay) {
+        onCheckInChange(selectedDay);
+        onCheckOutChange(undefined);
+      } else {
+        onCheckInChange(undefined);
+        onCheckOutChange(undefined);
+      }
+      return;
+    }
+
+    const { from, to } = range;
+
+    // Case B: 只有入住，沒有退房 → 保持開啟，等使用者再點退房
+    if (from && !to) {
+      onCheckInChange(from);
+      onCheckOutChange(undefined);
+      return;
+    }
+
+    // Case C: 入住 + 退房都有
+    if (from && to) {
+      if (to <= from) {
+        onCheckInChange(from);
+        onCheckOutChange(undefined);
+        return;
+      }
+      if (!rangeIsContinuouslyAvailable(from, to)) {
+        toast({
+          title: t("booking.portal.search.gapToastTitle"),
+          description: t("booking.portal.search.gapToastDesc"),
+          variant: "destructive",
+        });
+        onCheckInChange(from);
+        onCheckOutChange(undefined);
+        return;
+      }
+      onCheckInChange(from);
+      onCheckOutChange(to);
+      // 兩個日期都選完才關閉
+      setTimeout(() => {
+        setDateOpen(false);
+        setDateOpenMobile(false);
+      }, 150);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") onSearch();
+  };
+
+  const tieredChildren =
+    typeof infants === "number" &&
+    typeof toddlers === "number" &&
+    !!onInfantsChange &&
+    !!onToddlersChange;
+
+  const totalChildren = tieredChildren
+    ? (infants || 0) + (toddlers || 0) + (children || 0)
+    : children;
+
+  const childSummary = tieredChildren
+    ? totalChildren > 0
+      ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}`
+      : ""
+    : children > 0
+      ? ` · ${t("booking.portal.search.childrenSummary", { count: children })}`
+      : "";
+
+  const renderGuestPicker = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-3 border-b border-border/40">
+        <p className="text-sm font-medium">{t("booking.portal.search.totalGuests")}</p>
+        <span className="text-sm font-semibold" style={{ color: "hsl(25, 70%, 45%)" }}>
+          {t("booking.portal.search.totalGuestsValue", { count: adults + totalChildren })}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">{t("booking.portal.search.adults")}</p>
+          <p className="text-xs text-muted-foreground">{t("booking.portal.search.adultsHint")}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onAdultsChange(Math.max(1, adults - 1))} disabled={adults <= 1}>
+            <Minus className="h-4 w-4" />
+          </Button>
+          <span className="w-7 text-center text-base font-medium tabular-nums">{adults}</span>
+          <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onAdultsChange(Math.min(20, adults + 1))} disabled={adults >= 20}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
+      {tieredChildren ? (
+        <>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{t("booking.portal.search.infants")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.infantsHint")}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onInfantsChange!(Math.max(0, (infants || 0) - 1))} disabled={(infants || 0) <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{infants || 0}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onInfantsChange!(Math.min(10, (infants || 0) + 1))} disabled={(infants || 0) >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{t("booking.portal.search.toddlers")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.toddlersHint")}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onToddlersChange!(Math.max(0, (toddlers || 0) - 1))} disabled={(toddlers || 0) <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{toddlers || 0}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onToddlersChange!(Math.min(10, (toddlers || 0) + 1))} disabled={(toddlers || 0) >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{t("booking.portal.search.children")}</p>
+              <p className="text-xs text-muted-foreground">{t("booking.portal.search.childrenHint")}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
+              <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium">{t("booking.portal.search.children")}</p>
+            <p className="text-xs text-muted-foreground">{t("booking.portal.search.childrenHintWide")}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.max(0, children - 1))} disabled={children <= 0}>
+              <Minus className="h-4 w-4" />
+            </Button>
+            <span className="w-7 text-center text-base font-medium tabular-nums">{children}</span>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-full hover:bg-muted hover:text-foreground" onClick={() => onChildrenChange(Math.min(10, children + 1))} disabled={children >= 10}>
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+
+  const nights = useMemo(() => {
+    if (!checkIn || !checkOut) return 0;
+    return Math.max(
+      0,
+      Math.round((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
+    );
+  }, [checkIn, checkOut]);
+
+  const renderRangeButtonContent = (compact = false) => {
+    if (!checkIn && !checkOut) {
+      return <span className="truncate text-muted-foreground">{t("booking.portal.search.datesPlaceholder")}</span>;
+    }
+    const inLabel = checkIn ? format(checkIn, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkInEmpty");
+    const outLabel = checkOut ? format(checkOut, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkOutEmpty");
+    return (
+      <span className={cn("flex items-center gap-1.5 truncate", compact && "text-sm")}>
+        <span className="font-semibold text-foreground">{inLabel}</span>
+        <span className="text-muted-foreground">→</span>
+        <span className={cn("font-semibold", checkOut ? "text-foreground" : "text-muted-foreground")}>
+          {outLabel}
+        </span>
+        {nights > 0 && (
+          <span
+            className="ml-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full whitespace-nowrap"
+            style={{ background: "hsl(25, 80%, 95%)", color: "hsl(25, 70%, 40%)" }}
+          >
+            {t("booking.portal.search.nights", { count: nights })}
+          </span>
+        )}
+      </span>
+    );
+  };
+
+  const renderRangeCalendarHeader = () => (
+    <div
+      className="px-4 py-3 pr-12 border-b border-border/40"
+      style={{ background: "hsl(25, 80%, 97%)" }}
+    >
+      <p className="text-xs text-muted-foreground">
+        {!checkIn ? t("booking.portal.search.pickCheckIn") : !checkOut ? t("booking.portal.search.pickCheckOut") : t("booking.portal.search.rangeTitle")}
+      </p>
+      <div className="mt-1 flex items-center gap-2 text-sm flex-wrap">
+        <span className={cn("font-medium", checkIn ? "text-foreground" : "text-muted-foreground")}>
+          {checkIn ? format(checkIn, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkInEmpty")}
+        </span>
+        <span className="text-muted-foreground">→</span>
+        <span className={cn("font-medium", checkOut ? "text-foreground" : "text-muted-foreground")}>
+          {checkOut ? format(checkOut, "M/d (EEE)", { locale: dateLocale }) : t("booking.portal.search.checkOutEmpty")}
+        </span>
+        {nights > 0 && (
+          <span
+            className="ml-auto text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap"
+            style={{ background: "hsl(25, 70%, 55%)", color: "white" }}
+          >
+            {t("booking.portal.search.nightsTotal", { count: nights })}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
+  const mobileCalendarClassNames = {
+    months: "flex flex-col",
+    month: "space-y-3 w-full",
+    table: "w-full border-collapse",
+    head_row: "flex w-full",
+    head_cell: "text-muted-foreground font-normal text-[0.75rem] flex-1 text-center",
+    row: "flex w-full mt-1",
+    cell: "flex-1 h-11 text-center text-[15px] p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+    day: "h-11 w-full p-0 font-normal aria-selected:opacity-100 inline-flex items-center justify-center rounded-md text-[15px] hover:bg-muted hover:text-foreground",
+    caption_label: "text-base font-medium",
+  };
+
+  const renderRangeCalendar = (numberOfMonths: number, mobile = false) => (
+    <>
+      {renderRangeCalendarHeader()}
+      <Calendar
+        mode="range"
+        selected={selectedRange}
+        onSelect={handleRangeSelect}
+        disabled={rangeDayDisabled}
+        defaultMonth={checkIn || today}
+        numberOfMonths={numberOfMonths}
+        locale={dateLocale}
+        className={cn("pointer-events-auto", mobile ? "p-3 w-full" : "p-3")}
+        classNames={mobile ? mobileCalendarClassNames : undefined}
+      />
+      <div className="flex items-center justify-between px-4 pb-3 pt-1">
+        <p className="text-xs text-muted-foreground">
+          {availableDateSet ? t("booking.portal.search.hintAvailable") : t("booking.portal.search.hintDefault")}
+        </p>
+        {(checkIn || checkOut) && (
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2"
+            onClick={() => {
+              onCheckInChange(undefined);
+              onCheckOutChange(undefined);
+            }}
+          >
+            {t("booking.portal.search.clear")}
+          </button>
+        )}
+      </div>
+    </>
+  );
+
+  return (
+    <div className="max-w-4xl mx-auto px-1 sm:px-0">
+      <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-3 sm:p-4 md:p-6">
+        {/* Desktop */}
+        <div className="hidden md:flex gap-4 items-start">
+          {/* Destination */}
+          <div className="flex-1 text-left">
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+              {t("booking.portal.search.destination")} <span className="text-muted-foreground/70 text-xs">{t("booking.portal.search.destinationOptional")}</span>
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+              <Input
+                ref={desktopDestinationInputRef}
+                placeholder={t("booking.portal.search.destinationPlaceholder")}
+                className="!h-12 !min-h-12 !py-3 !pl-10 border-border text-foreground"
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {["宜蘭", "南投", "苗栗"].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSearchQueryChange(s)}
+                  className="text-xs px-2.5 py-0.5 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
+                >
+                  {regionLabel(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Combined date range */}
+          <div className="text-left min-w-[300px]">
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+              {t("booking.portal.search.dates")}
+            </label>
+            <Popover open={dateOpen} onOpenChange={setDateOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full h-10 justify-start text-left font-normal border-border hover:bg-transparent hover:text-foreground"
+                  )}
+                >
+                  {isLoadingAvailability ? (
+                    <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : (
+                    <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                  )}
+                  {renderRangeButtonContent()}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                {renderRangeCalendar(2, false)}
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Guests & Rooms */}
+          <div className="text-left">
+            <label className="text-sm font-medium text-muted-foreground mb-1.5 block">
+              {t("booking.portal.search.guests")}
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="h-10 justify-start text-left font-normal border-border text-foreground gap-2 hover:bg-transparent hover:text-foreground"
+                >
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-4" align="start">
+                {renderGuestPicker()}
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Search */}
+          <Button
+            className="h-10 px-8 mt-[26px] rounded-lg text-white font-medium shrink-0"
+            style={{ background: "hsl(25, 70%, 55%)" }}
+            onClick={onSearch}
+          >
+            <Search className="h-4 w-4 mr-2" />
+            {t("booking.portal.search.submit")}
+          </Button>
+        </div>
+
+        {/* Mobile */}
+        <div className="flex md:hidden flex-col gap-2.5">
+          <div>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+              <Input
+                ref={mobileDestinationInputRef}
+                placeholder={t("booking.portal.search.destinationPlaceholderOptional")}
+                className="!pl-10 h-11 border-border text-foreground text-base"
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {["宜蘭", "南投", "苗栗"].map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => onSearchQueryChange(s)}
+                  className="text-xs px-2.5 py-1 rounded-full border border-[hsl(25,70%,55%)]/30 text-[hsl(25,70%,45%)] hover:bg-muted transition-colors"
+                >
+                  {regionLabel(s)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Combined date range - mobile bottom sheet */}
+          <Sheet open={dateOpenMobile} onOpenChange={setDateOpenMobile}>
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full h-12 justify-start text-left font-normal border-border text-base hover:bg-transparent hover:text-foreground"
+                )}
+              >
+                {isLoadingAvailability ? (
+                  <Loader2 className="mr-2 h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <CalendarDays className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                )}
+                {renderRangeButtonContent(true)}
+              </Button>
+            </SheetTrigger>
+            <SheetContent
+              side="bottom"
+              className="p-0 rounded-t-2xl max-h-[90vh] overflow-y-auto"
+            >
+              {renderRangeCalendar(1, true)}
+              <div className="sticky bottom-0 bg-white border-t border-border/40 p-3">
+                <Button
+                  className="w-full h-12 rounded-lg text-white font-medium text-base"
+                  style={{ background: "hsl(25, 70%, 55%)" }}
+                  disabled={!checkIn || !checkOut}
+                  onClick={() => setDateOpenMobile(false)}
+                >
+                  {checkIn && checkOut ? t("booking.portal.search.confirmNights", { count: nights }) : t("booking.portal.search.selectDatesFirst")}
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Guests + search */}
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11 justify-start text-left font-normal border-border text-foreground text-base gap-2 hover:bg-transparent hover:text-foreground"
+                >
+                  <Users className="h-4 w-4 text-muted-foreground shrink-0" />
+                  {t("booking.portal.search.guestSummary", { adults })}{totalChildren > 0 ? ` · ${t("booking.portal.search.childrenSummary", { count: totalChildren })}` : ""}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-72 p-4" align="start">
+                {renderGuestPicker()}
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              className="h-11 px-6 rounded-lg text-white font-medium shrink-0"
+              style={{ background: "hsl(25, 70%, 55%)" }}
+              onClick={onSearch}
+            >
+              <Search className="h-4 w-4 mr-1.5" />
+              {t("booking.portal.search.submit")}
+            </Button>
+          </div>
+
+          {checkIn && checkOut && (
+            <p className="text-sm text-muted-foreground text-center">
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
+            </p>
+          )}
+        </div>
+
+        <div className="hidden md:block">
+          {checkIn && checkOut && (
+            <p className="text-sm text-muted-foreground mt-3 text-center">
+              {t("booking.portal.search.rangeSummary", {
+                start: format(checkIn, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                end: format(checkOut, "yyyy/M/d (EEE)", { locale: dateLocale }),
+                count: nights,
+              })}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PortalSearchBar;

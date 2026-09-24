@@ -1,0 +1,643 @@
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { ArrowLeft, FileText, Lock, Server, Zap, Copy, Check } from "lucide-react";
+import { Link } from "react-router-dom";
+import { SEOHead } from "@lakeze/shared/components/SEOHead";
+import { useState } from "react";
+import { toast } from "sonner";
+import { AvailabilityTryIt } from "@/components/docs/AvailabilityTryIt";
+
+const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/accommodation-api`;
+const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+
+function CodeBlock({ children, label }: { children: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(children);
+      setCopied(true);
+      toast.success("已複製到剪貼簿");
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("複製失敗，請手動選取");
+    }
+  };
+  return (
+    <div className="rounded-md border bg-muted/40 relative group">
+      {label ? (
+        <div className="px-3 py-1.5 border-b text-[11px] font-mono text-muted-foreground bg-muted/60 flex items-center justify-between gap-2">
+          <span className="truncate">{label}</span>
+          <Button type="button" variant="ghost" size="sm" className="h-6 px-2 gap-1 text-[11px] -my-1 shrink-0" onClick={handleCopy}>
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? "已複製" : "複製"}
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 gap-1 text-[11px] absolute top-1.5 right-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/80 z-10"
+          onClick={handleCopy}
+        >
+          {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          {copied ? "已複製" : "複製"}
+        </Button>
+      )}
+      <pre className="text-[12px] font-mono p-3 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
+        <code>{children}</code>
+      </pre>
+    </div>
+  );
+}
+
+const TOC = [
+  { id: "overview", label: "1. 概述" },
+  { id: "base-url", label: "2. Base URL" },
+  { id: "auth", label: "3. 認證" },
+  { id: "version", label: "4. GET /version（公開，免 API Key）" },
+  { id: "availability", label: "5. GET /availability（查價格 + 庫存）" },
+  { id: "try-it", label: "6. Try it out（互動測試）" },
+  { id: "room-types", label: "7. GET /room-types（列全部房型）" },
+  { id: "room-type-detail", label: "8. GET /room-types/{id}" },
+  { id: "errors", label: "9. 錯誤碼表" },
+  { id: "notes", label: "10. 備註與注意事項" },
+  { id: "master-key", label: "11. Platform Master Key（一次抓全部）" },
+  { id: "openapi", label: "12. OpenAPI / Swagger" },
+];
+
+const OPENAPI_JSON_URL = "/docs/accommodation-api.openapi.json";
+const SWAGGER_UI_URL = "/docs/accommodation-api-swagger.html";
+
+export default function AccommodationApiDocs() {
+  return (
+    <>
+      <SEOHead
+        title="民宿庫存 API | Accommodation Inventory API"
+        description="供外部系統（Bot、Channel Manager、旅遊平台）串接民宿房型、房價、庫存的公開 API 文件。"
+      />
+      <div className="min-h-screen bg-background">
+        <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+          <div className="container mx-auto px-4 py-4 flex items-center gap-4">
+            <Link to="/api-docs">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <ArrowLeft className="h-4 w-4" /> API 文件中心
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-xl font-bold">民宿庫存 API</h1>
+              <p className="text-sm text-muted-foreground">Accommodation Inventory API</p>
+            </div>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-8 max-w-5xl">
+          <div className="grid gap-8 lg:grid-cols-[220px_1fr]">
+            {/* TOC */}
+            <aside className="hidden lg:block">
+              <nav className="sticky top-24 space-y-1 text-sm">
+                <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">目錄</p>
+                {TOC.map((t) => (
+                  <a
+                    key={t.id}
+                    href={`#${t.id}`}
+                    className="block px-2 py-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {t.label}
+                  </a>
+                ))}
+              </nav>
+            </aside>
+
+            <div className="space-y-10 min-w-0">
+              {/* Overview */}
+              <section id="overview" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />API 概述</CardTitle>
+                    <CardDescription>供外部串接（Bot、Channel Manager、旅遊平台）查詢房型、房價與庫存的唯讀 API。</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                        <Server className="h-5 w-5 text-primary mt-0.5" />
+                        <div><p className="font-medium">RESTful</p><p className="text-sm text-muted-foreground">JSON over HTTPS</p></div>
+                      </div>
+                      <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                        <Lock className="h-5 w-5 text-primary mt-0.5" />
+                        <div><p className="font-medium">API Key 驗證</p><p className="text-sm text-muted-foreground">一把 Key 綁定一館</p></div>
+                      </div>
+                      <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                        <Zap className="h-5 w-5 text-primary mt-0.5" />
+                        <div><p className="font-medium">即時同步</p><p className="text-sm text-muted-foreground">與官網 / 點數訂房共用邏輯</p></div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Base URL */}
+              <section id="base-url" className="scroll-mt-24">
+                <h2 className="text-lg font-semibold mb-3">Base URL</h2>
+                <CodeBlock label="Base URL">{BASE_URL}</CodeBlock>
+              </section>
+
+              {/* Auth */}
+              <section id="auth" className="scroll-mt-24 space-y-3">
+                <h2 className="text-lg font-semibold">認證</h2>
+                <p className="text-sm text-muted-foreground">
+                  所有請求必須帶入 API Key。金鑰由平台後台發放，<strong>一把 Key 僅綁定單一民宿</strong>，只能查回該館資料，跨館請求會被拒絕。
+                  請務必<strong>放在後端呼叫</strong>，切勿暴露於前端程式碼、App Bundle、或 Git Repo。
+                </p>
+                <CodeBlock label="方式一：x-api-key Header（推薦）">{`x-api-key: acc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`}</CodeBlock>
+                <CodeBlock label="方式二：Authorization Bearer">{`Authorization: Bearer acc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`}</CodeBlock>
+              </section>
+
+              {/* Version (public) */}
+              <section id="version" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/version</code>
+                      <Badge variant="outline" className="text-xs">公開</Badge>
+                    </div>
+                    <CardDescription>
+                      回傳 API 版本、建置日期、支援的端點清單與伺服器時間。<strong>不需要 API Key</strong>，可用於健康檢查、版本比對、串接前的連通性驗證。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <CodeBlock label="cURL（免 API Key）">{`curl -X GET '${BASE_URL}/version'`}</CodeBlock>
+                    <CodeBlock label="回應範例 (200)">{`{
+  "name": "accommodation-api",
+  "version": "1.1.0",
+  "build_date": "2026-07-02",
+  "runtime": "deno",
+  "endpoints": [
+    "GET /version",
+    "GET /availability",
+    "GET /room-types",
+    "GET /room-types/:id",
+    "POST /room-types"
+  ],
+  "docs_url": "https://renke-hostel-pro.lovable.app/docs/accommodation-api",
+  "server_time": "2026-07-02T12:00:00.000Z"
+}`}</CodeBlock>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Availability */}
+              <section id="availability" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/availability</code>
+                    </div>
+                    <CardDescription>查詢指定日期區間內每一天的<strong>剩餘可售房量、房價、開關房狀態</strong>。這是外部 Bot 最常用的端點。</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="font-medium text-sm mb-2">Query 參數</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">參數</th>
+                              <th className="text-left p-3">型別</th>
+                              <th className="text-left p-3">必填</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>from</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">起始日期 <code>YYYY-MM-DD</code>（含當日）</td></tr>
+                            <tr><td className="p-3"><code>to</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">結束日期 <code>YYYY-MM-DD</code>（含當日）。需 ≥ <code>from</code>，區間最多 <strong>60 天</strong></td></tr>
+                            <tr><td className="p-3"><code>room_type_id</code></td><td className="p-3">string</td><td className="p-3">否</td><td className="p-3">房型 ID，可用逗號分隔多個；未帶則回本館全部房型。不屬於本館的 ID 會被忽略</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">cURL 範例</p>
+                      <CodeBlock label="查全部房型">{`curl -X GET '${BASE_URL}/availability?from=2026-07-01&to=2026-07-07' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                      <div className="h-2" />
+                      <CodeBlock label="查指定房型">{`curl -X GET '${BASE_URL}/availability?from=2026-07-01&to=2026-07-07&room_type_id=<ID1>,<ID2>' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">回應範例 (200)</p>
+                      <CodeBlock label="application/json">{`{
+  "accommodation_id": "uuid",
+  "from": "2026-07-01",
+  "to": "2026-07-03",
+  "currency": "TWD",
+  "room_types": [
+    {
+      "room_type_id": "uuid",
+      "name": "海景雙人房",
+      "capacity": 2,
+      "days": [
+        { "date": "2026-07-01", "remaining": 2, "price": 3800, "is_available": true,  "closed": false },
+        { "date": "2026-07-02", "remaining": 3, "price": 3800, "is_available": true,  "closed": false },
+        { "date": "2026-07-03", "remaining": 0, "price": null, "is_available": false, "closed": true  }
+      ]
+    }
+  ]
+}`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">欄位說明</p>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li><code>remaining</code>：當日剩餘可售房量（已扣除既有訂單與包棟互斥佔用），關房或滿房為 <code>0</code>。</li>
+                        <li><code>price</code>：當日房價（整數 TWD）；關房、未設定價格、或當日 tier 未啟用時為 <code>null</code>。</li>
+                        <li><code>is_available</code>：當日是否開放銷售；<code>closed=true</code> 時必為 <code>false</code>。</li>
+                        <li><code>closed</code>：<code>true</code> 表示因庫存關房、整棟保留或包棟互斥而不可銷售。</li>
+                        <li><code>days</code>：一定會補滿 <code>from</code> ~ <code>to</code> 整段連續日期，前端可直接以陣列 index 對應。</li>
+                      </ul>
+                    </div>
+
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-md text-sm">
+                      <p className="font-medium mb-1">✅ 判斷「這一晚可訂」</p>
+                      <code className="text-xs">closed === false &amp;&amp; remaining &gt; 0 &amp;&amp; price !== null</code>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Try it out */}
+              <section id="try-it" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5" />Try it out — 互動測試 /availability</CardTitle>
+                    <CardDescription>
+                      直接在瀏覽器呼叫正式 API。輸入你的 API Key、選日期，一鍵送出即可看到真實回應與耗時。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <AvailabilityTryIt />
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Room types list */}
+              <section id="room-types" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/room-types</code>
+                    </div>
+                    <CardDescription>列出此民宿全部房型（含 <code>room_amenities</code> 與 <code>room_photos</code>）。建議<strong>先呼叫此端點拿到房型 ID</strong>，再帶入 <code>/availability</code> 查價量。</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <CodeBlock label="cURL">{`curl -X GET '${BASE_URL}/room-types' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                    <CodeBlock label="回應範例 (200)">{`{
+  "data": [
+    {
+      "id": "uuid",
+      "accommodation_id": "uuid",
+      "name": "海景雙人房",
+      "name_en": "Ocean View Double",
+      "description": "面海景觀套房",
+      "capacity": 2,
+      "base_price": 3800,
+      "room_count": 3,
+      "size_sqm": 12.5,
+      "display_order": 0,
+      "room_amenities": [
+        { "category": "general", "amenity_name": "空調" }
+      ],
+      "room_photos": [
+        { "photo_url": "https://.../room1.jpg", "display_order": 0 }
+      ]
+    }
+  ]
+}`}</CodeBlock>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Room type detail */}
+              <section id="room-type-detail" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/room-types/{"{id}"}</code>
+                    </div>
+                    <CardDescription>取得單一房型詳情。若 <code>id</code> 不屬於本館或不存在，回 <code>404 Room type not found</code>。</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <CodeBlock label="cURL">{`curl -X GET '${BASE_URL}/room-types/<ROOM_TYPE_ID>' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Errors */}
+              <section id="errors" className="scroll-mt-24">
+                <h2 className="text-lg font-semibold mb-3">錯誤碼表</h2>
+                <div className="rounded-lg border overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted">
+                      <tr>
+                        <th className="text-left p-3">HTTP</th>
+                        <th className="text-left p-3">狀況</th>
+                        <th className="text-left p-3">訊息 / 說明</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      <tr><td className="p-3"><Badge variant="destructive">401</Badge></td><td className="p-3">未帶 API Key 或無效</td><td className="p-3"><code>Missing API key</code> / <code>Invalid API key</code></td></tr>
+                      <tr><td className="p-3"><Badge variant="secondary">400</Badge></td><td className="p-3">參數錯誤</td><td className="p-3"><code>from and to are required</code> / <code>Invalid date format, expected YYYY-MM-DD</code> / <code>to must be greater than or equal to from</code> / <code>Date range too large (max 60 days)</code></td></tr>
+                      <tr><td className="p-3"><Badge variant="outline">404</Badge></td><td className="p-3">房型不存在或不屬於本館</td><td className="p-3"><code>Room type not found</code></td></tr>
+                      <tr><td className="p-3"><Badge variant="destructive">500</Badge></td><td className="p-3">伺服器錯誤</td><td className="p-3"><code>Internal server error</code>（請重試或回報）</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-3">
+                  <CodeBlock label="錯誤回應格式">{`{ "error": "Date range too large (max 60 days)" }`}</CodeBlock>
+                </div>
+              </section>
+
+              {/* Notes */}
+              <section id="notes" className="scroll-mt-24">
+                <h2 className="text-lg font-semibold mb-3">備註與注意事項</h2>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-5">
+                  <li>幣別固定為 <strong>TWD</strong>；價格為整數（新台幣）。</li>
+                  <li>日期一律以<strong>民宿當地日期</strong>解讀，回應不含時區位移，直接使用 <code>YYYY-MM-DD</code>。</li>
+                  <li><code>remaining</code> 為即時查詢值，隨訂單成立/取消動態變化，請每次串接前重新查詢，切勿長期快取。</li>
+                  <li>本 API 為<strong>唯讀查詢</strong>，不會建立訂單、不會扣房；下單請走專屬訂房流程。</li>
+                  <li>房量、房價、關房規則與官網訂房、點數訂房共用同一套邏輯（庫存扣房、包棟互斥、tier 解價、房型 override、季節分段、餐型模板），資料保證一致。</li>
+                  <li>請將 API Key 存放於後端伺服器環境變數；勿放入前端或提交至公開 Git Repo。</li>
+                </ul>
+              </section>
+
+              {/* Platform Master Key */}
+              <section id="master-key" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><Lock className="h-5 w-5" />Platform Master Key（一次抓全部民宿）</CardTitle>
+                    <CardDescription>
+                      內部系統 / BI 專用：使用單一 master key，一次呼叫即可取得全平台所有民宿的房型、庫存、房價、包棟方案，不用逐家申請 API Key。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="rounded-md border bg-amber-500/10 text-amber-800 dark:text-amber-300 p-3 text-xs">
+                      ⚠️ 此 key 權限極高（可讀全平台庫存），僅供內部後端 / BI 使用。<strong>禁止放前端、禁止提交 Git、禁止交給外部夥伴</strong>。存放於 Edge Function 環境變數 <code>PLATFORM_MASTER_API_KEY</code>。
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">端點</p>
+                      <CodeBlock label="GET">{`GET ${FUNCTIONS_URL}/all-availability`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">認證 Header</p>
+                      <CodeBlock>{`x-api-key: <PLATFORM_MASTER_API_KEY>`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-2">Query 參數</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">參數</th>
+                              <th className="text-left p-3">必填</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>from</code></td><td className="p-3">必填</td><td className="p-3">起始日期 <code>YYYY-MM-DD</code>（含當日）</td></tr>
+                            <tr><td className="p-3"><code>to</code></td><td className="p-3">必填</td><td className="p-3">結束日期 <code>YYYY-MM-DD</code>（含當日，最多 60 天區間）</td></tr>
+                            <tr><td className="p-3"><code>accommodation_ids</code></td><td className="p-3">選填</td><td className="p-3">逗號分隔的民宿 UUID，例：<code>uuid1,uuid2</code>。不填則回全部民宿。</td></tr>
+                            <tr><td className="p-3"><code>include</code></td><td className="p-3">選填</td><td className="p-3">逗號分隔，可選 <code>room_types</code>、<code>packages</code>。預設 <code>room_types,packages</code>（兩者都回）。</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">cURL 範例</p>
+                      <CodeBlock label="1. 全平台 · 房型 + 庫存 + 房價 + 包棟方案（預設 include）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="2. 指定民宿（單一）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=4ee31aca-5641-4d05-80e2-1c67626be83d' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="3. 指定民宿（多家，逗號分隔）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&accommodation_ids=UUID_A,UUID_B,UUID_C' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="4. 只要房型/庫存/房價（省略 packages）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-15&include=room_types' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="5. 只要包棟方案清單（不算庫存，最快）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-05&include=packages' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="6. 單日 snapshot（from == to，最省時）">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-05&to=2026-07-05' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="7. 完整組合：指定民宿 + 完整內容 + 60 天上限">{`curl '${FUNCTIONS_URL}/all-availability?from=2026-07-01&to=2026-08-29&accommodation_ids=UUID_A,UUID_B&include=room_types,packages' \\
+  -H 'x-api-key: <PLATFORM_MASTER_API_KEY>'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <CodeBlock label="8. Node.js（fetch）">{`const res = await fetch(
+  '${FUNCTIONS_URL}/all-availability?' +
+  new URLSearchParams({
+    from: '2026-07-05',
+    to: '2026-07-15',
+    accommodation_ids: 'UUID_A,UUID_B',
+    include: 'room_types,packages',
+  }),
+  { headers: { 'x-api-key': process.env.PLATFORM_MASTER_API_KEY! } }
+);
+const data = await res.json();`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-1">完整回應欄位示例（200 OK）</p>
+                      <CodeBlock label="response.json">{`{
+  "from": "2026-07-05",
+  "to": "2026-07-07",
+  "currency": "TWD",
+  "accommodations": [
+    {
+      "id": "4ee31aca-5641-4d05-80e2-1c67626be83d",
+      "name": "森山民宿 Sensan Villa",
+      "room_types": [
+        {
+          "id": "rt-uuid-double",
+          "name": "雙人房",
+          "capacity": 2,
+          "room_count": 2,
+          "is_exclusive_package": false,
+          "days": [
+            {
+              "date": "2026-07-05",
+              "weekday": 0,
+              "is_holiday": false,
+              "price": 3800,
+              "price_2_meals": 4600,
+              "price_3_meals": 5400,
+              "is_available": true,
+              "remaining": 1,
+              "sold": 1
+            },
+            {
+              "date": "2026-07-06",
+              "weekday": 1,
+              "is_holiday": false,
+              "price": 2800,
+              "is_available": true,
+              "remaining": 2,
+              "sold": 0
+            },
+            {
+              "date": "2026-07-07",
+              "weekday": 2,
+              "is_holiday": false,
+              "price": 2800,
+              "is_available": false,
+              "remaining": 0,
+              "sold": 0,
+              "closed_reason": "manual_close"
+            }
+          ]
+        }
+      ],
+      "packages": [
+        {
+          "id": "pkg-uuid-1",
+          "name": "森山包棟 12 人",
+          "numeric_code": 1003,
+          "base_price": 28000,
+          "room_type_ids": ["rt-uuid-double", "rt-uuid-quad"],
+          "room_type_allocation": { "rt-uuid-double": 2, "rt-uuid-quad": 2 },
+          "is_active": true,
+          "display_order": 1
+        },
+        {
+          "id": "pkg-uuid-2",
+          "name": "森山包棟 18 人",
+          "numeric_code": 1006,
+          "base_price": 42000,
+          "room_type_ids": ["rt-uuid-double", "rt-uuid-quad"],
+          "is_active": true,
+          "display_order": 2
+        }
+      ]
+    },
+    {
+      "id": "acc-uuid-yunxiu",
+      "name": "雲岫 Villa",
+      "room_types": [ /* A1–A7、B1 每棟 */ ],
+      "packages": [
+        { "id": "pkg-y-A1", "name": "A1 棟", "numeric_code": 1001, "base_price": 18000, "room_type_ids": ["rt-A1"], "is_active": true },
+        { "id": "pkg-y-A2", "name": "A2 棟", "numeric_code": 1002, "base_price": 18000, "room_type_ids": ["rt-A2"], "is_active": true }
+        /* … 1003–1007 */
+      ]
+    }
+  ]
+}`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-semibold mb-2">欄位對照</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">欄位</th>
+                              <th className="text-left p-3">型別</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>accommodations[].id</code></td><td className="p-3">uuid</td><td className="p-3">民宿 ID，等同 <code>accommodation_id</code>，可用於後續 API filter。</td></tr>
+                            <tr><td className="p-3"><code>accommodations[].name</code></td><td className="p-3">string</td><td className="p-3">民宿名稱（中文）。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].date</code></td><td className="p-3">YYYY-MM-DD</td><td className="p-3">當地日期，無時區位移。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].price</code></td><td className="p-3">integer TWD</td><td className="p-3">當日房價（純住宿）；季節/週末/假日/模板已套用。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].price_2_meals</code> / <code>price_3_meals</code></td><td className="p-3">integer TWD?</td><td className="p-3">餐型加價後的當日總價（有設定才有值）。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].remaining</code></td><td className="p-3">integer</td><td className="p-3">當日剩餘可售房數；已扣訂單、包棟鎖房。</td></tr>
+                            <tr><td className="p-3"><code>room_types[].days[].is_available</code></td><td className="p-3">boolean</td><td className="p-3">當日是否開放銷售（管理員關房 / 模板關房 / remaining=0 皆為 false）。</td></tr>
+                            <tr><td className="p-3"><code>packages[].numeric_code</code></td><td className="p-3">integer</td><td className="p-3">OTA / OwlTing 用的 RatePlanCode（森山 1003–1006、雲岫 1001–1007）。</td></tr>
+                            <tr><td className="p-3"><code>packages[].room_type_ids</code></td><td className="p-3">uuid[]</td><td className="p-3">此包棟方案涵蓋的房型；下單時會一次鎖這些房型。</td></tr>
+                            <tr><td className="p-3"><code>packages[].room_type_allocation</code></td><td className="p-3">jsonb?</td><td className="p-3">每個房型鎖房數量（森山用）；未設定則預設全鎖。</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+
+                    <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
+                      <li>房量、房價、關房邏輯與單店 <code>/availability</code> 完全一致（共用 <code>buildAvailability</code>）。</li>
+                      <li><code>packages[].numeric_code</code> 對應 OwlTing 訂單推送用的 RatePlanCode，方便對帳。</li>
+                      <li>單次最多 60 天；跨大量民宿時建議分段查詢避免 timeout。</li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* OpenAPI / Swagger */}
+              <section id="openapi" className="scroll-mt-24">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2"><FileText className="h-5 w-5" />OpenAPI (Swagger) 規格</CardTitle>
+                    <CardDescription>
+                      本 API 提供 OpenAPI 3.0 規格檔，可直接匯入 Postman / Insomnia / openapi-generator 產生 client SDK。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-wrap gap-2">
+                      <a href={OPENAPI_JSON_URL} download="accommodation-api.openapi.json">
+                        <Button variant="default" size="sm" className="gap-2">
+                          <Copy className="h-4 w-4" /> 下載 openapi.json
+                        </Button>
+                      </a>
+                      <a href={OPENAPI_JSON_URL} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">在新分頁開啟 JSON</Button>
+                      </a>
+                      <a href={SWAGGER_UI_URL} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm">在新分頁開啟 Swagger UI</Button>
+                      </a>
+                    </div>
+                    <CodeBlock label="OpenAPI JSON URL">{`${typeof window !== "undefined" ? window.location.origin : "https://renke-hostel-pro.lovable.app"}${OPENAPI_JSON_URL}`}</CodeBlock>
+                    <div className="rounded-lg border overflow-hidden bg-white">
+                      <iframe
+                        src={SWAGGER_UI_URL}
+                        title="Accommodation API Swagger UI"
+                        className="w-full"
+                        style={{ height: "820px", border: 0 }}
+                        loading="lazy"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+            </div>
+          </div>
+        </main>
+      </div>
+    </>
+  );
+}
