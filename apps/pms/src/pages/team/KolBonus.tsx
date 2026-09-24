@@ -1,0 +1,2036 @@
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Navigate, Link, useNavigate } from "react-router-dom";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { toast } from "sonner";
+import { Copy, Link as LinkIcon, Eye, Plus, Trash2, ArrowLeft, ChevronDown, ChevronRight, RotateCcw, History, Info } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@lakeze/shared/components/ui/accordion";
+import {
+  logKolRateChange,
+  fetchKolRateAuditLogs,
+  describeRateRange,
+  RATE_ACTION_LABEL,
+  type RateAuditLogRow,
+} from "@/lib/kolRateAudit";
+import KolBonusDashboardTab from "@/components/team/KolBonusDashboardTab";
+import KolPayFormReconcileTab from "@/components/team/KolPayFormReconcileTab";
+import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { Input } from "@lakeze/shared/components/ui/input";
+import { Label } from "@lakeze/shared/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@lakeze/shared/components/ui/tabs";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@lakeze/shared/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@lakeze/shared/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@lakeze/shared/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@lakeze/shared/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@lakeze/shared/components/ui/select";
+import { Separator } from "@lakeze/shared/components/ui/separator";
+import { useTeam } from "@lakeze/shared/components/team/TeamContext";
+import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
+import BoostedAmount from "@/components/team/BoostedAmount";
+import { boostedAmount } from "@lakeze/shared/lib/bonusMultiplier";
+
+interface KolRow {
+  // 以「cid_code(大寫) + accommodation_id」為列的唯一鍵
+  rowKey: string;
+  // 對應 kol_profiles.id；若無 match 也無 fallback 則為 null
+  id: string | null;
+  name: string | null;
+  cid_code: string | null;
+  // 來自 orders 的 accommodation_id（該列的館別）
+  accommodation_id: string | null;
+  // 由 accommodation_info 查得的館別名稱，fallback 用 kol_profiles.venue_name
+  accommodation_name: string | null;
+  public_token: string | null;
+  token_expires_at: string | null;
+  scout_id: string | null;
+  scout_name: string | null;
+}
+
+interface OrderRow {
+  id: string;
+  order_number: string;
+  discount_code: string | null;
+  check_in_date: string;
+  check_out_date: string | null;
+  order_date: string | null;
+  total_price: number | null;
+  final_price: number | null;
+  order_status: string;
+  accommodation_id: string | null;
+  gross_revenue?: number | null;
+  commission_base?: number | null;
+  addon_total?: number | null;
+  is_manual_base?: boolean;
+}
+
+interface CommissionSetting {
+  accommodation_id: string;
+  effective_from: string;
+  rate: number | null;
+}
+
+type RateResolver = (accommodationId: string | null, refDate?: string | null) => number;
+
+
+const TOKEN_VALID_DAYS = 90;
+
+const fmtMoney = (n: number) => `NT$ ${Number(n || 0).toLocaleString()}`;
+
+/** 分潤基準金額：一律採用 kol-bonus-public Edge Function 已算好的 commission_base
+ *  （order_meta.team_commission_price 人工覆蓋值優先，否則 final_price − 加購項目） */
+const baseOf = (o: OrderRow) =>
+  Number(o.commission_base ?? o.final_price ?? o.total_price ?? 0);
+/** 訂單原始總額（未扣加購） */
+const grossOf = (o: OrderRow) =>
+  Number(o.gross_revenue ?? o.final_price ?? o.total_price ?? 0);
+
+const isTokenValid = (row: KolRow) =>
+  !!row.public_token &&
+  !!row.token_expires_at &&
+  new Date(row.token_expires_at).getTime() > Date.now();
+
+export default function KolBonus() {
+  const { roles } = useTeam();
+  const roleSet = roles as string[];
+  const canEdit =
+    roleSet.includes("super_admin") ||
+    roleSet.includes("hotel_admin") ||
+    roleSet.includes("scout_manager") ||
+    roleSet.includes("scout");
+  // AM／AM 主管：唯讀，只能看儀表板
+  const readOnlyViewer =
+    !canEdit && (roleSet.includes("am") || roleSet.includes("am_manager"));
+  const allowed = canEdit || readOnlyViewer;
+  /** 勞報單對帳：帳務核對用，僅管理層可見 */
+  const canReconcile =
+    roleSet.includes("super_admin") ||
+    roleSet.includes("hotel_admin") ||
+    roleSet.includes("scout_manager");
+
+  const twNow = (() => {
+    const now = new Date();
+    const twOffset = 8 * 60;
+    return new Date(now.getTime() + (twOffset + now.getTimezoneOffset()) * 60000);
+  })();
+  const currentYear = twNow.getUTCFullYear();
+  const currentMonthNum = twNow.getUTCMonth() + 1;
+  const currentDay = twNow.getUTCDate();
+
+  // 發放期別預設：今天 ≤ 10 → 當月10日；> 10 → 下個月10日（跨年則年份+1）
+  const defaultPayoutMonth =
+    currentDay <= 10 ? currentMonthNum : currentMonthNum === 12 ? 1 : currentMonthNum + 1;
+  const defaultPayoutYear =
+    currentDay > 10 && currentMonthNum === 12 ? currentYear + 1 : currentYear;
+
+  const navigate = useNavigate();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [rows, setRows] = useState<KolRow[]>([]);
+  const [orders, setOrders] = useState<OrderRow[]>([]);
+  const [commissions, setCommissions] = useState<CommissionSetting[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [drawerKol, setDrawerKol] = useState<KolRow | null>(null);
+  const [drawerSettlement, setDrawerSettlement] = useState(false);
+  const [filterYear, setFilterYear] = useState<number>(currentYear);
+  const [filterMonth, setFilterMonth] = useState<string>(String(currentMonthNum)); // "all" | "1".."12"
+  const [tab1Search, setTab1Search] = useState<string>("");
+  const [tab1SearchInput, setTab1SearchInput] = useState<string>("");
+  useEffect(() => {
+    const t = setTimeout(() => setTab1Search(tab1SearchInput), 150);
+    return () => clearTimeout(t);
+  }, [tab1SearchInput]);
+  // 發放期別：以月份為單位（顯示為「M月10日」），代表完成業績/分潤所抓的退房月份
+  const [payoutYear, setPayoutYear] = useState<number>(defaultPayoutYear);
+  const [payoutPeriod, setPayoutPeriod] = useState<string>(String(defaultPayoutMonth));
+  const [scoutFilter, setScoutFilter] = useState<string>("all");
+  const { multiplierForDataMonth } = useBonusMultipliers();
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    const kolQuery = supabase
+      .from("kol_profiles")
+      .select(
+        "id, name, cid_code, venue_name, accommodation_id, public_token, token_expires_at, scout_id, scout_name",
+      )
+      .not("cid_code", "is", null)
+      .neq("cid_code", "");
+    const [kolRes, calcRes, accRes, scoutRes, scoutCodeRes] = await Promise.all([
+      kolQuery,
+      // 分潤計算唯一真相：交由 kol-bonus-public（internal 模式）回傳已算好基準金額的訂單
+      supabase.functions.invoke("kol-bonus-public", { body: { mode: "internal" } }),
+      supabase.from("accommodation_info").select("id, name"),
+      supabase.from("team_member_profiles").select("id, user_id, display_name"),
+      supabase
+        .from("scout_discount_codes")
+        .select("discount_code, scout_id")
+        .eq("is_active", true),
+    ]);
+    if (kolRes.error) toast.error("載入 KOL 失敗：" + kolRes.error.message);
+    if (calcRes.error) toast.error("載入訂單分潤失敗：" + calcRes.error.message);
+    if ((calcRes.data as any)?.error) toast.error("載入訂單分潤失敗：" + (calcRes.data as any).error);
+    if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
+
+    const calcData = (calcRes.data ?? {}) as {
+      orders?: OrderRow[];
+      commissions?: CommissionSetting[];
+    };
+    const allOrders = (calcData.orders ?? []) as OrderRow[];
+    const allKols = (kolRes.data ?? []) as Array<{
+      id: string;
+      name: string | null;
+      cid_code: string | null;
+      venue_name: string | null;
+      accommodation_id: string | null;
+      public_token: string | null;
+      token_expires_at: string | null;
+      scout_id: string | null;
+      scout_name: string | null;
+    }>;
+    const accMap = new Map<string, string>(
+      ((accRes.data ?? []) as Array<{ id: string; name: string }>).map((a) => [
+        a.id,
+        a.name,
+      ]),
+    );
+    const teamMemberProfiles = (scoutRes.data ?? []) as Array<{
+      id: string | null;
+      user_id: string | null;
+      display_name: string | null;
+    }>;
+    const scoutNameMap = new Map<string, string>(
+      teamMemberProfiles
+        .filter((s) => !!s.user_id)
+        .map((s) => [s.user_id as string, s.display_name ?? ""]),
+    );
+    // key = team_member_profiles.id → display_name
+    const memberNameById = new Map<string, string>();
+    for (const m of teamMemberProfiles) {
+      if (m.id) memberNameById.set(m.id, m.display_name ?? "");
+    }
+    // key = discount_code 大寫 → 星探 display_name
+    const scoutNameByCode = new Map<string, string>();
+    // key = discount_code 大寫 → team_member_profiles.user_id
+    const scoutUserIdByCode = new Map<string, string>();
+    const scoutDiscountCodes = (scoutCodeRes.data ?? []) as Array<{
+      discount_code: string | null;
+      scout_id: string | null;
+    }>;
+    for (const s of scoutDiscountCodes) {
+      const code = s.discount_code?.trim().toUpperCase();
+      if (!code || !s.scout_id) continue;
+      const name = memberNameById.get(s.scout_id);
+      if (name) scoutNameByCode.set(code, name);
+      // s.scout_id 是 team_member_profiles.id，需要對應到 user_id
+      const member = teamMemberProfiles.find((m) => m.id === s.scout_id);
+      if (member?.user_id) scoutUserIdByCode.set(code, member.user_id);
+    }
+
+
+    // kol_profiles 索引：依 cid_code(大寫) 分組，再依 accommodation_id 對應
+    const profileByCodeAcc = new Map<string, typeof allKols[number]>(); // key: `${codeUpper}|${accId}`
+    const profileFallbackByCode = new Map<string, typeof allKols[number]>(); // key: codeUpper，僅收 accommodation_id 為 null 的那筆
+    for (const p of allKols) {
+      const code = (p.cid_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      if (p.accommodation_id) {
+        profileByCodeAcc.set(`${code}|${p.accommodation_id}`, p);
+      } else if (!profileFallbackByCode.has(code)) {
+        profileFallbackByCode.set(code, p);
+      }
+    }
+
+    // 以「有實際訂單的 cid_code + accommodation_id 組合」為單位建立列
+    const seen = new Set<string>();
+    const built: KolRow[] = [];
+    for (const o of allOrders) {
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const accId = o.accommodation_id ?? null;
+      const rowKey = `${code}|${accId ?? "null"}`;
+      if (seen.has(rowKey)) continue;
+      seen.add(rowKey);
+      const matched =
+        (accId && profileByCodeAcc.get(`${code}|${accId}`)) ||
+        profileFallbackByCode.get(code) ||
+        null;
+      built.push({
+        rowKey,
+        id: matched?.id ?? null,
+        name: matched?.name ?? scoutNameByCode.get(code) ?? null,
+        cid_code: matched?.cid_code ?? code,
+        accommodation_id: accId,
+        accommodation_name:
+          (accId && accMap.get(accId)) || matched?.venue_name || null,
+        public_token: matched?.public_token ?? null,
+        token_expires_at: matched?.token_expires_at ?? null,
+        scout_id: matched?.scout_id ?? scoutUserIdByCode.get(code) ?? null,
+        scout_name:
+          (matched?.scout_id && scoutNameMap.get(matched.scout_id)) ||
+          matched?.scout_name ||
+          scoutNameByCode.get(code) ||
+          null,
+      });
+    }
+    // 排序：館別名稱 → cid_code
+    built.sort((a, b) => {
+      const an = a.accommodation_name ?? "";
+      const bn = b.accommodation_name ?? "";
+      if (an !== bn) return an.localeCompare(bn);
+      return (a.cid_code ?? "").localeCompare(b.cid_code ?? "");
+    });
+
+    setRows(built);
+    setOrders(allOrders);
+    setCommissions(((calcData.commissions ?? []) as any[]).map((c) => ({
+      accommodation_id: c.accommodation_id,
+      effective_from: c.effective_from,
+      rate: c.rate,
+    })));
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (allowed) fetchAll();
+  }, [allowed, fetchAll]);
+
+  // 依館別分組（已按 effective_from DESC 排序）
+  const settingsByAcc = useMemo(() => {
+    const map = new Map<string, CommissionSetting[]>();
+    for (const c of commissions) {
+      const arr = map.get(c.accommodation_id) ?? [];
+      arr.push(c);
+      map.set(c.accommodation_id, arr);
+    }
+    return map;
+  }, [commissions]);
+
+  // 依退房日期取最新生效的 rate（effective_from <= refDate）
+  const getRate = useCallback<RateResolver>(
+    (accommodationId, refDate) => {
+      if (!accommodationId) return 0;
+      const list = settingsByAcc.get(accommodationId);
+      if (!list || list.length === 0) return 0;
+      if (!refDate) return Number(list[0]?.rate ?? 0);
+      const ref = refDate.slice(0, 10);
+      const hit = list.find((s) => s.effective_from <= ref);
+      return Number(hit?.rate ?? 0);
+    },
+    [settingsByAcc],
+  );
+
+
+  // 訂單依「cid_code(大寫) + accommodation_id」分組，作為列的明細來源
+  const ordersByKey = useMemo(() => {
+    const map = new Map<string, OrderRow[]>();
+    for (const o of orders) {
+      const code = (o.discount_code ?? "").trim().toUpperCase();
+      if (!code) continue;
+      const key = `${code}|${o.accommodation_id ?? "null"}`;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(o);
+    }
+    return map;
+  }, [orders]);
+
+  // 年份選項：所有訂單 order_date 出現過的年份 + 當年
+  const yearOptions = useMemo(() => {
+    const set = new Set<number>();
+    for (const o of orders) {
+      if (o.order_date) set.add(Number(o.order_date.slice(0, 4)));
+    }
+    set.add(currentYear);
+    set.add(defaultPayoutYear);
+    return Array.from(set).sort((a, b) => b - a);
+  }, [orders, currentYear, defaultPayoutYear]);
+
+  // 星探選項：只列出有實際邀約 KOL（即有出現在 rows 裡）的星探
+  const scoutOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const r of rows) {
+      if (r.scout_id) {
+        if (!map.has(r.scout_id)) map.set(r.scout_id, r.scout_name || "—");
+      }
+    }
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [rows]);
+
+  // 期間比對：年可為「全部年份」，此時仍需套用月份條件（跨年度同月）
+  const matchPeriod = useCallback(
+    (date?: string | null) => {
+      if (!date) return false;
+      if (filterYear === 0) {
+        if (filterMonth === "all") return true;
+        return date.slice(5, 7) === String(filterMonth).padStart(2, "0");
+      }
+      const prefix =
+        filterMonth === "all"
+          ? `${filterYear}-`
+          : `${filterYear}-${String(filterMonth).padStart(2, "0")}`;
+      return date.startsWith(prefix);
+    },
+    [filterYear, filterMonth],
+  );
+
+  // Tab1 進單管理：依年/月過濾（order_date 或 check_out_date 落在當期）
+  const tab1FilteredRows = useMemo(() => {
+    const q = tab1SearchInput.trim().toLowerCase();
+    return rows.filter((k) => {
+      if (q) {
+        const name = (k.name ?? "").toLowerCase();
+        const code = (k.cid_code ?? "").toLowerCase();
+        if (!name.includes(q) && !code.includes(q)) return false;
+      }
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      if (filterYear === 0 && filterMonth === "all") return list.length > 0;
+      return list.some(
+        (o) =>
+          matchPeriod(o.order_date) ||
+          (o.order_status !== "cancelled" && matchPeriod(o.check_out_date)),
+      );
+    });
+  }, [rows, ordersByKey, filterYear, filterMonth, matchPeriod, tab1SearchInput]);
+
+  // Tab1 度量：進單與完成同時由 filterYear+filterMonth 控制
+  const tab1Metrics = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        orderCount: number;
+        orderRevenue: number;
+        completedCount: number;
+        completedRevenue: number;
+        commission: number;
+      }
+    >();
+    for (const k of rows) {
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      let orderCount = 0;
+      let orderRevenue = 0;
+      let completedCount = 0;
+      let completedRevenue = 0;
+      let commission = 0;
+      for (const o of list) {
+        const r = grossOf(o);
+        const base = baseOf(o);
+        const rate = getRate(o.accommodation_id, o.check_out_date);
+        const orderMatch = matchPeriod(o.order_date);
+        const completedMatch = matchPeriod(o.check_out_date);
+        if (orderMatch) {
+          orderCount += 1;
+          orderRevenue += r;
+        }
+        if (completedMatch) {
+          completedCount += 1;
+          completedRevenue += r;
+          commission += base * (rate / 100);
+        }
+      }
+      map.set(k.rowKey, {
+        orderCount,
+        orderRevenue,
+        completedCount,
+        completedRevenue,
+        commission: Math.round(commission),
+      });
+    }
+    return map;
+  }, [rows, ordersByKey, getRate, matchPeriod]);
+
+
+  // Tab2 退房月份 prefix：發放期別 P 對應退房月 = P-1（P=1 → 上一年12月）
+  const tab2TargetPrefix = useMemo(() => {
+    if (payoutPeriod === "all") return `${payoutYear}-`;
+    const p = Number(payoutPeriod);
+    if (p === 1) return `${payoutYear - 1}-12`;
+    return `${payoutYear}-${String(p - 1).padStart(2, "0")}`;
+  }, [payoutYear, payoutPeriod]);
+
+  // 獎金加倍：Tab1 以篩選的「進單/完成」月份為資料月；Tab2 以退房月（tab2TargetPrefix）為資料月
+  const tab1DataMonthKey =
+    filterYear !== 0 && filterMonth !== "all"
+      ? `${filterYear}-${String(filterMonth).padStart(2, "0")}`
+      : null;
+  const tab1CommissionMultiplier = tab1DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab1DataMonthKey)
+    : 1;
+  const tab2DataMonthKey = payoutPeriod !== "all" ? tab2TargetPrefix : null;
+  const tab2CommissionMultiplier = tab2DataMonthKey
+    ? multiplierForDataMonth("kol_commission", tab2DataMonthKey)
+    : 1;
+
+  // Tab2 分潤結算：依 年 + 發放期別 + 星探，且 KOL 須在對應退房月份有退房
+  const tab2FilteredRows = useMemo(() => {
+    return rows.filter((k) => {
+      if (scoutFilter !== "all" && k.scout_id !== scoutFilter) return false;
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      return list.some(
+        (o) =>
+          o.order_status !== "cancelled" && o.check_out_date?.startsWith(tab2TargetPrefix),
+      );
+    });
+  }, [rows, ordersByKey, tab2TargetPrefix, scoutFilter]);
+
+  // Tab2 度量：completedCount / completedRevenue / commission 依對應退房月
+  const tab2Metrics = useMemo(() => {
+    const prefix = tab2TargetPrefix;
+    const map = new Map<
+      string,
+      { completedCount: number; completedRevenue: number; commission: number }
+    >();
+    for (const k of rows) {
+      const list = ordersByKey.get(k.rowKey) ?? [];
+      let completedCount = 0;
+      let completedRevenue = 0;
+      let commission = 0;
+      for (const o of list) {
+        if (o.order_status === "cancelled") continue;
+        if (!o.check_out_date?.startsWith(prefix)) continue;
+        const rate = getRate(o.accommodation_id, o.check_out_date);
+        completedCount += 1;
+        completedRevenue += grossOf(o);
+        commission += baseOf(o) * (rate / 100);
+      }
+      map.set(k.rowKey, {
+        completedCount,
+        completedRevenue,
+        commission: Math.round(commission),
+      });
+    }
+    return map;
+  }, [rows, ordersByKey, getRate, tab2TargetPrefix]);
+
+  /** 勞報單對帳：系統端當期應發（依 CID 彙總，含獎金加倍） */
+  const reconcileExpected = useMemo(() => {
+    const map = new Map<
+      string,
+      { cid_code: string; name: string | null; venue: string | null; amount: number }
+    >();
+    for (const k of tab2FilteredRows) {
+      const cid = (k.cid_code ?? "").trim().toUpperCase();
+      if (!cid) continue;
+      const commission = tab2Metrics.get(k.rowKey)?.commission ?? 0;
+      const amount = Math.round(boostedAmount(commission, tab2CommissionMultiplier));
+      const prev = map.get(cid);
+      if (prev) {
+        prev.amount += amount;
+        if (!prev.venue && k.accommodation_name) prev.venue = k.accommodation_name;
+      } else {
+        map.set(cid, {
+          cid_code: cid,
+          name: k.name,
+          venue: k.accommodation_name,
+          amount,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+  }, [tab2FilteredRows, tab2Metrics, tab2CommissionMultiplier]);
+
+  /** 勞報單對帳：前後 3 期的系統應發（key = YYYYMM 發放期別），供跨期歸戶判斷 */
+  const reconcileExpectedByPeriod = useMemo(() => {
+    const out: Record<
+      string,
+      { cid_code: string; name: string | null; venue: string | null; amount: number }[]
+    > = {};
+    if (payoutPeriod === "all") return out;
+    const baseMonth = Number(payoutPeriod);
+    for (let d = -3; d <= 3; d += 1) {
+      const pd = new Date(Date.UTC(payoutYear, baseMonth - 1 + d, 1));
+      const py = pd.getUTCFullYear();
+      const pm = pd.getUTCMonth() + 1;
+      const periodKey = `${py}${String(pm).padStart(2, "0")}`;
+      // 發放期別 P 對應退房月 = P-1
+      const cd = new Date(Date.UTC(py, pm - 2, 1));
+      const prefix = `${cd.getUTCFullYear()}-${String(cd.getUTCMonth() + 1).padStart(2, "0")}`;
+      const multiplier = multiplierForDataMonth("kol_commission", prefix);
+      const map = new Map<
+        string,
+        { cid_code: string; name: string | null; venue: string | null; amount: number }
+      >();
+      for (const k of rows) {
+        if (scoutFilter !== "all" && k.scout_id !== scoutFilter) continue;
+        const cid = (k.cid_code ?? "").trim().toUpperCase();
+        if (!cid) continue;
+        const list = ordersByKey.get(k.rowKey) ?? [];
+        let commission = 0;
+        let has = false;
+        for (const o of list) {
+          if (o.order_status === "cancelled") continue;
+          if (!o.check_out_date?.startsWith(prefix)) continue;
+          has = true;
+          commission += baseOf(o) * (getRate(o.accommodation_id, o.check_out_date) / 100);
+        }
+        if (!has) continue;
+        const amount = Math.round(boostedAmount(Math.round(commission), multiplier));
+        const prev = map.get(cid);
+        if (prev) {
+          prev.amount += amount;
+          if (!prev.venue && k.accommodation_name) prev.venue = k.accommodation_name;
+        } else {
+          map.set(cid, { cid_code: cid, name: k.name, venue: k.accommodation_name, amount });
+        }
+      }
+      out[periodKey] = Array.from(map.values()).sort((a, b) => b.amount - a.amount);
+    }
+    return out;
+  }, [
+    rows,
+    ordersByKey,
+    getRate,
+    payoutYear,
+    payoutPeriod,
+    scoutFilter,
+    multiplierForDataMonth,
+  ]);
+
+  const tab1DrawerInitialMonth =
+    filterMonth === "all"
+      ? `${currentYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${filterYear === 0 ? currentYear : filterYear}-${String(Number(filterMonth)).padStart(2, "0")}`;
+  const tab2DrawerInitialMonth =
+    payoutPeriod === "all"
+      ? `${payoutYear}-${String(currentMonthNum).padStart(2, "0")}`
+      : `${payoutYear}-${String(Number(payoutPeriod)).padStart(2, "0")}`;
+
+  const metricsLabel = filterMonth === "all" ? "全期" : "當月";
+
+
+  if (!allowed) return <Navigate to="/team" replace />;
+
+  const handleGenerate = async (target: KolRow) => {
+    if (!target?.id) return;
+    setSaving(true);
+    const newToken = crypto.randomUUID();
+    const newExpires = new Date(
+      Date.now() + TOKEN_VALID_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString();
+    const { error } = await supabase
+      .from("kol_profiles")
+      .update({ public_token: newToken, token_expires_at: newExpires })
+      .eq("id", target.id);
+    setSaving(false);
+    if (error) {
+      toast.error("產生失敗：" + error.message);
+      return;
+    }
+    setRows((prev) =>
+      prev.map((r) =>
+        r.id && r.id === target.id
+          ? { ...r, public_token: newToken, token_expires_at: newExpires }
+          : r,
+      ),
+    );
+    setDrawerKol((prev) =>
+      prev && prev.id && prev.id === target.id
+        ? { ...prev, public_token: newToken, token_expires_at: newExpires }
+        : prev,
+    );
+    toast.success("已產生新連結");
+  };
+
+
+  const copyLink = async (row: KolRow) => {
+    if (!row.public_token) return;
+    // 帶上目前篩選的年月，讓 KOL 點開連結時直接看到同一個月份（例如補發上一期獎金的情境）
+    const params = new URLSearchParams();
+    if (filterYear > 0 && filterMonth !== "all") {
+      params.set("y", String(filterYear));
+      params.set("m", filterMonth);
+    }
+    const qs = params.toString();
+    const url = `${window.location.origin}/team/kol/bonus/${row.public_token}${qs ? `?${qs}` : ""}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("已複製連結");
+    } catch {
+      toast.error("複製失敗，請手動複製");
+    }
+  };
+
+  const renderStatusBadge = (row: KolRow) => {
+    if (!row.public_token) return <Badge variant="secondary">未產生</Badge>;
+    if (isTokenValid(row)) {
+      return (
+        <Badge className="bg-green-100 text-green-700 border-green-200">
+          連結有效
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-orange-100 text-orange-700 border-orange-200">
+        已過期
+      </Badge>
+    );
+  };
+
+
+
+
+  const openBonusDrawer = (r: KolRow) => {
+    setDrawerSettlement(false);
+    setDrawerKol(r);
+  };
+  const openSettlementDrawer = (r: KolRow) => {
+    setDrawerSettlement(true);
+    setDrawerKol(r);
+  };
+
+  return (
+    <div className="space-y-6">
+      {!readOnlyViewer && (
+      <div>
+        {hasUnsavedChanges ? (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                返回 KOL 星探管理
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>尚有未儲存的變更</AlertDialogTitle>
+                <AlertDialogDescription>
+                  你在分潤設定中有尚未儲存的內容，離開後這些變更將會遺失。確定要返回 KOL 星探管理嗎？
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>繼續編輯</AlertDialogCancel>
+                <AlertDialogAction onClick={() => navigate("/team/kol")}>
+                  捨棄變更並返回
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        ) : (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/team/kol">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              返回 KOL 星探管理
+            </Link>
+          </Button>
+        )}
+      </div>
+      )}
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <div className="overflow-x-auto">
+          <TabsList>
+            <TabsTrigger value="dashboard">儀表板</TabsTrigger>
+            {!readOnlyViewer && <TabsTrigger value="bonus">進單管理</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="settlement">分潤結算</TabsTrigger>}
+            {canReconcile && <TabsTrigger value="payform">勞報單對帳</TabsTrigger>}
+            {!readOnlyViewer && <TabsTrigger value="rates">分潤設定</TabsTrigger>}
+          </TabsList>
+        </div>
+
+        <TabsContent value="dashboard" className="mt-0">
+          <KolBonusDashboardTab
+            rows={rows}
+            ordersByKey={ordersByKey}
+            yearOptions={yearOptions}
+            loading={loading}
+          />
+        </TabsContent>
+
+        <TabsContent value="bonus" className="mt-0">
+
+          <Card>
+            <CardHeader>
+              <CardTitle>KOL 進單管理</CardTitle>
+              <p className="text-sm text-muted-foreground">查看 KOL 訂單分潤資料並透過明細中的按鈕「產生專屬查詢連結」</p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                <Input
+                  value={tab1SearchInput}
+                  onChange={(e) => setTab1SearchInput(e.target.value)}
+                  placeholder="搜尋 KOL 名稱 或 折扣碼 / CID"
+                  className="w-[260px]"
+                />
+                <span className="text-sm text-muted-foreground">期間</span>
+                <Select
+                  value={String(filterYear)}
+                  onValueChange={(v) => setFilterYear(Number(v))}
+                >
+                  <SelectTrigger className="w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">全部年份</SelectItem>
+                    {yearOptions.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y} 年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部月份</SelectItem>
+                    {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                      <SelectItem key={m} value={String(m)}>
+                        {m} 月
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {(() => {
+                  const empty = {
+                    orderCount: 0,
+                    orderRevenue: 0,
+                    completedCount: 0,
+                    completedRevenue: 0,
+                    commission: 0,
+                  };
+                  const totals = tab1FilteredRows.reduce(
+                    (acc, r) => {
+                      const m = tab1Metrics.get(r.rowKey) ?? empty;
+                      acc.orderRevenue += m.orderRevenue;
+                      acc.completedRevenue += m.completedRevenue;
+                      acc.commission += m.commission;
+                      return acc;
+                    },
+                    { orderRevenue: 0, completedRevenue: 0, commission: 0 },
+                  );
+                  return (
+                    <div className="ml-auto text-sm text-muted-foreground">
+                      共 {tab1FilteredRows.length} 位 KOL｜總進單業績 {fmtMoney(totals.orderRevenue)}｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab1CommissionMultiplier} />
+                    </div>
+                  );
+                })()}
+              </div>
+              <Accordion type="single" collapsible className="mb-4 rounded-lg border bg-muted/30 px-3">
+                <AccordionItem value="month-guide" className="border-none">
+                  <AccordionTrigger className="py-2.5 text-sm hover:no-underline">
+                    <span className="flex items-center gap-1.5">
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                      這裡的「月份」是什麼意思？（欄位口徑說明）
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="text-sm text-muted-foreground space-y-2 pb-3">
+                    <p>
+                      本頁的月份篩選同時使用兩種統計方式：「進單」看<b>訂單建立日期</b>，「完成」看<b>客人退房日期</b>。
+                      因此同一筆訂單可能在 8 月列入進單、10 月才列入完成。
+                    </p>
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li><b>進單筆數</b>：篩選月份內建立的訂單數，不論何時入住或退房。</li>
+                      <li><b>進單業績</b>：上述新訂單的訂單金額合計。</li>
+                      <li><b>完成筆數</b>：篩選月份內退房的有效訂單數，可能是更早月份建立的訂單。</li>
+                      <li><b>完成業績</b>：上述已退房訂單的訂單金額合計。</li>
+                      <li><b>分潤</b>：依完成訂單的「分潤基準金額 × 生效費率」計算，可能扣除不列入分潤的加購項目，因此不一定等於完成業績直接乘費率。</li>
+                      <li><b>複製專屬查詢連結</b>：連結會帶上目前篩選的年月，KOL 點開後會直接看到同一個月份，方便補發往期獎金時核對。</li>
+                    </ul>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              {loading ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  載入中...
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="whitespace-nowrap">KOL 名稱</TableHead>
+                        <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
+                        <TableHead className="whitespace-nowrap">館別</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">
+                          {metricsLabel}進單筆數
+                          <div className="text-xs font-normal text-muted-foreground">依訂單日期</div>
+                        </TableHead>
+                        <TableHead className="text-right whitespace-nowrap border-r">{metricsLabel}進單業績</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">
+                          {metricsLabel}完成筆數
+                          <div className="text-xs font-normal text-muted-foreground">依退房日期</div>
+                        </TableHead>
+                        <TableHead className="text-right whitespace-nowrap">{metricsLabel}完成業績</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">{metricsLabel}分潤</TableHead>
+                        <TableHead className="text-right whitespace-nowrap">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tab1FilteredRows.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                            此期間無資料
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        tab1FilteredRows.map((r) => {
+                          const m = tab1Metrics.get(r.rowKey) ?? {
+                            orderCount: 0,
+                            orderRevenue: 0,
+                            completedCount: 0,
+                            completedRevenue: 0,
+                            commission: 0,
+                          };
+                          return (
+                            <TableRow
+                              key={r.rowKey}
+                              className="cursor-pointer hover:bg-muted/50"
+                              onClick={() => openBonusDrawer(r)}
+                            >
+                              <TableCell className="whitespace-nowrap" title={r.name || ""}>
+                                {r.name || "—"}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap font-mono">
+                                {r.cid_code}
+                              </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                {r.accommodation_name || "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums">{m.orderCount}</TableCell>
+                              <TableCell className="text-right tabular-nums border-r">{fmtMoney(m.orderRevenue)}</TableCell>
+                              <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
+                              <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
+                              <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab1CommissionMultiplier} /></TableCell>
+                              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => openBonusDrawer(r)}
+                                  title="查看明細"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+            <div>「當月進單」的定義 = 訂單產生的日期，目的用於確認該月份廣告跟訂單的成效分析</div>
+            <div>「當月完成」的定義 = 目的用於結算該月份 KOL 的分潤獎金，詳細可查詢「分潤結算」的 Tab 分頁</div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settlement" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>分潤結算</CardTitle>
+              <p className="text-sm text-muted-foreground">依「發放期別」查看當月成功入住的客人訂單，KOL 實際完成的「業績」與「分潤金額」</p>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <p className="text-sm text-muted-foreground py-6 text-center">
+                  載入中...
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 mb-4">
+                    <span className="text-sm text-muted-foreground">期間</span>
+                    <Select
+                      value={String(payoutYear)}
+                      onValueChange={(v) => setPayoutYear(Number(v))}
+                    >
+                      <SelectTrigger className="w-[110px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((y) => (
+                          <SelectItem key={y} value={String(y)}>
+                            {y} 年
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground ml-2">發放期別</span>
+                    <Select value={payoutPeriod} onValueChange={setPayoutPeriod}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全年</SelectItem>
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                          <SelectItem key={m} value={String(m)}>
+                            {m} 月 10 日
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="text-sm text-muted-foreground ml-2">星探</span>
+                    <Select value={scoutFilter} onValueChange={setScoutFilter}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部星探</SelectItem>
+                        {scoutOptions.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {(() => {
+                      const empty = { completedCount: 0, completedRevenue: 0, commission: 0 };
+                      const totals = tab2FilteredRows.reduce(
+                        (acc, r) => {
+                          const m = tab2Metrics.get(r.rowKey) ?? empty;
+                          acc.completedRevenue += m.completedRevenue;
+                          acc.commission += m.commission;
+                          return acc;
+                        },
+                        { completedRevenue: 0, commission: 0 },
+                      );
+                      return (
+                        <div className="ml-auto text-sm text-muted-foreground">
+                          共 {tab2FilteredRows.length} 位 KOL｜總完成業績 {fmtMoney(totals.completedRevenue)}｜總分潤 <BoostedAmount amount={totals.commission} multiplier={tab2CommissionMultiplier} />
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="whitespace-nowrap">KOL 名稱</TableHead>
+                          <TableHead className="whitespace-nowrap">折扣碼 / CID</TableHead>
+                          <TableHead className="whitespace-nowrap">館別</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">完成筆數</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">完成業績</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">分潤金額</TableHead>
+                          <TableHead className="text-right whitespace-nowrap">操作</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {tab2FilteredRows.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              此期間無資料
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          tab2FilteredRows.map((r) => {
+                            const m = tab2Metrics.get(r.rowKey) ?? {
+                              completedCount: 0,
+                              completedRevenue: 0,
+                              commission: 0,
+                            };
+                            return (
+                              <TableRow
+                                key={r.rowKey}
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => openSettlementDrawer(r)}
+                              >
+                                <TableCell className="whitespace-nowrap" title={r.name || ""}>
+                                  {r.name || "—"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap font-mono">
+                                  {r.cid_code}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  {r.accommodation_name || "—"}
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">{m.completedCount}</TableCell>
+                                <TableCell className="text-right tabular-nums">{fmtMoney(m.completedRevenue)}</TableCell>
+                                <TableCell className="text-right tabular-nums"><BoostedAmount amount={m.commission} multiplier={tab2CommissionMultiplier} /></TableCell>
+                                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    onClick={() => openSettlementDrawer(r)}
+                                    title="查看明細"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+          <div className="mt-3 px-1 text-xs text-muted-foreground space-y-1">
+            <div>同一個「折扣碼 / CID」，若產生兩筆以上訂單，可點開明細查看「訂單編號」</div>
+          </div>
+        </TabsContent>
+
+        {canReconcile && (
+          <TabsContent value="payform" className="mt-0">
+            <KolPayFormReconcileTab
+              payoutYear={payoutYear}
+              payoutPeriod={payoutPeriod}
+              onChangeYear={setPayoutYear}
+              onChangePeriod={setPayoutPeriod}
+              yearOptions={yearOptions}
+              expected={reconcileExpected}
+              expectedByPeriod={reconcileExpectedByPeriod}
+              loading={loading}
+            />
+          </TabsContent>
+        )}
+
+        <TabsContent value="rates" className="mt-0">
+          <KolRateSettingsTab onDirtyChange={setHasUnsavedChanges} />
+        </TabsContent>
+      </Tabs>
+
+      <KolDetailDrawer
+        kol={drawerKol}
+        onClose={() => setDrawerKol(null)}
+        ordersByKey={ordersByKey}
+        getRate={getRate}
+        initialMonth={drawerSettlement ? tab2DrawerInitialMonth : tab1DrawerInitialMonth}
+        onCopy={copyLink}
+        onGenerate={handleGenerate}
+        saving={saving}
+        settlementMode={drawerSettlement}
+        filterPrefix={tab2TargetPrefix}
+        payoutYear={payoutYear}
+        payoutPeriod={payoutPeriod}
+        filterYear={filterYear}
+        filterMonthAll={filterMonth === "all"}
+      />
+
+    </div>
+  );
+}
+
+
+interface DetailProps {
+  kol: KolRow | null;
+  onClose: () => void;
+  ordersByKey: Map<string, OrderRow[]>;
+  getRate: RateResolver;
+  initialMonth: string;
+  onCopy: (row: KolRow) => void;
+  onGenerate: (row: KolRow) => Promise<void> | void;
+  saving: boolean;
+  settlementMode?: boolean;
+  filterPrefix?: string;
+  payoutYear?: number;
+  payoutPeriod?: string;
+  filterYear?: number;
+  filterMonthAll?: boolean;
+}
+
+function KolDetailDrawer({
+  kol,
+  onClose,
+  ordersByKey,
+  getRate,
+  initialMonth,
+  onCopy,
+  onGenerate,
+  saving,
+  settlementMode = false,
+  filterPrefix = "",
+  payoutYear,
+  payoutPeriod,
+  filterYear,
+  filterMonthAll = false,
+}: DetailProps) {
+
+  const [month, setMonth] = useState<string>(initialMonth);
+  const { multiplierForDataMonth } = useBonusMultipliers();
+
+  useEffect(() => {
+    if (kol) setMonth(initialMonth);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kol?.rowKey, initialMonth]);
+
+  const matched = useMemo(() => {
+    if (!kol) return [];
+    return ordersByKey.get(kol.rowKey) ?? [];
+  }, [kol, ordersByKey]);
+  
+
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    matched.forEach((o) => {
+      if (o.order_date) set.add(o.order_date.slice(0, 7));
+      if (o.check_out_date) set.add(o.check_out_date.slice(0, 7));
+    });
+    set.add(initialMonth);
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [matched, initialMonth]);
+
+  // 預計發放日：退房月份 +1 月的 10 號
+  const payoutDate = useMemo(() => {
+    const [y, m] = month.split("-").map(Number);
+    if (!y || !m) return "—";
+    const ny = m === 12 ? y + 1 : y;
+    const nm = m === 12 ? 1 : m + 1;
+    return `${ny}-${String(nm).padStart(2, "0")}-10`;
+  }, [month]);
+
+  // 訂單明細：依 order_date 在當月；非結算模式且選「全年」時改為整年度
+  const orderList = useMemo(() => {
+    if (!settlementMode && filterMonthAll) {
+      if (!filterYear) return matched;
+      const yPrefix = `${filterYear}-`;
+      return matched.filter((o) => o.order_date?.startsWith(yPrefix));
+    }
+    return matched.filter((o) => o.order_date?.slice(0, 7) === month);
+  }, [matched, month, settlementMode, filterMonthAll, filterYear]);
+  // 完成業績明細：分潤結算模式依 filterPrefix 過濾並排除取消單；非結算+全年依年度；否則依 month
+  const completedList = useMemo(
+    () => {
+      if (settlementMode) {
+        return matched.filter(
+          (o) =>
+            o.order_status !== "cancelled" &&
+            o.check_out_date?.startsWith(filterPrefix),
+        );
+      }
+      if (filterMonthAll) {
+        if (!filterYear) {
+          return matched.filter((o) => o.order_status !== "cancelled");
+        }
+        const yPrefix = `${filterYear}-`;
+        return matched.filter(
+          (o) =>
+            o.check_out_date?.startsWith(yPrefix) &&
+            o.order_status !== "cancelled",
+        );
+      }
+      return matched.filter((o) => o.check_out_date?.slice(0, 7) === month);
+    },
+    [matched, month, settlementMode, filterPrefix, filterMonthAll, filterYear],
+  );
+
+  const orderTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    for (const o of orderList) {
+      count += 1;
+      revenue += grossOf(o);
+    }
+    return { count, revenue };
+  }, [orderList]);
+
+  const commissionMultiplier = useMemo(() => {
+    const key = settlementMode
+      ? (filterPrefix && filterPrefix.length === 7 ? filterPrefix : null)
+      : (filterMonthAll ? null : month);
+    return key ? multiplierForDataMonth("kol_commission", key) : 1;
+  }, [settlementMode, filterPrefix, filterMonthAll, month, multiplierForDataMonth]);
+
+  const completedTotals = useMemo(() => {
+    let count = 0;
+    let revenue = 0;
+    let commission = 0;
+    for (const o of completedList) {
+      const rate = getRate(o.accommodation_id, o.check_out_date);
+      count += 1;
+      revenue += grossOf(o);
+      commission += baseOf(o) * (rate / 100);
+    }
+    return { count, revenue, commission: Math.round(commission) };
+  }, [completedList, getRate]);
+
+  return (
+    <Sheet open={!!kol} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{kol?.name ?? "KOL 分潤明細"}</SheetTitle>
+          <SheetDescription>
+            折扣碼：
+            <span className="font-mono">{kol?.cid_code}</span>
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-4 space-y-4">
+          {kol && !settlementMode && (
+            <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+              <div className="text-sm font-medium">KOL 專屬查詢連結</div>
+              <p className="text-xs text-muted-foreground">
+                此連結可讓 KOL 本人查看自己的訂單業績，有效期 90 天
+              </p>
+              {isTokenValid(kol) ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    到期日：{kol.token_expires_at?.slice(0, 10)}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" onClick={() => onCopy(kol)}>
+                      <Copy className="h-3 w-3 mr-1" />
+                      複製連結
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" disabled={saving}>
+                          <LinkIcon className="h-3 w-3 mr-1" />
+                          重新產生
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>重新產生連結</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            重新產生後舊連結將立即失效，確定繼續？
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>取消</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onGenerate(kol)}>
+                            確認重新產生
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    尚未產生連結
+                  </span>
+                  <Button size="sm" onClick={() => onGenerate(kol)} disabled={saving}>
+                    <LinkIcon className="h-3 w-3 mr-1" />
+                    產生連結
+                  </Button>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {!settlementMode && !filterMonthAll && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">月份</span>
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                訂單筆數依訂單日期統計，完成業績依退房日期統計
+              </p>
+            </div>
+          )}
+
+          {!settlementMode && (
+            <>
+              <div className="space-y-2">
+                <div className="text-sm font-semibold">
+                  {filterMonthAll
+                    ? `訂單明細（${filterYear ? `${filterYear} 全年度` : "全部年度"}）`
+                    : "訂單明細（依訂單日期統計）"}
+                </div>
+                <div className="overflow-x-auto">
+                  <Table className="fixed-table">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>館別</TableHead>
+                        <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                        <TableHead>折扣碼</TableHead>
+                        <TableHead className="whitespace-nowrap">訂單日期</TableHead>
+                        <TableHead className="whitespace-nowrap">退房日期</TableHead>
+                        <TableHead className="text-right">訂單金額</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {orderList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-6">
+                            此月份無資料
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        orderList.map((o) => (
+                          <TableRow key={o.id}>
+                            <TableCell>{kol?.accommodation_name || "—"}</TableCell>
+                            <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
+                            <TableCell className="font-mono">{o.discount_code}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
+                            <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {fmtMoney(grossOf(o))}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+
+                </div>
+                <div className="text-xs text-muted-foreground text-right">
+                  小計：{orderTotals.count} 筆｜總金額 {fmtMoney(orderTotals.revenue)}
+                </div>
+              </div>
+
+              <Separator />
+            </>
+          )}
+
+
+
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">
+              {settlementMode
+                ? payoutPeriod === "all"
+                  ? `完成業績明細（${payoutYear} 全年度）`
+                  : (() => {
+                      const p = Number(payoutPeriod);
+                      const coYear = p === 1 ? (payoutYear as number) - 1 : payoutYear;
+                      const coMonth = p === 1 ? 12 : p - 1;
+                      return `完成業績明細（${coYear}年${coMonth}月退房，${payoutYear}年${p}月10日發放）`;
+                    })()
+                : filterMonthAll
+                  ? `完成業績明細（${filterYear ? `${filterYear} 全年度` : "全部年度"}）`
+                  : "完成業績明細（依退房日期統計）"}
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="whitespace-nowrap">館別</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單編號</TableHead>
+                    <TableHead className="whitespace-nowrap">折扣碼</TableHead>
+                    <TableHead className="whitespace-nowrap">訂單日期</TableHead>
+                    <TableHead className="whitespace-nowrap">退房日期</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">訂單金額</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤基準</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                    <TableHead className="whitespace-nowrap text-right">分潤金額</TableHead>
+                    <TableHead className="whitespace-nowrap">預計發放日</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-6">
+                        此月份無資料
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    completedList.map((o) => {
+                      const rate = getRate(o.accommodation_id, o.check_out_date);
+                      const revenue = grossOf(o);
+                      const base = baseOf(o);
+                      const amount = Math.round(base * (rate / 100));
+                      return (
+                        <TableRow key={o.id}>
+                          <TableCell className="whitespace-nowrap">{kol?.accommodation_name || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono text-xs">{o.order_number}</TableCell>
+                          <TableCell className="whitespace-nowrap font-mono">{o.discount_code}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{o.order_date?.slice(0, 10) || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{o.check_out_date?.slice(0, 10) || "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(revenue)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{fmtMoney(base)}</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums">{rate}%</TableCell>
+                          <TableCell className="whitespace-nowrap text-right tabular-nums"><BoostedAmount amount={amount} multiplier={commissionMultiplier} /></TableCell>
+                          <TableCell className="whitespace-nowrap text-xs">{(() => {
+                            const co = o.check_out_date?.slice(0, 10);
+                            if (!co) return "—";
+                            const [y, m] = co.split("-").map(Number);
+                            if (!y || !m) return "—";
+                            const ny = m === 12 ? y + 1 : y;
+                            const nm = m === 12 ? 1 : m + 1;
+                            return `${ny}-${String(nm).padStart(2, "0")}-10`;
+                          })()}</TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="text-xs text-muted-foreground text-right">
+              小計：{completedTotals.count} 筆｜總完成業績 {fmtMoney(completedTotals.revenue)}｜總分潤 <BoostedAmount amount={completedTotals.commission} multiplier={commissionMultiplier} />
+            </div>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+// ============ 分潤設定 Tab ============
+
+interface RateRow {
+  id: string;
+  accommodation_id: string;
+  rate: number;
+  effective_from: string;
+  created_at: string | null;
+}
+
+interface AccGroup {
+  id: string;
+  name: string;
+  rows: RateRow[];
+}
+
+function KolRateSettingsTab({
+  onDirtyChange,
+}: {
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
+  const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState<AccGroup[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formAccId, setFormAccId] = useState<string>("");
+  const [formRate, setFormRate] = useState("");
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [auditMap, setAuditMap] = useState<Record<string, RateAuditLogRow[]>>({});
+  const [auditLoading, setAuditLoading] = useState<Set<string>>(new Set());
+
+  const loadAudit = async (accId: string) => {
+    setAuditLoading((prev) => new Set(prev).add(accId));
+    try {
+      const rows = await fetchKolRateAuditLogs(accId, 50);
+      setAuditMap((prev) => ({ ...prev, [accId]: rows }));
+    } catch (e: any) {
+      setAuditMap((prev) => ({ ...prev, [accId]: [] }));
+      console.error("[KolRateAudit] 讀取失敗", e?.message);
+    } finally {
+      setAuditLoading((prev) => {
+        const next = new Set(prev);
+        next.delete(accId);
+        return next;
+      });
+    }
+  };
+
+  const toggleExpand = (id: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else {
+        next.add(id);
+        if (!auditMap[id]) loadAudit(id);
+      }
+      return next;
+    });
+
+
+  const isDirty = dialogOpen && (formAccId !== "" || formRate.trim() !== "");
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
+
+
+
+  const load = async () => {
+    setLoading(true);
+    const [accRes, rateRes] = await Promise.all([
+      supabase.from("accommodation_info").select("id, name").order("name"),
+      supabase
+        .from("kol_commission_settings")
+        .select("id, accommodation_id, rate, effective_from, created_at")
+        .is("kol_id", null)
+        .order("effective_from", { ascending: false })
+        .order("created_at", { ascending: false }),
+    ]);
+    if (accRes.error) toast.error("載入館別失敗：" + accRes.error.message);
+    if (rateRes.error) toast.error("載入分潤設定失敗：" + rateRes.error.message);
+    const accs = (accRes.data ?? []) as { id: string; name: string }[];
+    const rates = ((rateRes.data ?? []) as any[]).map((r) => ({
+      id: r.id,
+      accommodation_id: r.accommodation_id,
+      rate: Number(r.rate ?? 0),
+      effective_from: r.effective_from,
+      created_at: r.created_at,
+    })) as RateRow[];
+    const byAcc = new Map<string, RateRow[]>();
+    for (const r of rates) {
+      const arr = byAcc.get(r.accommodation_id) ?? [];
+      arr.push(r);
+      byAcc.set(r.accommodation_id, arr);
+    }
+    setGroups(
+      accs.map((a) => ({ id: a.id, name: a.name, rows: byAcc.get(a.id) ?? [] })),
+    );
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const openAdd = () => {
+    setFormAccId(groups[0]?.id ?? "");
+    setFormRate("");
+    setFormDate(new Date().toISOString().slice(0, 10));
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formAccId) {
+      toast.error("請選擇館別");
+      return;
+    }
+    const rate = Number(formRate);
+    if (Number.isNaN(rate) || rate < 0 || rate > 100) {
+      toast.error("分潤% 必須在 0-100");
+      return;
+    }
+    if (!formDate || !/^\d{4}-\d{2}-\d{2}$/.test(formDate)) {
+      toast.error("請輸入有效的生效日期");
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("kol_commission_settings").insert({
+      accommodation_id: formAccId,
+      kol_id: null,
+      rate,
+      effective_from: formDate,
+    });
+    setSaving(false);
+    if (error) {
+      toast.error("儲存失敗：" + error.message);
+      return;
+    }
+    await logKolRateChange({
+      actionType: "create",
+      accommodationId: formAccId,
+      accommodationName: groups.find((g) => g.id === formAccId)?.name ?? null,
+      rate,
+      effectiveFrom: formDate,
+      appliesRange: `${formDate} 起（目前生效中）`,
+    });
+    toast.success("已新增費率");
+    setDialogOpen(false);
+    await load();
+    if (expanded.has(formAccId)) loadAudit(formAccId);
+
+  };
+
+  const handleDelete = async (row: RateRow, g: AccGroup, rangeLabel: string) => {
+    setDeletingId(row.id);
+    const { error, count } = await supabase
+      .from("kol_commission_settings")
+      .delete({ count: "exact" })
+      .eq("id", row.id);
+    setDeletingId(null);
+    if (error) {
+      toast.error("刪除失敗：" + error.message);
+      return;
+    }
+    if (!count) {
+      toast.error("刪除失敗：沒有權限或紀錄不存在");
+      return;
+    }
+    await logKolRateChange({
+      actionType: "delete",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: row.effective_from,
+      appliesRange: rangeLabel,
+      settingId: row.id,
+    });
+    toast.success("已刪除，並記錄異動");
+    await load();
+    if (expanded.has(g.id)) loadAudit(g.id);
+  };
+
+  const handleRestore = async (row: RateRow, g: AccGroup) => {
+    const today = new Date().toISOString().slice(0, 10);
+    setRestoringId(row.id);
+    const { error } = await supabase.from("kol_commission_settings").insert({
+      accommodation_id: g.id,
+      kol_id: null,
+      rate: row.rate,
+      effective_from: today,
+    });
+    setRestoringId(null);
+    if (error) {
+      toast.error("還原失敗：" + error.message);
+      return;
+    }
+    await logKolRateChange({
+      actionType: "restore",
+      accommodationId: g.id,
+      accommodationName: g.name,
+      rate: row.rate,
+      effectiveFrom: today,
+      appliesRange: `${today} 起（目前生效中）`,
+      note: `還原自 ${row.effective_from} 的 ${row.rate}% 版本`,
+    });
+    toast.success(`已還原 ${row.rate}%，自 ${today} 起生效`);
+    await load();
+    loadAudit(g.id);
+  };
+
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-6 text-center text-sm text-muted-foreground">
+          載入中...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const groupsWithRows = groups.filter((g) => g.rows.length > 0);
+  const totalRows = groupsWithRows.reduce((n, g) => n + g.rows.length, 0);
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base">KOL 分潤費率</CardTitle>
+        <Button size="sm" onClick={openAdd}>
+          <Plus className="h-4 w-4 mr-1" />
+          新增費率
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="whitespace-nowrap">館別</TableHead>
+                <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                <TableHead className="whitespace-nowrap">建立時間</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {totalRows === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
+                    尚無資料
+                  </TableCell>
+                </TableRow>
+              ) : (
+                groupsWithRows.map((g) => {
+                  const current = g.rows[0];
+                  const history = g.rows.slice(1);
+                  const isOpen = expanded.has(g.id);
+                  return (
+                    <Fragment key={g.id}>
+                      <TableRow>
+                        <TableCell>
+                          {history.length > 0 && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7"
+                              onClick={() => toggleExpand(g.id)}
+                              aria-label="展開歷史版本"
+                            >
+                              {isOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap font-medium">{g.name}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {current.effective_from}
+                          <Badge className="ml-2 bg-green-100 text-green-700 border-green-200">
+                            目前生效
+                          </Badge>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            適用區間：{current.effective_from} 起至今
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{current.rate}%</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          {current.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                          {history.length > 0 && (
+                            <span className="ml-2">（{history.length} 筆歷史版本）</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                      {isOpen && history.length > 0 && (
+                        <TableRow className="bg-muted/30 hover:bg-muted/30">
+                          <TableCell></TableCell>
+                          <TableCell colSpan={4} className="p-0">
+                            <div className="px-4 py-3 space-y-4">
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2">歷史版本（僅供查閱，刪除後不可復原）</div>
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead className="whitespace-nowrap">生效日期</TableHead>
+                                      <TableHead className="whitespace-nowrap">適用區間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">分潤%</TableHead>
+                                      <TableHead className="whitespace-nowrap">建立時間</TableHead>
+                                      <TableHead className="whitespace-nowrap text-right">操作</TableHead>
+                                    </TableRow>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {history.map((r, i) => {
+                                      const range = describeRateRange(g.rows, i + 1);
+                                      const isOldest = i === history.length - 1;
+                                      return (
+                                        <TableRow key={r.id}>
+                                          <TableCell className="whitespace-nowrap">
+                                            {r.effective_from}
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {range.label}
+                                          </TableCell>
+                                          <TableCell className="text-right tabular-nums">
+                                            {r.rate}%
+                                          </TableCell>
+                                          <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                                            {r.created_at?.slice(0, 19).replace("T", " ") ?? "—"}
+                                          </TableCell>
+                                          <TableCell className="text-right whitespace-nowrap">
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={restoringId === r.id}
+                                                  title="還原此費率（以今日為生效日新增一筆）"
+                                                >
+                                                  <RotateCcw className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>還原此費率版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        將以 <b>{r.rate}%</b> 新增一筆費率，生效日為
+                                                        <b> {new Date().toISOString().slice(0, 10)}</b>。
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>{g.name} 自今日（含）起的新結算將採用 {r.rate}%。</li>
+                                                        <li>目前生效版本（{current.rate}%）不會被刪除，會轉為歷史版本。</li>
+                                                        <li>今日之前已計算的分潤不受影響。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleRestore(r, g)}>
+                                                    確認還原
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+
+                                            <AlertDialog>
+                                              <AlertDialogTrigger asChild>
+                                                <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  disabled={deletingId === r.id}
+                                                  title="刪除"
+                                                >
+                                                  <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                              </AlertDialogTrigger>
+                                              <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                  <AlertDialogTitle>確定刪除此歷史版本？</AlertDialogTitle>
+                                                  <AlertDialogDescription asChild>
+                                                    <div className="space-y-2 text-sm">
+                                                      <p>
+                                                        館別 <b>{g.name}</b>｜生效日 <b>{r.effective_from}</b>｜費率 <b>{r.rate}%</b>
+                                                        <br />
+                                                        適用區間：<b>{range.label}</b>
+                                                      </p>
+                                                      <p>影響範圍：</p>
+                                                      <ul className="list-disc pl-5 space-y-1">
+                                                        <li>
+                                                          {isOldest
+                                                            ? `此為最舊版本，刪除後 ${range.start} ~ ${range.end || "—"} 期間將查無費率設定，該區間退房的訂單會以 0%／預設值計算。`
+                                                            : `刪除後 ${range.start} ~ ${range.end || "—"} 期間會改由更早的版本（${g.rows[i + 2]?.rate ?? 0}%）接手計算。`}
+                                                        </li>
+                                                        <li>目前生效版本（{current.rate}%）不受影響。</li>
+                                                        <li>已重新計算或尚未鎖定的分潤金額可能因此變動。</li>
+                                                        <li>此操作無法復原，僅會留下審計紀錄。</li>
+                                                      </ul>
+                                                    </div>
+                                                  </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                  <AlertDialogCancel>取消</AlertDialogCancel>
+                                                  <AlertDialogAction onClick={() => handleDelete(r, g, range.label)}>
+                                                    確認刪除
+                                                  </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                              </AlertDialogContent>
+                                            </AlertDialog>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    })}
+                                  </TableBody>
+                                </Table>
+                              </div>
+
+                              <div>
+                                <div className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                                  <History className="h-3.5 w-3.5" />
+                                  異動紀錄（刪除／還原／新增）
+                                </div>
+                                {auditLoading.has(g.id) ? (
+                                  <div className="text-xs text-muted-foreground">載入中...</div>
+                                ) : (auditMap[g.id]?.length ?? 0) === 0 ? (
+                                  <div className="text-xs text-muted-foreground">尚無異動紀錄</div>
+                                ) : (
+                                  <ul className="space-y-1 text-xs">
+                                    {auditMap[g.id].map((log) => (
+                                      <li key={log.id} className="flex flex-wrap gap-x-2 text-muted-foreground">
+                                        <span className="tabular-nums">
+                                          {new Date(log.created_at).toLocaleString("zh-TW", { hour12: false })}
+                                        </span>
+                                        <Badge variant="outline" className="h-5">
+                                          {RATE_ACTION_LABEL[log.action_type] ?? log.action_type}
+                                        </Badge>
+                                        <span className="text-foreground">
+                                          {log.details?.operator_name ?? log.user_email ?? "未知使用者"}
+                                        </span>
+                                        <span>
+                                          {log.details?.rate}%｜生效 {log.details?.effective_from}
+                                          {log.details?.applies_range ? `｜區間 ${log.details.applies_range}` : ""}
+                                          {log.details?.note ? `｜${log.details.note}` : ""}
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                    </Fragment>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>新增費率</DialogTitle>
+            <DialogDescription>
+              新增的費率會以「新一筆」紀錄寫入，舊紀錄保留作為歷史。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>館別</Label>
+              <Select value={formAccId} onValueChange={setFormAccId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="選擇館別" />
+                </SelectTrigger>
+                <SelectContent>
+                  {groups.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>
+                      {g.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>分潤%</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                step="0.01"
+                value={formRate}
+                onChange={(e) => setFormRate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>生效日期</Label>
+              <Input
+                type="date"
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>
+              取消
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? "儲存中..." : "儲存"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}

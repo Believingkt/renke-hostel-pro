@@ -1,0 +1,177 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lakeze/shared/components/ui/dialog";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Label } from "@lakeze/shared/components/ui/label";
+import { Textarea } from "@lakeze/shared/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@lakeze/shared/components/ui/radio-group";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { useToast } from "@lakeze/shared/hooks/use-toast";
+import { Order } from "@/types/order";
+import { getPaymentStatusConfig } from "@lakeze/shared/utils/orderHelpers";
+import { buildPaymentStatusDialogPatch } from "@/lib/orderFieldPatches";
+
+interface PaymentStatusDialogProps {
+  order: Order | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: () => void;
+}
+
+const BASE_PAYMENT_STATUSES = [
+  { value: "unpaid", label: "未付款" },
+  { value: "deposit_paid", label: "已付訂金" },
+  { value: "paid", label: "已付清" },
+  { value: "refunded", label: "已退款" },
+  { value: "partial_refunded", label: "部分退款" },
+];
+
+export function PaymentStatusDialog({ order, open, onOpenChange, onSuccess }: PaymentStatusDialogProps) {
+  const { toast } = useToast();
+  const [selectedStatus, setSelectedStatus] = useState("");
+  const [reason, setReason] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (open && order) {
+      setSelectedStatus(order.payment_status);
+      setReason("");
+    }
+  }, [open, order]);
+
+  const handleSave = async () => {
+    if (!order || selectedStatus === order.payment_status) {
+      onOpenChange(false);
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Update paid_amount based on status change
+      let paidAmount = order.paid_amount;
+      if (selectedStatus === "paid") {
+        paidAmount = order.final_price;
+      } else if (selectedStatus === "deposit_paid") {
+        paidAmount = order.deposit_amount ?? 0;
+      } else if (selectedStatus === "unpaid") {
+        paidAmount = 0;
+      }
+
+      const noteAppend = reason.trim()
+        ? `\n【付款狀態變更】${getPaymentStatusConfig(order.payment_status).label} → ${getPaymentStatusConfig(selectedStatus).label}：${reason.trim()}`
+        : `\n【付款狀態變更】${getPaymentStatusConfig(order.payment_status).label} → ${getPaymentStatusConfig(selectedStatus).label}`;
+
+      const { error } = await supabase.rpc("update_order_fields_v1", {
+        p_order_id: order.id,
+        p_patch: buildPaymentStatusDialogPatch({
+          paymentStatus: selectedStatus,
+          paidAmount,
+          notes: order.notes ? `${order.notes}${noteAppend}` : noteAppend.trim(),
+        }) as any,
+        p_source: "admin_payment_status_dialog",
+        p_reason: reason.trim() || null,
+      });
+
+      if (error) throw error;
+
+      // 自動帶入訂金確認日（僅在改為「已付訂金」且尚無日期時）
+      if (selectedStatus === "deposit_paid") {
+        try {
+          const { data: metaRow } = await supabase
+            .from("order_meta")
+            .select("order_id, deposit_confirm_date")
+            .eq("order_id", order.id)
+            .maybeSingle();
+          const existingDate = (metaRow as { deposit_confirm_date?: string | null } | null)
+            ?.deposit_confirm_date;
+          if (!existingDate) {
+            // Asia/Taipei 今天日期，格式 YYYY-MM-DD
+            const today = new Date().toLocaleDateString("en-CA", {
+              timeZone: "Asia/Taipei",
+            });
+            await supabase.from("order_meta").upsert(
+              {
+                order_id: order.id,
+                deposit_confirm_date: today,
+                deposit_confirm_date_verified: false,
+              } as any,
+              { onConflict: "order_id" },
+            );
+          }
+        } catch (e) {
+          console.error("[PaymentStatusDialog] auto-fill deposit_confirm_date error:", e);
+        }
+      }
+
+
+      // 變更紀錄由 zzz_order_change_log trigger 統一寫入；備註已併入 notes（V5.5C.2）
+
+
+
+      toast({ title: "付款狀態已更新" });
+      onOpenChange(false);
+      onSuccess();
+    } catch (error) {
+      console.error("更新付款狀態失敗:", error);
+      toast({ title: "更新失敗", description: "無法更新付款狀態，請稍後再試", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const currentConfig = order ? getPaymentStatusConfig(order.payment_status) : null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>變更付款狀態</DialogTitle>
+          <DialogDescription>
+            訂單 {order?.order_number}
+            {currentConfig && (
+              <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${currentConfig.className}`}>
+                {currentConfig.label}
+              </span>
+            )}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <RadioGroup value={selectedStatus} onValueChange={setSelectedStatus}>
+            {BASE_PAYMENT_STATUSES.map((status) => {
+              const config = getPaymentStatusConfig(status.value);
+              return (
+                <div key={status.value} className="flex items-center space-x-3 py-1.5">
+                  <RadioGroupItem value={status.value} id={`ps-${status.value}`} />
+                  <Label htmlFor={`ps-${status.value}`} className="cursor-pointer flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${config.className}`}>
+                      {status.label}
+                    </span>
+                  </Label>
+                </div>
+              );
+            })}
+          </RadioGroup>
+          <div className="space-y-2">
+            <Label htmlFor="ps-reason">備註（選填）</Label>
+            <Textarea
+              id="ps-reason"
+              placeholder="例如：客人已匯款確認..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              maxLength={300}
+              rows={2}
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || selectedStatus === order?.payment_status}
+          >
+            {isSaving ? "儲存中..." : "確認變更"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

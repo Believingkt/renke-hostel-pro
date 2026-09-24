@@ -1,0 +1,3253 @@
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { AmenityAllocationPicker } from "@/components/amenities/AmenityAllocationPicker";
+import { usePackageBreakdown, defaultCountsFromBreakdown } from "@/hooks/use-package-breakdown";
+import { saveOrderAllocations } from "@/lib/amenityAllocation";
+
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@lakeze/shared/components/ui/dialog";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
+import { useIsMobile } from "@lakeze/shared/hooks/use-mobile";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Input } from "@lakeze/shared/components/ui/input";
+import { Label } from "@lakeze/shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lakeze/shared/components/ui/select";
+import { Textarea } from "@lakeze/shared/components/ui/textarea";
+import { Calendar } from "@lakeze/shared/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@lakeze/shared/components/ui/popover";
+import { CalendarIcon, Tag, X, Loader2, User, Phone, AlertTriangle, Plus, Minus, Trash2 } from "lucide-react";
+import { Alert, AlertDescription } from "@lakeze/shared/components/ui/alert";
+import { format, parseISO, isAfter } from "date-fns";
+import { cn } from "@lakeze/shared/lib/utils";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@lakeze/shared/lib/addonLabels";
+import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+
+import { useToast } from "@lakeze/shared/hooks/use-toast";
+import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
+import { useAuditLog } from "@lakeze/shared/hooks/use-audit-log";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { ScrollArea } from "@lakeze/shared/components/ui/scroll-area";
+import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
+import { resolveTemplatePricesForDates } from "@lakeze/shared/utils/templatePriceResolver";
+import { Switch } from "@lakeze/shared/components/ui/switch";
+import { ensureKolQuotaPermit, logKolQuotaOverride, type KolQuotaStatus } from "@/lib/kolReciprocalQuota";
+import { KolQuotaConfirmDialog } from "@/components/orders/KolQuotaConfirmDialog";
+import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
+import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
+import { useOrderSources } from "@lakeze/shared/hooks/use-order-sources";
+import { translateOrderError } from "@/lib/orderErrorMessages";
+import { reportFrontendError } from "@lakeze/shared/utils/errorReporter";
+import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions";
+
+
+interface RoomType {
+  id: string;
+  name: string;
+  capacity: number;
+  is_exclusive_package?: boolean;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+}
+
+interface AddonSetting {
+  id: string;
+  addon_type: string;
+  description: string | null;
+  price_per_unit: number;
+  unit_label: string;
+  pricing_mode?: string | null;
+  enabled: boolean;
+  min_quantity?: number | null;
+  max_quantity: number;
+  auto_include?: boolean | null;
+  is_locked?: boolean | null;
+}
+
+interface PricingTemplate {
+  id: string;
+  template_name: string;
+  meal_plans: any;
+  project_name: string | null;
+  price: number | null;
+  weekday_price: number | null;
+  peak_price: number | null;
+  weekend_price: number | null;
+  default_package_id?: string | null;
+}
+
+interface RoomUnit {
+  id: string;
+  room_type_id: string;
+  display_order: number;
+  is_active: boolean;
+  unit_number?: string | null;
+  nickname?: string | null;
+}
+
+interface OccupiedRoomUnitRow {
+  room_unit_id: string | null;
+  orders: { id: string } | null;
+}
+
+interface RoomSelection {
+  id: string;
+  room_type_id: string;
+  template_id: string;
+  template_name: string;
+  quantity: number;
+  roomPrice: number;
+  filteredTemplates: PricingTemplate[];
+  room_unit_id?: string | null;
+}
+
+interface InventoryWarning {
+  date: string;
+  roomTypeId?: string;
+  roomName?: string;
+  available: number;
+  needed?: number;
+  blocked?: boolean;
+  blockedBy?: string;
+  closed?: boolean; // 該日庫存被管理員關閉 (is_available=false)
+}
+
+
+interface CreateOrderDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSuccess: (orderId: string) => void;
+  initialData?: {
+    check_in_date?: string;
+    check_out_date?: string;
+    room_type_id?: string;
+  };
+}
+
+/**
+ * 建單流程的客戶同步：一律走 public.upsert_customer_for_order RPC
+ *（授權由後端依 orders 模組權限判定，前端不得改用 customers 直寫或 fallback）。
+ *
+ * 回傳 customer_id；同步失敗（權限不足、同館重複電話等）時回傳 null，
+ * 與舊流程一致：不中斷、不 rollback 已建立的訂單，只是不寫回 orders.customer_id。
+ */
+export async function syncCustomerForOrder(params: {
+  accommodationId: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  gender: string | null;
+  nationality: string | null;
+  firstOrderDate: string;
+  client?: Pick<typeof supabase, "rpc">;
+}): Promise<string | null> {
+  const client = params.client ?? supabase;
+  try {
+    const { data, error } = await client.rpc("upsert_customer_for_order", {
+      _accommodation_id: params.accommodationId,
+      _name: params.name,
+      _phone: params.phone,
+      _email: params.email,
+      _gender: params.gender,
+      _nationality: params.nationality,
+      _first_order_date: params.firstOrderDate,
+    });
+
+    if (error) {
+      console.warn("[create-order] customer sync failed:", error.message);
+      return null;
+    }
+
+    const row = Array.isArray(data) ? data[0] : (data as any);
+    const customerId = row?.customer_id ?? null;
+    const action = row?.action;
+    if (!customerId || (action !== "created" && action !== "updated")) {
+      console.warn("[create-order] customer sync returned invalid result:", data);
+      return null;
+    }
+    return customerId as string;
+  } catch (e) {
+    console.warn("[create-order] customer sync threw:", e);
+    return null;
+  }
+}
+
+
+export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }: CreateOrderDialogProps) {
+  const isMobile = useIsMobile();
+  const { toast } = useToast();
+  const { currentAccommodationId } = useAccommodation();
+  // 訂單模組唯一權限來源（含 hotel_admin / super_admin bypass）
+  const { canEdit: canEditModule } = useStaffPermissions();
+  const canEditOrders = canEditModule("orders");
+  const packageChannel = usePackageChannel(currentAccommodationId);
+
+  const { config: secondaryCurrencyConfig } = useSecondaryCurrency(currentAccommodationId);
+  const orderSourceOptions = useOrderSources(currentAccommodationId);
+  // 旅行日等具備副幣別的民宿，預設沿用 localStorage 的輸入偏好（首次預設 SEC）
+  const [createDisplayCurrency, setCreateDisplayCurrency] = useState<string | null>(() => {
+    if (!currentAccommodationId) return null;
+    try {
+      const v = localStorage.getItem(`lakeze-input-currency:${currentAccommodationId}`);
+      if (v === "TWD") return "TWD";
+    } catch {}
+    return null; // 後續 secondaryCurrencyConfig 載入後再決定
+  });
+  useEffect(() => {
+    if (!createDisplayCurrency && secondaryCurrencyConfig?.code) {
+      setCreateDisplayCurrency(secondaryCurrencyConfig.code.toUpperCase());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondaryCurrencyConfig?.code]);
+  const createAmountsRef = useRef<{ manualDiscount: number; deposit: number; secDeposit: number }>({ manualDiscount: 0, deposit: 0, secDeposit: 0 });
+  const createClearAmountsRef = useRef<() => void>(() => {});
+  const handleCurrencyModeChange = (m: "TWD" | "SEC") => {
+    const code = m === "SEC" && secondaryCurrencyConfig?.code ? secondaryCurrencyConfig.code.toUpperCase() : "TWD";
+    if ((createDisplayCurrency || "TWD").toUpperCase() === code.toUpperCase()) return;
+    const { manualDiscount, deposit, secDeposit } = createAmountsRef.current;
+    const hasAmounts = manualDiscount > 0 || deposit > 0 || secDeposit > 0;
+    if (hasAmounts) {
+      const ok = window.confirm(`切換幣別會清空手動折扣 / 訂金 / 押金（避免 NT$ 與 ${secondaryCurrencyConfig?.symbol || "外幣"} 混算錯誤）。確定切換嗎？`);
+      if (!ok) return;
+      createClearAmountsRef.current();
+    }
+    setCreateDisplayCurrency(code);
+  };
+  const createForcedMode: "TWD" | "SEC" | null = secondaryCurrencyConfig
+    ? (createDisplayCurrency === "TWD" ? "TWD" : "SEC")
+    : null;
+  const { logAction } = useAuditLog();
+  const [isSaving, setIsSaving] = useState(false);
+  // 同步鎖：避免連點兩下在 state 更新前重複建單
+  const savingRef = useRef(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [kolQuotaPrompt, setKolQuotaPrompt] = useState<{ yearMonth: string; used: number; quota: number; packageName?: string | null; resolve: (v: boolean) => void } | null>(null);
+  // Deposit flow removed: orders always require full payment upfront.
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
+  
+  const [addonSettings, setAddonSettings] = useState<AddonSetting[]>([]);
+  const [pricingTemplates, setPricingTemplates] = useState<PricingTemplate[]>([]);
+  const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
+  const [roomPrice, setRoomPrice] = useState(0);
+  const [inventoryWarnings, setInventoryWarnings] = useState<InventoryWarning[]>([]);
+  const [isCheckingInventory, setIsCheckingInventory] = useState(false);
+  const [discountCode, setDiscountCode] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
+  /** 折扣碼適用的房型／房價方案組合（null = 全部適用）。後台允許部分適用。 */
+  const [discountEligibleKeys, setDiscountEligibleKeys] = useState<Set<string> | null>(null);
+  const [isValidatingCode, setIsValidatingCode] = useState(false);
+  const [manualDiscountStr, setManualDiscountStr] = useState<string | null>(null);
+  const manualDiscountInputRef = useRef<string | null>(null);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
+  
+  // Customer autocomplete states
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [nameSuggestions, setNameSuggestions] = useState<Customer[]>([]);
+  const [phoneSuggestions, setPhoneSuggestions] = useState<Customer[]>([]);
+  const [showNameSuggestions, setShowNameSuggestions] = useState(false);
+  const [showPhoneSuggestions, setShowPhoneSuggestions] = useState(false);
+  const nameInputRef = useRef<HTMLDivElement>(null);
+  const phoneInputRef = useRef<HTMLDivElement>(null);
+  
+  // Selected addons
+  const [selectedAddons, setSelectedAddons] = useState<{ addon_id: string; quantity: number }[]>([]);
+  const [amenityAllocations, setAmenityAllocations] = useState<Record<string, number>>({});
+
+  const [depositPct, setDepositPct] = useState<number>(30);
+
+  // Multi-room selections
+  const [roomSelections, setRoomSelections] = useState<RoomSelection[]>([]);
+  // 散客房可選房號：載入該民宿所有 active room_units + 計算指定日期區間已被佔用的 unit
+  const [allRoomUnits, setAllRoomUnits] = useState<RoomUnit[]>([]);
+  const [occupiedUnitIdsForDates, setOccupiedUnitIdsForDates] = useState<Set<string>>(new Set());
+  // 哈庫納馬塔塔：7 間房（最多 2 雙人房 + 4 四人房，加上 1 額外房型）
+  const HAKUNA_ACC_ID = "6b6ac0dc-602b-4dec-9167-7791ac412ba3";
+  const SENSAN_ACC_ID = "5f764d55-ae11-4631-80fe-2e611853deae";
+  const YUNXIU_ACC_ID = "7690a606-6bac-4cd5-a3e7-2fa754b318e8";
+  // 奧莉薇雅：8 雙人房 + 1 四人房 = 9 間房
+  const OLIVIA_ACC_ID = "74d064f4-1f8c-47e8-9be0-f0a596bbe6f8";
+  const isHakuna = currentAccommodationId === HAKUNA_ACC_ID;
+  const isSensan = currentAccommodationId === SENSAN_ACC_ID;
+  const isYunxiu = currentAccommodationId === YUNXIU_ACC_ID;
+  const isOlivia = currentAccommodationId === OLIVIA_ACC_ID;
+  // 只有森山寫照保留「包區」用語，其餘民宿一律使用「包棟」
+  const exclusiveLabel = isSensan ? "包區" : "包棟";
+  const MAX_TOTAL_ROOMS = isHakuna ? 7 : isOlivia ? 9 : 6;
+  const MAX_DOUBLE_ROOMS = isHakuna ? 2 : isOlivia ? 8 : 3;
+  const MAX_QUAD_ROOMS = isHakuna ? 4 : isOlivia ? 1 : 3;
+
+  // Booking mode: "exclusive" (包棟) or "normal" (非包棟) or "" (not yet selected)
+  const [bookingMode, setBookingMode] = useState<"" | "exclusive" | "normal">("");
+  const [exclusiveDoubleRooms, setExclusiveDoubleRooms] = useState(0);
+  const [exclusiveQuadRooms, setExclusiveQuadRooms] = useState(0);
+  // 額外包棟（roomSelections[1..]）的房間配置，key = selection.id
+  const [extraExclusiveConfigs, setExtraExclusiveConfigs] = useState<Record<string, { double: number; quad: number }>>({});
+  const setExtraExclusiveConfig = useCallback((selId: string, patch: Partial<{ double: number; quad: number }>) => {
+    setExtraExclusiveConfigs(prev => ({
+      ...prev,
+      [selId]: { double: 0, quad: 0, ...(prev[selId] || {}), ...patch },
+    }));
+  }, []);
+
+  // Phase 3: 每個包棟方案各自的房間組成（從 room_types.package_contents 讀取）。
+  // 與編輯訂單頁共用 usePackageBreakdown；含動態補查（新加一列或切到集合外的房型）。
+  const exclusiveRoomTypeIds = useMemo(
+    () => roomTypes.filter(r => r.is_exclusive_package).map(r => r.id),
+    [roomTypes],
+  );
+  const { getBreakdown: getPackageBreakdown, ensureBreakdown: ensurePackageBreakdown } = usePackageBreakdown(exclusiveRoomTypeIds);
+  // 第一棟包棟：room_type_id -> 間數
+  const [exclusiveCustomCounts, setExclusiveCustomCounts] = useState<Record<string, number>>({});
+  // 額外加棟：selection.id -> { room_type_id -> 間數 }
+  const [extraExclusiveCustomCounts, setExtraExclusiveCustomCounts] = useState<Record<string, Record<string, number>>>({});
+  const setExtraExclusiveCustomCount = useCallback((selId: string, rtId: string, count: number) => {
+    setExtraExclusiveCustomCounts(prev => ({
+      ...prev,
+      [selId]: { ...(prev[selId] || {}), [rtId]: count },
+    }));
+  }, []);
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  // 奧莉薇雅：標記為包棟 → 自動鎖當天整棟所有其他房型
+  const [lockWholeBuilding, setLockWholeBuilding] = useState(false);
+  const [filteredTemplates, setFilteredTemplates] = useState<PricingTemplate[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [form, setForm] = useState({
+    guest_name: "",
+    guest_phone: "",
+    guest_email: "",
+    guest_gender: "",
+    guest_nationality: "",
+    check_in_date: "",
+    check_out_date: "",
+    room_type_id: "",
+    meal_plan: "",
+    guest_count: 2,
+    order_status: "confirmed",
+    deposit_payment_method: "",
+    balance_payment_method: "",
+    deposit_paid: false,
+    balance_paid: false,
+    deposit_amount: 0,
+    notes: "",
+    order_source: "",
+    security_deposit_method: "cash" as const,
+    security_deposit_amount: 5000,
+    package_id: "" as string,
+  });
+
+  // Sync amount refs for the currency-toggle guard defined above
+  useEffect(() => {
+    const md = manualDiscountInputRef.current ? parseInt(manualDiscountInputRef.current, 10) || 0 : 0;
+    createAmountsRef.current = {
+      manualDiscount: md,
+      deposit: Number(form.deposit_amount) || 0,
+      secDeposit: Number(form.security_deposit_amount) || 0,
+    };
+    createClearAmountsRef.current = () => {
+      manualDiscountInputRef.current = null;
+      setManualDiscountStr(null);
+      setForm(f => ({ ...f, deposit_amount: 0, security_deposit_amount: 0 }));
+    };
+  }, [form.deposit_amount, form.security_deposit_amount, manualDiscountStr]);
+
+
+  // 對應的方案清單（accommodation_packages），下單時寫入 orders.package_id
+  const [accommodationPackages, setAccommodationPackages] = useState<
+    Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; enabled: boolean }>
+  >([]);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setForm({
+        guest_name: "",
+        guest_phone: "",
+        guest_email: "",
+        guest_gender: "",
+        guest_nationality: "",
+        check_in_date: initialData?.check_in_date || "",
+        check_out_date: initialData?.check_out_date || "",
+        room_type_id: initialData?.room_type_id || "",
+        meal_plan: "",
+        guest_count: 2,
+        order_status: "confirmed",
+        deposit_payment_method: "",
+        balance_payment_method: "",
+        deposit_paid: false,
+        balance_paid: false,
+        deposit_amount: 0,
+        notes: "",
+        order_source: "",
+        security_deposit_method: "cash",
+        security_deposit_amount: 5000,
+        package_id: "",
+      });
+      setSelectedAddons([]);
+      setAmenityAllocations({});
+
+      setDiscountCode("");
+      setAppliedDiscount(null);
+      setManualDiscountStr(null);
+      manualDiscountInputRef.current = null;
+      setRoomPrice(0);
+      setDepositPct(30);
+      setNameSuggestions([]);
+      setPhoneSuggestions([]);
+      setShowNameSuggestions(false);
+      setShowPhoneSuggestions(false);
+      setSelectedTemplateId("");
+      setFilteredTemplates([]);
+      setRoomSelections([]);
+      setBookingMode("");
+      setExclusiveDoubleRooms(0);
+      setExclusiveQuadRooms(0);
+      setExtraExclusiveConfigs({});
+      setExclusiveCustomCounts({});
+      setExtraExclusiveCustomCounts({});
+    }
+  }, [open, initialData]);
+
+  // 必要加購（auto_include）：每次開啟建單視窗都自動帶入下限數量
+  useEffect(() => {
+    if (!open) return;
+    const autoAddons = (addonSettings || []).filter(
+      (a: any) => a.enabled !== false && a.auto_include === true,
+    );
+    if (autoAddons.length === 0) return;
+    setSelectedAddons(prev => {
+      const next = [...prev];
+      let changed = false;
+      for (const a of autoAddons as any[]) {
+        if (!next.some(x => x.addon_id === a.id)) {
+          next.push({ addon_id: a.id, quantity: Math.max(1, a.min_quantity ?? 0) });
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [open, addonSettings]);
+
+  // Fetch room types, public holidays, and customers
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!currentAccommodationId) return;
+      
+      const [roomTypesResult, holidaysResult, customersResult, addonsResult, templatesResult] = await Promise.all([
+        supabase
+          .from("room_types")
+          .select("id, name, capacity, is_exclusive_package")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order"),
+        supabase
+          .from("public_holidays")
+          .select("holiday_date")
+          .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("customers")
+          .select("id, name, phone, email")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("name"),
+        supabase
+          .from("addon_settings")
+          .select("id, addon_type, description, price_per_unit, unit_label, pricing_mode, enabled, min_quantity, max_quantity, auto_include, is_locked")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("enabled", true)
+          .order("sort_order", { ascending: true })
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, meal_plans, project_name, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates, default_package_id")
+          .eq("accommodation_id", currentAccommodationId)
+          .order("display_order")
+      ]);
+
+      // Accommodation packages（給「對應方案」下拉用 → 寫入 orders.package_id）
+      const { data: pkgData } = await supabase
+        .from("accommodation_packages")
+        .select("id, name, guest_count, primary_room_type_id, enabled")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("enabled", true)
+        .order("display_order", { ascending: true })
+        .order("guest_count", { ascending: true });
+      setAccommodationPackages(pkgData || []);
+
+      if (!roomTypesResult.error && roomTypesResult.data) {
+        setRoomTypes(roomTypesResult.data);
+      }
+      if (holidaysResult.data) {
+        setPublicHolidays(holidaysResult.data.map(h => h.holiday_date));
+      }
+      if (!customersResult.error && customersResult.data) {
+        setCustomers(customersResult.data);
+      }
+      if (!addonsResult.error && addonsResult.data) {
+        setAddonSettings(addonsResult.data);
+        // 自動帶入的加購（僅新訂單建立時生效，不影響既有訂單編輯）
+        const autoAddons = addonsResult.data.filter((a: any) => a.auto_include === true);
+        if (autoAddons.length > 0) {
+          setSelectedAddons(prev => {
+            const next = [...prev];
+            for (const a of autoAddons) {
+              if (!next.some(x => x.addon_id === a.id)) {
+                next.push({ addon_id: a.id, quantity: Math.max(1, a.min_quantity ?? 0) });
+              }
+            }
+            return next;
+          });
+        }
+      }
+      if (!templatesResult.error && templatesResult.data) {
+        setPricingTemplates(templatesResult.data);
+      }
+
+    };
+
+    fetchData();
+  }, [currentAccommodationId]);
+
+  // 載入該民宿的訂金比例設定（HQ 設定會即時代入）
+  useEffect(() => {
+    const loadDepositPct = async () => {
+      if (!currentAccommodationId) return;
+      const { data } = await supabase
+        .from("booking_settings")
+        .select("deposit_percentage, security_deposit_amount")
+        .eq("accommodation_id", currentAccommodationId)
+        .maybeSingle();
+      if (data?.deposit_percentage != null) {
+        setDepositPct(data.deposit_percentage);
+      }
+      const sd = (data as any)?.security_deposit_amount;
+      if (sd != null) {
+        setForm((f) => ({ ...f, security_deposit_amount: Number(sd) }));
+      }
+    };
+    if (open) loadDepositPct();
+  }, [currentAccommodationId, open]);
+
+  // 載入該民宿所有 active room_units（用於散客房選房號）
+  useEffect(() => {
+    const loadUnits = async () => {
+      if (!currentAccommodationId) { setAllRoomUnits([]); return; }
+      const { data } = await supabase
+        .from("room_units")
+        .select("id, room_type_id, display_order, is_active, unit_number, nickname")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setAllRoomUnits((data as any[]) || []);
+    };
+    loadUnits();
+  }, [currentAccommodationId]);
+
+  // 判斷目前使用者是否為民宿管理員（用於 KOL 互惠超額強制覆寫）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!currentAccommodationId) return;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { if (!cancelled) setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("accommodation_id", currentAccommodationId);
+      const roles = (data ?? []).map((r: any) => r.role);
+      if (!cancelled) setIsAdmin(roles.includes("hotel_admin") || roles.includes("super_admin"));
+    })();
+    return () => { cancelled = true; };
+  }, [currentAccommodationId]);
+
+  // 載入指定入住區間已被其他訂單佔用的 room_units
+  useEffect(() => {
+    const loadOccupied = async () => {
+      if (!currentAccommodationId || !form.check_in_date || !form.check_out_date) {
+        setOccupiedUnitIdsForDates(new Set());
+        return;
+      }
+      const { data } = await supabase
+        .from("order_rooms")
+        .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+        .not("room_unit_id", "is", null)
+        .eq("orders.accommodation_id", currentAccommodationId)
+        .neq("orders.order_status", "cancelled")
+        .lt("orders.check_in_date", form.check_out_date)
+        .gt("orders.check_out_date", form.check_in_date);
+      const ids = new Set<string>();
+      ((data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
+        if (row.room_unit_id) ids.add(row.room_unit_id);
+      });
+      setOccupiedUnitIdsForDates(ids);
+    };
+    loadOccupied();
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
+
+
+  // Helper: get templates for a room_type_id（含期限硬性限制）
+  const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
+    if (!roomTypeId || pricingTemplates.length === 0) return [];
+    // 計算當下訂單入住期間
+    const nights = (() => {
+      if (!form.check_in_date || !form.check_out_date) return 0;
+      const ci = new Date(form.check_in_date);
+      const co = new Date(form.check_out_date);
+      return Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
+    })();
+    const dateStrs: string[] = [];
+    if (nights > 0 && form.check_in_date) {
+      const start = new Date(form.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dateStrs.push(format(d, "yyyy-MM-dd"));
+      }
+    }
+    const inValidRange = (t: any) => {
+      const vf = t?.valid_from || null;
+      const vu = t?.valid_until || null;
+      if (!vf && !vu) return true;
+      if (dateStrs.length === 0) return true;
+      return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
+    };
+    const filtered = pricingTemplates.filter(t => {
+      const ids = (t as any).room_type_ids;
+      const hasBinding = (Array.isArray(ids) && ids.length > 0) || !!(t as any).room_type_id;
+      return hasBinding && templateMatchesRoomType(t as any, roomTypeId) && inValidRange(t);
+    });
+    const result = filtered.length > 0
+      ? filtered
+      : pricingTemplates.filter(t => {
+          const ids = (t as any).room_type_ids;
+          const hasIds = Array.isArray(ids) && ids.length > 0;
+          return !hasIds && !(t as any).room_type_id && inValidRange(t);
+        });
+    return result.length > 0 ? result : pricingTemplates.filter(inValidRange);
+  }, [pricingTemplates, form.check_in_date, form.check_out_date]);
+
+  // Keep legacy form.room_type_id in sync (old template filter useEffect kept for compat)
+  useEffect(() => {
+    if (!form.room_type_id) {
+      setFilteredTemplates([]);
+      setSelectedTemplateId("");
+      setForm(prev => ({ ...prev, meal_plan: "" }));
+      setIsLoadingTemplates(false);
+      return;
+    }
+    const finalList = getTemplatesForRoomType(form.room_type_id);
+    setFilteredTemplates(finalList);
+    setSelectedTemplateId(prev => {
+      const stillExists = finalList.some(t => t.id === prev);
+      return stillExists ? prev : finalList[0]?.id || "";
+    });
+    setForm(prev => {
+      const stillExists = finalList.some(t => t.template_name === prev.meal_plan);
+      return { ...prev, meal_plan: stillExists ? prev.meal_plan : finalList[0]?.template_name || "" };
+    });
+    setIsLoadingTemplates(false);
+  }, [form.room_type_id, pricingTemplates, getTemplatesForRoomType]);
+
+  // Multi-room helpers
+  // 解除間數上限：每筆 selection 各自佔自己的間數，包棟視為 1 棟
+  const getEffectiveQuantity = useCallback((sel: RoomSelection) => sel.quantity, []);
+  const totalRoomCount = roomSelections.reduce((sum, s) => sum + getEffectiveQuantity(s), 0);
+  const hasExclusivePackage = roomSelections.some(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package);
+
+  const addRoomSelection = useCallback((preferExclusive = false) => {
+    const id = crypto.randomUUID();
+    const candidates = preferExclusive
+      ? [...roomTypes.filter(r => r.is_exclusive_package), ...roomTypes.filter(r => !r.is_exclusive_package)]
+      : [...roomTypes.filter(r => !r.is_exclusive_package), ...roomTypes.filter(r => r.is_exclusive_package)];
+    const defaultRoomType = candidates[0];
+    let pendingNew: { id: string; roomTypeId: string; isExclusive: boolean } | null = null;
+    // 雲岫散客房：自動依序代入尚未被使用的房型
+    setRoomSelections(prev => {
+      let chosen = defaultRoomType;
+      if (isYunxiu && !preferExclusive) {
+        const fitRoomTypes = roomTypes.filter(r => !r.is_exclusive_package);
+        const usedIds = new Set(
+          prev
+            .filter(s => !roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package)
+            .map(s => s.room_type_id)
+        );
+        const nextUnused = fitRoomTypes.find(r => !usedIds.has(r.id));
+        if (nextUnused) chosen = nextUnused;
+      }
+      // 加包棟時：自動跳過已被選用的包棟房型，避免每次都預設成第一棟造成重複
+      if (preferExclusive) {
+        const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+        const usedExcIds = new Set(
+          prev
+            .filter(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package)
+            .map(s => s.room_type_id)
+        );
+        const nextUnusedExc = exclusiveTypes.find(r => !usedExcIds.has(r.id));
+        if (nextUnusedExc) chosen = nextUnusedExc;
+      }
+      if (!chosen) return prev;
+      pendingNew = { id, roomTypeId: chosen.id, isExclusive: !!chosen.is_exclusive_package };
+      const templates = getTemplatesForRoomType(chosen.id);
+      // 同一組訂單共用同一個專案：若主方案的 template 在新房型的可選範圍內，直接沿用
+      const primaryTplId = prev[0]?.template_id;
+      const inheritedTpl = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+      const useTpl = inheritedTpl || templates[0];
+      return [...prev, {
+        id,
+        room_type_id: chosen.id,
+        template_id: useTpl?.id || "",
+        template_name: useTpl?.template_name || "",
+        quantity: 1,
+        roomPrice: 0,
+        filteredTemplates: templates,
+      }];
+    });
+    if (pendingNew?.isExclusive) {
+      const counts = defaultCountsFromBreakdown(getPackageBreakdown(pendingNew.roomTypeId));
+      const newId = pendingNew.id;
+      setExtraExclusiveCustomCounts(p => ({ ...p, [newId]: counts }));
+    }
+  }, [roomTypes, getTemplatesForRoomType, isYunxiu, getPackageBreakdown]);
+
+  const removeRoomSelection = useCallback((selId: string) => {
+    setRoomSelections(prev => prev.filter(s => s.id !== selId));
+  }, []);
+
+  const updateRoomSelection = useCallback((selId: string, updates: Partial<RoomSelection>) => {
+    // 換房型要帶入的預設組成間數，先蒐集起來，等 setRoomSelections 之後再套用（避免在 updater 內做 side effect）
+    let pendingDefaults: { idx: number; isExclusive: boolean } | null = null;
+    setRoomSelections(prev => prev.map((s, idx) => {
+      if (s.id !== selId) return s;
+      const updated = { ...s, ...updates };
+      if (updates.room_type_id && updates.room_type_id !== s.room_type_id) {
+        const templates = getTemplatesForRoomType(updates.room_type_id);
+        const newRt = roomTypes.find(r => r.id === updates.room_type_id);
+        updated.filteredTemplates = templates;
+        // 沿用主方案的 template（若可用）；只有主列(idx=0)或無法沿用時才用第一個
+        const primaryTplId = idx === 0 ? null : prev[0]?.template_id;
+        const inherited = primaryTplId ? templates.find(t => t.id === primaryTplId) : undefined;
+        const useTpl = inherited || templates[0];
+        updated.template_id = useTpl?.id || "";
+        updated.template_name = useTpl?.template_name || "";
+        // 切到包棟時鎖為 1
+        if (newRt?.is_exclusive_package) updated.quantity = 1;
+        // 換房型時清掉房號選擇
+        updated.room_unit_id = null;
+        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數；
+        // 之後的渲染／其他欄位變動不會覆蓋客服手動改過的值。
+        pendingDefaults = { idx, isExclusive: !!newRt?.is_exclusive_package };
+
+      }
+      return updated;
+    }));
+
+    if (pendingDefaults) {
+      const { idx, isExclusive } = pendingDefaults as { idx: number; isExclusive: boolean };
+      const targetRoomTypeId = updates.room_type_id!;
+      if (!isExclusive) {
+        if (idx === 0) setExclusiveCustomCounts({});
+        else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: {} }));
+      } else {
+        // 快取沒有就當場補查，確保「換到集合外的新房型」也能立刻帶入預設間數
+        void ensurePackageBreakdown(targetRoomTypeId).then((items) => {
+          const counts = defaultCountsFromBreakdown(items);
+          if (idx === 0) setExclusiveCustomCounts(counts);
+          else setExtraExclusiveCustomCounts(p => ({ ...p, [selId]: counts }));
+        });
+      }
+    }
+  }, [getTemplatesForRoomType, roomTypes, ensurePackageBreakdown]);
+
+
+
+  const changeRoomQuantity = useCallback((selId: string, delta: number) => {
+    setRoomSelections(prev => {
+      const sel = prev.find(s => s.id === selId);
+      if (!sel) return prev;
+      const rt = roomTypes.find(r => r.id === sel.room_type_id);
+      if (rt?.is_exclusive_package) return prev; // 包棟一筆=1 棟，不可調整
+      const newQty = sel.quantity + delta;
+      if (newQty < 1) return prev;
+      return prev.map(s => s.id === selId ? { ...s, quantity: newQty } : s);
+    });
+  }, [roomTypes]);
+
+  // Calculate room prices for all selections
+  const roomSelectionsKey = roomSelections.map(s => `${s.room_type_id}-${s.template_id}-${s.quantity}`).join(',');
+  useEffect(() => {
+    let cancelled = false;
+    const calcPrices = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setRoomPrice(0);
+        return;
+      }
+      const nights = calculateNights();
+      if (nights === 0) { setRoomPrice(0); return; }
+
+      const dates: string[] = [];
+      const start = new Date(form.check_in_date);
+      for (let i = 0; i < nights; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        dates.push(format(d, "yyyy-MM-dd"));
+      }
+
+      // Snapshot 當下要算的 selections（id + 規格），算完後依 id merge 回去，
+      // 避免 await 期間使用者切換房型／加棟被本 effect 用 stale state 覆寫造成「跳針」。
+      const snapshot = roomSelections.map(s => ({
+        id: s.id,
+        room_type_id: s.room_type_id,
+        template_id: s.template_id,
+        quantity: s.quantity,
+      }));
+
+      const priceById = new Map<string, number>();
+      let totalPrice = 0;
+      for (const sel of snapshot) {
+        const template = pricingTemplates.find(t => t.id === sel.template_id);
+        const priceMap = await resolveTemplatePricesForDates({
+          roomTypeId: sel.room_type_id,
+          template: template ?? null,
+          dates,
+          publicHolidays,
+        });
+        if (cancelled) return;
+        let perRoom = 0;
+        for (const dateStr of dates) {
+          perRoom += priceMap[dateStr] ?? 0;
+        }
+        const selPrice = perRoom * sel.quantity;
+        priceById.set(sel.id, selPrice);
+        totalPrice += selPrice;
+      }
+
+      if (cancelled) return;
+      setRoomSelections(prev => prev.map(s => {
+        const snap = snapshot.find(x => x.id === s.id);
+        // 只有規格仍與快照一致時才寫回價格；使用者已換房型/方案/間數則略過，等下一輪重算
+        if (!snap) return s;
+        if (
+          snap.room_type_id !== s.room_type_id ||
+          snap.template_id !== s.template_id ||
+          snap.quantity !== s.quantity
+        ) return s;
+        const p = priceById.get(s.id);
+        return p === undefined || p === s.roomPrice ? s : { ...s, roomPrice: p };
+      }));
+      setRoomPrice(totalPrice);
+    };
+
+    calcPrices();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, pricingTemplates, publicHolidays]);
+
+  // Handle customer name search
+  const handleNameChange = useCallback((value: string) => {
+    setForm(prev => ({ ...prev, guest_name: value }));
+    if (value.trim().length > 0) {
+      const filtered = customers.filter(c => 
+        c.name.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5);
+      setNameSuggestions(filtered);
+      setShowNameSuggestions(filtered.length > 0);
+    } else {
+      setNameSuggestions([]);
+      setShowNameSuggestions(false);
+    }
+  }, [customers]);
+
+  const handlePhoneChange = useCallback((value: string) => {
+    setForm(prev => ({ ...prev, guest_phone: value }));
+    if (value.trim().length > 2) {
+      const filtered = customers.filter(c => 
+        c.phone && c.phone.includes(value)
+      ).slice(0, 5);
+      setPhoneSuggestions(filtered);
+      setShowPhoneSuggestions(filtered.length > 0);
+    } else {
+      setPhoneSuggestions([]);
+      setShowPhoneSuggestions(false);
+    }
+  }, [customers]);
+
+  const selectCustomer = useCallback((customer: Customer) => {
+    setForm(prev => ({
+      ...prev,
+      guest_name: customer.name,
+      guest_phone: customer.phone || "",
+      guest_email: customer.email || "",
+    }));
+    setShowNameSuggestions(false);
+    setShowPhoneSuggestions(false);
+    toast({ title: "已帶入客戶資料", description: `${customer.name}` });
+  }, [toast]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (nameInputRef.current && !nameInputRef.current.contains(event.target as Node)) {
+        setShowNameSuggestions(false);
+      }
+      if (phoneInputRef.current && !phoneInputRef.current.contains(event.target as Node)) {
+        setShowPhoneSuggestions(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const calculateNights = () => {
+    if (!form.check_in_date || !form.check_out_date) return 0;
+    const start = new Date(form.check_in_date);
+    const end = new Date(form.check_out_date);
+    return Math.ceil((end.getTime() - start.getTime()) / (1000 * 3600 * 24));
+  };
+
+  /** 折扣適用範圍的識別鍵：房型 + 房價方案 */
+  const discountScopeKeyOf = (roomTypeId?: string | null, templateId?: string | null) =>
+    `${roomTypeId || null}|${templateId || null}`;
+
+  const calculateDiscount = (total: number) => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.type === "percentage") {
+      return Math.round(total * (appliedDiscount.value / 100));
+    }
+    return Math.min(appliedDiscount.value, total);
+  };
+
+
+  const buildStayDates = useCallback(() => {
+    const nights = calculateNights();
+    if (nights <= 0) return [];
+    const start = new Date(form.check_in_date);
+    return Array.from({ length: nights }, (_, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return format(d, "yyyy-MM-dd");
+    });
+  }, [form.check_in_date, form.check_out_date]);
+
+  const validateInventoryAvailability = useCallback(async (): Promise<InventoryWarning[]> => {
+    if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) return [];
+
+    const dates = buildStayDates();
+    if (dates.length === 0) return [];
+
+    const requiredByRoomType = new Map<string, number>();
+    roomSelections.forEach((sel) => {
+      requiredByRoomType.set(sel.room_type_id, (requiredByRoomType.get(sel.room_type_id) || 0) + sel.quantity);
+    });
+
+    const roomTypeIds = Array.from(requiredByRoomType.keys());
+
+    // 同步抓取「庫存是否被管理員關閉」(is_available=false)
+    const { data: baseRows, error: baseErr } = await supabase
+      .from("room_inventory_pricing")
+      .select("room_type_id, date, is_available")
+      .in("room_type_id", roomTypeIds)
+      .in("date", dates);
+    if (baseErr) throw baseErr;
+    const closedMap = new Map<string, boolean>();
+    (baseRows || []).forEach((r: any) => {
+      if (r.is_available === false) closedMap.set(`${r.room_type_id}:${r.date}`, true);
+    });
+
+    // Use RPC that includes exclusive-package mutual exclusion logic
+    const results = await Promise.all(
+      roomTypeIds.map(async (roomTypeId) => {
+        const { data, error } = await supabase.rpc("get_adjusted_room_inventory_batch", {
+          p_room_type_id: roomTypeId,
+          p_dates: dates,
+          p_accommodation_id: currentAccommodationId,
+        });
+        if (error) throw error;
+        return { roomTypeId, rows: data || [] };
+      })
+    );
+
+    const warnings: InventoryWarning[] = [];
+    results.forEach(({ roomTypeId, rows }) => {
+      const needed = requiredByRoomType.get(roomTypeId) || 0;
+      const roomName = roomTypes.find((room) => room.id === roomTypeId)?.name || "房型";
+
+      rows.forEach((row: any) => {
+        const dateStr = typeof row.date_value === "string" ? row.date_value : format(new Date(row.date_value), "yyyy-MM-dd");
+        const available = row.available_rooms ?? 0;
+        if (closedMap.get(`${roomTypeId}:${dateStr}`)) {
+          warnings.push({
+            date: dateStr,
+            roomTypeId,
+            roomName,
+            available: 0,
+            needed,
+            blocked: true,
+            closed: true,
+          });
+          return;
+        }
+        if (row.is_blocked) {
+          warnings.push({
+            date: dateStr,
+            roomTypeId,
+            roomName,
+            available: 0,
+            needed,
+            blocked: true,
+            blockedBy: row.blocked_by_room_name || undefined,
+          });
+        } else if (available < needed) {
+          warnings.push({ date: dateStr, roomTypeId, roomName, available, needed });
+        }
+      });
+    });
+
+    return warnings;
+  }, [buildStayDates, currentAccommodationId, form.check_in_date, form.check_out_date, roomSelections, roomTypes]);
+
+
+  // 回傳每個 selection 對應 quantity 個自動安排的 unit IDs（依 display_order）
+  // 已被手動指定的 unit 會優先排除；同型房型可批次連續指派
+  const getAutomaticRoomUnitAssignments = useCallback(async (selections: RoomSelection[]) => {
+    const assignments = new Map<string, string[]>();
+    if (!currentAccommodationId || !form.check_in_date || !form.check_out_date) return assignments;
+
+    const fitSelections = selections.filter((sel) => sel.quantity > 0);
+    if (fitSelections.length === 0) return assignments;
+
+    const roomTypeIds = Array.from(new Set(fitSelections.map((sel) => sel.room_type_id)));
+    const [unitsResult, occupiedResult] = await Promise.all([
+      supabase
+        .from("room_units")
+        .select("id, room_type_id, display_order, is_active")
+        .eq("accommodation_id", currentAccommodationId)
+        .eq("is_active", true)
+        .in("room_type_id", roomTypeIds)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("order_rooms")
+        .select("room_unit_id, orders!inner(id, accommodation_id, order_status, check_in_date, check_out_date)")
+        .not("room_unit_id", "is", null)
+        .eq("orders.accommodation_id", currentAccommodationId)
+        .neq("orders.order_status", "cancelled")
+        .lt("orders.check_in_date", form.check_out_date)
+        .gt("orders.check_out_date", form.check_in_date),
+    ]);
+
+    if (unitsResult.error) throw unitsResult.error;
+    if (occupiedResult.error) throw occupiedResult.error;
+
+    const reservedUnitIds = new Set<string>();
+    ((occupiedResult.data as OccupiedRoomUnitRow[] | null) || []).forEach((row) => {
+      if (row.room_unit_id) reservedUnitIds.add(row.room_unit_id);
+    });
+    // 排除使用者已手動指派的 unit
+    selections.forEach((sel) => {
+      if (sel.room_unit_id) reservedUnitIds.add(sel.room_unit_id);
+    });
+
+    const units = ((unitsResult.data as RoomUnit[]) || []).sort((a, b) => a.display_order - b.display_order);
+    fitSelections.forEach((sel) => {
+      const needed = sel.room_unit_id ? sel.quantity - 1 : sel.quantity;
+      if (needed <= 0) return;
+      const pool = units.filter((u) => u.room_type_id === sel.room_type_id && !reservedUnitIds.has(u.id));
+      const picked = pool.slice(0, needed).map((u) => u.id);
+      picked.forEach((id) => reservedUnitIds.add(id));
+      if (picked.length > 0) assignments.set(sel.id, picked);
+    });
+
+    return assignments;
+  }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
+
+  // Check inventory warnings (for all room selections)
+  useEffect(() => {
+    const checkInventory = async () => {
+      if (roomSelections.length === 0 || !form.check_in_date || !form.check_out_date || !currentAccommodationId) {
+        setInventoryWarnings([]);
+        return;
+      }
+      setIsCheckingInventory(true);
+      try {
+        const warnings = await validateInventoryAvailability();
+        setInventoryWarnings(warnings);
+      } catch (error) {
+        console.error("查詢庫存失敗:", error);
+      } finally {
+        setIsCheckingInventory(false);
+      }
+    };
+    checkInventory();
+  }, [form.check_in_date, form.check_out_date, roomSelectionsKey, currentAccommodationId, validateInventoryAvailability]);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim() || !currentAccommodationId) {
+      toast({ title: "請輸入折扣代碼", variant: "destructive" });
+      return;
+    }
+
+    setIsValidatingCode(true);
+    try {
+      // 逐一驗證所有已選房型／房價方案組合。
+      // 後台建立訂單允許「部分適用」：只要有任一組合適用即可套用，
+      // 折扣僅計算在適用的房型／方案小計上（不適用的部分照原價）。
+      const combos = roomSelections.length
+        ? roomSelections.map((s) => ({ roomTypeId: s.room_type_id || form.room_type_id || null, templateId: s.template_id || null }))
+        : [{ roomTypeId: form.room_type_id || null, templateId: null }];
+      const seen = new Set<string>();
+      const uniqueCombos = combos.filter((c) => {
+        const k = discountScopeKeyOf(c.roomTypeId, c.templateId);
+        if (seen.has(k)) return false;
+        seen.add(k);
+        return true;
+      });
+
+      const eligible = new Set<string>();
+      let validResult: any = null;
+      let lastInvalid: any = null;
+      for (const combo of uniqueCombos) {
+        const { data, error } = await supabase.rpc('validate_discount_code', {
+          p_code: discountCode.trim().toUpperCase(),
+          p_accommodation_id: currentAccommodationId,
+          p_order_amount: roomPrice,
+          p_room_type_id: combo.roomTypeId,
+          p_check_in_date: form.check_in_date || null,
+          p_pricing_template_id: combo.templateId
+        });
+        if (error) throw error;
+        const result = data?.[0];
+        if (result?.is_valid) {
+          eligible.add(discountScopeKeyOf(combo.roomTypeId, combo.templateId));
+          validResult = result;
+        } else {
+          lastInvalid = result;
+        }
+      }
+
+      if (validResult) {
+        setAppliedDiscount({
+          code: discountCode.trim().toUpperCase(),
+          type: validResult.discount_type as "percentage" | "amount",
+          value: validResult.discount_value
+        });
+        setDiscountEligibleKeys(eligible);
+        const partial = eligible.size < uniqueCombos.length;
+        toast({
+          title: "折扣代碼已套用",
+          description: `${validResult.discount_type === "percentage" ? `已套用 ${validResult.discount_value}% 折扣` : `已套用 NT$ ${validResult.discount_value} 折扣`}${partial ? "（僅計算適用的房價方案，其餘照原價）" : ""}`,
+        });
+      } else {
+        setDiscountEligibleKeys(null);
+        toast({ title: "折扣代碼無效", description: lastInvalid?.message || "此折扣碼不適用於所選房價方案", variant: "destructive" });
+      }
+
+    } catch (error) {
+      console.error("Error validating discount code:", error);
+      toast({ title: "驗證失敗", description: "無法驗證折扣代碼，請稍後再試", variant: "destructive" });
+    } finally {
+      setIsValidatingCode(false);
+    }
+  };
+
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountEligibleKeys(null);
+    setDiscountCode("");
+    setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
+    toast({ title: "已移除折扣", description: "折扣代碼已清除" });
+  };
+
+  // 房型／房價方案變更後，已套用的折扣碼需重新驗證，避免折扣到未勾選的方案
+  const discountScopeKey = roomSelections
+    .map((s) => `${s.room_type_id}:${s.template_id}`)
+    .join(",");
+  const prevDiscountScopeKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevDiscountScopeKeyRef.current;
+    prevDiscountScopeKeyRef.current = discountScopeKey;
+    if (prev === null || prev === discountScopeKey) return;
+    if (!appliedDiscount) return;
+    setAppliedDiscount(null);
+    setDiscountEligibleKeys(null);
+    setManualDiscountStr(null);
+    manualDiscountInputRef.current = null;
+    toast({
+      title: "折扣碼已清除",
+      description: "房型／房價方案已變更，請重新套用折扣碼",
+    });
+  }, [discountScopeKey]);
+
+
+
+  // Calculate totals
+  const calculateTotalsForSelections = (selections: RoomSelection[]) => {
+    const addonNights = Math.max(1, calculateNights());
+    const addonTotal = selectedAddons.reduce((sum, a) => {
+      const addon = addonSettings.find(ad => ad.id === a.addon_id);
+      return sum + (addon ? addon.price_per_unit * a.quantity * addonNightsMultiplier(addon.pricing_mode, addonNights) : 0);
+    }, 0);
+    // Use explicit selection prices to avoid stale roomPrice state during submit
+    const actualRoomTotal = selections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+    // 折扣基準：僅計算折扣碼適用的房型／房價方案小計（不適用的部分照原價）
+    const discountBase = discountEligibleKeys
+      ? selections.reduce(
+          (sum, sel) =>
+            discountEligibleKeys.has(discountScopeKeyOf(sel.room_type_id, sel.template_id))
+              ? sum + sel.roomPrice
+              : sum,
+          0,
+        )
+      : actualRoomTotal;
+    const codeDiscount = calculateDiscount(discountBase);
+    const manualDiscountValue = manualDiscountInputRef.current ?? manualDiscountStr;
+    const discount = manualDiscountValue !== null
+      ? Math.max(0, parseInt(manualDiscountValue) || 0)
+      : codeDiscount;
+    const subtotal = actualRoomTotal + addonTotal;
+    const final_ = Math.max(0, actualRoomTotal - discount + addonTotal);
+    return { roomTotal: actualRoomTotal, addonTotal, subtotal, discount, final: final_ };
+  };
+
+  const getTotals = () => calculateTotalsForSelections(roomSelections);
+
+  const handleSave = async () => {
+    // 權限硬守門：readonly / 無權限者即使繞過外層 UI 也不得產生任何寫入副作用
+    if (!canEditOrders) {
+      toast({
+        title: "權限不足",
+        description: "您目前對「訂單」模組沒有編輯權限，無法建立訂單。",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!form.guest_name.trim()) {
+      toast({ title: "請輸入訂購人姓名", variant: "destructive" });
+      return;
+    }
+    if (!form.guest_phone.trim()) {
+      toast({ title: "請輸入聯絡電話", variant: "destructive" });
+      return;
+    }
+    if (!form.check_in_date || !form.check_out_date) {
+      toast({ title: "日期錯誤", description: "請選擇入住和退房日期", variant: "destructive" });
+      return;
+    }
+    const checkInDate = parseISO(form.check_in_date);
+    const checkOutDate = parseISO(form.check_out_date);
+    if (!isAfter(checkOutDate, checkInDate)) {
+      toast({ title: "日期錯誤", description: "退房日期必須在入住日期之後", variant: "destructive" });
+      return;
+    }
+    if (roomSelections.length === 0) {
+      toast({ title: "房型錯誤", description: "請至少新增一間房", variant: "destructive" });
+      return;
+    }
+    for (const sel of roomSelections) {
+      if (!sel.room_type_id) {
+        toast({ title: "房型錯誤", description: "請選擇所有房間的房型", variant: "destructive" });
+        return;
+      }
+    }
+    if (!currentAccommodationId) {
+      toast({ title: "系統錯誤", description: "無法取得住宿資訊", variant: "destructive" });
+      return;
+    }
+
+    if (savingRef.current) return;
+    savingRef.current = true;
+
+    // 若訂單房型會同步到奧丁丁，「對應方案」必填（讀 form.package_id 或該房 template.default_package_id）
+    let effectivePackageId: string | null = form.package_id || null;
+    try {
+      const req = await checkOwltingPackageRequirement(
+        currentAccommodationId,
+        roomSelections.map((s) => s.room_type_id),
+      );
+      if (req.required) {
+        const requiredSet = new Set(req.requiredRoomTypeIds);
+        const missing: string[] = [];
+        const derivedPkgIds = new Set<string>();
+        for (const sel of roomSelections) {
+          if (!requiredSet.has(sel.room_type_id)) continue;
+          const tpl = pricingTemplates.find((t) => t.id === sel.template_id);
+          const pkgId = form.package_id || tpl?.default_package_id || null;
+          if (!pkgId) {
+            missing.push(sel.room_type_id);
+          } else {
+            derivedPkgIds.add(pkgId);
+          }
+        }
+        if (req.blocking && missing.length > 0) {
+          const names = Array.from(new Set(missing))
+            .map((id) => roomTypes.find((r) => r.id === id)?.name)
+            .filter(Boolean)
+            .join("、");
+          toast({
+            title: "建議選擇對應方案",
+            description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
+          });
+          // 只提醒不擋
+        }
+
+        // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
+        if (!effectivePackageId && derivedPkgIds.size === 1) {
+          effectivePackageId = Array.from(derivedPkgIds)[0];
+        }
+      }
+    } catch (e) {
+      console.error("checkOwltingPackageRequirement failed", e);
+    }
+
+
+
+    setIsSaving(true);
+
+    // Block creation with a fresh inventory check, not stale UI warnings.
+    let latestInventoryWarnings: InventoryWarning[] = [];
+    try {
+      latestInventoryWarnings = await validateInventoryAvailability();
+      setInventoryWarnings(latestInventoryWarnings);
+    } catch (error) {
+      console.error("查詢庫存失敗:", error);
+      toast({ title: "無法確認庫存", description: "請稍後再試，避免建立超過庫存的訂單", variant: "destructive" });
+      savingRef.current = false;
+      setIsSaving(false);
+      return;
+    }
+
+    if (latestInventoryWarnings.length > 0) {
+      const blockedDates = latestInventoryWarnings.filter(w => w.blocked || w.available <= 0);
+      if (blockedDates.length > 0) {
+        const dateList = blockedDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}`).join("、");
+        toast({
+          title: "無法建立訂單",
+          description: `${dateList} 已關閉庫存，無法建立訂單`,
+          variant: "destructive",
+        });
+        savingRef.current = false;
+      setIsSaving(false);
+        return;
+      }
+      const insufficientDates = latestInventoryWarnings.filter(w => !w.blocked && w.available > 0);
+      if (insufficientDates.length > 0) {
+        const dateList = insufficientDates.map(w => `${format(parseISO(w.date), "MM/dd")}${w.roomName ? ` ${w.roomName}` : ""}(剩 ${w.available}，需 ${w.needed ?? 1})`).join("、");
+        toast({
+          title: "庫存不足",
+          description: `${dateList}，無法建立訂單`,
+          variant: "destructive",
+        });
+        savingRef.current = false;
+      setIsSaving(false);
+        return;
+      }
+    }
+
+    // KOL 互惠額度檢查（軟攔截 + admin 可覆寫）
+    let kolOverrideStatus: KolQuotaStatus | null = null;
+    const kolPermitted = await ensureKolQuotaPermit({
+      accommodationId: currentAccommodationId,
+      orderSource: form.order_source || "manual",
+      checkInDate: form.check_in_date,
+      packageId: effectivePackageId,
+      packageIds: [
+        effectivePackageId,
+        ...roomSelections
+          .filter((sel) => roomTypes.find((rt) => rt.id === sel.room_type_id)?.is_exclusive_package)
+          .map((sel) => sel.room_type_id),
+      ],
+      isAdmin,
+      confirmOverride: (status) =>
+        new Promise<boolean>((resolve) => {
+          setKolQuotaPrompt({
+            yearMonth: status.yearMonth,
+            used: status.used,
+            quota: status.quota!,
+            packageName: status.packageName,
+            resolve,
+          });
+        }),
+      onOverride: (status) => { kolOverrideStatus = status; },
+    });
+    if (!kolPermitted) {
+      savingRef.current = false;
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      // Recompute room prices synchronously to avoid stale 0 values from async useEffect race
+      let pricedRoomSelections = roomSelections.map(sel => ({ ...sel }));
+      const nights = calculateNights();
+      if (nights > 0) {
+        const dates: string[] = [];
+        const start = new Date(form.check_in_date);
+        for (let i = 0; i < nights; i++) {
+          const d = new Date(start);
+          d.setDate(start.getDate() + i);
+          dates.push(format(d, "yyyy-MM-dd"));
+        }
+
+        // 確保 pricingTemplates 已載入（避免使用者太快按存檔時模板還沒 fetch 完）
+        const templatesById = new Map(pricingTemplates.map(t => [t.id, t] as const));
+        const missingTemplateIds = Array.from(new Set(
+          pricedRoomSelections.map(s => s.template_id).filter((id): id is string => !!id && !templatesById.has(id))
+        ));
+        if (missingTemplateIds.length > 0) {
+          const { data: fetchedTemplates } = await supabase
+            .from('pricing_templates')
+            .select('id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, extra_dates, excluded_dates, valid_from, valid_until')
+            .in('id', missingTemplateIds);
+          (fetchedTemplates || []).forEach((t: any) => templatesById.set(t.id, t));
+        }
+
+        for (const sel of pricedRoomSelections) {
+          const template = sel.template_id ? templatesById.get(sel.template_id) : null;
+          const priceMap = await resolveTemplatePricesForDates({
+            roomTypeId: sel.room_type_id,
+            template: template ?? null,
+            dates,
+            publicHolidays,
+          });
+          let perRoom = 0;
+          for (const dateStr of dates) {
+            perRoom += priceMap[dateStr] ?? 0;
+          }
+          const recomputed = perRoom * sel.quantity;
+          // 重算 > 0 一律覆寫；重算 = 0 時保留原本已顯示的 roomPrice，避免價格被清掉
+          if (recomputed > 0) {
+            sel.roomPrice = recomputed;
+          }
+          // sel.roomPrice 已是最新值（原本 state + 本次重算），後續用它計算 totals 與寫入 order_rooms
+        }
+      }
+      const totals = calculateTotalsForSelections(pricedRoomSelections);
+      // 不要呼叫 setRoomSelections(pricedRoomSelections)，因為這會觸發 useEffect (line ~398)
+      // 直接 mutate 狀態中的 sel.roomPrice，導致 order_rooms insert 時讀到被覆寫的值而與
+      // orders.total_price 不一致。此處只更新顯示用的 roomPrice。
+      setRoomPrice(totals.roomTotal);
+
+      // 防呆：若房費總額為 0，提醒使用者（通常是該房型在該日期沒有設定專案/庫存價）
+      if (totals.roomTotal <= 0) {
+        const missing = pricedRoomSelections
+          .map(sel => roomTypes.find(r => r.id === sel.room_type_id)?.name)
+          .filter(Boolean)
+          .join("、");
+        const proceed = window.confirm(
+          `偵測到房費為 NT$ 0（${missing || "所選房型"}在該日期沒有可用價格）。\n\n` +
+          `請先到「房價管理」為該房型設定專案價/庫存價，或在訂單建立後到訂單詳情手動修改金額。\n\n` +
+          `仍要以 NT$ 0 建立訂單嗎？`
+        );
+        if (!proceed) {
+          savingRef.current = false;
+      setIsSaving(false);
+          return;
+        }
+      }
+
+      const isBankTransfer = form.balance_payment_method === "bank_transfer";
+
+      // 驗證：訂金欄位只在匯款時有效；金額必須 > 0 且 ≤ 尾款（即 ≤ final/2）
+      let depositAmount = 0;
+      if (isBankTransfer && !form.balance_paid) {
+        const rawDeposit = Number(form.deposit_amount) || 0;
+        if (rawDeposit < 0) {
+          toast({ title: "訂金金額不可為負數", variant: "destructive" });
+          savingRef.current = false;
+      setIsSaving(false);
+          return;
+        }
+        const maxDeposit = totals.final;
+        if (rawDeposit > maxDeposit) {
+          toast({
+            title: "訂金金額不合法",
+            description: `訂金不可超過訂單總額 NT$ ${maxDeposit.toLocaleString()}`,
+            variant: "destructive",
+          });
+          savingRef.current = false;
+      setIsSaving(false);
+          return;
+        }
+        if (form.deposit_paid && rawDeposit <= 0) {
+          toast({ title: "請輸入訂金金額", description: "選擇「已付訂金」時，訂金金額必須大於 0", variant: "destructive" });
+          savingRef.current = false;
+      setIsSaving(false);
+          return;
+        }
+        depositAmount = rawDeposit;
+      }
+      const balanceAmount = totals.final - depositAmount;
+
+      let paymentStatus = "unpaid";
+      let paidAmount = 0;
+      if (form.balance_paid) {
+        // 已付清：訂金/尾款一律視為全付
+        paymentStatus = "paid";
+        paidAmount = totals.final;
+        depositAmount = 0;
+      } else if (isBankTransfer && form.deposit_paid && depositAmount > 0) {
+        paymentStatus = "deposit_paid";
+        paidAmount = depositAmount;
+      }
+
+      const { data: orderNumber, error: orderNumberError } = await supabase.rpc('generate_order_number');
+      if (orderNumberError) throw orderNumberError;
+
+      // Use first room selection as primary room_type_id
+      const primaryRoom = pricedRoomSelections[0];
+
+      const { data: orderData, error } = await supabase.from("orders").insert({
+        accommodation_id: currentAccommodationId,
+        order_number: orderNumber,
+        guest_name: form.guest_name.trim(),
+        guest_phone: form.guest_phone.trim(),
+        guest_email: form.guest_email.trim() || null,
+        guest_gender: form.guest_gender || null,
+        guest_nationality: form.guest_nationality.trim() || null,
+        check_in_date: form.check_in_date,
+        check_out_date: form.check_out_date,
+        room_type_id: primaryRoom.room_type_id,
+        guest_count: form.guest_count,
+        order_status: form.order_status,
+        payment_status: paymentStatus,
+        deposit_payment_method: form.deposit_payment_method || null,
+        balance_payment_method: form.balance_payment_method || null,
+        deposit_amount: depositAmount,
+        // 一般訂房 Booking Deposit 快照：僅在確有訂金時寫入；比例僅在確為比例制時寫入
+        booking_deposit_amount: depositAmount > 0 ? depositAmount : null,
+        booking_deposit_percentage:
+          depositAmount > 0 && depositPct > 0 && depositAmount === Math.round(totals.final * depositPct / 100)
+            ? depositPct
+            : null,
+        paid_amount: paidAmount,
+        notes: (() => {
+          let note = form.notes.trim();
+          const pkgLines: string[] = [];
+          if (bookingMode === 'exclusive') {
+            const firstBd = getPackageBreakdown(roomSelections[0]?.room_type_id);
+            if (firstBd) {
+              const parts = firstBd
+                .map(bd => ({ name: bd.name, count: exclusiveCustomCounts[bd.room_type_id] ?? 0 }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+            } else if (exclusiveDoubleRooms > 0 || exclusiveQuadRooms > 0) {
+              pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${exclusiveDoubleRooms} 間、四人房 ${exclusiveQuadRooms} 間`);
+            }
+          }
+          // 額外加棟（roomSelections[1..]）的包棟配置
+          pricedRoomSelections.slice(1).forEach(sel => {
+            const isExc = !!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package;
+            if (!isExc) return;
+            const bd = getPackageBreakdown(sel.room_type_id);
+            if (bd) {
+              const map = extraExclusiveCustomCounts[sel.id] || {};
+              const parts = bd
+                .map(bdRow => ({ name: bdRow.name, count: map[bdRow.room_type_id] ?? 0 }))
+                .filter(p => p.count > 0);
+              if (parts.length > 0) {
+                pkgLines.push(`【${exclusiveLabel}房間配置】${parts.map(p => `${p.name} ${p.count} 間`).join("、")}`);
+              }
+              return;
+            }
+            const cfg = extraExclusiveConfigs[sel.id];
+            if (cfg && (cfg.double > 0 || cfg.quad > 0)) {
+              pkgLines.push(`【${exclusiveLabel}房間配置】雙人房 ${cfg.double} 間、四人房 ${cfg.quad} 間`);
+            }
+          });
+          if (pkgLines.length > 0) {
+            note = note ? `${pkgLines.join("\n")}\n${note}` : pkgLines.join("\n");
+          }
+          return note || null;
+        })(),
+        total_price: totals.roomTotal + totals.addonTotal,
+        discount_amount: totals.discount,
+        final_price: totals.final,
+        discount_code: appliedDiscount?.code || null,
+        meal_plan: primaryRoom.template_name || null,
+        meal_plan_details: null,
+        custom_addon_details: selectedAddons.length > 0
+          ? selectedAddons.map(a => {
+              const addon = addonSettings.find(ad => ad.id === a.addon_id);
+              const addonNights = Math.max(1, calculateNights());
+              return {
+                addon_id: addon?.id || a.addon_id,
+                addon_type: addon?.addon_type || '',
+                count: a.quantity,
+                price_per_unit: addon?.price_per_unit || 0,
+                pricing_mode: addon?.pricing_mode || 'per_night',
+                total: (addon?.price_per_unit || 0) * a.quantity * addonNightsMultiplier(addon?.pricing_mode, addonNights),
+                unit_label: addon?.unit_label || '',
+              };
+            })
+          : null,
+        confirmed_at: form.order_status === "confirmed" ? new Date().toISOString() : null,
+        order_source: form.order_source || "manual",
+        package_id: effectivePackageId,
+        // v5.7：把「專案」帶到 orders header，讓 validate_order_before_insert 能重算房價。
+        // 多房型時以主房（第一筆）為準，與 room_type_id / room_quantity 同一層級的既有做法一致。
+        pricing_template_id: pricedRoomSelections[0]?.template_id || null,
+        owner_direct: form.order_source === "owner_provided",
+
+        deposit_required_amount: form.security_deposit_amount,
+        deposit_method: form.security_deposit_method,
+        deposit_status: "pending",
+        lock_whole_building: isOlivia ? lockWholeBuilding : false,
+      }).select('id').single();
+
+      if (error) throw error;
+
+      const automaticRoomUnitAssignments = await getAutomaticRoomUnitAssignments(pricedRoomSelections);
+
+      // Insert order_rooms（quantity===1 時套用手動或自動安排；quantity>1 維持單列不指派個別單元）
+      if (orderData?.id && pricedRoomSelections.length > 0) {
+        const orderRooms = pricedRoomSelections.map(sel => {
+          const autoUnit = automaticRoomUnitAssignments.get(sel.id)?.[0] || null;
+          const unitId = sel.quantity === 1 ? (sel.room_unit_id || autoUnit) : null;
+          return {
+            order_id: orderData.id,
+            room_type_id: sel.room_type_id,
+            quantity: sel.quantity,
+            room_price: sel.roomPrice,
+            template_id: sel.template_id || null,
+            template_name: sel.template_name || null,
+            room_unit_id: unitId,
+          };
+        });
+        const { error: roomsError } = await supabase.from("order_rooms").insert(orderRooms);
+        if (roomsError) {
+          await supabase.from("orders").delete().eq("id", orderData.id);
+          throw roomsError;
+        }
+
+        // Final safety sync: the order header must mirror the exact selections saved in order_rooms.
+        const savedRoomTotal = pricedRoomSelections.reduce((sum, sel) => sum + sel.roomPrice, 0);
+        const savedDiscount = Math.max(0, Math.min(totals.discount, savedRoomTotal + totals.addonTotal));
+        const savedFinal = Math.max(0, savedRoomTotal + totals.addonTotal - savedDiscount);
+        const { error: syncError } = await supabase
+          .from("orders")
+          .update({
+            total_price: savedRoomTotal + totals.addonTotal,
+            discount_amount: savedDiscount,
+            final_price: savedFinal,
+            paid_amount: form.balance_paid ? savedFinal : paidAmount,
+          })
+          .eq("id", orderData.id);
+        if (syncError) throw syncError;
+      }
+
+      if (error) throw error;
+
+      // 備品分配（超額時由資料庫驗證擋下）
+      if (orderData?.id && Object.values(amenityAllocations).some((q) => q > 0)) {
+        try {
+          await saveOrderAllocations({
+            orderId: orderData.id,
+            accommodationId: currentAccommodationId!,
+            allocations: amenityAllocations,
+          });
+        } catch (amenityError: any) {
+          toast({ title: "備品分配未儲存", description: amenityError.message, variant: "destructive" });
+        }
+      }
+
+      // KOL Webhook
+
+      if (appliedDiscount && orderData?.id) {
+        try {
+          await supabase.functions.invoke('kol-webhook', { body: { order_id: orderData.id } });
+        } catch { /* ignore */ }
+      }
+
+      // Update or create customer record（統一走 orders 權限的 RPC，不再直接寫 customers 表）
+      const guestName = form.guest_name.trim();
+      const guestPhone = form.guest_phone.trim();
+      const guestEmail = form.guest_email.trim() || null;
+
+      const customerId = await syncCustomerForOrder({
+        accommodationId: currentAccommodationId,
+        name: guestName,
+        phone: guestPhone,
+        email: guestEmail,
+        gender: form.guest_gender || null,
+        nationality: form.guest_nationality.trim() || null,
+        firstOrderDate: form.check_in_date,
+      });
+
+      // Link order to customer
+      if (customerId && orderData?.id) {
+        await supabase
+          .from("orders")
+          .update({ customer_id: customerId })
+          .eq("id", orderData.id);
+      }
+
+      // Log the action
+      if (orderData?.id) {
+        await logAction({
+          actionType: "create",
+          actionCategory: "order",
+          entityType: "order",
+          entityId: orderData.id,
+          entityName: orderNumber,
+          accommodationId: currentAccommodationId,
+          details: { guest_name: form.guest_name, check_in: form.check_in_date, check_out: form.check_out_date }
+        });
+      }
+
+      // 寄送訂房確認 email（非阻塞，失敗不影響訂單建立）
+      const recipientEmail = form.guest_email.trim();
+      if (recipientEmail && orderData?.id) {
+        try {
+          const { data: accInfo } = await supabase
+            .from("accommodation_info")
+            .select("name")
+            .eq("id", currentAccommodationId)
+            .maybeSingle();
+          const roomTypeName = roomTypes.find(r => r.id === primaryRoom.room_type_id)?.name || "";
+          await supabase.functions.invoke("send-resend-email", {
+            body: {
+              templateType: "booking_confirmation",
+              recipientEmail,
+              templateData: {
+                guestName: form.guest_name.trim(),
+                accommodationName: (accInfo as any)?.name || "",
+                checkIn: form.check_in_date,
+                checkOut: form.check_out_date,
+                roomType: roomTypeName,
+                orderNumber,
+                totalPrice: totals.final,
+              },
+            },
+          });
+        } catch (mailErr) {
+          console.warn("[create-order] booking confirmation email failed:", mailErr);
+        }
+      }
+
+      if (kolOverrideStatus && currentAccommodationId) {
+        await logKolQuotaOverride({
+          orderId: orderData.id,
+          orderNumber,
+          accommodationId: currentAccommodationId,
+          status: kolOverrideStatus,
+          context: "create",
+        });
+      }
+
+      toast({
+        title: "新增成功",
+        description: `訂單 ${orderNumber} 已建立`,
+      });
+
+      // 寫入訂單顯示幣別 + orders 幣別/匯率快照（依使用者建立時最後一次切換的輸入模式）
+      if (createDisplayCurrency && secondaryCurrencyConfig) {
+        try {
+          const { setOrderDisplayCurrency } = await import("@/lib/orderDisplayCurrency");
+          await setOrderDisplayCurrency(orderData.id, createDisplayCurrency);
+        } catch (currencyError: any) {
+          console.error("[displayCurrency] failed", currencyError);
+          toast({
+            variant: "destructive",
+            title: "幣別標記寫入失敗",
+            description: `訂單 ${orderNumber} 已建立，但幣別快照未寫入，請至訂單詳情重新選擇幣別。${currencyError?.message ?? ""}`,
+          });
+        }
+      }
+
+
+      onSuccess(orderData.id);
+      onOpenChange(false);
+    } catch (error: any) {
+      console.error("Error creating order:", error);
+      const description = translateOrderError(error);
+      const rawMessage =
+        error?.message || error?.details || error?.hint || String(error ?? "");
+      const rawCode = error?.code ?? null;
+      // 寫入 error_logs，方便後台追查「無法建立訂單，請稍後再試」這類無明確原因的失敗
+      void reportFrontendError({
+        category: "admin_create_order",
+        step: "handleSave",
+        errorMessage: rawMessage || "(no message)",
+        errorCode: rawCode ?? undefined,
+        accommodationId: currentAccommodationId ?? null,
+        context: {
+          order_source: form.order_source,
+          check_in_date: form.check_in_date,
+          check_out_date: form.check_out_date,
+          room_selections: roomSelections.map((s) => ({
+            room_type_id: s.room_type_id,
+            quantity: s.quantity,
+            template_id: s.template_id,
+            room_price: s.roomPrice,
+          })),
+          details: error?.details ?? null,
+          hint: error?.hint ?? null,
+          stack: typeof error?.stack === "string" ? error.stack.slice(0, 1000) : null,
+        },
+      });
+      // 若無法辨識原因，附上原始錯誤代碼／訊息，避免只看到「請稍後再試」
+      const isFallback = description === "無法建立訂單，請稍後再試";
+      toast({
+        title: "新增失敗",
+        description: isFallback && rawMessage
+          ? `${description}（${rawCode ? `${rawCode}: ` : ""}${rawMessage.slice(0, 160)}）`
+          : description,
+        variant: "destructive",
+      });
+
+
+    } finally {
+      savingRef.current = false;
+      setIsSaving(false);
+    }
+  };
+
+  const totals = getTotals();
+
+  const formContent = (
+    <div className="space-y-4 py-4 overflow-visible">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-visible">
+        {/* Name input with autocomplete */}
+        <div className="space-y-2 relative overflow-visible" ref={nameInputRef}>
+          <Label>訂購人姓名 <span className="text-destructive">*</span></Label>
+          <Input
+            value={form.guest_name}
+            onChange={(e) => handleNameChange(e.target.value)}
+            onFocus={() => {
+              if (nameSuggestions.length > 0) setShowNameSuggestions(true);
+            }}
+            placeholder="輸入姓名搜尋客戶"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+          {showNameSuggestions && nameSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              {nameSuggestions.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => selectCustomer(customer)}
+                  className="w-full px-3 py-2.5 text-left hover:bg-accent transition-colors flex items-center gap-3"
+                >
+                  <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{customer.name}</div>
+                    {customer.phone && (
+                      <div className="text-xs text-muted-foreground truncate">{customer.phone}</div>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Phone input with autocomplete */}
+        <div className="space-y-2 relative overflow-visible" ref={phoneInputRef}>
+          <Label>聯絡電話 <span className="text-destructive">*</span></Label>
+          <Input
+            value={form.guest_phone}
+            onChange={(e) => handlePhoneChange(e.target.value)}
+            onFocus={() => {
+              if (phoneSuggestions.length > 0) setShowPhoneSuggestions(true);
+            }}
+            placeholder="輸入電話搜尋客戶"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+            type="tel"
+          />
+          {showPhoneSuggestions && phoneSuggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover border border-border rounded-md shadow-lg overflow-hidden">
+              {phoneSuggestions.map((customer) => (
+                <button
+                  key={customer.id}
+                  type="button"
+                  onClick={() => selectCustomer(customer)}
+                  className="w-full px-3 py-2.5 text-left hover:bg-accent transition-colors flex items-center gap-3"
+                >
+                  <Phone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">{customer.phone}</div>
+                    <div className="text-xs text-muted-foreground truncate">{customer.name}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>電子郵件</Label>
+        <Input
+          value={form.guest_email}
+          onChange={(e) => setForm({...form, guest_email: e.target.value})}
+          placeholder="輸入電子郵件"
+          className="h-12 text-base sm:h-10 sm:text-sm"
+          type="email"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>性別</Label>
+          <Select
+            value={form.guest_gender}
+            onValueChange={(value) => setForm({...form, guest_gender: value})}
+          >
+            <SelectTrigger className="h-12 sm:h-10">
+              <SelectValue placeholder="請選擇" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="male">男</SelectItem>
+              <SelectItem value="female">女</SelectItem>
+              <SelectItem value="other">其他</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>國籍</Label>
+          <Input
+            value={form.guest_nationality}
+            onChange={(e) => setForm({...form, guest_nationality: e.target.value})}
+            placeholder="例如：台灣、日本"
+            className="h-12 text-base sm:h-10 sm:text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>入住日期 <span className="text-destructive">*</span></Label>
+          <Popover open={checkInOpen} onOpenChange={(open) => {
+            setCheckInOpen(open);
+            if (open) {
+              setTimeout(() => {
+                document.getElementById("create-order-check-in-trigger")?.scrollIntoView({ block: "center", behavior: "smooth" });
+              }, 20);
+            }
+          }}>
+            <PopoverTrigger asChild>
+              <Button
+                id="create-order-check-in-trigger"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-12 sm:h-10",
+                  form.check_in_date 
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                    : "bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.check_in_date ? format(parseISO(form.check_in_date), "yyyy/MM/dd") : "選擇日期"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="start" side="bottom" sideOffset={8} collisionPadding={12}>
+              <Calendar
+                mode="single"
+                selected={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                defaultMonth={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                onSelect={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    const newCheckIn = format(date, "yyyy-MM-dd");
+                    if (form.check_out_date && !isAfter(parseISO(form.check_out_date), date)) {
+                      setForm({...form, check_in_date: newCheckIn, check_out_date: ""});
+                    } else {
+                      setForm({...form, check_in_date: newCheckIn});
+                    }
+                    setCheckInOpen(false);
+                    setTimeout(() => setCheckOutOpen(true), 150);
+                  }
+                }}
+                disabled={undefined}
+                weekStartsOn={0}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <Label>退房日期 <span className="text-destructive">*</span></Label>
+          <Popover open={checkOutOpen} onOpenChange={(open) => {
+            setCheckOutOpen(open);
+            if (open) {
+              setTimeout(() => {
+                document.getElementById("create-order-check-out-trigger")?.scrollIntoView({ block: "center", behavior: "smooth" });
+              }, 20);
+            }
+          }}>
+            <PopoverTrigger asChild>
+              <Button
+                id="create-order-check-out-trigger"
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-12 sm:h-10",
+                  form.check_out_date 
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                    : "bg-background text-foreground hover:bg-primary hover:text-primary-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {form.check_out_date ? format(parseISO(form.check_out_date), "yyyy/MM/dd") : "選擇日期"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto max-w-[calc(100vw-2rem)] p-0" align="start" side="bottom" sideOffset={8} collisionPadding={12}>
+              <Calendar
+                mode="single"
+                selected={form.check_out_date ? parseISO(form.check_out_date) : undefined}
+                defaultMonth={form.check_in_date ? parseISO(form.check_in_date) : undefined}
+                onSelect={(date) => {
+                  if (date && !isNaN(date.getTime())) {
+                    if (form.check_in_date && isAfter(date, parseISO(form.check_in_date))) {
+                      setForm({...form, check_out_date: format(date, "yyyy-MM-dd")});
+                      setCheckOutOpen(false);
+                    } else {
+                      toast({ title: "日期錯誤", description: "退房日期必須在入住日期之後", variant: "destructive" });
+                    }
+                  }
+                }}
+                disabled={(date) => {
+                  if (!form.check_in_date) return true;
+                  return !isAfter(date, parseISO(form.check_in_date));
+                }}
+                weekStartsOn={0}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Booking Mode Selection */}
+      <div className="space-y-3 pt-2">
+        <Label className="text-base font-semibold">訂房類型</Label>
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            variant={bookingMode === "exclusive" ? "default" : "outline"}
+            className="h-12"
+            onClick={() => {
+              if (bookingMode === "exclusive") return;
+              setBookingMode("exclusive");
+              setRoomSelections([]);
+              // Auto-add exclusive package room
+              const exclusiveTypes = roomTypes.filter(r => r.is_exclusive_package);
+              if (exclusiveTypes.length > 0) {
+                const rt = exclusiveTypes[0];
+                const templates = getTemplatesForRoomType(rt.id);
+                setRoomSelections([{
+                  id: crypto.randomUUID(),
+                  room_type_id: rt.id,
+                  template_id: templates[0]?.id || "",
+                  template_name: templates[0]?.template_name || "",
+                  quantity: 1,
+                  roomPrice: 0,
+                  filteredTemplates: templates,
+                }]);
+              }
+            }}
+          >
+            {exclusiveLabel}
+          </Button>
+          <Button
+            type="button"
+            variant={bookingMode === "normal" ? "default" : "outline"}
+            className="h-12"
+            onClick={() => {
+              if (bookingMode === "normal") return;
+              setBookingMode("normal");
+              setRoomSelections([]);
+            }}
+          >
+            {`非${exclusiveLabel}`}
+          </Button>
+        </div>
+
+        {/* Exclusive mode: show package selector */}
+        {bookingMode === "exclusive" && (
+          <div className="space-y-3">
+            {roomTypes.filter(r => r.is_exclusive_package).length === 0 ? (
+              <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+                目前沒有{exclusiveLabel}房型，請先至房型管理新增
+              </div>
+            ) : (
+              <div className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{exclusiveLabel}方案 <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={roomSelections[0]?.room_type_id || ""}
+                      onValueChange={(value) => {
+                        const prevRoomTypeId = roomSelections[0]?.room_type_id || "";
+                        const templates = getTemplatesForRoomType(value);
+                        setRoomSelections([{
+                          id: roomSelections[0]?.id || crypto.randomUUID(),
+                          room_type_id: value,
+                          template_id: templates[0]?.id || "",
+                          template_name: templates[0]?.template_name || "",
+                          quantity: 1,
+                          roomPrice: 0,
+                          filteredTemplates: templates,
+                        }]);
+                        // 只在「換成新房型」當下帶入該房型 package_contents 的預設間數
+                        if (value !== prevRoomTypeId) {
+                          void ensurePackageBreakdown(value).then((items) => {
+                            setExclusiveCustomCounts(defaultCountsFromBreakdown(items));
+                          });
+                        }
+                      }}
+
+                    >
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue placeholder={`選擇${exclusiveLabel}方案`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.filter(r => r.is_exclusive_package).map((rt) => (
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.name} (最多{rt.capacity}人)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">專案</Label>
+                    {(roomSelections[0]?.filteredTemplates?.length || 0) > 0 ? (
+                      <Select
+                        value={roomSelections[0]?.template_id || ""}
+                        onValueChange={(value) => {
+                          const template = roomSelections[0]?.filteredTemplates.find(t => t.id === value);
+                          // 同一組訂單共用同一個專案：同步套用到所有房間
+                          setRoomSelections(prev => prev.map((s, i) => {
+                            if (i === 0) {
+                              return { ...s, template_id: value, template_name: template?.template_name || "" };
+                            }
+                            // 此房型有同名/同 id 方案則同步；否則自動帶入該房型第一個預設方案
+                            const match = s.filteredTemplates.find(t => t.id === value)
+                              || (template ? s.filteredTemplates.find(t => t.template_name === template.template_name) : undefined)
+                              || s.filteredTemplates[0];
+                            if (!match) return s;
+                            return { ...s, template_id: match.id, template_name: match.template_name };
+                          }));
+                        }}
+
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="選擇專案" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {roomSelections[0]?.filteredTemplates.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              {template.project_name || template.template_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <p className="text-xs text-muted-foreground py-2">無對應專案</p>
+                    )}
+                  </div>
+                </div>
+                {(() => {
+                  const customBreakdown = getPackageBreakdown(roomSelections[0]?.room_type_id);
+                  return customBreakdown ? (
+                  <>
+                    <div className={`grid gap-3 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                      {customBreakdown.map((bd) => {
+                        const cur = exclusiveCustomCounts[bd.room_type_id] ?? 0;
+                        const max = Math.max(bd.count, 0);
+                        return (
+                          <div key={bd.room_type_id} className="space-y-1.5">
+                            <Label className="text-xs">{bd.name} 間數</Label>
+                            <Select
+                              value={String(cur)}
+                              onValueChange={(v) =>
+                                setExclusiveCustomCounts(prev => ({ ...prev, [bd.room_type_id]: Number(v) }))
+                              }
+                            >
+                              <SelectTrigger className="h-10 text-sm"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Array.from({ length: max + 1 }, (_, i) => i).map(n => (
+                                  <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {exclusiveLabel}已鎖定 {customBreakdown.reduce((s, b) => s + b.count, 0)} 間房（
+                      {customBreakdown.map(bd => `${bd.name} ${exclusiveCustomCounts[bd.room_type_id] ?? 0} 間`).join("、")}
+                      ）
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">雙人房間數</Label>
+                        <Select value={String(exclusiveDoubleRooms)} onValueChange={(v) => setExclusiveDoubleRooms(Number(v))}>
+                          <SelectTrigger className="h-10 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
+                              <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">四人房間數</Label>
+                        <Select value={String(exclusiveQuadRooms)} onValueChange={(v) => setExclusiveQuadRooms(Number(v))}>
+                          <SelectTrigger className="h-10 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
+                              <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {exclusiveLabel}已鎖定 {MAX_TOTAL_ROOMS} 間房（雙人房 {exclusiveDoubleRooms} 間、四人房 {exclusiveQuadRooms} 間）
+                    </div>
+                  </>
+                );
+                })()}
+                {/* 棟號選擇（主包棟） */}
+                {(() => {
+                  const primary = roomSelections[0];
+                  if (!primary) return null;
+                  const unitsForType = allRoomUnits.filter(u => u.room_type_id === primary.room_type_id);
+                  if (unitsForType.length === 0) return null;
+                  const usedByOtherRows = new Set(
+                    roomSelections.filter(o => o.id !== primary.id && o.room_unit_id).map(o => o.room_unit_id as string)
+                  );
+                  return (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">{exclusiveLabel}棟號（可選）</Label>
+                      <Select
+                        value={primary.room_unit_id || "auto"}
+                        onValueChange={(v) => updateRoomSelection(primary.id, { room_unit_id: v === "auto" ? null : v })}
+                      >
+                        <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="自動安排" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自動安排</SelectItem>
+                          {unitsForType.map(u => {
+                            const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                            const label = u.nickname || u.unit_number || `棟號 ${u.display_order}`;
+                            return (
+                              <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                {label}{occupied ? "（已佔用）" : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
+                {roomSelections[0]?.roomPrice > 0 && (
+                  <div className="text-xs text-right text-muted-foreground">
+                    小計：NT$ {roomSelections[0].roomPrice.toLocaleString()}（{exclusiveLabel}）
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Extra rooms in exclusive mode: 可加散客單間或另一棟包棟 */}
+            {roomSelections.length > 1 && (
+              <div className="space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">額外加房</div>
+                {roomSelections.slice(1).map((sel, idx) => {
+                  const rt = roomTypes.find(r => r.id === sel.room_type_id);
+                  const isExclusive = !!rt?.is_exclusive_package;
+                  return (
+                    <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">{isExclusive ? exclusiveLabel : "散客房"} #{idx + 1}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeRoomSelection(sel.id)} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                          <Select value={sel.room_type_id} onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}>
+                            <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇房型" /></SelectTrigger>
+                            <SelectContent>
+                              {roomTypes.map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.is_exclusive_package ? `【${exclusiveLabel}】` : ""}{r.name} (最多{r.capacity}人)
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">專案</Label>
+                          {(() => {
+                            if (sel.filteredTemplates.length === 0) {
+                              return <p className="text-xs text-muted-foreground py-2">無對應專案</p>;
+                            }
+                            return (
+                              <Select
+                                value={sel.template_id || ""}
+                                onValueChange={(value) => {
+                                  const tpl = sel.filteredTemplates.find(t => t.id === value);
+                                  updateRoomSelection(sel.id, { template_id: value, template_name: tpl?.template_name || "" });
+                                }}
+                              >
+                                <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇專案" /></SelectTrigger>
+                                <SelectContent>
+                                  {sel.filteredTemplates.map((t) => (
+                                    <SelectItem key={t.id} value={t.id}>{t.project_name || t.template_name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            );
+                          })()}
+                        </div>
+
+
+
+                        {!(isYunxiu && !isExclusive) && (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">間數</Label>
+                            <div className="flex items-center gap-1.5">
+                              <Button type="button" variant="outline" size="sm" className="h-10 w-10 p-0" onClick={() => changeRoomQuantity(sel.id, -1)} disabled={isExclusive || sel.quantity <= 1}>
+                                <Minus className="h-3.5 w-3.5" />
+                              </Button>
+                              <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                              <Button type="button" variant="outline" size="sm" className="h-10 w-10 p-0" onClick={() => changeRoomQuantity(sel.id, 1)} disabled={isExclusive}>
+                                <Plus className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {/* 棟號/房號 選擇（額外加房） */}
+                      {(() => {
+                        const unitsForType = allRoomUnits.filter(u => u.room_type_id === sel.room_type_id);
+                        if (unitsForType.length === 0) return null;
+                        const usedByOtherRows = new Set(
+                          roomSelections.filter(o => o.id !== sel.id && o.room_unit_id).map(o => o.room_unit_id as string)
+                        );
+                        const disableSelect = !isExclusive && sel.quantity !== 1;
+                        const labelText = isExclusive ? `${exclusiveLabel}棟號（可選）` : "房號（可選）";
+                        return (
+                          <div className="space-y-1.5">
+                            <Label className="text-xs">{labelText}</Label>
+                            <Select
+                              value={sel.room_unit_id || "auto"}
+                              onValueChange={(v) => updateRoomSelection(sel.id, { room_unit_id: v === "auto" ? null : v })}
+                              disabled={disableSelect}
+                            >
+                              <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="自動安排" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">自動安排</SelectItem>
+                                {unitsForType.map(u => {
+                                  const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                                  const label = u.nickname || u.unit_number || (isExclusive ? `棟號 ${u.display_order}` : `房號 ${u.display_order}`);
+                                  return (
+                                    <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                      {label}{occupied ? "（已佔用）" : ""}
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                            {disableSelect && (
+                              <p className="text-[11px] text-muted-foreground">多間時不指定房號，由系統分配</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      {sel.roomPrice > 0 && (
+                        <div className="text-xs text-right text-muted-foreground">小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)</div>
+                      )}
+                      {isExclusive && (
+                        <div className="p-3 rounded-lg border border-dashed bg-background/50 space-y-2">
+                          <div className="text-xs font-medium">{exclusiveLabel}房間配置</div>
+                          {(() => {
+                            const customBreakdown = getPackageBreakdown(sel.room_type_id);
+                            return customBreakdown ? (
+                            <>
+                              <div className={`grid gap-2 ${customBreakdown.length >= 3 ? "grid-cols-2 md:grid-cols-3" : "grid-cols-2"}`}>
+                                {customBreakdown.map(bd => {
+                                  const cur = extraExclusiveCustomCounts[sel.id]?.[bd.room_type_id] ?? 0;
+                                  return (
+                                    <div key={bd.room_type_id} className="space-y-1">
+                                      <Label className="text-xs">{bd.name} 間數</Label>
+                                      <Select
+                                        value={String(cur)}
+                                        onValueChange={(v) => setExtraExclusiveCustomCount(sel.id, bd.room_type_id, Number(v))}
+                                      >
+                                        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          {Array.from({ length: bd.count + 1 }, (_, i) => i).map(n => (
+                                            <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                將以備註形式儲存：
+                                {customBreakdown.map(bd => `${bd.name} ${extraExclusiveCustomCounts[sel.id]?.[bd.room_type_id] ?? 0} 間`).join("、")}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">雙人房間數</Label>
+                                  <Select
+                                    value={String(extraExclusiveConfigs[sel.id]?.double ?? 0)}
+                                    onValueChange={(v) => setExtraExclusiveConfig(sel.id, { double: Number(v) })}
+                                  >
+                                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: MAX_DOUBLE_ROOMS + 1 }, (_, i) => i).map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">四人房間數</Label>
+                                  <Select
+                                    value={String(extraExclusiveConfigs[sel.id]?.quad ?? 0)}
+                                    onValueChange={(v) => setExtraExclusiveConfig(sel.id, { quad: Number(v) })}
+                                  >
+                                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {Array.from({ length: MAX_QUAD_ROOMS + 1 }, (_, i) => i).map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n} 間</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                              <p className="text-xs text-muted-foreground">將以備註形式儲存：雙人房 {extraExclusiveConfigs[sel.id]?.double ?? 0} 間、四人房 {extraExclusiveConfigs[sel.id]?.quad ?? 0} 間</p>
+                            </>
+                          );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add buttons in exclusive mode */}
+            {roomSelections.length > 0 && !isSensan && !isHakuna && (
+              <div className="flex gap-2 justify-end">
+                {(() => {
+                  const exclusiveTotal = roomTypes.filter(r => r.is_exclusive_package).length;
+                  const exclusiveAdded = roomSelections.filter(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package).length;
+                  const showAddVilla = exclusiveTotal > 1 && exclusiveAdded < exclusiveTotal;
+                  const hasNormalRoom = roomTypes.some(r => !r.is_exclusive_package);
+                  return (
+                    <>
+                      {hasNormalRoom && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(false)} className="h-8 gap-1">
+                          <Plus className="h-3.5 w-3.5" />新增散客房
+                        </Button>
+                      )}
+                      {showAddVilla && (
+                        <Button type="button" variant="outline" size="sm" onClick={() => addRoomSelection(true)} className="h-8 gap-1">
+                          <Plus className="h-3.5 w-3.5" />再加一棟{exclusiveLabel}
+                        </Button>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Normal mode: multi-room selection */}
+        {bookingMode === "normal" && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Badge variant="outline" className="text-xs">
+                共 {totalRoomCount} 間
+              </Badge>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addRoomSelection(false)}
+                  disabled={roomTypes.filter(r => !r.is_exclusive_package).length === 0}
+                  className="h-8 gap-1"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  新增散客房
+                </Button>
+              </div>
+            </div>
+
+            {roomSelections.length === 0 && (
+              <div className="p-4 border rounded-lg bg-muted/30 text-center text-sm text-muted-foreground">
+                請點擊「新增散客房」加入房型
+              </div>
+            )}
+
+            {roomSelections.map((sel, index) => (
+              <div key={sel.id} className="p-3 border rounded-lg space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">房間 {index + 1}</span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeRoomSelection(sel.id)}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">房型 <span className="text-destructive">*</span></Label>
+                    <Select
+                      value={sel.room_type_id}
+                      onValueChange={(value) => updateRoomSelection(sel.id, { room_type_id: value })}
+                    >
+                      <SelectTrigger className="h-10 text-sm">
+                        <SelectValue placeholder="選擇房型" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.filter(rt => !rt.is_exclusive_package).map((rt) => (
+                          <SelectItem key={rt.id} value={rt.id}>
+                            {rt.name} (最多{rt.capacity}人)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">專案</Label>
+                    {(() => {
+                      if (sel.filteredTemplates.length === 0) {
+                        return <p className="text-xs text-muted-foreground py-2">無對應專案</p>;
+                      }
+                      return (
+                        <Select
+                          value={sel.template_id || ""}
+                          onValueChange={(value) => {
+                            const tpl = sel.filteredTemplates.find(t => t.id === value);
+                            updateRoomSelection(sel.id, { template_id: value, template_name: tpl?.template_name || "" });
+                          }}
+                        >
+                          <SelectTrigger className="h-10 text-sm"><SelectValue placeholder="選擇專案" /></SelectTrigger>
+                          <SelectContent>
+                            {sel.filteredTemplates.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>{t.project_name || t.template_name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
+                  </div>
+
+
+                  {!(isYunxiu && !roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package) && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">間數</Label>
+                      <div className="flex items-center gap-1.5">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => changeRoomQuantity(sel.id, -1)}
+                          disabled={sel.quantity <= 1}
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </Button>
+                        <span className="w-8 text-center text-sm font-medium">{sel.quantity}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-10 p-0"
+                          onClick={() => changeRoomQuantity(sel.id, 1)}
+                          disabled={!!roomTypes.find(r => r.id === sel.room_type_id)?.is_exclusive_package}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 房號選擇（散客房；該房型有配置房號時顯示） */}
+                {(() => {
+                  const rt = roomTypes.find(r => r.id === sel.room_type_id);
+                  if (!rt || rt.is_exclusive_package) return null;
+                  const unitsForType = allRoomUnits.filter(u => u.room_type_id === sel.room_type_id);
+                  if (unitsForType.length === 0) return null;
+                  const usedByOtherRows = new Set(
+                    roomSelections
+                      .filter(o => o.id !== sel.id && o.room_unit_id)
+                      .map(o => o.room_unit_id as string)
+                  );
+                  const disableSelect = sel.quantity !== 1;
+                  return (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">房號（可選）</Label>
+                      <Select
+                        value={sel.room_unit_id || "auto"}
+                        onValueChange={(v) => updateRoomSelection(sel.id, { room_unit_id: v === "auto" ? null : v })}
+                        disabled={disableSelect}
+                      >
+                        <SelectTrigger className="h-10 text-sm">
+                          <SelectValue placeholder="自動安排" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="auto">自動安排</SelectItem>
+                          {unitsForType.map((u) => {
+                            const occupied = occupiedUnitIdsForDates.has(u.id) || usedByOtherRows.has(u.id);
+                            const label = u.nickname || u.unit_number || `房號 ${u.display_order}`;
+                            return (
+                              <SelectItem key={u.id} value={u.id} disabled={occupied}>
+                                {label}{occupied ? "（已佔用）" : ""}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {disableSelect && (
+                        <p className="text-[11px] text-muted-foreground">多間時不指定房號，由系統分配</p>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {sel.roomPrice > 0 && (
+                  <div className="text-xs text-right text-muted-foreground">
+                    小計：NT$ {sel.roomPrice.toLocaleString()} ({sel.quantity} 間)
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* Guest count */}
+        {(() => {
+          const maxGuestCount = Math.max(
+            1,
+            roomSelections.reduce((sum, sel) => {
+              const rt = roomTypes.find(r => r.id === sel.room_type_id);
+              const cap = rt?.capacity || 0;
+              const qty = sel.quantity || 0;
+              return sum + cap * qty;
+            }, 0)
+          );
+          const overCap = roomSelections.length > 0 && form.guest_count > maxGuestCount;
+          return (
+            <div className="p-3 border rounded-lg bg-muted/30">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">
+                    總入住人數
+                    {roomSelections.length > 0 && (
+                      <span className="ml-2 text-muted-foreground font-normal">
+                        （上限 {maxGuestCount} 人）
+                      </span>
+                    )}
+                  </Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={form.guest_count}
+                    onChange={(e) => {
+                      const raw = parseInt(e.target.value) || 1;
+                      setForm({ ...form, guest_count: raw });
+                    }}
+                    className="h-10 text-sm"
+                    inputMode="numeric"
+                  />
+                  {overCap && (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                      提醒：已超過所選房型合計上限 {maxGuestCount} 人，如確認為包棟加人可直接建立。
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Addons */}
+        {addonSettings.length > 0 && (
+          <div className="p-3 border rounded-lg bg-muted/30 space-y-2">
+            <Label className="text-sm">加購方案</Label>
+            {addonSettings.map((addon) => {
+              const selectedAddon = selectedAddons.find(a => a.addon_id === addon.id);
+              const quantity = selectedAddon?.quantity || 0;
+              
+              const locked = addon.is_locked === true && addon.auto_include === true;
+              const minQty = Math.max(1, addon.min_quantity ?? 0);
+
+              return (
+                <div key={addon.id} className="p-2 bg-background rounded-md space-y-1">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-sm">{addon.addon_type}</div>
+                      <div className="text-sm text-primary">
+                        NT$ {addon.price_per_unit.toLocaleString()} / {addon.unit_label} {addonPricingSuffix(addon.pricing_mode)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 ml-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => {
+                          const nextQty = addonStepDown(quantity, addon.min_quantity);
+                          if (locked && nextQty < minQty) return;
+                          const newAddons = nextQty <= 0
+                            ? selectedAddons.filter(a => a.addon_id !== addon.id)
+                            : selectedAddons.map(a =>
+                                a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
+                              );
+                          setSelectedAddons(newAddons);
+                        }}
+                        disabled={quantity === 0 || (locked && quantity <= minQty)}
+                      >
+                        -
+                      </Button>
+                      <span className="w-6 text-center text-sm font-medium">{quantity}</span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => {
+                          if (quantity < addon.max_quantity) {
+                            const nextQty = addonStepUp(quantity, addon.min_quantity, addon.max_quantity);
+                            const existingIndex = selectedAddons.findIndex(a => a.addon_id === addon.id);
+                            const newAddons = existingIndex >= 0
+                              ? selectedAddons.map(a =>
+                                  a.addon_id === addon.id ? { ...a, quantity: nextQty } : a
+                                )
+                              : [...selectedAddons, { addon_id: addon.id, quantity: nextQty }];
+                            setSelectedAddons(newAddons);
+                          }
+                        }}
+                        disabled={quantity >= addon.max_quantity}
+                      >
+                        +
+                      </Button>
+                    </div>
+                  </div>
+                  {locked && (
+                    <p className="text-[11px] text-muted-foreground">
+                      此為必要加購項目，已自動帶入，數量不可低於 {minQty}（僅新訂單適用）。
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {roomPrice > 0 && (
+          <div className="text-sm text-right font-medium">
+            房費合計：NT$ {roomPrice.toLocaleString()}
+          </div>
+        )}
+      </div>
+
+      {/* 備品分配 */}
+      {currentAccommodationId && form.check_in_date && form.check_out_date && (
+        <div className="pt-4 border-t">
+          <AmenityAllocationPicker
+            accommodationId={currentAccommodationId}
+            checkIn={form.check_in_date}
+            checkOut={form.check_out_date}
+            value={amenityAllocations}
+            onChange={setAmenityAllocations}
+          />
+        </div>
+      )}
+
+
+      {/* Discount Code Section */}
+      <div className="space-y-2 pt-4 border-t">
+        <Label className="flex items-center gap-2">
+          <Tag className="h-4 w-4" />
+          折扣碼
+        </Label>
+        
+        {appliedDiscount ? (
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+            <Badge variant="secondary" className="text-sm">
+              {appliedDiscount.code}
+            </Badge>
+            <span className="text-sm text-muted-foreground">
+              {appliedDiscount.type === "percentage"
+                ? `${appliedDiscount.value}% 折扣`
+                : `NT$ ${appliedDiscount.value.toLocaleString()} 折扣`}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleRemoveDiscount}
+              className="ml-auto h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              value={discountCode}
+              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+              placeholder="輸入折扣碼"
+              className="flex-1 h-12 text-base sm:h-10 sm:text-sm"
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleApplyDiscount}
+              disabled={isValidatingCode || !discountCode.trim()}
+              className="h-12 sm:h-10 px-4"
+            >
+              {isValidatingCode ? <Loader2 className="h-4 w-4 animate-spin" /> : "套用"}
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-2 pt-2">
+          <Label htmlFor="create-discount-amount">折扣金額</Label>
+          <DualCurrencyInput
+            id="create-discount-amount"
+            config={secondaryCurrencyConfig}
+            rawMode={!!secondaryCurrencyConfig}
+            storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
+            inputClassName="h-12 text-base sm:h-10 sm:text-sm"
+            placeholder="0"
+            value={manualDiscountStr !== null ? (parseInt(manualDiscountStr, 10) || 0) : (totals.discount > 0 ? totals.discount : 0)}
+            onChange={(v) => {
+              const s = v > 0 ? String(v) : "";
+              manualDiscountInputRef.current = s;
+              setManualDiscountStr(s);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">
+            {appliedDiscount ? "可手動覆寫折扣碼計算的金額" : "可直接輸入折扣金額（不需折扣碼）"}
+          </p>
+        </div>
+      </div>
+
+      {/* Price Summary */}
+      {(() => {
+        return (
+          <div className="space-y-2 pt-4 border-t">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">住宿天數</span>
+              <span className="flex items-center gap-2">
+                {isCheckingInventory && <Loader2 className="h-3 w-3 animate-spin" />}
+                {calculateNights()} 晚
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">房價小計</span>
+              <span>NT$ {totals.roomTotal.toLocaleString()}</span>
+            </div>
+            {totals.discount > 0 && (
+              <div className="flex justify-between text-sm text-primary">
+                <span>折扣</span>
+                <span>- NT$ {totals.discount.toLocaleString()}</span>
+              </div>
+            )}
+            {totals.addonTotal > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">加購小計</span>
+                <span>NT$ {totals.addonTotal.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+              <span>總金額</span>
+              <span className="text-primary">NT$ {totals.final.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={cn("text-muted-foreground", form.balance_paid && "line-through")}>
+                應付金額
+              </span>
+              <span className={cn(form.balance_paid && "line-through text-muted-foreground")}>
+                NT$ {totals.final.toLocaleString()}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Inventory Warnings */}
+      {inventoryWarnings.length > 0 && (
+        <Alert variant="destructive" className="border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <div className="font-medium mb-1">庫存警告</div>
+            <ul className="text-sm space-y-1">
+              {inventoryWarnings.map((warning, index) => (
+                <li key={index}>
+                  {warning.closed ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：當天已被鎖房（庫存未開放）
+                    </span>
+                  ) : warning.blocked ? (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：已被{warning.blockedBy ? `「${warning.blockedBy}」` : "其他訂單"}佔用
+                    </span>
+                  ) : (
+                    <span>
+                      {format(parseISO(warning.date), "MM/dd")}{warning.roomName ? ` ${warning.roomName}` : ""}：剩餘 <strong>{warning.available}</strong> 間，需 {warning.needed ?? 1} 間
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+            <div className="text-xs mt-2 text-amber-700 dark:text-amber-300">
+              無法建立超過庫存的訂單
+            </div>
+          </AlertDescription>
+
+        </Alert>
+      )}
+
+      {packageChannel.showPackageField && accommodationPackages.length > 0 && (
+        <div className="space-y-2">
+          <Label>
+            對應方案
+            {packageChannel.isRequired ? (
+              <span className="text-destructive"> *</span>
+            ) : (
+              <span className="text-muted-foreground text-xs">（選填）</span>
+            )}
+          </Label>
+          <Select
+            value={form.package_id || "none"}
+            onValueChange={(value) => setForm({ ...form, package_id: value === "none" ? "" : value })}
+          >
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue
+                placeholder={
+                  packageChannel.isRequired
+                    ? "請選擇對應包區/包棟方案"
+                    : "（選填）對應實際包區/包棟方案"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">（未指定，留空）</SelectItem>
+              {accommodationPackages.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.name}（{p.guest_count} 人）
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
+        </div>
+      )}
+
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>訂單來源</Label>
+          <Select value={form.order_source} onValueChange={(value) => setForm({...form, order_source: value})}>
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="現場訂房（預設）" />
+            </SelectTrigger>
+            <SelectContent>
+              {orderSourceOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label>訂單狀態</Label>
+          <Select value={form.order_status} onValueChange={(value) => setForm({...form, order_status: value})}>
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">待確認</SelectItem>
+              <SelectItem value="confirmed">已確認</SelectItem>
+              <SelectItem value="cancelled">已取消</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {isOlivia && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm font-medium">標記為包棟</Label>
+            <p className="text-xs text-muted-foreground">
+              勾選後，入住期間內整棟其他房型自動鎖定（不可預訂）。
+            </p>
+          </div>
+          <Switch
+            checked={lockWholeBuilding}
+            onCheckedChange={setLockWholeBuilding}
+          />
+        </div>
+      )}
+
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>付款方式</Label>
+          <Select
+            value={form.balance_payment_method}
+            onValueChange={(value) => setForm({
+              ...form,
+              balance_payment_method: value,
+              deposit_payment_method: value,
+              // 切換非匯款時，清掉訂金狀態
+              ...(value !== "bank_transfer"
+                ? { deposit_paid: false, deposit_amount: 0 }
+                : (form.deposit_amount || 0) === 0
+                  ? { deposit_amount: Math.round(totals.final * (depositPct || 30) / 100) }
+                  : {}),
+            })}
+          >
+            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+              <SelectValue placeholder="選擇付款方式" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="credit_card">信用卡</SelectItem>
+              <SelectItem value="line_pay">LINE Pay</SelectItem>
+              <SelectItem value="atm">ATM 虛擬帳號</SelectItem>
+              <SelectItem value="bank_transfer">匯款</SelectItem>
+              <SelectItem value="cash">現金</SelectItem>
+              <SelectItem value="monthly">月結</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {form.balance_payment_method !== "bank_transfer" ? (
+          <div className="space-y-2">
+            <Label>付款狀態</Label>
+            <Select
+              value={form.balance_paid ? "paid" : "unpaid"}
+              onValueChange={(value) => setForm({ ...form, balance_paid: value === "paid", deposit_paid: value === "paid" })}
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unpaid">未付款</SelectItem>
+                <SelectItem value="paid">已付款</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <Label>付款狀態</Label>
+            <Select
+              value={form.balance_paid ? "paid" : form.deposit_paid ? "deposit_paid" : "unpaid"}
+              onValueChange={(value) => setForm({
+                ...form,
+                balance_paid: value === "paid",
+                deposit_paid: value === "paid" || value === "deposit_paid",
+                // 已付清：自動清空訂金欄位（後端會視為全付）
+                ...(value === "paid" ? { deposit_amount: 0 } : {}),
+              })}
+            >
+              <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unpaid">未付款</SelectItem>
+                <SelectItem value="deposit_paid">已付訂金</SelectItem>
+                <SelectItem value="paid">已付清</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      {form.balance_payment_method === "bank_transfer" && !form.balance_paid && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border border-border p-4 bg-muted/30">
+          <div className="space-y-2">
+            <Label>訂金比例（%）</Label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              step={1}
+              value={depositPct}
+              onChange={(e) => {
+                const raw = e.target.value;
+                const pct = raw === "" ? 0 : Math.max(0, Math.min(100, Number(raw) || 0));
+                setDepositPct(pct);
+                const amount = Math.round((totals.final * pct) / 100);
+                setForm({ ...form, deposit_amount: amount });
+              }}
+              className="h-12 text-base sm:h-10 sm:text-sm"
+            />
+            <p className="text-xs text-muted-foreground">預設 30%，可手動調整 0–100%</p>
+          </div>
+          <div className="space-y-2">
+            <Label>訂金金額</Label>
+            <DualCurrencyInput
+              config={secondaryCurrencyConfig}
+              rawMode={!!secondaryCurrencyConfig}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
+              inputClassName="h-12 text-base sm:h-10 sm:text-sm"
+              value={form.deposit_amount}
+              onChange={(v) => {
+                const capped = Math.max(0, Math.min(v, totals.final));
+                setForm({ ...form, deposit_amount: capped });
+                if (totals.final > 0) {
+                  setDepositPct(Math.round((capped / totals.final) * 100));
+                }
+              }}
+            />
+            <p className="text-xs text-muted-foreground">上限 NT$ {totals.final.toLocaleString()}</p>
+          </div>
+          <div className="space-y-2">
+            <Label>尾款金額（NT$）</Label>
+            <Input
+              type="number"
+              value={Math.max(0, totals.final - (form.deposit_amount || 0))}
+              readOnly
+              disabled
+              className="h-12 text-base sm:h-10 sm:text-sm bg-muted"
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3 rounded-lg border border-border p-4 bg-muted/30">
+        <div className="flex items-center justify-between gap-2">
+          <Label className="text-base font-semibold">押金</Label>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-sm">收取方式</Label>
+            <Input value="現場現金" readOnly disabled className="h-12 text-base sm:h-10 sm:text-sm bg-muted" />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-sm">押金金額</Label>
+            <DualCurrencyInput
+              config={secondaryCurrencyConfig}
+              rawMode={!!secondaryCurrencyConfig}
+              storageKey={currentAccommodationId || "default"} onModeChange={handleCurrencyModeChange} forcedMode={createForcedMode} hideToggle={!!secondaryCurrencyConfig}
+              inputClassName="h-12 text-base sm:h-10 sm:text-sm"
+              value={form.security_deposit_amount}
+              onChange={(v) => setForm({ ...form, security_deposit_amount: v })}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>備註</Label>
+        <Textarea
+          value={form.notes}
+          onChange={(e) => setForm({...form, notes: e.target.value})}
+          rows={3}
+          placeholder="輸入訂單備註..."
+          className="text-base sm:text-sm min-h-[80px]"
+        />
+      </div>
+    </div>
+  );
+
+  const footerButtons = (
+    <>
+      <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
+        取消
+      </Button>
+      <Button onClick={handleSave} disabled={isSaving}>
+        {isSaving ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            建立中...
+          </>
+        ) : (
+          "建立訂單"
+        )}
+      </Button>
+    </>
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="!max-w-none !w-screen !h-[100dvh] !max-h-[100dvh] !p-0 !gap-0 !rounded-none !border-0 !left-0 !top-0 !translate-x-0 !translate-y-0 flex flex-col bg-background"
+      >
+        <DialogHeader className="px-4 md:px-6 py-3 md:py-4 border-b shrink-0">
+          <div className="flex items-center justify-between gap-3 pr-10">
+            <DialogTitle className="text-xl md:text-2xl">新增訂單</DialogTitle>
+            {secondaryCurrencyConfig && (
+              <div className="inline-flex rounded-md border bg-muted/40 p-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleCurrencyModeChange("TWD")}
+                  className={`px-2.5 py-1 rounded ${createForcedMode === "TWD" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                >
+                  NT$ 台幣
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleCurrencyModeChange("SEC")}
+                  className={`px-2.5 py-1 rounded ${createForcedMode === "SEC" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"}`}
+                >
+                  {secondaryCurrencyConfig.symbol} {secondaryCurrencyConfig.code}
+                </button>
+              </div>
+            )}
+          </div>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-4xl mx-auto px-4 md:px-6 py-4 md:py-6">
+            {formContent}
+          </div>
+        </div>
+        <DialogFooter className="safe-bottom px-4 md:px-6 py-3 md:py-4 border-t shrink-0 bg-background">
+          <div className="max-w-4xl mx-auto w-full flex justify-end gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
+            {footerButtons}
+          </div>
+        </DialogFooter>
+      </DialogContent>
+      {kolQuotaPrompt && (
+        <KolQuotaConfirmDialog
+          open
+          yearMonth={kolQuotaPrompt.yearMonth}
+          used={kolQuotaPrompt.used}
+          quota={kolQuotaPrompt.quota}
+          packageName={kolQuotaPrompt.packageName}
+          onCancel={() => { kolQuotaPrompt.resolve(false); setKolQuotaPrompt(null); }}
+          onConfirm={() => { kolQuotaPrompt.resolve(true); setKolQuotaPrompt(null); }}
+        />
+      )}
+    </Dialog>
+  );
+}

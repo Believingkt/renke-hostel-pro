@@ -36,7 +36,7 @@ export default defineConfig(() => {
     },
     optimizeDeps: {
       include: ["react", "react-dom", "react/jsx-runtime"],
-      esbuildOptions: { jsx: "automatic" },
+      esbuildOptions: { jsx: "automatic" as const },
     },
   };
 });

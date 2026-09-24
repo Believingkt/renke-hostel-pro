@@ -1,0 +1,675 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
+import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@lakeze/shared/components/ui/table";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { format } from "date-fns";
+import { OwlTingEmailStatsCards } from "@/components/OwlTingEmailStatsCards";
+import { OwlTingIngestOutcomeBoard } from "@/components/OwlTingIngestOutcomeBoard";
+import { OwlTingFillupDialog } from "@/components/OwlTingFillupDialog";
+import { toast } from "sonner";
+import { Send, Loader2, ClipboardEdit, FileCode } from "lucide-react";
+import { OwlTingRawEmailDialog } from "@/components/OwlTingRawEmailDialog";
+import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions";
+
+interface RawEmail {
+  id: string;
+  received_at: string;
+  from_email: string | null;
+  from_domain: string | null;
+  subject: string | null;
+  message_type: string | null;
+  obe_number: string | null;
+  accommodation_name: string | null;
+  accommodation_id: string | null;
+  status: string;
+  notes: string | null;
+  ingest_outcome?: string | null;
+}
+
+interface StagingLite {
+  id: string;
+  raw_email_id: string;
+  pii_status: string;
+  review_status?: string | null;
+  modification_diff_status?: string | null;
+  accommodation_id: string | null;
+  accommodation_name: string | null;
+  channel_source: string | null;
+  promoted_order_id: string | null;
+  review_notes: string | null;
+  notified_at: string | null;
+  pii_due_at: string | null;
+  matched_acc_id: string | null;
+  match_reason: string | null;
+  unmatch_reason: string | null;
+  last_send_status: string | null;
+  last_send_message: string | null;
+  last_send_at: string | null;
+  last_send_attempts: number | null;
+  auto_order_id: string | null;
+  auto_order_number?: string | null;
+}
+
+// Rows that need no action at all: modification emails with no material change,
+// or staging rows explicitly marked as ignored by the ingest pipeline / human review.
+function isNoActionNeeded(
+  raw: { ingest_outcome?: string | null } | undefined,
+  st: StagingLite | undefined,
+): boolean {
+  if (raw?.ingest_outcome && ["noop_modification", "order_updated", "order_cancelled", "ignored"].includes(raw.ingest_outcome)) return true;
+  if (st?.review_status === "ignored") return true;
+  return false;
+}
+
+
+// Channel sources that indicate the OTA email was triggered by our own push
+// (PMS → OwlNest → email back). These rows must NOT go through the fillup flow.
+function isSelfPushSource(source: string | null | undefined): boolean {
+  if (!source) return false;
+  const s = source.trim().toLowerCase();
+  return s.includes("人客多") || s.includes("lakeze");
+}
+
+const STATUS_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  parsed: "default",
+  received: "secondary",
+  matched: "default",
+  ignored: "outline",
+  failed: "destructive",
+};
+
+
+const PII_LABEL: Record<string, string> = {
+  pending_pii_fillup: "待補 PII",
+  pii_filled: "已補齊",
+  promoted_to_booking: "已建單",
+  self_pushed: "自家訂單、無需補單",
+  manual_review: "待人工確認",
+  expired: "已過期",
+  skipped: "已略過",
+};
+
+const PII_VARIANT: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  pending_pii_fillup: "destructive",
+  pii_filled: "secondary",
+  promoted_to_booking: "default",
+  self_pushed: "secondary",
+  manual_review: "destructive",
+};
+
+const TYPE_LABEL: Record<string, string> = {
+  new_order: "新訂單",
+  modified: "修改",
+  cancelled: "取消",
+  unknown: "未知",
+};
+
+export default function OwlTingEmailIngest() {
+  const { currentAccommodationId } = useAccommodation();
+  const { isAdmin } = useStaffPermissions();
+  // Phase 2C：收件監控可 VIEW，但會觸發 Edge Function 的動作僅管理員可執行。
+  const canRunIngestActions = isAdmin;
+  const [rows, setRows] = useState<RawEmail[]>([]);
+  const [stagingMap, setStagingMap] = useState<Record<string, StagingLite>>({});
+  const [loading, setLoading] = useState(true);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [fillupStagingId, setFillupStagingId] = useState<string | null>(null);
+  const [fillupOpen, setFillupOpen] = useState(false);
+  const [rawEmailId, setRawEmailId] = useState<string | null>(null);
+  const [rawOpen, setRawOpen] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [reparsing, setReparsing] = useState(false);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
+  const [showSelfPush, setShowSelfPush] = useState(false);
+
+  const load = async () => {
+    if (!currentAccommodationId) {
+      setRows([]);
+      setStagingMap({});
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    // Tenant-scoped: only rows already matched to current accommodation.
+    // RLS additionally enforces this at the database layer.
+    const RAW_SELECT =
+      "id,received_at,from_email,from_domain,subject,message_type,obe_number,accommodation_name,accommodation_id,status,notes,ingest_outcome";
+    const { data: list } = await supabase
+      .from("owlting_email_orders_raw")
+      .select(RAW_SELECT)
+      .eq("accommodation_id", currentAccommodationId)
+      .order("received_at", { ascending: false })
+      .limit(100);
+    let rawRows = (list as RawEmail[]) ?? [];
+
+    // 只有「真的還能按補單」的待補 PII 紀錄才強制保留（不因較新的信件被擠出視窗而消失）；
+    // 已取消、自家推送、或無需處理者不再回補顯示。
+    const { data: pendingStaging } = await supabase
+      .from("owlting_email_parsed_staging")
+      .select(
+        "raw_email_id, review_status, channel_source, raw:owlting_email_orders_raw!inner(id,accommodation_id,message_type,obe_number,ingest_outcome)",
+      )
+      .eq("pii_status", "pending_pii_fillup")
+      .eq("raw.accommodation_id", currentAccommodationId);
+
+    const candidates = (pendingStaging ?? []).filter((s: any) => {
+      const raw = s.raw;
+      if (!raw?.id || rawRows.some((r) => r.id === raw.id)) return false;
+      if (raw.message_type === "cancelled") return false;
+      if (isSelfPushSource(s.channel_source)) return false;
+      if (isNoActionNeeded({ ingest_outcome: raw.ingest_outcome }, { review_status: s.review_status } as StagingLite)) return false;
+      return true;
+    });
+
+    if (candidates.length > 0) {
+      // 同一 OBE 只要有取消信，整組都不需要補單。
+      const obes = Array.from(
+        new Set(candidates.map((s: any) => s.raw.obe_number).filter(Boolean) as string[]),
+      );
+      let cancelledObes = new Set<string>();
+      if (obes.length > 0) {
+        const { data: cancelRows } = await supabase
+          .from("owlting_email_orders_raw")
+          .select("obe_number")
+          .eq("accommodation_id", currentAccommodationId)
+          .eq("message_type", "cancelled")
+          .in("obe_number", obes);
+        cancelledObes = new Set((cancelRows ?? []).map((c: any) => c.obe_number as string));
+      }
+      const pendingRawIds = candidates
+        .filter((s: any) => !(s.raw.obe_number && cancelledObes.has(s.raw.obe_number)))
+        .map((s: any) => s.raw.id as string);
+
+      if (pendingRawIds.length > 0) {
+        const { data: extra } = await supabase
+          .from("owlting_email_orders_raw")
+          .select(RAW_SELECT)
+          .in("id", pendingRawIds);
+        rawRows = [...rawRows, ...((extra as RawEmail[]) ?? [])].sort((a, b) =>
+          (b.received_at ?? "").localeCompare(a.received_at ?? ""),
+        );
+      }
+    }
+
+    setRows(rawRows);
+
+
+    if (rawRows.length > 0) {
+      // 只以 raw_email_id 對應（rawRows 已是本民宿範圍），
+      // 避免 staging.accommodation_id 尚未回填時整列失去補單狀態與按鈕。
+      const { data: staging } = await supabase
+        .from("owlting_email_parsed_staging")
+        .select("id,raw_email_id,pii_status,review_status,modification_diff_status,accommodation_id,accommodation_name,channel_source,promoted_order_id,review_notes,notified_at,pii_due_at,last_send_status,last_send_message,last_send_at,last_send_attempts,auto_order_id")
+        .in("raw_email_id", rawRows.map((r) => r.id));
+
+
+      // Fetch order_number for auto-created pending orders (for display).
+      const autoOrderIds = (staging ?? [])
+        .map((s: any) => s.auto_order_id)
+        .filter((v: string | null): v is string => !!v);
+      let autoOrderMap: Record<string, string> = {};
+      if (autoOrderIds.length > 0) {
+        const { data: autoOrders } = await supabase
+          .from("orders")
+          .select("id,order_number")
+          .in("id", autoOrderIds);
+        (autoOrders ?? []).forEach((o: any) => {
+          autoOrderMap[o.id] = o.order_number;
+        });
+      }
+
+      const map: Record<string, StagingLite> = {};
+      (staging ?? []).forEach((s: any) => {
+        map[s.raw_email_id] = {
+          ...s,
+          matched_acc_id: s.accommodation_id ?? null,
+          match_reason: s.accommodation_id ? "已綁定本民宿" : null,
+          unmatch_reason: s.accommodation_id ? null : "尚未匹配",
+          auto_order_number: s.auto_order_id ? (autoOrderMap[s.auto_order_id] ?? null) : null,
+        };
+      });
+      setStagingMap(map);
+    } else {
+      setStagingMap({});
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, [currentAccommodationId]);
+
+  const sendFillupNotification = async (stagingId: string) => {
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    setSendingId(stagingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-fillup-issue", {
+        body: { staging_id: stagingId },
+      });
+      if (error) throw error;
+      const emailed = (data as any)?.emailed_to?.length ?? 0;
+      const owners = (data as any)?.owners_count ?? 0;
+      const emailErrors = (data as any)?.email_errors as string[] | undefined;
+      if (owners === 0) {
+        toast.warning("尚未設定業主聯絡人，請先到 HQ → 系統管理 → 業主聯絡人 新增");
+      } else if (emailed === 0) {
+        toast.warning(`連結已產生但 Email 發送失敗：${emailErrors?.[0] ?? "請檢查寄信設定"}`);
+      } else {
+        toast.success(`已寄送補單通知給 ${emailed} 位業主`);
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(`發送失敗：${e.message ?? e}`);
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  const linkSelfPush = async (stagingId: string) => {
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    setLinkingId(stagingId);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-selfpush-link", {
+        body: { staging_id: stagingId },
+      });
+      if (error) throw error;
+      const d = data as any;
+      if (d?.ok && d?.matched_order_number) {
+        toast.success(`已連結至本站訂單 ${d.matched_order_number}`);
+      } else if (d?.ambiguous) {
+        toast.warning(`找到 ${d.candidates?.length ?? 0} 筆候選訂單，已標記待人工確認`);
+      } else if (d?.not_found) {
+        toast.warning("找不到對應本站訂單，已標記待人工確認");
+      } else if (d?.is_self_push === false) {
+        toast.error("此非自家來源，無需連結");
+      } else {
+        toast.error("連結失敗");
+      }
+      await load();
+    } catch (e: any) {
+      toast.error(`連結失敗：${e.message ?? e}`);
+    } finally {
+      setLinkingId(null);
+    }
+  };
+
+
+  const reparseDates = async () => {
+    if (!currentAccommodationId) return;
+    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    setReparsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("owlting-email-reparse-dates", {
+        body: { accommodation_id: currentAccommodationId, overwrite: true },
+      });
+      if (error) throw error;
+      const d = data as any;
+      toast.success(`已回填 ${d?.updated ?? 0} 筆入住/退房日期（掃描 ${d?.scanned ?? 0} 筆）`);
+      await load();
+      setRefreshTick((t) => t + 1);
+    } catch (e: any) {
+      toast.error(`回填失敗：${e.message ?? e}`);
+    } finally {
+      setReparsing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+      <AdminPageHeader
+        title="奧丁丁訂單收件監控"
+        action={
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant={showSelfPush ? "default" : "outline"}
+              onClick={() => setShowSelfPush((v) => !v)}
+              disabled={loading}
+              title="切換是否顯示已識別為自家推送、無需補單的紀錄"
+            >
+              {showSelfPush ? "隱藏自家單" : "顯示自家單"}
+            </Button>
+            {canRunIngestActions && (
+              <Button size="sm" variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
+                {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                回填日期
+              </Button>
+            )}
+            <Button size="sm" variant="outline" onClick={() => { load(); setRefreshTick((t) => t + 1); }} disabled={loading}>重新整理</Button>
+          </div>
+        }
+      />
+
+
+      <OwlTingEmailStatsCards
+        showDetailLink={false}
+        refreshKey={refreshTick}
+        accommodationId={currentAccommodationId}
+      />
+
+      <OwlTingIngestOutcomeBoard
+        refreshKey={refreshTick}
+        accommodationId={currentAccommodationId}
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            最近 100 筆 Email（含所有待補單）
+            {(() => {
+              const hidden = rows.filter((r) => {
+                const st = stagingMap[r.id];
+                // A row is treated as "self-push / already handled" if either
+                // the staging pii_status marks it done, or the channel is a
+                // self-push source and it is not awaiting human review.
+                const doneStatuses = new Set([
+                  "self_pushed",
+                  "promoted_to_booking",
+                  "skipped",
+                  "expired",
+                ]);
+                if (st && doneStatuses.has(st.pii_status)) return true;
+                if (isSelfPushSource(st?.channel_source)) return true;
+                return false;
+              }).length;
+              if (!showSelfPush && hidden > 0) {
+                return <span className="text-xs text-muted-foreground ml-2">（已隱藏 {hidden} 筆自家單）</span>;
+              }
+              return null;
+            })()}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>時間</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead>類型</TableHead>
+                <TableHead>OBE</TableHead>
+                
+                <TableHead>補單狀態</TableHead>
+                <TableHead className="text-right pr-[17rem]">動作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(() => {
+                // Any OBE that has a cancellation email should suppress fillup
+                // actions across ALL rows sharing that OBE (including the
+                // earlier "new order" row) to avoid mis-triggering补單。
+                const cancelledObes = new Set(
+                  rows
+                    .filter((r) => r.message_type === "cancelled" && r.obe_number)
+                    .map((r) => r.obe_number as string),
+                );
+                return rows.filter((r) => {
+                if (showSelfPush) return true;
+                const st = stagingMap[r.id];
+                // Hide by pii_status first (authoritative), then by channel source.
+                const doneStatuses = new Set([
+                  "self_pushed",
+                  "promoted_to_booking",
+                  "skipped",
+                  "expired",
+                ]);
+                if (st && doneStatuses.has(st.pii_status)) return false;
+                if (isSelfPushSource(st?.channel_source)) return false;
+                return true;
+              }).map((r) => {
+                const st = stagingMap[r.id];
+                const selfPush = isSelfPushSource(st?.channel_source);
+                const alreadyLinked = st?.pii_status === "self_pushed";
+                const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
+                const isSending = st && sendingId === st.id;
+                const sendStatus = st?.last_send_status ?? null;
+                const hasLegacyNotified = st && !sendStatus && !!st.notified_at;
+                const sendVariant: "default" | "secondary" | "destructive" | "outline" =
+                  isSending ? "secondary"
+                  : sendStatus === "success" ? "default"
+                  : sendStatus === "partial" ? "secondary"
+                  : sendStatus === "failed" ? "destructive"
+                  : hasLegacyNotified ? "secondary"
+                  : "outline";
+                const sendLabel =
+                  isSending ? "重試中"
+                  : sendStatus === "success" ? "成功"
+                  : sendStatus === "partial" ? "部分成功"
+                  : sendStatus === "failed" ? "失敗"
+                  : hasLegacyNotified ? "已寄送（歷史）"
+                  : "未寄送";
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell className="whitespace-nowrap text-xs">
+                      {format(new Date(r.received_at), "MM/dd HH:mm:ss")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"}>{r.status}</Badge>
+                    </TableCell>
+                    <TableCell>{r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{r.obe_number ?? "—"}</TableCell>
+                
+                    <TableCell className="text-xs">
+                      {st ? (
+                        <div className="flex flex-col gap-1">
+                          <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"}>
+                            {noAction
+                              ? "無異動、不需補單"
+                              : selfPush && !alreadyLinked
+                              ? "自家訂單、無需補單"
+                              : PII_LABEL[st.pii_status] ?? st.pii_status}
+                          </Badge>
+                          {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
+                            <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400">
+                              🔒 自動預留庫存
+                              {st.auto_order_number && (
+                                <span className="ml-1 font-mono">#{st.auto_order_number}</span>
+                              )}
+                            </Badge>
+                          )}
+                          {st.channel_source && (
+                            <span className="text-[10px] text-muted-foreground">
+                              來源：{st.channel_source}
+                            </span>
+                          )}
+                          {st.review_notes && (
+                            <span className="text-[10px] text-muted-foreground line-clamp-2" title={st.review_notes}>
+                              {st.review_notes}
+                            </span>
+                          )}
+                          {!selfPush && st.notified_at && (
+                            <span className="text-[10px] text-muted-foreground">
+                              已通知 {format(new Date(st.notified_at), "MM/dd HH:mm")}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="ml-auto flex items-center justify-end gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}
+                        >
+                          <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
+                        </Button>
+                        {/* 固定寬度插槽：重發通知信 */}
+                        <div className="w-[7.5rem] shrink-0 flex justify-end">
+                          {!noAction && !selfPush && canSend && canRunIngestActions ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => sendFillupNotification(st.id)}
+                              disabled={sendingId === st.id}
+                            >
+                              {sendingId === st.id ? (
+                                <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              ) : (
+                                <Send className="h-3.5 w-3.5 mr-1" />
+                              )}
+                              重發通知信
+                            </Button>
+                          ) : null}
+                        </div>
+                        {/* 固定寬度插槽：主要動作 */}
+                        <div className="w-[8.5rem] shrink-0 flex justify-end">
+                          {noAction ? null : selfPush ? (
+                            !alreadyLinked && st && canRunIngestActions ? (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="w-full"
+                                onClick={() => linkSelfPush(st.id)}
+                                disabled={linkingId === st.id}
+                              >
+                                {linkingId === st.id ? (
+                                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                ) : (
+                                  <ClipboardEdit className="h-3.5 w-3.5 mr-1" />
+                                )}
+                                連結自家訂單
+                              </Button>
+                            ) : null
+                          ) : canSend && canRunIngestActions ? (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="w-full"
+                              onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}
+                            >
+                              <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                  </TableRow>
+                );
+              });
+              })()}
+              {!loading && rows.length === 0 && (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無收件記錄</TableCell></TableRow>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {(() => {
+              const cancelledObes = new Set(
+                rows.filter((r) => r.message_type === "cancelled" && r.obe_number).map((r) => r.obe_number as string),
+              );
+              const doneStatuses = new Set(["self_pushed", "promoted_to_booking", "skipped", "expired"]);
+              const visible = rows.filter((r) => {
+                if (showSelfPush) return true;
+                const st = stagingMap[r.id];
+                if (st && doneStatuses.has(st.pii_status)) return false;
+                if (isSelfPushSource(st?.channel_source)) return false;
+                return true;
+              });
+              if (!loading && visible.length === 0) {
+                return <div className="text-center text-muted-foreground py-8 text-sm">尚無收件記錄</div>;
+              }
+              return visible.map((r) => {
+                const st = stagingMap[r.id];
+                const selfPush = isSelfPushSource(st?.channel_source);
+                const alreadyLinked = st?.pii_status === "self_pushed";
+                const isCancelledObe = !!r.obe_number && cancelledObes.has(r.obe_number);
+                const noAction = isNoActionNeeded(r, st);
+                const canSend = st && st.pii_status === "pending_pii_fillup" && r.message_type !== "cancelled" && !isCancelledObe && !selfPush && !noAction;
+                return (
+                  <div key={r.id} className="rounded-lg border p-3 space-y-2 bg-card">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(r.received_at), "MM/dd HH:mm:ss")}
+                        </div>
+                        <div className="font-mono text-xs break-all">{r.obe_number ?? "—"}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <Badge variant={STATUS_VARIANT[r.status] ?? "secondary"} className="text-[10px]">{r.status}</Badge>
+                        <span className="text-[11px] text-muted-foreground">
+                          {r.message_type ? TYPE_LABEL[r.message_type] ?? r.message_type : "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {st && (
+                      <div className="flex flex-wrap gap-1 items-center">
+                        <Badge variant={noAction ? "secondary" : PII_VARIANT[selfPush && !alreadyLinked ? "self_pushed" : st.pii_status] ?? "outline"} className="text-[10px]">
+                          {noAction ? "無異動、不需補單" : selfPush && !alreadyLinked ? "自家訂單、無需補單" : PII_LABEL[st.pii_status] ?? st.pii_status}
+                        </Badge>
+                        {st.auto_order_id && st.pii_status === "pending_pii_fillup" && (
+                          <Badge variant="outline" className="text-[10px] border-amber-500 text-amber-700 dark:text-amber-400 max-w-full whitespace-normal break-all leading-tight h-auto py-0.5">
+                            🔒 自動預留{st.auto_order_number && <span className="ml-1 font-mono">#{st.auto_order_number}</span>}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+                    {st?.channel_source && (
+                      <div className="text-[11px] text-muted-foreground">來源：{st.channel_source}</div>
+                    )}
+                    {st?.review_notes && (
+                      <div className="text-[11px] text-muted-foreground line-clamp-2">{st.review_notes}</div>
+                    )}
+
+                    <div className="flex flex-col gap-1.5 pt-1">
+                      <Button size="sm" variant="outline" className="w-full h-10 justify-center" onClick={() => { setRawEmailId(r.id); setRawOpen(true); }}>
+                        <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
+                      </Button>
+                      {noAction ? null : selfPush ? (
+                        !alreadyLinked && st && canRunIngestActions ? (
+                          <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
+                            {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
+                            連結自家訂單
+                          </Button>
+                        ) : null
+                      ) : canSend && canRunIngestActions ? (
+                        <>
+                          <Button size="sm" variant="outline" className="w-full h-10 justify-center" onClick={() => sendFillupNotification(st.id)} disabled={sendingId === st.id}>
+                            {sendingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                            重發通知
+                          </Button>
+                          <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => { setFillupStagingId(st.id); setFillupOpen(true); }}>
+                            <ClipboardEdit className="h-3.5 w-3.5 mr-1" />補單
+                          </Button>
+                        </>
+                      ) : null}
+                    </div>
+
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </CardContent>
+      </Card>
+
+      <OwlTingFillupDialog
+        open={fillupOpen && canRunIngestActions}
+        onOpenChange={setFillupOpen}
+        stagingId={fillupStagingId}
+        onSubmitted={() => { load(); setRefreshTick((t) => t + 1); }}
+      />
+
+      <OwlTingRawEmailDialog
+        open={rawOpen}
+        onOpenChange={setRawOpen}
+        rawEmailId={rawEmailId}
+      />
+
+    </div>
+  );
+}
