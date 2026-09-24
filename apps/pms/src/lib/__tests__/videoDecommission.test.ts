@@ -62,12 +62,12 @@ describe("前端不再提供影音組分潤的入口", () => {
   });
 
   it("加倍活動新增選單排除 video", () => {
-    const src = read("src/components/team/BonusMultiplierSection.tsx");
+    const src = read("packages/shared/src/components/team/BonusMultiplierSection.tsx");
     expect(src).toMatch(/filter\(\(\[k\]\) => k !== "video"\)/);
   });
 
   it("館別費率設定不再寫入新的影音費率", () => {
-    const src = read("src/components/team/CommissionRatesTab.tsx");
+    const src = read("apps/pms/src/components/team/CommissionRatesTab.tsx");
     expect(src).toMatch(/video_rate: editing\.video_rate,/);
     expect(src).not.toMatch(/value=\{videoRate\}/);
   });

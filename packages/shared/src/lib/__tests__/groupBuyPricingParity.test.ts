@@ -71,7 +71,7 @@ describe("前後端 groupBuyPricing 一致性", () => {
 
   it("兩份 helper 的 checksum 相同（純文字比對，避免單向修改）", async () => {
     const [a, b] = await Promise.all([
-      import("fs/promises").then((m) => m.readFile("src/lib/groupBuyPricing.ts", "utf8")),
+      import("fs/promises").then((m) => m.readFile("packages/shared/src/lib/groupBuyPricing.ts", "utf8")),
       import("fs/promises").then((m) =>
         m.readFile("supabase/functions/_shared/groupBuyPricing.ts", "utf8"),
       ),

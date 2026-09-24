@@ -19,7 +19,7 @@ const sharedSrc = readFileSync(
   resolve(process.cwd(), "supabase/functions/_shared/orderRefund.ts"),
   "utf-8",
 );
-const adminSrc = readFileSync(resolve(process.cwd(), "src/pages/AdminGroupBuy.tsx"), "utf-8");
+const adminSrc = readFileSync(resolve(process.cwd(), "apps/pms/src/pages/AdminGroupBuy.tsx"), "utf-8");
 
 describe("前端 display helper 與 server 規則一致", () => {
   const cases: Array<[string, any, boolean]> = [

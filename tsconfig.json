@@ -5,8 +5,8 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
-      "@/*": [
-        "./src/*"
+      "@lakeze/shared/*": [
+        "./packages/shared/src/*"
       ]
     },
     "skipLibCheck": true,
@@ -15,10 +15,16 @@
   "files": [],
   "references": [
     {
-      "path": "./tsconfig.app.json"
+      "path": "./packages/shared"
     },
     {
-      "path": "./tsconfig.node.json"
+      "path": "./apps/booking"
+    },
+    {
+      "path": "./apps/pms"
+    },
+    {
+      "path": "./apps/hq"
     }
   ]
 }

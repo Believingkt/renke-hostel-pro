@@ -253,10 +253,10 @@ describe("v5.5A.3 — RPC 參數組裝（缺任何必填 = 0 mutation）", () =>
 
 describe("v5.5A.3 — 原始碼契約", () => {
   const read = (rel: string) => fs.readFileSync(path.join(process.cwd(), rel), "utf8");
-  const dialog = read("src/components/orders/PaidAmountEditDialog.tsx");
-  const detail = read("src/pages/OrderDetail.tsx");
-  const addonLib = read("src/lib/paidAddonEdit.ts");
-  const discountLib = read("src/lib/paidDiscountEdit.ts");
+  const dialog = read("apps/pms/src/components/orders/PaidAmountEditDialog.tsx");
+  const detail = read("apps/pms/src/pages/OrderDetail.tsx");
+  const addonLib = read("apps/pms/src/lib/paidAddonEdit.ts");
+  const discountLib = read("apps/pms/src/lib/paidDiscountEdit.ts");
 
   it("專用對話框不得直接寫 orders / order_rooms / audit_logs", () => {
     expect(dialog).not.toMatch(/from\("orders"\)[\s\S]{0,80}\.update\(/);
@@ -314,7 +314,7 @@ describe("v5.5A.3 — 原始碼契約", () => {
   });
 
   it("變更紀錄支援 paid_addon_edit 且不顯示 raw JSON／備註全文", () => {
-    const card = read("src/components/orders/OrderAuditLogCard.tsx");
+    const card = read("apps/pms/src/components/orders/OrderAuditLogCard.tsx");
     expect(card).toContain("paid_addon_edit");
     expect(card).toContain("paid_discount_edit");
     expect(card).toContain("settlementLabel");

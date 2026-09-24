@@ -78,8 +78,8 @@ describe("修改已結清折扣入口 — 顯示條件", () => {
 
 describe("原始碼契約", () => {
   const read = (rel: string) => fs.readFileSync(path.join(process.cwd(), rel), "utf8");
-  const detail = read("src/pages/OrderDetail.tsx");
-  const lib = read("src/lib/paidDiscountEdit.ts");
+  const detail = read("apps/pms/src/pages/OrderDetail.tsx");
+  const lib = read("apps/pms/src/lib/paidDiscountEdit.ts");
 
   it("OrderDetail 折扣按鈕由 canShowPaidDiscountEntry 控制", () => {
     expect(detail).toContain("canShowPaidDiscountEntry({");

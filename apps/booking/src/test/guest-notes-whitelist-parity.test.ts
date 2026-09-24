@@ -12,7 +12,7 @@ const strip = (p: string) =>
 
 describe("guest notes whitelist parity", () => {
   it("前端副本與 Edge Function 版本規則一致", () => {
-    expect(strip("src/utils/guestNotesWhitelist.ts")).toBe(
+    expect(strip("apps/booking/src/utils/guestNotesWhitelist.ts")).toBe(
       strip("supabase/functions/_shared/owltingNotesWhitelist.ts"),
     );
   });

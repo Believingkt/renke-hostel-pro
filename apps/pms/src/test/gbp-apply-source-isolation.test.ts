@@ -20,10 +20,10 @@ const gbpFetchFn = read(
   "supabase/functions/fetch-google-business-profile-reviews/index.ts",
 );
 const applyUi = read(
-  "src/components/website-content/GoogleBusinessProfileReviews.tsx",
+  "apps/pms/src/components/website-content/GoogleBusinessProfileReviews.tsx",
 );
 const settingsUi = read(
-  "src/components/website-content/GoogleBusinessProfileSettings.tsx",
+  "apps/pms/src/components/website-content/GoogleBusinessProfileSettings.tsx",
 );
 
 describe("source isolation: Places must skip Business Profile accommodations", () => {

@@ -1,0 +1,384 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+import { Input } from "@lakeze/shared/components/ui/input";
+import { Label } from "@lakeze/shared/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lakeze/shared/components/ui/select";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { Checkbox } from "@lakeze/shared/components/ui/checkbox";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lakeze/shared/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@lakeze/shared/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@lakeze/shared/components/ui/alert-dialog";
+import { toast } from "sonner";
+import { Copy, KeyRound, Trash2, Power } from "lucide-react";
+import { Link } from "react-router-dom";
+
+interface ApiKey {
+  id: string;
+  accommodation_id: string;
+  name: string;
+  key_prefix: string;
+  is_active: boolean;
+  is_read_only: boolean;
+  last_used_at: string | null;
+  created_at: string;
+}
+
+interface Accommodation {
+  id: string;
+  name: string;
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const buf = new TextEncoder().encode(input);
+  const hash = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function generateKey(): string {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const hex = Array.from(arr).map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `acc_${hex}`;
+}
+
+export function AccommodationApiKeysManagement() {
+  const [accommodations, setAccommodations] = useState<Accommodation[]>([]);
+  const [selectedAccId, setSelectedAccId] = useState<string>("");
+  const [keys, setKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [newKeyReadOnly, setNewKeyReadOnly] = useState(true);
+  const [extraAccIds, setExtraAccIds] = useState<string[]>([]);
+  const [scopesByKey, setScopesByKey] = useState<Record<string, string[]>>({});
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_info")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      setAccommodations(data || []);
+      if (data && data.length > 0) setSelectedAccId(data[0].id);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (selectedAccId) loadKeys();
+  }, [selectedAccId]);
+
+  const loadKeys = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("accommodation_api_keys")
+      .select("*")
+      .eq("accommodation_id", selectedAccId)
+      .order("created_at", { ascending: false });
+    if (error) toast.error("無法載入 API Keys");
+    const rows = (data || []) as ApiKey[];
+    setKeys(rows);
+
+    if (rows.length > 0) {
+      const { data: scopeRows } = await supabase
+        .from("accommodation_api_key_scopes")
+        .select("api_key_id, accommodation_id")
+        .in("api_key_id", rows.map((r) => r.id));
+      const map: Record<string, string[]> = {};
+      (scopeRows || []).forEach((s) => {
+        (map[s.api_key_id] ||= []).push(s.accommodation_id);
+      });
+      setScopesByKey(map);
+    } else {
+      setScopesByKey({});
+    }
+    setLoading(false);
+  };
+
+  const accName = (id: string) => accommodations.find((a) => a.id === id)?.name || id.slice(0, 8);
+
+
+  const handleCreate = async () => {
+    if (!newKeyName.trim()) {
+      toast.error("請輸入名稱");
+      return;
+    }
+    const fullKey = generateKey();
+    const keyHash = await sha256Hex(fullKey);
+    const keyPrefix = fullKey.slice(0, 12) + "...";
+    const isMulti = extraAccIds.length > 0;
+    const { data: inserted, error } = await supabase
+      .from("accommodation_api_keys")
+      .insert({
+        accommodation_id: selectedAccId,
+        name: newKeyName.trim(),
+        key_hash: keyHash,
+        key_prefix: keyPrefix,
+        // 多館金鑰強制唯讀
+        is_read_only: isMulti ? true : newKeyReadOnly,
+      })
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      toast.error("建立失敗：" + (error?.message ?? "未知錯誤"));
+      return;
+    }
+
+    if (isMulti) {
+      const { error: scopeErr } = await supabase
+        .from("accommodation_api_key_scopes")
+        .insert(extraAccIds.map((id) => ({ api_key_id: inserted.id, accommodation_id: id })));
+      if (scopeErr) {
+        // 範圍寫入失敗就撤掉金鑰，避免留下範圍不完整的金鑰
+        await supabase.from("accommodation_api_keys").delete().eq("id", inserted.id);
+        toast.error("建立失敗（館別範圍寫入失敗）：" + scopeErr.message);
+        return;
+      }
+    }
+
+    setCreatedKey(fullKey);
+    setNewKeyName("");
+    setExtraAccIds([]);
+    loadKeys();
+
+  };
+
+  const toggleActive = async (key: ApiKey) => {
+    const { error } = await supabase
+      .from("accommodation_api_keys")
+      .update({ is_active: !key.is_active })
+      .eq("id", key.id);
+    if (error) toast.error("更新失敗");
+    else {
+      toast.success(key.is_active ? "已停用" : "已啟用");
+      loadKeys();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    const { error } = await supabase.from("accommodation_api_keys").delete().eq("id", deleteId);
+    if (error) toast.error("刪除失敗");
+    else {
+      toast.success("已刪除");
+      loadKeys();
+    }
+    setDeleteId(null);
+  };
+
+  const copy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success("已複製到剪貼簿");
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <KeyRound className="h-5 w-5" />
+                民宿 API Keys
+              </CardTitle>
+              <CardDescription>
+                為各民宿產生 API 金鑰，供其後端系統呼叫房型管理 API。
+                <Link to="/accommodation-api-docs" className="ml-2 text-primary underline">
+                  查看 API 文件
+                </Link>
+              </CardDescription>
+            </div>
+            <Button onClick={() => { setCreatedKey(null); setNewKeyReadOnly(true); setExtraAccIds([]); setCreateOpen(true); }} disabled={!selectedAccId}>
+              新增 API Key
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="max-w-xs">
+            <Label>選擇民宿</Label>
+            <Select value={selectedAccId} onValueChange={setSelectedAccId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent className="bg-background">
+                {accommodations.map((a) => (
+                  <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>名稱</TableHead>
+                <TableHead>金鑰前綴</TableHead>
+                <TableHead>狀態</TableHead>
+                <TableHead>權限</TableHead>
+                <TableHead>可存取館別</TableHead>
+
+                <TableHead>最後使用</TableHead>
+                <TableHead>建立時間</TableHead>
+                <TableHead className="text-right">操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">載入中...</TableCell></TableRow>
+              ) : keys.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">尚無 API Keys</TableCell></TableRow>
+              ) : (
+                keys.map((k) => (
+                  <TableRow key={k.id}>
+                    <TableCell className="font-medium">{k.name}</TableCell>
+                    <TableCell className="font-mono text-sm">{k.key_prefix}</TableCell>
+                    <TableCell>
+                      <Badge variant={k.is_active ? "default" : "secondary"}>
+                        {k.is_active ? "啟用" : "停用"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={k.is_read_only ? "secondary" : "outline"}>
+                        {k.is_read_only ? "唯讀" : "可讀寫"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {(scopesByKey[k.id]?.length ?? 0) === 0 ? (
+                        <span className="text-muted-foreground">本館</span>
+                      ) : (
+                        <span>
+                          本館 ＋ {scopesByKey[k.id].map(accName).join("、")}
+                        </span>
+                      )}
+                    </TableCell>
+
+                    <TableCell className="text-sm text-muted-foreground">
+                      {k.last_used_at ? new Date(k.last_used_at).toLocaleString("zh-TW") : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(k.created_at).toLocaleDateString("zh-TW")}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => toggleActive(k)}>
+                        <Power className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setDeleteId(k.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <Dialog open={createOpen} onOpenChange={(v) => { setCreateOpen(v); if (!v) setCreatedKey(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{createdKey ? "API Key 已建立" : "新增 API Key"}</DialogTitle>
+            <DialogDescription>
+              {createdKey
+                ? "請妥善保管此金鑰，關閉視窗後將無法再次查看。"
+                : "為這把金鑰命名（例：第三方訂房系統、PMS 整合）"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {createdKey ? (
+            <div className="space-y-2">
+              <Label>API Key</Label>
+              <div className="flex gap-2">
+                <Input value={createdKey} readOnly className="font-mono text-xs" />
+                <Button size="icon" variant="outline" onClick={() => copy(createdKey)}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-destructive">⚠️ 此金鑰僅顯示一次，請立即複製保存</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>名稱</Label>
+                <Input
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="例：PMS 整合"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>額外可存取館別（選填）</Label>
+                <p className="text-xs text-muted-foreground">
+                  勾選後，這把金鑰除了「{accName(selectedAccId)}」之外，也能查詢下列館別。勾選任一館別即成為多館金鑰，一律強制唯讀。
+                </p>
+                <div className="max-h-48 overflow-y-auto rounded-md border p-2 space-y-1">
+                  {accommodations
+                    .filter((a) => a.id !== selectedAccId)
+                    .map((a) => (
+                      <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">
+                        <Checkbox
+                          checked={extraAccIds.includes(a.id)}
+                          onCheckedChange={(v) =>
+                            setExtraAccIds((prev) =>
+                              v === true ? [...prev, a.id] : prev.filter((x) => x !== a.id),
+                            )
+                          }
+                        />
+                        <span className="text-sm">{a.name}</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+              <div className="flex items-start gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="api-key-readonly"
+                  checked={extraAccIds.length > 0 ? true : newKeyReadOnly}
+                  disabled={extraAccIds.length > 0}
+                  onCheckedChange={(v) => setNewKeyReadOnly(v === true)}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="api-key-readonly" className="cursor-pointer">唯讀金鑰（建議）</Label>
+                  <p className="text-xs text-muted-foreground">
+                    只能查詢房型、房價與可售房數，無法新增或修改任何資料。給外部系統串接報價時請務必勾選。
+                    {extraAccIds.length > 0 && "（多館金鑰強制唯讀，無法取消）"}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          <DialogFooter>
+            {createdKey ? (
+              <Button onClick={() => { setCreateOpen(false); setCreatedKey(null); }}>完成</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
+                <Button onClick={handleCreate}>建立</Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(v) => !v && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認刪除 API Key？</AlertDialogTitle>
+            <AlertDialogDescription>
+              刪除後將無法復原，使用此金鑰的服務將立即失效。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>刪除</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}

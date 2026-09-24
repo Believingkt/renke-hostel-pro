@@ -17,11 +17,22 @@ Continue developing this project in the [Lovable editor](https://lovable.dev/pro
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Monorepo（yarn workspaces）：
+
+```
+packages/shared/   共用：supabase client、types、ui、hooks、utils、Tailwind preset
+apps/booking/      訂房前台 booking.lakeze.com（含 SEO prerender、sitemap、Capacitor iOS）
+apps/pms/          民宿後台 pms.lakeze.com
+apps/hq/           總部後台 hq.lakeze.com
+supabase/          Edge functions 與 migrations
+```
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+yarn install
+yarn dev:booking   # 或 dev:pms / dev:hq
+yarn build:apps    # 三個 app 各自輸出到 apps/*/dist
+yarn test          # 由 repo 根執行所有 workspace 的 vitest
+yarn typecheck
 ```
+
+環境變數（`VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`）由 repo 根 `.env` 提供，三個 app 的 `envDir` 皆指向根目錄。

@@ -13,11 +13,11 @@ import { resolve } from "node:path";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
-const detail = read("src/pages/MemberOrderDetail.tsx");
-const list = read("src/pages/MemberOrders.tsx");
-const calendarBtn = read("src/components/booking/AddToCalendarButton.tsx");
-const dict = read("src/lib/bookingI18n.ts");
-const hook = read("src/hooks/use-translated-fields.tsx");
+const detail = read("apps/booking/src/pages/MemberOrderDetail.tsx");
+const list = read("apps/booking/src/pages/MemberOrders.tsx");
+const calendarBtn = read("apps/booking/src/components/booking/AddToCalendarButton.tsx");
+const dict = read("packages/shared/src/lib/bookingI18n.ts");
+const hook = read("packages/shared/src/hooks/use-translated-fields.tsx");
 
 describe("會員中心雙語：後端呼叫完全不變", () => {
   it("member-order-manage 仍為 3 個呼叫點", () => {

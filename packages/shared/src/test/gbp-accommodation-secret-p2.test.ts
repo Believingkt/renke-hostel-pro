@@ -6,7 +6,7 @@ const edge = readFileSync(
   "utf8",
 );
 const ui = readFileSync(
-  "src/components/website-content/GoogleBusinessProfileSettings.tsx",
+  "apps/pms/src/components/website-content/GoogleBusinessProfileSettings.tsx",
   "utf8",
 );
 

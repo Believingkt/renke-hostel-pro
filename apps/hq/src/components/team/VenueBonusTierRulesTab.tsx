@@ -1,0 +1,1353 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
+import { Button } from "@lakeze/shared/components/ui/button";
+import { Input } from "@lakeze/shared/components/ui/input";
+import { Label } from "@lakeze/shared/components/ui/label";
+import { Badge } from "@lakeze/shared/components/ui/badge";
+import { Switch } from "@lakeze/shared/components/ui/switch";
+import { Textarea } from "@lakeze/shared/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@lakeze/shared/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@lakeze/shared/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@lakeze/shared/components/ui/alert-dialog";
+import { useToast } from "@lakeze/shared/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@lakeze/shared/components/ui/dropdown-menu";
+import { Copy, PencilLine, Plus, Trash2, LayoutTemplate } from "lucide-react";
+
+import { useKeyboardInset } from "@lakeze/shared/hooks/use-keyboard-inset";
+import VenueTierRuleAuditLog from "./VenueTierRuleAuditLog";
+
+/* ------------------------------ 型別與常數 ------------------------------ */
+
+export interface BonusTier {
+  min_revenue: number;
+  rate: number;
+}
+
+interface TierRuleRow {
+  id: string;
+  accommodation_id: string;
+  bonus_type: string;
+  effective_from: string;
+  tiers: BonusTier[];
+  note: string | null;
+  created_at: string;
+}
+
+interface AccOption {
+  id: string;
+  name: string;
+}
+
+const BONUS_TYPES = [
+  { value: "am_performance", label: "AM 績效獎金" },
+  { value: "am_manager", label: "AM 總管獎金" },
+  { value: "closer_performance", label: "成交大師績效獎金" },
+] as const;
+
+type BonusType = (typeof BONUS_TYPES)[number]["value"];
+
+const bonusLabel = (v: string) => BONUS_TYPES.find((b) => b.value === v)?.label ?? v;
+
+const twMoney = (n: number) =>
+  `NT$ ${Math.round(n).toLocaleString("zh-TW", { maximumFractionDigits: 0 })}`;
+
+const pct = (r: number) => `${(r * 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+/** effective_from 對齊資料月：落在資料月 1 日之後 → 該資料月仍用舊制 */
+function payoutPeriodHint(effectiveFrom: string): string {
+  const [y, m, d] = effectiveFrom.slice(0, 10).split("-").map(Number);
+  let dataY = y;
+  let dataM = m;
+  if (d > 1) {
+    dataM = m === 12 ? 1 : m + 1;
+    dataY = m === 12 ? y + 1 : y;
+  }
+  const payM = dataM === 12 ? 1 : dataM + 1;
+  const payY = dataM === 12 ? dataY + 1 : dataY;
+  return `${dataY}/${String(dataM).padStart(2, "0")} 資料月 → 預計自 ${payY}/${String(payM).padStart(2, "0")}/10 期開始正式取用`;
+}
+
+function todayTaipei(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Taipei",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/* ------------------------------ 版本聚合 ------------------------------ */
+
+interface VenueVersion {
+  key: string; // accommodation_id|effective_from
+  accommodation_id: string;
+  effective_from: string;
+  rows: Partial<Record<BonusType, TierRuleRow>>;
+  /** 三種獎金的門檻是否一致（不一致代表是舊資料，需降級顯示） */
+  consistent: boolean;
+  thresholds: number[];
+  note: string | null;
+}
+
+function buildVersions(rules: TierRuleRow[], accId: string): VenueVersion[] {
+  const map = new Map<string, VenueVersion>();
+  for (const r of rules) {
+    if (r.accommodation_id !== accId) continue;
+    const key = `${r.accommodation_id}|${r.effective_from}`;
+    let v = map.get(key);
+    if (!v) {
+      v = {
+        key,
+        accommodation_id: r.accommodation_id,
+        effective_from: r.effective_from,
+        rows: {},
+        consistent: true,
+        thresholds: [],
+        note: null,
+      };
+      map.set(key, v);
+    }
+    v.rows[r.bonus_type as BonusType] = r;
+    if (!v.note && r.note) v.note = r.note;
+  }
+  for (const v of map.values()) {
+    const sets = Object.values(v.rows).map((r) =>
+      (r as TierRuleRow).tiers.map((t) => t.min_revenue).sort((a, b) => a - b),
+    );
+    const union = Array.from(new Set(sets.flat())).sort((a, b) => a - b);
+    v.thresholds = union;
+    v.consistent = sets.every((s) => s.length === union.length && s.every((n, i) => n === union[i]));
+  }
+  return Array.from(map.values()).sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
+}
+
+function currentVersionKey(versions: VenueVersion[]): string | null {
+  const today = todayTaipei();
+  const eligible = versions.filter((v) => v.effective_from <= today);
+  if (eligible.length === 0) return null;
+  return eligible.reduce((best, v) => (v.effective_from > best.effective_from ? v : best)).key;
+}
+
+/* ------------------------------ 表單型別 ------------------------------ */
+
+interface FormRow {
+  min: string;
+  rates: Record<BonusType, string>;
+}
+
+const emptyRow = (): FormRow => ({
+  min: "",
+  rates: { am_performance: "", am_manager: "", closer_performance: "" },
+});
+
+/* ------------------------------ 主元件 ------------------------------ */
+
+export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?: boolean }) {
+  const { toast } = useToast();
+  const [accs, setAccs] = useState<AccOption[]>([]);
+  const [rules, setRules] = useState<TierRuleRow[]>([]);
+  const [usedRuleIds, setUsedRuleIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [selectedAcc, setSelectedAcc] = useState<string | null>(null);
+  const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
+
+  // 編輯 Dialog 狀態
+  const keyboardInset = useKeyboardInset();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  /** 非 null 代表「刪除並重新新增」模式：儲存時會先刪掉同館同生效日的舊版本 */
+  const [replaceTarget, setReplaceTarget] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+  } | null>(null);
+  /** 修正前的確認視窗對象 */
+  const [fixCandidate, setFixCandidate] = useState<VenueVersion | null>(null);
+  /** 修正模式下被刪除前的原始資料列（供「撤銷上一步」還原） */
+  const [replaceSnapshot, setReplaceSnapshot] = useState<TierRuleRow[] | null>(null);
+  /** 重建完成後的可撤銷狀態（限時） */
+  const [undoState, setUndoState] = useState<{
+    accommodation_id: string;
+    effective_from: string;
+    rows: TierRuleRow[];
+    expiresAt: number;
+  } | null>(null);
+  const [undoLeft, setUndoLeft] = useState(0);
+  const [undoing, setUndoing] = useState(false);
+  const [formAcc, setFormAcc] = useState<string>("");
+  const [formDate, setFormDate] = useState<string>(todayTaipei());
+  const [formNote, setFormNote] = useState<string>("");
+  const [formEnabled, setFormEnabled] = useState<Record<BonusType, boolean>>({
+    am_performance: true,
+    am_manager: true,
+    closer_performance: true,
+  });
+  const [formRows, setFormRows] = useState<FormRow[]>([emptyRow()]);
+  const [errors, setErrors] = useState<string[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldRefs = useRef<Record<string, HTMLElement | null>>({});
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => {
+    const [accRes, ruleRes, usedRes] = await Promise.all([
+      supabase.from("accommodation_info").select("id, name").order("name"),
+      supabase
+        .from("venue_team_bonus_tier_rules")
+        .select("id, accommodation_id, bonus_type, effective_from, tiers, note, created_at")
+        .order("effective_from", { ascending: false }),
+      supabase
+        .from("teamcommission_bonus_snapshot_lines")
+        .select("tier_rule_id")
+        .not("tier_rule_id", "is", null),
+    ]);
+    setAccs(((accRes.data ?? []) as AccOption[]).filter((a) => a.id && a.name));
+    setRules(
+      ((ruleRes.data ?? []) as any[]).map((r) => ({
+        ...r,
+        tiers: Array.isArray(r.tiers) ? (r.tiers as BonusTier[]) : [],
+      })),
+    );
+    setUsedRuleIds(
+      new Set(((usedRes.data ?? []) as any[]).map((r) => r.tier_rule_id).filter(Boolean)),
+    );
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const overview = useMemo(() => {
+    return accs.map((a) => {
+      const own = rules.filter((r) => r.accommodation_id === a.id);
+      const types = Array.from(new Set(own.map((r) => r.bonus_type)));
+      const versionCount = new Set(own.map((r) => r.effective_from)).size;
+      return { acc: a, hasRule: own.length > 0, types, versionCount };
+    });
+  }, [accs, rules]);
+
+  const versions = useMemo(
+    () => (selectedAcc ? buildVersions(rules, selectedAcc) : []),
+    [rules, selectedAcc],
+  );
+
+  /** 可作為參考範本的版本：每個已設定館別取「最新生效日」那一版 */
+  const templateVersions = useMemo(() => {
+    const list: { acc: AccOption; version: VenueVersion }[] = [];
+    accs.forEach((a) => {
+      const vs = buildVersions(rules, a.id);
+      if (vs.length > 0) list.push({ acc: a, version: vs[0] });
+    });
+    return list;
+  }, [accs, rules]);
+
+  const currentKey = useMemo(() => currentVersionKey(versions), [versions]);
+  const shownVersion = useMemo(
+    () =>
+      versions.find((v) => v.key === activeVersionKey) ??
+      versions.find((v) => v.key === currentKey) ??
+      versions[0] ??
+      null,
+    [versions, activeVersionKey, currentKey],
+  );
+
+  useEffect(() => {
+    setActiveVersionKey(null);
+  }, [selectedAcc]);
+
+  /* ------------------------------ 表單操作 ------------------------------ */
+
+  /** 此版本是否已被獎金快照採用（採用過就不能刪除重建） */
+  const isVersionLocked = (v: VenueVersion) =>
+    Object.values(v.rows).some((r) => r && usedRuleIds.has((r as TierRuleRow).id));
+
+  const openCreate = (accId?: string) => {
+    setReplaceTarget(null);
+    setFormAcc(accId ?? selectedAcc ?? "");
+    setFormDate(todayTaipei());
+    setFormNote("");
+    setFormEnabled({ am_performance: true, am_manager: true, closer_performance: true });
+    setFormRows([emptyRow()]);
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
+  const versionToRows = (v: VenueVersion): FormRow[] =>
+    v.thresholds.map((min) => ({
+      min: String(min),
+      rates: {
+        am_performance: rateAt(v, "am_performance", min),
+        am_manager: rateAt(v, "am_manager", min),
+        closer_performance: rateAt(v, "closer_performance", min),
+      },
+    }));
+
+  const openCopyFrom = (v: VenueVersion) => {
+    setReplaceTarget(null);
+    setFormAcc("");
+    setFormDate(todayTaipei());
+    setFormNote(
+      `複製自 ${accs.find((a) => a.id === v.accommodation_id)?.name ?? ""}（${v.effective_from}）`,
+    );
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
+  /** 以此版本為基礎新增下一版（同館別） */
+  const openBasedOn = (v: VenueVersion) => {
+    setReplaceTarget(null);
+    setFormAcc(v.accommodation_id);
+    setFormDate(todayTaipei());
+    setFormNote("");
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
+  /** 修正此版本：刪除並以相同生效日重新新增（僅限尚未被快照採用的版本） */
+  const openFix = (v: VenueVersion) => {
+    if (isVersionLocked(v)) {
+      toast({
+        title: "此版本已被快照採用，無法修正",
+        description: "請改用「以此版本為基礎新增」建立較晚生效的新版本。",
+        variant: "destructive",
+      });
+      return;
+    }
+    setReplaceTarget({ accommodation_id: v.accommodation_id, effective_from: v.effective_from });
+    setReplaceSnapshot(Object.values(v.rows).filter(Boolean) as TierRuleRow[]);
+    setFormAcc(v.accommodation_id);
+    setFormDate(v.effective_from.slice(0, 10));
+    setFormNote(v.note ?? "");
+    setFormEnabled({
+      am_performance: !!v.rows.am_performance,
+      am_manager: !!v.rows.am_manager,
+      closer_performance: !!v.rows.closer_performance,
+    });
+    setFormRows(versionToRows(v));
+    setErrors([]);
+    setFieldErrors({});
+    setDialogOpen(true);
+  };
+
+
+  const enabledTypes = BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => b.value);
+
+  /** 逐欄位錯誤：key 為 acc / date / types / rows / min-i / rate-i-type */
+  const validate = (): { list: string[]; fields: Record<string, string>; firstKey?: string } => {
+    const errs: string[] = [];
+    const fields: Record<string, string> = {};
+    const order: string[] = [];
+    const put = (key: string, msg: string) => {
+      if (!fields[key]) {
+        fields[key] = msg;
+        order.push(key);
+      }
+      errs.push(msg);
+    };
+
+    if (!formAcc) put("acc", "請選擇館別");
+    if (!formDate) put("date", "請選擇生效日");
+    if (enabledTypes.length === 0)
+      put("types", "至少要有一種獎金使用本館級距，否則此版本沒有意義");
+    if (formRows.length === 0) put("rows", "請至少填一個級距");
+
+    const mins: Array<number | null> = [];
+    formRows.forEach((row, i) => {
+      const min = Number(row.min);
+      if (row.min.trim() === "") {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必填`);
+        mins.push(null);
+      } else if (!Number.isFinite(min) || min < 0) {
+        put(`min-${i}`, `第 ${i + 1} 階：營收門檻必須是 0 以上的數字`);
+        mins.push(null);
+      } else {
+        mins.push(min);
+      }
+      for (const t of enabledTypes) {
+        const raw = row.rates[t];
+        const rate = Number(raw);
+        if (raw.trim() === "") {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必填（不發請填 0）`);
+        } else if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+          put(`rate-${i}-${t}`, `第 ${i + 1} 階「${bonusLabel(t)}」費率必須是 0–100 之間的數字`);
+        }
+      }
+    });
+
+    // 門檻必須由小到大遞增且不重複
+    const seen = new Map<number, number>();
+    mins.forEach((m, i) => {
+      if (m === null) return;
+      const dup = seen.get(m);
+      if (dup !== undefined) {
+        put(`min-${i}`, `第 ${i + 1} 階：門檻 ${m.toLocaleString()} 與第 ${dup + 1} 階重複`);
+        return;
+      }
+      seen.set(m, i);
+      for (let j = i - 1; j >= 0; j--) {
+        const prev = mins[j];
+        if (prev === null) continue;
+        if (m <= prev) {
+          put(
+            `min-${i}`,
+            `第 ${i + 1} 階：門檻必須大於第 ${j + 1} 階（${prev.toLocaleString()}）`,
+          );
+        }
+        break;
+      }
+    });
+
+    return { list: errs, fields, firstKey: order[0] };
+  };
+
+  const save = async () => {
+    const { list, fields, firstKey } = validate();
+    setErrors(list);
+    setFieldErrors(fields);
+    if (list.length > 0) {
+      toast({ title: "尚有欄位需修正", description: list[0], variant: "destructive" });
+      if (firstKey) {
+        requestAnimationFrame(() => {
+          const el = fieldRefs.current[firstKey];
+          el?.scrollIntoView({ block: "center", behavior: "smooth" });
+          el?.focus?.();
+        });
+      }
+      return;
+    }
+
+
+    const sortedRows = [...formRows].sort((a, b) => Number(a.min) - Number(b.min));
+    setSaving(true);
+    const { data: userData } = await supabase.auth.getUser();
+
+    // 修正模式：先刪除舊版本（同館別、同生效日），再整批重新新增
+    if (replaceTarget) {
+      const { error: delErr } = await supabase
+        .from("venue_team_bonus_tier_rules")
+        .delete()
+        .eq("accommodation_id", replaceTarget.accommodation_id)
+        .eq("effective_from", replaceTarget.effective_from);
+      if (delErr) {
+        setSaving(false);
+        toast({ title: "舊版本刪除失敗", description: delErr.message, variant: "destructive" });
+        return;
+      }
+    }
+
+    const payload = enabledTypes.map((t) => ({
+      accommodation_id: formAcc,
+      bonus_type: t,
+      effective_from: formDate,
+      tiers: sortedRows.map((r) => ({
+        min_revenue: Number(r.min),
+        rate: Number(r.rates[t]) / 100,
+      })) as any,
+      note: formNote || null,
+      created_by: userData?.user?.id ?? null,
+    }));
+    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(payload);
+    setSaving(false);
+    if (error) {
+      toast({
+        title: replaceTarget ? "重建失敗（舊版本已刪除，請重新儲存）" : "儲存失敗",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({
+      title: replaceTarget ? "已重建版本" : "已新增版本",
+      description: payoutPeriodHint(formDate),
+    });
+    if (replaceTarget && replaceSnapshot && replaceSnapshot.length > 0) {
+      setUndoState({
+        accommodation_id: replaceTarget.accommodation_id,
+        effective_from: replaceTarget.effective_from,
+        rows: replaceSnapshot,
+        expiresAt: Date.now() + 120_000,
+      });
+    }
+    setDialogOpen(false);
+    setReplaceTarget(null);
+    setReplaceSnapshot(null);
+    setSelectedAcc(formAcc);
+    setActiveVersionKey(`${formAcc}|${formDate}`);
+    await load();
+  };
+
+  /** 撤銷上一步：刪掉剛重建的內容，還原成修正前的原始級距 */
+  const undoRebuild = async () => {
+    if (!undoState) return;
+    setUndoing(true);
+    const { error: delErr } = await supabase
+      .from("venue_team_bonus_tier_rules")
+      .delete()
+      .eq("accommodation_id", undoState.accommodation_id)
+      .eq("effective_from", undoState.effective_from);
+    if (delErr) {
+      setUndoing(false);
+      toast({ title: "撤銷失敗", description: delErr.message, variant: "destructive" });
+      return;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const { error } = await supabase.from("venue_team_bonus_tier_rules").insert(
+      undoState.rows.map((r) => ({
+        accommodation_id: r.accommodation_id,
+        bonus_type: r.bonus_type,
+        effective_from: r.effective_from,
+        tiers: r.tiers as any,
+        note: r.note,
+        created_by: userData?.user?.id ?? null,
+      })),
+    );
+    setUndoing(false);
+    if (error) {
+      toast({ title: "還原失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "已撤銷，版本已還原為修正前內容" });
+    setUndoState(null);
+    await load();
+  };
+
+  useEffect(() => {
+    if (!undoState) return;
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((undoState.expiresAt - Date.now()) / 1000));
+      setUndoLeft(left);
+      if (left === 0) setUndoState(null);
+    };
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [undoState]);
+
+
+
+
+
+  const removeVersion = async (v: VenueVersion) => {
+    const { error } = await supabase
+      .from("venue_team_bonus_tier_rules")
+      .delete()
+      .eq("accommodation_id", v.accommodation_id)
+      .eq("effective_from", v.effective_from);
+    if (error) {
+      toast({ title: "刪除失敗", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "已刪除版本" });
+    setActiveVersionKey(null);
+    await load();
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>館別獎金級距規則（總部集中管理）</CardTitle>
+          <CardDescription>
+            這裡設定的是「館別專屬階層級距」：一個館別、一個生效日，就是一組完整的級距表——
+            營收門檻只定義一次，AM 績效／AM 總管／成交大師績效各自對應一欄費率。
+            有設定的館別，該館營收落在哪一階就整筆套用該階費率（非超額累進）；
+            沒有勾選「使用本館級距」的獎金類型則完全沿用系統費率，兩者可在同一期快照裡混算。
+            AM 總管與成交大師績效仍是「逐館級距算完的池 ÷ 人數」，除人數與在職比例邏輯不變。
+            <br />
+            版本以資料月對齊：生效日落在資料月 1 日之後，該資料月仍用舊制；資料月次月 9 日 23:59
+            定案後不回溯已定案金額。營收基準沿用現行來源白名單口徑，與住房率統計完全脫鉤。
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
+      {/* 重建後限時撤銷 */}
+      {undoState && !readOnly && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-sm">
+          <span>
+            已重建「{accs.find((a) => a.id === undoState.accommodation_id)?.name}」生效日{" "}
+            {undoState.effective_from} 的版本。若是誤觸，可在 {undoLeft} 秒內還原成修正前內容。
+          </span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={undoRebuild} disabled={undoing}>
+              {undoing ? "還原中…" : "撤銷上一步"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setUndoState(null)}>
+              知道了
+            </Button>
+          </div>
+        </div>
+      )}
+
+
+      {/* 館別總覽 */}
+      <Card>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">館別總覽</CardTitle>
+            <CardDescription>
+              哪些館別已改用獨立業務規則
+              <br />
+              <span className="text-xs">
+                提醒：要新增版本時，建議使用右上「從其他館別帶入」直接套用現成級距，或先點選館別後用「以此版本為基礎新增」（同館沿用級距、只改生效日），
+                比從零填寫更快也不易漏填。
+              </span>
+            </CardDescription>
+          </div>
+          {!readOnly && (
+            <div className="flex flex-wrap items-center gap-2">
+              {templateVersions.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <LayoutTemplate className="mr-1 h-4 w-4" />
+                      從其他館別帶入
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="max-h-72 w-64 overflow-y-auto">
+                    <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                      選擇參考範本（帶入級距後再挑館別與生效日）
+                    </DropdownMenuLabel>
+                    {templateVersions.map(({ acc, version }) => (
+                      <DropdownMenuItem
+                        key={version.key}
+                        onSelect={() => openCopyFrom(version)}
+                        className="flex flex-col items-start gap-0.5"
+                      >
+                        <span className="text-sm font-medium">{acc.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {version.effective_from.slice(0, 10)}．{version.thresholds.length} 階
+                        </span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              <Button size="sm" onClick={() => openCreate()}>
+                <Plus className="mr-1 h-4 w-4" />
+                新增規則版本
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {overview.map(({ acc, hasRule, types, versionCount }) => (
+            <button
+              key={acc.id}
+              type="button"
+              onClick={() => setSelectedAcc(acc.id)}
+              className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${
+                selectedAcc === acc.id ? "border-primary bg-muted/40" : "border-border"
+              }`}
+            >
+              <span className="font-medium">{acc.name}</span>
+              <span className="flex flex-wrap items-center gap-1">
+                {hasRule ? (
+                  <>
+                    <Badge variant="default">已設獨立規則</Badge>
+                    {types.map((t) => (
+                      <Badge key={t} variant="outline">
+                        {bonusLabel(t)}
+                      </Badge>
+                    ))}
+                    <span className="text-xs text-muted-foreground">{versionCount} 個版本</span>
+                  </>
+                ) : (
+                  <Badge variant="secondary">沿用系統費率</Badge>
+                )}
+              </span>
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* 級距矩陣 + 版本列表 */}
+      {selectedAcc && (
+        <Card>
+          <CardHeader className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="text-base">
+                {accs.find((a) => a.id === selectedAcc)?.name} ｜ 級距內容
+              </CardTitle>
+              {!readOnly && (
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => openCreate(selectedAcc)}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    新增版本
+                  </Button>
+                  {shownVersion && (
+                    <>
+                      {isVersionLocked(shownVersion) ? (
+                        <Badge variant="secondary" className="self-center">
+                          已被快照採用，僅能新增新版本
+                        </Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setFixCandidate(shownVersion)}
+                        >
+                          <PencilLine className="mr-1 h-4 w-4" />
+                          修正此版本（刪除並重建）
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => openBasedOn(shownVersion)}>
+                        <Copy className="mr-1 h-4 w-4" />
+                        以此版本為基礎新增
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => openCopyFrom(shownVersion)}>
+                        <Copy className="mr-1 h-4 w-4" />
+                        複製到其他館別
+                      </Button>
+                    </>
+                  )}
+
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!shownVersion ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                此館別尚未設定獨立級距規則，目前三種獎金皆沿用系統費率。
+              </p>
+            ) : (
+              <>
+                {!shownVersion.consistent && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                    此版本的三種獎金門檻不一致（舊資料）。下表以聯集門檻顯示，缺該門檻的欄位標示為「—」。
+                    建議以此版本為基礎新增一版，統一門檻後再使用。
+                  </p>
+                )}
+
+                {/* 桌機：矩陣表 */}
+                <div className="hidden overflow-x-auto sm:block">
+                  <table className="w-full text-sm tabular-nums">
+                    <thead>
+                      <tr className="border-b text-muted-foreground">
+                        <th className="w-16 py-2 text-left font-medium">階層</th>
+                        <th className="py-2 text-right font-medium whitespace-nowrap">
+                          營收門檻（達到即整筆套用）
+                        </th>
+                        {BONUS_TYPES.map((b) => (
+                          <th key={b.value} className="py-2 text-right font-medium whitespace-nowrap">
+                            {b.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {shownVersion.thresholds.map((min, i) => (
+                        <tr key={min} className="border-b last:border-0">
+                          <td className="py-2">第 {i + 1} 階</td>
+                          <td className="py-2 text-right whitespace-nowrap">
+                            {twMoney(min)} 以上
+                          </td>
+                          {BONUS_TYPES.map((b) => (
+                            <td key={b.value} className="py-2 text-right whitespace-nowrap">
+                              {displayRate(shownVersion, b.value, min)}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                      <tr className="text-xs text-muted-foreground">
+                        <td className="py-2" />
+                        <td className="py-2 text-right">未設定門檻的獎金類型</td>
+                        {BONUS_TYPES.map((b) => (
+                          <td key={b.value} className="py-2 text-right">
+                            {shownVersion.rows[b.value] ? "本館級距" : "沿用系統費率"}
+                          </td>
+                        ))}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* 手機：每階一張卡 */}
+                <div className="space-y-2 sm:hidden">
+                  {shownVersion.thresholds.map((min, i) => (
+                    <div key={min} className="rounded-md border px-3 py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">第 {i + 1} 階</span>
+                        <span className="tabular-nums">{twMoney(min)} 以上</span>
+                      </div>
+                      <div className="mt-2 grid grid-cols-3 gap-2 text-center text-xs">
+                        {BONUS_TYPES.map((b) => (
+                          <div key={b.value} className="rounded bg-muted/50 px-1 py-1">
+                            <div className="text-muted-foreground">{b.label}</div>
+                            <div className="tabular-nums font-medium">
+                              {displayRate(shownVersion, b.value, min)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex flex-wrap gap-1">
+                    {BONUS_TYPES.map((b) => (
+                      <Badge key={b.value} variant={shownVersion.rows[b.value] ? "default" : "secondary"}>
+                        {b.label}：{shownVersion.rows[b.value] ? "本館級距" : "沿用系統費率"}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+
+                {shownVersion.note && (
+                  <p className="text-xs text-muted-foreground">備註：{shownVersion.note}</p>
+                )}
+
+                <div>
+                  <p className="mb-2 text-sm font-medium">版本列表</p>
+                  <ul className="divide-y rounded-md border">
+                    {versions.map((v) => {
+                      const isCurrent = v.key === currentKey;
+                      const isFuture = v.effective_from > todayTaipei();
+                      const locked = isVersionLocked(v);
+                      return (
+                        <li
+                          key={v.key}
+                          className={`flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm ${
+                            shownVersion.key === v.key ? "bg-muted/40" : ""
+                          }`}
+                        >
+                          <button
+                            type="button"
+                            className="flex flex-1 flex-wrap items-center gap-2 text-left"
+                            onClick={() => setActiveVersionKey(v.key)}
+                          >
+                            <span className="tabular-nums">生效日：{v.effective_from}</span>
+                            {isCurrent ? (
+                              <Badge variant="default">目前生效</Badge>
+                            ) : isFuture ? (
+                              <Badge variant="outline">待生效</Badge>
+                            ) : (
+                              <Badge variant="secondary">已過期</Badge>
+                            )}
+                            {locked && <Badge variant="secondary">已被快照採用</Badge>}
+                            <span className="text-xs text-muted-foreground">
+                              {payoutPeriodHint(v.effective_from)}
+                            </span>
+                          </button>
+                          {!readOnly && !locked && (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => setFixCandidate(v)}
+                                className="admin-touch-target"
+                              >
+                                <PencilLine className="mr-1 h-4 w-4" />
+                                修正
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => removeVersion(v)}
+                                aria-label="刪除版本"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
+
+                  </ul>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      <VenueTierRuleAuditLog accs={accs} accountFilter={selectedAcc} />
+
+      {/* 新增／複製版本 Dialog：整張級距表一次編輯 */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="flex max-h-[92dvh] w-[calc(100vw-1rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-h-[88vh] sm:w-full sm:max-w-4xl">
+          <DialogHeader className="shrink-0 border-b px-4 py-3 text-left sm:px-6 sm:py-4">
+            <DialogTitle className="text-base sm:text-lg">
+              {replaceTarget ? "修正級距規則版本（刪除並重建）" : "新增級距規則版本"}
+            </DialogTitle>
+            <DialogDescription className="text-xs sm:text-sm">
+              {replaceTarget
+                ? "已帶入原版本的生效日、獎金開關與整張級距表。儲存時會先刪除原版本，再以相同生效日重新建立，等同一次完成重建。"
+                : "門檻只需定義一次，三種獎金各填一欄費率。新增後不回溯歷史期別，只影響尚未定案的未來期別。"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+            {replaceTarget && (
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+                修正模式：此版本尚未被任何獎金快照採用，因此可以直接重建。儲存後原本的
+                {` ${replaceTarget.effective_from} `}
+                版本會被刪除並以新內容取代（審計紀錄會同時留下刪除與新增兩筆）。若要保留原版本，請改用「以此版本為基礎新增」。
+              </div>
+            )}
+
+
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>館別</Label>
+                <Select value={formAcc} onValueChange={setFormAcc} disabled={!!replaceTarget}>
+                  <SelectTrigger
+                    ref={(el) => (fieldRefs.current["acc"] = el)}
+                    className={fieldErrors.acc ? "border-destructive" : ""}
+                  >
+                    <SelectValue placeholder="選擇館別" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accs.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        {a.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.acc && (
+                  <p className="text-xs text-destructive">{fieldErrors.acc}</p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>生效日</Label>
+                <Input
+                  type="date"
+                  ref={(el) => (fieldRefs.current["date"] = el)}
+                  className={fieldErrors.date ? "border-destructive" : ""}
+                  value={formDate}
+                  onChange={(e) => setFormDate(e.target.value)}
+                />
+                {fieldErrors.date ? (
+                  <p className="text-xs text-destructive">{fieldErrors.date}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{payoutPeriodHint(formDate)}</p>
+                )}
+              </div>
+            </div>
+
+
+            <div className="space-y-2">
+              <Label>哪些獎金使用本館級距？</Label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                {BONUS_TYPES.map((b) => (
+                  <div
+                    key={b.value}
+                    className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+                  >
+                    <span className="text-sm">{b.label}</span>
+                    <Switch
+                      checked={formEnabled[b.value]}
+                      onCheckedChange={(c) =>
+                        setFormEnabled((prev) => ({ ...prev, [b.value]: c }))
+                      }
+                      aria-label={`${b.label} 使用本館級距`}
+                    />
+                  </div>
+                ))}
+              </div>
+              {fieldErrors.types ? (
+                <p
+                  className="text-xs text-destructive"
+                  ref={(el) => (fieldRefs.current["types"] = el)}
+                >
+                  {fieldErrors.types}
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  關閉的獎金類型不會建立本館規則，該獎金在此館維持沿用全站系統費率。
+                </p>
+              )}
+            </div>
+
+
+            <div className="space-y-2">
+              <Label>級距表（門檻金額／各獎金費率 %）</Label>
+              <div className="hidden max-h-[46vh] overflow-auto rounded-md border sm:block">
+                <table className="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
+
+                  <thead className="sticky top-0 z-20">
+                    <tr className="text-xs text-muted-foreground">
+                      <th className="sticky left-0 z-30 w-16 border-b bg-background px-2 py-2 text-left font-medium">
+                        階層
+                      </th>
+                      <th className="sticky left-16 z-30 w-44 border-b bg-background px-2 py-2 text-left font-medium">
+                        營收門檻
+                      </th>
+                      {BONUS_TYPES.map((b) => (
+                        <th
+                          key={b.value}
+                          className={`border-b bg-background px-2 py-2 text-left font-medium whitespace-nowrap ${
+                            formEnabled[b.value] ? "" : "opacity-40"
+                          }`}
+                        >
+                          {b.label} %
+                        </th>
+                      ))}
+                      <th className="w-12 border-b bg-background" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {formRows.map((row, i) => (
+                      <tr key={i} className="align-top">
+                        <td className="sticky left-0 z-10 border-b bg-background px-2 py-1.5 text-xs text-muted-foreground whitespace-nowrap">
+                          第 {i + 1} 階
+                        </td>
+                        <td className="sticky left-16 z-10 w-44 border-b bg-background px-2 py-1.5 align-top">
+
+                          <Input
+                            inputMode="numeric"
+                            placeholder="1000000"
+                            ref={(el) => (fieldRefs.current[`min-${i}`] = el)}
+                            className={`tabular-nums ${
+                              fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                            }`}
+                            value={row.min}
+                            onChange={(e) =>
+                              setFormRows((prev) =>
+                                prev.map((x, xi) =>
+                                  xi === i ? { ...x, min: e.target.value } : x,
+                                ),
+                              )
+                            }
+                          />
+                          {fieldErrors[`min-${i}`] && (
+                            <p className="mt-1 text-xs text-destructive">
+                              {fieldErrors[`min-${i}`]}
+                            </p>
+                          )}
+                        </td>
+                        {BONUS_TYPES.map((b) => (
+                          <td key={b.value} className="min-w-[7.5rem] border-b px-2 py-1.5 align-top">
+                            <Input
+                              inputMode="decimal"
+                              placeholder={formEnabled[b.value] ? "0.80" : "沿用系統"}
+                              ref={(el) => (fieldRefs.current[`rate-${i}-${b.value}`] = el)}
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
+                              disabled={!formEnabled[b.value]}
+                              value={row.rates[b.value]}
+                              onChange={(e) =>
+                                setFormRows((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="mt-1 text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
+                          </td>
+                        ))}
+
+                        <td className="border-b px-1 py-1.5">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label="刪除此階"
+                            onClick={() =>
+                              setFormRows((prev) => prev.filter((_, xi) => xi !== i))
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* 手機版：每階一張卡片 */}
+              <div className="space-y-3 sm:hidden">
+                {formRows.map((row, i) => (
+                  <div key={i} className="rounded-lg border p-3">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="text-sm font-medium">第 {i + 1} 階</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="刪除此階"
+                        className="h-9 w-9"
+                        onClick={() => setFormRows((prev) => prev.filter((_, xi) => xi !== i))}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-muted-foreground">營收門檻</Label>
+                      <Input
+                        inputMode="numeric"
+                        placeholder="1000000"
+                        className={`tabular-nums ${
+                          fieldErrors[`min-${i}`] ? "border-destructive" : ""
+                        }`}
+                        value={row.min}
+                        onChange={(e) =>
+                          setFormRows((prev) =>
+                            prev.map((x, xi) => (xi === i ? { ...x, min: e.target.value } : x)),
+                          )
+                        }
+                      />
+                      {fieldErrors[`min-${i}`] && (
+                        <p className="text-xs text-destructive">{fieldErrors[`min-${i}`]}</p>
+                      )}
+                    </div>
+
+                    <div className="-mx-3 mt-2 overflow-x-auto px-3 [scrollbar-width:thin]">
+                      <div className="flex snap-x snap-mandatory gap-3">
+                        {BONUS_TYPES.filter((b) => formEnabled[b.value]).map((b) => (
+                          <div
+                            key={b.value}
+                            className="w-[9.5rem] shrink-0 snap-start space-y-1.5"
+                          >
+                            <Label className="block truncate text-xs text-muted-foreground">
+                              {b.label} %
+                            </Label>
+                            <Input
+                              inputMode="decimal"
+                              placeholder="0.80"
+                              className={`tabular-nums ${
+                                fieldErrors[`rate-${i}-${b.value}`] ? "border-destructive" : ""
+                              }`}
+                              value={row.rates[b.value]}
+                              onChange={(e) =>
+                                setFormRows((prev) =>
+                                  prev.map((x, xi) =>
+                                    xi === i
+                                      ? { ...x, rates: { ...x.rates, [b.value]: e.target.value } }
+                                      : x,
+                                  ),
+                                )
+                              }
+                            />
+                            {fieldErrors[`rate-${i}-${b.value}`] && (
+                              <p className="text-xs text-destructive">
+                                {fieldErrors[`rate-${i}-${b.value}`]}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      {BONUS_TYPES.filter((b) => formEnabled[b.value]).length > 1 && (
+                        <p className="mt-1 text-[11px] text-muted-foreground">
+                          左右滑動可切換其他獎金費率欄位
+                        </p>
+                      )}
+                      {BONUS_TYPES.every((b) => !formEnabled[b.value]) && (
+                        <p className="text-xs text-muted-foreground">
+                          尚未開啟任何獎金類型，請先於上方選擇。
+                        </p>
+                      )}
+                    </div>
+
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={() => setFormRows((prev) => [...prev, emptyRow()])}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                新增一階
+              </Button>
+
+            </div>
+
+            {errors.length > 0 && (
+              <ul className="space-y-1 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+                {errors.map((e, i) => (
+                  <li key={i}>・{e}</li>
+                ))}
+              </ul>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>備註</Label>
+              <Textarea value={formNote} onChange={(e) => setFormNote(e.target.value)} rows={2} />
+            </div>
+          </div>
+
+          <DialogFooter
+            className="sticky bottom-0 z-40 shrink-0 flex-col-reverse gap-2 border-t bg-background px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6"
+            style={keyboardInset ? { paddingBottom: keyboardInset + 12 } : undefined}
+          >
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto"
+              onClick={() => setDialogOpen(false)}
+            >
+              取消
+            </Button>
+            <Button onClick={save} disabled={saving} className="w-full sm:w-auto">
+              {replaceTarget ? "刪除並重建此版本" : "儲存版本"}
+            </Button>
+          </DialogFooter>
+
+        </DialogContent>
+      </Dialog>
+
+      {/* 修正前確認 */}
+      <AlertDialog open={!!fixCandidate} onOpenChange={(o) => !o && setFixCandidate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>確認修正此版本？</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm">
+                <p>
+                  系統會<strong>先刪除</strong>下列版本，再以相同生效日重新建立你編輯後的內容。
+                </p>
+                <ul className="rounded-md border bg-muted/40 p-3 text-xs space-y-1">
+                  <li>
+                    館別：
+                    <strong>
+                      {accs.find((a) => a.id === fixCandidate?.accommodation_id)?.name ?? "—"}
+                    </strong>
+                  </li>
+                  <li>
+                    會刪除的版本：<strong>生效日 {fixCandidate?.effective_from}</strong>（含此版本
+                    {fixCandidate ? Object.values(fixCandidate.rows).filter(Boolean).length : 0}{" "}
+                    種獎金的所有級距）
+                  </li>
+                  <li>
+                    保留的生效日：<strong>{fixCandidate?.effective_from}</strong>（重建後生效期別不變）
+                  </li>
+                </ul>
+
+                {fixCandidate && (
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium">
+                      將被刪除的級距內容（重建時會先帶入這份資料，供你逐階比對修改）
+                    </p>
+                    <div className="max-h-56 overflow-auto rounded-md border">
+                      <table className="w-full text-xs tabular-nums">
+                        <thead className="sticky top-0 bg-muted/60">
+                          <tr>
+                            <th className="px-2 py-1 text-left">營收門檻</th>
+                            {BONUS_TYPES.map((b) => (
+                              <th key={b.value} className="px-2 py-1 text-right">
+                                {b.label}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {fixCandidate.thresholds.map((min, i) => (
+                            <tr key={min} className={i % 2 ? "bg-muted/20" : ""}>
+                              <td className="px-2 py-1">{twMoney(min)} 起</td>
+                              {BONUS_TYPES.map((b) => (
+                                <td key={b.value} className="px-2 py-1 text-right">
+                                  {displayRate(fixCandidate, b.value, min)}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      共 {fixCandidate.thresholds.length} 階；
+                      {BONUS_TYPES.map(
+                        (b) =>
+                          `${b.label}：${fixCandidate.rows[b.value] ? "本館級距" : "沿用系統費率"}`,
+                      ).join("｜")}
+                      {fixCandidate.note ? `｜備註：${fixCandidate.note}` : ""}
+                    </p>
+                  </div>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  此版本尚未被任何快照採用，因此可安全重建；若只是想調整未來期別，請改用「以此版本為基礎新增」。
+                  重建完成後 2 分鐘內可按「撤銷上一步」還原成現在這份內容。
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const v = fixCandidate;
+                setFixCandidate(null);
+                if (v) openFix(v);
+              }}
+            >
+              確認並開始修正
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/* ------------------------------ 顯示輔助 ------------------------------ */
+
+function rateAt(v: VenueVersion, type: BonusType, min: number): string {
+  const row = v.rows[type];
+  if (!row) return "";
+  const hit = row.tiers.find((t) => t.min_revenue === min);
+  return hit ? String(Number((hit.rate * 100).toFixed(4))) : "";
+}
+
+function displayRate(v: VenueVersion, type: BonusType, min: number): string {
+  const row = v.rows[type];
+  if (!row) return "沿用系統";
+  const hit = row.tiers.find((t) => t.min_revenue === min);
+  return hit ? pct(hit.rate) : "—";
+}

@@ -15,7 +15,7 @@
  */
 
 (async () => {
-  const { supabase } = await import('/src/integrations/supabase/client.ts');
+  const { supabase } = await import('/packages/shared/src/integrations/supabase/client.ts');
 
   // 取得目前登入者 role 與 accommodation
   const { data: { user } } = await supabase.auth.getUser();

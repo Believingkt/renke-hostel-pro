@@ -1,18 +1,14 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react-swc';
-import path from 'path';
+import { defineConfig } from "vitest/config";
 
+// 由 repo 根執行 `yarn test`：各 workspace 的 vitest 設定為獨立 project，
+// process.cwd() 維持 repo 根，讓讀取 supabase/functions/* 原始碼的契約測試路徑不變。
 export default defineConfig({
-  plugins: [react()],
   test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    projects: [
+      "packages/shared/vitest.config.ts",
+      "apps/booking/vitest.config.ts",
+      "apps/pms/vitest.config.ts",
+      "apps/hq/vitest.config.ts",
+    ],
   },
 });

@@ -228,9 +228,9 @@ describe("折扣碼 — 唯讀驗證", () => {
 
 describe("原始碼契約", () => {
   const read = (rel: string) => fs.readFileSync(path.join(process.cwd(), rel), "utf8");
-  const dialog = read("src/components/orders/PaidAmountEditDialog.tsx");
-  const plans = read("src/lib/paidAddonPlans.ts");
-  const codeLib = read("src/lib/paidDiscountCodeValidation.ts");
+  const dialog = read("apps/pms/src/components/orders/PaidAmountEditDialog.tsx");
+  const plans = read("apps/pms/src/lib/paidAddonPlans.ts");
+  const codeLib = read("apps/pms/src/lib/paidDiscountCodeValidation.ts");
 
   it("對話框不得直接寫 orders / order_rooms / audit_logs", () => {
     expect(dialog).not.toMatch(/from\("orders"\)[\s\S]{0,80}\.update\(/);

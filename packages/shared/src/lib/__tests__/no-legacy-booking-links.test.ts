@@ -16,18 +16,20 @@ const ALLOWLIST = [
   "/src/App.tsx", // 路由定義
 ];
 
-const modules = import.meta.glob("/src/**/*.{ts,tsx}", {
-  query: "?raw",
-  import: "default",
-  eager: true,
-}) as Record<string, string>;
+// monorepo：掃描 packages/shared 與 apps/*（路徑以檔案相對位置表示，ALLOWLIST 以結尾比對）
+const modules = Object.fromEntries(
+  Object.entries({
+    ...import.meta.glob("../../**/*.{ts,tsx}", { query: "?raw", import: "default", eager: true }),
+    ...import.meta.glob("../../../../apps/*/src/**/*.{ts,tsx}", { query: "?raw", import: "default", eager: true }),
+  }).map(([key, source]) => [new URL(key, import.meta.url).pathname, source]),
+) as Record<string, string>;
 
 describe("前台訂房頁連結守門", () => {
   it("不得手寫 /booking/${...} 動態路徑", () => {
     const offenders: string[] = [];
 
     for (const [file, source] of Object.entries(modules)) {
-      if (ALLOWLIST.includes(file) || /\.test\.(ts|tsx)$/.test(file)) continue;
+      if (ALLOWLIST.some((a) => file.endsWith(a)) || /\.test\.(ts|tsx)$/.test(file)) continue;
       source.split("\n").forEach((line, i) => {
         if (/["'`]\/booking\/\$\{/.test(line) || /`\/booking\/villa\/\$\{/.test(line)) {
           offenders.push(`${file}:${i + 1}: ${line.trim()}`);
