@@ -77,3 +77,5 @@ DNS 還沒改 → 什麼都不用回，延後。DNS 已改 → 7 筆 IP 改回 `
 - [ ] Functions Logs、`cron.job_run_details` 每 2 小時看一次到明晚
 - [ ] Kenneth：Gemini 儲值移交（runbook §5-17）、Vercel 帳號/Pro（checklist B12）、Lovable 訂閱保留 ≥10/20
 - [ ] 奧丁丁 10 月上旬切新端點前，舊→新轉發不能停
+- [ ] **iOS App 1.0（build 53）打包的是舊後端**（Capacitor webDir=dist，bundle 內 34 處舊 ref）。9/25 01:30 查舊 DB：22:14 後 orders=0、page_analytics 9 筆皆非 App（網頁 DNS 快取 + Lovable 預覽）。9/25–26 用 `lakeze_release_ios.sh`（已改為從 feat/migration-prep 打包、檢查 .env、版本 1.0.1）出新版 → TestFlight 下單驗證 → 送審。上架前每天查舊 DB：`select count(*) from orders where created_at > '2026-09-24 14:14+00'`
+- [ ] Lovable 停用條件：iOS 1.0.1 上架後一週、舊 DB 無新 page_analytics／orders（可能晚於 10/20）
