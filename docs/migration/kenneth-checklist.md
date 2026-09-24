@@ -27,7 +27,7 @@
 | B9 | SendGrid 帳號（Inbound Parse → `owlting-email-ingest`） | 誰持有帳號？需把 Inbound Parse 的目的 URL 改到新專案；找不到帳號則奧丁丁 Email 收單在切換後會斷 | ☐ |
 | B10 | Lovable 訂閱保留 | 舊專案要撐到奧丁丁切換完成（對方說 10 月上旬）+ 回退保留期，**至少到 10/20 不要退訂** | ☐ |
 | B11 | Supabase org 加入 | Nokimi 先邀 Kenneth 的 Email 進 org 當 Owner，切換後再正式移轉；請提供要用的 Email | ☐ |
-| B12 | Vercel 方案與帳號 | 前端今晚部署在 Nokimi 個人 Vercel（Hobby 方案，條款不允許商業用途）。切換後第一週：Kenneth 建 Vercel 帳號 → Nokimi 把專案 transfer 過去 → 升 **Pro（US$20/月）** → 在 Believingkt 安裝 Vercel GitHub App 接上 repo，之後 push 自動部署 | ☐ |
+| B12 | 前端改由 Emergent 部署（9/25 決定） | 切換當晚暫用 Nokimi 個人 Vercel（Hobby，過渡用）。Emergent pilot 通過後逐一把網域移過去（hq → pms → booking），移完刪 Vercel 專案。Emergent 部署 50 credits／月／app，3 個 app 共 150 credits／月，從 Kenneth 的 Emergent workspace 扣 | ☐ |
 | B8 | Lovable 後台 Cloud → Secrets | Nokimi 逐一抄出約 60 個 secret（Kenneth 給 Lovable 專案 Editor 權限即可） | ☐ |
 
 ## C. 合作方聯絡窗口（Day 1 通知、Day 4 前確認）

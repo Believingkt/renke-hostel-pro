@@ -70,3 +70,24 @@ DNS 全部切完後 → 到 Lovable 專案 Settings → Domains **移除這 7 �
 - Track A 合併後，同一個 Vercel 專案改成三個專案（booking / pms / hq 各自 root directory），DNS 不用再動
 - 移除 Redirect URLs 裡的 `*.vercel.app`
 - `VITE_PREVIEW_HOSTS` 加 `.vercel.app` 讓 preview deployment 被當預覽網域
+
+## 5. 長期：改由 Emergent 部署（2026-09-25 決定）
+Vercel 為切換當晚的過渡方案。
+
+已知（Emergent 官方文件）：
+- 每個部署的 app 50 credits／月；重新部署不另計；可 rollback；每次部署約 15 分鐘。
+- 部署來源是 **Emergent workspace 當下的程式碼**（不是 GitHub 分支）。
+- 自訂網域：兩筆 A 記錄 `162.159.142.117`、`172.66.2.113`，支援子網域，SSL 自動簽（驗證後 5–10 分鐘）。
+- lakeze.com 根網域、www、check、lineat、manager、star、solutions、threado、venues、questionaire **已經指向這兩個 IP**，代表 Kenneth 已有網站跑在 Emergent，同一個 zone 的做法已驗證可行。
+
+待 pilot 驗證（文件未涵蓋）：
+- Emergent 部署以 FastAPI＋React 全端為主，純 Vite SPA 能否正常部署；深層連結重新整理（/sensaninn、/pay/...）不 404。
+- build 時的 `VITE_*` 環境變數如何設定、是否指向新後端。
+- `previewHost` / 網域判斷邏輯在 `*.emergent.host` 下的行為。
+- 台灣連線速度（對比 Vercel）。
+
+步驟：
+1. **Pilot（不動正式站）**：Emergent 開新任務匯入 `feat/migration-prep` → Deploy → 用 Emergent 網址跑上面四項。注意 Track A 的任務 workspace 目前是 `feat/monorepo-split` 骨架，**不能拿那個任務按 Deploy**。
+2. **hq 先移**：Emergent 部署加自訂網域 `hq.lakeze.com` → Squarespace 把 hq 的 A 記錄 `76.76.21.21` 改成上面兩個 IP → 驗證。回退 = 改回 `76.76.21.21`。
+3. **pms、booking**：Track A 拆完就各自部署，一次移一個；拆分若延後，先用單一 app 部署把三個網域一起移過去，避免 Vercel Hobby 用太久。
+4. 全部移完 → Vercel 移除網域、刪專案。
