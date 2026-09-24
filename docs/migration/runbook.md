@@ -51,8 +51,8 @@
 
 ## 3. 切換前端（00:00）
 
-9. Emergent：部署指向新專案的 build（`VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`、`VITE_PREVIEW_HOSTS`）。
-10. DNS（Kenneth）：booking / pms / hq / 各民宿自訂網域 → 新前端。TTL 事先已降到 300。
+9. Vercel（Nokimi）：`feat/migration-prep` 的 production deployment 已在下午部署並用 `*.vercel.app` 驗證過；此時只確認 Vercel Domains 已加好 7 個網域（見 `frontend-hosting-cutover-night.md` §1）。Track A 三個 app 不在今晚範圍。
+10. DNS（Nokimi，Squarespace）：7 筆 A 記錄 185.158.133.1 → 76.76.21.21（booking、pms、hq、sensaninn、tiansong-villa、oliviaboutiquehotel、traveldays；清單與順序見 `frontend-hosting-cutover-night.md` §2）。TTL 已於 9/24 21:30 降到 300。切完後到 Lovable 專案移除這 7 個網域。
     - 驗證：`dig +short booking.lakeze.com`；無痕視窗載入首頁、Network 面板看 supabase 請求打到 `<NEW_REF>.supabase.co`。
 11. 轉發方向對調（**順序不能反**）：
     a. 新專案：`supabase secrets unset MIGRATION_FORWARD_URL MIGRATION_FORWARD_APIKEY --project-ref <NEW_REF>`（目前新→舊的過渡轉發）。
