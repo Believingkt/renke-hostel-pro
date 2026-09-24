@@ -10,7 +10,7 @@
 | A1 | Supabase 組織用的 Email | Nokimi 用這個 Email 申請 Supabase Organization；Kenneth 為 Owner，Nokimi 為 Admin | ☐ |
 | A2 | Supabase 付款方式 | Pro US$25/月 + Medium compute（US$60/月）；PITR US$100/月 可選。信用卡由 Kenneth 在 Supabase 後台自行輸入 | ☐ |
 | A3 | Emergent 工作區 credits ≥ 500 | 目前約 7,800，足夠；確認不會被其他專案用掉 | ☐ |
-| A4 | Google AI Studio API key（Gemini） | 取代 Lovable AI gateway；用 Kenneth 的 Google 帳號建立，設每日用量上限 | ☐ |
+| A4 | Google AI Studio API key（Gemini） | ~~用 Kenneth 的 Google 帳號建立~~ 為趕切換，9/24 先用 Nokimi 帳單帳戶建立並儲值 NT$150（Paid Tier）。**切換後第一週 Kenneth 接手**：到 aistudio.google.com/billing 用自己帳單儲值 + 開 Auto-reload，再自己建 key 換掉（見 runbook §5 第 17 條） | ☐ 接手 |
 | A5 | OpenAI API key | 語音轉文字（gpt-4o-mini-transcribe）；程式已有 `OPENAI_API_KEY` 名稱，若舊環境已設可直接沿用 | ☐ |
 
 ## B. 第三方後台存取（Day 1–3）

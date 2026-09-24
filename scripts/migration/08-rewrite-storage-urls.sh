@@ -12,8 +12,10 @@ CREATE TEMP TABLE _url_scan(tbl text, col text, typ text, hits bigint);
 DO \$\$
 DECLARE r record; n bigint; total bigint := 0;
 BEGIN
-  FOR r IN SELECT table_name, column_name, data_type FROM information_schema.columns
-           WHERE table_schema='public' AND data_type IN ('text','character varying','json','jsonb') LOOP
+  FOR r IN SELECT c.table_name, c.column_name, c.data_type FROM information_schema.columns c
+           JOIN information_schema.tables t ON t.table_schema=c.table_schema AND t.table_name=c.table_name
+           WHERE c.table_schema='public' AND t.table_type='BASE TABLE'   -- 排除 view（view 不能 UPDATE）
+             AND c.data_type IN ('text','character varying','json','jsonb') LOOP
     EXECUTE format('SELECT count(*) FROM public.%I WHERE %I::text LIKE %L', r.table_name, r.column_name, '%${OLD_HOST}%') INTO n;
     IF n > 0 THEN INSERT INTO _url_scan VALUES (r.table_name, r.column_name, r.data_type, n); total := total + n; END IF;
   END LOOP;
@@ -29,8 +31,10 @@ SET session_replication_role = replica;  -- 不觸發 updated_at 等 trigger
 DO \$\$
 DECLARE r record; n bigint;
 BEGIN
-  FOR r IN SELECT table_name, column_name, data_type FROM information_schema.columns
-           WHERE table_schema='public' AND data_type IN ('text','character varying','json','jsonb') LOOP
+  FOR r IN SELECT c.table_name, c.column_name, c.data_type FROM information_schema.columns c
+           JOIN information_schema.tables t ON t.table_schema=c.table_schema AND t.table_name=c.table_name
+           WHERE c.table_schema='public' AND t.table_type='BASE TABLE'   -- 排除 view（view 不能 UPDATE）
+             AND c.data_type IN ('text','character varying','json','jsonb') LOOP
     IF r.data_type IN ('json','jsonb') THEN
       EXECUTE format('UPDATE public.%I SET %I = replace(%I::text, %L, %L)::%s WHERE %I::text LIKE %L',
         r.table_name, r.column_name, r.column_name, '${OLD_HOST}', '${NEW_HOST}', r.data_type, r.column_name, '%${OLD_HOST}%');

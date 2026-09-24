@@ -84,6 +84,7 @@
 14. 舊專案：**不刪、不改**，保留至少 14 天；Lovable 端只留轉發函式。
 15. 24 小時內：每 2 小時看一次 Functions logs 與 `cron.job_run_details`；Day 5 早上 09:00 與 Kenneth 對一次訂單與收款。
 16. 切換後第一週：處理 `callback-url-map.md` §4 的安全加固清單；刪除 `migration-storage-sync`、`migration-env-dump` 函式與 `MIGRATION_KEY`；移除 `process-email-queue`、`@lovable.dev/mcp-js`；把 `previewHost.ts` 預設的 Lovable 網域移除。
+17. 切換後第一週：**Gemini 儲值移交**。目前 `GEMINI_API_KEY` 掛在 Nokimi 的 Google Cloud 帳單帳戶（AI Studio 專案 `lakeze`，Paid Tier，Cloud Prepay 僅儲值 NT$150，上線後小安對話 + 翻譯 + 內容生成幾天內可能用完，用完所有 AI 函式回 402 靜默失效）。Kenneth 需：(a) 在 https://aistudio.google.com/billing 用自己的帳單帳戶儲值並開 Auto-reload；(b) 之後由 Kenneth 帳號在 AI Studio 重新建一把 key，`supabase secrets set GEMINI_API_KEY=...`，舊 key 刪除（舊 key 曾出現在截圖，本來就要輪換）。NT$150 由 Kenneth 依計畫書 5.1 核銷。
 
 ## 6. 回退（任何階段 15 分鐘內無法排除的問題）
 
