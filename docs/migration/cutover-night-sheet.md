@@ -11,16 +11,18 @@
 - [x] Gemini key 可用（translate-content 回 translations）
 - [x] Prod compute Medium、Confirm email OFF、storage policies 39
 - [x] 本機 commit 全部 push（`c2d3bc989`）
-- [ ] 小洪、Victor 已收到「今晚 23:00–02:00 切換」訊息
-- [ ] Kenneth 確認 23:00 起不在 Lovable 改任何東西、人在線上（回退拍板）
+- [x] 小洪、Victor 已收到「今晚 23:00–02:00 切換」訊息
+- [x] Kenneth 確認 23:00 起不在 Lovable 改任何東西、人在線上（回退拍板）
 - [ ] `dig` 核對 7 筆 TTL 300（`for h in booking hq pms sensaninn oliviaboutiquehotel tiansong-villa traveldays; do dig +noall +answer $h.lakeze.com @8.8.8.8; done`）
 
-## A. 凍結 23:00
-- [ ] A1 Lovable 後台停 cron：`SELECT cron.unschedule(jobid) FROM cron.job;`（沒有 SQL 入口就跳過，靠 V13 比對）
-- [ ] A2 Lovable Export（今天唯一一次額度）→ 下載 → `pg_restore -l <檔> | head` 能列出 → 記檔案大小 ______ MB（Day 1 為 ______）
-- [ ] A3 `./03-schema-diff.sh`（最終匯出還原到 scratch；順便看 cron.job）→ 無非預期差異
+## A. 凍結 23:00（實際 22:10 開始）
+- [x] A2 **先** Lovable Export（Cloud → Overview → Advanced settings → Export data；今天唯一一次額度）→ 檔案在 Storage bucket `database_export_<日期>`，下載 zip 解壓到 `~/Downloads` → `migration.env` 改 `DUMP_FILE` → `pg_restore -l | head -5`。⚠ 一定要先 Export 再停 cron：04 是從匯出檔的 cron.job 重建排程。22:14 快照，20.9 MB zip（9/19 為 20.4 MB）
+- [x] A1 **再** Lovable SQL editor 停 cron：`SELECT cron.unschedule(jobid) FROM cron.job;` → `select count(*) from cron.job` = 0（原 22 active / 25）
+- [x] A3 schema 沒變：scratch DB 沒起就比 TOC——`pg_restore -l` 兩份匯出 → 過濾 TABLE DATA → sort → diff，只看 public/auth 行；9/24 vs 9/19 零差異（realtime 分區、storage 內部函式差異可忽略）
 
 ## B. 匯入 23:20
+- [ ] B0 `./02-build-schema.sh`（新專案還有 9/22 預演資料 → 回 yes 讓它 DROP public 重建；清 cron、清 storage policy、清 migration 紀錄）→ `./02c-storage-policies.sh` = 39
+- [ ] B0b 清預演的 auth：`psql "$NEW_DB_URL" -c "delete from auth.users;"` → count = 0（06 看到 auth.users 非空會跳過 auth 那趟）
 - [ ] B1 `./06-import-data.sh` → 前 25 大表列數 vs scratch 一致、auth.users 一致（預演 139 秒）
 - [ ] B2 `./04-rebuild-cron.sh` → `select jobname, schedule, active from cron.job` 25 筆、0 舊 ref
 - [ ] B3 `./08-rewrite-storage-urls.sh` → 掃描 ~403 筆 → `yes` → 每表印 rows → 重掃 0 筆
