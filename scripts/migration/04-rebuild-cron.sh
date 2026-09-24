@@ -29,13 +29,14 @@ for r in rows:
     f = r.split("\t")
     jobid, schedule, command, active, jobname = f[0], f[1], unesc(f[2]), f[7], f[8]
     cmd = command.replace(old_url, new_url).replace(old_key, new_key)
+    cmd = cmd.replace("current_setting('app.settings.service_role_key', true)", "'" + srk + "'")  # 新專案不能 ALTER DATABASE
     print(f"SELECT cron.schedule({q(jobname)}, {q(schedule)}, {q(cmd)});")
     if active == "f":
-        print(f"UPDATE cron.job SET active = false WHERE jobname = {q(jobname)};")
+        print(f"SELECT cron.alter_job((select jobid from cron.job where jobname = {q(jobname)}), active := false);")
     n+=1
 print(f"-- {n} jobs")
 print("-- rpc-contract-check 用到的 DB 設定（匯出不含）")
-print(f"ALTER DATABASE postgres SET app.settings.service_role_key = {q(srk)};")
+print("-- app.settings.service_role_key：新專案 postgres 無 ALTER DATABASE 權限，rpc-contract-check 已改為直接帶 key")
 PY
 rm -f cron.list cron-job.sql
 echo "-- 產生 rebuild-cron.sql：$(grep -c 'cron.schedule' rebuild-cron.sql) 個 job；殘留舊 ref：$(grep -c "$OLD_REF" rebuild-cron.sql || true)（應為 0）"
