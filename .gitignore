@@ -24,3 +24,11 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+
+# Emergent platform artifacts
+/backend
+/frontend
+.emergent
+memory
+test_result.md
+test_reports
