@@ -29,12 +29,6 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
-      allowedHosts: true,
-      hmr: { clientPort: 443 },
-    },
-    preview: {
-      host: "::",
-      allowedHosts: true,
     },
     define: {
       __BUILD_ID__: JSON.stringify(buildId),
@@ -52,7 +46,7 @@ export default defineConfig(({ mode }) => {
         url: env.VITE_SUPABASE_URL || env.SUPABASE_URL || "",
         key: env.VITE_SUPABASE_PUBLISHABLE_KEY || env.SUPABASE_PUBLISHABLE_KEY || "",
       }),
-      process.env.LOVABLE_MCP === "1" && mcpPlugin(),
+      mcpPlugin(),
     ].filter(Boolean),
 
     resolve: {
