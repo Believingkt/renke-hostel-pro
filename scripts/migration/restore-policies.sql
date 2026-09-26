@@ -42,7 +42,7 @@ DROP POLICY IF EXISTS room_photos_update_with_access ON storage.objects;
 -- PostgreSQL database dump
 --
 
-\restrict lcc5YVm8tcSc6oO1nbOeDvsHRMLYfe26G9uN6VJxD47EHbIcKvuaPcHr0JbKLTd
+\restrict f7pVPXjy55VCxL9k1abwsHivsFchc3RkGmropg9vinFlR7Foa6KY6ZGDgWTMqRs
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 18.6
@@ -356,5 +356,5 @@ CREATE POLICY room_photos_update_with_access ON storage.objects FOR UPDATE TO au
 -- PostgreSQL database dump complete
 --
 
-\unrestrict lcc5YVm8tcSc6oO1nbOeDvsHRMLYfe26G9uN6VJxD47EHbIcKvuaPcHr0JbKLTd
+\unrestrict f7pVPXjy55VCxL9k1abwsHivsFchc3RkGmropg9vinFlR7Foa6KY6ZGDgWTMqRs
 
