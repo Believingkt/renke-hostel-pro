@@ -32,10 +32,3 @@ dist-ssr
 memory
 test_result.md
 test_reports
-.env
-.env.*
-*.env
-credentials.json
-*.pem
-*.key
-.credentials
