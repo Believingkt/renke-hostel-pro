@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Code, Shield, FileText, Zap, Lock, Server } from "lucide-react";
 import { SEOHead } from "@/components/SEOHead";
 
-const PROJECT_ID = "dmafqwfynatdvnaeovhz";
+const PROJECT_ID = import.meta.env.VITE_SUPABASE_PROJECT_ID;
 const ENDPOINT = `https://${PROJECT_ID}.supabase.co/functions/v1/accommodation-ai-chat`;
 
 const Pre = ({ children }: { children: React.ReactNode }) => (
