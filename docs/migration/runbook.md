@@ -43,14 +43,16 @@
    - 失敗時：整批回滾；看 log 修（enum 值缺 → schema diff 沒看到的差異，補 migration 後重跑 02→06）。
 6. `./04-rebuild-cron.sh`（換 URL/key 後重建排程；同時設定 `app.settings.service_role_key`）。**只在此時套用**——提前套用會把舊庫存推給合作方。9/22 預演已產出 25 job、0 舊 ref。
    - 驗證：`select jobname, schedule, active from cron.job` 與舊專案一致；5 分鐘後 `cron.job_run_details` 有成功紀錄。
+6b. `./08-rewrite-storage-urls.sh`（DB 內寫死的舊專案 storage URL → 新專案；不做的話圖片會一直從舊專案載，Lovable 退訂就全破）
+   - 驗證：無痕視窗開任一民宿頁，Network 面板 room-photos 請求打到 `<NEW_REF>.supabase.co`。
 7. Lovable 端 Secrets 先加回 `MIGRATION_KEY`（值見 `scripts/migration/migration.env`）→ `./05-storage-sync.sh --since <Day 2 全量同步的時間>`（增量）→ 跑完立刻刪 `MIGRATION_KEY`
    - 驗證：`storage-sync-failures.txt` 不存在；隨機抽 3 張房型照片新 URL 可開。
 8. 密碼：9/22 預演已驗證 `encrypted_password` 隨匯出帶入，既有帳號直接登入成功；無需額外處理（原「密碼處理方案」取消）。
 
 ## 3. 切換前端（00:00）
 
-9. Emergent：部署指向新專案的 build（`VITE_SUPABASE_URL`、`VITE_SUPABASE_PUBLISHABLE_KEY`、`VITE_PREVIEW_HOSTS`）。
-10. DNS（Kenneth）：booking / pms / hq / 各民宿自訂網域 → 新前端。TTL 事先已降到 300。
+9. Vercel（Nokimi）：`feat/migration-prep` 的 production deployment 已在下午部署並用 `*.vercel.app` 驗證過；此時只確認 Vercel Domains 已加好 7 個網域（見 `frontend-hosting-cutover-night.md` §1）。Track A 三個 app 不在今晚範圍。
+10. DNS（Nokimi，Squarespace）：7 筆 A 記錄 185.158.133.1 → 76.76.21.21（booking、pms、hq、sensaninn、tiansong-villa、oliviaboutiquehotel、traveldays；清單與順序見 `frontend-hosting-cutover-night.md` §2）。TTL 已於 9/24 21:30 降到 300。切完後到 Lovable 專案移除這 7 個網域。
     - 驗證：`dig +short booking.lakeze.com`；無痕視窗載入首頁、Network 面板看 supabase 請求打到 `<NEW_REF>.supabase.co`。
 11. 轉發方向對調（**順序不能反**）：
     a. 新專案：`supabase secrets unset MIGRATION_FORWARD_URL MIGRATION_FORWARD_APIKEY --project-ref <NEW_REF>`（目前新→舊的過渡轉發）。
@@ -82,6 +84,7 @@
 14. 舊專案：**不刪、不改**，保留至少 14 天；Lovable 端只留轉發函式。
 15. 24 小時內：每 2 小時看一次 Functions logs 與 `cron.job_run_details`；Day 5 早上 09:00 與 Kenneth 對一次訂單與收款。
 16. 切換後第一週：處理 `callback-url-map.md` §4 的安全加固清單；刪除 `migration-storage-sync`、`migration-env-dump` 函式與 `MIGRATION_KEY`；移除 `process-email-queue`、`@lovable.dev/mcp-js`；把 `previewHost.ts` 預設的 Lovable 網域移除。
+17. 切換後第一週：**Gemini 儲值移交**。目前 `GEMINI_API_KEY` 掛在 Nokimi 的 Google Cloud 帳單帳戶（AI Studio 專案 `lakeze`，Paid Tier，Cloud Prepay 僅儲值 NT$150，上線後小安對話 + 翻譯 + 內容生成幾天內可能用完，用完所有 AI 函式回 402 靜默失效）。Kenneth 需：(a) 在 https://aistudio.google.com/billing 用自己的帳單帳戶儲值並開 Auto-reload；(b) 之後由 Kenneth 帳號在 AI Studio 重新建一把 key，`supabase secrets set GEMINI_API_KEY=...`，舊 key 刪除（舊 key 曾出現在截圖，本來就要輪換）。NT$150 由 Kenneth 依計畫書 5.1 核銷。
 
 ## 6. 回退（任何階段 15 分鐘內無法排除的問題）
 

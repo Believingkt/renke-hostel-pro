@@ -35,3 +35,7 @@ memory/
 test_result.md
 tests/
 test_reports/
+
+# Local env / Vercel (from feat/migration-prep)
+.vercel
+.env*

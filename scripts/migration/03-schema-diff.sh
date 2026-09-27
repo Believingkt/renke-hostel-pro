@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 set -a; source migration.env; set +a
 [ -f "$DUMP_FILE" ] || { echo "缺 DUMP_FILE"; exit 1; }
 OUT=./diff; mkdir -p "$OUT"
-echo "-- 還原匯出檔到 scratch DB（$SCRATCH_DB_URL）"
+echo "-- 還原匯出檔到 scratch DB（${SCRATCH_DB_URL}）"
 if pg_restore -l "$DUMP_FILE" >/dev/null 2>&1; then
   pg_restore --no-owner --no-privileges --clean --if-exists -d "$SCRATCH_DB_URL" "$DUMP_FILE" || true   # 有些 Supabase 內部物件會報錯，可忽略
 else
@@ -19,7 +19,7 @@ norm() { # 去掉會自然不同的東西：owner、註解、空行、supabase �
 for s in public auth storage; do
   pg_dump --schema-only --no-owner --no-privileges --schema="$s" "$SCRATCH_DB_URL" | norm > "$OUT/old-$s.sql"
   pg_dump --schema-only --no-owner --no-privileges --schema="$s" "$NEW_DB_URL"     | norm > "$OUT/new-$s.sql"
-  echo "== schema $s：$(diff "$OUT/old-$s.sql" "$OUT/new-$s.sql" | grep -cE '^[<>]' || true) 行差異 → diff/$s.diff"
+  echo "== schema ${s}：$(diff "$OUT/old-$s.sql" "$OUT/new-$s.sql" | grep -cE '^[<>]' || true) 行差異 → diff/$s.diff"
   diff -u "$OUT/old-$s.sql" "$OUT/new-$s.sql" > "$OUT/$s.diff" || true
 done
 echo "-- 物件數量對照（old | new）"

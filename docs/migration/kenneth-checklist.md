@@ -10,7 +10,7 @@
 | A1 | Supabase 組織用的 Email | Nokimi 用這個 Email 申請 Supabase Organization；Kenneth 為 Owner，Nokimi 為 Admin | ☐ |
 | A2 | Supabase 付款方式 | Pro US$25/月 + Medium compute（US$60/月）；PITR US$100/月 可選。信用卡由 Kenneth 在 Supabase 後台自行輸入 | ☐ |
 | A3 | Emergent 工作區 credits ≥ 500 | 目前約 7,800，足夠；確認不會被其他專案用掉 | ☐ |
-| A4 | Google AI Studio API key（Gemini） | 取代 Lovable AI gateway；用 Kenneth 的 Google 帳號建立，設每日用量上限 | ☐ |
+| A4 | Google AI Studio API key（Gemini） | ~~用 Kenneth 的 Google 帳號建立~~ 為趕切換，9/24 先用 Nokimi 帳單帳戶建立並儲值 NT$150（Paid Tier）。**切換後第一週 Kenneth 接手**：到 aistudio.google.com/billing 用自己帳單儲值 + 開 Auto-reload，再自己建 key 換掉（見 runbook §5 第 17 條） | ☐ 接手 |
 | A5 | OpenAI API key | 語音轉文字（gpt-4o-mini-transcribe）；程式已有 `OPENAI_API_KEY` 名稱，若舊環境已設可直接沿用 | ☐ |
 
 ## B. 第三方後台存取（Day 1–3）
@@ -27,6 +27,7 @@
 | B9 | SendGrid 帳號（Inbound Parse → `owlting-email-ingest`） | 誰持有帳號？需把 Inbound Parse 的目的 URL 改到新專案；找不到帳號則奧丁丁 Email 收單在切換後會斷 | ☐ |
 | B10 | Lovable 訂閱保留 | 舊專案要撐到奧丁丁切換完成（對方說 10 月上旬）+ 回退保留期，**至少到 10/20 不要退訂** | ☐ |
 | B11 | Supabase org 加入 | Nokimi 先邀 Kenneth 的 Email 進 org 當 Owner，切換後再正式移轉；請提供要用的 Email | ☐ |
+| B12 | 前端改由 Emergent 部署（9/25 決定） | 切換當晚暫用 Nokimi 個人 Vercel（Hobby，過渡用）。Emergent pilot 通過後逐一把網域移過去（hq → pms → booking），移完刪 Vercel 專案。Emergent 部署 50 credits／月／app，3 個 app 共 150 credits／月，從 Kenneth 的 Emergent workspace 扣 | ☐ |
 | B8 | Lovable 後台 Cloud → Secrets | Nokimi 逐一抄出約 60 個 secret（Kenneth 給 Lovable 專案 Editor 權限即可） | ☐ |
 
 ## C. 合作方聯絡窗口（Day 1 通知、Day 4 前確認）
