@@ -21,10 +21,6 @@ const stripDomain = (value: string) =>
  * 避免導向不存在的網站造成「網頁失效」。
  */
 const LIVE_DOMAINS = new Set([
-  "sensaninn.lakeze.com",
-  "tiansong-villa.lakeze.com",
-  "oliviaboutiquehotel.lakeze.com",
-  "traveldays.lakeze.com",
   "booking.lakeze.com",
   "hq.lakeze.com",
   "renke-hostel-pro.lovable.app",
