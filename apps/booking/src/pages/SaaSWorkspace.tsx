@@ -50,6 +50,8 @@ import {
   UserCircle,
   LogOut,
   ExternalLink,
+  Copy,
+  Send,
 } from "lucide-react";
 import { cn } from "@lakeze/shared/lib/utils";
 
@@ -255,12 +257,42 @@ const MOCK_TREND = [
   { day: "08/29", conversions: 41 },
 ];
 
-const MOCK_INVITES = [
-  { inviter: "仙女他媽（施怡君）", invitee: "蘇蘇", date: "2026-08-12", status: "已加入" },
-  { inviter: "餓犬Dicky", invitee: "明星煌", date: "2026-08-16", status: "已邀約" },
-  { inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", date: "2026-08-20", status: "待確認" },
-  { inviter: "Oreo｜建築旅遊部落客", invitee: "Bryan Aka黑熊他爸🐾", date: "2026-08-24", status: "已加入" },
+type InviteStatus = "已邀約" | "待確認" | "已加入";
+
+type InviteRow = {
+  id: string;
+  inviter: string;
+  invitee: string;
+  inviteeHandle: string;
+  venue: string;
+  code: string;
+  date: string;
+  status: InviteStatus;
+};
+
+/** 邀約狀態流轉順序（Demo 模擬用） */
+const INVITE_STATUS_FLOW: InviteStatus[] = ["已邀約", "待確認", "已加入"];
+
+/**
+ * 網紅邀約網紅的前端假資料（含兩層邀請鏈，方便示範下線擴散）。
+ * 例：仙女他媽 → 蘇蘇（第一層）→ 阿哲（第二層）；竹軒 → Mika（第一層）→ 小魚lulu（第二層）。
+ */
+const INITIAL_INVITES: InviteRow[] = [
+  { id: "iv1", inviter: "仙女他媽（施怡君）", invitee: "蘇蘇", inviteeHandle: "mirandasue_0811", venue: "森山寫照", code: "SUESUE", date: "2026-08-12", status: "已加入" },
+  { id: "iv2", inviter: "蘇蘇", invitee: "阿哲｜露營穿搭", inviteeHandle: "azhe.camp", venue: "森山寫照", code: "AZHE7K2Q", date: "2026-08-22", status: "待確認" },
+  { id: "iv3", inviter: "餓犬Dicky", invitee: "明星煌", inviteeHandle: "starmonarch", venue: "旅行日-光", code: "STARMONARCH", date: "2026-08-16", status: "已邀約" },
+  { id: "iv4", inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", inviteeHandle: "mika.checkin", venue: "淞湘卉館", code: "MIKALLXX", date: "2026-08-20", status: "待確認" },
+  { id: "iv5", inviter: "Mika｜今晚住這裡·旅宿探索中", invitee: "小魚lulu", inviteeHandle: "lulu.fish", venue: "淞湘卉館", code: "LULU5T1B", date: "2026-08-25", status: "已邀約" },
+  { id: "iv6", inviter: "Oreo｜建築旅遊部落客", invitee: "Bryan Aka黑熊他爸🐾", inviteeHandle: "bryanpan1014", venue: "奧莉薇雅生活小酒店", code: "BRYAN1014", date: "2026-08-24", status: "已加入" },
 ];
+
+/** 所有可推薦館別（由假 KOL 資料彙整） */
+const ALL_VENUES = Array.from(new Set(MOCK_KOLS.map((k) => k.venue)));
+
+/** 邀請連結一律指向訂房前台 */
+function inviteLink(code: string) {
+  return `https://booking.lakeze.com/book?ref=${code}`;
+}
 
 const MOCK_INVITE_CODES = [
   { code: "LZ-A7K2", owner: "旅行日-光 社群管理員", used: 3, createdAt: "2026-07-28", status: "啟用中" },
@@ -653,6 +685,94 @@ export default function SaaSWorkspace() {
     toast.success("已於館別後台建立折扣代碼");
   };
 
+  // ── 網紅邀約網紅（Demo 前端 state）──────────────────────────
+  const [invites, setInvites] = useState<InviteRow[]>(INITIAL_INVITES);
+
+  // KOL 視角：自己發出的邀約（第一層）
+  const myInvites = useMemo(
+    () => invites.filter((i) => i.inviter === selectedKolName),
+    [invites, selectedKolName],
+  );
+  const level1Names = useMemo(() => myInvites.map((i) => i.invitee), [myInvites]);
+  // 第二層：由我的第一層成員再邀約出去的人
+  const downlineLevel2 = useMemo(
+    () => invites.filter((i) => level1Names.includes(i.inviter)),
+    [invites, level1Names],
+  );
+  const myInviteStats = useMemo(() => {
+    const chain = [...myInvites, ...downlineLevel2];
+    const count = (s: InviteStatus) => chain.filter((i) => i.status === s).length;
+    const joinedL1 = myInvites.filter((i) => i.status === "已加入").length;
+    const joinedL2 = downlineLevel2.filter((i) => i.status === "已加入").length;
+    // 模擬裂變獎金：第一層每位已加入 NT$800、第二層 NT$300
+    return {
+      invited: count("已邀約"),
+      pending: count("待確認"),
+      joined: count("已加入"),
+      bonus: joinedL1 * 800 + joinedL2 * 300,
+    };
+  }, [myInvites, downlineLevel2]);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteHandle, setInviteHandle] = useState("");
+  const [inviteVenue, setInviteVenue] = useState("");
+  const [inviteError, setInviteError] = useState("");
+  const [lastInvite, setLastInvite] = useState<InviteRow | null>(null);
+
+  const inviteVenueOptions = KOL_VENUE_OPTIONS[identity] ?? ALL_VENUES;
+
+  const openInviteDialog = () => {
+    setInviteName("");
+    setInviteHandle("");
+    setInviteVenue(inviteVenueOptions[0] ?? ALL_VENUES[0] ?? "");
+    setInviteError("");
+    setLastInvite(null);
+    setInviteOpen(true);
+  };
+
+  const handleCreateInvite = () => {
+    const name = inviteName.trim();
+    if (!name) {
+      setInviteError("請輸入被邀約網紅名稱");
+      return;
+    }
+    const code = buildCidCode(name);
+    const row: InviteRow = {
+      id: `iv-${Date.now()}`,
+      inviter: selectedKolName,
+      invitee: name,
+      inviteeHandle: inviteHandle.trim().replace(/^@/, ""),
+      venue: inviteVenue || inviteVenueOptions[0] || "—",
+      code,
+      date: nowStamp().slice(0, 10),
+      status: "已邀約",
+    };
+    setInvites((prev) => [row, ...prev]);
+    setLastInvite(row);
+    toast.success("已送出邀約，邀請連結已產生");
+  };
+
+  const advanceInviteStatus = (id: string) => {
+    setInvites((prev) =>
+      prev.map((i) => {
+        if (i.id !== id) return i;
+        const idx = INVITE_STATUS_FLOW.indexOf(i.status);
+        const next = INVITE_STATUS_FLOW[Math.min(idx + 1, INVITE_STATUS_FLOW.length - 1)];
+        return { ...i, status: next };
+      }),
+    );
+  };
+
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label}已複製`);
+    } catch {
+      toast.error("複製失敗，請手動複製");
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth?next=" + encodeURIComponent("/SaaS"), { replace: true });
@@ -690,7 +810,7 @@ export default function SaaSWorkspace() {
                   setGeneratedCode(null);
                 }}
               >
-                <SelectTrigger className="w-full sm:w-72">
+                <SelectTrigger className="w-full sm:w-72" data-testid="identity-select-trigger">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1100,45 +1220,303 @@ export default function SaaSWorkspace() {
             </Card>
             )}
 
-            {isAdminView && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <UserPlus className="h-5 w-5 text-primary" />
-                  網紅邀約網紅
-                </CardTitle>
-                <CardDescription>創作者互相引薦的擴散紀錄</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>邀約人</TableHead>
-                        <TableHead>被邀約人</TableHead>
-                        <TableHead>邀約日期</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {MOCK_INVITES.map((i) => (
-                        <TableRow key={i.inviter + i.invitee}>
-                          <TableCell>{i.inviter}</TableCell>
-                          <TableCell>{i.invitee}</TableCell>
-                          <TableCell className="whitespace-nowrap">{i.date}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusVariantClass(i.status)}>
-                              {i.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+            {/* 網紅邀約網紅：Admin 看全站紀錄；KOL 可實際操作邀約與檢視下線 */}
+            <Card data-testid="kol-invite-card">
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <UserPlus className="h-5 w-5 text-primary" />
+                    網紅邀約網紅
+                  </CardTitle>
+                  <CardDescription>
+                    {isAdminView
+                      ? "全站創作者互相引薦的擴散紀錄"
+                      : "邀約其他創作者加入，建立你的裂變下線並追蹤狀態"}
+                  </CardDescription>
                 </div>
+                {!isAdminView && (
+                  <Button
+                    size="sm"
+                    className="gap-1 shrink-0"
+                    onClick={openInviteDialog}
+                    data-testid="kol-invite-open-button"
+                  >
+                    <Send className="h-4 w-4" /> 邀約新網紅
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {isAdminView ? (
+                  <div className="rounded-lg border" data-testid="admin-invite-table">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>邀約人</TableHead>
+                          <TableHead>被邀約人</TableHead>
+                          <TableHead>推薦館別</TableHead>
+                          <TableHead>邀約日期</TableHead>
+                          <TableHead>狀態</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invites.map((i) => (
+                          <TableRow key={i.id}>
+                            <TableCell className="whitespace-nowrap">{i.inviter}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.invitee}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                {i.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <>
+                    {/* 我的邀約成效小卡 */}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="kol-invite-stats">
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">已邀約</p>
+                        <p className="mt-1 text-2xl font-bold">{myInviteStats.invited}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">待確認</p>
+                        <p className="mt-1 text-2xl font-bold">{myInviteStats.pending}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">已加入</p>
+                        <p className="mt-1 text-2xl font-bold text-primary">{myInviteStats.joined}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">預估裂變獎金</p>
+                        <p className="mt-1 text-2xl font-bold text-primary">
+                          NT$ {myInviteStats.bonus.toLocaleString()}
+                        </p>
+                      </Card>
+                    </div>
+
+                    {/* 我發出的邀約（第一層） */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">我發出的邀約（第一層）</p>
+                      {myInvites.length === 0 ? (
+                        <Card>
+                          <CardContent
+                            className="p-8 text-center text-sm text-muted-foreground"
+                            data-testid="kol-invite-empty"
+                          >
+                            你還沒有邀約任何網紅，點右上角「邀約新網紅」開始建立你的裂變下線。
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="rounded-lg border" data-testid="kol-invite-my-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>被邀約人</TableHead>
+                                <TableHead>推薦館別</TableHead>
+                                <TableHead>邀請碼</TableHead>
+                                <TableHead>邀約日期</TableHead>
+                                <TableHead>狀態</TableHead>
+                                <TableHead className="text-right">操作</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {myInvites.map((i) => (
+                                <TableRow key={i.id} data-testid={`kol-invite-row-${i.id}`}>
+                                  <TableCell className="whitespace-nowrap">
+                                    <div className="font-medium">{i.invitee}</div>
+                                    {i.inviteeHandle && (
+                                      <div className="text-xs text-muted-foreground">@{i.inviteeHandle}</div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                                  <TableCell className="font-mono whitespace-nowrap">{i.code}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                      {i.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex justify-end gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1"
+                                        onClick={() => copyText(inviteLink(i.code), "邀請連結")}
+                                        data-testid={`kol-invite-copy-${i.id}`}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" /> 複製連結
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        onClick={() => advanceInviteStatus(i.id)}
+                                        disabled={i.status === "已加入"}
+                                        data-testid={`kol-invite-advance-${i.id}`}
+                                      >
+                                        {i.status === "已加入" ? "已完成" : "推進狀態"}
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 邀請鏈下線（第二層） */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">邀請鏈下線（第二層）</p>
+                      {downlineLevel2.length === 0 ? (
+                        <Card>
+                          <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                            尚無第二層擴散。當你的第一層網紅再邀約新朋友時，會顯示在這裡。
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="rounded-lg border" data-testid="kol-invite-downline-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>被邀約人</TableHead>
+                                <TableHead>邀請人（你的第一層）</TableHead>
+                                <TableHead>推薦館別</TableHead>
+                                <TableHead>邀約日期</TableHead>
+                                <TableHead>狀態</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {downlineLevel2.map((i) => (
+                                <TableRow key={i.id}>
+                                  <TableCell className="whitespace-nowrap">{i.invitee}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.inviter}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                      {i.status}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* 邀約新網紅對話框 */}
+                <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>邀約新網紅</DialogTitle>
+                      <DialogDescription>
+                        填寫被邀約創作者的資訊，系統會產生專屬邀請碼與連結
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">邀請人（你）</Label>
+                        <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                          {selectedKolName}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">被邀約網紅名稱</Label>
+                        <Input
+                          value={inviteName}
+                          onChange={(e) => {
+                            setInviteName(e.target.value);
+                            setInviteError("");
+                          }}
+                          placeholder="例如 小柚子｜親子旅遊"
+                          data-testid="kol-invite-name-input"
+                        />
+                        {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">IG 帳號（選填）</Label>
+                        <Input
+                          value={inviteHandle}
+                          onChange={(e) => setInviteHandle(e.target.value)}
+                          placeholder="@example"
+                          className="font-mono"
+                          data-testid="kol-invite-handle-input"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">推薦館別</Label>
+                        <Select value={inviteVenue} onValueChange={setInviteVenue}>
+                          <SelectTrigger data-testid="kol-invite-venue-select">
+                            <SelectValue placeholder="選擇館別" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inviteVenueOptions.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {v}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {lastInvite && (
+                        <div
+                          className="space-y-2 rounded-lg border border-primary/30 bg-secondary/60 p-4"
+                          data-testid="kol-invite-result"
+                        >
+                          <p className="text-xs text-muted-foreground">
+                            已產生 {lastInvite.invitee} 的專屬邀請碼
+                          </p>
+                          <p className="font-mono text-2xl font-bold tracking-widest text-primary">
+                            {lastInvite.code}
+                          </p>
+                          <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                            {inviteLink(lastInvite.code)}
+                          </code>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => copyText(inviteLink(lastInvite.code), "邀請連結")}
+                              data-testid="kol-invite-copy-link"
+                            >
+                              <Copy className="h-4 w-4" /> 複製連結
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => copyText(lastInvite.code, "邀請碼")}
+                              data-testid="kol-invite-copy-code"
+                            >
+                              <Copy className="h-4 w-4" /> 複製邀請碼
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setInviteOpen(false)}>
+                        關閉
+                      </Button>
+                      <Button onClick={handleCreateInvite} data-testid="kol-invite-submit">
+                        送出邀約
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
-            )}
           </TabsContent>
           )}
 
