@@ -4,7 +4,7 @@
  * 遷移後：由 VITE_PREVIEW_HOSTS 指定（逗號分隔的網域尾綴，例如 ".emergent.host,.preview.emergentagent.com"），
  *        未設定時仍保留 Lovable 尾綴，確保切換期間兩邊都能正常判斷。
  */
-const DEFAULT_PREVIEW_SUFFIXES = ["lovableproject.com", "lovable.app", "lovableproject-dev.com", "beta.lovable.dev"];
+const DEFAULT_PREVIEW_SUFFIXES = ["lovableproject.com", "lovable.app", "lovableproject-dev.com", "beta.lovable.dev", "preview.emergentagent.com"];
 
 function envSuffixes(): string[] {
   const raw = (import.meta.env.VITE_PREVIEW_HOSTS as string | undefined) ?? "";
