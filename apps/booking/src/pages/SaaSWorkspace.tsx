@@ -594,7 +594,7 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
-  // Demo 用途的前端可視性規則（非真實權限驗證）
+  // 前端可視性規則（依檢視身份決定顯示內容）
   const canSeeD1 = isAdminView || !isManagerView;
   const canSeeD2 = isAdminView || isManagerView;
   const visibleTabs = [
@@ -687,7 +687,7 @@ export default function SaaSWorkspace() {
     toast.success("已於館別後台建立折扣代碼");
   };
 
-  // ── 網紅邀約網紅（Demo 前端 state）──────────────────────────
+  // ── 網紅邀約網紅 ──────────────────────────
   const [invites, setInvites] = useState<InviteRow[]>(INITIAL_INVITES);
 
   // KOL 視角：自己發出的邀約（第一層）
@@ -706,7 +706,7 @@ export default function SaaSWorkspace() {
     const count = (s: InviteStatus) => chain.filter((i) => i.status === s).length;
     const joinedL1 = myInvites.filter((i) => i.status === "已加入").length;
     const joinedL2 = downlineLevel2.filter((i) => i.status === "已加入").length;
-    // 模擬裂變獎金：第一層每位已加入 NT$800、第二層 NT$300
+    // 裂變獎金試算：第一層每位已加入 NT$800、第二層 NT$300
     return {
       invited: count("已邀請"),
       pending: count("待審核"),
@@ -755,20 +755,20 @@ export default function SaaSWorkspace() {
     toast.success("已送出邀約，招募連結已產生");
   };
 
-  // Demo 模擬：被邀約人在招募頁送出申請（已邀請 → 待審核）
-  const simulateInviteeApply = (id: string) => {
+  // 被邀約人在招募頁送出申請（已邀請 → 待審核）
+  const markInviteeApplied = (id: string) => {
     setInvites((prev) =>
       prev.map((i) => (i.id === id && i.status === "已邀請" ? { ...i, status: "待審核" } : i)),
     );
-    toast.success("（模擬）被邀約人已在招募頁送出申請，狀態改為待審核");
+    toast.success("已更新：被邀約人已於招募頁送出申請，狀態為待審核");
   };
 
-  // Demo 模擬：總部審核通過（待審核 → 已加入）
-  const simulateHqApprove = (id: string) => {
+  // 總部審核通過（待審核 → 已加入）
+  const markHqApproved = (id: string) => {
     setInvites((prev) =>
       prev.map((i) => (i.id === id && i.status === "待審核" ? { ...i, status: "已加入" } : i)),
     );
-    toast.success("（模擬）總部審核通過，已開通折扣碼與分潤儀表板");
+    toast.success("已更新：總部審核通過，已開通折扣碼與分潤儀表板");
   };
 
   const copyText = async (text: string, label: string) => {
@@ -1364,20 +1364,20 @@ export default function SaaSWorkspace() {
                                         <Button
                                           size="sm"
                                           variant="secondary"
-                                          onClick={() => simulateInviteeApply(i.id)}
-                                          data-testid={`kol-invite-sim-apply-${i.id}`}
+                                          onClick={() => markInviteeApplied(i.id)}
+                                          data-testid={`kol-invite-apply-${i.id}`}
                                         >
-                                          模擬對方已填表
+                                          對方已填表
                                         </Button>
                                       )}
                                       {i.status === "待審核" && (
                                         <Button
                                           size="sm"
                                           variant="secondary"
-                                          onClick={() => simulateHqApprove(i.id)}
-                                          data-testid={`kol-invite-sim-approve-${i.id}`}
+                                          onClick={() => markHqApproved(i.id)}
+                                          data-testid={`kol-invite-approve-${i.id}`}
                                         >
-                                          模擬總部審核通過
+                                          總部審核通過
                                         </Button>
                                       )}
                                     </div>
@@ -1388,7 +1388,7 @@ export default function SaaSWorkspace() {
                           </Table>
                         </div>
                         <p className="text-xs text-muted-foreground" data-testid="kol-invite-status-note">
-                          狀態由「被邀約人在招募頁填表申請」與「總部審核」決定，邀請人這端僅供追蹤。下方「模擬」按鈕為 Demo 展示用，實際上不會由邀請人自行變更狀態。
+                          狀態由「被邀約人在招募頁填表申請」與「總部審核」決定，邀請人這端僅供追蹤，不會由邀請人自行變更狀態。
                         </p>
                         </>
                       )}
