@@ -257,7 +257,7 @@ const MOCK_TREND = [
   { day: "08/29", conversions: 41 },
 ];
 
-type InviteStatus = "已邀約" | "待確認" | "已加入";
+type InviteStatus = "已邀請" | "待審核" | "已加入";
 
 type InviteRow = {
   id: string;
@@ -270,8 +270,10 @@ type InviteRow = {
   status: InviteStatus;
 };
 
-/** 邀約狀態流轉順序（Demo 模擬用） */
-const INVITE_STATUS_FLOW: InviteStatus[] = ["已邀約", "待確認", "已加入"];
+/**
+ * 網紅邀約網紅狀態（由被邀約人填表＋總部審核驅動，邀請人端唯讀）：
+ * 已邀請 → 待審核（對方在 /kol/join 送出申請）→ 已加入（總部審核通過、開通折扣碼與分潤）。
+ */
 
 /**
  * 網紅邀約網紅的前端假資料（含兩層邀請鏈，方便示範下線擴散）。
@@ -279,19 +281,19 @@ const INVITE_STATUS_FLOW: InviteStatus[] = ["已邀約", "待確認", "已加入
  */
 const INITIAL_INVITES: InviteRow[] = [
   { id: "iv1", inviter: "仙女他媽（施怡君）", invitee: "蘇蘇", inviteeHandle: "mirandasue_0811", venue: "森山寫照", code: "SUESUE", date: "2026-08-12", status: "已加入" },
-  { id: "iv2", inviter: "蘇蘇", invitee: "阿哲｜露營穿搭", inviteeHandle: "azhe.camp", venue: "森山寫照", code: "AZHE7K2Q", date: "2026-08-22", status: "待確認" },
-  { id: "iv3", inviter: "餓犬Dicky", invitee: "明星煌", inviteeHandle: "starmonarch", venue: "旅行日-光", code: "STARMONARCH", date: "2026-08-16", status: "已邀約" },
-  { id: "iv4", inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", inviteeHandle: "mika.checkin", venue: "淞湘卉館", code: "MIKALLXX", date: "2026-08-20", status: "待確認" },
-  { id: "iv5", inviter: "Mika｜今晚住這裡·旅宿探索中", invitee: "小魚lulu", inviteeHandle: "lulu.fish", venue: "淞湘卉館", code: "LULU5T1B", date: "2026-08-25", status: "已邀約" },
+  { id: "iv2", inviter: "蘇蘇", invitee: "阿哲｜露營穿搭", inviteeHandle: "azhe.camp", venue: "森山寫照", code: "AZHE7K2Q", date: "2026-08-22", status: "待審核" },
+  { id: "iv3", inviter: "餓犬Dicky", invitee: "明星煌", inviteeHandle: "starmonarch", venue: "旅行日-光", code: "STARMONARCH", date: "2026-08-16", status: "已邀請" },
+  { id: "iv4", inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", inviteeHandle: "mika.checkin", venue: "淞湘卉館", code: "MIKALLXX", date: "2026-08-20", status: "待審核" },
+  { id: "iv5", inviter: "Mika｜今晚住這裡·旅宿探索中", invitee: "小魚lulu", inviteeHandle: "lulu.fish", venue: "淞湘卉館", code: "LULU5T1B", date: "2026-08-25", status: "已邀請" },
   { id: "iv6", inviter: "Oreo｜建築旅遊部落客", invitee: "Bryan Aka黑熊他爸🐾", inviteeHandle: "bryanpan1014", venue: "奧莉薇雅生活小酒店", code: "BRYAN1014", date: "2026-08-24", status: "已加入" },
 ];
 
 /** 所有可推薦館別（由假 KOL 資料彙整） */
 const ALL_VENUES = Array.from(new Set(MOCK_KOLS.map((k) => k.venue)));
 
-/** 邀請連結一律指向訂房前台 */
+/** 招募連結指向創作者加入頁（/kol/join/:code），非訪客訂房頁 */
 function inviteLink(code: string) {
-  return `https://booking.lakeze.com/book?ref=${code}`;
+  return `https://booking.lakeze.com/kol/join/${code}`;
 }
 
 const MOCK_INVITE_CODES = [
@@ -706,8 +708,8 @@ export default function SaaSWorkspace() {
     const joinedL2 = downlineLevel2.filter((i) => i.status === "已加入").length;
     // 模擬裂變獎金：第一層每位已加入 NT$800、第二層 NT$300
     return {
-      invited: count("已邀約"),
-      pending: count("待確認"),
+      invited: count("已邀請"),
+      pending: count("待審核"),
       joined: count("已加入"),
       bonus: joinedL1 * 800 + joinedL2 * 300,
     };
@@ -746,22 +748,27 @@ export default function SaaSWorkspace() {
       venue: inviteVenue || inviteVenueOptions[0] || "—",
       code,
       date: nowStamp().slice(0, 10),
-      status: "已邀約",
+      status: "已邀請",
     };
     setInvites((prev) => [row, ...prev]);
     setLastInvite(row);
-    toast.success("已送出邀約，邀請連結已產生");
+    toast.success("已送出邀約，招募連結已產生");
   };
 
-  const advanceInviteStatus = (id: string) => {
+  // Demo 模擬：被邀約人在招募頁送出申請（已邀請 → 待審核）
+  const simulateInviteeApply = (id: string) => {
     setInvites((prev) =>
-      prev.map((i) => {
-        if (i.id !== id) return i;
-        const idx = INVITE_STATUS_FLOW.indexOf(i.status);
-        const next = INVITE_STATUS_FLOW[Math.min(idx + 1, INVITE_STATUS_FLOW.length - 1)];
-        return { ...i, status: next };
-      }),
+      prev.map((i) => (i.id === id && i.status === "已邀請" ? { ...i, status: "待審核" } : i)),
     );
+    toast.success("（模擬）被邀約人已在招募頁送出申請，狀態改為待審核");
+  };
+
+  // Demo 模擬：總部審核通過（待審核 → 已加入）
+  const simulateHqApprove = (id: string) => {
+    setInvites((prev) =>
+      prev.map((i) => (i.id === id && i.status === "待審核" ? { ...i, status: "已加入" } : i)),
+    );
+    toast.success("（模擬）總部審核通過，已開通折扣碼與分潤儀表板");
   };
 
   const copyText = async (text: string, label: string) => {
@@ -1280,11 +1287,11 @@ export default function SaaSWorkspace() {
                     {/* 我的邀約成效小卡 */}
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="kol-invite-stats">
                       <Card className="p-4">
-                        <p className="text-sm text-muted-foreground">已邀約</p>
+                        <p className="text-sm text-muted-foreground">已邀請</p>
                         <p className="mt-1 text-2xl font-bold">{myInviteStats.invited}</p>
                       </Card>
                       <Card className="p-4">
-                        <p className="text-sm text-muted-foreground">待確認</p>
+                        <p className="text-sm text-muted-foreground">待審核</p>
                         <p className="mt-1 text-2xl font-bold">{myInviteStats.pending}</p>
                       </Card>
                       <Card className="p-4">
@@ -1312,6 +1319,7 @@ export default function SaaSWorkspace() {
                           </CardContent>
                         </Card>
                       ) : (
+                        <>
                         <div className="rounded-lg border" data-testid="kol-invite-my-table">
                           <Table>
                             <TableHeader>
@@ -1342,24 +1350,36 @@ export default function SaaSWorkspace() {
                                     </Badge>
                                   </TableCell>
                                   <TableCell>
-                                    <div className="flex justify-end gap-2">
+                                    <div className="flex flex-wrap justify-end gap-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
                                         className="gap-1"
-                                        onClick={() => copyText(inviteLink(i.code), "邀請連結")}
+                                        onClick={() => copyText(inviteLink(i.code), "招募連結")}
                                         data-testid={`kol-invite-copy-${i.id}`}
                                       >
-                                        <Copy className="h-3.5 w-3.5" /> 複製連結
+                                        <Copy className="h-3.5 w-3.5" /> 複製招募連結
                                       </Button>
-                                      <Button
-                                        size="sm"
-                                        onClick={() => advanceInviteStatus(i.id)}
-                                        disabled={i.status === "已加入"}
-                                        data-testid={`kol-invite-advance-${i.id}`}
-                                      >
-                                        {i.status === "已加入" ? "已完成" : "推進狀態"}
-                                      </Button>
+                                      {i.status === "已邀請" && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={() => simulateInviteeApply(i.id)}
+                                          data-testid={`kol-invite-sim-apply-${i.id}`}
+                                        >
+                                          模擬對方已填表
+                                        </Button>
+                                      )}
+                                      {i.status === "待審核" && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={() => simulateHqApprove(i.id)}
+                                          data-testid={`kol-invite-sim-approve-${i.id}`}
+                                        >
+                                          模擬總部審核通過
+                                        </Button>
+                                      )}
                                     </div>
                                   </TableCell>
                                 </TableRow>
@@ -1367,6 +1387,10 @@ export default function SaaSWorkspace() {
                             </TableBody>
                           </Table>
                         </div>
+                        <p className="text-xs text-muted-foreground" data-testid="kol-invite-status-note">
+                          狀態由「被邀約人在招募頁填表申請」與「總部審核」決定，邀請人這端僅供追蹤。下方「模擬」按鈕為 Demo 展示用，實際上不會由邀請人自行變更狀態。
+                        </p>
+                        </>
                       )}
                     </div>
 
@@ -1419,7 +1443,7 @@ export default function SaaSWorkspace() {
                     <DialogHeader>
                       <DialogTitle>邀約新網紅</DialogTitle>
                       <DialogDescription>
-                        填寫被邀約創作者的資訊，系統會產生專屬邀請碼與連結
+                        填寫被邀約創作者的資訊，系統會產生專屬邀請碼與「加入創作者計畫」招募連結（/kol/join）
                       </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
@@ -1474,7 +1498,7 @@ export default function SaaSWorkspace() {
                           data-testid="kol-invite-result"
                         >
                           <p className="text-xs text-muted-foreground">
-                            已產生 {lastInvite.invitee} 的專屬邀請碼
+                            已產生 {lastInvite.invitee} 的專屬邀請碼與招募連結
                           </p>
                           <p className="font-mono text-2xl font-bold tracking-widest text-primary">
                             {lastInvite.code}
@@ -1487,10 +1511,10 @@ export default function SaaSWorkspace() {
                               size="sm"
                               variant="outline"
                               className="gap-1"
-                              onClick={() => copyText(inviteLink(lastInvite.code), "邀請連結")}
+                              onClick={() => copyText(inviteLink(lastInvite.code), "招募連結")}
                               data-testid="kol-invite-copy-link"
                             >
-                              <Copy className="h-4 w-4" /> 複製連結
+                              <Copy className="h-4 w-4" /> 複製招募連結
                             </Button>
                             <Button
                               size="sm"
