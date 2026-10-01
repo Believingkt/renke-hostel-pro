@@ -406,6 +406,72 @@ const GLOBAL_SPREAD = Object.values(MANAGER_PANELS).reduce(
 
 const GLOBAL_MANAGER_BONUS = Object.values(MANAGER_PANELS).reduce((s, m) => s + m.monthlyBonus, 0);
 
+// ── 社群裂變第一層/第二層夥伴（前端 state；推薦訂房多層擴散）──────────
+type SpreadStatus = "邀約中" | "已轉換"; // 已轉換＝完成首筆入住
+type SpreadMember = {
+  id: string;
+  managerId: string;
+  name: string;
+  contact: string;
+  code: string; // 個人專屬推薦碼
+  level: 1 | 2;
+  invitedBy: string; // 第一層＝社群管理員；第二層＝其上線第一層夥伴
+  status: SpreadStatus;
+  orders: number;
+  joinedAt: string;
+};
+
+/** 推薦訂房連結（社群裂變：對方完成首筆入住即計入多層分潤） */
+function spreadLink(code: string) {
+  return `https://booking.lakeze.com/book?ref=${code}`;
+}
+
+/** 由姓名/館別決定性產生的推薦碼 */
+function makeSpreadCode(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return "LZ-" + h.toString(36).toUpperCase().slice(0, 5).padStart(5, "X");
+}
+
+/** 由 MANAGER_PANELS 推導的裂變夥伴種子，確保與績效卡數字一致 */
+const INITIAL_SPREAD_MEMBERS: SpreadMember[] = Object.entries(MANAGER_PANELS).flatMap(
+  ([mid, panel]) => {
+    const managerName = COMMUNITY_MANAGERS.find((m) => m.id === mid)?.label ?? panel.venue;
+    const ordersByName = new Map(panel.partners.map((p) => [p.name, p.orders]));
+    const l1: SpreadMember[] = panel.level1Members.map((m, idx) => {
+      const orders = ordersByName.get(m.name) ?? 0;
+      return {
+        id: `sp-${mid}-l1-${idx}`,
+        managerId: mid,
+        name: m.name,
+        contact: "",
+        code: makeSpreadCode(mid + m.name),
+        level: 1,
+        invitedBy: managerName,
+        status: orders > 0 ? "已轉換" : "邀約中",
+        orders,
+        joinedAt: m.joinedAt,
+      };
+    });
+    const l2: SpreadMember[] = panel.level2Members.map((m, idx) => {
+      const orders = ordersByName.get(m.name) ?? 0;
+      return {
+        id: `sp-${mid}-l2-${idx}`,
+        managerId: mid,
+        name: m.name,
+        contact: "",
+        code: makeSpreadCode(mid + m.name),
+        level: 2,
+        invitedBy: m.invitedBy,
+        status: orders > 0 ? "已轉換" : "邀約中",
+        orders,
+        joinedAt: m.joinedAt,
+      };
+    });
+    return [...l1, ...l2];
+  },
+);
+
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
   { title: "人客多抽成比例", value: "3% - 4%", icon: Wallet, variant: "cyan" as const },
@@ -528,7 +594,7 @@ function nowStamp() {
 }
 
 function statusVariantClass(status: string) {
-  if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中") {
+  if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中" || status === "已轉換") {
     return "border-primary/40 text-primary";
   }
   if (status === "已取消" || status === "已停用") {
@@ -778,6 +844,56 @@ export default function SaaSWorkspace() {
     } catch {
       toast.error("複製失敗，請手動複製");
     }
+  };
+
+  // ── 社群裂變：第一層招募 + 第二層分享連結（社群管理員視角）──────────
+  const [spreadMembers, setSpreadMembers] = useState<SpreadMember[]>(INITIAL_SPREAD_MEMBERS);
+  const managerMeta = COMMUNITY_MANAGERS.find((m) => m.id === identity) ?? null;
+  const myL1 = useMemo(
+    () => spreadMembers.filter((m) => m.managerId === identity && m.level === 1),
+    [spreadMembers, identity],
+  );
+  const myL2 = useMemo(
+    () => spreadMembers.filter((m) => m.managerId === identity && m.level === 2),
+    [spreadMembers, identity],
+  );
+  const l2CountByInviter = (name: string) => myL2.filter((m) => m.invitedBy === name).length;
+
+  const [spreadOpen, setSpreadOpen] = useState(false);
+  const [spreadName, setSpreadName] = useState("");
+  const [spreadContact, setSpreadContact] = useState("");
+  const [spreadErr, setSpreadErr] = useState("");
+  const [lastSpread, setLastSpread] = useState<SpreadMember | null>(null);
+
+  const openSpreadDialog = () => {
+    setSpreadName("");
+    setSpreadContact("");
+    setSpreadErr("");
+    setLastSpread(null);
+    setSpreadOpen(true);
+  };
+
+  const handleInviteL1 = () => {
+    const name = spreadName.trim();
+    if (!name) {
+      setSpreadErr("請輸入被邀約人姓名");
+      return;
+    }
+    const row: SpreadMember = {
+      id: `sp-${Date.now()}`,
+      managerId: identity,
+      name,
+      contact: spreadContact.trim(),
+      code: makeSpreadCode(identity + name + Date.now()),
+      level: 1,
+      invitedBy: managerMeta?.label ?? "社群管理員",
+      status: "邀約中",
+      orders: 0,
+      joinedAt: nowStamp().slice(0, 10),
+    };
+    setSpreadMembers((prev) => [row, ...prev]);
+    setLastSpread(row);
+    toast.success("已產生第一層夥伴的專屬推薦連結");
   };
 
   const handleSignOut = async () => {
@@ -1587,6 +1703,255 @@ export default function SaaSWorkspace() {
                 </div>
               </CardContent>
             </Card>
+
+            {managerPanel && (
+              <Card data-testid="cm-spread-card">
+                <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <UserPlus className="h-5 w-5 text-primary" />
+                      第一層招募與裂變邀請
+                    </CardTitle>
+                    <CardDescription>
+                      分享你的專屬推薦連結給民眾，對方完成首筆入住即成為你的第一層夥伴
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-1 shrink-0"
+                    onClick={openSpreadDialog}
+                    data-testid="cm-spread-invite-open"
+                  >
+                    <Send className="h-4 w-4" /> 邀請第一層夥伴
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-2 rounded-lg border border-primary/30 bg-secondary/40 p-4">
+                    <p className="text-xs text-muted-foreground">你的專屬邀請碼</p>
+                    <p className="font-mono text-xl font-bold tracking-widest text-primary">
+                      {managerMeta?.inviteCode ?? "—"}
+                    </p>
+                    <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                      {spreadLink(managerMeta?.inviteCode ?? "")}
+                    </code>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => copyText(spreadLink(managerMeta?.inviteCode ?? ""), "邀請連結")}
+                        data-testid="cm-spread-manager-copy-link"
+                      >
+                        <Copy className="h-4 w-4" /> 複製邀請連結
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => copyText(managerMeta?.inviteCode ?? "", "邀請碼")}
+                        data-testid="cm-spread-manager-copy-code"
+                      >
+                        <Copy className="h-4 w-4" /> 複製邀請碼
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      分享給民眾，對方完成首筆入住即成為你的第一層夥伴。
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">第一層夥伴（由你直接邀請）</p>
+                    {myL1.length === 0 ? (
+                      <Card>
+                        <CardContent
+                          className="p-8 text-center text-sm text-muted-foreground"
+                          data-testid="cm-spread-empty"
+                        >
+                          尚無第一層夥伴，點右上角「邀請第一層夥伴」開始招募。
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border" data-testid="cm-spread-l1-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>姓名</TableHead>
+                                <TableHead>專屬推薦連結</TableHead>
+                                <TableHead>狀態</TableHead>
+                                <TableHead className="text-right">訂單數</TableHead>
+                                <TableHead className="text-right">第二層人數</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {myL1.map((m) => (
+                                <TableRow key={m.id} data-testid={`cm-spread-l1-row-${m.id}`}>
+                                  <TableCell className="whitespace-nowrap">
+                                    <div className="font-medium">{m.name}</div>
+                                    <div className="text-xs text-muted-foreground">{m.contact || "—"}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <code className="rounded bg-muted px-2 py-1 text-xs break-all">
+                                        {spreadLink(m.code)}
+                                      </code>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1 shrink-0"
+                                        onClick={() => copyText(spreadLink(m.code), "推薦連結")}
+                                        data-testid={`cm-spread-l1-copy-${m.id}`}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" /> 複製
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(m.status)}>
+                                      {m.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{m.orders}</TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {l2CountByInviter(m.name)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          把某位夥伴的「專屬推薦連結」分享出去，別人透過它完成首筆入住，就成為該夥伴的第二層。
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">第二層夥伴（由第一層夥伴再邀請）</p>
+                    {myL2.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                          尚無第二層擴散。當你的第一層夥伴分享其專屬連結並有人完成首筆入住時，會顯示在這裡。
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="rounded-lg border" data-testid="cm-spread-l2-table">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>姓名</TableHead>
+                              <TableHead>由第一層夥伴</TableHead>
+                              <TableHead>狀態</TableHead>
+                              <TableHead className="text-right">訂單數</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {myL2.map((m) => (
+                              <TableRow key={m.id}>
+                                <TableCell className="whitespace-nowrap font-medium">{m.name}</TableCell>
+                                <TableCell className="whitespace-nowrap">{m.invitedBy}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={statusVariantClass(m.status)}>
+                                    {m.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">{m.orders}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+
+                  <Dialog open={spreadOpen} onOpenChange={setSpreadOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>邀請第一層夥伴</DialogTitle>
+                        <DialogDescription>
+                          填寫被邀約人資料，系統會產生專屬推薦連結。對方完成首筆入住即成為你的第一層夥伴。
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">邀請人（你）</Label>
+                          <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                            {managerMeta?.label ?? "社群管理員"}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">被邀約人姓名</Label>
+                          <Input
+                            value={spreadName}
+                            onChange={(e) => {
+                              setSpreadName(e.target.value);
+                              setSpreadErr("");
+                            }}
+                            placeholder="例如 王小明"
+                            data-testid="cm-spread-name-input"
+                          />
+                          {spreadErr && <p className="text-xs text-destructive">{spreadErr}</p>}
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">聯絡方式／備註（選填）</Label>
+                          <Input
+                            value={spreadContact}
+                            onChange={(e) => setSpreadContact(e.target.value)}
+                            placeholder="手機／LINE ID／備註"
+                            data-testid="cm-spread-contact-input"
+                          />
+                        </div>
+                        {lastSpread && (
+                          <div
+                            className="space-y-2 rounded-lg border border-primary/30 bg-secondary/60 p-4"
+                            data-testid="cm-spread-result"
+                          >
+                            <p className="text-xs text-muted-foreground">
+                              已產生 {lastSpread.name} 的專屬推薦碼
+                            </p>
+                            <p className="font-mono text-2xl font-bold tracking-widest text-primary">
+                              {lastSpread.code}
+                            </p>
+                            <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                              {spreadLink(lastSpread.code)}
+                            </code>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => copyText(spreadLink(lastSpread.code), "推薦連結")}
+                                data-testid="cm-spread-copy-link"
+                              >
+                                <Copy className="h-4 w-4" /> 複製推薦連結
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => copyText(lastSpread.code, "推薦碼")}
+                                data-testid="cm-spread-copy-code"
+                              >
+                                <Copy className="h-4 w-4" /> 複製推薦碼
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setSpreadOpen(false)}>
+                          關閉
+                        </Button>
+                        <Button onClick={handleInviteL1} data-testid="cm-spread-submit">
+                          送出邀請
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
