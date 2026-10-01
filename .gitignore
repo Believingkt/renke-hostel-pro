@@ -29,6 +29,7 @@ packages/*/dist
 
 # Emergent 預覽/部署專用（勿提交）
 apps/pms/vite.preview.config.ts
+apps/booking/vite.preview.config.ts
 
 # Emergent preview-environment artifacts (never commit)
 frontend/
