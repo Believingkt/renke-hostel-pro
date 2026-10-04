@@ -50,6 +50,8 @@ import {
   UserCircle,
   LogOut,
   ExternalLink,
+  Copy,
+  Send,
 } from "lucide-react";
 import { cn } from "@lakeze/shared/lib/utils";
 
@@ -255,12 +257,44 @@ const MOCK_TREND = [
   { day: "08/29", conversions: 41 },
 ];
 
-const MOCK_INVITES = [
-  { inviter: "仙女他媽（施怡君）", invitee: "蘇蘇", date: "2026-08-12", status: "已加入" },
-  { inviter: "餓犬Dicky", invitee: "明星煌", date: "2026-08-16", status: "已邀約" },
-  { inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", date: "2026-08-20", status: "待確認" },
-  { inviter: "Oreo｜建築旅遊部落客", invitee: "Bryan Aka黑熊他爸🐾", date: "2026-08-24", status: "已加入" },
+type InviteStatus = "已邀請" | "待審核" | "已加入";
+
+type InviteRow = {
+  id: string;
+  inviter: string;
+  invitee: string;
+  inviteeHandle: string;
+  venue: string;
+  code: string;
+  date: string;
+  status: InviteStatus;
+};
+
+/**
+ * 網紅邀約網紅狀態（由被邀約人填表＋總部審核驅動，邀請人端唯讀）：
+ * 已邀請 → 待審核（對方在 /kol/join 送出申請）→ 已加入（總部審核通過、開通折扣碼與分潤）。
+ */
+
+/**
+ * 網紅邀約網紅的前端假資料（含兩層邀請鏈，方便示範下線擴散）。
+ * 例：仙女他媽 → 蘇蘇（第一層）→ 阿哲（第二層）；竹軒 → Mika（第一層）→ 小魚lulu（第二層）。
+ */
+const INITIAL_INVITES: InviteRow[] = [
+  { id: "iv1", inviter: "仙女他媽（施怡君）", invitee: "蘇蘇", inviteeHandle: "mirandasue_0811", venue: "森山寫照", code: "SUESUE", date: "2026-08-12", status: "已加入" },
+  { id: "iv2", inviter: "蘇蘇", invitee: "阿哲｜露營穿搭", inviteeHandle: "azhe.camp", venue: "森山寫照", code: "AZHE7K2Q", date: "2026-08-22", status: "待審核" },
+  { id: "iv3", inviter: "餓犬Dicky", invitee: "明星煌", inviteeHandle: "starmonarch", venue: "旅行日-光", code: "STARMONARCH", date: "2026-08-16", status: "已邀請" },
+  { id: "iv4", inviter: "竹軒｜Mixx質感電商", invitee: "Mika｜今晚住這裡·旅宿探索中", inviteeHandle: "mika.checkin", venue: "淞湘卉館", code: "MIKALLXX", date: "2026-08-20", status: "待審核" },
+  { id: "iv5", inviter: "Mika｜今晚住這裡·旅宿探索中", invitee: "小魚lulu", inviteeHandle: "lulu.fish", venue: "淞湘卉館", code: "LULU5T1B", date: "2026-08-25", status: "已邀請" },
+  { id: "iv6", inviter: "Oreo｜建築旅遊部落客", invitee: "Bryan Aka黑熊他爸🐾", inviteeHandle: "bryanpan1014", venue: "奧莉薇雅生活小酒店", code: "BRYAN1014", date: "2026-08-24", status: "已加入" },
 ];
+
+/** 所有可推薦館別（由假 KOL 資料彙整） */
+const ALL_VENUES = Array.from(new Set(MOCK_KOLS.map((k) => k.venue)));
+
+/** 招募連結指向創作者加入頁（/kol/join/:code），非訪客訂房頁 */
+function inviteLink(code: string) {
+  return `https://booking.lakeze.com/kol/join/${code}`;
+}
 
 const MOCK_INVITE_CODES = [
   { code: "LZ-A7K2", owner: "旅行日-光 社群管理員", used: 3, createdAt: "2026-07-28", status: "啟用中" },
@@ -371,6 +405,72 @@ const GLOBAL_SPREAD = Object.values(MANAGER_PANELS).reduce(
 );
 
 const GLOBAL_MANAGER_BONUS = Object.values(MANAGER_PANELS).reduce((s, m) => s + m.monthlyBonus, 0);
+
+// ── 社群裂變第一層/第二層夥伴（前端 state；推薦訂房多層擴散）──────────
+type SpreadStatus = "邀約中" | "已轉換"; // 已轉換＝完成首筆入住
+type SpreadMember = {
+  id: string;
+  managerId: string;
+  name: string;
+  contact: string;
+  code: string; // 個人專屬推薦碼
+  level: 1 | 2;
+  invitedBy: string; // 第一層＝社群管理員；第二層＝其上線第一層夥伴
+  status: SpreadStatus;
+  orders: number;
+  joinedAt: string;
+};
+
+/** 推薦訂房連結（社群裂變：對方完成首筆入住即計入多層分潤） */
+function spreadLink(code: string) {
+  return `https://booking.lakeze.com/book?ref=${code}`;
+}
+
+/** 由姓名/館別決定性產生的推薦碼 */
+function makeSpreadCode(seed: string) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return "LZ-" + h.toString(36).toUpperCase().slice(0, 5).padStart(5, "X");
+}
+
+/** 由 MANAGER_PANELS 推導的裂變夥伴種子，確保與績效卡數字一致 */
+const INITIAL_SPREAD_MEMBERS: SpreadMember[] = Object.entries(MANAGER_PANELS).flatMap(
+  ([mid, panel]) => {
+    const managerName = COMMUNITY_MANAGERS.find((m) => m.id === mid)?.label ?? panel.venue;
+    const ordersByName = new Map(panel.partners.map((p) => [p.name, p.orders]));
+    const l1: SpreadMember[] = panel.level1Members.map((m, idx) => {
+      const orders = ordersByName.get(m.name) ?? 0;
+      return {
+        id: `sp-${mid}-l1-${idx}`,
+        managerId: mid,
+        name: m.name,
+        contact: "",
+        code: makeSpreadCode(mid + m.name),
+        level: 1,
+        invitedBy: managerName,
+        status: orders > 0 ? "已轉換" : "邀約中",
+        orders,
+        joinedAt: m.joinedAt,
+      };
+    });
+    const l2: SpreadMember[] = panel.level2Members.map((m, idx) => {
+      const orders = ordersByName.get(m.name) ?? 0;
+      return {
+        id: `sp-${mid}-l2-${idx}`,
+        managerId: mid,
+        name: m.name,
+        contact: "",
+        code: makeSpreadCode(mid + m.name),
+        level: 2,
+        invitedBy: m.invitedBy,
+        status: orders > 0 ? "已轉換" : "邀約中",
+        orders,
+        joinedAt: m.joinedAt,
+      };
+    });
+    return [...l1, ...l2];
+  },
+);
 
 const PLATFORM_REVENUE_STATS = [
   { title: "台灣旅圖抽成比例", value: "2% - 4%", icon: TrendingUp, variant: "coral" as const },
@@ -494,7 +594,7 @@ function nowStamp() {
 }
 
 function statusVariantClass(status: string) {
-  if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中") {
+  if (status === "已成交" || status === "已加入" || status === "已入帳" || status === "啟用中" || status === "已轉換") {
     return "border-primary/40 text-primary";
   }
   if (status === "已取消" || status === "已停用") {
@@ -560,7 +660,7 @@ export default function SaaSWorkspace() {
 
   const panel = isAdminView ? ADMIN_PANEL : KOL_PANELS[identity] ?? ADMIN_PANEL;
 
-  // Demo 用途的前端可視性規則（非真實權限驗證）
+  // 前端可視性規則（依檢視身份決定顯示內容）
   const canSeeD1 = isAdminView || !isManagerView;
   const canSeeD2 = isAdminView || isManagerView;
   const visibleTabs = [
@@ -653,6 +753,149 @@ export default function SaaSWorkspace() {
     toast.success("已於館別後台建立折扣代碼");
   };
 
+  // ── 網紅邀約網紅 ──────────────────────────
+  const [invites, setInvites] = useState<InviteRow[]>(INITIAL_INVITES);
+
+  // KOL 視角：自己發出的邀約（第一層）
+  const myInvites = useMemo(
+    () => invites.filter((i) => i.inviter === selectedKolName),
+    [invites, selectedKolName],
+  );
+  const level1Names = useMemo(() => myInvites.map((i) => i.invitee), [myInvites]);
+  // 第二層：由我的第一層成員再邀約出去的人
+  const downlineLevel2 = useMemo(
+    () => invites.filter((i) => level1Names.includes(i.inviter)),
+    [invites, level1Names],
+  );
+  const myInviteStats = useMemo(() => {
+    const chain = [...myInvites, ...downlineLevel2];
+    const count = (s: InviteStatus) => chain.filter((i) => i.status === s).length;
+    const joinedL1 = myInvites.filter((i) => i.status === "已加入").length;
+    const joinedL2 = downlineLevel2.filter((i) => i.status === "已加入").length;
+    // 裂變獎金試算：第一層每位已加入 NT$800、第二層 NT$300
+    return {
+      invited: count("已邀請"),
+      pending: count("待審核"),
+      joined: count("已加入"),
+      bonus: joinedL1 * 800 + joinedL2 * 300,
+    };
+  }, [myInvites, downlineLevel2]);
+
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteName, setInviteName] = useState("");
+  const [inviteHandle, setInviteHandle] = useState("");
+  const [inviteVenue, setInviteVenue] = useState("");
+  const [inviteError, setInviteError] = useState("");
+  const [lastInvite, setLastInvite] = useState<InviteRow | null>(null);
+
+  const inviteVenueOptions = KOL_VENUE_OPTIONS[identity] ?? ALL_VENUES;
+
+  const openInviteDialog = () => {
+    setInviteName("");
+    setInviteHandle("");
+    setInviteVenue(inviteVenueOptions[0] ?? ALL_VENUES[0] ?? "");
+    setInviteError("");
+    setLastInvite(null);
+    setInviteOpen(true);
+  };
+
+  const handleCreateInvite = () => {
+    const name = inviteName.trim();
+    if (!name) {
+      setInviteError("請輸入被邀約網紅名稱");
+      return;
+    }
+    const code = buildCidCode(name);
+    const row: InviteRow = {
+      id: `iv-${Date.now()}`,
+      inviter: selectedKolName,
+      invitee: name,
+      inviteeHandle: inviteHandle.trim().replace(/^@/, ""),
+      venue: inviteVenue || inviteVenueOptions[0] || "—",
+      code,
+      date: nowStamp().slice(0, 10),
+      status: "已邀請",
+    };
+    setInvites((prev) => [row, ...prev]);
+    setLastInvite(row);
+    toast.success("已送出邀約，招募連結已產生");
+  };
+
+  // 被邀約人在招募頁送出申請（已邀請 → 待審核）
+  const markInviteeApplied = (id: string) => {
+    setInvites((prev) =>
+      prev.map((i) => (i.id === id && i.status === "已邀請" ? { ...i, status: "待審核" } : i)),
+    );
+    toast.success("已更新：被邀約人已於招募頁送出申請，狀態為待審核");
+  };
+
+  // 總部審核通過（待審核 → 已加入）
+  const markHqApproved = (id: string) => {
+    setInvites((prev) =>
+      prev.map((i) => (i.id === id && i.status === "待審核" ? { ...i, status: "已加入" } : i)),
+    );
+    toast.success("已更新：總部審核通過，已開通折扣碼與分潤儀表板");
+  };
+
+  const copyText = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`${label}已複製`);
+    } catch {
+      toast.error("複製失敗，請手動複製");
+    }
+  };
+
+  // ── 社群裂變：第一層招募 + 第二層分享連結（社群管理員視角）──────────
+  const [spreadMembers, setSpreadMembers] = useState<SpreadMember[]>(INITIAL_SPREAD_MEMBERS);
+  const managerMeta = COMMUNITY_MANAGERS.find((m) => m.id === identity) ?? null;
+  const myL1 = useMemo(
+    () => spreadMembers.filter((m) => m.managerId === identity && m.level === 1),
+    [spreadMembers, identity],
+  );
+  const myL2 = useMemo(
+    () => spreadMembers.filter((m) => m.managerId === identity && m.level === 2),
+    [spreadMembers, identity],
+  );
+  const l2CountByInviter = (name: string) => myL2.filter((m) => m.invitedBy === name).length;
+
+  const [spreadOpen, setSpreadOpen] = useState(false);
+  const [spreadName, setSpreadName] = useState("");
+  const [spreadContact, setSpreadContact] = useState("");
+  const [spreadErr, setSpreadErr] = useState("");
+  const [lastSpread, setLastSpread] = useState<SpreadMember | null>(null);
+
+  const openSpreadDialog = () => {
+    setSpreadName("");
+    setSpreadContact("");
+    setSpreadErr("");
+    setLastSpread(null);
+    setSpreadOpen(true);
+  };
+
+  const handleInviteL1 = () => {
+    const name = spreadName.trim();
+    if (!name) {
+      setSpreadErr("請輸入被邀約人姓名");
+      return;
+    }
+    const row: SpreadMember = {
+      id: `sp-${Date.now()}`,
+      managerId: identity,
+      name,
+      contact: spreadContact.trim(),
+      code: makeSpreadCode(identity + name + Date.now()),
+      level: 1,
+      invitedBy: managerMeta?.label ?? "社群管理員",
+      status: "邀約中",
+      orders: 0,
+      joinedAt: nowStamp().slice(0, 10),
+    };
+    setSpreadMembers((prev) => [row, ...prev]);
+    setLastSpread(row);
+    toast.success("已產生第一層夥伴的專屬推薦連結");
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth?next=" + encodeURIComponent("/SaaS"), { replace: true });
@@ -690,7 +933,7 @@ export default function SaaSWorkspace() {
                   setGeneratedCode(null);
                 }}
               >
-                <SelectTrigger className="w-full sm:w-72">
+                <SelectTrigger className="w-full sm:w-72" data-testid="identity-select-trigger">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1100,45 +1343,320 @@ export default function SaaSWorkspace() {
             </Card>
             )}
 
-            {isAdminView && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <UserPlus className="h-5 w-5 text-primary" />
-                  網紅邀約網紅
-                </CardTitle>
-                <CardDescription>創作者互相引薦的擴散紀錄</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>邀約人</TableHead>
-                        <TableHead>被邀約人</TableHead>
-                        <TableHead>邀約日期</TableHead>
-                        <TableHead>狀態</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {MOCK_INVITES.map((i) => (
-                        <TableRow key={i.inviter + i.invitee}>
-                          <TableCell>{i.inviter}</TableCell>
-                          <TableCell>{i.invitee}</TableCell>
-                          <TableCell className="whitespace-nowrap">{i.date}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusVariantClass(i.status)}>
-                              {i.status}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+            {/* 網紅邀約網紅：Admin 看全站紀錄；KOL 可實際操作邀約與檢視下線 */}
+            <Card data-testid="kol-invite-card">
+              <CardHeader className="flex flex-row items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <UserPlus className="h-5 w-5 text-primary" />
+                    網紅邀約網紅
+                  </CardTitle>
+                  <CardDescription>
+                    {isAdminView
+                      ? "全站創作者互相引薦的擴散紀錄"
+                      : "邀約其他創作者加入，建立你的裂變下線並追蹤狀態"}
+                  </CardDescription>
                 </div>
+                {!isAdminView && (
+                  <Button
+                    size="sm"
+                    className="gap-1 shrink-0"
+                    onClick={openInviteDialog}
+                    data-testid="kol-invite-open-button"
+                  >
+                    <Send className="h-4 w-4" /> 邀約新網紅
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {isAdminView ? (
+                  <div className="rounded-lg border" data-testid="admin-invite-table">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>邀約人</TableHead>
+                          <TableHead>被邀約人</TableHead>
+                          <TableHead>推薦館別</TableHead>
+                          <TableHead>邀約日期</TableHead>
+                          <TableHead>狀態</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invites.map((i) => (
+                          <TableRow key={i.id}>
+                            <TableCell className="whitespace-nowrap">{i.inviter}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.invitee}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                            <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                {i.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <>
+                    {/* 我的邀約成效小卡 */}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" data-testid="kol-invite-stats">
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">已邀請</p>
+                        <p className="mt-1 text-2xl font-bold">{myInviteStats.invited}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">待審核</p>
+                        <p className="mt-1 text-2xl font-bold">{myInviteStats.pending}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">已加入</p>
+                        <p className="mt-1 text-2xl font-bold text-primary">{myInviteStats.joined}</p>
+                      </Card>
+                      <Card className="p-4">
+                        <p className="text-sm text-muted-foreground">預估裂變獎金</p>
+                        <p className="mt-1 text-2xl font-bold text-primary">
+                          NT$ {myInviteStats.bonus.toLocaleString()}
+                        </p>
+                      </Card>
+                    </div>
+
+                    {/* 我發出的邀約（第一層） */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">我發出的邀約（第一層）</p>
+                      {myInvites.length === 0 ? (
+                        <Card>
+                          <CardContent
+                            className="p-8 text-center text-sm text-muted-foreground"
+                            data-testid="kol-invite-empty"
+                          >
+                            你還沒有邀約任何網紅，點右上角「邀約新網紅」開始建立你的裂變下線。
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <>
+                        <div className="rounded-lg border" data-testid="kol-invite-my-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>被邀約人</TableHead>
+                                <TableHead>推薦館別</TableHead>
+                                <TableHead>邀請碼</TableHead>
+                                <TableHead>邀約日期</TableHead>
+                                <TableHead>狀態</TableHead>
+                                <TableHead className="text-right">操作</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {myInvites.map((i) => (
+                                <TableRow key={i.id} data-testid={`kol-invite-row-${i.id}`}>
+                                  <TableCell className="whitespace-nowrap">
+                                    <div className="font-medium">{i.invitee}</div>
+                                    {i.inviteeHandle && (
+                                      <div className="text-xs text-muted-foreground">@{i.inviteeHandle}</div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                                  <TableCell className="font-mono whitespace-nowrap">{i.code}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                      {i.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap justify-end gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1"
+                                        onClick={() => copyText(inviteLink(i.code), "招募連結")}
+                                        data-testid={`kol-invite-copy-${i.id}`}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" /> 複製招募連結
+                                      </Button>
+                                      {i.status === "已邀請" && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={() => markInviteeApplied(i.id)}
+                                          data-testid={`kol-invite-apply-${i.id}`}
+                                        >
+                                          對方已填表
+                                        </Button>
+                                      )}
+                                      {i.status === "待審核" && (
+                                        <Button
+                                          size="sm"
+                                          variant="secondary"
+                                          onClick={() => markHqApproved(i.id)}
+                                          data-testid={`kol-invite-approve-${i.id}`}
+                                        >
+                                          總部審核通過
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        <p className="text-xs text-muted-foreground" data-testid="kol-invite-status-note">
+                          狀態由「被邀約人在招募頁填表申請」與「總部審核」決定，邀請人這端僅供追蹤，不會由邀請人自行變更狀態。
+                        </p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* 邀請鏈下線（第二層） */}
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">邀請鏈下線（第二層）</p>
+                      {downlineLevel2.length === 0 ? (
+                        <Card>
+                          <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                            尚無第二層擴散。當你的第一層網紅再邀約新朋友時，會顯示在這裡。
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        <div className="rounded-lg border" data-testid="kol-invite-downline-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>被邀約人</TableHead>
+                                <TableHead>邀請人（你的第一層）</TableHead>
+                                <TableHead>推薦館別</TableHead>
+                                <TableHead>邀約日期</TableHead>
+                                <TableHead>狀態</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {downlineLevel2.map((i) => (
+                                <TableRow key={i.id}>
+                                  <TableCell className="whitespace-nowrap">{i.invitee}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.inviter}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.venue}</TableCell>
+                                  <TableCell className="whitespace-nowrap">{i.date}</TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(i.status)}>
+                                      {i.status}
+                                    </Badge>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* 邀約新網紅對話框 */}
+                <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>邀約新網紅</DialogTitle>
+                      <DialogDescription>
+                        填寫被邀約創作者的資訊，系統會產生專屬邀請碼與「加入創作者計畫」招募連結（/kol/join）
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">邀請人（你）</Label>
+                        <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                          {selectedKolName}
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">被邀約網紅名稱</Label>
+                        <Input
+                          value={inviteName}
+                          onChange={(e) => {
+                            setInviteName(e.target.value);
+                            setInviteError("");
+                          }}
+                          placeholder="例如 小柚子｜親子旅遊"
+                          data-testid="kol-invite-name-input"
+                        />
+                        {inviteError && <p className="text-xs text-destructive">{inviteError}</p>}
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">IG 帳號（選填）</Label>
+                        <Input
+                          value={inviteHandle}
+                          onChange={(e) => setInviteHandle(e.target.value)}
+                          placeholder="@example"
+                          className="font-mono"
+                          data-testid="kol-invite-handle-input"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">推薦館別</Label>
+                        <Select value={inviteVenue} onValueChange={setInviteVenue}>
+                          <SelectTrigger data-testid="kol-invite-venue-select">
+                            <SelectValue placeholder="選擇館別" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {inviteVenueOptions.map((v) => (
+                              <SelectItem key={v} value={v}>
+                                {v}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {lastInvite && (
+                        <div
+                          className="space-y-2 rounded-lg border border-primary/30 bg-secondary/60 p-4"
+                          data-testid="kol-invite-result"
+                        >
+                          <p className="text-xs text-muted-foreground">
+                            已產生 {lastInvite.invitee} 的專屬邀請碼與招募連結
+                          </p>
+                          <p className="font-mono text-2xl font-bold tracking-widest text-primary">
+                            {lastInvite.code}
+                          </p>
+                          <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                            {inviteLink(lastInvite.code)}
+                          </code>
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => copyText(inviteLink(lastInvite.code), "招募連結")}
+                              data-testid="kol-invite-copy-link"
+                            >
+                              <Copy className="h-4 w-4" /> 複製招募連結
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1"
+                              onClick={() => copyText(lastInvite.code, "邀請碼")}
+                              data-testid="kol-invite-copy-code"
+                            >
+                              <Copy className="h-4 w-4" /> 複製邀請碼
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setInviteOpen(false)}>
+                        關閉
+                      </Button>
+                      <Button onClick={handleCreateInvite} data-testid="kol-invite-submit">
+                        送出邀約
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardContent>
             </Card>
-            )}
           </TabsContent>
           )}
 
@@ -1185,6 +1703,255 @@ export default function SaaSWorkspace() {
                 </div>
               </CardContent>
             </Card>
+
+            {managerPanel && (
+              <Card data-testid="cm-spread-card">
+                <CardHeader className="flex flex-row items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <UserPlus className="h-5 w-5 text-primary" />
+                      第一層招募與裂變邀請
+                    </CardTitle>
+                    <CardDescription>
+                      分享你的專屬推薦連結給民眾，對方完成首筆入住即成為你的第一層夥伴
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-1 shrink-0"
+                    onClick={openSpreadDialog}
+                    data-testid="cm-spread-invite-open"
+                  >
+                    <Send className="h-4 w-4" /> 邀請第一層夥伴
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-5">
+                  <div className="space-y-2 rounded-lg border border-primary/30 bg-secondary/40 p-4">
+                    <p className="text-xs text-muted-foreground">你的專屬邀請碼</p>
+                    <p className="font-mono text-xl font-bold tracking-widest text-primary">
+                      {managerMeta?.inviteCode ?? "—"}
+                    </p>
+                    <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                      {spreadLink(managerMeta?.inviteCode ?? "")}
+                    </code>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => copyText(spreadLink(managerMeta?.inviteCode ?? ""), "邀請連結")}
+                        data-testid="cm-spread-manager-copy-link"
+                      >
+                        <Copy className="h-4 w-4" /> 複製邀請連結
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1"
+                        onClick={() => copyText(managerMeta?.inviteCode ?? "", "邀請碼")}
+                        data-testid="cm-spread-manager-copy-code"
+                      >
+                        <Copy className="h-4 w-4" /> 複製邀請碼
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      分享給民眾，對方完成首筆入住即成為你的第一層夥伴。
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">第一層夥伴（由你直接邀請）</p>
+                    {myL1.length === 0 ? (
+                      <Card>
+                        <CardContent
+                          className="p-8 text-center text-sm text-muted-foreground"
+                          data-testid="cm-spread-empty"
+                        >
+                          尚無第一層夥伴，點右上角「邀請第一層夥伴」開始招募。
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <>
+                        <div className="rounded-lg border" data-testid="cm-spread-l1-table">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>姓名</TableHead>
+                                <TableHead>專屬推薦連結</TableHead>
+                                <TableHead>狀態</TableHead>
+                                <TableHead className="text-right">訂單數</TableHead>
+                                <TableHead className="text-right">第二層人數</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {myL1.map((m) => (
+                                <TableRow key={m.id} data-testid={`cm-spread-l1-row-${m.id}`}>
+                                  <TableCell className="whitespace-nowrap">
+                                    <div className="font-medium">{m.name}</div>
+                                    <div className="text-xs text-muted-foreground">{m.contact || "—"}</div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      <code className="rounded bg-muted px-2 py-1 text-xs break-all">
+                                        {spreadLink(m.code)}
+                                      </code>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="gap-1 shrink-0"
+                                        onClick={() => copyText(spreadLink(m.code), "推薦連結")}
+                                        data-testid={`cm-spread-l1-copy-${m.id}`}
+                                      >
+                                        <Copy className="h-3.5 w-3.5" /> 複製
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className={statusVariantClass(m.status)}>
+                                      {m.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{m.orders}</TableCell>
+                                  <TableCell className="text-right tabular-nums">
+                                    {l2CountByInviter(m.name)}
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          把某位夥伴的「專屬推薦連結」分享出去，別人透過它完成首筆入住，就成為該夥伴的第二層。
+                        </p>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">第二層夥伴（由第一層夥伴再邀請）</p>
+                    {myL2.length === 0 ? (
+                      <Card>
+                        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                          尚無第二層擴散。當你的第一層夥伴分享其專屬連結並有人完成首筆入住時，會顯示在這裡。
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      <div className="rounded-lg border" data-testid="cm-spread-l2-table">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>姓名</TableHead>
+                              <TableHead>由第一層夥伴</TableHead>
+                              <TableHead>狀態</TableHead>
+                              <TableHead className="text-right">訂單數</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {myL2.map((m) => (
+                              <TableRow key={m.id}>
+                                <TableCell className="whitespace-nowrap font-medium">{m.name}</TableCell>
+                                <TableCell className="whitespace-nowrap">{m.invitedBy}</TableCell>
+                                <TableCell>
+                                  <Badge variant="outline" className={statusVariantClass(m.status)}>
+                                    {m.status}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="text-right tabular-nums">{m.orders}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </div>
+
+                  <Dialog open={spreadOpen} onOpenChange={setSpreadOpen}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>邀請第一層夥伴</DialogTitle>
+                        <DialogDescription>
+                          填寫被邀約人資料，系統會產生專屬推薦連結。對方完成首筆入住即成為你的第一層夥伴。
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">邀請人（你）</Label>
+                          <div className="flex h-10 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                            {managerMeta?.label ?? "社群管理員"}
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">被邀約人姓名</Label>
+                          <Input
+                            value={spreadName}
+                            onChange={(e) => {
+                              setSpreadName(e.target.value);
+                              setSpreadErr("");
+                            }}
+                            placeholder="例如 王小明"
+                            data-testid="cm-spread-name-input"
+                          />
+                          {spreadErr && <p className="text-xs text-destructive">{spreadErr}</p>}
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground">聯絡方式／備註（選填）</Label>
+                          <Input
+                            value={spreadContact}
+                            onChange={(e) => setSpreadContact(e.target.value)}
+                            placeholder="手機／LINE ID／備註"
+                            data-testid="cm-spread-contact-input"
+                          />
+                        </div>
+                        {lastSpread && (
+                          <div
+                            className="space-y-2 rounded-lg border border-primary/30 bg-secondary/60 p-4"
+                            data-testid="cm-spread-result"
+                          >
+                            <p className="text-xs text-muted-foreground">
+                              已產生 {lastSpread.name} 的專屬推薦碼
+                            </p>
+                            <p className="font-mono text-2xl font-bold tracking-widest text-primary">
+                              {lastSpread.code}
+                            </p>
+                            <code className="block break-all rounded bg-background px-2 py-1 text-xs">
+                              {spreadLink(lastSpread.code)}
+                            </code>
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => copyText(spreadLink(lastSpread.code), "推薦連結")}
+                                data-testid="cm-spread-copy-link"
+                              >
+                                <Copy className="h-4 w-4" /> 複製推薦連結
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1"
+                                onClick={() => copyText(lastSpread.code, "推薦碼")}
+                                data-testid="cm-spread-copy-code"
+                              >
+                                <Copy className="h-4 w-4" /> 複製推薦碼
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setSpreadOpen(false)}>
+                          關閉
+                        </Button>
+                        <Button onClick={handleInviteL1} data-testid="cm-spread-submit">
+                          送出邀請
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            )}
 
             <Card>
               <CardHeader>
