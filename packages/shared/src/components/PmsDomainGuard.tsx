@@ -67,9 +67,9 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
       navigate("/login", { replace: true });
       return;
     }
-    // 舊的 /{alias}/auth 或 /auth 一律導向統一登入頁
+    // 舊的 /{alias}/auth 或 /auth 一律導向統一登入頁（保留 ?next= 等查詢參數，登入後才能回到原頁）
     if (normalizePmsPath(location.pathname) === "/auth") {
-      navigate("/login", { replace: true });
+      navigate(`/login${location.search}`, { replace: true });
       return;
     }
     if (!isPmsAllowedPath(location.pathname)) {
