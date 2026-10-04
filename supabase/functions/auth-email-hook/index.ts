@@ -84,7 +84,8 @@ const SAMPLE_DATA: Record<string, object> = {
 
 // 需要被導正的「預設 Site URL」網域（Supabase 專案預設值）
 const DEFAULT_HOSTS = ['lovable.app', 'lovableproject.com']
-const PMS_HOST = 'pms.lakeze.com'
+// 2026-10 起後台與前台同在 booking.lakeze.com（重設密碼頁為 /reset-password）
+const PMS_HOST = 'booking.lakeze.com'
 const BOOKING_HOST = 'booking.lakeze.com'
 
 function isDefaultHost(host: string) {

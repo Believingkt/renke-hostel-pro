@@ -165,13 +165,12 @@ export function buildEmailOrder(params: {
 
 
 
-/** 後台 canonical 網域：民宿／管理者 Email 的後台 CTA 一律使用 PMS 網域 */
-export const PMS_ADMIN_ORIGIN = "https://pms.lakeze.com";
+/** 後台 canonical 網域：2026-10 起前台與後台同在 booking.lakeze.com（/admin 為後台路徑） */
+export const PMS_ADMIN_ORIGIN = "https://booking.lakeze.com";
 
 /**
  * 後台團購訂單對帳深連結：直接定位到該活動的「訂單對帳」分頁並標示該筆訂單。
- * 注意：一律使用 PMS 網域，不可用旅客端 origin（booking.lakeze.com 的 /admin/* 會被
- * 前台守衛攔截並導回登入頁，query string 會遺失）。
+ * 注意：一律使用 PMS_ADMIN_ORIGIN，不可用旅客端傳入的 origin（可能是預覽或其他網域）。
  */
 export function buildAdminGroupBuyUrl(params: {
   accommodationId?: string | null;

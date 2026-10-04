@@ -66,7 +66,7 @@ const venueSample: VenueNotifyOrder = {
   toddlerCount: 0,
   infantCount: 0,
   paymentStatusText: "待匯款",
-  adminUrl: "https://hq.lakeze.com/admin/group-buy",
+  adminUrl: "https://booking.lakeze.com/admin/group-buy",
 };
 
 serve(async (req) => {

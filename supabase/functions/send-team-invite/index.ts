@@ -115,7 +115,7 @@ serve(async (req) => {
       return json({ success: false, error: "您沒有權限指派部分角色" }, 403);
     }
 
-    const siteUrl = "https://pms.lakeze.com";
+    const siteUrl = "https://booking.lakeze.com";
 
     // 查找既有用戶 — 先查 auth.users（profiles 可能未同步），再 fallback profiles
     let targetUserId: string | null = null;

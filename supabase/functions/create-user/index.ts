@@ -126,7 +126,7 @@ serve(async (req) => {
     let inviteLink: string | null = null;
 
     // Use production domain for redirect
-    const siteUrl = 'https://pms.lakeze.com';
+    const siteUrl = 'https://booking.lakeze.com';
 
     if (existingProfile) {
       // User already exists - check if they already have a role in this accommodation

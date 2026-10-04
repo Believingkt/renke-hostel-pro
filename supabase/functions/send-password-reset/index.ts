@@ -4,7 +4,7 @@ import { z } from "npm:zod@3.25.76";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const resetUrlBase = "https://pms.lakeze.com/reset-password";
+const resetUrlBase = "https://booking.lakeze.com/reset-password";
 const fromAddress = "人客多 <noreply@lakeze.com>";
 
 const corsHeaders = {
