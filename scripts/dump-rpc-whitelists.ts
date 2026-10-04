@@ -1,5 +1,5 @@
 // 從正式環境重新抓取 RPC 定義，同時寫出兩份基準檔（內容一致，不需人工維護清單）：
-//   1. apps/pms/src/test/__snapshots__/rpc-whitelists.json          → Vitest 契約測試用
+//   1. apps/booking/src/test/__snapshots__/rpc-whitelists.json          → Vitest 契約測試用
 //   2. supabase/functions/rpc-contract-check/expected.json → 每日排程漂移比對用
 //
 // 執行：SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... bun scripts/dump-rpc-whitelists.ts
@@ -45,7 +45,7 @@ async function main() {
     functions,
   };
   const json = JSON.stringify(payload, null, 2) + "\n";
-  writeFileSync("apps/pms/src/test/__snapshots__/rpc-whitelists.json", json);
+  writeFileSync("apps/booking/src/test/__snapshots__/rpc-whitelists.json", json);
   writeFileSync("supabase/functions/rpc-contract-check/expected.json", json);
   console.log(`已更新 ${Object.keys(functions).length} 支 RPC 的基準快照`);
 }
