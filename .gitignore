@@ -43,3 +43,10 @@ test_reports/
 # Local env / Vercel (from feat/migration-prep)
 .vercel
 .env*
+.env
+.env.*
+*.env
+credentials.json
+*.pem
+*.key
+.credentials
