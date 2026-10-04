@@ -7,8 +7,6 @@ export default defineConfig({
     projects: [
       "packages/shared/vitest.config.ts",
       "apps/booking/vitest.config.ts",
-      "apps/pms/vitest.config.ts",
-      "apps/hq/vitest.config.ts",
     ],
   },
 });

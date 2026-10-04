@@ -66,6 +66,8 @@ export const ALWAYS_ALLOWED_PATHS = [
   ...HQ_PATHS,
   ...AUTH_PATHS,
   "/admin",
+  "/login",
+  "/pms",
 ] as const;
 
 /**
@@ -84,6 +86,7 @@ export const RESERVED_FIRST_SEGMENTS = new Set<string>([
   "ai-booking",
   "auth",
   "login",
+  "pms",
   "hq",
   "hq-auth",
   "headquarters",

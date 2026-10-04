@@ -1,19 +1,22 @@
 /**
  * 應用模式（前台 / PMS 後台）判斷。
  *
- * - pms.lakeze.com      → "pms"（民宿後台入口）
- * - booking.lakeze.com  → "frontend"（訂房前台，行為完全不變）
- * - 開發 / 預覽網域      → 預設 "neutral"（不套任何守衛，方便測試）
- *                          可用 ?mode=pms / ?mode=frontend 切換，記在 sessionStorage
+ * 2026-10 起改為「單一網站」：前台、民宿後台、總部全部在 booking.lakeze.com，
+ * 以「路徑」區分模式（pms.lakeze.com、hq.lakeze.com 由 DNS 轉址到 booking.lakeze.com/pms、/hq）。
+ *
+ * - booking.lakeze.com  → 後台路徑（/login、/pms、/admin、/{alias}/admin、/team…）為 "pms"，其餘為 "frontend"
+ * - pms.lakeze.com      → "pms"（轉址生效前的相容）
+ * - 開發 / 預覽網域      → 同上以路徑判斷，非後台路徑為 "neutral"；仍可用 ?mode=pms / ?mode=frontend 強制
  */
 
 import { PMS_RESERVED_FIRST_SEGMENT_SET } from "@lakeze/shared/lib/reservedRoutes";
 
 import { isDevOrPreviewHost as isDevOrPreviewHostShared } from "@lakeze/shared/lib/previewHost";
-export const PMS_ORIGIN = "https://pms.lakeze.com";
 export const BOOKING_ORIGIN = "https://booking.lakeze.com";
-/** 密碼重設信固定回到 PMS 網域（勿用 window.location.origin 硬拼） */
-export const PMS_RESET_PASSWORD_URL = `${PMS_ORIGIN}/reset-password`;
+/** 單一網站：民宿後台與前台同網域（保留此常數名稱供既有程式使用） */
+export const PMS_ORIGIN = BOOKING_ORIGIN;
+/** 密碼重設信固定回到正式網域的 /reset-password（勿用 window.location.origin 硬拼） */
+export const PMS_RESET_PASSWORD_URL = `${BOOKING_ORIGIN}/reset-password`;
 
 export const PMS_HOSTS = ["pms.lakeze.com", "www.pms.lakeze.com"] as const;
 export const BOOKING_HOSTS = ["booking.lakeze.com", "www.booking.lakeze.com"] as const;
@@ -34,6 +37,19 @@ function isDevOrPreviewHost(hostname: string): boolean {
   return isDevOrPreviewHostShared(hostname);
 }
 
+/** 單一網站主機（前台＋後台＋總部同網域）：正式網域與開發／預覽網域 */
+export function isUnifiedHost(hostname = window.location.hostname): boolean {
+  return isBookingHost(hostname) || isDevOrPreviewHost(hostname);
+}
+
+function currentPathname(): string {
+  try {
+    return window.location.pathname || "/";
+  } catch {
+    return "/";
+  }
+}
+
 /** 讀取（並記住）開發/預覽環境的模式覆寫 */
 function readModeOverride(): AppMode | null {
   try {
@@ -50,11 +66,17 @@ function readModeOverride(): AppMode | null {
   return null;
 }
 
-export function resolveAppMode(hostname = window.location.hostname): AppMode {
+export function resolveAppMode(
+  hostname = window.location.hostname,
+  pathname = currentPathname(),
+): AppMode {
   if (isPmsHost(hostname)) return "pms";
   // 原生 APP：僅在「明確指定 PMS」時才進後台模式；否則沿用既有 booking/neutral 行為
   if (isNativePmsApp()) return "pms";
-  if (isDevOrPreviewHost(hostname)) return readModeOverride() ?? "neutral";
+  if (isDevOrPreviewHost(hostname)) {
+    return readModeOverride() ?? (isPmsAllowedPath(pathname) ? "pms" : "neutral");
+  }
+  if (isBookingHost(hostname) && isPmsAllowedPath(pathname)) return "pms";
   return "frontend";
 }
 
@@ -74,18 +96,23 @@ function devModeHref(path: string, mode: "pms" | "frontend"): string {
   return url.toString();
 }
 
-/** 以 PMS 網域開啟指定路徑；開發/預覽環境改為同站切換模式 */
+/** 民宿後台路徑：單一網站一律同站相對路徑；其他網域（如轉址前的 pms.lakeze.com）導回正式網域 */
 export function pmsHref(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (isDevOrPreviewHost(window.location.hostname)) return devModeHref(p, "pms");
+  if (isUnifiedHost(window.location.hostname)) return p;
   return `${PMS_ORIGIN}${p}`;
 }
 
-/** 以訂房前台網域開啟指定路徑；開發/預覽環境改為同站切換模式 */
+/** 訂房前台路徑：單一網站一律同站相對路徑 */
 export function bookingHref(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
-  if (isDevOrPreviewHost(window.location.hostname)) return devModeHref(p, "frontend");
+  if (isUnifiedHost(window.location.hostname)) return p;
   return `${BOOKING_ORIGIN}${p}`;
+}
+
+/** 開發／預覽：強制切換模式（保留給除錯用） */
+export function devForceModeHref(path: string, mode: "pms" | "frontend"): string {
+  return devModeHref(path.startsWith("/") ? path : `/${path}`, mode);
 }
 
 /**
@@ -125,6 +152,7 @@ export function isPmsAllowedPath(pathname: string): boolean {
   if (isTeamPath(normalized)) return true;
   return (
     normalized === "/login" ||
+    normalized === "/pms" ||
     normalized === "/auth" ||
     normalized === "/reset-password" ||
     normalized === "/change-password"

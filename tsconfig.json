@@ -19,12 +19,6 @@
     },
     {
       "path": "./apps/booking"
-    },
-    {
-      "path": "./apps/pms"
-    },
-    {
-      "path": "./apps/hq"
     }
   ]
 }

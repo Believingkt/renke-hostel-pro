@@ -1,19 +1,42 @@
 import * as React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@lakeze/shared/components/ConditionalLayout";
+import { RequireHQRole } from "@/components/hq/RequireHQRole";
+import { HQIndexGate } from "@/components/hq/HQIndexGate";
+import { HQ_AI_ROLES } from "@/lib/hqAccess";
+import { MovedToHQCard } from "@/components/MovedToHQCard";
+
 import { AccommodationProvider } from "@lakeze/shared/contexts/AccommodationContext";
+import { DashboardSkeleton } from "@lakeze/shared/components/skeletons/DashboardSkeleton";
+import { TableSkeleton } from "@lakeze/shared/components/skeletons/TableSkeleton";
+import { FormSkeleton } from "@lakeze/shared/components/skeletons/FormSkeleton";
+import { DetailSkeleton } from "@lakeze/shared/components/skeletons/DetailSkeleton";
 import { FrontendSkeleton } from "@lakeze/shared/components/skeletons/FrontendSkeleton";
+
 import { PageTransition } from "@lakeze/shared/components/PageTransition";
 import NativeShell from "@lakeze/shared/components/native/NativeShell";
 import { ChunkErrorBoundary } from "@lakeze/shared/components/ChunkErrorBoundary";
+import { HQDomainRedirect } from "@lakeze/shared/components/HQDomainRedirect";
 import { BookingDomainRedirect } from "@lakeze/shared/components/BookingDomainRedirect";
 import { AliasResolver } from "@lakeze/shared/components/AliasResolver";
 import { PmsDomainGuard } from "@lakeze/shared/components/PmsDomainGuard";
+import { RequireModule } from "@/components/RequireModule";
 import { useVersionCheck } from "@lakeze/shared/hooks/useVersionCheck";
 import { usePushBootstrap } from "@lakeze/shared/hooks/use-push-bootstrap";
+
 const { Suspense, lazy } = React;
+
+// 前台首頁 - 關鍵路徑，直接 import
 import Index from "@/pages/Index";
+
+// Auth 頁面 - 關鍵路徑，直接 import
+import Auth from "@/pages/Auth";
 const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
+import HQAuth from "@/pages/HQAuth";
+import TeamAuth from "@/pages/TeamAuth";
+const PmsLogin = lazy(() => import("@/pages/PmsLogin"));
+
+// 平台入口 & 會員頁面 - lazy load
 const BookingPortal = lazy(() => import("@/pages/BookingPortal"));
 const BookingSearchResults = lazy(() => import("@/pages/BookingSearchResults"));
 const LegacyBookingRedirect = lazy(() => import("@/components/LegacyBookingRedirect"));
@@ -34,9 +57,13 @@ const MemberCommonInfo = lazy(() => import("@/pages/MemberCommonInfo"));
 const MemberFavorites = lazy(() => import("@/pages/MemberFavorites"));
 const MemberReferral = lazy(() => import("@/pages/MemberReferral"));
 const ReferralLanding = lazy(() => import("@/pages/ReferralLanding"));
+const ReferralAdmin = lazy(() => import("@/pages/ReferralAdmin"));
+
 const MemberResetPassword = lazy(() => import("@/pages/MemberResetPassword"));
 const MemberLineCallback = lazy(() => import("@/pages/MemberLineCallback"));
 const MemberFacebookCallback = lazy(() => import("@/pages/MemberFacebookCallback"));
+
+// 前台頁面 - lazy load
 const BookingFlow = lazy(() => import("@/pages/BookingFlow"));
 const LinePayConfirm = lazy(() => import("@/pages/LinePayConfirm"));
 const AIBooking = lazy(() => import("@/pages/AIBooking"));
@@ -49,6 +76,7 @@ const AtmBookingSuccess = lazy(() => import("@/pages/AtmBookingSuccess"));
 const PaymentResult = lazy(() => import("@/pages/PaymentResult"));
 const PaymentStatus = lazy(() => import("@/pages/PaymentStatus"));
 const PaymentReceipt = lazy(() => import("@/pages/PaymentReceipt"));
+
 const NotFound = lazy(() => import("@lakeze/shared/pages/NotFound"));
 const OgImagePreview = lazy(() => import("@/pages/OgImagePreview"));
 const KolApiDocs = lazy(() => import("@/pages/KolApiDocs"));
@@ -57,27 +85,124 @@ const AccommodationApiDocs = lazy(() => import("@/pages/AccommodationApiDocs"));
 const AccommodationAiApiDocs = lazy(() => import("@/pages/AccommodationAiApiDocs"));
 const OwlTingCmDocs = lazy(() => import("@/pages/OwlTingCmDocs"));
 const ApiDocsHub = lazy(() => import("@/pages/ApiDocsHub"));
+const ChangePassword = lazy(() => import("@lakeze/shared/pages/ChangePassword"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const LegalDocument = lazy(() => import("@/pages/LegalDocument"));
 const Trips = lazy(() => import("@/pages/Trips"));
 const TripGuide = lazy(() => import("@/pages/TripGuide"));
 const TripTemplates = lazy(() => import("@/pages/TripTemplates"));
 const TripGenerate = lazy(() => import("@/pages/TripGenerate"));
+const TravelerAttributes = lazy(() => import("@/pages/admin/TravelerAttributes"));
+const DeployStatus = lazy(() => import("@/pages/admin/DeployStatus"));
 const TripDetail = lazy(() => import("@/pages/TripDetail"));
 const TripEdit = lazy(() => import("@/pages/TripEdit"));
 const TripShare = lazy(() => import("@/pages/TripShare"));
 const Cart = lazy(() => import("@/pages/Cart"));
 const LiffCheckout = lazy(() => import("@/pages/liff/LiffCheckout"));
 const LiffFavorites = lazy(() => import("@/pages/liff/LiffFavorites"));
+const LineButler = lazy(() => import("@/pages/admin/LineButler"));
+
+
 const DataDeletion = lazy(() => import("@/pages/DataDeletion"));
+
+// 後台管理頁面 - lazy load
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const WebsiteContent = lazy(() => import("@/pages/WebsiteContent"));
+const GoogleBusinessProfileApiHelp = lazy(() => import("@/pages/help/GoogleBusinessProfileApiHelp"));
+const Faq = lazy(() => import("@/pages/Faq"));
+const Orders = lazy(() => import("@/pages/Orders"));
+const OrderDetail = lazy(() => import("@/pages/OrderDetail"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const AdminPackages = lazy(() => import("@/pages/AdminPackages"));
+const AdminPackagesPreview = lazy(() => import("@/pages/AdminPackagesPreview"));
+const AdminSearchCard = lazy(() => import("@/pages/AdminSearchCard"));
+const RoomInventory = lazy(() => import("@/pages/RoomInventory"));
+const ManualReviewTasks = lazy(() => import("@/pages/ManualReviewTasks"));
 const GroupBuyCampaign = lazy(() => import("@/pages/GroupBuyCampaign"));
 const GroupBuyOrderLookup = lazy(() => import("@/pages/GroupBuyOrderLookup"));
 const GroupBuyOrderConfirmation = lazy(() => import("@/pages/GroupBuyOrderConfirmation"));
+const AdminGroupBuy = lazy(() => import("@/pages/AdminGroupBuy"));
+const KolReciprocalQuota = lazy(() => import("@/pages/admin/KolReciprocalQuota"));
+const AdminAiFaq = lazy(() => import("@/pages/admin/ai-faq/AdminAiFaq"));
+const RoomPriceCalendar = lazy(() => import("@/pages/RoomPriceCalendar"));
+const PackagePriceCalendar = lazy(() => import("@/pages/PackagePriceCalendar"));
+
+const Accounts = lazy(() => import("@/pages/Accounts"));
+const Onboarding = lazy(() => import("@/pages/admin/Onboarding"));
+const PermissionTemplates = lazy(() => import("@/pages/PermissionTemplates"));
+const KolDiscount = lazy(() => import("@/pages/KolDiscount"));
+const DiscountCodeOrders = lazy(() => import("@/pages/DiscountCodeOrders"));
+const KolDiscountDetail = lazy(() => import("@/pages/KolDiscountDetail"));
 const KolDashboardPublic = lazy(() => import("@/pages/kol/KolDashboardPublic"));
 const KolReferralJoin = lazy(() => import("@/pages/kol/KolReferralJoin"));
+const AdminKolOverview = lazy(() => import("@/pages/AdminKolOverview"));
+
+const Headquarters = lazy(() => import("@/pages/Headquarters"));
+const TeamLayout = lazy(() => import("@/components/team/TeamLayout"));
 const SaaSWorkspace = lazy(() => import("@/pages/SaaSWorkspace"));
+const TeamHome = lazy(() => import("@/pages/team/TeamHome"));
+const TeamPlaceholder = lazy(() => import("@/pages/team/TeamPlaceholder"));
+const TeamOrders = lazy(() => import("@/pages/team/TeamOrders"));
+const TeamMembers = lazy(() => import("@/pages/team/TeamMembers"));
+const TeamKOL = lazy(() => import("@/pages/team/TeamKOL"));
+const TeamKolVenueConfirm = lazy(() => import("@/pages/team/TeamKolVenueConfirm"));
+const TeamCommission = lazy(() => import("@/pages/team/TeamCommission"));
+const KolBonus = lazy(() => import("@/pages/team/KolBonus"));
+const KolBonusPublic = lazy(() => import("@/pages/team/KolBonusPublic"));
+const TeamNotification = lazy(() => import("@/pages/team/TeamNotification"));
+const TeamAds = lazy(() => import("@/pages/team/TeamAds"));
+const TeamFranchise = lazy(() => import("@/pages/team/TeamFranchise"));
+const TeamStarlink = lazy(() => import("@/pages/team/TeamStarlink"));
+const TeamLineOA = lazy(() => import("@/pages/team/TeamLineOA"));
+const Customers = lazy(() => import("@/pages/Customers"));
+const CustomerOrders = lazy(() => import("@/pages/CustomerOrders"));
+const TravelerCdp = lazy(() => import("@/pages/TravelerCdp"));
+const RemarketingAdmin = lazy(() => import("@/pages/admin/RemarketingAdmin"));
+const TravelerProfileDetail = lazy(() => import("@/pages/TravelerProfileDetail"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+const DataBackup = lazy(() => import("@/pages/DataBackup"));
+const EmailTest = lazy(() => import("@/pages/EmailTest"));
+const EmailPreview = lazy(() => import("@/pages/EmailPreview"));
+const Settlement = lazy(() => import("@/pages/Settlement"));
+const OwnerSettlement = lazy(() => import("@/pages/OwnerSettlement"));
+const OwnerSettlementSettings = lazy(() => import("@lakeze/shared/pages/OwnerSettlementSettings"));
+const HQOwnerSettlementSettings = lazy(() => import("@/pages/hq/HQOwnerSettlementSettings"));
+const HQBonusSettings = lazy(() => import("@/pages/hq/HQBonusSettings"));
+const HQBrandPartners = lazy(() => import("@/pages/hq/HQBrandPartners"));
+const HQGoogleBusinessProfileRetired = lazy(() => import("@/pages/hq/HQGoogleBusinessProfileRetired"));
+const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
+
+const PaymentAudit = lazy(() => import("@/pages/PaymentAudit"));
+
+const AddonCenter = lazy(() => import("@/pages/AddonCenter"));
+const Analytics = lazy(() => import("@/pages/Analytics"));
+const Reception = lazy(() => import("@/pages/Reception"));
+const ChannelManager = lazy(() => import("@/pages/ChannelManager"));
+const OwlTingEmailIngest = lazy(() => import("@/pages/OwlTingEmailIngest"));
 const OwlTingFillup = lazy(() => import("@/pages/OwlTingFillup"));
-import { CrossSiteRedirect } from "./CrossSiteRedirect";
+
+// AI 助理訓練中心 (Phase 2)
+const AiTrainingLayout = lazy(() => import("@/pages/ai-training/AiTrainingLayout"));
+const AiTrainingDashboard = lazy(() => import("@/pages/ai-training/AiTrainingDashboard"));
+const AiTrainingPlaceholder = lazy(() => import("@/pages/ai-training/AiTrainingPlaceholder"));
+const AiTrainingPrompt = lazy(() => import("@/pages/ai-training/AiTrainingPrompt"));
+const AiTrainingKnowledge = lazy(() => import("@/pages/ai-training/AiTrainingKnowledge"));
+const AiTrainingExamples = lazy(() => import("@/pages/ai-training/AiTrainingExamples"));
+const AiTrainingConversations = lazy(() => import("@/pages/ai-training/AiTrainingConversations"));
+const AiTrainingPlayground = lazy(() => import("@/pages/ai-training/AiTrainingPlayground"));
+const AiTrainingVersions = lazy(() => import("@/pages/ai-training/AiTrainingVersions"));
+const AiTrainingApiKeys = lazy(() => import("@/pages/ai-training/AiTrainingApiKeys"));
+
+// 已由 PMS 搬遷至總部後台（HQ）的 AI 管家相關頁面
+const AdminAiTrainingApiDocs = lazy(() => import("@/pages/admin/ai-training/AdminAiTrainingApiDocs"));
+const KnowledgeIndexPage = lazy(() => import("@/pages/admin/knowledge/KnowledgeIndex"));
+const AdminAiReplyTemplatesPage = lazy(() => import("@/pages/admin/ai-training/AdminAiReplyTemplates"));
+const AdminAiModelTrainingPage = lazy(() => import("@/pages/admin/ai-training/AdminAiModelTraining"));
+
+
+const KnowledgeSearchPage = lazy(() => import("@/pages/admin/knowledge/KnowledgeSearch"));
+
 
 function App() {
   useVersionCheck();
@@ -85,9 +210,9 @@ function App() {
   return (
     <BrowserRouter>
       <AccommodationProvider>
+        <HQDomainRedirect>
         <BookingDomainRedirect>
         <PmsDomainGuard>
-        <CrossSiteRedirect>
           <PageTransition>
             <NativeShell>
             <ChunkErrorBoundary>
@@ -307,6 +432,271 @@ function App() {
 
 
 
+                    {/* Auth 頁面 */}
+                    <Route path="auth" element={<Auth />} />
+                    <Route path="reset-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ResetPassword /></Suspense>
+                    } />
+                    <Route path="change-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                    } />
+                    <Route path="admin/change-password" element={
+                      <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                    } />
+
+                    {/* 後台管理頁面 */}
+                    <Route path="admin/onboarding" element={
+                      <RequireModule module="onboarding">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Onboarding /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin" element={
+                      <RequireModule module="analytics">
+                        <Suspense fallback={<DashboardSkeleton />}><Dashboard /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="help/google-business-profile-api" element={
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><GoogleBusinessProfileApiHelp /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/website-content" element={
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={12} hasImage={true} />}><WebsiteContent /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/faq" element={
+                      <RequireModule module="website_content">
+                        <Suspense fallback={<FormSkeleton fields={3} />}><Faq /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* 以下 AI 管家相關頁面已搬遷至總部後台 hq.lakeze.com */}
+                    <Route path="admin/line-butler" element={
+                      <MovedToHQCard hqPath="/hq/line-butler" title="LINE AI 管家監看已移至總部後台" />
+                    } />
+                    <Route path="admin/traveler-attributes" element={
+                      <MovedToHQCard hqPath="/hq/traveler-attributes" title="旅遊屬性已移至總部後台" />
+                    } />
+                    <Route path="admin/deploy-status" element={
+                      <MovedToHQCard hqPath="/hq/deploy-status" title="部署佐證已移至總部後台" />
+                    } />
+                    <Route path="admin/knowledge/index" element={
+                      <MovedToHQCard hqPath="/hq/knowledge/index" title="知識庫索引已移至總部後台" />
+                    } />
+                    <Route path="admin/knowledge/search" element={
+                      <MovedToHQCard hqPath="/hq/knowledge/search" title="知識庫檢索已移至總部後台" />
+                    } />
+                    <Route path="admin/reply-templates" element={
+                      <MovedToHQCard hqPath="/hq/ai-training/reply-templates" title="回覆樣板已移至總部後台" />
+                    } />
+                    <Route path="admin/model-training" element={
+                      <MovedToHQCard hqPath="/hq/ai-training/model-training" title="模型訓練已移至總部後台" />
+                    } />
+
+
+
+                    <Route path="admin/manual-review" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><ManualReviewTasks /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/group-buy" element={
+                      <RequireModule module="group_buy">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminGroupBuy /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/orders" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={8} />}><Orders /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/orders/:orderId" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<DetailSkeleton sections={4} />}><OrderDetail /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/pricing" element={
+                      <RequireModule module="pricing">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/projects" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/holidays" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><Pricing /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/packages" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><AdminPackages /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/packages-preview" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><AdminPackagesPreview /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/room-inventory" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><RoomInventory /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/kol-reciprocal-quota" element={
+                      <RequireModule module="kol_quota">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><KolReciprocalQuota /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/ai-faq" element={
+                      <RequireModule module="ai_faq">
+                        <Suspense fallback={<TableSkeleton rows={6} columns={5} />}><AdminAiFaq /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/room-price-calendar" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><RoomPriceCalendar /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/package-price-calendar" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={15} />}><PackagePriceCalendar /></Suspense>
+                      </RequireModule>
+                    } />
+
+                    <Route path="admin/search-card" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={6} />}><AdminSearchCard /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/accounts" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><Accounts /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/permission-templates" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={4} />}><PermissionTemplates /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/kol-overview" element={
+                      <MovedToHQCard hqPath="/hq/kol-overview" title="創作者總覽已移至總部後台" description="創作者與裂變推廣由總部統一管理，跨館創作者績效已集中到總部後台。" />
+                    } />
+                    <Route path="admin/discount-codes" element={
+
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscount /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/discount-codes/:discountCodeId/detail" element={
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><KolDiscountDetail /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/discount-codes/:discountCode/orders" element={
+                      <RequireModule module="discount_codes">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><DiscountCodeOrders /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* 孤兒路由：側邊欄已無入口，統一轉址到帳號管理 */}
+                    <Route path="admin/user-roles" element={<Navigate to="/admin/accounts" replace />} />
+                    <Route path="admin/customers" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><Customers /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/customers/:customerId/orders" element={
+                      <RequireModule module="customers">
+                        <Suspense fallback={<TableSkeleton rows={10} columns={7} />}><CustomerOrders /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* 以下平台層級模組已搬遷至總部後台 hq.lakeze.com */}
+                    <Route path="admin/cdp" element={
+                      <MovedToHQCard hqPath="/hq/cdp" title="旅客資料匯流已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，全平台旅客檔案已集中到總部後台。" />
+                    } />
+                    <Route path="admin/cdp/:travelerId" element={
+                      <MovedToHQCard hqPath="/hq/cdp" title="旅客資料匯流已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，全平台旅客檔案已集中到總部後台。" />
+                    } />
+                    <Route path="admin/remarketing" element={
+                      <MovedToHQCard hqPath="/hq/remarketing" title="AI 再行銷推播已移至總部後台" description="顧客資料與行銷推廣由總部統一管理，再行銷活動已集中到總部後台。" />
+                    } />
+                    <Route path="admin/referral" element={
+                      <MovedToHQCard hqPath="/hq/referral" title="社群裂變推廣已移至總部後台" description="創作者與裂變推廣由總部統一管理，活動設定已集中到總部後台。" />
+                    } />
+
+                    <Route path="admin/notifications" element={
+                      <RequireModule module="orders">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} showFilters={false} />}><Notifications /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* 孤兒路由：側邊欄入口為 /admin/holidays，統一轉址 */}
+                    <Route path="admin/public-holidays" element={<Navigate to="/admin/holidays" replace />} />
+                    <Route path="admin/backup" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<FormSkeleton fields={5} />}><DataBackup /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* <Route path="admin/settlement" element={
+                      <RequireModule module="settlement">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><Settlement /></Suspense>
+                      </RequireModule>
+                    } /> */}
+                    <Route path="admin/owner-settlement" element={
+                      <RequireModule module="owner_settlement">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><OwnerSettlement /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owner-settlement/settings" element={
+                      <RequireModule module="owner_settlement">
+                        <Suspense fallback={<FormSkeleton fields={3} />}><OwnerSettlementSettings /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/payment-audit" element={
+                      <RequireModule module="payment_audit">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><PaymentAudit /></Suspense>
+                      </RequireModule>
+                    } />
+
+                    <Route path="admin/addon-center" element={
+                      <RequireModule module="addon_center">
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><AddonCenter /></Suspense>
+                      </RequireModule>
+                    } />
+
+                    <Route path="admin/email-test" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailTest /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/email-preview" element={
+                      <RequireModule module="accounts">
+                        <Suspense fallback={<DashboardSkeleton />}><EmailPreview /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/analytics" element={
+                      <RequireModule module="analytics">
+                        <Suspense fallback={<DashboardSkeleton />}><Analytics /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/reception" element={
+                      <RequireModule module="reception">
+                        <Suspense fallback={<DashboardSkeleton />}><Reception /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/channel-manager" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><ChannelManager /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/owlting-email-ingest" element={
+                      <RequireModule module="channel_manager">
+                        <Suspense fallback={<DashboardSkeleton />}><OwlTingEmailIngest /></Suspense>
+                      </RequireModule>
+                    } />
+                    {/* AI 管家訓練中心已搬遷至總部後台 hq.lakeze.com */}
+                    <Route path="admin/ai-training/*" element={<MovedToHQCard />} />
 
                     {/* 其他頁面 */}
                     <Route path="og-preview" element={
@@ -321,10 +711,21 @@ function App() {
                       {/* 根層路由（向下相容） */}
                       {sharedRoutes}
 
+                      {/* PMS 民宿後台登入頁（/pms 為對外入口，pms.lakeze.com 轉址至此） */}
+                      <Route path="/login" element={
+                        <Suspense fallback={null}><PmsLogin /></Suspense>
+                      } />
+                      <Route path="/pms" element={
+                        <Suspense fallback={null}><PmsLogin /></Suspense>
+                      } />
+
                       {/* MCP / Agent 整合的 OAuth 同意頁 */}
                       <Route path="/.lovable/oauth/consent" element={
                         <Suspense fallback={null}><OAuthConsent /></Suspense>
                       } />
+
+
+
                       {/* 成長營運工作台（需登入，守衛在頁面內自行處理） */}
                       <Route path="/SaaS" element={
                         <Suspense fallback={null}><SaaSWorkspace /></Suspense>
@@ -332,12 +733,169 @@ function App() {
                       <Route path="/saas" element={
                         <Suspense fallback={null}><SaaSWorkspace /></Suspense>
                       } />
+
+                      {/* HQ 與 headquarters 路由（不放入 alias 樹下） */}
+                      <Route path="/hq-auth" element={<HQAuth />} />
+                      <Route path="/team-auth" element={<TeamAuth />} />
+                      <Route path="/team/kol/bonus/:token" element={
+                        <Suspense fallback={null}><KolBonusPublic /></Suspense>
+                      } />
                       <Route path="/kol/d/:token" element={
                         <Suspense fallback={null}><KolDashboardPublic /></Suspense>
                       } />
                       <Route path="/kol/join/:code" element={
                         <Suspense fallback={null}><KolReferralJoin /></Suspense>
                       } />
+
+                      <Route path="/hq/ai-training" element={
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><AiTrainingLayout /></Suspense>
+                        </RequireHQRole>
+                      }>
+                        <Route index element={
+                          <Suspense fallback={null}><AiTrainingDashboard /></Suspense>
+                        } />
+                        <Route path="prompt" element={
+                          <Suspense fallback={null}><AiTrainingPrompt /></Suspense>
+                        } />
+                        <Route path="knowledge" element={
+                          <Suspense fallback={null}><AiTrainingKnowledge /></Suspense>
+                        } />
+                        <Route path="examples" element={
+                          <Suspense fallback={null}><AiTrainingExamples /></Suspense>
+                        } />
+                        <Route path="conversations" element={
+                          <Suspense fallback={null}><AiTrainingConversations /></Suspense>
+                        } />
+                        <Route path="playground" element={
+                          <Suspense fallback={null}><AiTrainingPlayground /></Suspense>
+                        } />
+                        <Route path="versions" element={
+                          <Suspense fallback={null}><AiTrainingVersions /></Suspense>
+                        } />
+                        <Route path="reply-templates" element={
+                          <Suspense fallback={null}><AdminAiReplyTemplatesPage /></Suspense>
+                        } />
+                        <Route path="model-training" element={
+                          <Suspense fallback={null}><AdminAiModelTrainingPage /></Suspense>
+                        } />
+                        <Route path="api-keys" element={
+                          <Suspense fallback={null}><AiTrainingApiKeys /></Suspense>
+                        } />
+                        <Route path="api-docs" element={
+                          <Suspense fallback={null}><AdminAiTrainingApiDocs /></Suspense>
+                        } />
+                      </Route>
+
+                      {/* AI 管家／行程引擎（總部全平台視角） */}
+                      <Route path="/hq/line-butler" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                      } />
+                      <Route path="/hq/knowledge/index" element={
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeIndexPage /></Suspense>
+                        </RequireHQRole>
+                      } />
+                      <Route path="/hq/knowledge/search" element={
+                        <RequireHQRole allow={HQ_AI_ROLES}>
+                          <Suspense fallback={<DashboardSkeleton />}><KnowledgeSearchPage /></Suspense>
+                        </RequireHQRole>
+                      } />
+                      <Route path="/hq/traveler-attributes" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><TravelerAttributes /></Suspense>
+                      } />
+                      <Route path="/hq/deploy-status" element={
+                        <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      } />
+
+                      {/* 顧客與行銷／創作者與裂變（總部全平台視角） */}
+                      <Route path="/hq/cdp" element={
+                        <Suspense fallback={<TableSkeleton rows={10} columns={6} />}><TravelerCdp /></Suspense>
+                      } />
+                      <Route path="/hq/cdp/:travelerId" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><TravelerProfileDetail /></Suspense>
+                      } />
+                      <Route path="/hq/remarketing" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
+                      } />
+                      <Route path="/hq/kol-overview" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                      } />
+                      <Route path="/hq/referral" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
+                      } />
+
+                      <Route path="/hq/owner-settlement-settings" element={
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQOwnerSettlementSettings /></Suspense>
+                        </RequireHQRole>
+                      } />
+                      <Route path="/hq/bonus-settings" element={
+                        <RequireHQRole allow={HQ_SETTINGS_ROLES}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQBonusSettings /></Suspense>
+                        </RequireHQRole>
+                      } />
+                      {/* 已退休：Google 商家串接改為各館自主管理，僅保留停用說明頁 */}
+                      <Route path="/hq/integrations/google-business-profile" element={
+                        <RequireHQRole allow={["super_admin"]}>
+                          <Suspense fallback={<FormSkeleton fields={2} />}><HQGoogleBusinessProfileRetired /></Suspense>
+                        </RequireHQRole>
+                      } />
+
+                      <Route path="/hq/brand-partners" element={
+                        <RequireHQRole allow={["super_admin"]}>
+                          <Suspense fallback={<FormSkeleton fields={3} />}><HQBrandPartners /></Suspense>
+                        </RequireHQRole>
+                      } />
+
+                      <Route path="/hq" element={
+                        <HQIndexGate>
+                          <Suspense fallback={<DashboardSkeleton />}><Headquarters /></Suspense>
+                        </HQIndexGate>
+                      } />
+                      <Route path="/team" element={
+                        <Suspense fallback={<DashboardSkeleton />}><TeamLayout /></Suspense>
+                      }>
+                        <Route index element={
+                          <Suspense fallback={null}><TeamHome /></Suspense>
+                        } />
+                        <Route path="members" element={
+                          <Suspense fallback={null}><TeamMembers /></Suspense>
+                        } />
+                        <Route path="kol" element={
+                          <Suspense fallback={null}><TeamKOL /></Suspense>
+                        } />
+                        <Route path="kol/venue-confirm" element={
+                          <Suspense fallback={null}><TeamKolVenueConfirm /></Suspense>
+                        } />
+                        <Route path="kol/bonus" element={
+                          <Suspense fallback={null}><KolBonus /></Suspense>
+                        } />
+                        <Route path="orders" element={
+                          <Suspense fallback={null}><TeamOrders /></Suspense>
+                        } />
+                        <Route path="commission" element={
+                          <Suspense fallback={null}><TeamCommission /></Suspense>
+                        } />
+                        {/* 廣告追蹤頁暫時對所有人隱藏（頁面保留，之後恢復再取消註解） */}
+                        <Route path="ads" element={<Navigate to="/team" replace />} />
+                        <Route path="notification" element={
+                          <Suspense fallback={null}><TeamNotification /></Suspense>
+                        } />
+                        <Route path="franchise" element={
+                          <Suspense fallback={null}><TeamFranchise /></Suspense>
+                        } />
+                        <Route path="starlink" element={
+                          <Suspense fallback={null}><TeamStarlink /></Suspense>
+                        } />
+                        <Route path="lineoa" element={
+                          <Suspense fallback={null}><TeamLineOA /></Suspense>
+                        } />
+                      </Route>
+                      <Route path="/headquarters/change-password" element={
+                        <Suspense fallback={<FrontendSkeleton />}><ChangePassword /></Suspense>
+                      } />
+
                       {/* /:alias/* — booking.lakeze.com/{alias}/admin 等使用 */}
                       <Route path="/:alias" element={<AliasResolver />}>
                         <Route index element={
@@ -356,9 +914,10 @@ function App() {
             </ChunkErrorBoundary>
             </NativeShell>
           </PageTransition>
-        </CrossSiteRedirect>
+
         </PmsDomainGuard>
         </BookingDomainRedirect>
+        </HQDomainRedirect>
       </AccommodationProvider>
     </BrowserRouter>
   );

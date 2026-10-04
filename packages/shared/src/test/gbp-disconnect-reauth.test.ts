@@ -8,7 +8,7 @@ const shared = read("supabase/functions/_shared/gbp.ts");
 const autoSync = read("supabase/functions/auto-sync-google-reviews/index.ts");
 const oauthStart = read("supabase/functions/google-business-profile-oauth-start/index.ts");
 const callback = read("supabase/functions/google-business-profile-oauth-callback/index.ts");
-const ui = read("apps/pms/src/components/website-content/GoogleBusinessProfileSettings.tsx");
+const ui = read("apps/booking/src/components/website-content/GoogleBusinessProfileSettings.tsx");
 
 describe("Phase 2F — disconnect contract", () => {
   it("authorizes before Vault read / revoke / delete / DB update", () => {

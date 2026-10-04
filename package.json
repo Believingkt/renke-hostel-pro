@@ -10,12 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "dev:booking": "yarn workspace @lakeze/booking dev",
-    "dev:pms": "yarn workspace @lakeze/pms dev",
-    "dev:hq": "yarn workspace @lakeze/hq dev",
     "build:booking": "yarn workspace @lakeze/booking build",
-    "build:pms": "yarn workspace @lakeze/pms build",
-    "build:hq": "yarn workspace @lakeze/hq build",
-    "build:apps": "yarn build:booking && yarn build:pms && yarn build:hq",
+    "build:apps": "yarn build:booking",
     "test": "vitest run",
     "typecheck": "yarn workspaces run typecheck"
   },

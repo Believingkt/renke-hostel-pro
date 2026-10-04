@@ -11,7 +11,7 @@ const callback = readFileSync(
 );
 const shared = readFileSync("supabase/functions/_shared/gbp.ts", "utf8");
 const ui = readFileSync(
-  "apps/pms/src/components/website-content/GoogleBusinessProfileSettings.tsx",
+  "apps/booking/src/components/website-content/GoogleBusinessProfileSettings.tsx",
   "utf8",
 );
 

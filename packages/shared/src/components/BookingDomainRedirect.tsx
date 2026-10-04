@@ -6,7 +6,7 @@ import {
   isBookingDomain,
   isReservedFirstSegment,
 } from "@lakeze/shared/lib/route-matcher";
-import { PMS_RESET_PASSWORD_URL, isNativeApp } from "@lakeze/shared/lib/appMode";
+import { isNativeApp } from "@lakeze/shared/lib/appMode";
 
 /**
  * 判斷目前網址是否為「後台密碼重設」落點：
@@ -40,12 +40,19 @@ export function BookingDomainRedirect({ children }: { children: ReactNode }) {
     // Capacitor 原生 App：hostname 為 localhost，一律比照訂房平台網域
     if (!isBookingDomain(window.location.hostname) && !isNativeApp()) return;
 
-    // 安全網：舊信件／fallback 落在前台網域的後台密碼重設連結
-    // → 導回 PMS，完整保留 query 與 hash（token 在 hash 裡）
+    // 安全網：後台密碼重設連結（Supabase recovery）落在非 /reset-password 路徑
+    // → 同站導到 /reset-password，完整保留 query 與 hash（token 在 hash 裡）
+    // 單一網站後 /reset-password 本身就在此網域，已在該路徑時不再轉址（避免無限重新整理）
     if (isAdminRecoveryLanding(location.pathname)) {
+      if (
+        location.pathname === "/reset-password" ||
+        location.pathname.startsWith("/reset-password/")
+      ) {
+        return;
+      }
       const search = window.location.search || "";
       const hash = window.location.hash || "";
-      window.location.replace(`${PMS_RESET_PASSWORD_URL}${search}${hash}`);
+      window.location.replace(`/reset-password${search}${hash}`);
       return;
     }
 

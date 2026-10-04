@@ -1,7 +1,7 @@
 import * as React from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { isPmsHost, extractAliasFromPath } from "@lakeze/shared/lib/appMode";
+import { isPmsMode, extractAliasFromPath } from "@lakeze/shared/lib/appMode";
 import { GLOBAL_VIEWER_ROLES, GLOBAL_VIEWER_ROLE_TAG } from "@lakeze/shared/lib/globalViewerRoles";
 
 import { isDevOrPreviewHost } from "@lakeze/shared/lib/previewHost";
@@ -101,7 +101,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
     const isDevOrPreview = isDevOrPreviewHost(hostname);
 
     // ===== PMS 網域：一律以路徑首段 alias 為準（登入時輸入的民宿代號） =====
-    if (isPmsHost(hostname)) {
+    if (isPmsMode(hostname)) {
       const pmsAlias = extractAliasFromPath(window.location.pathname);
       if (!pmsAlias) return null;
       const allowedIds = availableAccommodations.map((acc) => acc.accommodation_id);
@@ -124,6 +124,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         "ai-booking", "auth", "hq", "hq-auth", "headquarters", "admin",
         "pay", "profile", "reset-password", "change-password",
         "kol-api-docs", "points-api-docs", "og-preview", "payment-test", "__cb",
+        "login", "pms", "team", "team-auth", "saas",
       ]);
       const pathAlias = pathSegments[0] && !reservedFirst.has(pathSegments[0])
         ? pathSegments[0] : null;
@@ -192,6 +193,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         "ai-booking", "auth", "hq", "hq-auth", "headquarters", "admin",
         "pay", "profile", "reset-password", "change-password",
         "kol-api-docs", "points-api-docs", "og-preview", "payment-test", "__cb",
+        "login", "pms", "team", "team-auth", "saas",
       ]);
       return Boolean(pathSegments[0] && !reservedFirst.has(pathSegments[0]));
     }
@@ -304,7 +306,7 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
         // 0. PMS 網域：無 accId 時，以登入時輸入的民宿代號（路徑 alias）為準
         if (
           domainAccommodationId &&
-          isPmsHost() &&
+          isPmsMode() &&
           !searchParams.get(ACCOMMODATION_ID_PARAM)
         ) {
           setCurrentAccommodationId(domainAccommodationId);

@@ -16,7 +16,7 @@ import {
 } from "@lakeze/shared/lib/appMode";
 
 /**
- * 網域模式守衛
+ * 網域模式守衛（2026-10 起為單一網站：booking.lakeze.com 的後台路徑即為 PMS 模式，見 appMode.resolveAppMode）
  *
  * - PMS 模式（pms.lakeze.com）：僅服務 /login、/{slug}/admin/* 等後台路徑；
  *   其餘前台路徑（訂房頁、/member/*、/pay）→ 導向 booking.lakeze.com 對應路徑。
@@ -95,7 +95,7 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!legacyAdminOnFrontend) return;
     if (hasSession !== false) return;
-    window.location.replace(pmsHref("/login"));
+    window.location.replace(pmsHref("/pms"));
   }, [legacyAdminOnFrontend, hasSession]);
 
 
@@ -114,7 +114,7 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted">
               <MoveRight className="h-6 w-6 text-muted-foreground" />
             </div>
-            <CardTitle className="text-lg">後台已搬家至 pms.lakeze.com</CardTitle>
+            <CardTitle className="text-lg">後台已搬家至 booking.lakeze.com/pms</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
@@ -123,12 +123,12 @@ export function PmsDomainGuard({ children }: { children: ReactNode }) {
             <Button
               className="w-full"
               onClick={() => {
-                window.location.href = pmsHref("/login");
+                window.location.href = pmsHref("/pms");
               }}
             >
 
               <ExternalLink className="mr-2 h-4 w-4" />
-              前往 pms.lakeze.com 登入
+              前往後台登入
             </Button>
           </CardContent>
         </Card>

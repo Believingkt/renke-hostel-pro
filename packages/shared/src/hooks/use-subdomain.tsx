@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { cacheAccommodationTheme } from "@lakeze/shared/constants/themes";
-import { isNativeBookingApp } from "@lakeze/shared/lib/appMode";
+import { isNativeBookingApp, isPmsMode } from "@lakeze/shared/lib/appMode";
 
 import { isDevOrPreviewHost } from "@lakeze/shared/lib/previewHost";
 interface AccommodationData {
@@ -49,12 +49,12 @@ export function useSubdomain() {
       const hostname = window.location.hostname.toLowerCase();
       const parts = hostname.split('.');
 
-      // ========== PMS 後台網域：以路徑首段 alias 判斷 ==========
-      const isPmsDomain = hostname === 'pms.lakeze.com' || hostname === 'www.pms.lakeze.com';
+      // ========== PMS 後台（pms.lakeze.com，或單一網站的後台路徑）：以路徑首段 alias 判斷 ==========
+      const isPmsDomain = isPmsMode(hostname);
       if (isPmsDomain) {
         const segs = window.location.pathname.split('/').filter(Boolean);
         const reserved = new Set([
-          'admin', 'auth', 'login', 'reset-password', 'change-password',
+          'admin', 'auth', 'login', 'pms', 'reset-password', 'change-password',
           'hq', 'hq-auth', 'headquarters', 'team', 'team-auth',
         ]);
         const pmsAlias = segs[0] && !reserved.has(segs[0]) ? segs[0] : null;
@@ -87,7 +87,7 @@ export function useSubdomain() {
             'ai-booking', 'auth', 'login', 'hq', 'hq-auth', 'headquarters', 'admin',
             'pay', 'profile', 'reset-password', 'change-password',
             'kol-api-docs', 'points-api-docs', 'og-preview', 'payment-test', '__cb',
-            'owlting-fillup',
+            'owlting-fillup', 'pms', 'team', 'team-auth', 'saas',
           ]);
           const pathAlias = pathSegments[0] && !reservedFirst.has(pathSegments[0])
             ? pathSegments[0] : null;

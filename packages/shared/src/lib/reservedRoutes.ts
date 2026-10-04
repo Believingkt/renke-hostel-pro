@@ -11,6 +11,7 @@
 
 /** PMS 後台相關的保留字（appMode.normalizePmsPath / extractAliasFromPath 使用） */
 export const PMS_RESERVED_FIRST_SEGMENTS = [
+  "pms",
   "admin",
   "auth",
   "login",
