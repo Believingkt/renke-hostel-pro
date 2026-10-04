@@ -28,6 +28,7 @@ apps/*/dist
 packages/*/dist
 
 # Emergent preview-environment artifacts (never commit)
+apps/*/vite.preview.config.ts
 frontend/
 backend/
 .emergent/
