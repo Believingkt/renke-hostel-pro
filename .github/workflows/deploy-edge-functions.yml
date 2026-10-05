@@ -11,7 +11,7 @@
 #
 # 需要的設定（GitHub repo → Settings）：
 #   - Secrets and variables → Actions → SUPABASE_ACCESS_TOKEN（Supabase 個人 access token，不要放進 Emergent）
-#   - Environments → supabase-production（可選：加 Required reviewers，部署前需核准）
+#   （私有 repo 在 GitHub Free 方案無法使用 Environments／部署核准，因此不設 environment）
 name: Deploy Supabase Edge Functions
 
 on:
@@ -38,7 +38,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: supabase-production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       PROJECT_REF: opaphdargymfyrrzvozs
