@@ -34,7 +34,8 @@ node scripts/release/supabase-release.mjs --migrations=skip --functions=tappay-n
 | 變數 | 用途 | 權限範圍 |
 |---|---|---|
 | `SUPABASE_ACCESS_TOKEN` | 部署 edge function、連結專案 | 新版 token：限 lakeze-prod 專案、只開 Edge Functions Read-write |
-| `SUPABASE_DB_PASSWORD` | 套用 migration | 正式資料庫完整權限；只在需要跑 migration 時才設定 |
+| `SUPABASE_DB_PASSWORD` | 套用 migration（直接連資料庫，不需要 link） | 正式資料庫完整權限；只在需要跑 migration 時才設定 |
+| `SUPABASE_DB_REGION` | 連線池區域，預設 `ap-northeast-1` | — |
 | `SUPABASE_PROJECT_REF` | 預設 `opaphdargymfyrrzvozs`（正式） | 測試專案時改成測試 ref |
 
 ## 變動偵測

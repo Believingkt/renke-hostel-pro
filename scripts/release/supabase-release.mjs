@@ -12,8 +12,10 @@
  *
  * 環境變數：
  *   SUPABASE_ACCESS_TOKEN   必要（部署 function、連結專案）
- *   SUPABASE_DB_PASSWORD    套用 migration 時必要
+ *   SUPABASE_DB_PASSWORD    套用 migration 時必要（直接用資料庫連線，不需要 supabase link，token 不必有專案設定權限）
  *   SUPABASE_PROJECT_REF    預設 opaphdargymfyrrzvozs（正式）
+ *   SUPABASE_DB_REGION      連線池區域，預設 ap-northeast-1（Tokyo）
+ *   SUPABASE_DB_URL         若設定則直接使用，忽略上面三個
  *   SUPABASE_CLI            預設 "npx -y supabase@2.117.0"；本機有裝可設 "supabase"
  *
  * 結束碼：0 成功；3 = 有待確認的 migration（confirm 模式）；其他 = 失敗
@@ -56,10 +58,12 @@ function run(cmd, opts = {}) {
   const [bin, ...rest] = cmd;
   const r = spawnSync(bin, rest, { cwd: ROOT, encoding: "utf8", env: process.env, stdio: opts.capture ? "pipe" : "inherit", shell: process.platform === "win32" });
   if (r.error) die(`${cmd.join(" ")}：${r.error.message}`);
-  if (r.status !== 0 && !opts.allowFail) die(`${cmd.join(" ")} 回傳 ${r.status}${r.stderr ? "\n" + r.stderr : ""}`);
+  if (r.status !== 0 && !opts.allowFail) die(`${redact(cmd.join(" "))} 回傳 ${r.status}${r.stderr ? "\n" + redact(r.stderr) : ""}`);
   return r;
 }
 const sb = (...a) => [...CLI, ...a];
+// 錯誤訊息裡把密碼遮掉，避免印到畫面
+function redact(s) { const pw = process.env.SUPABASE_DB_PASSWORD; return pw ? String(s).split(pw).join("***").split(encodeURIComponent(pw)).join("***") : String(s); }
 function walk(dir) {
   const out = [];
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -74,10 +78,11 @@ const sha = (s) => createHash("sha256").update(s).digest("hex");
 // ---------- 1. migration ----------
 let pendingMigrations = [];
 if (MIGRATIONS !== "skip") {
-  if (!process.env.SUPABASE_DB_PASSWORD) die("migrations=confirm/apply 需要 SUPABASE_DB_PASSWORD（要跳過請用 --migrations=skip）");
-  // link：讓 migration list / db push 知道要連哪個專案；密碼由 SUPABASE_DB_PASSWORD 提供
-  run(sb("link", "--project-ref", REF), { capture: true });
-  const list = run(sb("migration", "list", "--linked"), { capture: true });
+  if (!process.env.SUPABASE_DB_PASSWORD && !process.env.SUPABASE_DB_URL) die("migrations=confirm/apply 需要 SUPABASE_DB_PASSWORD（要跳過請用 --migrations=skip）");
+  // 不用 supabase link（需要 project_admin_read 權限），直接用資料庫連線字串（session pooler，port 5432）
+  const region = process.env.SUPABASE_DB_REGION || "ap-northeast-1";
+  const dbUrl = process.env.SUPABASE_DB_URL || `postgresql://postgres.${REF}:${encodeURIComponent(process.env.SUPABASE_DB_PASSWORD)}@aws-0-${region}.pooler.supabase.com:5432/postgres`;
+  const list = run(sb("migration", "list", "--db-url", dbUrl), { capture: true });
   // 表格欄位：Local | Remote | Time；Remote 空白 = 尚未套用
   for (const line of (list.stdout || "").split("\n")) {
     const m = line.match(/^\s*(\d{14})\s*\|\s*(\d{14})?\s*\|/);
@@ -98,7 +103,7 @@ if (MIGRATIONS !== "skip") {
     }
     if (DRY) log("dry-run：略過 db push");
     else {
-      run(sb("db", "push", "--linked"));
+      run(sb("db", "push", "--db-url", dbUrl));
       log("migration：已套用");
     }
   }
