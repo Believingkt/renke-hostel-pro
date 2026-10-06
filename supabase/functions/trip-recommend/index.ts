@@ -1,4 +1,4 @@
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -283,7 +283,7 @@ ${exclude.length ? `- 請盡量避開這些上一組已用過的品項 id：${ex
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
         body: JSON.stringify({
-          model: "google/gemini-3.6-flash",
+          model: `google/${defaultModel()}`,
           max_tokens: 2000,
           reasoning_effort: "none",
 

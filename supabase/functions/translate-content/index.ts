@@ -6,7 +6,7 @@
  *   命中就直接回；沒命中才走 Lovable AI 閘道翻譯，並寫回快取。
  * - 只做「文字 → 文字」翻譯，不讀取也不寫入任何業務資料表。
  */
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -155,7 +155,7 @@ serve(async (req) => {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: `google/${defaultModel()}`,
         reasoning_effort: "none",
         max_tokens: maxTokens,
         messages: [

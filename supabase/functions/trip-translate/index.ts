@@ -3,7 +3,7 @@
  * - 由 trip-recommend / lineTrip 於背景觸發，也可由前端「重試」直接呼叫。
  * - 只補寫 ja / en，zh 與所有價格／品項一律沿用快照原值。
  */
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -95,7 +95,7 @@ serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: `google/${defaultModel()}`,
         reasoning_effort: "none",
         max_tokens: 3000,
         messages: [

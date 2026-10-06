@@ -3,7 +3,7 @@
 // body: { limit?: number, traveler_id?: string, days?: number }
 // 冪等：同一旅客重跑會「覆蓋」interest_tags / custom_needs（AI 段），非累加重複
 // deno-lint-ignore-file no-explicit-any
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCustomerKey } from "../_shared/travelerKey.ts";
@@ -163,7 +163,7 @@ Deno.serve(async (req) => {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: `google/${defaultModel()}`,
           messages: [
             { role: "system", content: "你是旅宿 CRM 標籤分析助理，只輸出 JSON，不要markdown。" },
             { role: "user", content: prompt },

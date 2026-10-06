@@ -1,4 +1,4 @@
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 // Generate a short LINE-push name (emoji + 2-4 字) for a Taiwan B&B via Lovable AI Gateway.
 // Public function (no JWT required) — used in HQ admin UI.
 
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: `google/${defaultModel()}`,
         messages: [{ role: "user", content: prompt }],
       }),
     });

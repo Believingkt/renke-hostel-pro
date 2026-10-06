@@ -1,4 +1,4 @@
-import { llmFetch, llmKey } from "./llm.ts";
+import { llmFetch, llmKey, defaultModel } from "./llm.ts";
 // 共用：動態行旅導引（七項旅遊屬性逐題收集）
 // /trips/guide 獨立頁（traveler-guide）與官網小安對話（portal-ai-chat）共用同一份提示詞與擷取邏輯。
 
@@ -139,7 +139,7 @@ export async function runGuideTurn(opts: {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
     body: JSON.stringify({
-      model: "google/gemini-3.6-flash",
+      model: `google/${defaultModel()}`,
       reasoning_effort: "none",
       max_tokens: 800,
       messages: [

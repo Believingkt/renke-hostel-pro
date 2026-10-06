@@ -1,7 +1,7 @@
 // E2 AI 文案產生（小安語氣）
 // POST /functions/v1/remarketing-copy  body: { segment_summary, interest_tags?, product_names?, goal? }
 // deno-lint-ignore-file no-explicit-any
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: `google/${defaultModel()}`,
         messages: [
           { role: "system", content: "你是旅宿行銷文案助理小安，只輸出 JSON，不要 markdown。" },
           { role: "user", content: prompt },

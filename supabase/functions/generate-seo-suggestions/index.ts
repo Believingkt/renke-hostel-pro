@@ -1,4 +1,4 @@
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 // 依館別名稱／簡介／地區，用 Lovable AI 產生 SEO 標題、描述、關鍵字與社群分享文案。
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: `google/${defaultModel()}`,
         messages: [{ role: "user", content: prompt }],
         tools: [
           {

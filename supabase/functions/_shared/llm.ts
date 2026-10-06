@@ -25,6 +25,11 @@ export function llmKey(): string | undefined {
   return llmMode() === "gateway" ? Deno.env.get("LOVABLE_API_KEY") : Deno.env.get("GEMINI_API_KEY");
 }
 
+/** 現役預設模型（不含 provider 前綴）；可由 LLM_DEFAULT_MODEL 覆寫，避免把模型名寫死。 */
+export function defaultModel(): string {
+  return Deno.env.get("LLM_DEFAULT_MODEL") ?? "gemini-3.8-flash";
+}
+
 /** gateway 的模型名 → 供應商原生模型名。 */
 export function mapModel(model: string): { provider: "google" | "openai" | "other"; model: string } {
   if (model.startsWith("google/")) return { provider: "google", model: model.slice("google/".length) };

@@ -4,7 +4,7 @@
  *   ai_prompts(published) + ai_knowledge + ai_examples + ai_reply_templates
  * - 對話一律寫入 ai_conversation_logs（source = 'line'），總部訓練中心可檢視
  */
-import { llmFetch, llmKey } from "./llm.ts";
+import { llmFetch, llmKey, defaultModel } from "./llm.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { taipeiToday } from "./taipeiDate.ts";
 
@@ -89,7 +89,7 @@ export async function askLlm(
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: "google/gemini-3.6-flash",
+        model: `google/${defaultModel()}`,
         reasoning_effort: "none",
         max_tokens: 700,
         messages: [

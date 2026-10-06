@@ -8,7 +8,7 @@
  *
  * 效能約束：本函式沒有任何排程，只在使用者「進頁面讀快取／按重新生成」時執行。
  */
-import { llmFetch, llmKey } from "../_shared/llm.ts";
+import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -17,7 +17,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const MODEL = "google/gemini-3.7-flash";
+const MODEL = `google/${defaultModel()}`;
 
 function jsonRes(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
