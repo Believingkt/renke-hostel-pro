@@ -1,18 +1,28 @@
-# 自動部署 Supabase Edge Functions（正式環境 opaphdargymfyrrzvozs）
+# 自動發布 Supabase 後端（正式環境 opaphdargymfyrrzvozs）
 #
 # 觸發：
 #   - push 到 production 分支（Emergent「人客多 - 主系統」Save to GitHub 一律存到這個分支），
-#     且有改到 supabase/functions/** → 只部署有變動的 function（改 _shared 會連帶部署引用它的 function）
-#   - 手動：Actions → Deploy Supabase Edge Functions → Run workflow，輸入 function 名稱
+#     且有改到 supabase/** →
+#       1) 有新 migration 就套用（supabase db push）
+#       2) 只部署有變動的 edge function（改 _shared 會連帶部署引用它的 function）
+#   - 手動：Actions → Deploy Supabase Backend → Run workflow
+#       functions：要部署的 function 名稱（空白分隔），可留空
+#       apply_migrations：勾選才會套用 migration
+#
+# 團隊流程（Emergent Publish 只建前端，不會碰後端）：
+#   Save to GitHub（production）→ 等這個 workflow 綠燈 → 再按 Publish
+#   順序反過來會讓新前端去呼叫還不存在的 function／資料表。
 #
 # 不會做的事：
-#   - 不跑資料庫 migration（supabase/migrations 有變動只會出警告，請 Nokimi 審過再手動上）
-#   - 不刪除線上 function
+#   - 不刪除線上 function、不回滾 migration
+#   - migration 失敗就不部署 function（避免前後端不一致），請通知 Nokimi，不要重跑
 #
-# 需要的設定（GitHub repo → Settings）：
-#   - Secrets and variables → Actions → SUPABASE_ACCESS_TOKEN（Supabase 個人 access token，不要放進 Emergent）
+# 需要的設定（GitHub repo → Settings → Secrets and variables → Actions）：
+#   - SUPABASE_ACCESS_TOKEN：Supabase access token（限 lakeze-prod、Edge Functions Read-write）
+#   - SUPABASE_DB_PASSWORD：正式資料庫密碼（套 migration 用）
+#   這兩個值只放 GitHub Secrets，不要放進 Emergent、不要放進 .env。
 #   （私有 repo 在 GitHub Free 方案無法使用 Environments／部署核准，因此不設 environment）
-name: Deploy Supabase Edge Functions
+name: Deploy Supabase Backend
 
 on:
   push:
@@ -24,39 +34,107 @@ on:
   workflow_dispatch:
     inputs:
       functions:
-        description: "要部署的 function 名稱，空白分隔（例如：tappay-notify send-password-reset）"
-        required: true
+        description: "要部署的 function 名稱，空白分隔（例如：tappay-notify send-password-reset）；可留空"
+        required: false
         type: string
+        default: ""
+      apply_migrations:
+        description: "套用尚未套用的 migration"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
-  group: supabase-edge-functions-deploy
+  group: supabase-backend-deploy
   cancel-in-progress: false
 
 permissions:
   contents: read
 
+env:
+  PROJECT_REF: opaphdargymfyrrzvozs
+  DB_REGION: ap-northeast-1
+  SUPABASE_CLI_VERSION: 2.117.0
+
 jobs:
-  deploy:
+  # ---------------------------------------------------------------------------
+  # 1. migration
+  # ---------------------------------------------------------------------------
+  migrate:
     runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.detect.outputs.changed }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      PROJECT_REF: opaphdargymfyrrzvozs
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 檢查 migration 是否有變動
-        if: github.event_name == 'push'
+      - name: 判斷是否需要套用 migration
+        id: detect
         env:
+          EVENT: ${{ github.event_name }}
+          INPUT_APPLY: ${{ inputs.apply_migrations }}
           BEFORE: ${{ github.event.before }}
           AFTER: ${{ github.sha }}
         run: |
-          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
-             && git diff --name-only "$BEFORE" "$AFTER" -- supabase/migrations supabase/config.toml | grep -q .; then
-            echo "::warning::這次 push 有改到 supabase/migrations 或 config.toml，本流程不會套用，請 Nokimi 審核後手動處理。"
-            git diff --name-only "$BEFORE" "$AFTER" -- supabase/migrations supabase/config.toml
+          set -euo pipefail
+          changed=false
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            [ "$INPUT_APPLY" = "true" ] && changed=true
+          elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "::warning::無法取得前一個 commit（新分支或 force push），不自動套用 migration；需要的話請手動執行並勾選 apply_migrations。"
+          elif git diff --name-only "$BEFORE" "$AFTER" -- supabase/migrations | grep -q .; then
+            changed=true
+            echo "這次 push 改到的 migration："
+            git diff --name-status "$BEFORE" "$AFTER" -- supabase/migrations
           fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          [ "$changed" = true ] || echo "migration 沒有變動，略過。" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - uses: supabase/setup-cli@v1
+        if: steps.detect.outputs.changed == 'true'
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: 套用 migration
+        if: steps.detect.outputs.changed == 'true'
+        env:
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DB_PASSWORD:-}" ]; then
+            echo "::error::尚未設定 repo secret SUPABASE_DB_PASSWORD，無法套用 migration"; exit 1
+          fi
+          enc="$(jq -rn --arg p "$DB_PASSWORD" '$p|@uri')"
+          echo "::add-mask::$enc"
+          DB_URL="postgresql://postgres.${PROJECT_REF}:${enc}@aws-0-${DB_REGION}.pooler.supabase.com:5432/postgres"
+          echo "::add-mask::$DB_URL"
+
+          echo "### 套用前的 migration 狀態" >> "$GITHUB_STEP_SUMMARY"
+          { echo '```'; supabase migration list --db-url "$DB_URL" 2>&1 | sed "s#${enc}#***#g"; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+
+          # --include-all：連時間戳比線上最新還舊的本地 migration 也一併套用（agent 產生的檔名順序不一定）
+          supabase db push --db-url "$DB_URL" --include-all 2>&1 | sed "s#${enc}#***#g"
+          test "${PIPESTATUS[0]}" -eq 0
+
+          echo "### 套用後的 migration 狀態" >> "$GITHUB_STEP_SUMMARY"
+          { echo '```'; supabase migration list --db-url "$DB_URL" 2>&1 | sed "s#${enc}#***#g"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          echo "migration 已套用（commit ${GITHUB_SHA::9}）" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 2. edge functions（migration 失敗就不跑）
+  # ---------------------------------------------------------------------------
+  deploy:
+    runs-on: ubuntu-latest
+    needs: migrate
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 決定要部署的 function
         id: pick
@@ -70,7 +148,7 @@ jobs:
           if [ "$EVENT" = "workflow_dispatch" ]; then
             list="$INPUT_FUNCTIONS"
           elif [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
-            echo "::warning::無法取得前一個 commit（新分支或 force push），不自動部署；需要的話請用手動執行。"
+            echo "::warning::無法取得前一個 commit（新分支或 force push），不自動部署 function；需要的話請用手動執行。"
             list=""
           else
             list="$(bash scripts/ci/changed-edge-functions.sh "$BEFORE" "$AFTER" | tr '\n' ' ')"
@@ -97,7 +175,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         if: steps.pick.outputs.functions != ''
         with:
-          version: 2.117.0
+          version: ${{ env.SUPABASE_CLI_VERSION }}
 
       - name: 部署
         if: steps.pick.outputs.functions != ''
