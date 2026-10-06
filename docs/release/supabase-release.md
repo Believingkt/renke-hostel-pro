@@ -16,14 +16,14 @@ Emergent 客服確認（2026-10-05）：
 
 1. 在主系統改完功能
 2. **Save to GitHub**（分支 `production`）
-3. 到 GitHub → Actions 等「Deploy Supabase Backend」跑完變綠燈（每次 Save 都會跑）
+3. GitHub Actions「Deploy Supabase Backend」自動跑（每次 Save 都會跑，團隊不用看）
    - 有改 `supabase/migrations/` → 自動套用 migration
    - 有改 `supabase/functions/` → 自動部署有變動的 function（改 `_shared` 會連帶部署引用它的）
-   - 沒改 `supabase/` → 兩步都略過，幾十秒內綠燈
-4. 綠燈後再按 **Publish**
+   - 沒改 `supabase/` → 兩步都略過
+   - 任一步失敗 → LINE 推播給 Nokimi（`notify-failure` job）
+4. 接著按 **Publish**
 
 順序反過來會讓新前端去呼叫還不存在的 function／資料表。
-紅燈就不要 Publish，把 Actions 頁面的連結丟給 Nokimi。
 
 ## GitHub 需要的設定（Settings → Secrets and variables → Actions）
 
@@ -31,6 +31,8 @@ Emergent 客服確認（2026-10-05）：
 |---|---|---|
 | `SUPABASE_ACCESS_TOKEN` | 部署 edge function | 限 lakeze-prod 專案、只開 Edge Functions Read-write；有效期一年，到期前要換 |
 | `SUPABASE_DB_PASSWORD` | 套用 migration（直接連資料庫，不需要 link） | 正式資料庫完整權限 |
+| `LINE_CHANNEL_ACCESS_TOKEN` | 失敗通知：人客多 LINE 管家 Messaging API token | 可用該官方帳號推播 |
+| `LINE_NOTIFY_TO` | 失敗通知收件人的 LINE userId（Nokimi） | — |
 
 這兩個值只放 GitHub Secrets，**不要放進 Emergent、不要放進 .env**（根目錄 `.env` 在 git 裡且會被 build 讀取）。
 
