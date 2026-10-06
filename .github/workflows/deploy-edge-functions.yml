@@ -1,10 +1,10 @@
 # 自動發布 Supabase 後端（正式環境 opaphdargymfyrrzvozs）
 #
 # 觸發：
-#   - push 到 production 分支（Emergent「人客多 - 主系統」Save to GitHub 一律存到這個分支），
-#     且有改到 supabase/** →
-#       1) 有新 migration 就套用（supabase db push）
+#   - 每次 push 到 production 分支（Emergent「人客多 - 主系統」Save to GitHub 一律存到這個分支）：
+#       1) supabase/migrations 有變動就套用（supabase db push）
 #       2) 只部署有變動的 edge function（改 _shared 會連帶部署引用它的 function）
+#       3) 沒改到 supabase/ 就兩步都略過，仍會給綠燈
 #   - 手動：Actions → Deploy Supabase Backend → Run workflow
 #       functions：要部署的 function 名稱（空白分隔），可留空
 #       apply_migrations：勾選才會套用 migration
@@ -27,10 +27,7 @@ name: Deploy Supabase Backend
 on:
   push:
     branches: [production]
-    paths:
-      - "supabase/functions/**"
-      - "supabase/migrations/**"
-      - "supabase/config.toml"
+    # 每次 push 都跑（不設 paths 過濾），讓團隊「一律等綠燈再 Publish」；沒改到 supabase/ 的 push 兩個 job 都會自動略過
   workflow_dispatch:
     inputs:
       functions:
