@@ -16,11 +16,14 @@
 # 不會做的事：
 #   - 不刪除線上 function、不回滾 migration
 #   - migration 失敗就不部署 function（避免前後端不一致），請通知 Nokimi，不要重跑
+#   - 任一步失敗會推 LINE 訊息給 Nokimi；成功不通知
 #
 # 需要的設定（GitHub repo → Settings → Secrets and variables → Actions）：
 #   - SUPABASE_ACCESS_TOKEN：Supabase access token（限 lakeze-prod、Edge Functions Read-write）
 #   - SUPABASE_DB_PASSWORD：正式資料庫密碼（套 migration 用）
-#   這兩個值只放 GitHub Secrets，不要放進 Emergent、不要放進 .env。
+#   - LINE_CHANNEL_ACCESS_TOKEN：人客多 LINE 管家的 Messaging API channel access token（失敗通知用）
+#   - LINE_NOTIFY_TO：要收失敗通知的 LINE userId（Nokimi）
+#   這些值只放 GitHub Secrets，不要放進 Emergent、不要放進 .env。
 #   （私有 repo 在 GitHub Free 方案無法使用 Environments／部署核准，因此不設 environment）
 name: Deploy Supabase Backend
 
@@ -186,3 +189,31 @@ jobs:
           # verify_jwt 等設定依 supabase/config.toml
           supabase functions deploy $FUNCTIONS --project-ref "$PROJECT_REF"
           echo "已部署：$FUNCTIONS（commit ${GITHUB_SHA::9}）" >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # 3. 失敗才通知（LINE 推給 Nokimi）
+  # ---------------------------------------------------------------------------
+  notify-failure:
+    runs-on: ubuntu-latest
+    needs: [migrate, deploy]
+    if: ${{ failure() }}
+    steps:
+      - name: LINE 推播
+        env:
+          TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          TO: ${{ secrets.LINE_NOTIFY_TO }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          MIGRATE: ${{ needs.migrate.result }}
+          DEPLOY: ${{ needs.deploy.result }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TOKEN:-}" ] || [ -z "${TO:-}" ]; then
+            echo "::warning::未設定 LINE_CHANNEL_ACCESS_TOKEN / LINE_NOTIFY_TO，略過 LINE 通知"; exit 0
+          fi
+          msg="$(printf '❌ 人客多後端部署失敗，請先不要 Publish\nmigration：%s\nfunctions：%s\n推送者：%s（%s）\n%s' "$MIGRATE" "$DEPLOY" "$ACTOR" "${SHA::9}" "$RUN_URL")"
+          jq -n --arg to "$TO" --arg text "$msg" '{to:$to, messages:[{type:"text", text:$text}]}' \
+            | curl -sS -f -X POST https://api.line.me/v2/bot/message/push \
+                -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d @- \
+            || echo "::warning::LINE 推播失敗（不影響部署結果）"
