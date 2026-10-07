@@ -14,12 +14,22 @@ const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const BRAND = { primary: "#d07218", foreground: "#2d3344", muted: "#6b7280" };
 
-function emailHtml(opts: { name: string; body: string; ctaText: string; ctaUrl: string; products: string[] }) {
-  const productList = opts.products.length
-    ? `<ul style="color:${BRAND.foreground};font-size:15px;line-height:1.8;padding-left:20px;">${
-        opts.products.map((p) => `<li>${p}</li>`).join("")
-      }</ul>`
-    : "";
+type ProductCard = { name: string; price: number; cover_url: string | null; url: string };
+
+function productCardsHtml(products: ProductCard[]): string {
+  if (!products.length) return "";
+  const cards = products.map((p) => `
+    <a href="${p.url}" style="display:block;text-decoration:none;border:1px solid #eee;border-radius:10px;overflow:hidden;margin:0 0 12px;">
+      ${p.cover_url ? `<img src="${p.cover_url}" alt="" width="100%" style="display:block;width:100%;max-height:180px;object-fit:cover;"/>` : ""}
+      <div style="padding:12px 14px;">
+        <div style="color:${BRAND.foreground};font-size:15px;font-weight:600;">${p.name}</div>
+        <div style="color:${BRAND.primary};font-size:15px;font-weight:700;margin-top:4px;">NT$ ${Number(p.price || 0).toLocaleString()} 起</div>
+      </div>
+    </a>`).join("");
+  return `<div style="margin:8px 0 4px;"><p style="color:${BRAND.muted};font-size:13px;margin:0 0 10px;">為您推薦</p>${cards}</div>`;
+}
+
+function emailHtml(opts: { name: string; body: string; ctaText: string; ctaUrl: string; productsHtml: string; unsubUrl: string; openPixelUrl: string }) {
   return `<!DOCTYPE html><html lang="zh-TW"><head><meta charset="utf-8"/></head>
 <body style="margin:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
   <div style="padding:24px 16px;">
@@ -28,14 +38,16 @@ function emailHtml(opts: { name: string; body: string; ctaText: string; ctaUrl: 
       <div style="padding:32px 28px;">
         <h1 style="color:${BRAND.foreground};font-size:20px;margin:0 0 16px;">${opts.name} 您好</h1>
         <p style="color:${BRAND.muted};font-size:15px;line-height:1.8;margin:0 0 20px;white-space:pre-wrap;">${opts.body}</p>
-        ${productList}
+        ${opts.productsHtml}
         ${opts.ctaUrl ? `<p style="text-align:center;margin:28px 0;"><a href="${opts.ctaUrl}" style="display:inline-block;background:${BRAND.primary};color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-weight:600;">${opts.ctaText}</a></p>` : ""}
       </div>
       <div style="background:#fafafa;padding:18px;text-align:center;border-top:1px solid #eee;color:#999;font-size:12px;">
-        © ${new Date().getFullYear()} 人客多 Lakeze
+        © ${new Date().getFullYear()} 人客多 Lakeze<br/>
+        ${opts.unsubUrl ? `<a href="${opts.unsubUrl}" style="color:#999;text-decoration:underline;">不想再收到這類信件？點此退訂</a>` : ""}
       </div>
     </div>
   </div>
+  ${opts.openPixelUrl ? `<img src="${opts.openPixelUrl}" alt="" width="1" height="1" style="display:none"/>` : ""}
 </body></html>`;
 }
 
@@ -79,18 +91,28 @@ Deno.serve(async (req) => {
     if (cErr) return json({ error: cErr.message }, 500);
     if (!campaign) return json({ error: "找不到活動" }, 404);
 
-    // 推薦商品名稱
+    const SITE_BASE = "https://booking.lakeze.com";
+    // 推薦回流商品（卡片：圖/名稱/價格/連結，價格取自 DB 即時資料）
     const ids: string[] = Array.isArray(campaign.recommend_products) ? campaign.recommend_products : [];
-    const productNames: string[] = [];
+    const productCards: ProductCard[] = [];
     if (ids.length) {
-      const { data: prods } = await admin.from("trip_products").select("id,name").in("id", ids);
-      for (const p of prods ?? []) productNames.push(localized((p as any).name));
+      const { data: prods } = await admin
+        .from("trip_products").select("id,name,price,cover_url").in("id", ids);
+      for (const p of prods ?? []) {
+        productCards.push({
+          name: localized((p as any).name),
+          price: Number((p as any).price ?? 0),
+          cover_url: (p as any).cover_url ?? null,
+          url: `${SITE_BASE}/trip-products/${(p as any).id}`,
+        });
+      }
     }
+    const productsHtml = productCardsHtml(productCards);
 
     // 分群
     const { data: profiles, error: pErr } = await admin
       .from("traveler_profiles")
-      .select("id,display_name,email,phone,interest_tags,custom_needs,consumption,updated_at")
+      .select("id,display_name,email,phone,interest_tags,custom_needs,consumption,updated_at,customer_key")
       .limit(5000);
     if (pErr) return json({ error: pErr.message }, 500);
     let targets = ((profiles ?? []) as TravelerRow[]).filter((p) => matchSegment(p, campaign.segment));
@@ -100,6 +122,36 @@ Deno.serve(async (req) => {
       .from("remarketing_sends").select("traveler_profile_id,status").eq("campaign_id", campaignId);
     const sentSet = new Set((existing ?? []).filter((r: any) => r.status === "sent").map((r: any) => r.traveler_profile_id));
     targets = targets.filter((t) => !sentSet.has(t.id)).slice(0, maxSend);
+
+    // 退訂名單（suppressed_emails）一律排除
+    const { data: suppressed } = await admin.from("suppressed_emails").select("email");
+    const suppressedSet = new Set((suppressed ?? []).map((r: any) => String(r.email).trim().toLowerCase()));
+
+    // email fallback：對缺 email 的旅客，用手機從訂單補 guest_email
+    const phonesNeedingEmail = targets
+      .filter((t: any) => !t.email && t.phone)
+      .map((t: any) => String(t.phone).replace(/\D/g, "").slice(-8))
+      .filter(Boolean);
+    const phoneToEmail = new Map<string, string>();
+    if (phonesNeedingEmail.length) {
+      const { data: od } = await admin
+        .from("orders").select("guest_email,guest_phone,order_date")
+        .not("guest_email", "is", null)
+        .order("order_date", { ascending: false })
+        .limit(5000);
+      for (const o of od ?? []) {
+        const ph = String((o as any).guest_phone ?? "").replace(/\D/g, "").slice(-8);
+        const em = String((o as any).guest_email ?? "").trim();
+        if (ph && em && !phoneToEmail.has(ph)) phoneToEmail.set(ph, em);
+      }
+    }
+    const resolveEmail = (t: any): string => {
+      if (t.email) return String(t.email).trim();
+      const ck = String(t.customer_key ?? "");
+      if (ck.startsWith("email:")) return ck.slice("email:".length).trim();
+      if (t.phone) return phoneToEmail.get(String(t.phone).replace(/\D/g, "").slice(-8)) ?? "";
+      return "";
+    };
 
     const content = (campaign.content ?? {}) as any;
     const baseBody = String(content.body ?? "");
@@ -122,11 +174,12 @@ Deno.serve(async (req) => {
         personalBody = `${name}，看您先前對「${tags.join("、")}」特別有興趣，小安幫您挑了幾個回訪好選擇。\n${baseBody}`.trim();
       }
 
+      const resolvedEmail = channel === "email" ? (testEmail || resolveEmail(t)) : "";
       const sendRow: any = {
         campaign_id: campaignId,
         traveler_profile_id: t.id,
         channel,
-        recipient: channel === "email" ? (testEmail || t.email) : t.phone,
+        recipient: channel === "email" ? resolvedEmail : t.phone,
         message_body: personalBody,
       };
 
@@ -138,6 +191,10 @@ Deno.serve(async (req) => {
       } else if (!sendRow.recipient) {
         sendRow.status = "skipped";
         sendRow.error_message = "旅客無 Email";
+        skipped++;
+      } else if (!testEmail && suppressedSet.has(String(sendRow.recipient).toLowerCase())) {
+        sendRow.status = "skipped";
+        sendRow.error_message = "已退訂";
         skipped++;
       } else if (body?.dry_run) {
         sendRow.status = "skipped";
@@ -158,7 +215,21 @@ Deno.serve(async (req) => {
         const trackUrl = rawCta
           ? `${funcBase}/remarketing-track?s=${pre?.id}&u=${encodeURIComponent(rawCta)}`
           : "";
-        const html = emailHtml({ name, body: personalBody, ctaText, ctaUrl: trackUrl, products: productNames });
+        // 退訂連結：沿用 email_unsubscribe_tokens（一 email 一 token）
+        let unsubUrl = "";
+        try {
+          const em = String(sendRow.recipient).trim().toLowerCase();
+          const { data: tok } = await admin.from("email_unsubscribe_tokens")
+            .select("token").eq("email", em).maybeSingle();
+          let token = tok?.token as string | undefined;
+          if (!token) {
+            token = crypto.randomUUID().replace(/-/g, "");
+            await admin.from("email_unsubscribe_tokens").upsert({ email: em, token }, { onConflict: "email" });
+          }
+          unsubUrl = `${funcBase}/remarketing-track?mode=unsub&t=${token}`;
+        } catch (e) { console.error("[remarketing-send] unsub token failed", e); }
+        const openPixelUrl = `${funcBase}/remarketing-track?mode=open&s=${pre?.id}`;
+        const html = emailHtml({ name, body: personalBody, ctaText, ctaUrl: trackUrl, productsHtml, unsubUrl, openPixelUrl });
 
         const resp = await fetch(RESEND_API_URL, {
           method: "POST",

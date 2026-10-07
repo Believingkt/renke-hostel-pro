@@ -12,6 +12,7 @@ export interface TravelerConsumption {
   last_order_at?: string | null;
   avg_amount?: number;
   used_discount_codes?: string[];
+  ai_keywords?: string[];
 }
 
 export interface TravelerProfile {

@@ -1,28 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { useAliasPrefix } from "@lakeze/shared/hooks/use-alias-prefix";
 import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
 import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lakeze/shared/components/ui/table";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@lakeze/shared/components/ui/sheet";
 import { toast } from "@lakeze/shared/hooks/use-toast";
 import { RefreshCw, Sparkles, Users, UserCheck, Tags, Clock, Search } from "lucide-react";
 import type { TravelerProfile } from "@/types/traveler";
 import { identityLabel, formatDateTime } from "@/types/traveler";
+import TravelerDetailBody from "@/components/traveler/TravelerDetailBody";
 
 export default function TravelerCdp() {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { withPrefix } = useAliasPrefix();
-  const location = useLocation();
-  const isHQ = location.pathname.startsWith("/hq");
   const [rows, setRows] = useState<TravelerProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tagging, setTagging] = useState(false);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -172,7 +170,8 @@ export default function TravelerCdp() {
                     <TableRow
                       key={r.id}
                       className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => navigate(isHQ ? `/hq/cdp/${r.id}` : withPrefix(`/admin/cdp/${r.id}`))}
+                      data-testid={`traveler-row-${r.id}`}
+                      onClick={() => setDetailId(r.id)}
                     >
                       <TableCell className="truncate">
                         <div className="font-medium truncate">{r.display_name || "－"}</div>
@@ -219,6 +218,17 @@ export default function TravelerCdp() {
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={!!detailId} onOpenChange={(o) => !o && setDetailId(null)}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl md:max-w-2xl" data-testid="traveler-detail-drawer">
+          <SheetHeader>
+            <SheetTitle>旅客詳情</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4">
+            {detailId && <TravelerDetailBody travelerId={detailId} />}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
