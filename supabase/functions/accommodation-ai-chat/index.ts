@@ -46,6 +46,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    const tStart = performance.now();
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
@@ -146,7 +147,7 @@ serve(async (req) => {
     }
 
     // ===== 載入該民宿的訓練資料 =====
-    const [acc, prompt, knowledge, examples, rooms] = await Promise.all([
+    const [acc, prompt, knowledge, examples, rooms, accCtx] = await Promise.all([
       supabase.from("accommodation_info")
         .select("id, name, address, region_1, region_2, type, phone")
         .eq("id", accommodationId).maybeSingle(),
@@ -155,12 +156,13 @@ serve(async (req) => {
         .order("version", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("ai_knowledge").select("category, title, content, tags, priority")
         .eq("accommodation_id", accommodationId).eq("is_active", true)
-        .order("priority", { ascending: false }).limit(100),
+        .order("priority", { ascending: false }).limit(30),
       supabase.from("ai_examples").select("scenario, user_message, ideal_response")
-        .eq("accommodation_id", accommodationId).eq("is_active", true).limit(30),
+        .eq("accommodation_id", accommodationId).eq("is_active", true).limit(10),
       supabase.from("room_types")
         .select("id, name, description, base_price, capacity, size_sqm, room_count, room_photos(photo_url, display_order)")
         .eq("accommodation_id", accommodationId).order("display_order"),
+      loadAccommodationContext(supabase, accommodationId),
     ]);
 
     // 若該民宿無 published prompt，使用 HQ 全域 fallback
@@ -287,14 +289,25 @@ serve(async (req) => {
 - 卡片與文字必須一致，兩者都以上表為準。`
       : "\n\n## 房況查詢說明\n- 客人尚未提供明確入住日期時，不要說出任何具體當日價格或剩餘間數，請先詢問日期。";
 
-    const accCtx = await loadAccommodationContext(supabase, accommodationId);
-
-    const systemMessage = corePrompt
+    const MAX_SYSTEM_PROMPT_CHARS = 16000;
+    const promptHead = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
-      .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
-      + dateBlock + accInfo + roomList + liveAvailabilityBlock + accCtx + knowledgeText + examplesText + tone + forbidden
+      .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "");
+    // accCtx（館別資料）永不被截；超過上限時只砍平台 ai_knowledge 尾端
+    const assembleSystem = (kt: string) =>
+      promptHead + dateBlock + accInfo + roomList + liveAvailabilityBlock + (accCtx as string) + kt + examplesText + tone + forbidden
       + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE;
+    let systemMessage = assembleSystem(knowledgeText);
+    if (systemMessage.length > MAX_SYSTEM_PROMPT_CHARS) {
+      const overflow = systemMessage.length - MAX_SYSTEM_PROMPT_CHARS;
+      const trimmedKnowledge = knowledgeText.length > overflow + 20
+        ? knowledgeText.slice(0, knowledgeText.length - overflow - 20) + "\n…（平台知識庫已截斷）"
+        : "";
+      systemMessage = assembleSystem(trimmedKnowledge);
+    }
+    const dbMs = Math.round(performance.now() - tStart);
+    console.log("[acc-ai-chat timing]", JSON.stringify({ db_ms: dbMs, source, sys_len: systemMessage.length }));
 
     // 行程卡意圖判斷（以最後一則客人訊息為準）
     const lastUserText = (() => {
@@ -404,6 +417,7 @@ serve(async (req) => {
 
     // Stream-pipe and collect full assistant content for logging
     let fullContent = "";
+    let firstTokenLogged = false;
     const reader = aiRes.body.getReader();
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -427,7 +441,13 @@ serve(async (req) => {
               try {
                 const j = JSON.parse(payload);
                 const delta = j.choices?.[0]?.delta?.content;
-                if (delta) fullContent += delta;
+                if (delta) {
+                  if (!firstTokenLogged) {
+                    firstTokenLogged = true;
+                    console.log("[acc-ai-chat timing]", JSON.stringify({ llm_first_token_ms: Math.round(performance.now() - tStart) }));
+                  }
+                  fullContent += delta;
+                }
               } catch { /* ignore */ }
             }
             controller.enqueue(value);
@@ -466,6 +486,7 @@ serve(async (req) => {
 
 
 
+          console.log("[acc-ai-chat timing]", JSON.stringify({ total_ms: Math.round(performance.now() - tStart) }));
           controller.close();
         } catch (e) {
           controller.error(e);

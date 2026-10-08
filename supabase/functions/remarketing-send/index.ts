@@ -187,7 +187,11 @@ Deno.serve(async (req) => {
         sendRow.status = "skipped";
         sendRow.error_message = "LINE 官方推播尚未介接，文案供人工複製發送";
         skipped++;
-        results.push({ traveler_id: t.id, name, text: `${subject}\n${personalBody}\n${rawCta}` });
+        // N1 歸因：LINE 文案的 CTA 改帶追蹤連結（ch=line），落地頁才會收到 utm_medium=line
+        const lineCta = rawCta
+          ? `${funcBase}/remarketing-track?c=${encodeURIComponent(campaignId)}&ch=line&u=${encodeURIComponent(rawCta)}`
+          : "";
+        results.push({ traveler_id: t.id, name, text: `${subject}\n${personalBody}\n${lineCta || rawCta}` });
       } else if (!sendRow.recipient) {
         sendRow.status = "skipped";
         sendRow.error_message = "旅客無 Email";

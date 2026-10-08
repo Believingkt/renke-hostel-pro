@@ -23,14 +23,18 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ ok: false, reason: "unknown_event" }), { status: 200, headers: cors });
     }
 
-    // is_internal：帶「使用者 JWT」（後台登入者/測試帳號）即視為內部；一般旅客走 anon key。
+    // is_internal：只有「後台員工角色」才算內部；一般會員（有登入但無後台角色）與未登入一律 false。
+    const INTERNAL_STAFF_ROLES = ["super_admin", "admin", "hotel_admin", "staff", "finance", "am", "am_manager", "venue_manager"];
     let isInternal = false;
     const authz = req.headers.get("authorization") ?? "";
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
     const token = authz.startsWith("Bearer ") ? authz.slice(7) : "";
     if (token && token !== anonKey) {
       const { data } = await admin.auth.getUser(token);
-      if (data?.user) isInternal = true;
+      if (data?.user) {
+        const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", data.user.id);
+        isInternal = (roles ?? []).some((r: any) => INTERNAL_STAFF_ROLES.includes(r.role));
+      }
     }
 
     // ref_id 存在性驗證（未知 ref_type 不阻擋，但 trip/product 需存在）
