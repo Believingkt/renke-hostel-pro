@@ -90,6 +90,9 @@ export default function RemarketingAdmin() {
   const [testEmailsInput, setTestEmailsInput] = useState("");
   const [testing, setTesting] = useState(false);
   const [includeTest, setIncludeTest] = useState(false);
+  const [testCandidates, setTestCandidates] = useState<{ id: string; masked_name: string; has_accommodation: boolean }[]>([]);
+  const [sampleId, setSampleId] = useState("");
+  const [loadingCands, setLoadingCands] = useState(false);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -203,21 +206,27 @@ export default function RemarketingAdmin() {
     load();
   };
 
-  const openTest = (c: Campaign) => { setTestOpenFor(c); setTestEmailsInput(adminEmail); };
+  const openTest = async (c: Campaign) => {
+    setTestOpenFor(c); setTestEmailsInput(adminEmail); setTestCandidates([]); setSampleId(""); setLoadingCands(true);
+    const { data } = await supabase.functions.invoke("remarketing-send", { body: { campaign_id: c.id, mode: "test_candidates" } });
+    setLoadingCands(false);
+    const d = data as any;
+    if (d?.candidates) { setTestCandidates(d.candidates); setSampleId(d.default_id ?? (d.candidates[0]?.id ?? "")); }
+  };
   const runTest = async () => {
     if (!testOpenFor) return;
     const emails = testEmailsInput.split(/[,，\s]+/).map((s) => s.trim()).filter(Boolean);
     if (!emails.length) { toast({ title: "請輸入至少 1 個測試信箱", variant: "destructive" }); return; }
     if (emails.length > 5) { toast({ title: "測試信箱最多 5 個", variant: "destructive" }); return; }
     setTesting(true);
-    const { data, error } = await supabase.functions.invoke("remarketing-send", { body: { campaign_id: testOpenFor.id, mode: "test", test_emails: emails } });
+    const { data, error } = await supabase.functions.invoke("remarketing-send", { body: { campaign_id: testOpenFor.id, mode: "test", test_emails: emails, sample_profile_id: sampleId || undefined } });
     setTesting(false);
     if (error || (data as any)?.error) {
       toast({ title: "測試發送失敗", description: error?.message ?? (data as any)?.error, variant: "destructive" });
       return;
     }
     const d = data as any;
-    toast({ title: "測試發送完成", description: `已寄出 ${d.sent}/${emails.length} 封到測試信箱（不影響活動狀態與正式統計）` });
+    toast({ title: "測試發送完成", description: `已寄出 ${d.sent}/${emails.length} 封（含行程卡 ${d.trip_cards ?? 0} 張、房型卡 ${d.room_cards ?? 0} 張，不影響活動狀態與正式統計）` });
     setTestOpenFor(null);
   };
 
@@ -497,9 +506,18 @@ export default function RemarketingAdmin() {
         <DialogContent>
           <DialogHeader><DialogTitle>測試發送 — {testOpenFor?.name}</DialogTitle></DialogHeader>
           <div className="space-y-2">
+            <Label>範例旅客（用於個人化與房型卡）</Label>
+            <Select value={sampleId} onValueChange={setSampleId} disabled={loadingCands || !testCandidates.length}>
+              <SelectTrigger data-testid="sample-profile-select"><SelectValue placeholder={loadingCands ? "載入命中名單中…" : (testCandidates.length ? "選擇範例旅客" : "此活動 0 命中（非測試）")} /></SelectTrigger>
+              <SelectContent>
+                {testCandidates.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.masked_name}{c.has_accommodation ? "（有館別房型）" : "（無館別）"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Label>測試信箱（1–5 個，逗號分隔）</Label>
             <Input value={testEmailsInput} onChange={(e) => setTestEmailsInput(e.target.value)} placeholder="admin@example.com" data-testid="test-emails-input" />
-            <p className="text-xs text-muted-foreground">只寄到測試信箱、以命中名單第 1 位資料作範例個人化；不會寄給分群名單、不改活動狀態，正式統計預設不列入。測試信箱不可為真實旅客 Email。</p>
+            <p className="text-xs text-muted-foreground">只寄到測試信箱、以所選範例旅客資料作個人化；不會寄給分群名單、不改活動狀態，正式統計預設不列入。測試信箱不可為真實旅客 Email。</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTestOpenFor(null)}>取消</Button>

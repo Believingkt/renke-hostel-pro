@@ -17,7 +17,7 @@ const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const BRAND = { primary: "#d07218", foreground: "#2d3344", muted: "#6b7280" };
 const SITE_BASE = "https://booking.lakeze.com";
 
-type Card = { name: string; price: number; cover_url: string | null; url: string };
+type Card = { name: string; price: number | null; cover_url: string | null; url: string };
 
 function cardHtml(p: Card, wrap: (u: string) => string): string {
   return `
@@ -25,7 +25,7 @@ function cardHtml(p: Card, wrap: (u: string) => string): string {
       ${p.cover_url ? `<img src="${p.cover_url}" alt="" width="100%" style="display:block;width:100%;max-height:180px;object-fit:cover;"/>` : ""}
       <div style="padding:12px 14px;">
         <div style="color:${BRAND.foreground};font-size:15px;font-weight:600;">${p.name}</div>
-        <div style="color:${BRAND.primary};font-size:15px;font-weight:700;margin-top:4px;">NT$ ${Number(p.price || 0).toLocaleString()} 起</div>
+        ${p.price == null ? "" : `<div style="color:${BRAND.primary};font-size:15px;font-weight:700;margin-top:4px;">${p.price === 0 ? "免費" : `NT$ ${Number(p.price).toLocaleString()} 起`}</div>`}
       </div>
     </a>`;
 }
@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
       for (const p of prods ?? []) {
         productCards.push({
           name: localized((p as any).name),
-          price: Number((p as any).price ?? 0),
+          price: (p as any).price == null ? null : Number((p as any).price),
           cover_url: (p as any).cover_url ?? null,
           url: `${SITE_BASE}/trip-products/${(p as any).id}`,
         });
@@ -148,18 +148,22 @@ Deno.serve(async (req) => {
     const { data: suppressed } = await admin.from("suppressed_emails").select("email");
     const suppressedSet = new Set((suppressed ?? []).map((r: any) => String(r.email).trim().toLowerCase()));
 
-    // email fallback：缺 email 的旅客，用手機從訂單補 guest_email
+    // 訂單對應：email/手機 → 最新訂房館別；手機 → email 補件（單次查詢建表）
     const phoneToEmail = new Map<string, string>();
-    const phonesNeedingEmail = targets.filter((t: any) => !t.email && t.phone).length > 0 || isTestMode;
-    if (phonesNeedingEmail) {
+    const emailToAcc = new Map<string, string>();
+    const phoneToAcc = new Map<string, string>();
+    if (channel === "email") {
       const { data: od } = await admin
-        .from("orders").select("guest_email,guest_phone,order_date")
-        .not("guest_email", "is", null)
+        .from("orders").select("guest_email,guest_phone,accommodation_id,order_date")
         .order("order_date", { ascending: false }).limit(5000);
       for (const o of od ?? []) {
-        const ph = String((o as any).guest_phone ?? "").replace(/\D/g, "").slice(-8);
         const em = String((o as any).guest_email ?? "").trim();
+        const emLow = em.toLowerCase();
+        const ph = String((o as any).guest_phone ?? "").replace(/\D/g, "").slice(-8);
+        const acc = String((o as any).accommodation_id ?? "");
         if (ph && em && !phoneToEmail.has(ph)) phoneToEmail.set(ph, em);
+        if (acc && emLow && !emailToAcc.has(emLow)) emailToAcc.set(emLow, acc);
+        if (acc && ph && !phoneToAcc.has(ph)) phoneToAcc.set(ph, acc);
       }
     }
     const resolveEmail = (t: any): string => {
@@ -169,34 +173,48 @@ Deno.serve(async (req) => {
       if (t.phone) return phoneToEmail.get(String(t.phone).replace(/\D/g, "").slice(-8)) ?? "";
       return "";
     };
+    const resolveAcc = (t: any): string => {
+      const em = resolveEmail(t).toLowerCase();
+      if (em && emailToAcc.has(em)) return emailToAcc.get(em)!;
+      const ph = String(t.phone ?? "").replace(/\D/g, "").slice(-8);
+      if (ph && phoneToAcc.has(ph)) return phoneToAcc.get(ph)!;
+      return "";
+    };
 
-    // 推薦房型卡：館別 = 活動指定（content.accommodation_id）或命中旅客最近訂房館別
-    let accIdForRooms = typeof content.accommodation_id === "string" ? content.accommodation_id : "";
-    const example = allTargets[0] ?? null;
-    if (!accIdForRooms && example) {
-      const exEmail = resolveEmail(example);
-      let oq = admin.from("orders").select("accommodation_id,order_date")
-        .not("accommodation_id", "is", null).order("order_date", { ascending: false }).limit(1);
-      if (exEmail) oq = oq.ilike("guest_email", exEmail);
-      else if ((example as any).phone) oq = oq.eq("guest_phone", (example as any).phone);
-      const { data: od } = await oq;
-      accIdForRooms = (od?.[0] as any)?.accommodation_id ?? "";
-    }
-    const roomCards: Card[] = [];
-    if (accIdForRooms) {
+    // 範例旅客挑選：跳過測試/QA 帳號；優先選「有訂房館別」者（確保房型卡出現）
+    const isTestProfile = (p: any): boolean => {
+      const em = (resolveEmail(p) || String(p.email ?? "")).toLowerCase();
+      if (em.endsWith("@example.com")) return true;
+      return /測試|驗收|test|qa/i.test(String(p.display_name ?? ""));
+    };
+    const maskName = (name: string): string => {
+      const n = String(name ?? "").trim();
+      if (n.length <= 1) return n || "旅客";
+      if (n.length === 2) return `${n[0]}○`;
+      return `${n[0]}${"○".repeat(n.length - 2)}${n[n.length - 1]}`;
+    };
+    const realTargets = allTargets.filter((t: any) => !isTestProfile(t));
+    const pickExample = (): any | null => realTargets.find((t: any) => resolveAcc(t)) ?? realTargets[0] ?? allTargets[0] ?? null;
+
+    // 房型卡載入（依指定館別），測試/正式各以各自範例的館別建立
+    let roomCards: Card[] = [];
+    const loadRoomCards = async (accId: string): Promise<Card[]> => {
+      if (!accId) return [];
       const { data: rts } = await admin
         .from("room_types").select("id,name,base_price,room_photos(photo_url,display_order)")
-        .eq("accommodation_id", accIdForRooms).order("display_order").limit(3);
+        .eq("accommodation_id", accId).order("display_order").limit(3);
+      const cards: Card[] = [];
       for (const rt of rts ?? []) {
         const photos = ((rt as any).room_photos ?? []).slice().sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
-        roomCards.push({
+        cards.push({
           name: (rt as any).name,
-          price: Number((rt as any).base_price ?? 0),
+          price: (rt as any).base_price == null ? null : Number((rt as any).base_price),
           cover_url: photos[0]?.photo_url ?? null,
-          url: `${SITE_BASE}/booking/villa/${accIdForRooms}`,
+          url: `${SITE_BASE}/booking/villa/${accId}`,
         });
       }
-    }
+      return cards;
+    };
 
     // 房型卡 + 行程卡共用同一套點擊追蹤（帶 send id）
     const buildCards = (sendId: string) => {
@@ -236,6 +254,17 @@ Deno.serve(async (req) => {
       return { id: (ins as any)?.id ?? null, error };
     };
 
+    // 測試範例候選名單（供前端下拉）：命中名單前 10 位、跳過測試帳號、姓名遮蔽、標示是否有館別
+    if (body?.mode === "test_candidates") {
+      const cands = realTargets.slice(0, 10).map((t: any) => ({
+        id: t.id,
+        masked_name: maskName(t.display_name || "旅人"),
+        has_accommodation: !!resolveAcc(t),
+      }));
+      const def = cands.find((c) => c.has_accommodation) ?? cands[0] ?? null;
+      return json({ success: true, candidates: cands, default_id: def?.id ?? null });
+    }
+
     // ===== 測試發送模式 =====
     if (isTestMode) {
       if (!testEmails.length) return json({ error: "測試模式需提供至少 1 個測試信箱" }, 400);
@@ -250,10 +279,15 @@ Deno.serve(async (req) => {
       }
       if (!RESEND_API_KEY) return json({ error: "Resend 未設定，無法測試發送" }, 500);
 
-      const exampleId = example?.id ?? (profiles?.[0] as any)?.id ?? null;
-      if (!exampleId) return json({ error: "找不到可作為範例的旅客（分群 0 命中且無任何旅客檔案）" }, 400);
+      const sampleId = typeof body?.sample_profile_id === "string" ? body.sample_profile_id : "";
+      const example = (sampleId ? allTargets.find((t: any) => t.id === sampleId) : null) ?? pickExample();
+      const exampleId = example?.id ?? null;
+      if (!exampleId) return json({ error: "找不到可作為範例的旅客（分群 0 命中或皆為測試帳號）" }, 400);
       const exName = (example as any)?.display_name || "旅人";
       const personalBody = personalize(example);
+      roomCards = await loadRoomCards(
+        typeof content.accommodation_id === "string" && content.accommodation_id ? content.accommodation_id : resolveAcc(example),
+      );
 
       const out: any[] = [];
       for (const email of testEmails) {
@@ -282,12 +316,16 @@ Deno.serve(async (req) => {
       }
       // 測試模式：不更新 campaign.status
       return json({
-        success: true, mode: "test", example_traveler_id: exampleId,
+        success: true, mode: "test", example_traveler_id: exampleId, sample_profile_id: exampleId,
+        trip_cards: productCards.length, room_cards: roomCards.length,
         matched: allTargets.length, sent: out.filter((o) => o.ok).length, results: out,
       });
     }
 
     // ===== 正式發送 =====
+    roomCards = await loadRoomCards(
+      typeof content.accommodation_id === "string" && content.accommodation_id ? content.accommodation_id : resolveAcc(pickExample() ?? {}),
+    );
     const results: any[] = [];
     let sent = 0, failed = 0, skipped = 0;
 
