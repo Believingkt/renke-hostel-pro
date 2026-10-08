@@ -85,6 +85,11 @@ export default function RemarketingAdmin() {
   const [statsFor, setStatsFor] = useState<Campaign | null>(null);
   const [sends, setSends] = useState<any[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [testOpenFor, setTestOpenFor] = useState<Campaign | null>(null);
+  const [testEmailsInput, setTestEmailsInput] = useState("");
+  const [testing, setTesting] = useState(false);
+  const [includeTest, setIncludeTest] = useState(false);
 
   const load = async () => {
     const { data, error } = await supabase
@@ -98,6 +103,7 @@ export default function RemarketingAdmin() {
 
   useEffect(() => {
     load();
+    supabase.auth.getUser().then(({ data }) => setAdminEmail(String(data.user?.email ?? "")));
     supabase.from("trip_products").select("id,name,type").limit(200).then(({ data }) => {
       setProducts((data ?? []).map((p: any) => ({ id: p.id, name: localized(p.name), type: p.type })));
     });
@@ -197,6 +203,24 @@ export default function RemarketingAdmin() {
     load();
   };
 
+  const openTest = (c: Campaign) => { setTestOpenFor(c); setTestEmailsInput(adminEmail); };
+  const runTest = async () => {
+    if (!testOpenFor) return;
+    const emails = testEmailsInput.split(/[,，\s]+/).map((s) => s.trim()).filter(Boolean);
+    if (!emails.length) { toast({ title: "請輸入至少 1 個測試信箱", variant: "destructive" }); return; }
+    if (emails.length > 5) { toast({ title: "測試信箱最多 5 個", variant: "destructive" }); return; }
+    setTesting(true);
+    const { data, error } = await supabase.functions.invoke("remarketing-send", { body: { campaign_id: testOpenFor.id, mode: "test", test_emails: emails } });
+    setTesting(false);
+    if (error || (data as any)?.error) {
+      toast({ title: "測試發送失敗", description: error?.message ?? (data as any)?.error, variant: "destructive" });
+      return;
+    }
+    const d = data as any;
+    toast({ title: "測試發送完成", description: `已寄出 ${d.sent}/${emails.length} 封到測試信箱（不影響活動狀態與正式統計）` });
+    setTestOpenFor(null);
+  };
+
   const remove = async (c: Campaign) => {
     const { error } = await supabase.from("remarketing_campaigns" as any).delete().eq("id", c.id);
     if (error) { toast({ title: "刪除失敗", description: error.message, variant: "destructive" }); return; }
@@ -215,12 +239,13 @@ export default function RemarketingAdmin() {
     setSends((data ?? []) as any[]);
   };
 
+  const visibleSends = useMemo(() => (includeTest ? sends : sends.filter((s) => !s.is_test)), [sends, includeTest]);
   const stats = useMemo(() => {
-    const sent = sends.filter((s) => s.status === "sent").length;
-    const opened = sends.filter((s) => s.opened_at).length;
-    const clicked = sends.filter((s) => s.clicked_at).length;
-    return { sent, opened, clicked, failed: sends.filter((s) => s.status === "failed").length };
-  }, [sends]);
+    const sent = visibleSends.filter((s) => s.status === "sent").length;
+    const opened = visibleSends.filter((s) => s.opened_at).length;
+    const clicked = visibleSends.filter((s) => s.clicked_at).length;
+    return { sent, opened, clicked, failed: visibleSends.filter((s) => s.status === "failed").length };
+  }, [visibleSends]);
 
   return (
     <div className="p-6 space-y-6">
@@ -263,6 +288,9 @@ export default function RemarketingAdmin() {
                     <TableCell className="text-right whitespace-nowrap">
                       <Button size="sm" variant="ghost" onClick={() => openStats(c)}><TrendingUp className="h-4 w-4 mr-1" />成效</Button>
                       <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>編輯</Button>
+                      {c.channel !== "line_share" && (
+                        <Button size="sm" variant="ghost" onClick={() => openTest(c)} data-testid={`test-send-${c.id}`}>測試</Button>
+                      )}
                       <Button size="sm" variant="outline" disabled={sendingId === c.id} onClick={() => send(c)}>
                         <Send className="h-4 w-4 mr-1" />發送
                       </Button>
@@ -464,10 +492,30 @@ export default function RemarketingAdmin() {
         </DialogContent>
       </Dialog>
 
+      {/* 測試發送 */}
+      <Dialog open={!!testOpenFor} onOpenChange={(o) => !o && setTestOpenFor(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>測試發送 — {testOpenFor?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <Label>測試信箱（1–5 個，逗號分隔）</Label>
+            <Input value={testEmailsInput} onChange={(e) => setTestEmailsInput(e.target.value)} placeholder="admin@example.com" data-testid="test-emails-input" />
+            <p className="text-xs text-muted-foreground">只寄到測試信箱、以命中名單第 1 位資料作範例個人化；不會寄給分群名單、不改活動狀態，正式統計預設不列入。測試信箱不可為真實旅客 Email。</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTestOpenFor(null)}>取消</Button>
+            <Button onClick={runTest} disabled={testing} data-testid="test-send-confirm">{testing ? "發送中…" : "測試發送"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* 成效 */}
       <Sheet open={!!statsFor} onOpenChange={(o) => !o && setStatsFor(null)}>
         <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
           <SheetHeader><SheetTitle>{statsFor?.name} — 發送成效</SheetTitle></SheetHeader>
+          <label className="mt-3 flex items-center gap-2 text-sm" data-testid="include-test-toggle">
+            <Checkbox checked={includeTest} onCheckedChange={(v) => setIncludeTest(!!v)} />
+            含測試發送
+          </label>
           <div className="grid grid-cols-4 gap-3 mt-4">
             {[
               { label: "已發送", value: stats.sent, icon: Send },
@@ -490,9 +538,12 @@ export default function RemarketingAdmin() {
           <Table className="table-fixed mt-4">
             <TableHeader><TableRow><TableHead>收件人</TableHead><TableHead className="w-20">狀態</TableHead><TableHead className="w-28">發送</TableHead><TableHead className="w-28">點擊</TableHead></TableRow></TableHeader>
             <TableBody>
-              {sends.map((s) => (
+              {visibleSends.map((s) => (
                 <TableRow key={s.id}>
-                  <TableCell className="truncate text-xs">{s.recipient ?? "—"}</TableCell>
+                  <TableCell className="truncate text-xs">
+                    {s.recipient ?? "—"}
+                    {s.is_test && <Badge variant="outline" className="ml-1 text-[10px]">測試</Badge>}
+                  </TableCell>
                   <TableCell><Badge variant={s.status === "sent" ? "default" : "secondary"} className="text-xs">{s.status}</Badge></TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{s.sent_at ? new Date(s.sent_at).toLocaleDateString("zh-TW") : "—"}</TableCell>
                   <TableCell className="text-xs whitespace-nowrap">{s.clicked_at ? new Date(s.clicked_at).toLocaleDateString("zh-TW") : "—"}</TableCell>
