@@ -9,11 +9,25 @@ export const INTEREST_WHITELIST = [
 ];
 export const INTEREST_SET = new Set(INTEREST_WHITELIST);
 
-// 同義詞歸一到受控詞彙
+// 同義詞歸一到受控詞彙（先「轉換」再過濾，不可直接刪掉真實興趣）
 export const INTEREST_SYNONYM: Record<string, string> = {
-  "寵物": "寵物友善", "毛小孩": "寵物友善", "家庭": "親子", "小孩": "親子", "泡湯": "溫泉",
-  "長輩": "長輩同行", "家族": "團體", "朋友": "團體", "湖畔": "湖景", "湖邊": "湖景",
+  "寵物": "寵物友善", "毛小孩": "寵物友善", "寵物同行": "寵物友善",
+  "家庭": "親子", "小孩": "親子", "兒童": "親子", "孩子": "親子", "親子同遊": "親子", "親子旅遊": "親子",
+  "泡湯": "溫泉", "溫泉湯屋": "溫泉",
+  "長輩": "長輩同行", "家族": "團體", "朋友": "團體", "多人": "團體",
+  "湖畔": "湖景", "湖邊": "湖景",
+  "BBQ": "烤肉", "bbq": "烤肉", "Bbq": "烤肉", "炭烤": "烤肉", "燒烤": "烤肉", "烤肉趴": "烤肉",
+  "游泳": "泳池", "戲水池": "泳池",
+  "賞櫻": "賞花", "賞楓葉": "賞楓",
 };
+
+// 回傳某標籤「轉換後」的受控詞彙；非白名單則回 null
+export function mapInterest(tag: string): string | null {
+  const v = String(tag ?? "").trim();
+  if (!v) return null;
+  const mapped = INTEREST_SYNONYM[v] ?? v;
+  return INTEREST_SET.has(mapped) ? mapped : null;
+}
 
 // 訂單作業用語黑名單（標籤 / 關鍵字 / 需求一律排除）
 export const OPS_BLACKLIST = [
@@ -44,15 +58,15 @@ export function buildNameSet(displayNames: Array<string | null | undefined>): Se
   );
 }
 
-/** 興趣標籤：同義詞歸一 + 受控詞彙白名單（其餘一律丟棄） */
+/** 興趣標籤：同義詞「轉換」+ 受控詞彙白名單（真實興趣先轉換，不直接刪） */
 export function sanitizeInterestTags(arr: unknown): string[] {
   const list = Array.isArray(arr) ? arr : [];
-  return Array.from(new Set(
-    list
-      .map((s) => String(s ?? "").trim())
-      .map((s) => INTEREST_SYNONYM[s] ?? s)
-      .filter((s) => INTEREST_SET.has(s)),
-  )).slice(0, 10);
+  const out: string[] = [];
+  for (const t of list) {
+    const m = mapInterest(String(t ?? ""));
+    if (m) out.push(m);
+  }
+  return Array.from(new Set(out)).slice(0, 10);
 }
 
 /** AI 關鍵字雜訊判斷（短詞，含長度上限） */
@@ -72,22 +86,55 @@ export function sanitizeKeywords(arr: unknown, nameSet: Set<string>): string[] {
   )).filter((k) => !isNoiseKeyword(k, nameSet)).slice(0, 12);
 }
 
-/** 客製化需求雜訊判斷（可為長句；不套字數上限，只濾作業用語/人名/純代碼/電話/email） */
-export function isNoiseNeed(s: string, nameSet: Set<string>): boolean {
-  const v = s.trim();
+// 系統/備註行樣式（逐行剔除用）
+const SYSTEM_NEED_PATTERNS: RegExp[] = [
+  /【[^】]*(變更|配置|包棟|包區|團購|通知|訂金|尾款|付款|狀態)[^】]*】/,
+  /奧丁丁|owlting/i,
+  /\bOBE[-_\s]?\d+/i,
+  /\[\s*DEMO_SEED\s*\]/i,
+  /\[[^\]]*(奧丁丁|owlting|修改通知|通知)[^\]]*\]/i,
+];
+
+/** 把 custom_needs 陣列拆成「逐行」（去空白、去空行），供逐行剔除與統計共用 */
+export function needLines(arr: unknown): string[] {
+  const list = Array.isArray(arr) ? arr : [];
+  const out: string[] = [];
+  for (const el of list) {
+    for (const ln of String(el ?? "").split(/\r?\n/)) {
+      const t = ln.trim();
+      if (t) out.push(t);
+    }
+  }
+  return out;
+}
+
+/** 單「行」需求雜訊判斷：系統行/備註標記/純時間人數碎片/人名/純代碼/電話/email/作業用語 → true（剔除） */
+export function isNoiseNeedLine(line: string, nameSet: Set<string>): boolean {
+  const v = line.trim();
   if (!v) return true;
   const core = v.startsWith("AI：") ? v.slice("AI：".length).trim() : v;
   if (!core) return true;
+  if (SYSTEM_NEED_PATTERNS.some((re) => re.test(core))) return true;
+  // 純時間 / 人數 / 房數碎片（例：「9:00 14位」「2大1小」「14位」）
+  if (core.replace(/[\d\s:：位人大小孩嬰兒名組晚天房間,，.、\-~～()（）]/g, "") === "") return true;
   if (isPureCode(core)) return true;
   if (EMAIL_TEST.test(core) || PHONE_TEST.test(core)) return true;
   if (nameSet.has(core)) return true;
   return hitOps(core);
 }
 
-/** 需求清洗：只刪雜訊項目，真正的客製化需求保留，絕不整欄清空 */
+/**
+ * 需求清洗：先逐行拆開，只剔除系統/備註行，保留人寫的需求句，再去重。
+ * 絕不整筆刪除混合備註——人寫的需求句會倖存。
+ */
 export function sanitizeNeeds(arr: unknown, nameSet: Set<string>): string[] {
-  const list = Array.isArray(arr) ? arr : [];
-  return Array.from(new Set(
-    list.map((s) => String(s ?? "").trim()).filter(Boolean),
-  )).filter((n) => !isNoiseNeed(n, nameSet)).slice(0, 30);
+  const kept: string[] = [];
+  const seen = new Set<string>();
+  for (const ln of needLines(arr)) {
+    if (isNoiseNeedLine(ln, nameSet)) continue;
+    if (seen.has(ln)) continue;
+    seen.add(ln);
+    kept.push(ln);
+  }
+  return kept.slice(0, 40);
 }

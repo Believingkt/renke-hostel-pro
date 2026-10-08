@@ -1,12 +1,17 @@
 // 旅客標籤一次性「規則清洗」：不呼叫 AI，對全部 traveler_profiles 跑過濾。
 // POST /functions/v1/traveler-cleanup  body: { dry_run?: boolean }
-//  - interest_tags：只保留白名單內
+//  - interest_tags：同義詞先「轉換」成白名單詞（如 寵物→寵物友善），非白名單才刪
 //  - consumption.ai_keywords：移除作業用語/人名/純數字代碼/電話/email
-//  - custom_needs：只刪雜訊項目，真正的客製化需求保留（不整欄清空）
+//  - custom_needs：逐行剔除系統/備註行，保留人寫的需求句（不整筆刪除混合備註）
+// 正式清洗（非 dry_run）會先把原值寫入 traveler_profiles_cleanup_backup（可還原）。
+// 權限：service role 或 super_admin／admin；hotel_admin 一律 403。
 // deno-lint-ignore-file no-explicit-any
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buildNameSet, sanitizeInterestTags, sanitizeKeywords, sanitizeNeeds } from "../_shared/travelerTags.ts";
+import {
+  buildNameSet, sanitizeInterestTags, sanitizeKeywords, sanitizeNeeds,
+  mapInterest, needLines,
+} from "../_shared/travelerTags.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -47,7 +52,7 @@ Deno.serve(async (req) => {
       if (!userData?.user) return json({ error: "Unauthorized" }, 401);
       const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userData.user.id);
       const allowed = (roles ?? []).some((r: any) => ["super_admin", "admin"].includes(r.role));
-      if (!allowed) return json({ error: "Forbidden" }, 403);
+      if (!allowed) return json({ error: "Forbidden（僅限總部 super_admin／admin）" }, 403);
     }
 
     let body: any = {};
@@ -57,17 +62,18 @@ Deno.serve(async (req) => {
     const all = await fetchAll(admin, "traveler_profiles", "id,display_name,interest_tags,custom_needs,consumption");
     const nameSet = buildNameSet(all.map((p: any) => p.display_name));
 
-    const updates: Array<{ id: string; interest_tags: string[]; custom_needs: string[]; consumption: any }> = [];
-    let removedInterest = 0, removedNeeds = 0, removedKeywords = 0;
-    const freqInterest = new Map<string, number>();
+    const updates: Array<{
+      id: string;
+      interest_tags: string[]; custom_needs: string[]; consumption: any;
+      old_interest: string[]; old_needs: string[]; old_keywords: string[];
+    }> = [];
+    let removedInterest = 0, removedNeeds = 0, removedKeywords = 0, convertedInterest = 0;
+    const freqConverted = new Map<string, number>();
+    const freqRemovedInterest = new Map<string, number>();
     const freqNeeds = new Map<string, number>();
     const freqKeywords = new Map<string, number>();
     const samples: any[] = [];
     const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
-    const diff = (oldArr: string[], newArr: string[]) => {
-      const keep = new Set(newArr);
-      return oldArr.filter((x) => !keep.has(x));
-    };
 
     for (const p of all) {
       const oldInterest: string[] = Array.isArray(p.interest_tags) ? p.interest_tags : [];
@@ -84,29 +90,42 @@ Deno.serve(async (req) => {
         !sameArr(oldKeywords, newKeywords);
       if (!changed) continue;
 
-      removedInterest += Math.max(0, oldInterest.length - newInterest.length);
-      removedNeeds += Math.max(0, oldNeeds.length - newNeeds.length);
-      removedKeywords += Math.max(0, oldKeywords.length - newKeywords.length);
-
-      if (dryRun) {
-        diff(oldInterest, newInterest).forEach((x) => bump(freqInterest, x));
-        diff(oldNeeds, newNeeds).forEach((x) => bump(freqNeeds, x));
-        diff(oldKeywords, newKeywords).forEach((x) => bump(freqKeywords, x));
-        if (samples.length < 5) {
-          samples.push({
-            id: p.id,
-            display_name: p.display_name,
-            before: { interest_tags: oldInterest, custom_needs: oldNeeds, ai_keywords: oldKeywords },
-            after: { interest_tags: newInterest, custom_needs: newNeeds, ai_keywords: newKeywords },
-          });
+      // interest：區分「轉換」與「真的刪除」
+      for (const t of oldInterest) {
+        const term = String(t ?? "").trim();
+        const m = mapInterest(term);
+        if (m === null) {
+          removedInterest++;
+          if (dryRun) bump(freqRemovedInterest, term || "(空)");
+        } else if (m !== term) {
+          convertedInterest++;
+          if (dryRun) bump(freqConverted, `${term}→${m}`);
         }
+      }
+      // needs：逐行剔除，統計被移除的「行」
+      const keptSet = new Set(newNeeds);
+      const removedLines = needLines(oldNeeds).filter((l) => !keptSet.has(l));
+      removedNeeds += removedLines.length;
+      if (dryRun) removedLines.forEach((l) => bump(freqNeeds, l));
+      // keywords
+      const keepKw = new Set(newKeywords);
+      const removedKw = oldKeywords.filter((k) => !keepKw.has(k));
+      removedKeywords += removedKw.length;
+      if (dryRun) removedKw.forEach((k) => bump(freqKeywords, k));
+
+      if (dryRun && samples.length < 5) {
+        samples.push({
+          id: p.id, display_name: p.display_name,
+          before: { interest_tags: oldInterest, custom_needs: oldNeeds, ai_keywords: oldKeywords },
+          after: { interest_tags: newInterest, custom_needs: newNeeds, ai_keywords: newKeywords },
+        });
       }
 
       updates.push({
         id: p.id,
-        interest_tags: newInterest,
-        custom_needs: newNeeds,
+        interest_tags: newInterest, custom_needs: newNeeds,
         consumption: { ...(p.consumption ?? {}), ai_keywords: newKeywords },
+        old_interest: oldInterest, old_needs: oldNeeds, old_keywords: oldKeywords,
       });
     }
 
@@ -114,11 +133,28 @@ Deno.serve(async (req) => {
       const top = (m: Map<string, number>) =>
         Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([term, count]) => ({ term, count }));
       return json({
-        success: true, dry_run: true, scanned: all.length,
-        to_update: updates.length, removed: { interest: removedInterest, needs: removedNeeds, keywords: removedKeywords },
-        removed_terms: { interest_tags: top(freqInterest), custom_needs: top(freqNeeds), ai_keywords: top(freqKeywords) },
+        success: true, dry_run: true, scanned: all.length, to_update: updates.length,
+        converted: { interest: convertedInterest },
+        removed: { interest: removedInterest, needs: removedNeeds, keywords: removedKeywords },
+        converted_terms: { interest_tags: top(freqConverted) },
+        removed_terms: { interest_tags: top(freqRemovedInterest), custom_needs: top(freqNeeds), ai_keywords: top(freqKeywords) },
         samples,
       });
+    }
+
+    // === 正式清洗：先備份，再更新（備份失敗即中止，保證可還原）===
+    const batchId = crypto.randomUUID();
+    let backedUp = 0;
+    for (let i = 0; i < updates.length; i += 500) {
+      const chunk = updates.slice(i, i + 500).map((u) => ({
+        batch_id: batchId, profile_id: u.id,
+        interest_tags: u.old_interest, custom_needs: u.old_needs, ai_keywords: u.old_keywords,
+      }));
+      const { error } = await admin.from("traveler_profiles_cleanup_backup").insert(chunk);
+      if (error) {
+        return json({ error: `備份失敗，已中止清洗（未修改任何資料）：${error.message}`, batch_id: batchId }, 500);
+      }
+      backedUp += chunk.length;
     }
 
     let updated = 0;
@@ -135,7 +171,8 @@ Deno.serve(async (req) => {
     }
 
     return json({
-      success: true, scanned: all.length, updated,
+      success: true, scanned: all.length, updated, backed_up: backedUp, batch_id: batchId,
+      converted: { interest: convertedInterest },
       removed: { interest: removedInterest, needs: removedNeeds, keywords: removedKeywords },
     });
   } catch (e) {
