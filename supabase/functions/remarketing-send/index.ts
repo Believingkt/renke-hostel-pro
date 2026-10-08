@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
         if (preErr) { failed++; results.push({ traveler_id: t.id, error: preErr.message }); continue; }
 
         const trackUrl = rawCta
-          ? `${funcBase}/remarketing-track?s=${pre?.id}&u=${encodeURIComponent(rawCta)}`
+          ? `${funcBase}/remarketing-track?s=${pre?.id}&c=${encodeURIComponent(campaignId)}&ch=email&u=${encodeURIComponent(rawCta)}`
           : "";
         // 退訂連結：沿用 email_unsubscribe_tokens（一 email 一 token）
         let unsubUrl = "";

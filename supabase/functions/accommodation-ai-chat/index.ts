@@ -4,6 +4,7 @@
 //   - 內部呼叫（民宿後台 Playground）：Authorization Bearer + 驗證該使用者對 accommodation 有存取權
 
 import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
+import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
@@ -286,11 +287,13 @@ serve(async (req) => {
 - 卡片與文字必須一致，兩者都以上表為準。`
       : "\n\n## 房況查詢說明\n- 客人尚未提供明確入住日期時，不要說出任何具體當日價格或剩餘間數，請先詢問日期。";
 
+    const accCtx = await loadAccommodationContext(supabase, accommodationId);
+
     const systemMessage = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "")
-      + dateBlock + accInfo + roomList + liveAvailabilityBlock + knowledgeText + examplesText + tone + forbidden
+      + dateBlock + accInfo + roomList + liveAvailabilityBlock + accCtx + knowledgeText + examplesText + tone + forbidden
       + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE;
 
     // 行程卡意圖判斷（以最後一則客人訊息為準）

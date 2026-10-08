@@ -5,6 +5,7 @@
  * - 對話一律寫入 ai_conversation_logs（source = 'line'），總部訓練中心可檢視
  */
 import { llmFetch, llmKey, defaultModel } from "./llm.ts";
+import { loadAccommodationContext } from "./accommodationContext.ts";
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { taipeiToday } from "./taipeiDate.ts";
 
@@ -15,7 +16,7 @@ export interface LlmAnswer {
 
 const FALLBACK_TEXT = "這題我先幫你記下來了 🙇 想找房或加購體驗的話，直接跟我說日期跟人數就可以囉！";
 
-async function buildSystemPrompt(sb: SupabaseClient): Promise<{ prompt: string; version: number | null }> {
+async function buildSystemPrompt(sb: SupabaseClient, accommodationId?: string | null): Promise<{ prompt: string; version: number | null }> {
   const [{ data: dbPrompt }, { data: knowledge }, { data: examples }, { data: templates }, { data: accs }] =
     await Promise.all([
       sb
@@ -43,6 +44,7 @@ async function buildSystemPrompt(sb: SupabaseClient): Promise<{ prompt: string; 
 
   const parts = [
     dbPrompt ? replaceVars(dbPrompt.system_prompt || "") : "你是「小安」，人客多 Lakeze 的 AI 旅宿管家，語氣親切、簡短。",
+    accommodationId ? await loadAccommodationContext(sb, accommodationId) : "",
     dbPrompt?.tone_rules ? `\n## 語氣規則：\n${replaceVars(dbPrompt.tone_rules)}` : "",
     dbPrompt?.forbidden_topics
       ? `\n## 禁止主題：\n${String(dbPrompt.forbidden_topics).split("|").map((s) => `- ${s.trim()}`).join("\n")}`
@@ -71,7 +73,7 @@ async function buildSystemPrompt(sb: SupabaseClient): Promise<{ prompt: string; 
 /** 呼叫 LLM 取得回覆（失敗回傳保底文字，永不 throw） */
 export async function askLlm(
   sb: SupabaseClient,
-  opts: { text: string; history?: { role: "user" | "assistant"; content: string }[] },
+  opts: { text: string; history?: { role: "user" | "assistant"; content: string }[]; accommodationId?: string | null },
 ): Promise<LlmAnswer> {
   const apiKey = llmKey();
   if (!apiKey) {
@@ -81,7 +83,7 @@ export async function askLlm(
   let version: number | null = null;
   try {
     const t0 = Date.now();
-    const { prompt, version: v } = await buildSystemPrompt(sb);
+    const { prompt, version: v } = await buildSystemPrompt(sb, opts.accommodationId ?? null);
     version = v;
     const history = (opts.history || []).slice(-6);
     // 低延遲模型：LINE 佔位→push 目標 < 5 秒

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
@@ -868,7 +869,10 @@ serve(async (req) => {
       ? `\n【回覆樣板（依情境選用，作為風格參考，不需逐字照抄；{{房型}} {{價格}} {{日期}} 請以實際工具結果代入）】\n${dbReplyTemplates.map((t: any) => `[${t.scenario}｜${t.name}]\n${replaceVars(t.template)}`).join('\n---\n')}\n`
       : '';
 
-    const systemPrompt = `${dbPromptBlock}
+    // J：首頁無選館維持平台級；帶 accommodation_id 時注入該館專屬資料
+    const accCtx = ctxAccId ? await loadAccommodationContext(supabase, ctxAccId) : '';
+
+    const systemPrompt = `${dbPromptBlock}${accCtx}
 ${dateBlock}
 ${replyTemplateBlock}
 

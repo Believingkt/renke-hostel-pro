@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  // 點擊追蹤（預設）
+  // 點擊追蹤（預設）：寫 clicked_at，並在轉址帶 UTM 供既有歸因（order_attributions）計 N1
   if (sendId) {
     try {
       await admin().from("remarketing_sends")
@@ -81,6 +81,16 @@ Deno.serve(async (req) => {
     }
   }
 
-  const dest = isAllowed(target) ? target : "https://booking.lakeze.com/";
+  const base = isAllowed(target) ? target : "https://booking.lakeze.com/";
+  let dest = base;
+  try {
+    const d = new URL(base);
+    d.searchParams.set("utm_source", "remarketing");
+    d.searchParams.set("utm_medium", url.searchParams.get("ch") === "line" ? "line" : "email");
+    const camp = url.searchParams.get("c");
+    if (camp) d.searchParams.set("utm_campaign", camp);
+    if (sendId) d.searchParams.set("utm_content", sendId);
+    dest = d.toString();
+  } catch { /* 非標準 URL 則用原目的地 */ }
   return new Response(null, { status: 302, headers: { Location: dest } });
 });
