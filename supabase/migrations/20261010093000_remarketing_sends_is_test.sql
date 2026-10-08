@@ -3,6 +3,10 @@
 ALTER TABLE public.remarketing_sends
   ADD COLUMN IF NOT EXISTS is_test boolean NOT NULL DEFAULT false;
 
+-- 原表以 CREATE UNIQUE INDEX 建立（名稱 remarketing_sends_campaign_traveler_uidx）。
+-- 保險起見：index 與（萬一存在的）table constraint 兩種都先移除，再建部分唯一索引。
+ALTER TABLE public.remarketing_sends
+  DROP CONSTRAINT IF EXISTS remarketing_sends_campaign_id_traveler_profile_id_key;
 DROP INDEX IF EXISTS public.remarketing_sends_campaign_traveler_uidx;
 
 CREATE UNIQUE INDEX IF NOT EXISTS remarketing_sends_campaign_traveler_uidx

@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
           name: (rt as any).name,
           price: Number((rt as any).base_price ?? 0),
           cover_url: photos[0]?.photo_url ?? null,
-          url: `${SITE_BASE}/booking/${accIdForRooms}`,
+          url: `${SITE_BASE}/booking/villa/${accIdForRooms}`,
         });
       }
     }
@@ -221,6 +221,19 @@ Deno.serve(async (req) => {
       return tags.length
         ? `${name}，看您先前對「${tags.join("、")}」特別有興趣，小安幫您挑了幾個回訪好選擇。\n${baseBody}`.trim()
         : baseBody;
+    };
+
+    // 正式發送寫入：不依賴 ON CONFLICT（部分唯一索引帶 WHERE 條件，PostgREST upsert 無法指定 index predicate）。
+    // 先查本活動該旅客的「正式列」(is_test=false) → 有則 update、無則 insert。
+    const upsertRealSend = async (row: any): Promise<{ id: string | null; error: any }> => {
+      const { data: ex } = await admin.from("remarketing_sends")
+        .select("id").eq("campaign_id", campaignId).eq("traveler_profile_id", row.traveler_profile_id).eq("is_test", false).maybeSingle();
+      if (ex?.id) {
+        const { error } = await admin.from("remarketing_sends").update({ ...row, is_test: false }).eq("id", ex.id);
+        return { id: ex.id, error };
+      }
+      const { data: ins, error } = await admin.from("remarketing_sends").insert({ ...row, is_test: false }).select("id").maybeSingle();
+      return { id: (ins as any)?.id ?? null, error };
     };
 
     // ===== 測試發送模式 =====
@@ -315,12 +328,8 @@ Deno.serve(async (req) => {
         sendRow.error_message = "Resend 未設定";
         failed++;
       } else {
-        const { data: pre, error: preErr } = await admin
-          .from("remarketing_sends")
-          .upsert({ ...sendRow, status: "sent", is_test: false }, { onConflict: "campaign_id,traveler_profile_id" })
-          .select("id").maybeSingle();
-        if (preErr) { failed++; results.push({ traveler_id: t.id, error: preErr.message }); continue; }
-        const sendId = (pre as any)?.id as string;
+        const { id: sendId, error: preErr } = await upsertRealSend({ ...sendRow, status: "sent" });
+        if (preErr || !sendId) { failed++; results.push({ traveler_id: t.id, error: preErr?.message ?? "寫入失敗" }); continue; }
 
         const trackUrl = rawCta
           ? `${funcBase}/remarketing-track?s=${sendId}&c=${encodeURIComponent(campaignId)}&ch=email&u=${encodeURIComponent(rawCta)}`
@@ -347,9 +356,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const { error: iErr } = await admin
-        .from("remarketing_sends")
-        .upsert({ ...sendRow, is_test: false }, { onConflict: "campaign_id,traveler_profile_id" });
+      const { error: iErr } = await upsertRealSend(sendRow);
       if (iErr) results.push({ traveler_id: t.id, error: iErr.message });
     }
 
