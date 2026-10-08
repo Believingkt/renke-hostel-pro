@@ -43,7 +43,7 @@ export interface StepDef {
 }
 
 export const ONBOARDING_STEPS: StepDef[] = [
-  { no: 1, key: "basic_info", title: "基本資料", kind: "auto", link: "/admin/website-content?tab=basic-info", hint: "民宿名稱、地址、電話、簡介都要填。" },
+  { no: 1, key: "basic_info", title: "基本資料", kind: "auto", link: "/admin/website-content?tab=basic-info", hint: "民宿名稱、地址、電話、民宿簡介都要填（簡介在『首頁與 SEO 設定』最上方）。" },
   { no: 2, key: "about_photos", title: "介紹與照片", kind: "auto", link: "/admin/website-content?tab=gallery", hint: "填寫民宿介紹，並上傳至少 3 張照片。" },
   { no: 3, key: "facilities", title: "設施服務", kind: "auto", link: "/admin/website-content?tab=facilities", hint: "至少勾選一項提供的設施。" },
   { no: 4, key: "room_types", title: "房型與房間照片", kind: "auto", link: "/admin/pricing?tab=rooms", hint: "每個房型都要有名稱與至少一張照片。" },
@@ -114,6 +114,8 @@ export interface StepResult extends StepDef {
   status: StepStatus;
   /** HQ 步驟顯示的現值 */
   hqValue?: string;
+  /** 待完成時缺少的欄位（目前用於第 1 步） */
+  missing?: string[];
 }
 
 const nonEmpty = (v: unknown) => typeof v === "string" && v.trim().length > 0;
@@ -250,12 +252,22 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
         : "尚未設定",
   };
 
+  const basicInfoMissing: string[] = [];
+  if (!nonEmpty(src.info?.name)) basicInfoMissing.push("民宿名稱");
+  if (!nonEmpty(src.info?.address)) basicInfoMissing.push("地址");
+  if (!nonEmpty(src.info?.phone)) basicInfoMissing.push("電話");
+  if (!nonEmpty(src.info?.description)) basicInfoMissing.push("民宿簡介");
+
   return ONBOARDING_STEPS.map((def) => {
     if (def.kind === "hq") return { ...def, status: "hq" as StepStatus, hqValue: hqValue[def.key] };
     if (def.kind === "confirm") {
       return { ...def, status: src.confirmations[def.key] === "confirmed" ? "completed" : "pending" };
     }
-    return { ...def, status: auto[def.key] ? "completed" : "pending" };
+    const status: StepStatus = auto[def.key] ? "completed" : "pending";
+    if (def.key === "basic_info" && status === "pending") {
+      return { ...def, status, missing: basicInfoMissing };
+    }
+    return { ...def, status };
   });
 }
 

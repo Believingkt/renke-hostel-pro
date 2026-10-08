@@ -3326,6 +3326,36 @@ const WebsiteContent = () => {
         <TabsContent value="basic-info" className="space-y-6">
           <PageHeader title="首頁與 SEO 設定" icon={Info} />
 
+          <Card data-testid="basic-info-description-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="h-4 w-4" /> 民宿簡介
+                <span className="text-destructive text-sm">*</span>
+              </CardTitle>
+              <CardDescription>用於上架引導、SEO 自動產生與 AI 客服介紹</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Label htmlFor="basic-info-description">民宿簡介（必填）</Label>
+              <Textarea
+                id="basic-info-description"
+                data-testid="basic-info-description-input"
+                rows={5}
+                value={basicInfo.description}
+                onChange={(e) => setBasicInfo({ ...basicInfo, description: e.target.value })}
+                placeholder="請輸入民宿簡介，用於上架引導、SEO 自動產生與 AI 客服介紹"
+              />
+              <div className="flex justify-end">
+                <Button
+                  data-testid="basic-info-description-save"
+                  onClick={handleSaveBasicInfo}
+                  disabled={isSaving}
+                >
+                  {isSaving ? "儲存中..." : "儲存簡介"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
 
           {/* 「首頁區塊顯示」已移除：各區塊改由左側分頁維護，顯示順序與開關維持資料庫既有值 */}
 

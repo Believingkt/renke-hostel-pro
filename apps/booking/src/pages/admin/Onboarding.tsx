@@ -76,6 +76,11 @@ export default function Onboarding() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground">{step.hqValue ? `${step.hint}（${step.hqValue}）` : step.hint}</p>
+                    {step.status === "pending" && step.missing && step.missing.length > 0 && (
+                      <p className="text-sm font-medium text-destructive" data-testid={`onboarding-${step.key}-missing`}>
+                        還缺：{step.missing.join("、")}
+                      </p>
+                    )}
                   </div>
                 </div>
 
