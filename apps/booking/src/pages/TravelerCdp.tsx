@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
@@ -8,10 +8,19 @@ import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lakeze/shared/components/ui/table";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@lakeze/shared/components/ui/sheet";
 import { toast } from "@lakeze/shared/hooks/use-toast";
-import { RefreshCw, Sparkles, Users, UserCheck, Tags, Clock, Search } from "lucide-react";
+import { RefreshCw, Sparkles, Users, UserCheck, Tags, Clock, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import type { TravelerProfile } from "@/types/traveler";
 import { identityLabel, formatDateTime } from "@/types/traveler";
 import TravelerDetailBody from "@/components/traveler/TravelerDetailBody";
+
+const PAGE_SIZE = 50;
+
+interface Stats {
+  total: number;
+  memberBound: number;
+  tagged: number;
+  lastSync: string | null;
+}
 
 export default function TravelerCdp() {
   const [searchParams] = useSearchParams();
@@ -19,76 +28,127 @@ export default function TravelerCdp() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [tagging, setTagging] = useState(false);
+  const [tagProgress, setTagProgress] = useState<{ done: number; total: number } | null>(null);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats>({ total: 0, memberBound: 0, tagged: 0, lastSync: null });
+  const [page, setPage] = useState(0);
+  const [totalRows, setTotalRows] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const load = async () => {
-    const { data, error } = await supabase
+  // 四張統計卡：一律用資料庫 count 查詢，不受列表分頁筆數限制
+  const loadStats = useCallback(async () => {
+    try {
+      const [tot, mem, tag, sync] = await Promise.all([
+        supabase.from("traveler_profiles").select("id", { count: "exact", head: true }),
+        supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
+          .contains("bound_identities", [{ type: "member" }]),
+        supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
+          .filter("interest_tags", "neq", "{}"),
+        supabase.from("traveler_profiles").select("last_synced_at")
+          .not("last_synced_at", "is", null)
+          .order("last_synced_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      setStats({
+        total: tot.count ?? 0,
+        memberBound: mem.count ?? 0,
+        tagged: tag.count ?? 0,
+        lastSync: (sync.data as { last_synced_at?: string } | null)?.last_synced_at ?? null,
+      });
+    } catch {
+      /* 統計失敗不影響列表 */
+    }
+  }, []);
+
+  // 列表：伺服器端搜尋 + 分頁
+  const loadRows = useCallback(async (opts?: { page?: number; term?: string }) => {
+    const pg = opts?.page ?? page;
+    const term = (opts?.term ?? search).trim();
+    setLoading(true);
+    let q = supabase
       .from("traveler_profiles")
-      .select("*")
-      .order("updated_at", { ascending: false })
-      .limit(500);
+      .select("*", { count: "exact" })
+      .order("updated_at", { ascending: false });
+    if (term) {
+      const esc = term.replace(/[%,()]/g, " ").trim();
+      q = q.or(
+        `display_name.ilike.%${esc}%,email.ilike.%${esc}%,phone.ilike.%${esc}%,customer_key.ilike.%${esc}%`,
+      );
+    }
+    const { data, count, error } = await q.range(pg * PAGE_SIZE, pg * PAGE_SIZE + PAGE_SIZE - 1);
     if (error) {
       toast({ title: "載入失敗", description: error.message, variant: "destructive" });
     } else {
       setRows((data ?? []) as unknown as TravelerProfile[]);
+      setTotalRows(count ?? 0);
     }
     setLoading(false);
-  };
+  }, [page, search]);
 
   useEffect(() => {
-    load();
+    loadStats();
+    loadRows({ page: 0, term: search });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // 搜尋輸入 debounce → 重置到第 1 頁、伺服器端查詢
+  const onSearchChange = (value: string) => {
+    setSearch(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setPage(0);
+      loadRows({ page: 0, term: value });
+    }, 400);
+  };
+
+  const goPage = (next: number) => {
+    setPage(next);
+    loadRows({ page: next });
+  };
 
   const runSync = async () => {
     setSyncing(true);
     const { data, error } = await supabase.functions.invoke("traveler-sync", { body: { mode: "full" } });
     setSyncing(false);
-    if (error || (data as any)?.error) {
-      toast({ title: "同步失敗", description: error?.message ?? (data as any)?.error, variant: "destructive" });
+    if (error || (data as { error?: string } | null)?.error) {
+      toast({ title: "同步失敗", description: error?.message ?? (data as { error?: string })?.error, variant: "destructive" });
       return;
     }
-    toast({ title: "同步完成", description: `已整合 ${(data as any)?.upserted ?? 0} 筆旅客檔案` });
-    load();
+    toast({ title: "同步完成", description: `已整合 ${(data as { upserted?: number })?.upserted ?? 0} 筆旅客檔案` });
+    loadStats();
+    loadRows({ page: 0 });
+    setPage(0);
   };
 
+  // AI 標籤解析：以 offset 分批迴圈，直到 done=true（不再每次只跑固定筆）
   const runTagging = async () => {
     setTagging(true);
-    const { data, error } = await supabase.functions.invoke("traveler-tagging", { body: { limit: 20 } });
-    setTagging(false);
-    if (error || (data as any)?.error) {
-      toast({ title: "標籤解析失敗", description: error?.message ?? (data as any)?.error, variant: "destructive" });
-      return;
+    setTagProgress({ done: 0, total: 0 });
+    let offset = 0;
+    let processed = 0;
+    let guard = 0;
+    try {
+      while (guard++ < 500) {
+        const { data, error } = await supabase.functions.invoke("traveler-tagging", { body: { limit: 25, offset } });
+        const d = data as { processed?: number; total?: number; next_offset?: number; done?: boolean; error?: string } | null;
+        if (error || d?.error) {
+          toast({ title: "標籤解析失敗", description: error?.message ?? d?.error, variant: "destructive" });
+          break;
+        }
+        processed += d?.processed ?? 0;
+        const total = d?.total ?? 0;
+        setTagProgress({ done: Math.min(offset + 25, total), total });
+        if (d?.done || !total) break;
+        offset = d?.next_offset ?? offset + 25;
+      }
+      toast({ title: "AI 標籤解析完成", description: `已更新 ${processed} 位旅客標籤` });
+    } finally {
+      setTagging(false);
+      setTagProgress(null);
+      loadStats();
+      loadRows();
     }
-    toast({
-      title: "AI 標籤解析完成",
-      description: (data as any)?.note ?? `已更新 ${(data as any)?.processed ?? 0} 位旅客標籤`,
-    });
-    load();
   };
-
-  const stats = useMemo(() => {
-    const memberBound = rows.filter((r) =>
-      (r.bound_identities ?? []).some((i) => i.type === "member")
-    ).length;
-    const tagged = rows.filter((r) => (r.interest_tags ?? []).length > 0).length;
-    const lastSync = rows
-      .map((r) => r.last_synced_at)
-      .filter(Boolean)
-      .sort()
-      .pop();
-    return { total: rows.length, memberBound, tagged, lastSync };
-  }, [rows]);
-
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.customer_key, r.display_name, r.email, r.phone, ...(r.interest_tags ?? [])]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q))
-    );
-  }, [rows, search]);
 
   const statCards = [
     { title: "旅客檔案總數", value: stats.total, icon: Users },
@@ -96,6 +156,8 @@ export default function TravelerCdp() {
     { title: "有 AI 標籤數", value: stats.tagged, icon: Tags },
     { title: "最後同步時間", value: formatDateTime(stats.lastSync) || "尚未同步", icon: Clock, isText: true },
   ];
+
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -105,20 +167,24 @@ export default function TravelerCdp() {
           <p className="text-sm text-muted-foreground">整合會員、客戶、折扣碼、金流與 AI 對話的單一旅客檔案</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={runSync} disabled={syncing}>
+          <Button onClick={runSync} disabled={syncing} data-testid="traveler-sync-button">
             <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "同步中…" : "立即同步"}
           </Button>
-          <Button variant="outline" onClick={runTagging} disabled={tagging}>
+          <Button variant="outline" onClick={runTagging} disabled={tagging} data-testid="traveler-tagging-button">
             <Sparkles className={`mr-2 h-4 w-4 ${tagging ? "animate-pulse" : ""}`} />
-            {tagging ? "解析中…" : "AI 標籤解析"}
+            {tagging
+              ? tagProgress && tagProgress.total
+                ? `解析中… ${tagProgress.done}/${tagProgress.total}`
+                : "解析中…"
+              : "AI 標籤解析"}
           </Button>
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((c) => (
-          <Card key={c.title}>
+          <Card key={c.title} data-testid={`traveler-stat-${c.title}`}>
             <CardContent className="flex items-center gap-3 p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                 <c.icon className="h-5 w-5 text-primary" />
@@ -141,16 +207,19 @@ export default function TravelerCdp() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="搜尋 email／手機／姓名／標籤"
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="搜尋 email／手機／姓名／合併鍵"
               className="pl-9"
+              data-testid="traveler-search-input"
             />
           </div>
         </CardHeader>
         <CardContent>
-          {loading ? null : filtered.length === 0 ? (
+          {loading ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">載入中…</p>
+          ) : rows.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              尚無旅客檔案，請先點擊「立即同步」。
+              {search.trim() ? "找不到符合的旅客。" : "尚無旅客檔案，請先點擊「立即同步」。"}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -166,7 +235,7 @@ export default function TravelerCdp() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((r) => (
+                  {rows.map((r) => (
                     <TableRow
                       key={r.id}
                       className="cursor-pointer hover:bg-muted/40"
@@ -214,6 +283,35 @@ export default function TravelerCdp() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {totalRows > 0 && (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <p className="text-sm text-muted-foreground" data-testid="traveler-pagination-info">
+                第 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalRows)} 筆，共 {totalRows} 筆
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goPage(page - 1)}
+                  disabled={page <= 0 || loading}
+                  data-testid="traveler-prev-page"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm tabular-nums">{page + 1} / {totalPages}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goPage(page + 1)}
+                  disabled={page + 1 >= totalPages || loading}
+                  data-testid="traveler-next-page"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

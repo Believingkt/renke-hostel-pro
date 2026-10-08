@@ -18,6 +18,7 @@ import {
   SCENARIO_LABEL,
   tripFlex,
 } from "./lineTrip.ts";
+import { writeMetric } from "./metric.ts";
 
 export interface ButlerCartStay {
   kind: "stay";
@@ -746,6 +747,14 @@ function tripReply(
         const trip = await recommendTrip(scenario, merged);
         if (!trip) throw new Error("trip-recommend returned null");
         const tripId = await saveTripSnapshot(sb, lineUserId, scenario, merged, trip);
+        void writeMetric(sb, {
+          event_type: "trip_rec_shown",
+          ref_type: "trip",
+          ref_id: tripId,
+          channel: "line",
+          line_user_id: lineUserId,
+          metadata: { scenario },
+        });
         return [tripFlex(scenario, trip, tripId)];
       } catch (e) {
         console.error("[butler-trip] plan failed", scenario, e);

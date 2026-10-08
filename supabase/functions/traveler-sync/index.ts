@@ -5,6 +5,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildCustomerKey, normalizeEmail, normalizePhone } from "../_shared/travelerKey.ts";
+import { sanitizeNeeds, buildNameSet } from "../_shared/travelerTags.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -153,6 +154,7 @@ Deno.serve(async (req) => {
     const existingMap = new Map<string, any>(existing.map((e: any) => [e.customer_key, e]));
 
     const nowIso = new Date().toISOString();
+    const nameSet = buildNameSet(Array.from(drafts.values()).map((d) => d.display_name));
     const rows = Array.from(drafts.values()).map((d) => {
       const valid = d.orders.filter((o) => o.order_status !== "cancelled");
       const total = valid.reduce((s, o) => s + Number(o.final_price || 0), 0);
@@ -163,7 +165,7 @@ Deno.serve(async (req) => {
         .pop() ?? null;
       const prev = existingMap.get(d.customer_key);
       const prevNeeds: string[] = prev?.custom_needs ?? [];
-      const needs = Array.from(new Set([...prevNeeds, ...d.needs])).slice(0, 30);
+      const needs = sanitizeNeeds([...prevNeeds, ...d.needs], nameSet);
       return {
         customer_key: d.customer_key,
         user_id: d.user_id,

@@ -14,6 +14,7 @@ import { Button } from "@lakeze/shared/components/ui/button";
 import { Badge } from "@lakeze/shared/components/ui/badge";
 import { toast } from "@lakeze/shared/hooks/use-toast";
 import { TRIP_SCENARIOS, getStoredAttributes, type ScenarioKey } from "./TripTemplates";
+import { emitMetric } from "@/lib/metric";
 
 interface GenItem {
   ref_type: string;
@@ -145,6 +146,12 @@ export default function TripGenerate() {
           if (it.ref_type === "product") exclude.push(it.ref_id);
         });
         results.push(trip);
+        emitMetric({
+          event_type: "trip_rec_shown",
+          ref_type: "trip",
+          ref_id: trip.snapshot_id ?? null,
+          metadata: { scenario, source: "web", match_score: trip.match_score },
+        });
         setTrips([...results].sort((a, b) => b.match_score - a.match_score));
         // 有第一條行程就先解除 loading，其餘在背景補齊
         setLoading(false);
@@ -179,6 +186,7 @@ export default function TripGenerate() {
             translation_status: (data?.translation_status as GenTrip["translation_status"]) || "ready",
           },
         ]);
+        emitMetric({ event_type: "trip_rec_shown", ref_type: "trip", ref_id: id, metadata: { source: "snapshot" } });
         setLoading(false);
         return true;
       }
@@ -304,6 +312,12 @@ export default function TripGenerate() {
         .single();
       if (error) throw error;
       setSavedIds((prev) => ({ ...prev, [index]: data.id }));
+      emitMetric({
+        event_type: "trip_save",
+        ref_type: "trip",
+        ref_id: trip.snapshot_id ?? data.id,
+        metadata: { scenario: trip.scenario },
+      });
       toast({ title: p.saved });
     } catch (e) {
       console.error("save trip failed", e);
