@@ -16,10 +16,11 @@ import TravelerDetailBody from "@/components/traveler/TravelerDetailBody";
 const PAGE_SIZE = 50;
 
 interface Stats {
-  total: number;
-  memberBound: number;
-  tagged: number;
+  total: number | null;
+  memberBound: number | null;
+  tagged: number | null;
   lastSync: string | null;
+  lastSyncFailed: boolean;
 }
 
 export default function TravelerCdp() {
@@ -31,33 +32,42 @@ export default function TravelerCdp() {
   const [tagProgress, setTagProgress] = useState<{ done: number; total: number } | null>(null);
   const [search, setSearch] = useState(searchParams.get("q") ?? "");
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [stats, setStats] = useState<Stats>({ total: 0, memberBound: 0, tagged: 0, lastSync: null });
+  const [stats, setStats] = useState<Stats>({ total: null, memberBound: null, tagged: null, lastSync: null, lastSyncFailed: false });
   const [page, setPage] = useState(0);
   const [totalRows, setTotalRows] = useState(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 四張統計卡：一律用資料庫 count 查詢，不受列表分頁筆數限制
+  // 四張統計卡：一律用資料庫 count 查詢，不受列表分頁筆數限制。查詢失敗顯示「—」並記 console，不顯示成 0。
   const loadStats = useCallback(async () => {
-    try {
-      const [tot, mem, tag, sync] = await Promise.all([
-        supabase.from("traveler_profiles").select("id", { count: "exact", head: true }),
-        supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
-          .contains("bound_identities", [{ type: "member" }]),
-        supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
-          .filter("interest_tags", "neq", "{}"),
-        supabase.from("traveler_profiles").select("last_synced_at")
-          .not("last_synced_at", "is", null)
-          .order("last_synced_at", { ascending: false }).limit(1).maybeSingle(),
-      ]);
-      setStats({
-        total: tot.count ?? 0,
-        memberBound: mem.count ?? 0,
-        tagged: tag.count ?? 0,
-        lastSync: (sync.data as { last_synced_at?: string } | null)?.last_synced_at ?? null,
-      });
-    } catch {
-      /* 統計失敗不影響列表 */
-    }
+    const results = await Promise.allSettled([
+      supabase.from("traveler_profiles").select("id", { count: "exact", head: true }),
+      supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
+        .contains("bound_identities", JSON.stringify([{ type: "member" }])),
+      supabase.from("traveler_profiles").select("id", { count: "exact", head: true })
+        .filter("interest_tags", "neq", "{}"),
+      supabase.from("traveler_profiles").select("last_synced_at")
+        .not("last_synced_at", "is", null)
+        .order("last_synced_at", { ascending: false }).limit(1).maybeSingle(),
+    ]);
+    const [tot, mem, tag, sync] = results;
+    const countOf = (r: PromiseSettledResult<{ count: number | null; error: unknown }>, label: string): number | null => {
+      if (r.status !== "fulfilled" || r.value.error) {
+        console.error(`[cdp stats] ${label} 查詢失敗`, r.status === "fulfilled" ? r.value.error : r.reason);
+        return null;
+      }
+      return r.value.count ?? 0;
+    };
+    const syncFailed = sync.status !== "fulfilled" || !!sync.value.error;
+    if (syncFailed) console.error("[cdp stats] 最後同步時間查詢失敗", sync.status === "fulfilled" ? sync.value.error : sync.reason);
+    setStats({
+      total: countOf(tot as PromiseSettledResult<any>, "總數"),
+      memberBound: countOf(mem as PromiseSettledResult<any>, "已綁會員數"),
+      tagged: countOf(tag as PromiseSettledResult<any>, "有 AI 標籤數"),
+      lastSync: !syncFailed
+        ? ((sync as PromiseFulfilledResult<any>).value.data as { last_synced_at?: string } | null)?.last_synced_at ?? null
+        : null,
+      lastSyncFailed: syncFailed,
+    });
   }, []);
 
   // 列表：伺服器端搜尋 + 分頁
@@ -151,10 +161,10 @@ export default function TravelerCdp() {
   };
 
   const statCards = [
-    { title: "旅客檔案總數", value: stats.total, icon: Users },
-    { title: "已綁會員數", value: stats.memberBound, icon: UserCheck },
-    { title: "有 AI 標籤數", value: stats.tagged, icon: Tags },
-    { title: "最後同步時間", value: formatDateTime(stats.lastSync) || "尚未同步", icon: Clock, isText: true },
+    { title: "旅客檔案總數", value: stats.total === null ? "—" : stats.total, icon: Users },
+    { title: "已綁會員數", value: stats.memberBound === null ? "—" : stats.memberBound, icon: UserCheck },
+    { title: "有 AI 標籤數", value: stats.tagged === null ? "—" : stats.tagged, icon: Tags },
+    { title: "最後同步時間", value: stats.lastSyncFailed ? "—" : (formatDateTime(stats.lastSync) || "尚未同步"), icon: Clock, isText: true },
   ];
 
   const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE));
