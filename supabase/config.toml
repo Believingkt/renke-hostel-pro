@@ -5,6 +5,8 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.accommodation-api]
     verify_jwt = false
+  [functions.ai-metric-track]
+    verify_jwt = false
   [functions.ai-booking-chat]
     verify_jwt = false
   [functions.all-availability]
@@ -354,6 +356,8 @@ project_id = "opaphdargymfyrrzvozs"
   [functions.team-lookup-user-by-email]
     verify_jwt = false
   [functions.translate-content]
+    verify_jwt = false
+  [functions.traveler-cleanup]
     verify_jwt = false
   [functions.traveler-guide]
     verify_jwt = false

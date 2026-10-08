@@ -59,6 +59,15 @@ Deno.serve(async (req) => {
 
     const updates: Array<{ id: string; interest_tags: string[]; custom_needs: string[]; consumption: any }> = [];
     let removedInterest = 0, removedNeeds = 0, removedKeywords = 0;
+    const freqInterest = new Map<string, number>();
+    const freqNeeds = new Map<string, number>();
+    const freqKeywords = new Map<string, number>();
+    const samples: any[] = [];
+    const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+    const diff = (oldArr: string[], newArr: string[]) => {
+      const keep = new Set(newArr);
+      return oldArr.filter((x) => !keep.has(x));
+    };
 
     for (const p of all) {
       const oldInterest: string[] = Array.isArray(p.interest_tags) ? p.interest_tags : [];
@@ -79,6 +88,20 @@ Deno.serve(async (req) => {
       removedNeeds += Math.max(0, oldNeeds.length - newNeeds.length);
       removedKeywords += Math.max(0, oldKeywords.length - newKeywords.length);
 
+      if (dryRun) {
+        diff(oldInterest, newInterest).forEach((x) => bump(freqInterest, x));
+        diff(oldNeeds, newNeeds).forEach((x) => bump(freqNeeds, x));
+        diff(oldKeywords, newKeywords).forEach((x) => bump(freqKeywords, x));
+        if (samples.length < 5) {
+          samples.push({
+            id: p.id,
+            display_name: p.display_name,
+            before: { interest_tags: oldInterest, custom_needs: oldNeeds, ai_keywords: oldKeywords },
+            after: { interest_tags: newInterest, custom_needs: newNeeds, ai_keywords: newKeywords },
+          });
+        }
+      }
+
       updates.push({
         id: p.id,
         interest_tags: newInterest,
@@ -88,10 +111,13 @@ Deno.serve(async (req) => {
     }
 
     if (dryRun) {
+      const top = (m: Map<string, number>) =>
+        Array.from(m.entries()).sort((a, b) => b[1] - a[1]).slice(0, 30).map(([term, count]) => ({ term, count }));
       return json({
         success: true, dry_run: true, scanned: all.length,
         to_update: updates.length, removed: { interest: removedInterest, needs: removedNeeds, keywords: removedKeywords },
-        sample: updates.slice(0, 20),
+        removed_terms: { interest_tags: top(freqInterest), custom_needs: top(freqNeeds), ai_keywords: top(freqKeywords) },
+        samples,
       });
     }
 
