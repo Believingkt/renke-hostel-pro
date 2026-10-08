@@ -263,6 +263,19 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!campaign) return json({ success: false, reason: "campaign_missing" });
 
+      // 館別 gate：活動綁定館別時，訂單館別需相符才發獎；全平台活動（null）不受限
+      if (campaign.accommodation_id) {
+        if (!orderId) return json({ success: true, skipped: "accommodation_mismatch" });
+        const { data: order } = await admin
+          .from("orders")
+          .select("accommodation_id")
+          .eq("id", orderId)
+          .maybeSingle();
+        if (!order || order.accommodation_id !== campaign.accommodation_id) {
+          return json({ success: true, skipped: "accommodation_mismatch" });
+        }
+      }
+
       const results: any[] = [];
 
       // tier1：直接邀請人
