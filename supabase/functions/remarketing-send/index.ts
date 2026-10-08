@@ -7,6 +7,7 @@
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { matchSegment, summarizeSegment, type TravelerRow } from "../_shared/remarketingSegment.ts";
+import { sanitizePhotoUrl, buildFeatureLine } from "../_shared/roomCards.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -17,14 +18,16 @@ const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const BRAND = { primary: "#d07218", foreground: "#2d3344", muted: "#6b7280" };
 const SITE_BASE = "https://booking.lakeze.com";
 
-type Card = { name: string; price: number | null; cover_url: string | null; url: string };
+type Card = { name: string; price: number | null; cover_url: string | null; url: string; accommodation_name?: string; subtitle?: string };
 
 function cardHtml(p: Card, wrap: (u: string) => string): string {
   return `
     <a href="${wrap(p.url)}" style="display:block;text-decoration:none;border:1px solid #eee;border-radius:10px;overflow:hidden;margin:0 0 12px;">
       ${p.cover_url ? `<img src="${p.cover_url}" alt="" width="100%" style="display:block;width:100%;max-height:180px;object-fit:cover;"/>` : ""}
       <div style="padding:12px 14px;">
+        ${p.accommodation_name ? `<div style="color:${BRAND.muted};font-size:12px;margin:0 0 2px;">${p.accommodation_name}</div>` : ""}
         <div style="color:${BRAND.foreground};font-size:15px;font-weight:600;">${p.name}</div>
+        ${p.subtitle ? `<div style="color:${BRAND.muted};font-size:12px;margin-top:2px;">${p.subtitle}</div>` : ""}
         ${p.price == null ? "" : `<div style="color:${BRAND.primary};font-size:15px;font-weight:700;margin-top:4px;">${p.price === 0 ? "免費" : `NT$ ${Number(p.price).toLocaleString()} 起`}</div>`}
       </div>
     </a>`;
@@ -196,21 +199,84 @@ Deno.serve(async (req) => {
     const realTargets = allTargets.filter((t: any) => !isTestProfile(t));
     const pickExample = (): any | null => realTargets.find((t: any) => resolveAcc(t)) ?? realTargets[0] ?? allTargets[0] ?? null;
 
-    // 房型卡載入（依指定館別），測試/正式各以各自範例的館別建立
+    // 房型卡載入（依指定館別）：售價用 room_inventory_pricing 未來 30 天最低可售價，
+    // 包棟方案（accommodation_packages/package_date_prices）為 fallback；照片用房型照片，缺則館別封面。
     let roomCards: Card[] = [];
     const loadRoomCards = async (accId: string): Promise<Card[]> => {
       if (!accId) return [];
       const { data: rts } = await admin
-        .from("room_types").select("id,name,base_price,room_photos(photo_url,display_order)")
+        .from("room_types").select("id,name,description,capacity,size_sqm,room_photos(photo_url,display_order)")
         .eq("accommodation_id", accId).order("display_order").limit(3);
+      const rooms = (rts ?? []) as any[];
+      if (!rooms.length) return [];
+      const roomIds = rooms.map((r) => r.id);
+
+      const today = new Date().toISOString().slice(0, 10);
+      const until = (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().slice(0, 10); })();
+
+      // 1) 房況日價：未來 30 天最低可售價
+      const minPrice = new Map<string, number>();
+      const { data: inv } = await admin
+        .from("room_inventory_pricing").select("room_type_id, price, is_available, date")
+        .in("room_type_id", roomIds).is("pricing_template_id", null)
+        .gte("date", today).lte("date", until);
+      for (const row of inv ?? []) {
+        if ((row as any).is_available === false) continue;
+        const p = Number((row as any).price ?? 0);
+        if (p > 0) { const cur = minPrice.get((row as any).room_type_id); if (cur == null || p < cur) minPrice.set((row as any).room_type_id, p); }
+      }
+      // 2) fallback：同名包棟方案售價（未來 30 天最低）
+      const missing = rooms.filter((r) => !minPrice.get(r.id));
+      if (missing.length) {
+        const { data: pkgs } = await admin
+          .from("accommodation_packages").select("id,name,sale_price")
+          .eq("accommodation_id", accId).in("name", missing.map((r) => r.name));
+        const pkgList = (pkgs ?? []) as any[];
+        if (pkgList.length) {
+          const { data: dp } = await admin
+            .from("package_date_prices").select("package_id, sale_price, date")
+            .in("package_id", pkgList.map((p) => p.id)).gte("date", today).lte("date", until);
+          const pkgMin = new Map<string, number>();
+          for (const d2 of dp ?? []) {
+            const sp = Number((d2 as any).sale_price ?? 0);
+            if (sp > 0) { const c = pkgMin.get((d2 as any).package_id); if (c == null || sp < c) pkgMin.set((d2 as any).package_id, sp); }
+          }
+          for (const r of missing) {
+            const pkg = pkgList.find((p) => p.name === r.name);
+            if (!pkg) continue;
+            const price = pkgMin.get(pkg.id) ?? Number(pkg.sale_price ?? 0);
+            if (price > 0) minPrice.set(r.id, price);
+          }
+        }
+      }
+
+      // 館別名稱與封面（房型無照片時 fallback）
+      const { data: accInfo } = await admin.from("accommodation_info").select("name").eq("id", accId).maybeSingle();
+      const accName = String((accInfo as any)?.name ?? "");
+      let accCover = "";
+      try {
+        const { data: accPhoto } = await admin.from("accommodation_photos")
+          .select("photo_url,display_order").eq("accommodation_id", accId)
+          .order("display_order", { ascending: true }).limit(1).maybeSingle();
+        accCover = sanitizePhotoUrl((accPhoto as any)?.photo_url);
+      } catch { /* 無封面 */ }
+
       const cards: Card[] = [];
-      for (const rt of rts ?? []) {
-        const photos = ((rt as any).room_photos ?? []).slice().sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+      for (const rt of rooms) {
+        const photos = (rt.room_photos ?? []).slice().sort((a: any, b: any) => (a.display_order ?? 0) - (b.display_order ?? 0));
+        const photo = sanitizePhotoUrl(photos.map((p: any) => p?.photo_url).find((u: any) => !!u) ?? "") || accCover;
+        const features = buildFeatureLine(rt.name, rt.description, [
+          rt.capacity ? `${rt.capacity}人` : "",
+          rt.size_sqm ? `${rt.size_sqm}坪` : "",
+        ]);
+        const price = minPrice.get(rt.id) ?? null;
         cards.push({
-          name: (rt as any).name,
-          price: (rt as any).base_price == null ? null : Number((rt as any).base_price),
-          cover_url: photos[0]?.photo_url ?? null,
-          url: `${SITE_BASE}/booking/villa/${accId}`,
+          name: rt.name,
+          price: price != null && price > 0 ? price : null, // 房型不可顯示「免費」：查無有效售價即不顯示價格列
+          cover_url: photo || null,
+          accommodation_name: accName || undefined,
+          subtitle: features || undefined,
+          url: `${SITE_BASE}/book?accId=${encodeURIComponent(accId)}&roomId=${encodeURIComponent(rt.id)}`,
         });
       }
       return cards;
