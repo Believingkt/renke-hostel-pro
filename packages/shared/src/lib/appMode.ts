@@ -9,7 +9,7 @@
  * - 開發 / 預覽網域      → 同上以路徑判斷，非後台路徑為 "neutral"；仍可用 ?mode=pms / ?mode=frontend 強制
  */
 
-import { PMS_RESERVED_FIRST_SEGMENT_SET } from "@lakeze/shared/lib/reservedRoutes";
+import { PMS_RESERVED_FIRST_SEGMENT_SET, RESERVED_FIRST_SEGMENT_SET } from "@lakeze/shared/lib/reservedRoutes";
 
 import { isDevOrPreviewHost as isDevOrPreviewHostShared } from "@lakeze/shared/lib/previewHost";
 export const BOOKING_ORIGIN = "https://booking.lakeze.com";
@@ -128,7 +128,7 @@ export function normalizePmsPath(pathname: string): string {
   // 僅在 /{alias}/admin... 或 /{alias}/auth 這種形式時剝除 alias 前綴，避免誤判前台路徑
   if (
     segments.length >= 2 &&
-    !PMS_RESERVED_FIRST.has(segments[0]) &&
+    !RESERVED_FIRST_SEGMENT_SET.has(segments[0]) &&
     (segments[1] === "admin" || segments[1] === "auth")
   ) {
     return "/" + segments.slice(1).join("/");
