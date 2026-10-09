@@ -110,6 +110,29 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = String(body?.action || "");
 
+    // ---- 公開：解析邀請碼（落地頁用，只回公開欄位，不回內部關係） ----
+    if (action === "resolve") {
+      const code = String(body?.code || "").trim();
+      if (!/^[A-Za-z0-9]{8}$/.test(code)) return json({ valid: false, campaign: null });
+      const { data: rec } = await admin
+        .from("referral_records")
+        .select("campaign_id")
+        .eq("invite_code", code)
+        .maybeSingle();
+      if (!rec) return json({ valid: false, campaign: null });
+      const { data: c } = await admin
+        .from("referral_campaigns")
+        .select("name, description, reward_tiers")
+        .eq("id", rec.campaign_id)
+        .maybeSingle();
+      return json({
+        valid: true,
+        campaign: c
+          ? { name: c.name, description: c.description, reward_tiers: c.reward_tiers }
+          : null,
+      });
+    }
+
     // ---- 公開：點擊追蹤 ----
     if (action === "track_click") {
       const code = String(body?.code || "").trim();

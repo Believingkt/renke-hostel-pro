@@ -73,6 +73,24 @@ export async function getMyReferralLink() {
   return invoke("get_link");
 }
 
+/** 落地頁解析邀請碼（公開；只回公開欄位，不含內部關係） */
+export async function resolveInvite(
+  code: string,
+): Promise<{ valid: boolean; campaign: { name: string; description: string | null; reward_tiers: RewardTier[] } | null }> {
+  try {
+    const data = await invoke("resolve", { code });
+    const c = data?.campaign;
+    return {
+      valid: !!data?.valid,
+      campaign: c
+        ? { name: c.name, description: c.description ?? null, reward_tiers: Array.isArray(c.reward_tiers) ? c.reward_tiers : [] }
+        : null,
+    };
+  } catch {
+    return { valid: false, campaign: null };
+  }
+}
+
 /** 落地頁點擊追蹤 */
 export async function trackReferralClick(code: string) {
   try {

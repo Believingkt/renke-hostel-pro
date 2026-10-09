@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { Card } from "@lakeze/shared/components/ui/card";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Gift, Sparkles, UserPlus } from "lucide-react";
-import { trackReferralClick, rememberInviteCode, rewardTypeLabel, type RewardTier } from "@lakeze/shared/lib/referral";
+import { trackReferralClick, rememberInviteCode, resolveInvite, rewardTypeLabel, type RewardTier } from "@lakeze/shared/lib/referral";
 import portalLogo from "@lakeze/shared/assets/lakeze-portal-logo.png";
 
 /** /r/:inviteCode — 受邀落地頁：說明獎勵並導向註冊 */
@@ -19,22 +18,9 @@ const ReferralLanding = () => {
     rememberInviteCode(inviteCode);
     trackReferralClick(inviteCode);
     (async () => {
-      const { data: rec } = await (supabase as any)
-        .from("referral_records")
-        .select("campaign_id")
-        .eq("invite_code", inviteCode)
-        .maybeSingle();
-      if (!rec) {
-        setValid(false);
-        return;
-      }
-      const { data: c } = await (supabase as any)
-        .from("referral_campaigns")
-        .select("*")
-        .eq("id", rec.campaign_id)
-        .maybeSingle();
+      const { valid: ok, campaign: c } = await resolveInvite(inviteCode);
       setCampaign(c);
-      setValid(true);
+      setValid(ok);
     })();
   }, [inviteCode]);
 
