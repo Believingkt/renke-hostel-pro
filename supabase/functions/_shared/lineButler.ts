@@ -496,10 +496,18 @@ function addonPriceText(n: number) {
 /** 從 jsonb/字串多語名稱取中文顯示名 */
 // deno-lint-ignore no-explicit-any
 function localizedName(v: any, fallback = "加購項目"): string {
-  if (!v) return fallback;
-  if (typeof v === "string") return v.trim() || fallback;
+  if (v == null) return fallback;
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return fallback;
+    // 可能為雙重編碼的 JSON 字串
+    if (s.startsWith("{")) {
+      try { return localizedName(JSON.parse(s), fallback); } catch { return s; }
+    }
+    return s;
+  }
   if (typeof v === "object") {
-    for (const k of ["zh-TW", "zh-Hant", "zh_TW", "zh", "cmn", "zh-CN", "en", "ja"]) {
+    for (const k of ["zh", "zh-TW", "zh-Hant", "zh_TW", "zh-CN", "cmn", "en", "ja"]) {
       const val = v[k];
       if (typeof val === "string" && val.trim()) return val.trim();
     }
@@ -1185,9 +1193,12 @@ async function handlePostback(
     next.checkIn = checkIn;
     next.checkOut = checkOut;
     await saveSession(sb, lineUserId, next, "pick_room");
-    const products = await fetchAddons(sb);
+    const products = await fetchAddons(sb, { accommodationId: picked.accommodationId });
     const msgs: OutgoingMessage[] = [textMsg(`收到！${picked.name} 已放進購物車 🛒`)];
-    if (products.length) msgs.push(textMsg("要不要順便加購體驗？🎁"), addonCarousel(products));
+    if (products.length) {
+      trackAddonShown(sb, lineUserId, products);
+      msgs.push(textMsg("要不要順便加購體驗？🎁"), addonCarousel(products));
+    }
     msgs.push(cartSummary(next.cart, liffCheckoutUrl(lineUserId)));
     return msgs;
   }

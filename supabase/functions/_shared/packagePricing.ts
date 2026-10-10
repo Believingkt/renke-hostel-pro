@@ -9,8 +9,11 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3
 
 export type PkgTier = "weekday" | "friday_sunday" | "weekend";
 
-/** 以日期字串（YYYY-MM-DD）判定 tier；六/國定假日=weekend、五/日=friday_sunday、其餘=weekday */
-export function classifyPkgTier(dateISO: string): PkgTier {
+/** 以日期字串（YYYY-MM-DD）＋國定假日集合判定 tier（與官網 detectTierByDate 完全一致）：
+ *  國定假日（含補假）或週六 = weekend；週五/週日 = friday_sunday；其餘 = weekday。
+ *  國定假日來源一律為 public_holidays（holiday / compensatory_day_off），不另寫死。 */
+export function classifyPkgTier(dateISO: string, holidaySet?: Set<string>): PkgTier {
+  if (holidaySet && holidaySet.has(dateISO)) return "weekend";
   const day = new Date(`${dateISO}T00:00:00Z`).getUTCDay(); // 0=日 … 6=六
   if (day === 6) return "weekend";
   if (day === 5 || day === 0) return "friday_sunday";
@@ -57,6 +60,15 @@ export async function lowestPackagePricesForRooms(
   const pkgs = (pkgsRaw || []) as PkgRow[];
   if (pkgs.length === 0) return out;
 
+  // 國定假日（含補假）集合 — 與官網同源 public_holidays（本館）
+  const { data: holRaw } = await sb
+    .from("public_holidays")
+    .select("holiday_date, holiday_type")
+    .eq("accommodation_id", accId)
+    .in("holiday_type", ["holiday", "compensatory_day_off"])
+    .in("holiday_date", dates);
+  const holidaySet = new Set<string>((holRaw || []).map((h: any) => h.holiday_date));
+
   const { data: dpRaw } = await sb
     .from("package_date_prices")
     .select("package_id, date, sale_price, original_price, is_available")
@@ -80,7 +92,7 @@ export async function lowestPackagePricesForRooms(
     let hasOriginal = false;
     let applicable = true;
     for (const d of dates) {
-      const tier = classifyPkgTier(d);
+      const tier = classifyPkgTier(d, holidaySet);
       const ov = ovMap.get(`${pkg.id}:${d}`);
       // 適用性：單日指定 is_available=false → 不適用；否則看 applicable_tiers
       if (ov && ov.avail === false) { applicable = false; break; }
