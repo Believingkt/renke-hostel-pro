@@ -46,7 +46,7 @@ export default function TeamLayout() {
         .filter((r) => TEAM_ROLES.includes(r));
 
       if (roles.length === 0) {
-        await supabase.auth.signOut();
+        // 無 team 角色：只導回登入頁，不 signOut（共用 session 可能是其他分頁的會員）
         if (!cancelled) navigate("/team-auth", { replace: true });
         return;
       }

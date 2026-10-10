@@ -46,8 +46,8 @@ export default function HQAuth() {
         if (roles.length > 0) {
           navigate(roles.some((r) => HQ_FULL_ACCESS_ROLES.includes(r as never)) ? "/hq" : HQ_OWNER_SETTLEMENT_LANDING);
         } else {
-          toast.error("您沒有總部後台的存取權限");
-          await supabase.auth.signOut();
+          // 被動收到的 session（可能是其他分頁登入的會員）：不 signOut，停留在登入表單
+          console.warn("[HQAuth] session has no HQ role; staying on login form (no signOut)");
         }
       }
     });
@@ -100,7 +100,7 @@ export default function HQAuth() {
 
         if (!userRoles || userRoles.length === 0) {
           toast.error("您沒有總部後台的存取權限");
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: "local" });
           return;
         }
 

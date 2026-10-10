@@ -138,15 +138,17 @@ export default function PmsLogin() {
    * 1 館直接進；多館先看上次記住的館別；沒記過才顯示選館畫面。
    */
   const routeWithSession = useCallback(
-    async (userId: string) => {
+    async (userId: string, fromForm = false) => {
       if (resolvingRef.current) return;
       resolvingRef.current = true;
       try {
         const options = await loadProperties(userId);
         if (!options) {
-          // 0 權限帳號防呆（允許的兩處 signOut 之一）
-          await supabase.auth.signOut();
-          toast.error("此帳號尚未設定任何民宿權限，請聯絡總部");
+          // 0 權限帳號：僅表單主動登入時 local signOut；被動 session（可能是其他分頁的會員）不動
+          if (fromForm) {
+            await supabase.auth.signOut({ scope: "local" });
+            toast.error("此帳號尚未設定任何民宿權限，請聯絡總部");
+          }
           setBootstrapping(false);
           return;
         }
@@ -235,7 +237,7 @@ export default function PmsLogin() {
       }
 
       toast.success("登入成功！");
-      await routeWithSession(userId);
+      await routeWithSession(userId, true);
       return;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);

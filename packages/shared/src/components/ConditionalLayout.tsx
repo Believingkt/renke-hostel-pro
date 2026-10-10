@@ -40,6 +40,8 @@ export function ConditionalLayout() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
+  // 共用 session 無後台角色：只導回登入頁，不 signOut（避免把同網域其他分頁的會員一起登出）
+  const [noBackofficeRole, setNoBackofficeRole] = useState(false);
 
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
   // 手機背景久放回前景時主動驗一次 session，網路錯誤只重試不登出
@@ -83,9 +85,11 @@ export function ConditionalLayout() {
         .limit(1);
 
       if (!error && (!userRoles || userRoles.length === 0)) {
-        if (isDev) console.warn('User account deleted, signing out...');
-        toast.error('您的帳號已被刪除，請聯繫系統管理員', { duration: 5000 });
-        await supabase.auth.signOut();
+        if (isDev) console.warn('Session has no backoffice role, redirecting to login (no signOut)');
+        toast.error('目前登入的帳號沒有後台權限，請以後台帳號登入', { duration: 5000 });
+        setNoBackofficeRole(true);
+      } else if (!error) {
+        setNoBackofficeRole(false);
       }
     } catch (error) {
       if (isDev) console.error('Error checking user validity:', error);
@@ -170,6 +174,15 @@ export function ConditionalLayout() {
   }
 
   if (isHQPage && !session && !loading) {
+    return <Navigate to="/hq-auth" replace />;
+  }
+
+  if (noBackofficeRole && isAdminPage) {
+    const next = `${location.pathname}${location.search}`;
+    return <Navigate to={`${aliasPrefix}/auth?next=${encodeURIComponent(next)}`} replace />;
+  }
+
+  if (noBackofficeRole && isHQPage) {
     return <Navigate to="/hq-auth" replace />;
   }
 

@@ -105,8 +105,8 @@ export default function TeamAuth() {
         navigate("/team", { replace: true });
         return;
       }
-      toast.error("您沒有行銷團隊後台的存取權限");
-      await supabase.auth.signOut();
+      // 被動 session（可能是其他分頁的會員）：不 signOut，停留在登入表單
+      console.warn("[TeamAuth] existing session has no team role; staying on login form (no signOut)");
     });
 
     return () => {
@@ -150,7 +150,7 @@ export default function TeamAuth() {
         console.log("[TeamAuth] hasTeamRole result:", hasRole);
         if (!hasRole) {
           toast.error("您沒有行銷團隊後台的存取權限");
-          await supabase.auth.signOut();
+          await supabase.auth.signOut({ scope: "local" });
           return;
         }
 
