@@ -41,16 +41,36 @@ async function boundMemberId(lineUserId: string): Promise<string | null> {
   return data?.member_user_id ?? null;
 }
 
-/** 以 LINE verify API 驗證 LIFF ID token，回傳 sub（LINE userId） */
-async function verifyLiffIdToken(idToken: string, channelId: string): Promise<string | null> {
+type VerifyResult = { sub: string } | { error: string; description: string };
+
+/** 以 LINE verify API 驗證 LIFF ID token（client_id＝LINE Login channel ID） */
+async function verifyLiffIdToken(idToken: string, channelId: string): Promise<VerifyResult> {
   const res = await fetch("https://api.line.me/oauth2/v2.1/verify", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({ id_token: idToken, client_id: channelId }),
   });
-  if (!res.ok) return null;
   const j = await res.json().catch(() => null);
-  return typeof j?.sub === "string" ? j.sub : null;
+  if (res.ok && typeof j?.sub === "string") return { sub: j.sub };
+  return { error: String(j?.error ?? `http_${res.status}`), description: String(j?.error_description ?? "") };
+}
+
+/** 驗證用 channel ID 候選：LIFF_ID 前綴優先，LIFF_CHANNEL_ID 不同時再試 */
+function liffChannelCandidates(): string[] {
+  const prefix = (Deno.env.get("LIFF_ID") ?? "").split("-")[0].trim();
+  const explicit = (Deno.env.get("LIFF_CHANNEL_ID") ?? "").trim();
+  if (prefix && explicit && prefix !== explicit) {
+    console.warn("[link_member] LIFF_CHANNEL_ID 與 LIFF_ID 前綴不一致，將依序嘗試");
+  }
+  return [...new Set([prefix, explicit].filter(Boolean))];
+}
+
+/** verify 錯誤 → 前端顯示用代碼 */
+function verifyFailCode(r: { error: string; description: string }): "token_expired" | "channel_mismatch" | "verify_failed" {
+  const d = r.description.toLowerCase();
+  if (d.includes("expired")) return "token_expired";
+  if (d.includes("audience") || d.includes("client_id") || d.includes("channel")) return "channel_mismatch";
+  return "verify_failed";
 }
 
 Deno.serve(async (req) => {
@@ -125,14 +145,43 @@ Deno.serve(async (req) => {
 
     if (action === "link_member") {
       // 安全失敗：未設定 LIFF_CHANNEL_ID、未登入或 ID token 不符一律拒絕
-      const channelId = Deno.env.get("LIFF_CHANNEL_ID");
-      if (!channelId) return json({ error: "會員綁定暫未開放（LIFF_CHANNEL_ID 未設定）" }, 503, cors);
+      const channels = liffChannelCandidates();
+      if (!channels.length) {
+        console.warn("[link_member] reject: no channel id (LIFF_ID / LIFF_CHANNEL_ID 皆未設定)");
+        return json({ error: "會員綁定暫未開放（channel 未設定）", code: "not_configured" }, 503, cors);
+      }
       const userId = await jwtUserId(req);
-      if (!userId) return json({ error: "請先登入會員再綁定" }, 401, cors);
+      if (!userId) {
+        console.warn("[link_member] reject: no valid member session (JWT)");
+        return json({ error: "請先登入會員再綁定", code: "not_logged_in" }, 401, cors);
+      }
       const idToken = body.id_token ? String(body.id_token) : "";
-      if (!idToken) return json({ error: "無法取得 LINE 身分，請從 LINE 內開啟此頁" }, 400, cors);
-      const sub = await verifyLiffIdToken(idToken, channelId);
-      if (!sub || sub !== lineUserId) return json({ error: "LINE 身分驗證失敗，請重新從 LINE 開啟" }, 403, cors);
+      if (!idToken) {
+        console.warn("[link_member] reject: frontend sent no id_token");
+        return json({ error: "沒有取得 LINE ID token，請從 LINE 內重新開啟此頁", code: "no_id_token" }, 400, cors);
+      }
+      let sub: string | null = null;
+      let lastFail: { error: string; description: string } | null = null;
+      for (const [i, ch] of channels.entries()) {
+        const r = await verifyLiffIdToken(idToken, ch);
+        if ("sub" in r) { sub = r.sub; break; }
+        lastFail = r;
+        console.warn(`[link_member] verify failed (candidate ${i + 1}/${channels.length}): ${r.error} ${r.description}`);
+        if (verifyFailCode(r) === "token_expired") break;
+      }
+      if (!sub) {
+        const code = lastFail ? verifyFailCode(lastFail) : "verify_failed";
+        const msg = code === "token_expired"
+          ? "LINE 登入已過期，請重新從 LINE 開啟此頁"
+          : code === "channel_mismatch"
+            ? "LINE 身分驗證失敗（channel 不符）"
+            : "LINE 身分驗證失敗，請重新從 LINE 開啟";
+        return json({ error: msg, code, detail: lastFail?.description ?? "" }, 403, cors);
+      }
+      if (sub !== lineUserId) {
+        console.warn("[link_member] reject: id_token sub 與 line_user_id 不一致");
+        return json({ error: "LINE 身分與目前帳號不一致，請重新從 LINE 開啟", code: "sub_mismatch" }, 403, cors);
+      }
       await supabase
         .from("line_sessions")
         .upsert({ line_user_id: lineUserId, member_user_id: userId }, { onConflict: "line_user_id" });

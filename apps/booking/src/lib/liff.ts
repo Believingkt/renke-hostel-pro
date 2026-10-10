@@ -63,13 +63,41 @@ export async function initLiff(): Promise<LiffProfile> {
   }
 }
 
-/** LIFF ID token（供後端驗證 line_user_id；需 LIFF 開啟 openid scope） */
-export function getLiffIdToken(): string | null {
+export type LiffIdTokenResult =
+  | { token: string }
+  | { reason: "no_liff" | "no_id_token" | "token_expired" | "relogin" };
+
+const RELOGIN_KEY = "liff_relogin_at";
+
+/** 重新登入 LIFF 以取得新 ID token：in-client 重開 LIFF 網址，外部瀏覽器 liff.login（2 分鐘內只試一次） */
+export async function reloginLiff(): Promise<boolean> {
+  const liff = window.liff;
+  if (!liff) return false;
+  if (Date.now() - Number(sessionStorage.getItem(RELOGIN_KEY) || 0) < 120_000) return false;
+  sessionStorage.setItem(RELOGIN_KEY, String(Date.now()));
+  const liffId = await fetchLiffId();
+  const liffUrl = liffId ? `https://liff.line.me/${liffId}?page=favorites` : window.location.href;
+  if (liff.isInClient?.()) window.location.replace(liffUrl);
+  else liff.login({ redirectUri: window.location.href });
+  return true;
+}
+
+/** LIFF ID token（需 LIFF 開啟 openid scope）；取不到或將過期時嘗試重新登入 */
+export async function ensureLiffIdToken(): Promise<LiffIdTokenResult> {
+  const liff = window.liff;
+  if (!liff) return { reason: "no_liff" };
+  let token: string | null = null;
+  let expired = false;
   try {
-    return window.liff?.getIDToken?.() ?? null;
-  } catch {
-    return null;
-  }
+    if (liff.isInClient?.() || liff.isLoggedIn?.()) {
+      token = liff.getIDToken?.() ?? null;
+      const exp = liff.getDecodedIDToken?.()?.exp;
+      expired = !!exp && exp * 1000 < Date.now() + 60_000;
+    }
+  } catch { /* ignore */ }
+  if (token && !expired) return { token };
+  if (await reloginLiff()) return { reason: "relogin" };
+  return { reason: expired ? "token_expired" : "no_id_token" };
 }
 
 export async function butlerApi<T = unknown>(body: Record<string, unknown>): Promise<T | null> {

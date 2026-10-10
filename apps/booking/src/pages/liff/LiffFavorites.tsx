@@ -7,7 +7,17 @@ import { useNavigate } from "react-router-dom";
 import { Heart, Trash2 } from "lucide-react";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { initLiff, butlerApi, getLiffIdToken, type LiffProfile } from "@/lib/liff";
+import { initLiff, butlerApi, ensureLiffIdToken, reloginLiff, type LiffProfile } from "@/lib/liff";
+
+const BIND_REASON_TEXT: Record<string, string> = {
+  no_liff: "目前不在 LINE 環境，無法取得 LINE 身分，請從 LINE 內開啟此頁",
+  no_id_token: "沒拿到 LINE ID token（LIFF 可能未開啟 openid scope），請從 LINE 重新開啟",
+  token_expired: "LINE ID token 已過期，請從 LINE 重新開啟此頁",
+  channel_mismatch: "LINE 身分驗證失敗：channel 不符（請確認 LIFF_ID／LIFF_CHANNEL_ID）",
+  sub_mismatch: "LINE 身分與目前帳號不一致，請從 LINE 重新開啟",
+  not_logged_in: "會員登入已失效，請重新登入",
+  not_configured: "會員綁定暫未開放",
+};
 import { toast } from "sonner";
 import { bookingPath } from "@lakeze/shared/lib/frontendUrl";
 
@@ -25,7 +35,7 @@ export default function LiffFavorites() {
   const [rows, setRows] = useState<FavoriteRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(false);
-  const [bindState, setBindState] = useState<"idle" | "bound" | "error">("idle");
+  const [bindState, setBindState] = useState<"idle" | "bound" | "error" | "relogin">("idle");
   const [bindError, setBindError] = useState("");
 
   const load = async (lineUserId: string) => {
@@ -37,22 +47,39 @@ export default function LiffFavorites() {
   };
 
   // 綁定：後端以會員 JWT 取 user_id、以 LIFF ID token 驗證 line_user_id
+  const failBind = (code: string, fallback: string) => {
+    setBindState("error");
+    setBindError(BIND_REASON_TEXT[code] ?? fallback);
+  };
+
   const bindMember = async (lineUserId: string) => {
+    const tk = await ensureLiffIdToken();
+    if ("reason" in tk) {
+      if (tk.reason === "relogin") setBindState("relogin");
+      else failBind(tk.reason, "綁定失敗，請稍後再試");
+      return;
+    }
     const { data, error } = await supabase.functions.invoke("line-butler-api", {
-      body: { action: "link_member", line_user_id: lineUserId, id_token: getLiffIdToken() },
+      body: { action: "link_member", line_user_id: lineUserId, id_token: tk.token },
     });
     if (!error && (data as { ok?: boolean })?.ok) {
       setBindState("bound");
       return;
     }
+    let code = "";
     let msg = "綁定失敗，請稍後再試";
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body = await (error as any)?.context?.json?.();
+      code = String(body?.code ?? "");
       if (body?.error) msg = String(body.error);
     } catch { /* ignore */ }
-    setBindState("error");
-    setBindError(msg);
+    // 伺服器判定過期 → 重新取得一次
+    if (code === "token_expired" && (await reloginLiff())) {
+      setBindState("relogin");
+      return;
+    }
+    failBind(code, msg);
   };
 
   const goLogin = () => navigate(`/member/auth?redirect=${encodeURIComponent("/liff/favorites")}`);
@@ -65,7 +92,7 @@ export default function LiffFavorites() {
       const userId = auth?.user?.id ?? null;
       setLoggedIn(!!userId);
       if (p.lineUserId) {
-        if (userId && !p.isMock) await bindMember(p.lineUserId);
+        if (userId) await bindMember(p.lineUserId);
         await load(p.lineUserId);
       }
       setLoading(false);
@@ -104,6 +131,11 @@ export default function LiffFavorites() {
         {bindState === "bound" && (
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-700" data-testid="liff-bind-ok">
             已綁定會員，收藏會與官網「我的行程」同步 ✅
+          </div>
+        )}
+        {bindState === "relogin" && (
+          <div className="mb-4 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground" data-testid="liff-bind-relogin">
+            正在重新取得 LINE 身分…
           </div>
         )}
         {bindState === "error" && (
