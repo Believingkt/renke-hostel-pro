@@ -55,20 +55,43 @@ function venueAliases(v: ActiveVenue): string[] {
   return [...out];
 }
 
-let cache: { t: number; venues: ActiveVenue[] } | null = null;
+export interface VenueDirectory {
+  /** 可查房：is_active && show_on_portal≠false */
+  active: ActiveVenue[];
+  /** 隱藏／停用館：僅供辨識館名後婉拒，不可查房 */
+  hidden: ActiveVenue[];
+}
 
-/** 上架館名單（函式內快取 60 秒） */
-export async function loadActiveVenues(sb: SupabaseClient): Promise<ActiveVenue[]> {
-  if (cache && Date.now() - cache.t < 60_000) return cache.venues;
+let cache: { t: number; dir: VenueDirectory } | null = null;
+
+/** 館別名單（函式內快取 60 秒） */
+export async function loadVenueDirectory(sb: SupabaseClient): Promise<VenueDirectory> {
+  if (cache && Date.now() - cache.t < 60_000) return cache.dir;
   const { data } = await sb
     .from("accommodation_info")
-    .select("id, name, short_name, region_1, region_2, is_active, show_on_portal")
-    .eq("is_active", true);
+    .select("id, name, short_name, region_1, region_2, is_active, show_on_portal");
+  const dir: VenueDirectory = { active: [], hidden: [] };
   // deno-lint-ignore no-explicit-any
-  const venues = (data || []).filter((a: any) => a.show_on_portal !== false) as ActiveVenue[];
-  cache = { t: Date.now(), venues };
-  return venues;
+  for (const a of (data || []) as any[]) {
+    (a.is_active === true && a.show_on_portal !== false ? dir.active : dir.hidden).push(a as ActiveVenue);
+  }
+  cache = { t: Date.now(), dir };
+  return dir;
 }
+
+/** 上架館名單（查房範圍與入口顯示綁定） */
+export async function loadActiveVenues(sb: SupabaseClient): Promise<ActiveVenue[]> {
+  return (await loadVenueDirectory(sb)).active;
+}
+
+/** 文字是否指向隱藏／停用館（與上架館一起比最長命中，命中隱藏館才回傳） */
+export function matchHiddenVenue(text: string, dir: VenueDirectory): { id: string; name: string } | undefined {
+  const hit = matchVenue(text, [...dir.active, ...dir.hidden]);
+  return hit && dir.hidden.some((h) => h.id === hit.id) ? hit : undefined;
+}
+
+export const HIDDEN_VENUE_REPLY = (name: string) =>
+  `不好意思，目前無法透過線上客服預訂「${name}」🙏 如需協助請直接聯繫館方；也可以告訴我其他想住的館別或地區，我再幫你找！`;
 
 /** 從文字找出指定館別（取最長命中別名） */
 export function matchVenue(text: string, venues: ActiveVenue[]): { id: string; name: string } | undefined {

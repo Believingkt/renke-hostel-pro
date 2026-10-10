@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
-import { matchVenue } from "../_shared/venueMatch.ts";
+import { HIDDEN_VENUE_REPLY, loadVenueDirectory, matchHiddenVenue, matchVenue } from "../_shared/venueMatch.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
 import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
@@ -249,7 +249,11 @@ serve(async (req) => {
       const m = [...(messages || [])].reverse().find((x: any) => x.role === 'user');
       return typeof m?.content === 'string' ? m.content : '';
     })();
-    const matchedVenue = matchVenue(lastUserForVenue, accommodationList as any);
+    const venueDir = await loadVenueDirectory(supabase);
+    // 提到隱藏／停用館：不查房、不以他館冒充
+    const hiddenVenue = matchHiddenVenue(lastUserForVenue, venueDir);
+    const matchedVenue = hiddenVenue ? undefined : matchVenue(lastUserForVenue, accommodationList as any);
+    const isBookableAcc = (id: string) => accommodationList.some((a: any) => a.id === id);
     const accommodationMap = new Map(accommodationList.map(a => [a.id, a]));
 
 
@@ -316,7 +320,12 @@ serve(async (req) => {
       console.log(`Portal tool: ${toolName}`, args);
 
       if (toolName === "get_available_rooms") {
+        if (hiddenVenue) return { rooms: [], message: HIDDEN_VENUE_REPLY(hiddenVenue.name) };
         const targetAccId = args?.accommodation_id || matchedVenue?.id;
+        // 查房範圍與入口顯示綁定：隱藏／停用館一律不可查
+        if (targetAccId && UUID_REGEX.test(targetAccId) && !isBookableAcc(targetAccId)) {
+          return { rooms: [], message: "此館目前無法透過線上客服預訂" };
+        }
         const hasDateRange = Boolean(args?.check_in_date && args?.check_out_date);
 
         let roomTypesQuery = supabase
@@ -641,6 +650,9 @@ serve(async (req) => {
         if (!accId || !UUID_REGEX.test(accId)) {
           return { success: false, message: "請先選擇要預訂的民宿" };
         }
+        if (!isBookableAcc(accId)) {
+          return { success: false, message: "此館目前無法透過線上客服預訂" };
+        }
         if (!args.guest_name || args.guest_name.trim().length < 2) {
           return { success: false, message: "請提供有效的姓名（至少2個字）" };
         }
@@ -912,7 +924,10 @@ ${accListStr}
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
 - create_booking：建訂單
-${TRIP_CARD_PROMPT_RULE}${matchedVenue ? `
+${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
+
+## 客人提到的館別目前不開放線上預訂（系統比對，必須遵守）：
+- 「${hiddenVenue.name}」目前無法透過線上客服預訂。請友善告知（可參考：${HIDDEN_VENUE_REPLY(hiddenVenue.name)}），不要查房、不要列出或推薦其他館房型冒充，也不要沿用先前對話的館別。` : ''}${matchedVenue ? `
 
 ## 客人指定館別（系統比對，必須遵守）：
 - 客人指定館別：${matchedVenue.name}（ID: ${matchedVenue.id}），查房必須帶此 accommodation_id，不可改推其他館（除非該館無房，需先明說）` : ''}`;

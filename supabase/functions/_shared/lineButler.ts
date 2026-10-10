@@ -7,7 +7,7 @@
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { parseIntent, type ParsedIntent, type TripAttributes, type TripScenario } from "./lineIntent.ts";
-import { loadActiveVenues, matchVenue } from "./venueMatch.ts";
+import { HIDDEN_VENUE_REPLY, loadActiveVenues, loadVenueDirectory, matchHiddenVenue, matchVenue } from "./venueMatch.ts";
 import { taipeiToday } from "./taipeiDate.ts";
 import { askLlm, logLineConversation } from "./lineLlm.ts";
 import {
@@ -933,7 +933,8 @@ async function handleText(
   today: string,
   memberUserId: string | null,
 ): Promise<ButlerReply> {
-  const venues = await loadActiveVenues(sb);
+  const venueDir = await loadVenueDirectory(sb);
+  const venues = venueDir.active;
   const parsed: ParsedIntent = parseIntent(text, today, venues);
 
   if (parsed.intent === "reset") {
@@ -945,10 +946,19 @@ async function handleText(
     return { messages: [textMsg("購物車已清空 🛒")] };
   }
 
+  // 提到隱藏／停用館：友善婉拒，清掉舊館別，不列他館房型
+  const hiddenHit = matchHiddenVenue(text, venueDir);
+  if (hiddenHit) {
+    await saveSession(sb, lineUserId, { ...state, venueId: undefined, venueLabel: undefined, venue: undefined }, "hidden_venue");
+    return { messages: [textMsg(HIDDEN_VENUE_REPLY(hiddenHit.name))] };
+  }
+
   // 館別：本次訊息有提到就覆蓋 session；舊 session 只有館名時轉成 venueId
   const legacyVenue = !state.venueId && state.venue ? matchVenue(state.venue, venues) : undefined;
-  const sessionVenueId = state.venueId ?? legacyVenue?.id;
-  const sessionVenueLabel = state.venueId ? state.venueLabel : legacyVenue?.name;
+  // session 館別若已被隱藏／停用則丟棄，不沿用
+  const rawSessionVenueId = state.venueId ?? legacyVenue?.id;
+  const sessionVenueId = rawSessionVenueId && venues.some((v) => v.id === rawSessionVenueId) ? rawSessionVenueId : undefined;
+  const sessionVenueLabel = !sessionVenueId ? undefined : state.venueId ? state.venueLabel : legacyVenue?.name;
   const mergedAttrs: TripAttributes = { ...(state.tripAttributes || {}), ...(parsed.tripAttributes || {}) };
   const next: ButlerState = {
     ...state,
