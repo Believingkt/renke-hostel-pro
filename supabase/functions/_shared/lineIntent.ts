@@ -11,6 +11,8 @@ export type ButlerIntent =
   | "favorites"
   | "checkout"
   | "trip_plan"
+  | "clear_cart"
+  | "reset"
   | "unknown";
 
 export type TripScenario = "family" | "couple" | "friends" | "villa" | "outdoor";
@@ -149,6 +151,8 @@ export function extractOccupancy(text: string): { adults?: number; children?: nu
 const ADDON_KEYWORDS = /票券|門票|加購|體驗|餐券|早餐|晚餐|燒烤|BBQ|下午茶|接送|導覽|活動|景點/i;
 const FAVORITE_KEYWORDS = /收藏|願望|口袋/;
 const CHECKOUT_KEYWORDS = /結帳|付款|下訂|訂房確認|去結帳|買單/;
+const CLEAR_CART_KEYWORDS = /^(清空|清除)購物車$/;
+const RESET_KEYWORDS = /^(重新開始|重來|重置)$/;
 const GREETING_KEYWORDS = /^(hi|hello|你好|哈囉|嗨|安安|在嗎)/i;
 /** 知識／政策類（優先攔截，交給 LLM 知識問答） */
 const POLICY_KEYWORDS =
@@ -226,7 +230,9 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   const policyOnly = POLICY_KEYWORDS.test(t) && !bookingSignal;
 
   let intent: ButlerIntent = "unknown";
-  if (policyOnly) intent = "unknown"; // 知識／政策問答一律交給 LLM
+  if (RESET_KEYWORDS.test(t)) intent = "reset";
+  else if (CLEAR_CART_KEYWORDS.test(t)) intent = "clear_cart";
+  else if (policyOnly) intent = "unknown"; // 知識／政策問答一律交給 LLM
   else if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
   else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";

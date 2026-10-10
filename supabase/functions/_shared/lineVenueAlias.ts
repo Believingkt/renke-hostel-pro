@@ -16,7 +16,19 @@ export const VENUE_ALIASES: VenueAlias[] = [
   { canonical: "天送", label: "天送", aliases: ["天送埤", "天送"] },
   { canonical: "奧莉薇雅", label: "奧莉薇雅生活小酒店", aliases: ["奧莉薇雅生活小酒店", "奧莉薇雅", "奧莉薇", "olivia"] },
   { canonical: "旅行日", label: "旅行日", aliases: ["旅行日"] },
+  { canonical: "櫻家", label: "櫻家小築", aliases: ["櫻家小築", "櫻家"] },
 ];
+
+/** 以 DB 上架館完整名稱比對（取最長命中） */
+export function matchVenueByName(text: string, names: string[]): string | undefined {
+  const t = (text || "").toLowerCase();
+  let best: string | undefined;
+  for (const n of names) {
+    const name = (n || "").trim();
+    if (name.length >= 2 && t.includes(name.toLowerCase()) && (!best || name.length > best.length)) best = name;
+  }
+  return best;
+}
 
 /** 從文字中找出指定館別（取最長的命中別名，避免「森山」蓋過「森山寫照」） */
 export function matchVenueAlias(text: string): VenueAlias | undefined {

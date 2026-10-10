@@ -7,7 +7,7 @@
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { parseIntent, type ParsedIntent, type TripAttributes, type TripScenario } from "./lineIntent.ts";
-import { VENUE_ALIASES, accommodationMatchesVenue } from "./lineVenueAlias.ts";
+import { VENUE_ALIASES, accommodationMatchesVenue, matchVenueByName, type VenueAlias } from "./lineVenueAlias.ts";
 import { taipeiToday } from "./taipeiDate.ts";
 import { askLlm, logLineConversation } from "./lineLlm.ts";
 import {
@@ -448,7 +448,10 @@ export async function findRoomsDetailed(
   const all = await activeAccommodations(sb);
   if (all.length === 0) return { offers: [], venueResolved: false, alternatives: [] };
 
-  const venueAlias = opts.venue ? VENUE_ALIASES.find((v) => v.canonical === opts.venue) : undefined;
+  // 靜態別名找不到時，視為 DB 館名直接篩選
+  const venueAlias: VenueAlias | undefined = opts.venue
+    ? VENUE_ALIASES.find((v) => v.canonical === opts.venue) ?? { canonical: opts.venue, label: opts.venue, aliases: [opts.venue] }
+    : undefined;
 
   // 1) 指定館別 → 只查該館
   if (venueAlias) {
@@ -936,6 +939,22 @@ async function handleText(
   memberUserId: string | null,
 ): Promise<ButlerReply> {
   const parsed: ParsedIntent = parseIntent(text, today);
+
+  if (parsed.intent === "reset") {
+    await saveSession(sb, lineUserId, {}, "reset");
+    return { messages: [textMsg("好的，已重新開始 🧸 館別、日期、人數與購物車都清空了（收藏不受影響）。想住哪裡、哪幾天呢？")] };
+  }
+  if (parsed.intent === "clear_cart") {
+    await saveSession(sb, lineUserId, { ...state, cart: [] }, "clear_cart");
+    return { messages: [textMsg("購物車已清空 🛒")] };
+  }
+
+  // 館別：本次訊息的 DB 上架館完整名稱優先，其次靜態別名；有提到就覆蓋 session 館別
+  const dbVenue = matchVenueByName(text, (await activeAccommodations(sb)).map((a) => a.name ?? ""));
+  if (dbVenue) {
+    parsed.venue = dbVenue;
+    parsed.venueLabel = dbVenue;
+  }
   const mergedAttrs: TripAttributes = { ...(state.tripAttributes || {}), ...(parsed.tripAttributes || {}) };
   const next: ButlerState = {
     ...state,
@@ -1004,7 +1023,13 @@ async function handleText(
       const scope = result.venueResolved && result.venueLabel ? `${result.venueLabel} ` : "";
       if (result.offers.length > 0) {
         const guestNote = next.guests ? `（${next.guests} 人適合的優先）` : "";
+        const cartStay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
+        if (cartStay && result.venueResolved && result.offers.every((o) => o.accommodationId !== cartStay.accommodationId)) {
+          const newName = result.offers[0].accommodationName || result.venueLabel;
+          messages.push(textMsg(`購物車目前是〔${cartStay.accommodationName}〕的房型；選〔${newName}〕的房間後，原本${cartStay.accommodationName}的房型與加購會被移除`));
+        }
         messages = [
+          ...messages,
           textMsg(`${scope}找到 ${result.offers.length} 間有空的房型 ✨ 幫你按價格排好了${guestNote}`),
           roomCarousel(result.offers, next.checkIn, next.checkOut, nights),
         ];
@@ -1252,8 +1277,11 @@ async function handlePostback(
         (new Date(`${checkOut}T00:00:00Z`).getTime() - new Date(`${checkIn}T00:00:00Z`).getTime()) / 86400000,
       ),
     );
+    const prevStay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
+    const switchedVenue = !!prevStay && prevStay.accommodationId !== picked.accommodationId;
     next.cart = [
-      ...(next.cart || []).filter((i) => i.kind !== "stay"),
+      // 換館：移除舊館房型與館別加購；同館換房只換 stay
+      ...(next.cart || []).filter((i) => i.kind !== "stay" && !(switchedVenue && i.kind === "venue_addon")),
       {
         kind: "stay",
         roomTypeId: picked.roomTypeId,
@@ -1274,7 +1302,9 @@ async function handlePostback(
     next.checkOut = checkOut;
     await saveSession(sb, lineUserId, next, "pick_room");
     const venueAddons = await fetchVenueAddons(sb, picked.accommodationId);
-    const msgs: OutgoingMessage[] = [textMsg(`收到！${picked.name} 已放進購物車 🛒`)];
+    const msgs: OutgoingMessage[] = [];
+    if (switchedVenue) msgs.push(textMsg(`已換成〔${picked.accommodationName}〕，原〔${prevStay!.accommodationName}〕的房型與加購已移除`));
+    msgs.push(textMsg(`收到！${picked.name} 已放進購物車 🛒`));
     if (venueAddons.length) {
       for (const a of venueAddons) {
         void writeMetric(sb, { event_type: "addon_rec_shown", ref_type: "addon_setting", ref_id: a.addonType, accommodation_id: picked.accommodationId, channel: "line", line_user_id: lineUserId });
