@@ -7,7 +7,7 @@
  */
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { parseIntent, type ParsedIntent, type TripAttributes, type TripScenario } from "./lineIntent.ts";
-import { VENUE_ALIASES, accommodationMatchesVenue, matchVenueByName, type VenueAlias } from "./lineVenueAlias.ts";
+import { loadActiveVenues, matchVenue } from "./venueMatch.ts";
 import { taipeiToday } from "./taipeiDate.ts";
 import { askLlm, logLineConversation } from "./lineLlm.ts";
 import {
@@ -75,6 +75,8 @@ export interface ButlerState {
   adults?: number;
   children?: number;
   keyword?: string;
+  venueId?: string;
+  /** 舊版 session 只存館名（canonical），讀取時轉成 venueId */
   venue?: string;
   venueLabel?: string;
   scenario?: TripScenario;
@@ -426,12 +428,8 @@ async function buildOffers(
   return offers.slice(0, opts.limit ?? 5);
 }
 
-async function activeAccommodations(sb: SupabaseClient) {
-  const { data } = await sb
-    .from("accommodation_info")
-    .select("id, name, region_1, region_2, is_active, show_on_portal")
-    .eq("is_active", true);
-  return (data || []).filter((a) => a.show_on_portal !== false);
+function activeAccommodations(sb: SupabaseClient) {
+  return loadActiveVenues(sb);
 }
 
 export async function findRoomsDetailed(
@@ -441,21 +439,17 @@ export async function findRoomsDetailed(
     checkOut: string;
     guests?: number;
     keyword?: string;
-    venue?: string;
+    venueId?: string;
+    venueLabel?: string;
     limit?: number;
   },
 ): Promise<FindRoomsResult> {
   const all = await activeAccommodations(sb);
   if (all.length === 0) return { offers: [], venueResolved: false, alternatives: [] };
 
-  // 靜態別名找不到時，視為 DB 館名直接篩選
-  const venueAlias: VenueAlias | undefined = opts.venue
-    ? VENUE_ALIASES.find((v) => v.canonical === opts.venue) ?? { canonical: opts.venue, label: opts.venue, aliases: [opts.venue] }
-    : undefined;
-
-  // 1) 指定館別 → 只查該館
-  if (venueAlias) {
-    const scoped = all.filter((a) => accommodationMatchesVenue(a.name, venueAlias));
+  // 1) 指定館別（accommodation_id）→ 只查該館
+  if (opts.venueId) {
+    const scoped = all.filter((a) => a.id === opts.venueId);
     if (scoped.length > 0) {
       const offers = await buildOffers(sb, scoped, opts);
       let alternatives: RoomOffer[] = [];
@@ -463,7 +457,7 @@ export async function findRoomsDetailed(
         const others = all.filter((a) => !scoped.some((s) => s.id === a.id));
         alternatives = await buildOffers(sb, others, { ...opts, limit: 3 });
       }
-      return { offers, venueResolved: true, venueLabel: venueAlias.label, alternatives };
+      return { offers, venueResolved: true, venueLabel: opts.venueLabel || scoped[0].name || "", alternatives };
     }
   }
 
@@ -481,7 +475,7 @@ export async function findRoomsDetailed(
     if (matched.length > 0) accList = matched;
   }
   const offers = await buildOffers(sb, accList, opts);
-  return { offers, venueResolved: false, venueLabel: venueAlias?.label, alternatives: [] };
+  return { offers, venueResolved: false, venueLabel: opts.venueLabel, alternatives: [] };
 }
 
 export async function findRooms(
@@ -491,7 +485,8 @@ export async function findRooms(
     checkOut: string;
     guests?: number;
     keyword?: string;
-    venue?: string;
+    venueId?: string;
+    venueLabel?: string;
     limit?: number;
   },
 ): Promise<RoomOffer[]> {
@@ -938,7 +933,8 @@ async function handleText(
   today: string,
   memberUserId: string | null,
 ): Promise<ButlerReply> {
-  const parsed: ParsedIntent = parseIntent(text, today);
+  const venues = await loadActiveVenues(sb);
+  const parsed: ParsedIntent = parseIntent(text, today, venues);
 
   if (parsed.intent === "reset") {
     await saveSession(sb, lineUserId, {}, "reset");
@@ -949,12 +945,10 @@ async function handleText(
     return { messages: [textMsg("購物車已清空 🛒")] };
   }
 
-  // 館別：本次訊息的 DB 上架館完整名稱優先，其次靜態別名；有提到就覆蓋 session 館別
-  const dbVenue = matchVenueByName(text, (await activeAccommodations(sb)).map((a) => a.name ?? ""));
-  if (dbVenue) {
-    parsed.venue = dbVenue;
-    parsed.venueLabel = dbVenue;
-  }
+  // 館別：本次訊息有提到就覆蓋 session；舊 session 只有館名時轉成 venueId
+  const legacyVenue = !state.venueId && state.venue ? matchVenue(state.venue, venues) : undefined;
+  const sessionVenueId = state.venueId ?? legacyVenue?.id;
+  const sessionVenueLabel = state.venueId ? state.venueLabel : legacyVenue?.name;
   const mergedAttrs: TripAttributes = { ...(state.tripAttributes || {}), ...(parsed.tripAttributes || {}) };
   const next: ButlerState = {
     ...state,
@@ -965,8 +959,9 @@ async function handleText(
     adults: parsed.adults ?? state.adults,
     children: parsed.children ?? state.children,
     keyword: parsed.keyword ?? state.keyword,
-    venue: parsed.venue ?? state.venue,
-    venueLabel: parsed.venueLabel ?? state.venueLabel,
+    venueId: parsed.venueId ?? sessionVenueId,
+    venueLabel: parsed.venueId ? parsed.venueLabel : sessionVenueLabel,
+    venue: undefined,
     scenario: parsed.scenario ?? state.scenario,
     tripAttributes: mergedAttrs,
   };
@@ -1018,7 +1013,8 @@ async function handleText(
         checkOut: next.checkOut,
         guests: next.guests,
         keyword: next.keyword,
-        venue: next.venue,
+        venueId: next.venueId,
+        venueLabel: next.venueLabel,
       });
       const scope = result.venueResolved && result.venueLabel ? `${result.venueLabel} ` : "";
       if (result.offers.length > 0) {

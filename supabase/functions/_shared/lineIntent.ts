@@ -2,7 +2,7 @@
  * 小安（LINE 管家）意圖解析 — 從 portal-ai-chat 抽出的「最小必要」規則式解析。
  * 不改動 portal-ai-chat；此處僅供 line-webhook 使用。
  */
-import { matchVenueAlias } from "./lineVenueAlias.ts";
+import { matchVenue, type ActiveVenue } from "./venueMatch.ts";
 
 export type ButlerIntent =
   | "greeting"
@@ -36,7 +36,7 @@ export interface ParsedIntent {
   adults?: number;
   children?: number;
   keyword?: string; // 地區 / 館別關鍵字
-  venue?: string; // 指定館別 canonical（例：森山）
+  venueId?: string; // 指定館別 accommodation_id（DB 即時名單比對）
   venueLabel?: string; // 指定館別顯示名稱
   scenario?: TripScenario; // 行程情境（包棟 → villa）
   tripAttributes?: TripAttributes;
@@ -218,12 +218,12 @@ export function extractTripAttributes(text: string, today: string): TripAttribut
   return attrs;
 }
 
-export function parseIntent(text: string, today: string): ParsedIntent {
+export function parseIntent(text: string, today: string, venues: ActiveVenue[] = []): ParsedIntent {
   const t = (text || "").trim();
   const dates = extractDates(t, today);
   const occ = extractOccupancy(t);
   const guests = occ.total;
-  const venueAliasEarly = matchVenueAlias(t);
+  const venueHit = matchVenue(t, venues);
 
   // 明確訂房訊號：新日期 / 人數 / 房型館別 / 明確查訂房措辭
   const bookingSignal = Boolean(dates.checkIn) || Boolean(guests) || SEARCH_KEYWORDS.test(t);
@@ -238,14 +238,12 @@ export function parseIntent(text: string, today: string): ParsedIntent {
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
   else if (ADDON_KEYWORDS.test(t)) intent = "addon";
   // 查房（含館別關鍵字）優先序永遠高於行程意圖
-  else if (SEARCH_KEYWORDS.test(t) || venueAliasEarly) intent = "search_rooms";
+  else if (SEARCH_KEYWORDS.test(t) || venueHit) intent = "search_rooms";
   else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
   else if (dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
 
 
-  // 館別（常用簡稱）
-  const venueAlias = matchVenueAlias(t);
 
   // 地區 / 館別關鍵字（去除日期人數雜訊後的中文詞）
   const cleaned = t
@@ -262,8 +260,8 @@ export function parseIntent(text: string, today: string): ParsedIntent {
     adults: occ.adults,
     children: occ.children,
     keyword,
-    venue: venueAlias?.canonical,
-    venueLabel: venueAlias?.label,
+    venueId: venueHit?.id,
+    venueLabel: venueHit?.name,
     scenario: detectScenario(t),
     tripAttributes: extractTripAttributes(t, today),
   };

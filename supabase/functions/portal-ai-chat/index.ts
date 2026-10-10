@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { matchVenue } from "../_shared/venueMatch.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
 import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
@@ -203,7 +204,7 @@ serve(async (req) => {
 
     const accommodationsPromise = cached('accommodations', () => supabase
       .from('accommodation_info')
-      .select('id, name, address, region_1, region_2, type, phone')
+      .select('id, name, short_name, address, region_1, region_2, type, phone, show_on_portal')
       .eq('is_active', true)
       .order('display_order', { ascending: true, nullsFirst: false }).then(r => r));
     const knowledgePromise = cached(`knowledge:${scopeKey}`, () => scoped(supabase
@@ -241,7 +242,14 @@ serve(async (req) => {
 
     const { data: allAccommodations } = await accommodationsPromise;
 
-    const accommodationList = allAccommodations || [];
+    // 只列上架館（is_active && show_on_portal≠false）
+    const accommodationList = (allAccommodations || []).filter((a: any) => a.show_on_portal !== false);
+    // 館別由程式比對最後一則客人訊息（與 LINE 共用 matchVenue）；未命中交給 LLM 依名單判斷
+    const lastUserForVenue = (() => {
+      const m = [...(messages || [])].reverse().find((x: any) => x.role === 'user');
+      return typeof m?.content === 'string' ? m.content : '';
+    })();
+    const matchedVenue = matchVenue(lastUserForVenue, accommodationList as any);
     const accommodationMap = new Map(accommodationList.map(a => [a.id, a]));
 
 
@@ -308,7 +316,7 @@ serve(async (req) => {
       console.log(`Portal tool: ${toolName}`, args);
 
       if (toolName === "get_available_rooms") {
-        const targetAccId = args?.accommodation_id;
+        const targetAccId = args?.accommodation_id || matchedVenue?.id;
         const hasDateRange = Boolean(args?.check_in_date && args?.check_out_date);
 
         let roomTypesQuery = supabase
@@ -904,7 +912,10 @@ ${accListStr}
 - get_available_rooms：查房型/價格
 - check_discount_code：驗折扣碼
 - create_booking：建訂單
-${TRIP_CARD_PROMPT_RULE}`;
+${TRIP_CARD_PROMPT_RULE}${matchedVenue ? `
+
+## 客人指定館別（系統比對，必須遵守）：
+- 客人指定館別：${matchedVenue.name}（ID: ${matchedVenue.id}），查房必須帶此 accommodation_id，不可改推其他館（除非該館無房，需先明說）` : ''}`;
 
 
     // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
