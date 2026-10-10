@@ -987,13 +987,16 @@ async function handleText(
       : [textMsg("購物車還是空的耶 😅 先跟我說日期跟人數，我幫你找房！")];
   } else if (parsed.intent === "addon") {
     const stay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
-    const accId = stay?.accommodationId ?? null;
+    // 館別：購物車房型 → 本次或 session 指定館
+    const accId = stay?.accommodationId ?? next.venueId ?? null;
     const venueAddons = await fetchVenueAddons(sb, accId, next.keyword);
-    if (venueAddons.length) {
-      for (const a of venueAddons) {
-        void writeMetric(sb, { event_type: "addon_rec_shown", ref_type: "addon_setting", ref_id: a.addonType, accommodation_id: accId, channel: "line", line_user_id: lineUserId });
-      }
-      messages = [textMsg("這些是這間可加購的項目 🎁 想要哪個？"), venueAddonCarousel(venueAddons)];
+    if (!accId) {
+      messages = [textMsg("想加購哪一館的項目呢？告訴我館名或先查房 😊")];
+    } else if (venueAddons.length) {
+      trackVenueAddonShown(sb, lineUserId, accId, venueAddons);
+      messages = stay
+        ? [textMsg("這些是這間可加購的項目 🎁 想要哪個？"), venueAddonCarousel(venueAddons)]
+        : [textMsg(`〔${next.venueLabel ?? "這間"}〕可加購以下項目，先選房間後即可加購 🎁`), venueAddonCarousel(venueAddons)];
     } else {
       // 次要來源：使用者明確提到票券/行程/體驗才查 trip_products（限該館）
       const wantsTicket = /票券|門票|行程|體驗|景點/.test(next.keyword ?? "");
@@ -1039,6 +1042,22 @@ async function handleText(
           textMsg(`${scope}找到 ${result.offers.length} 間有空的房型 ✨ 幫你按價格排好了${guestNote}`),
           roomCarousel(result.offers, next.checkIn, next.checkOut, nights),
         ];
+        // 同句也想加購：館別取指定館，否則查到的房全在同一館才列
+        if (parsed.wantsAddon) {
+          const accIds = [...new Set(result.offers.map((o) => o.accommodationId))];
+          const addonAccId = next.venueId ?? (accIds.length === 1 ? accIds[0] : null);
+          const addonAccName = next.venueLabel ?? result.offers.find((o) => o.accommodationId === addonAccId)?.accommodationName ?? "這間";
+          const list = addonAccId
+            ? await fetchVenueAddons(sb, addonAccId, next.keyword, { prioritize: true, limit: 5 })
+            : [];
+          if (list.length) {
+            trackVenueAddonShown(sb, lineUserId, addonAccId!, list);
+            messages.push(textMsg(`〔${addonAccName}〕可加購以下項目，先選房間後即可加購 🎁`), venueAddonCarousel(list));
+          } else if (!addonAccId) {
+            messages.push(textMsg("先選好房間，我再列出那間可加購的項目 🎁"));
+          }
+          messages = messages.slice(0, 5);
+        }
       } else if (result.venueResolved && result.venueLabel) {
         messages = [
           textMsg(`${result.venueLabel} ${next.checkIn}–${next.checkOut} 目前沒有可訂房型 😢`),
@@ -1124,6 +1143,13 @@ const ADDON_SYNONYMS: { match: RegExp; terms: string[] }[] = [
   { match: /體驗|手作|diy/i, terms: ["體驗", "手作", "diy", "experience"] },
   { match: /接送|導覽/, terms: ["接送", "導覽", "shuttle", "guide"] },
 ];
+
+/** 館別加購卡曝光埋點（accommodation_id＝實際查詢的館） */
+function trackVenueAddonShown(sb: SupabaseClient, lineUserId: string, accId: string, list: VenueAddon[]) {
+  for (const a of list) {
+    void writeMetric(sb, { event_type: "addon_rec_shown", ref_type: "addon_setting", ref_id: a.addonType, accommodation_id: accId, channel: "line", line_user_id: lineUserId });
+  }
+}
 
 /** 加購卡曝光埋點：每個品項記一次 addon_rec_shown（channel=line） */
 function trackAddonShown(sb: SupabaseClient, lineUserId: string, products: AddonProduct[]) {

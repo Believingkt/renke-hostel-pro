@@ -37,7 +37,7 @@ export async function fetchVenueAddons(
   sb: SupabaseClient,
   accId: string | null | undefined,
   keyword?: string | null,
-  opts: { strict?: boolean } = {},
+  opts: { strict?: boolean; prioritize?: boolean; limit?: number } = {},
 ): Promise<VenueAddon[]> {
   if (!accId) return [];
   const { data } = await sb
@@ -64,7 +64,10 @@ export async function fetchVenueAddons(
   const matched = terms.length
     ? all.filter((v) => terms.some((t) => `${v.name} ${v.addonType}`.toLowerCase().includes(t)))
     : [];
-  if (matched.length) return matched.slice(0, 10);
+  const limit = opts.limit ?? 10;
+  // prioritize：關鍵字命中者在前，其餘補滿
+  if (opts.prioritize) return [...matched, ...all.filter((v) => !matched.includes(v))].slice(0, limit);
+  if (matched.length) return matched.slice(0, limit);
   if (opts.strict && terms.length) return [];
-  return all.slice(0, 10);
+  return all.slice(0, limit);
 }

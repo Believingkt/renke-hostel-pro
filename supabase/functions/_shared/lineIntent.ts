@@ -40,6 +40,8 @@ export interface ParsedIntent {
   venueLabel?: string; // 指定館別顯示名稱
   scenario?: TripScenario; // 行程情境（包棟 → villa）
   tripAttributes?: TripAttributes;
+  /** 查房同時提到加購（先出房型卡再列加購） */
+  wantsAddon?: boolean;
 }
 
 function pad(n: number) {
@@ -148,7 +150,7 @@ export function extractOccupancy(text: string): { adults?: number; children?: nu
   return {};
 }
 
-const ADDON_KEYWORDS = /票券|門票|加購|體驗|餐券|早餐|晚餐|燒烤|BBQ|下午茶|接送|導覽|活動|景點/i;
+const ADDON_KEYWORDS = /票券|門票|加購|加床|加人|體驗|餐券|早餐|晚餐|燒烤|BBQ|下午茶|接送|導覽|活動|景點/i;
 const FAVORITE_KEYWORDS = /收藏|願望|口袋/;
 const CHECKOUT_KEYWORDS = /結帳|付款|下訂|訂房確認|去結帳|買單/;
 const CLEAR_CART_KEYWORDS = /^(清空|清除)購物車$/;
@@ -236,7 +238,8 @@ export function parseIntent(text: string, today: string, venues: ActiveVenue[] =
   else if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
   else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
-  else if (ADDON_KEYWORDS.test(t)) intent = "addon";
+  // 加購詞＋訂房訊號（日期／人數／館名／查房詞）→ 先查房，並標記也想加購
+  else if (ADDON_KEYWORDS.test(t)) intent = bookingSignal || venueHit ? "search_rooms" : "addon";
   // 查房（含館別關鍵字）優先序永遠高於行程意圖
   else if (SEARCH_KEYWORDS.test(t) || venueHit) intent = "search_rooms";
   else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
@@ -264,6 +267,7 @@ export function parseIntent(text: string, today: string, venues: ActiveVenue[] =
     venueLabel: venueHit?.name,
     scenario: detectScenario(t),
     tripAttributes: extractTripAttributes(t, today),
+    wantsAddon: intent === "search_rooms" && ADDON_KEYWORDS.test(t),
   };
 }
 
