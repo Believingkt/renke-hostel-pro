@@ -20,6 +20,8 @@ import {
 } from "./lineTrip.ts";
 import { writeMetric } from "./metric.ts";
 import { lowestPackagePricesForRooms } from "./packagePricing.ts";
+import { fetchVenueAddons, type VenueAddon } from "./venueAddons.ts";
+export { fetchVenueAddons, type VenueAddon };
 
 export interface ButlerCartStay {
   kind: "stay";
@@ -531,11 +533,6 @@ function localizedName(v: any, fallback = "加購項目"): string {
   return fallback;
 }
 
-/** addon_settings.addon_type 已是自由文字品名；僅做基本清理 */
-function cleanAddonName(t?: string | null): string {
-  const s = String(t ?? "").trim();
-  return s || "加購項目";
-}
 
 /** 加購分類英文代碼 → 中文標籤 */
 function addonTypeLabel(type?: string | null): string {
@@ -685,56 +682,6 @@ export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
     },
   };
 }
-
-/** 館別原生加購（addon_settings） */
-export interface VenueAddon {
-  addonType: string;
-  name: string;
-  pricePerUnit: number;
-  unitLabel: string;
-  minQty: number;
-  maxQty: number;
-  pricingMode: "per_night" | "per_stay";
-}
-
-/** 讀該館 addon_settings（啟用且上架），依關鍵字優先；查無關鍵字命中則回全部（≤10） */
-export async function fetchVenueAddons(
-  sb: SupabaseClient,
-  accId: string | null | undefined,
-  keyword?: string | null,
-): Promise<VenueAddon[]> {
-  if (!accId) return [];
-  const { data } = await sb
-    .from("addon_settings")
-    .select("addon_type, price_per_unit, unit_label, min_quantity, max_quantity, pricing_mode, enabled, show_on_frontend, sort_order")
-    .eq("accommodation_id", accId)
-    .eq("enabled", true)
-    .order("sort_order", { ascending: true });
-  const all: VenueAddon[] = (data || [])
-    .filter((a: any) => a.show_on_frontend !== false)
-    .map((a: any) => ({
-      addonType: a.addon_type,
-      name: cleanAddonName(a.addon_type),
-      pricePerUnit: Number(a.price_per_unit ?? 0),
-      unitLabel: a.unit_label ?? "份",
-      minQty: Number(a.min_quantity ?? 0),
-      maxQty: Number(a.max_quantity ?? 10),
-      pricingMode: a.pricing_mode === "per_stay" ? "per_stay" : "per_night",
-    }));
-  const kw = keyword ?? "";
-  const terms = VENUE_ADDON_SYNONYMS.filter((s) => s.match.test(kw)).flatMap((s) => s.terms);
-  const matched = terms.length
-    ? all.filter((v) => terms.some((t) => `${v.name} ${v.addonType}`.toLowerCase().includes(t)))
-    : [];
-  return (matched.length ? matched : all).slice(0, 10);
-}
-
-const VENUE_ADDON_SYNONYMS: { match: RegExp; terms: string[] }[] = [
-  { match: /早餐|晚餐|餐券|餐食|下午茶|薄餅|吃/, terms: ["餐", "早餐", "晚餐", "下午茶", "薄餅", "buffet"] },
-  { match: /烤肉|bbq|炭|燒烤/i, terms: ["烤肉", "bbq", "炭", "炭烤", "燒烤", "木炭", "清潔"] },
-  { match: /寵物|毛小孩|狗|貓/, terms: ["寵物", "pet", "毛"] },
-  { match: /加床|加人|多一位|床/, terms: ["加床", "加人", "床"] },
-];
 
 /** 館別加購卡（addon_settings） */
 export function venueAddonCarousel(addons: VenueAddon[]): OutgoingMessage {

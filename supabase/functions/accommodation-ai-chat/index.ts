@@ -11,6 +11,8 @@ import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
 import { lowestPackagePricesForRooms } from "../_shared/packagePricing.ts";
+import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
+import { writeMetric } from "../_shared/metric.ts";
 
 
 const corsHeaders = {
@@ -126,6 +128,8 @@ serve(async (req) => {
 
     const body = await req.json();
     let { messages, session_id, skip_log } = body;
+    // 官網 widget 明確開啟才輸出 [ADDON_CARDS]；x-api-key 夥伴請求維持原格式
+    const wantAddonFeature = !apiKey && Array.isArray(body.features) && body.features.includes("addon_cards");
 
     if (!Array.isArray(messages) || messages.length === 0) {
       return new Response(JSON.stringify({ error: "messages required" }), {
@@ -273,6 +277,25 @@ serve(async (req) => {
 - 卡片與文字必須一致，兩者都以上表為準。`
       : "\n\n## 房況查詢說明\n- 客人尚未提供明確入住日期時，不要說出任何具體當日價格或剩餘間數，請先詢問日期。";
 
+    // 官網小安加購：LLM 前先查該館 addon_settings（strict），把 DB 事實注入 system
+    const lastUserForAddon = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === "user");
+      return typeof m?.content === "string" ? m.content : "";
+    })();
+    const wantAddonCards = wantAddonFeature && detectAddonIntent(lastUserForAddon);
+    const venueAddons: VenueAddon[] = wantAddonCards
+      ? await fetchVenueAddons(supabase, accommodationId, lastUserForAddon, { strict: true })
+      : [];
+    const addonBlock = !wantAddonCards
+      ? ""
+      : venueAddons.length
+        ? "\n\n## 本館可加購項目（資料庫即時，唯一依據）\n" +
+          venueAddons.map((a) =>
+            `- ${a.name}：${a.pricePerUnit > 0 ? `NT$${a.pricePerUnit}` : "免費"} / ${a.unitLabel}（${a.pricingMode === "per_night" ? "每晚計" : "每次計"}）`
+          ).join("\n") +
+          "\n- 只能介紹上列品項與價格，不可推薦他館或編造品項；系統會在文字後自動附上加購卡片，你不可自行輸出 [ADDON_CARDS]。"
+        : "\n\n## 本館加購查詢結果\n- 本館無相符加購，請照實告知客人目前沒有此加購，不可推薦他館或編造品項。";
+
     const MAX_SYSTEM_PROMPT_CHARS = 16000;
     const promptHead = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
@@ -281,7 +304,7 @@ serve(async (req) => {
     // accCtx（館別資料）永不被截；超過上限時只砍平台 ai_knowledge 尾端
     const assembleSystem = (kt: string) =>
       promptHead + dateBlock + accInfo + roomList + liveAvailabilityBlock + (accCtx as string) + kt + examplesText + tone + forbidden
-      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE;
+      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE + addonBlock;
     let systemMessage = assembleSystem(knowledgeText);
     if (systemMessage.length > MAX_SYSTEM_PROMPT_CHARS) {
       const overflow = systemMessage.length - MAX_SYSTEM_PROMPT_CHARS;
@@ -473,6 +496,32 @@ serve(async (req) => {
           }
 
 
+
+          // 串流結束後補上官網加購卡（addon_settings；選填區塊）
+          if (venueAddons.length) {
+            const addonCardsBlock = `\n\n[ADDON_CARDS]${JSON.stringify(venueAddons.map((a) => ({
+              addon_type: a.addonType,
+              name: a.name,
+              price_per_unit: a.pricePerUnit,
+              unit_label: a.unitLabel,
+              pricing_mode: a.pricingMode,
+              min: a.minQty,
+              max: a.maxQty,
+            })))}[/ADDON_CARDS]`;
+            fullContent += addonCardsBlock;
+            controller.enqueue(encoder.encode(
+              `data: ${JSON.stringify({ choices: [{ delta: { content: addonCardsBlock } }] })}\n\n`,
+            ));
+            for (const a of venueAddons) {
+              void writeMetric(supabase, {
+                event_type: "addon_rec_shown",
+                ref_type: "addon_setting",
+                ref_id: a.addonType,
+                accommodation_id: accommodationId,
+                channel: "web",
+              });
+            }
+          }
 
           console.log("[acc-ai-chat timing]", JSON.stringify({ total_ms: Math.round(performance.now() - tStart) }));
           controller.close();

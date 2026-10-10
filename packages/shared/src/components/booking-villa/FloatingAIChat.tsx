@@ -8,6 +8,7 @@ import { useToast } from "@lakeze/shared/hooks/use-toast";
 import { Link, useLocation } from "react-router-dom";
 import { parseRoomCards, RoomCardList } from "@lakeze/shared/components/ai/RoomCards";
 import { parseTripCards, TripCardList } from "@lakeze/shared/components/ai/TripCards";
+import { parseAddonCards, AddonCardList, withAddonPicks } from "@lakeze/shared/components/ai/AddonCards";
 import { useBookingLocale } from "@lakeze/shared/contexts/BookingLocaleContext";
 import AIConsentDialog from "@lakeze/shared/components/ai/AIConsentDialog";
 import AIDisclosureNote from "@lakeze/shared/components/ai/AIDisclosureNote";
@@ -138,6 +139,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
         body: JSON.stringify({
           accommodation_id: accommodationId,
           messages: next.map(({ role, content }) => ({ role, content })),
+          features: ["addon_cards"],
         }),
       });
 
@@ -195,6 +197,10 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
     } finally {
       setLoading(false);
     }
+  };
+
+  const onAddonAdded = () => {
+    toast({ title: "已加入，選擇房型後會一起帶入訂房頁" });
   };
 
   const clearHistory = async () => {
@@ -328,9 +334,9 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
                 )}
 
                 {messages.map((m, i) => (
-                  <MessageBubble key={m.id || i} role={m.role} content={m.content} />
+                  <MessageBubble key={m.id || i} role={m.role} content={m.content} accommodationId={accommodationId} onAddonAdded={onAddonAdded} />
                 ))}
-                {streaming && <MessageBubble role="assistant" content={streaming} />}
+                {streaming && <MessageBubble role="assistant" content={streaming} accommodationId={accommodationId} onAddonAdded={onAddonAdded} />}
                 {loading && !streaming && (
                   <div className="flex gap-1 items-center text-muted-foreground text-sm pl-1">
                     <span className="w-1.5 h-1.5 bg-current rounded-full animate-bounce" />
@@ -390,9 +396,15 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
   );
 }
 
-function MessageBubble({ role, content }: { role: "user" | "assistant"; content: string }) {
+function MessageBubble({ role, content, accommodationId, onAddonAdded }: {
+  role: "user" | "assistant";
+  content: string;
+  accommodationId: string;
+  onAddonAdded: () => void;
+}) {
   const isUser = role === "user";
-  const room = isUser ? { text: content, cards: [] as never[] } : parseRoomCards(content);
+  const addonParsed = isUser ? { text: content, addons: [] as never[] } : parseAddonCards(content);
+  const room = isUser ? { text: content, cards: [] as never[] } : parseRoomCards(addonParsed.text);
   const tripParsed = isUser ? { text: room.text, trips: [] as never[] } : parseTripCards(room.text);
   const text = tripParsed.text;
   const cards = room.cards;
@@ -412,12 +424,17 @@ function MessageBubble({ role, content }: { role: "user" | "assistant"; content:
       )}
       {!isUser && cards.length > 0 && (
         <div className="w-[86%] max-w-[300px]">
-          <RoomCardList cards={cards} />
+          <RoomCardList cards={cards} decorateUrl={(u) => withAddonPicks(u, accommodationId)} />
         </div>
       )}
       {!isUser && trips.length > 0 && (
         <div className="w-[86%] max-w-[300px]">
           <TripCardList trips={trips} />
+        </div>
+      )}
+      {!isUser && addonParsed.addons.length > 0 && (
+        <div className="w-[86%] max-w-[300px]">
+          <AddonCardList addons={addonParsed.addons} accommodationId={accommodationId} onAdded={onAddonAdded} />
         </div>
       )}
     </div>

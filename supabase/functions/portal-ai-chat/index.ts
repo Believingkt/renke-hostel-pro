@@ -954,12 +954,14 @@ ${TRIP_CARD_PROMPT_RULE}`;
         const types: string[] = [];
         if (wantTicket) types.push('activity', 'ticket', 'experience', 'attraction');
         if (wantFood) types.push('food', 'dining', 'restaurant', 'meal');
-        const { data: products } = await supabase
+        let productsQ = supabase
           .from('trip_products')
           .select('id, name, description, type, price, stock, cover_url, accommodation_id')
           .eq('is_active', true)
-          .in('type', types)
-          .limit(3);
+          .in('type', types);
+        // 帶館別時只取該館，避免混別區
+        if (ctxAccId) productsQ = productsQ.eq('accommodation_id', ctxAccId);
+        const { data: products } = await productsQ.limit(3);
         for (const p of products || []) {
           items.push({
             kind: p.type,

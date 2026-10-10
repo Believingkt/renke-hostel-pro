@@ -77,7 +77,7 @@ function RoomCardImage({ card }: { card: AiRoomCard }) {
   );
 }
 
-export function RoomCardList({ cards }: { cards: AiRoomCard[] }) {
+export function RoomCardList({ cards, decorateUrl }: { cards: AiRoomCard[]; decorateUrl?: (url: string) => string }) {
   const navigate = useNavigate();
   if (!cards.length) return null;
 
@@ -128,7 +128,7 @@ export function RoomCardList({ cards }: { cards: AiRoomCard[] }) {
               {c.booking_url && (
                 <button
                   onClick={() => {
-                    const url = c.booking_url!;
+                    const url = decorateUrl ? decorateUrl(c.booking_url!) : c.booking_url!;
                     if (/^https?:\/\//.test(url)) window.open(url, "_blank");
                     else navigate(url);
                   }}

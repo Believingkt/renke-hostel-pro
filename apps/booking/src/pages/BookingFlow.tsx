@@ -712,6 +712,8 @@ const BookingFlow = () => {
   const [customAddonCounts, setCustomAddonCounts] = useState<Record<string, number>>({});
   // 由 LINE/LIFF ?addons= 成功帶入的品項（N2 只計這些，排除 auto_include 與官網自選）
   const lineSeededAddonsRef = useRef<Set<string>>(new Set());
+  // 由官網小安（addonSrc=web_ai）帶入的品項（channel=web 只計這些）
+  const webAiSeededAddonsRef = useRef<Set<string>>(new Set());
   const [customAddonDetail, setCustomAddonDetail] = useState<{ title: string; subtitle: string; html: string } | null>(null);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   
@@ -922,7 +924,9 @@ const BookingFlow = () => {
                 const max = setting.max_quantity ?? 99;
                 const q = Math.max(min || 1, Math.min(max, parseInt(rawQty || "1", 10) || 1));
                 preselect[type] = q;
-                if ((setting as any).auto_include !== true) lineSeededAddonsRef.current.add(type);
+                if ((setting as any).auto_include !== true) {
+                  (searchParams.get("addonSrc") === "web_ai" ? webAiSeededAddonsRef : lineSeededAddonsRef).current.add(type);
+                }
               }
               if (Object.keys(preselect).length > 0) {
                 setCustomAddonCounts(prev => ({ ...prev, ...preselect }));
@@ -3701,7 +3705,8 @@ const BookingFlow = () => {
 
         // N2 分子：LINE 來源加購成交埋點（建單成功、與 referral qualify 同一處；不影響金流）
         try {
-          const fromLine = !!searchParams.get("addons") || !!sessionStorage.getItem("liff_line_user_id");
+          const fromWebAi = searchParams.get("addonSrc") === "web_ai";
+          const fromLine = (!!searchParams.get("addons") && !fromWebAi) || !!sessionStorage.getItem("liff_line_user_id");
           if (fromLine && tripCheckoutLines.length > 0) {
             for (const l of tripCheckoutLines) {
               emitMetric({
@@ -3729,6 +3734,22 @@ const BookingFlow = () => {
               }
             }
           }
+          if (fromWebAi) {
+            for (const type of webAiSeededAddonsRef.current) {
+              const count = customAddonCounts[type] ?? 0;
+              if (count > 0) {
+                emitMetric({
+                  event_type: "addon_purchased",
+                  channel: "web",
+                  ref_type: "addon_setting",
+                  ref_id: type,
+                  accommodation_id: accommodationId,
+                  metadata: { order_id: insertedOrder?.id, qty: count, source: "web_ai" },
+                });
+              }
+            }
+          }
+          if (fromWebAi && accommodationId) sessionStorage.removeItem(`ai_addon_pick:${accommodationId}`);
         } catch { /* 埋點失敗不影響下單 */ }
 
         // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
