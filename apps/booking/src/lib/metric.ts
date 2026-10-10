@@ -25,6 +25,7 @@ export interface MetricInput {
   accommodation_id?: string | null;
   ref_type?: string | null;
   ref_id?: string | null;
+  channel?: "web" | "line" | "email";
   metadata?: Record<string, unknown>;
 }
 
@@ -35,7 +36,7 @@ export function emitMetric(ev: MetricInput): void {
     const to = setTimeout(() => ctrl.abort(), 3000);
     void supabase.functions
       .invoke("ai-metric-track", {
-        body: { ...ev, channel: "web", session_key: getSessionKey() },
+        body: { ...ev, channel: ev.channel ?? "web", session_key: getSessionKey() },
       })
       .catch(() => {})
       .finally(() => clearTimeout(to));

@@ -452,6 +452,45 @@ function money(n: number) {
   return `NT$ ${Math.round(n).toLocaleString("en-US")}`;
 }
 
+/** 加購價格顯示：0（含）以下顯示「免費」 */
+function addonPriceText(n: number) {
+  return Number(n) > 0 ? money(n) : "免費";
+}
+
+/** 從 jsonb/字串多語名稱取中文顯示名 */
+// deno-lint-ignore no-explicit-any
+function localizedName(v: any, fallback = "加購項目"): string {
+  if (!v) return fallback;
+  if (typeof v === "string") return v.trim() || fallback;
+  if (typeof v === "object") {
+    for (const k of ["zh-TW", "zh-Hant", "zh_TW", "zh", "cmn", "zh-CN", "en", "ja"]) {
+      const val = v[k];
+      if (typeof val === "string" && val.trim()) return val.trim();
+    }
+    for (const val of Object.values(v)) {
+      if (typeof val === "string" && val.trim()) return val.trim();
+    }
+  }
+  return fallback;
+}
+
+/** 加購分類英文代碼 → 中文標籤 */
+function addonTypeLabel(type?: string | null): string {
+  const map: Record<string, string> = {
+    attraction: "景點",
+    ticket: "票券",
+    experience: "體驗",
+    activity: "體驗",
+    meal: "餐食",
+    food: "餐食",
+    transport: "接送",
+    shuttle: "接送",
+    tea: "下午茶",
+  };
+  const key = String(type ?? "").toLowerCase();
+  return map[key] ?? (type && /[\u4e00-\u9fff]/.test(type) ? type : "加購");
+}
+
 export function roomCarousel(offers: RoomOffer[], checkIn: string, checkOut: string, nights: number): OutgoingMessage {
   return {
     type: "flex",
@@ -525,6 +564,7 @@ export interface AddonProduct {
   type: string;
   price: number;
   cover_url: string | null;
+  accommodation_id: string | null;
 }
 
 export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
@@ -544,9 +584,9 @@ export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
           layout: "vertical",
           spacing: "sm",
           contents: [
-            { type: "text", text: p.type, size: "xs", color: "#999999" },
+            { type: "text", text: addonTypeLabel(p.type), size: "xs", color: "#999999" },
             { type: "text", text: p.name, weight: "bold", wrap: true },
-            { type: "text", text: money(p.price), weight: "bold", color: "#E8792B" },
+            { type: "text", text: addonPriceText(p.price), weight: "bold", color: "#E8792B" },
           ],
         },
         footer: {
@@ -691,10 +731,10 @@ export async function handleButlerEvent(sb: SupabaseClient, accessToken: string 
     if (new URLSearchParams(data).get("action") === "trip" && scenario) {
       reply = tripReply(sb, lineUserId, state, scenario as TripScenario);
     } else {
-      reply = { messages: await handlePostback(sb, lineUserId, state, data) };
+      reply = { messages: await handlePostback(sb, lineUserId, state, data, session.member_user_id ?? null) };
     }
   } else if (ev.type === "message" && ev.message?.type === "text") {
-    reply = await handleText(sb, lineUserId, state, String(ev.message.text || ""), today);
+    reply = await handleText(sb, lineUserId, state, String(ev.message.text || ""), today, session.member_user_id ?? null);
   }
 
   if (accessToken && reply.messages.length > 0) {
@@ -776,6 +816,7 @@ async function handleText(
   state: ButlerState,
   text: string,
   today: string,
+  memberUserId: string | null,
 ): Promise<ButlerReply> {
   const parsed: ParsedIntent = parseIntent(text, today);
   const mergedAttrs: TripAttributes = { ...(state.tripAttributes || {}), ...(parsed.tripAttributes || {}) };
@@ -795,17 +836,21 @@ async function handleText(
   let messages: OutgoingMessage[] = [];
 
   if (parsed.intent === "favorites") {
-    messages = await favoriteListMessages(sb, lineUserId);
+    messages = await favoriteListMessages(sb, lineUserId, memberUserId);
   } else if (parsed.intent === "checkout") {
     const items = next.cart || [];
     messages = items.length
       ? [textMsg("幫你整理好囉，確認後就能結帳 💳"), cartSummary(items, liffCheckoutUrl(lineUserId))]
       : [textMsg("購物車還是空的耶 😅 先跟我說日期跟人數，我幫你找房！")];
   } else if (parsed.intent === "addon") {
-    const products = await fetchAddons(sb, next.keyword);
-    messages = products.length
-      ? [textMsg("這些是最受歡迎的加購 🎁 想要哪個？"), addonCarousel(products)]
-      : [textMsg("目前這區還沒有加購品項耶 🙈 先幫你看房好嗎？")];
+    const stay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
+    const products = await fetchAddons(sb, { accommodationId: stay?.accommodationId ?? null, keyword: next.keyword });
+    if (products.length) {
+      trackAddonShown(sb, lineUserId, products);
+      messages = [textMsg("這些是推薦的加購 🎁 想要哪個？"), addonCarousel(products)];
+    } else {
+      messages = [textMsg("目前這區還沒有加購品項耶 🙈 先幫你看房好嗎？")];
+    }
   } else if (parsed.intent === "search_rooms") {
     if (!next.checkIn || !next.checkOut) {
       messages = [textMsg("好的 😊 想住哪幾天呢？（例如：8/20 住 2 晚、4 人）")];
@@ -875,46 +920,130 @@ async function handleText(
   return { messages };
 }
 
-async function fetchAddons(sb: SupabaseClient, _keyword?: string): Promise<AddonProduct[]> {
-  const { data } = await sb
+async function fetchAddons(
+  sb: SupabaseClient,
+  opts?: { accommodationId?: string | null; keyword?: string | null },
+): Promise<AddonProduct[]> {
+  const accId = opts?.accommodationId ?? null;
+  const kw = opts?.keyword ?? "";
+  let q = sb
     .from("trip_products")
-    .select("id, name, type, price, cover_url, is_active")
-    .eq("is_active", true)
-    .limit(8);
-  return (data || []).map((p) => ({
+    .select("id, name, type, price, cover_url, accommodation_id, is_active")
+    .eq("is_active", true);
+  // 綁定當前館別：只列該館專屬商品，查無就照實說沒有（不拿別館/其他區域湊數）
+  if (accId) q = q.eq("accommodation_id", accId);
+  const { data } = await q.limit(24);
+  const all: AddonProduct[] = (data || []).map((p) => ({
     id: p.id,
-    // deno-lint-ignore no-explicit-any
-    name: typeof p.name === "string" ? p.name : ((p.name as any)?.["zh-TW"] ?? (p.name as any)?.zh ?? "加購項目"),
+    name: localizedName(p.name),
     type: p.type ?? "加購",
     price: Number(p.price ?? 0),
     cover_url: p.cover_url ?? null,
+    accommodation_id: p.accommodation_id ?? null,
   }));
+  // 關鍵字對應：有命中就優先列出，沒命中才列熱門
+  const syn = ADDON_SYNONYMS.find((s) => s.match.test(kw));
+  const matched = syn
+    ? all.filter((p) => {
+        const hay = `${p.name} ${p.type}`.toLowerCase();
+        return syn.terms.some((t) => hay.includes(t));
+      })
+    : [];
+  return (matched.length ? matched : all).slice(0, 8);
 }
 
-async function favoriteListMessages(sb: SupabaseClient, lineUserId: string): Promise<OutgoingMessage[]> {
-  const { data } = await sb
+/** 加購意圖關鍵字 → 比對品名/分類的詞 */
+const ADDON_SYNONYMS: { match: RegExp; terms: string[] }[] = [
+  { match: /早餐|晚餐|餐券|餐食|吃/, terms: ["餐", "早餐", "晚餐", "buffet", "breakfast", "dinner", "food"] },
+  { match: /烤肉|BBQ|燒烤|炭烤/i, terms: ["烤肉", "bbq", "燒烤", "炭烤"] },
+  { match: /下午茶/, terms: ["下午茶", "afternoon", "tea"] },
+  { match: /門票|票券|票/, terms: ["門票", "票", "ticket"] },
+  { match: /體驗|手作|diy/i, terms: ["體驗", "手作", "diy", "experience"] },
+  { match: /接送|導覽/, terms: ["接送", "導覽", "shuttle", "guide"] },
+];
+
+/** 加購卡曝光埋點：每個品項記一次 addon_rec_shown（channel=line） */
+function trackAddonShown(sb: SupabaseClient, lineUserId: string, products: AddonProduct[]) {
+  for (const p of products) {
+    void writeMetric(sb, {
+      event_type: "addon_rec_shown",
+      ref_type: "trip_product",
+      ref_id: p.id,
+      accommodation_id: p.accommodation_id,
+      channel: "line",
+      line_user_id: lineUserId,
+    });
+  }
+}
+
+async function favoriteListMessages(
+  sb: SupabaseClient,
+  lineUserId: string,
+  memberUserId: string | null,
+): Promise<OutgoingMessage[]> {
+  let q = sb
     .from("trip_favorites")
     .select("id, ref_type, ref_id, meta, created_at")
-    .eq("line_user_id", lineUserId)
     .order("created_at", { ascending: false })
-    .limit(10);
-  if (!data || data.length === 0) {
-    return [textMsg("你還沒有收藏喔 ❤️ 看到喜歡的房型按下愛心，我幫你記起來！")];
+    .limit(30);
+  q = memberUserId
+    ? q.or(`user_id.eq.${memberUserId},line_user_id.eq.${lineUserId}`)
+    : q.eq("line_user_id", lineUserId);
+  const { data } = await q;
+  const favs = data || [];
+  if (favs.length === 0) {
+    return [textMsg("你還沒有收藏喔 ❤️ 看到喜歡的房型或行程按下愛心，我幫你記起來！")];
   }
+
+  const tripFavs = favs.filter((f) => f.ref_type === "trip").slice(0, 10);
+  const otherCount = favs.length - tripFavs.length;
+  const msgs: OutgoingMessage[] = [];
+
+  if (tripFavs.length > 0) {
+    const { data: gens } = await sb
+      .from("trip_generations")
+      .select("id, scenario, payload")
+      .in("id", tripFavs.map((f) => f.ref_id));
+    const genMap = new Map((gens || []).map((g) => [g.id, g]));
+    const bubbles = tripFavs
+      .map((f) => {
+        const g = genMap.get(f.ref_id);
+        if (!g) return null;
+        // 複用官網/LINE 既有行程卡樣式，取其 bubble 組成 carousel
+        // deno-lint-ignore no-explicit-any
+        return (tripFlex((g.scenario as TripScenario) || "friends", g.payload, g.id) as any).contents;
+      })
+      .filter(Boolean);
+    if (bubbles.length > 0) {
+      msgs.push(textMsg("你收藏的行程 ❤️"));
+      msgs.push({ type: "flex", altText: "我的收藏行程", contents: { type: "carousel", contents: bubbles } });
+    }
+  }
+
   const url = liffFavoritesUrl(lineUserId);
-  const lines = data
-    // deno-lint-ignore no-explicit-any
-    .map((f, i) => `${i + 1}. ${((f.meta as any)?.name) ?? f.ref_type}`)
-    .join("\n");
-  const msgs: OutgoingMessage[] = [textMsg(`你的收藏 ❤️\n${lines}`)];
-  if (url) {
+  if (otherCount > 0 && url) {
     msgs.push({
       type: "template",
       altText: "管理收藏",
-      template: { type: "buttons", text: "要開啟收藏清單管理嗎？", actions: [{ type: "uri", label: "打開收藏清單", uri: url }] },
+      template: {
+        type: "buttons",
+        text: `另外還有 ${otherCount} 項房型／加購收藏`,
+        actions: [{ type: "uri", label: "打開收藏清單", uri: url }],
+      },
     });
   }
-  return msgs;
+
+  if (msgs.length === 0) {
+    // 只有房型/商品收藏、無法以行程卡呈現時，提供 LIFF 清單
+    return url
+      ? [{
+          type: "template",
+          altText: "管理收藏",
+          template: { type: "buttons", text: "你的收藏 ❤️", actions: [{ type: "uri", label: "打開收藏清單", uri: url }] },
+        }]
+      : [textMsg("你的收藏都在 LIFF 清單裡 ❤️")];
+  }
+  return msgs.slice(0, 5);
 }
 
 async function handlePostback(
@@ -922,6 +1051,7 @@ async function handlePostback(
   lineUserId: string,
   state: ButlerState,
   data: string,
+  memberUserId: string | null,
 ): Promise<OutgoingMessage[]> {
   const params = new URLSearchParams(data);
   const action = params.get("action");
@@ -931,24 +1061,48 @@ async function handlePostback(
     const refType = params.get("type") || "room";
     const refId = params.get("id");
     if (!refId) return [textMsg("收藏失敗了 😅 再試一次好嗎？")];
+    // 未綁定會員 → 引導綁定，不默默存
+    if (!memberUserId) {
+      const url = liffFavoritesUrl(lineUserId);
+      const msgs: OutgoingMessage[] = [
+        textMsg("要收藏得先綁定會員喔 😊 綁定後收藏會跟官網「我的行程」同步！"),
+      ];
+      if (url) {
+        msgs.push({
+          type: "template",
+          altText: "綁定會員",
+          template: { type: "buttons", text: "點下方綁定會員，再回來收藏 ❤️", actions: [{ type: "uri", label: "綁定會員", uri: url }] },
+        });
+      }
+      return msgs;
+    }
     const meta = await favoriteMeta(sb, refType, refId);
-    // 唯一索引為 partial index，PostgREST 的 upsert(onConflict) 不適用 → 先查再寫
+    // 以會員 user_id 寫入（與官網同一份）；冪等：先查再寫
     const { data: existingFav } = await sb
       .from("trip_favorites")
       .select("id")
-      .eq("line_user_id", lineUserId)
+      .eq("user_id", memberUserId)
       .eq("ref_type", refType)
       .eq("ref_id", refId)
       .maybeSingle();
     if (!existingFav) {
       const { error: favErr } = await sb
         .from("trip_favorites")
-        .insert({ line_user_id: lineUserId, ref_type: refType, ref_id: refId, meta });
+        .insert({ user_id: memberUserId, ref_type: refType, ref_id: refId, meta });
       if (favErr) {
         console.error("[butler] favorite insert failed", favErr);
         return [textMsg("收藏沒存成功耶 😢 等等再試一次好嗎？")];
       }
     }
+    void writeMetric(sb, {
+      event_type: "trip_favorite",
+      ref_type: refType,
+      ref_id: refId,
+      // deno-lint-ignore no-explicit-any
+      accommodation_id: (meta as any)?.accommodation_id ?? null,
+      channel: "line",
+      line_user_id: lineUserId,
+    });
     return [textMsg("已收藏 ❤️ 隨時說「我的收藏」就能看到！")];
   }
 
