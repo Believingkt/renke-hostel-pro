@@ -180,7 +180,17 @@ const MemberAuth = () => {
       if (error) throw error;
 
       throttle.recordSuccess();
-      await ensureMemberProfile();
+      try {
+        await ensureMemberProfile();
+      } catch (profileErr) {
+        console.error("ensureMemberProfile failed after password login", profileErr);
+        toast.warning("會員資料同步中，若資料有缺請重新整理");
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("登入狀態尚未建立，請稍後重試");
+        return;
+      }
       toast.success("登入成功");
       navigate(redirectTo);
     } catch (error: any) {
@@ -565,8 +575,18 @@ const MemberAuth = () => {
         type: "email",
       });
       if (error) throw error;
-      await ensureMemberProfile();
       logLoginAttempt("success", "email_otp");
+      try {
+        await ensureMemberProfile();
+      } catch (profileErr) {
+        console.error("ensureMemberProfile failed after OTP", profileErr);
+        toast.warning("會員資料同步中，若資料有缺請重新整理");
+      }
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        toast.error("登入狀態尚未建立，請稍後重試");
+        return;
+      }
       toast.success("登入成功");
       navigate(redirectTo);
     } catch (error: any) {
