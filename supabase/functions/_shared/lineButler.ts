@@ -722,9 +722,9 @@ export async function fetchVenueAddons(
       pricingMode: a.pricing_mode === "per_stay" ? "per_stay" : "per_night",
     }));
   const kw = keyword ?? "";
-  const syn = VENUE_ADDON_SYNONYMS.find((s) => s.match.test(kw));
-  const matched = syn
-    ? all.filter((v) => syn.terms.some((t) => `${v.name} ${v.addonType}`.toLowerCase().includes(t)))
+  const terms = VENUE_ADDON_SYNONYMS.filter((s) => s.match.test(kw)).flatMap((s) => s.terms);
+  const matched = terms.length
+    ? all.filter((v) => terms.some((t) => `${v.name} ${v.addonType}`.toLowerCase().includes(t)))
     : [];
   return (matched.length ? matched : all).slice(0, 10);
 }
