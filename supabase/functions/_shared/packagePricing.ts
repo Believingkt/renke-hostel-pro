@@ -74,42 +74,38 @@ export async function lowestPackagePricesForRooms(
     .select("package_id, date, sale_price, original_price, is_available")
     .in("package_id", pkgs.map((p) => p.id))
     .in("date", dates);
-  const ovMap = new Map<string, { sale: number | null; original: number | null; avail: boolean | null }>();
+  const ovMap = new Map<string, { sale: number | null; original: number | null }>();
   for (const r of (dpRaw || []) as any[]) {
     ovMap.set(`${r.package_id}:${r.date}`, {
       sale: r.sale_price != null ? Number(r.sale_price) : null,
       original: r.original_price != null ? Number(r.original_price) : null,
-      avail: r.is_available ?? null,
     });
   }
 
-  const tierKeys: Record<string, PkgTier> = { weekday: "weekday", friday_sunday: "friday_sunday", weekend: "weekend" };
 
   for (const pkg of pkgs) {
     const rtId = pkg.primary_room_type_id!;
     let saleTotal = 0;
     let originalTotal = 0;
     let hasOriginal = false;
-    let applicable = true;
+    let priceable = true;
     for (const d of dates) {
       const tier = classifyPkgTier(d, holidaySet);
       const ov = ovMap.get(`${pkg.id}:${d}`);
-      // 適用性：單日指定 is_available=false → 不適用；否則看 applicable_tiers
-      if (ov && ov.avail === false) { applicable = false; break; }
-      if (!ov && pkg.applicable_tiers && !pkg.applicable_tiers.includes(tierKeys[tier])) { applicable = false; break; }
-      // 售價：override > tier_prices[tier] > sale_price
+      // 與官網 resolvePackagePriceForDate 完全一致：override > tier_prices[tier] > sale_price
+      // （不以 applicable_tiers / is_available 閘門定價；可售與否由庫存另行判斷）
       const tp = pkg.tier_prices && typeof pkg.tier_prices === "object" ? pkg.tier_prices[tier] : null;
       let sale: number | null = null;
       let original: number | null = null;
       if (ov && ov.sale != null) { sale = ov.sale; original = ov.original ?? (pkg.original_price ?? null); }
       else if (tp && tp.sale != null) { sale = Number(tp.sale); original = tp.original != null ? Number(tp.original) : (pkg.original_price ?? null); }
       else { sale = pkg.sale_price != null ? Number(pkg.sale_price) : null; original = pkg.original_price ?? null; }
-      if (sale == null || !(sale > 0)) { applicable = false; break; }
+      if (sale == null || !(sale > 0)) { priceable = false; break; }
       saleTotal += sale;
       if (original != null && original > 0) { originalTotal += original; hasOriginal = true; }
-      else if (original != null) { originalTotal += sale; }
+      else { originalTotal += sale; }
     }
-    if (!applicable) continue;
+    if (!priceable) continue;
     const prev = out.get(rtId);
     if (!prev || saleTotal < prev.saleTotal) {
       out.set(rtId, {
