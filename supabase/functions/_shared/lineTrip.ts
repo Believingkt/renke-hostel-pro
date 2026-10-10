@@ -106,6 +106,20 @@ function itemName(v: any): string {
   return v.zh || v.en || v.ja || "行程點";
 }
 
+/** 指定館周邊無行程：照實說，快捷只留「看該館房型」「換個地區」 */
+export function noNearbyTripMessage(venueName: string): OutgoingMessage {
+  return {
+    type: "text",
+    text: `目前〔${venueName}〕周邊還沒有上架的行程 🙏`,
+    quickReply: {
+      items: [
+        { type: "action", action: { type: "message", label: `看${venueName}房型`.slice(0, 20), text: `${venueName} 房型` } },
+        { type: "action", action: { type: "postback", label: "換個地區", data: "action=trip_region", displayText: "換個地區" } },
+      ],
+    },
+  };
+}
+
 export function scenarioQuickReply(): OutgoingMessage {
   return {
     type: "text",
@@ -121,7 +135,7 @@ export function scenarioQuickReply(): OutgoingMessage {
 
 /** 呼叫 trip-recommend 取得行程 */
 // deno-lint-ignore no-explicit-any
-export async function recommendTrip(scenario: TripScenario, attributes: TripAttributes): Promise<any | null> {
+export async function recommendTrip(scenario: TripScenario, attributes: TripAttributes, accommodationId?: string | null): Promise<any | null> {
   {
     const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/trip-recommend`;
     const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -129,8 +143,13 @@ export async function recommendTrip(scenario: TripScenario, attributes: TripAttr
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}`, apikey: key },
       // fast：LINE 端只生中文短文案 + 低延遲模型（品項/價格仍為 DB 實價）
-      body: JSON.stringify({ scenario, attributes, fast: true }),
+      body: JSON.stringify({ scenario, attributes, fast: true, ...(accommodationId ? { accommodation_id: accommodationId } : {}) }),
     });
+    if (r.status === 409 && accommodationId) {
+      const j = await r.json().catch(() => null);
+      if (j?.code === "no_nearby_products") return { no_nearby: true };
+      throw new Error(`trip-recommend 409: ${String(j?.error ?? "")}`);
+    }
 
     if (!r.ok) {
       const body = await r.text();

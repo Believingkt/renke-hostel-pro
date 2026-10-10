@@ -1,4 +1,5 @@
 import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
+import { nearbyAccommodationIds } from "../_shared/tripNearby.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -191,18 +192,23 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const [{ data: productRows }, { data: roomRows }] = await Promise.all([
-      supabase
-        .from("trip_products")
-        .select("id, type, name, price, duration_min, lat, lng, open_hours, available_slots, accommodation_id")
-        .eq("is_active", true)
-        .limit(60),
-      supabase
-        .from("room_types")
-        .select("id, name, name_en, base_price, capacity, accommodation_id, is_exclusive_package")
-        .order("display_order", { ascending: true })
-        .limit(60),
-    ]);
+    // 選填 accommodation_id：只取該館＋同 region_1 館別的商品，房型只取該館；未帶時行為不變
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const scopeAccId = typeof body?.accommodation_id === "string" && UUID_RE.test(body.accommodation_id)
+      ? body.accommodation_id
+      : null;
+    const nearbyIds = scopeAccId ? await nearbyAccommodationIds(supabase, scopeAccId) : null;
+    let productQ = supabase
+      .from("trip_products")
+      .select("id, type, name, price, duration_min, lat, lng, open_hours, available_slots, accommodation_id")
+      .eq("is_active", true);
+    if (nearbyIds) productQ = productQ.in("accommodation_id", nearbyIds);
+    let roomQ = supabase
+      .from("room_types")
+      .select("id, name, name_en, base_price, capacity, accommodation_id, is_exclusive_package")
+      .order("display_order", { ascending: true });
+    if (scopeAccId) roomQ = roomQ.eq("accommodation_id", scopeAccId);
+    const [{ data: productRows }, { data: roomRows }] = await Promise.all([productQ.limit(60), roomQ.limit(60)]);
 
     const products = (productRows || []) as Product[];
     const rooms = (roomRows || []) as Array<{
@@ -216,7 +222,7 @@ serve(async (req) => {
     }>;
 
     if (!products.length) {
-      return new Response(JSON.stringify({ error: "目前沒有可用的行程品項" }), {
+      return new Response(JSON.stringify({ error: "目前沒有可用的行程品項", code: scopeAccId ? "no_nearby_products" : "no_products" }), {
         status: 409,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

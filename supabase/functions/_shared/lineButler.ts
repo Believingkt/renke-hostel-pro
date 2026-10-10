@@ -12,6 +12,7 @@ import { taipeiToday } from "./taipeiDate.ts";
 import { askLlm, logLineConversation } from "./lineLlm.ts";
 import {
   archiveTripAttributes,
+  noNearbyTripMessage,
   recommendTrip,
   saveTripSnapshot,
   scenarioQuickReply,
@@ -19,6 +20,7 @@ import {
   tripFlex,
 } from "./lineTrip.ts";
 import { writeMetric } from "./metric.ts";
+import { countNearbyTripProducts } from "./tripNearby.ts";
 import { lowestPackagePricesForRooms } from "./packagePricing.ts";
 import { fetchVenueAddons, type VenueAddon } from "./venueAddons.ts";
 export { fetchVenueAddons, type VenueAddon };
@@ -80,6 +82,9 @@ export interface ButlerState {
   venue?: string;
   venueLabel?: string;
   scenario?: TripScenario;
+  /** 行程地點：僅取「該句明說的館名」，供情境選擇後的 postback 使用 */
+  tripVenueId?: string;
+  tripVenueLabel?: string;
   tripAttributes?: TripAttributes;
   cart?: ButlerCartItem[];
 }
@@ -845,6 +850,8 @@ export async function handleButlerEvent(sb: SupabaseClient, accessToken: string 
     const scenario = new URLSearchParams(data).get("scenario");
     if (new URLSearchParams(data).get("action") === "trip" && scenario) {
       reply = tripReply(sb, lineUserId, state, scenario as TripScenario);
+    } else if (new URLSearchParams(data).get("action") === "trip_region") {
+      reply = { messages: [textMsg("想去哪個地區呢？例如：宜蘭、日月潭，或告訴我想住的館名 😊")] };
     } else {
       reply = { messages: await handlePostback(sb, lineUserId, state, data, session.member_user_id ?? null) };
     }
@@ -899,7 +906,8 @@ function tripReply(
         console.error("[butler-trip] archive failed", e);
       }
       try {
-        const trip = await recommendTrip(scenario, merged);
+        const trip = await recommendTrip(scenario, merged, state.tripVenueId ?? null);
+        if (trip?.no_nearby) return [noNearbyTripMessage(state.tripVenueLabel || "這間")];
         if (!trip) throw new Error("trip-recommend returned null");
         const tripId = await saveTripSnapshot(sb, lineUserId, scenario, merged, trip);
         void writeMetric(sb, {
@@ -1085,7 +1093,13 @@ async function handleText(
       }
     }
   } else if (parsed.intent === "trip_plan") {
+    // 只用這句明說的館名篩周邊行程；地名或未提館名 → 不帶館別（維持現行行為）
+    next.tripVenueId = parsed.venueId;
+    next.tripVenueLabel = parsed.venueId ? parsed.venueLabel : undefined;
     await saveSession(sb, lineUserId, next, parsed.intent);
+    if (next.tripVenueId && (await countNearbyTripProducts(sb, next.tripVenueId)) === 0) {
+      return { messages: [noNearbyTripMessage(next.tripVenueLabel || "這間")] };
+    }
     if (next.scenario) {
       return tripReply(sb, lineUserId, next, next.scenario, mergedAttrs);
     }

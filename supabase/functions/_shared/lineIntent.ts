@@ -164,8 +164,19 @@ const POLICY_KEYWORDS =
 /** 明確訂房訊號（不含單字「訂」「住」，避免「退訂」「住宿規定」誤判） */
 const SEARCH_KEYWORDS =
   /我要訂|想訂|要訂|訂房|訂一間|預訂|預約住|想住|要住|住一晚|有沒有房|還有房|有房嗎|有空房|空房|查房|看房|房型|包棟|入住日|訂位/;
-const TRIP_KEYWORDS = /排行程|安排行程|規劃行程|行程規劃|推薦行程|行程推薦|幫我排|玩什麼|怎麼玩|有什麼好玩|景點推薦|一日遊|兩天一夜|三天兩夜|旅遊建議/;
+const TRIP_KEYWORDS = /排行程|安排行程|規劃行程|行程規劃|推薦行程|行程推薦|幫我排|玩什麼|怎麼玩|有什麼好玩|景點推薦|一日遊|兩天一夜|三天兩夜|旅遊建議|行程|好玩|去哪玩|附近|周邊|景點|踩點/;
+/** 行程詞中明確屬於「玩」的部分（附近／周邊需另判是否在找住宿） */
+const TRIP_PLAY_WORDS = /行程|好玩|玩什麼|怎麼玩|去哪玩|景點|踩點|一日遊|旅遊/;
+const STAY_WORDS = /住|房|民宿|住宿/;
+const EXPLICIT_ADDON_WORDS = /加購|票券|門票/;
 
+
+function isTripAsk(t: string, venueName?: string): boolean {
+  if (!TRIP_KEYWORDS.test(t) || EXPLICIT_ADDON_WORDS.test(t) || SEARCH_KEYWORDS.test(t)) return false;
+  const rest = venueName ? t.split(venueName).join("") : t;
+  if (/附近|周邊/.test(rest) && STAY_WORDS.test(rest) && !TRIP_PLAY_WORDS.test(rest)) return false;
+  return true;
+}
 
 /** 情境模板 key（與 trip-recommend 的 SCENARIOS 對齊；包棟 → villa） */
 export function detectScenario(text: string): TripScenario | undefined {
@@ -239,13 +250,15 @@ export function parseIntent(text: string, today: string, venues: ActiveVenue[] =
   else if (BIND_MEMBER_KEYWORDS.test(t)) intent = "bind_member";
   else if (policyOnly) intent = "unknown"; // 知識／政策問答一律交給 LLM
   else if (CHECKOUT_KEYWORDS.test(t)) intent = "checkout";
-  else if (/我的行程/.test(t) && !TRIP_KEYWORDS.test(t)) intent = "favorites";
+  else if (/我的行程/.test(t) && !/排行程|安排行程|規劃行程|推薦行程|幫我排/.test(t)) intent = "favorites";
   else if (FAVORITE_KEYWORDS.test(t)) intent = "favorites";
+  // 行程詞優先於加購／查房（館名只當地點條件）；明確加購詞、查房詞、「附近＋住宿詞」除外
+  else if (isTripAsk(t, venueHit?.name)) intent = "trip_plan";
   // 加購詞＋訂房訊號（日期／人數／館名／查房詞）→ 先查房，並標記也想加購
   else if (ADDON_KEYWORDS.test(t)) intent = bookingSignal || venueHit ? "search_rooms" : "addon";
   // 查房（含館別關鍵字）優先序永遠高於行程意圖
   else if (SEARCH_KEYWORDS.test(t) || venueHit) intent = "search_rooms";
-  else if (TRIP_KEYWORDS.test(t)) intent = "trip_plan";
+  else if (/附近|周邊/.test(t) && STAY_WORDS.test(t)) intent = "search_rooms";
   else if (dates.checkIn || guests) intent = "search_rooms";
   else if (GREETING_KEYWORDS.test(t)) intent = "greeting";
 

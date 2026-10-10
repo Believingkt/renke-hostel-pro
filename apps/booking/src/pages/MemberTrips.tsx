@@ -16,12 +16,21 @@ interface TripFav {
 }
 
 const TYPE_LABEL: Record<string, string> = { trip: "行程", room: "房型", product: "加購" };
+const SCENARIO_LABEL: Record<string, string> = {
+  family: "家庭親子", couple: "情侶約會", friends: "好友出遊", villa: "包棟聚會", outdoor: "戶外探索",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const pickText = (v: any): string => (!v ? "" : typeof v === "string" ? v : v.zh || v.en || v.ja || "");
+
+interface TripRef { title: string; scenario: string; source: "trips" | "gen" }
 
 const MemberTrips = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState<TripFav[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tripRefs, setTripRefs] = useState<Record<string, TripRef>>({});
 
   useEffect(() => { load(); }, []);
 
@@ -33,7 +42,25 @@ const MemberTrips = () => {
       .select("id, ref_type, ref_id, meta, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
-    setItems((data || []) as TripFav[]);
+    const favs = (data || []) as TripFav[];
+    setItems(favs);
+    // 標題來源：trips.title → trip_generations（LINE 生成）→ meta.name
+    const ids = favs.filter((f) => f.ref_type === "trip").map((f) => f.ref_id);
+    if (ids.length) {
+      const [{ data: tripRows }, { data: genRows }] = await Promise.all([
+        supabase.from("trips").select("id, title, scenario").in("id", ids),
+        supabase.from("trip_generations").select("id, scenario, payload").in("id", ids),
+      ]);
+      const refs: Record<string, TripRef> = {};
+      for (const g of genRows || []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        refs[g.id] = { title: pickText((g.payload as any)?.title), scenario: g.scenario || "", source: "gen" };
+      }
+      for (const t of tripRows || []) {
+        refs[t.id] = { title: pickText(t.title), scenario: t.scenario || "", source: "trips" };
+      }
+      setTripRefs(refs);
+    }
     setLoading(false);
   };
 
@@ -46,9 +73,22 @@ const MemberTrips = () => {
 
   const open = (fav: TripFav) => {
     if (fav.ref_type === "trip") {
-      const url = fav.meta?.trip_url || `/trips/generate?trip=${fav.ref_id}`;
+      const ref = tripRefs[fav.ref_id];
+      const scenario = ref?.scenario || fav.meta?.scenario || "";
+      const url = ref?.source === "trips"
+        ? `/trips/${fav.ref_id}`
+        : ref?.source === "gen"
+          ? `/trips/generate?${scenario ? `scenario=${scenario}&` : ""}lang=zh&trip=${fav.ref_id}`
+          : fav.meta?.trip_url || `/trips/generate?trip=${fav.ref_id}`;
       navigate(url);
     }
+  };
+
+  const tripTitle = (f: TripFav) =>
+    tripRefs[f.ref_id]?.title || pickText(f.meta?.name) || pickText(f.meta?.title) || "我的行程";
+  const tripScenario = (f: TripFav) => {
+    const sc = tripRefs[f.ref_id]?.scenario || f.meta?.scenario || "";
+    return SCENARIO_LABEL[sc] || "";
   };
 
   const trips = items.filter((i) => i.ref_type === "trip");
@@ -91,9 +131,9 @@ const MemberTrips = () => {
                           <Icon className="h-6 w-6" />
                         </div>
                         <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="text-sm font-medium truncate">{f.meta?.title || "我的行程"}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            {TYPE_LABEL[f.ref_type]}
+                          <div className="text-sm font-medium truncate" data-testid="member-trip-title">{tripTitle(f)}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5" data-testid="member-trip-subtitle">
+                            {tripScenario(f) || TYPE_LABEL[f.ref_type]}
                             {f.meta?.total_price ? `・預估 NT$ ${Number(f.meta.total_price).toLocaleString()}` : ""}
                           </div>
                         </div>
