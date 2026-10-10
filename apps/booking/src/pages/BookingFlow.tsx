@@ -3829,6 +3829,18 @@ const BookingFlow = () => {
       }
 
 
+      // LINE 來源訂單：寫 order_meta.line_user_id 並推播成立通知（不改 order_source；失敗不影響訂單）
+      const liffLineUserId = sessionStorage.getItem("liff_line_user_id");
+      if (liffLineUserId && orderData?.id) {
+        try {
+          await supabase.functions.invoke("line-butler-api", {
+            body: { action: "mark_order", line_user_id: liffLineUserId, order_id: orderData.id },
+          });
+        } catch (e) {
+          console.error("[mark_order] failed", e);
+        }
+      }
+
       // 觸發 KOL Webhook（如果使用了折扣碼）
       if (appliedDiscount && orderData?.id) {
         try {

@@ -941,6 +941,18 @@ async function handleText(
     await saveSession(sb, lineUserId, {}, "reset");
     return { messages: [textMsg("好的，已重新開始 🧸 館別、日期、人數與購物車都清空了（收藏不受影響）。想住哪裡、哪幾天呢？")] };
   }
+  if (parsed.intent === "bind_member") {
+    const url = liffFavoritesUrl(lineUserId);
+    if (memberUserId) return { messages: [textMsg("你已經綁定會員囉 ✅ LINE 收藏會同步到官網「我的行程」")] };
+    if (!url) return { messages: [textMsg("會員綁定暫時無法使用，請稍後再試 🙏")] };
+    return {
+      messages: [{
+        type: "template",
+        altText: "綁定會員",
+        template: { type: "buttons", text: "登入會員後，LINE 收藏會同步到官網「我的行程」❤️", actions: [{ type: "uri", label: "登入並綁定", uri: url }] },
+      }],
+    };
+  }
   if (parsed.intent === "clear_cart") {
     await saveSession(sb, lineUserId, { ...state, cart: [] }, "clear_cart");
     return { messages: [textMsg("購物車已清空 🛒")] };

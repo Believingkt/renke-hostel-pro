@@ -63,6 +63,15 @@ export async function initLiff(): Promise<LiffProfile> {
   }
 }
 
+/** LIFF ID token（供後端驗證 line_user_id；需 LIFF 開啟 openid scope） */
+export function getLiffIdToken(): string | null {
+  try {
+    return window.liff?.getIDToken?.() ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function butlerApi<T = unknown>(body: Record<string, unknown>): Promise<T | null> {
   const { data, error } = await supabase.functions.invoke("line-butler-api", { body });
   if (error) {
