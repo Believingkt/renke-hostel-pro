@@ -50,7 +50,20 @@ export interface ButlerCartProduct {
   coverUrl?: string | null;
 }
 
-export type ButlerCartItem = ButlerCartStay | ButlerCartProduct;
+/** 館別原生加購（addon_settings）；結帳走 BookingFlow 原生加購路徑 */
+export interface ButlerCartVenueAddon {
+  kind: "venue_addon";
+  addonType: string;
+  name: string;
+  unitPrice: number;
+  unitLabel: string;
+  qty: number;
+  /** per_night ×晚數；per_stay 固定 */
+  pricingMode: "per_night" | "per_stay";
+  nights: number;
+}
+
+export type ButlerCartItem = ButlerCartStay | ButlerCartProduct | ButlerCartVenueAddon;
 
 export interface ButlerState {
   intent?: string;
@@ -518,6 +531,12 @@ function localizedName(v: any, fallback = "加購項目"): string {
   return fallback;
 }
 
+/** addon_settings.addon_type 已是自由文字品名；僅做基本清理 */
+function cleanAddonName(t?: string | null): string {
+  const s = String(t ?? "").trim();
+  return s || "加購項目";
+}
+
 /** 加購分類英文代碼 → 中文標籤 */
 function addonTypeLabel(type?: string | null): string {
   const map: Record<string, string> = {
@@ -667,12 +686,115 @@ export function addonCarousel(products: AddonProduct[]): OutgoingMessage {
   };
 }
 
-/** 單一價格來源：住宿用 stayTotal（整段實價），沒有才回退逐晚均價 */
+/** 館別原生加購（addon_settings） */
+export interface VenueAddon {
+  addonType: string;
+  name: string;
+  pricePerUnit: number;
+  unitLabel: string;
+  minQty: number;
+  maxQty: number;
+  pricingMode: "per_night" | "per_stay";
+}
+
+/** 讀該館 addon_settings（啟用且上架），依關鍵字優先；查無關鍵字命中則回全部（≤10） */
+export async function fetchVenueAddons(
+  sb: SupabaseClient,
+  accId: string | null | undefined,
+  keyword?: string | null,
+): Promise<VenueAddon[]> {
+  if (!accId) return [];
+  const { data } = await sb
+    .from("addon_settings")
+    .select("addon_type, price_per_unit, unit_label, min_quantity, max_quantity, pricing_mode, enabled, show_on_frontend, sort_order")
+    .eq("accommodation_id", accId)
+    .eq("enabled", true)
+    .order("sort_order", { ascending: true });
+  const all: VenueAddon[] = (data || [])
+    .filter((a: any) => a.show_on_frontend !== false)
+    .map((a: any) => ({
+      addonType: a.addon_type,
+      name: cleanAddonName(a.addon_type),
+      pricePerUnit: Number(a.price_per_unit ?? 0),
+      unitLabel: a.unit_label ?? "份",
+      minQty: Number(a.min_quantity ?? 0),
+      maxQty: Number(a.max_quantity ?? 10),
+      pricingMode: a.pricing_mode === "per_stay" ? "per_stay" : "per_night",
+    }));
+  const kw = keyword ?? "";
+  const syn = VENUE_ADDON_SYNONYMS.find((s) => s.match.test(kw));
+  const matched = syn
+    ? all.filter((v) => syn.terms.some((t) => `${v.name} ${v.addonType}`.toLowerCase().includes(t)))
+    : [];
+  return (matched.length ? matched : all).slice(0, 10);
+}
+
+const VENUE_ADDON_SYNONYMS: { match: RegExp; terms: string[] }[] = [
+  { match: /早餐|晚餐|餐券|餐食|下午茶|薄餅|吃/, terms: ["餐", "早餐", "晚餐", "下午茶", "薄餅", "buffet"] },
+  { match: /烤肉|bbq|炭|燒烤/i, terms: ["烤肉", "bbq", "炭", "炭烤", "燒烤", "木炭", "清潔"] },
+  { match: /寵物|毛小孩|狗|貓/, terms: ["寵物", "pet", "毛"] },
+  { match: /加床|加人|多一位|床/, terms: ["加床", "加人", "床"] },
+];
+
+/** 館別加購卡（addon_settings） */
+export function venueAddonCarousel(addons: VenueAddon[]): OutgoingMessage {
+  return {
+    type: "flex",
+    altText: "加購推薦",
+    contents: {
+      type: "carousel",
+      contents: addons.map((a) => ({
+        type: "bubble",
+        size: "kilo",
+        body: {
+          type: "box",
+          layout: "vertical",
+          spacing: "sm",
+          contents: [
+            { type: "text", text: a.name, weight: "bold", wrap: true },
+            {
+              type: "text",
+              text: `${addonPriceText(a.pricePerUnit)} / ${a.unitLabel}${a.pricingMode === "per_night" ? "・每晚" : ""}`,
+              size: "sm",
+              color: "#E8792B",
+              wrap: true,
+            },
+          ],
+        },
+        footer: {
+          type: "box",
+          layout: "horizontal",
+          contents: [
+            {
+              type: "button",
+              style: "primary",
+              height: "sm",
+              color: "#E8792B",
+              action: {
+                type: "postback",
+                label: "加入",
+                data: `action=add_venue_addon&type=${encodeURIComponent(a.addonType)}`,
+                displayText: `加購 ${a.name}`,
+              },
+            },
+          ],
+        },
+      })),
+    },
+  };
+}
+
+
+/** 單一價格來源：住宿用 stayTotal（整段實價）；館別加購依 pricing_mode；其餘單價×數量 */
 export function cartLineTotal(i: ButlerCartItem): number {
   if (i.kind === "stay") {
     const stayTotal = Number(i.stayTotal ?? 0) ||
       Math.round(i.unitPrice * Math.max(1, i.nights));
     return stayTotal * Math.max(1, i.qty);
+  }
+  if (i.kind === "venue_addon") {
+    const mult = i.pricingMode === "per_night" ? Math.max(1, i.nights) : 1;
+    return i.unitPrice * i.qty * mult;
   }
   return i.unitPrice * i.qty;
 }
@@ -691,7 +813,7 @@ export function cartSummary(items: ButlerCartItem[], liffUrl: string | null): Ou
       },
       {
         type: "text",
-        text: i.kind === "product" ? addonPriceText(cartLineTotal(i)) : money(cartLineTotal(i)),
+        text: i.kind === "stay" ? money(cartLineTotal(i)) : addonPriceText(cartLineTotal(i)),
         size: "sm",
         align: "end",
         flex: 3,
@@ -894,12 +1016,23 @@ async function handleText(
       : [textMsg("購物車還是空的耶 😅 先跟我說日期跟人數，我幫你找房！")];
   } else if (parsed.intent === "addon") {
     const stay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
-    const products = await fetchAddons(sb, { accommodationId: stay?.accommodationId ?? null, keyword: next.keyword });
-    if (products.length) {
-      trackAddonShown(sb, lineUserId, products);
-      messages = [textMsg("這些是推薦的加購 🎁 想要哪個？"), addonCarousel(products)];
+    const accId = stay?.accommodationId ?? null;
+    const venueAddons = await fetchVenueAddons(sb, accId, next.keyword);
+    if (venueAddons.length) {
+      for (const a of venueAddons) {
+        void writeMetric(sb, { event_type: "addon_rec_shown", ref_type: "addon_setting", ref_id: a.addonType, accommodation_id: accId, channel: "line", line_user_id: lineUserId });
+      }
+      messages = [textMsg("這些是這間可加購的項目 🎁 想要哪個？"), venueAddonCarousel(venueAddons)];
     } else {
-      messages = [textMsg("目前這區還沒有加購品項耶 🙈 先幫你看房好嗎？")];
+      // 次要來源：使用者明確提到票券/行程/體驗才查 trip_products（限該館）
+      const wantsTicket = /票券|門票|行程|體驗|景點/.test(next.keyword ?? "");
+      const products = wantsTicket ? await fetchAddons(sb, { accommodationId: accId, keyword: next.keyword }) : [];
+      if (products.length) {
+        trackAddonShown(sb, lineUserId, products);
+        messages = [textMsg("這些是推薦的加購 🎁 想要哪個？"), addonCarousel(products)];
+      } else {
+        messages = [textMsg("這間目前沒有可加購的項目耶 🙈")];
+      }
     }
   } else if (parsed.intent === "search_rooms") {
     if (!next.checkIn || !next.checkOut) {
@@ -1193,14 +1326,45 @@ async function handlePostback(
     next.checkIn = checkIn;
     next.checkOut = checkOut;
     await saveSession(sb, lineUserId, next, "pick_room");
-    const products = await fetchAddons(sb, { accommodationId: picked.accommodationId });
+    const venueAddons = await fetchVenueAddons(sb, picked.accommodationId);
     const msgs: OutgoingMessage[] = [textMsg(`收到！${picked.name} 已放進購物車 🛒`)];
-    if (products.length) {
-      trackAddonShown(sb, lineUserId, products);
-      msgs.push(textMsg("要不要順便加購體驗？🎁"), addonCarousel(products));
+    if (venueAddons.length) {
+      for (const a of venueAddons) {
+        void writeMetric(sb, { event_type: "addon_rec_shown", ref_type: "addon_setting", ref_id: a.addonType, accommodation_id: picked.accommodationId, channel: "line", line_user_id: lineUserId });
+      }
+      msgs.push(textMsg("要不要順便加購？🎁"), venueAddonCarousel(venueAddons));
     }
     msgs.push(cartSummary(next.cart, liffCheckoutUrl(lineUserId)));
     return msgs;
+  }
+
+  if (action === "add_venue_addon") {
+    const addonType = decodeURIComponent(params.get("type") || "");
+    if (!addonType) return [textMsg("加購失敗了 😅")];
+    const stay = (next.cart || []).find((i) => i.kind === "stay") as ButlerCartStay | undefined;
+    const accId = stay?.accommodationId;
+    if (!accId) return [textMsg("先幫你選好房間，再加購會更準喔 😊")];
+    const list = await fetchVenueAddons(sb, accId);
+    const a = list.find((x) => x.addonType === addonType);
+    if (!a) return [textMsg("這個加購目前無法選購 🙈")];
+    const nights = Math.max(1, stay?.nights ?? 1);
+    const existing = (next.cart || []).find((i) => i.kind === "venue_addon" && i.addonType === addonType) as
+      | ButlerCartVenueAddon
+      | undefined;
+    if (existing) existing.qty = Math.min(a.maxQty || 99, existing.qty + 1);
+    else
+      next.cart!.push({
+        kind: "venue_addon",
+        addonType: a.addonType,
+        name: a.name,
+        unitPrice: a.pricePerUnit,
+        unitLabel: a.unitLabel,
+        qty: Math.max(1, a.minQty),
+        pricingMode: a.pricingMode,
+        nights,
+      });
+    await saveSession(sb, lineUserId, next, "add_venue_addon");
+    return [textMsg(`已加入 ${a.name} 🛒`), cartSummary(next.cart, liffCheckoutUrl(lineUserId))];
   }
 
   if (action === "add_product") {

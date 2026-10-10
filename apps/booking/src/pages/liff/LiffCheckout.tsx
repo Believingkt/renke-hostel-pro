@@ -12,6 +12,7 @@ import {
   cartSubtotal,
   cartTotal,
   stageTripCheckout,
+  venueAddonsParam,
   writeCart,
   type CartItem,
 } from "@/lib/tripCart";
@@ -77,6 +78,8 @@ export default function LiffCheckout() {
       params.set("checkOut", stay.checkOut);
       params.set("adults", String(Math.max(1, guests ?? 2)));
       if (stay.qty > 1) params.set("rooms", String(stay.qty));
+      const addons = venueAddonsParam(items);
+      if (addons) params.set("addons", addons);
       params.set("step", "payment");
       navigate(`/book?${params.toString()}`);
     } catch (err) {
@@ -107,7 +110,7 @@ export default function LiffCheckout() {
           <ul className="space-y-3">
             {items.map((item, idx) => (
               <li key={idx} className="flex gap-3 rounded-xl border border-border bg-card p-3">
-                {item.coverUrl ? (
+                {"coverUrl" in item && item.coverUrl ? (
                   <img src={item.coverUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
                 ) : (
                   <div className="h-16 w-16 shrink-0 rounded-lg bg-secondary" />
@@ -117,7 +120,11 @@ export default function LiffCheckout() {
                     {item.kind === "stay" ? `${item.accommodationName}・${item.roomName}` : item.name}
                   </p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {item.kind === "stay" ? `${item.checkIn} → ${item.checkOut}・${item.nights} 晚` : item.type}
+                    {item.kind === "stay"
+                      ? `${item.checkIn} → ${item.checkOut}・${item.nights} 晚`
+                      : item.kind === "venue_addon"
+                        ? `加購・${item.unitLabel}${item.pricingMode === "per_night" ? ` × ${item.nights} 晚` : ""}`
+                        : item.type}
                   </p>
                   <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
                     {cartSubtotal(item) > 0 ? `NT$ ${cartSubtotal(item).toLocaleString()}` : "免費"}

@@ -201,7 +201,7 @@ export default function Cart() {
           <ul className="space-y-3">
             {cart.items.map((item) => (
               <li key={item.key} className="flex gap-3 rounded-xl border border-border bg-card p-3">
-                {item.coverUrl ? (
+                {"coverUrl" in item && item.coverUrl ? (
                   <img src={item.coverUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
                 ) : (
                   <div className="h-16 w-16 shrink-0 rounded-lg bg-secondary" />
@@ -213,7 +213,9 @@ export default function Cart() {
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {item.kind === "stay"
                       ? `${item.checkIn} → ${item.checkOut}・${item.nights} 晚`
-                      : item.type}
+                      : item.kind === "venue_addon"
+                        ? `加購・${item.unitLabel}`
+                        : item.type}
                   </p>
                   <div className="mt-2 flex items-center justify-between">
                     <div className="inline-flex items-center gap-1 rounded-full border border-border">

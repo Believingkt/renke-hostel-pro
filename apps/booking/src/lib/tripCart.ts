@@ -41,7 +41,19 @@ export interface CartProductItem {
 }
 
 
-export type CartItem = CartStayItem | CartProductItem;
+export interface CartVenueAddonItem {
+  kind: "venue_addon";
+  key: string;
+  addonType: string;
+  name: string;
+  unitPrice: number;
+  unitLabel: string;
+  qty: number;
+  pricingMode: "per_night" | "per_stay";
+  nights: number;
+}
+
+export type CartItem = CartStayItem | CartProductItem | CartVenueAddonItem;
 
 export interface TripCart {
   tripId: string | null;
@@ -78,7 +90,19 @@ export function cartSubtotal(item: CartItem): number {
       Number(item.stayTotal ?? 0) || Math.round(item.unitPrice * Math.max(1, item.nights));
     return stayTotal * Math.max(1, item.qty);
   }
+  if (item.kind === "venue_addon") {
+    const mult = item.pricingMode === "per_night" ? Math.max(1, item.nights) : 1;
+    return item.unitPrice * item.qty * mult;
+  }
   return item.unitPrice * item.qty;
+}
+
+/** 把館別原生加購序列化成 /book 預選參數：addonType:qty,addonType:qty */
+export function venueAddonsParam(items: CartItem[]): string {
+  return items
+    .filter((i): i is CartVenueAddonItem => i.kind === "venue_addon")
+    .map((i) => `${encodeURIComponent(i.addonType)}:${i.qty}`)
+    .join(",");
 }
 
 export function cartTotal(items: CartItem[]): number {

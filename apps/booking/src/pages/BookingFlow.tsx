@@ -907,6 +907,24 @@ const BookingFlow = () => {
             if (Object.keys(autoDefaults).length > 0) {
               setCustomAddonCounts(prev => ({ ...autoDefaults, ...prev }));
             }
+            // LINE/LIFF 帶入的預選加購（?addons=addonType:qty,...）：clamp 到 min/max，略過不存在或停用者
+            const addonsParam = searchParams.get("addons");
+            if (addonsParam) {
+              const preselect: Record<string, number> = {};
+              for (const seg of addonsParam.split(",")) {
+                const [rawType, rawQty] = seg.split(":");
+                const type = decodeURIComponent(rawType || "").trim();
+                const setting = otherAddons.find(a => a.addon_type === type);
+                if (!setting) continue; // 不存在/已停用 → 略過，不報錯
+                const min = (setting as any).min_quantity ?? 0;
+                const max = setting.max_quantity ?? 99;
+                const q = Math.max(min || 1, Math.min(max, parseInt(rawQty || "1", 10) || 1));
+                preselect[type] = q;
+              }
+              if (Object.keys(preselect).length > 0) {
+                setCustomAddonCounts(prev => ({ ...prev, ...preselect }));
+              }
+            }
           }
         }
 
@@ -3691,6 +3709,20 @@ const BookingFlow = () => {
                 accommodation_id: accommodationId,
                 metadata: { order_id: insertedOrder?.id, qty: l.count, total: l.total },
               });
+            }
+          }
+          if (lineUid) {
+            for (const [type, count] of Object.entries(customAddonCounts)) {
+              if (count > 0) {
+                emitMetric({
+                  event_type: "addon_purchased",
+                  channel: "line",
+                  ref_type: "addon_setting",
+                  ref_id: type,
+                  accommodation_id: accommodationId,
+                  metadata: { order_id: insertedOrder?.id, qty: count },
+                });
+              }
             }
           }
         } catch { /* 埋點失敗不影響下單 */ }
