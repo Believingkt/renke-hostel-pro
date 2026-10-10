@@ -19,6 +19,7 @@ import {
   tripFlex,
 } from "./lineTrip.ts";
 import { writeMetric } from "./metric.ts";
+import { lowestPackagePricesForRooms } from "./packagePricing.ts";
 
 export interface ButlerCartStay {
   kind: "stay";
@@ -35,6 +36,8 @@ export interface ButlerCartStay {
   stayTotal?: number;
   qty: number;
   coverUrl?: string | null;
+  /** 啟用方案 id（帶入 /book 走與官網同一條方案計價） */
+  packageId?: string | null;
 }
 
 export interface ButlerCartProduct {
@@ -54,6 +57,8 @@ export interface ButlerState {
   checkIn?: string;
   checkOut?: string;
   guests?: number;
+  adults?: number;
+  children?: number;
   keyword?: string;
   venue?: string;
   venueLabel?: string;
@@ -174,6 +179,10 @@ export interface RoomOffer {
   /** 是否貼合人數（非包棟且不會過大） */
   fitsGuests: boolean;
   isExclusivePackage: boolean;
+  /** 啟用方案（與官網同一套方案售價）；無方案時為 null，價格退回房況庫存價 */
+  packageId?: string | null;
+  packageName?: string | null;
+  originalPrice?: number | null;
 }
 
 export interface FindRoomsResult {
@@ -325,6 +334,27 @@ async function buildOffers(
   }
 
   const offers: RoomOffer[] = [];
+  // 方案售價（與官網同源）：有啟用方案以方案售價為準，無則退回房況庫存價
+  const pkgByRoom = await lowestPackagePricesForRooms(
+    sb,
+    accList.length === 1 ? accList[0].id : "",
+    roomTypeIds,
+    dates,
+  );
+  // 多館情境逐館查（活動入口通常單館；多館時合併）
+  if (accList.length > 1) {
+    const perAcc = await Promise.all(
+      accList.map((a) =>
+        lowestPackagePricesForRooms(
+          sb,
+          a.id,
+          roomTypes.filter((r) => r.accommodation_id === a.id).map((r) => r.id),
+          dates,
+        )
+      ),
+    );
+    for (const m of perAcc) for (const [k, v] of m.entries()) pkgByRoom.set(k, v);
+  }
   for (const rt of roomTypes) {
     const accClosed = lockedDates.get(rt.accommodation_id!);
     let total = 0;
@@ -354,17 +384,23 @@ async function buildOffers(
     const fitsGuests = opts.guests
       ? !isExclusive && capacity >= opts.guests && capacity <= opts.guests + 1
       : !isExclusive;
+    const pkg = pkgByRoom.get(rt.id);
+    // 佔用閘門：超過該方案人數上限則不推薦（與官網「人數超過上限」一致）
+    if (opts.guests && pkg?.guestMax != null && opts.guests > pkg.guestMax) continue;
     offers.push({
       roomTypeId: rt.id,
       accommodationId: rt.accommodation_id!,
       accommodationName: accMap.get(rt.accommodation_id!)?.name ?? "",
       name: rt.name,
       capacity,
-      totalPrice: total,
+      totalPrice: pkg ? pkg.saleTotal : total,
       availableRooms: minRooms ?? 0,
       coverUrl: photoIndex.get(rt.id) ?? null,
       fitsGuests,
       isExclusivePackage: isExclusive,
+      packageId: pkg?.packageId ?? null,
+      packageName: pkg?.packageName ?? null,
+      originalPrice: pkg?.originalTotal ?? null,
     });
   }
   // 先按適配度分組，組內按價格排序
@@ -520,6 +556,10 @@ export function roomCarousel(offers: RoomOffer[], checkIn: string, checkOut: str
               size: "xs",
               color: o.availableRooms > 0 ? "#E8792B" : "#B00020",
             },
+            ...(o.packageName ? [{ type: "text", text: o.packageName, size: "xs", color: "#8A6FCF", wrap: true }] : []),
+            ...(o.originalPrice && o.originalPrice > o.totalPrice
+              ? [{ type: "text", text: `原價 ${money(o.originalPrice)}`, size: "xs", color: "#AAAAAA", decoration: "line-through" }]
+              : []),
             { type: "text", text: money(o.totalPrice), weight: "bold", size: "lg", color: "#E8792B" },
           ],
         },
@@ -536,7 +576,7 @@ export function roomCarousel(offers: RoomOffer[], checkIn: string, checkOut: str
               action: {
                 type: "postback",
                 label: "選這間",
-                data: `action=pick_room&room=${o.roomTypeId}&ci=${checkIn}&co=${checkOut}`,
+                data: `action=pick_room&room=${o.roomTypeId}&ci=${checkIn}&co=${checkOut}${o.packageId ? `&pkg=${o.packageId}` : ""}`,
                 displayText: `我選 ${o.name}`,
               },
             },
@@ -643,7 +683,7 @@ export function cartSummary(items: ButlerCartItem[], liffUrl: string | null): Ou
       },
       {
         type: "text",
-        text: money(cartLineTotal(i)),
+        text: i.kind === "product" ? addonPriceText(cartLineTotal(i)) : money(cartLineTotal(i)),
         size: "sm",
         align: "end",
         flex: 3,
@@ -826,6 +866,8 @@ async function handleText(
     checkIn: parsed.checkIn ?? state.checkIn,
     checkOut: parsed.checkOut ?? state.checkOut,
     guests: parsed.guests ?? state.guests,
+    adults: parsed.adults ?? state.adults,
+    children: parsed.children ?? state.children,
     keyword: parsed.keyword ?? state.keyword,
     venue: parsed.venue ?? state.venue,
     venueLabel: parsed.venueLabel ?? state.venueLabel,
@@ -854,6 +896,8 @@ async function handleText(
   } else if (parsed.intent === "search_rooms") {
     if (!next.checkIn || !next.checkOut) {
       messages = [textMsg("好的 😊 想住哪幾天呢？（例如：8/20 住 2 晚、4 人）")];
+    } else if (!next.guests) {
+      messages = [textMsg("好的！請問總共幾位入住呢？😊 有兒童的話也告訴我（例如：2 大 1 小），我才能幫你推薦合適的房型。")];
     } else {
       const nights = Math.max(
         1,
@@ -1135,6 +1179,7 @@ async function handlePostback(
         stayTotal: picked.totalPrice,
         qty: 1,
         coverUrl: picked.coverUrl,
+        packageId: picked.packageId ?? null,
       },
     ];
     next.checkIn = checkIn;
@@ -1156,8 +1201,7 @@ async function handlePostback(
       .eq("id", id)
       .maybeSingle();
     if (!p) return [textMsg("這個品項目前無法加購 🙈")];
-    // deno-lint-ignore no-explicit-any
-    const name = typeof p.name === "string" ? p.name : ((p.name as any)?.["zh-TW"] ?? "加購項目");
+    const name = localizedName(p.name);
     const existing = (next.cart || []).find((i) => i.kind === "product" && i.productId === id) as
       | ButlerCartProduct
       | undefined;
@@ -1167,7 +1211,7 @@ async function handlePostback(
         kind: "product",
         productId: p.id,
         name,
-        type: p.type ?? "加購",
+        type: addonTypeLabel(p.type),
         unitPrice: Number(p.price ?? 0),
         qty: 1,
         coverUrl: p.cover_url ?? null,
@@ -1188,9 +1232,13 @@ async function favoriteMeta(sb: SupabaseClient, refType: string, refId: string) 
   }
   if (refType === "product") {
     const { data } = await sb.from("trip_products").select("name, price").eq("id", refId).maybeSingle();
+    return { name: localizedName(data?.name), price: data?.price ?? 0 };
+  }
+  if (refType === "trip") {
+    const { data } = await sb.from("trip_generations").select("scenario, payload").eq("id", refId).maybeSingle();
     // deno-lint-ignore no-explicit-any
-    const name = typeof data?.name === "string" ? data.name : ((data?.name as any)?.["zh-TW"] ?? "加購項目");
-    return { name, price: data?.price ?? 0 };
+    const title = (data?.payload as any)?.title;
+    return { name: typeof title === "string" ? title : (localizedName(title, "我的行程")), scenario: data?.scenario ?? null };
   }
   return {};
 }

@@ -10,6 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+import { lowestPackagePricesForRooms } from "../_shared/packagePricing.ts";
 
 
 const corsHeaders = {
@@ -217,6 +218,7 @@ serve(async (req) => {
     const roomRows = (rooms.data || []) as any[];
     const priceByRoom = new Map<string, number>();
     const availByRoom = new Map<string, number>();
+    const pkgByRoom = new Map<string, { packageId: string; packageName: string; saleTotal: number; originalTotal: number | null }>();
 
     if (checkIn && roomRows.length) {
       const { data: inv } = await supabase
@@ -248,29 +250,11 @@ serve(async (req) => {
         }),
       );
 
-      // 價格補強：同名方案（前台訂房價格）為主要售價來源
-      const missingPrice = roomRows.filter((r) => !priceByRoom.get(r.id));
-      if (missingPrice.length) {
-        const { data: pkgs } = await supabase
-          .from("accommodation_packages")
-          .select("id, name, sale_price")
-          .eq("accommodation_id", accommodationId)
-          .in("name", missingPrice.map((r) => r.name));
-        const pkgList = (pkgs || []) as any[];
-        if (pkgList.length) {
-          const { data: dp } = await supabase
-            .from("package_date_prices")
-            .select("package_id, sale_price")
-            .in("package_id", pkgList.map((p) => p.id))
-            .eq("date", checkIn);
-          const dateMap = new Map((dp || []).map((d: any) => [d.package_id, Number(d.sale_price)]));
-          for (const r of missingPrice) {
-            const pkg = pkgList.find((p) => p.name === r.name);
-            if (!pkg) continue;
-            const price = dateMap.get(pkg.id) ?? Number(pkg.sale_price);
-            if (price > 0) priceByRoom.set(r.id, price);
-          }
-        }
+      // 方案售價為主（與官網／LINE 同一套取價）：有啟用方案一律覆蓋房況庫存價
+      const pkgMap = await lowestPackagePricesForRooms(supabase, accommodationId, roomRows.map((r) => r.id), [checkIn]);
+      for (const [rid, pk] of pkgMap.entries()) {
+        pkgByRoom.set(rid, pk);
+        priceByRoom.set(rid, pk.saleTotal);
       }
     }
 
@@ -398,11 +382,15 @@ serve(async (req) => {
         const params = new URLSearchParams({ accId: String(accommodationId), roomId: r.id });
         if (checkIn) params.set("checkIn", checkIn);
         if (checkOut) params.set("checkOut", checkOut);
+        const pk = pkgByRoom.get(r.id);
+        if (pk) params.set("packageId", pk.packageId);
         return {
           room_type_id: r.id,
           name: r.name,
           image_url: photo,
           price: priceByRoom.get(r.id) ?? (r.base_price > 0 ? r.base_price : null),
+          original_price: pk && pk.originalTotal && pk.originalTotal > pk.saleTotal ? pk.originalTotal : null,
+          package_name: pk?.packageName ?? null,
           available: checkIn ? (availByRoom.get(r.id) ?? null) : null,
           check_in: checkIn,
           check_out: checkOut,

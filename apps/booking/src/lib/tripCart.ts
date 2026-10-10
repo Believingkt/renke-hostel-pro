@@ -23,6 +23,8 @@ export interface CartStayItem {
   stayTotal?: number;
   qty: number;
   coverUrl?: string | null;
+  /** 啟用方案 id（帶入 /book 走與官網同一條方案計價） */
+  packageId?: string | null;
 }
 
 export interface CartProductItem {

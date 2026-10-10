@@ -55,6 +55,7 @@ const MemberRecentViews = lazy(() => import("@/pages/MemberRecentViews"));
 const MemberCards = lazy(() => import("@/pages/MemberCards"));
 const MemberCommonInfo = lazy(() => import("@/pages/MemberCommonInfo"));
 const MemberFavorites = lazy(() => import("@/pages/MemberFavorites"));
+const MemberTrips = lazy(() => import("@/pages/MemberTrips"));
 const MemberReferral = lazy(() => import("@/pages/MemberReferral"));
 const ReferralLanding = lazy(() => import("@/pages/ReferralLanding"));
 const ReferralAdmin = lazy(() => import("@/pages/ReferralAdmin"));
@@ -272,6 +273,9 @@ function App() {
                       } />
                       <Route path="favorites" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberFavorites /></Suspense>
+                      } />
+                      <Route path="trips" element={
+                        <Suspense fallback={<FrontendSkeleton />}><MemberTrips /></Suspense>
                       } />
                       <Route path="referral" element={
                         <Suspense fallback={<FrontendSkeleton />}><MemberReferral /></Suspense>

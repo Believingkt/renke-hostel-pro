@@ -312,6 +312,21 @@ export default function TripGenerate() {
         .single();
       if (error) throw error;
       setSavedIds((prev) => ({ ...prev, [index]: data.id }));
+      // 同步寫入 trip_favorites（與 LINE「我的收藏」/會員中心「我的行程」同一份）
+      try {
+        const favRefId = trip.snapshot_id ?? data.id;
+        await supabase.from("trip_favorites").insert({
+          user_id: auth.user.id,
+          ref_type: "trip",
+          ref_id: favRefId,
+          meta: {
+            title: trip.title,
+            scenario: trip.scenario,
+            total_price: trip.total_price,
+            trip_url: trip.snapshot_id ? `/trips/generate?trip=${trip.snapshot_id}` : `/trips/${data.id}`,
+          },
+        });
+      } catch { /* 冪等：重複收藏忽略 */ }
       emitMetric({
         event_type: "trip_save",
         ref_type: "trip",

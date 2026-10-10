@@ -11,6 +11,9 @@ export interface RoomCardPayload {
   features?: string | null;
   accommodation_name?: string | null;
   booking_url?: string | null;
+  /** 選填：啟用方案售價時的原價（刪除線）與方案名 */
+  original_price?: number | null;
+  package_name?: string | null;
 }
 
 export function buildRoomCardsBlock(cards: RoomCardPayload[]): string {

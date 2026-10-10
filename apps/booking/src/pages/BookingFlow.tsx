@@ -10,6 +10,7 @@ import {
   saveNativePaymentDraft,
 } from "@/lib/nativePayment";
 import { readTripCheckout, clearTripCheckout } from "@/lib/tripCart";
+import { emitMetric } from "@/lib/metric";
 import { qualifyReferral } from "@lakeze/shared/lib/referral";
 
 import { fetchRoomScopeAmenities } from "@/lib/roomScopeFacilities";
@@ -2314,6 +2315,12 @@ const BookingFlow = () => {
     return staged.tripId;
   }, [accommodationId]);
   const tripAddonTotal = tripCheckoutLines.reduce((sum, l) => sum + (Number(l.total) || 0), 0);
+  /** 行程/LINE 加購在價格明細逐項顯示（品名、數量、小計） */
+  const tripAddonSummaryLines = tripCheckoutLines.map((l) => ({
+    label: l.name,
+    qty: `${l.count} 份`,
+    subtotal: Number(l.total) || 0,
+  }));
 
   /** 組出送往既有金流／訂單的 custom_addon_details（既有加購 + 行程加購） */
   const buildCustomAddonLines = () => {
@@ -3671,6 +3678,23 @@ const BookingFlow = () => {
 
         orderData = insertedOrder;
 
+        // N2 分子：LINE 來源加購成交埋點（建單成功、與 referral qualify 同一處；不影響金流）
+        try {
+          const lineUid = sessionStorage.getItem("liff_line_user_id");
+          if (lineUid && tripCheckoutLines.length > 0) {
+            for (const l of tripCheckoutLines) {
+              emitMetric({
+                event_type: "addon_purchased",
+                channel: "line",
+                ref_type: "trip_product",
+                ref_id: l.product_id,
+                accommodation_id: accommodationId,
+                metadata: { order_id: insertedOrder?.id, qty: l.count, total: l.total },
+              });
+            }
+          }
+        } catch { /* 埋點失敗不影響下單 */ }
+
         // 多間預訂：寫入 order_rooms（庫存扣減以 order_rooms.quantity 為準）
         if (isMultiRoom && insertedOrder?.id) {
           const { error: orderRoomsError } = await supabase.from("order_rooms").insert([{
@@ -4347,7 +4371,7 @@ const BookingFlow = () => {
             />
             {currentStep !== "confirm" && (() => {
               const nights = calculateNights();
-              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [...tripAddonSummaryLines];
               if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
                 addonLines.push({
                   label: "寵物加購",
@@ -5412,7 +5436,7 @@ const BookingFlow = () => {
                     {/* 訂單摘要（與上方摘要一致） */}
                     {(() => {
                       const nights = calculateNights();
-                      const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+                      const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [...tripAddonSummaryLines];
                       if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
                         addonLines.push({
                           label: "寵物加購",
@@ -5711,7 +5735,7 @@ const BookingFlow = () => {
 
             {(() => {
               const nights = calculateNights();
-              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [];
+              const addonLines: Array<{ label: string; qty: string; subtotal: number }> = [...tripAddonSummaryLines];
               if (petPlanSettings.enabled && petCount > 0 && nights > 0) {
                 addonLines.push({
                   label: "寵物加購",

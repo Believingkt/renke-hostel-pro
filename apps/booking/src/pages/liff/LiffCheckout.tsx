@@ -72,6 +72,7 @@ export default function LiffCheckout() {
       const params = new URLSearchParams();
       params.set("acc", stay.accommodationId);
       params.set("roomId", stay.roomTypeId);
+      if (stay.packageId) params.set("packageId", stay.packageId);
       params.set("checkIn", stay.checkIn);
       params.set("checkOut", stay.checkOut);
       params.set("adults", String(Math.max(1, guests ?? 2)));
@@ -119,7 +120,7 @@ export default function LiffCheckout() {
                     {item.kind === "stay" ? `${item.checkIn} → ${item.checkOut}・${item.nights} 晚` : item.type}
                   </p>
                   <p className="mt-1 text-sm font-semibold tabular-nums text-foreground">
-                    NT$ {cartSubtotal(item).toLocaleString()}
+                    {cartSubtotal(item) > 0 ? `NT$ ${cartSubtotal(item).toLocaleString()}` : "免費"}
                     {item.qty > 1 ? <span className="ml-1 text-xs font-normal text-muted-foreground">（×{item.qty}）</span> : null}
                   </p>
                 </div>

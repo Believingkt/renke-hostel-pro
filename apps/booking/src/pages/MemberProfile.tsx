@@ -12,6 +12,7 @@ import {
   Gift,
   UserRound,
   Heart,
+  Map as MapIcon,
   ClipboardList,
   ShieldCheck,
   Sparkles,
@@ -266,7 +267,8 @@ const MemberProfile = () => {
         <MenuRow icon={History} label="最近瀏覽" onClick={() => navigate("/member/recent-views")} />
         <MenuRow icon={CreditCard} label="卡片管理" onClick={() => navigate("/member/cards")} />
         <MenuRow icon={ClipboardList} label="常用資訊" onClick={() => navigate("/member/common-info")} />
-        <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} last />
+        <MenuRow icon={Heart} label="我的收藏" onClick={() => navigate("/member/favorites")} />
+        <MenuRow icon={MapIcon} label="我的行程" onClick={() => navigate("/member/trips")} last />
       </MenuGroup>
 
       {/* App 推播通知（僅原生 App 顯示） */}

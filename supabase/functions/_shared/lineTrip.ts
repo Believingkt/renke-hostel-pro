@@ -195,6 +195,7 @@ export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | nu
       footer: {
         type: "box",
         layout: "vertical",
+        spacing: "sm",
         contents: [
           {
             type: "button",
@@ -202,6 +203,14 @@ export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | nu
             color: "#E8792B",
             action: { type: "uri", label: "查看完整行程", uri: tripFullUrl(scenario, tripId) },
           },
+          ...(tripId
+            ? [{
+                type: "button",
+                style: "secondary",
+                height: "sm",
+                action: { type: "postback", label: "❤️ 加入收藏", data: `action=fav&type=trip&id=${tripId}`, displayText: "收藏這個行程" },
+              }]
+            : []),
         ],
       },
     },

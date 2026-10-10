@@ -31,6 +31,8 @@ export interface ParsedIntent {
   checkOut?: string;
   nights?: number;
   guests?: number;
+  adults?: number;
+  children?: number;
   keyword?: string; // 地區 / 館別關鍵字
   venue?: string; // 指定館別 canonical（例：森山）
   venueLabel?: string; // 指定館別顯示名稱
@@ -104,15 +106,44 @@ export function extractDates(text: string, today: string): { checkIn?: string; c
 }
 
 export function extractGuests(text: string): number | undefined {
-  const m = text.match(/(\d{1,2})\s*(?:個?人|位|大人|pax)/i);
+  const occ = extractOccupancy(text);
+  return occ.total;
+}
+
+/** 解析大人／兒童：支援「2大1小」「兩大一小」「大人2位小孩1位」「3人」等 */
+export function extractOccupancy(text: string): { adults?: number; children?: number; total?: number } {
+  const t = text || "";
+  const zh: Record<string, number> = { 一: 1, 二: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
+  const num = (s: string): number | undefined => {
+    if (/^\d+$/.test(s)) return Number(s);
+    return zh[s];
+  };
+  let adults: number | undefined;
+  let children: number | undefined;
+  // N大M小 / N大 / M小（大=大人、小=小孩/兒童）
+  const a = t.match(/([0-9一二兩三四五六七八九十])\s*(?:位|個)?\s*大(?:人)?/);
+  if (a) adults = num(a[1]);
+  const c = t.match(/([0-9一二兩三四五六七八九十])\s*(?:位|個)?\s*(?:小孩|兒童|小朋友|小)/);
+  if (c) children = num(c[1]);
+  // 大人N / 小孩M（反序）
+  const a2 = t.match(/大人\s*([0-9一二兩三四五六七八九十])/);
+  if (a2 && adults === undefined) adults = num(a2[1]);
+  const c2 = t.match(/(?:小孩|兒童|小朋友)\s*([0-9一二兩三四五六七八九十])/);
+  if (c2 && children === undefined) children = num(c2[1]);
+
+  if (adults !== undefined || children !== undefined) {
+    const total = (adults ?? 0) + (children ?? 0);
+    return { adults, children, total: total > 0 ? total : undefined };
+  }
+  // 純總人數：「N人/位」「兩人」
+  const m = t.match(/(\d{1,2})\s*(?:個?人|位|大人|pax)/i);
   if (m) {
     const n = Number(m[1]);
-    if (n > 0 && n <= 40) return n;
+    if (n > 0 && n <= 40) return { total: n };
   }
-  const zh: Record<string, number> = { 一: 1, 二: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
-  const zm = text.match(/([一二兩三四五六七八九十])\s*(?:個?人|位)/);
-  if (zm) return zh[zm[1]];
-  return undefined;
+  const zm = t.match(/([一二兩三四五六七八九十])\s*(?:個?人|位)/);
+  if (zm) return { total: zh[zm[1]] };
+  return {};
 }
 
 const ADDON_KEYWORDS = /票券|門票|加購|體驗|餐券|早餐|晚餐|燒烤|BBQ|下午茶|接送|導覽|活動|景點/i;
@@ -186,7 +217,8 @@ export function extractTripAttributes(text: string, today: string): TripAttribut
 export function parseIntent(text: string, today: string): ParsedIntent {
   const t = (text || "").trim();
   const dates = extractDates(t, today);
-  const guests = extractGuests(t);
+  const occ = extractOccupancy(t);
+  const guests = occ.total;
   const venueAliasEarly = matchVenueAlias(t);
 
   // 明確訂房訊號：新日期 / 人數 / 房型館別 / 明確查訂房措辭
@@ -221,6 +253,8 @@ export function parseIntent(text: string, today: string): ParsedIntent {
     intent,
     ...dates,
     guests,
+    adults: occ.adults,
+    children: occ.children,
     keyword,
     venue: venueAlias?.canonical,
     venueLabel: venueAlias?.label,
