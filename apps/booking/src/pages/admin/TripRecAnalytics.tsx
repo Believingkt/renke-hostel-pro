@@ -44,6 +44,7 @@ export default function TripRecAnalytics() {
       p_from: filters.from, p_to: filters.to,
       p_accommodation_ids: filters.accommodationIds.length ? filters.accommodationIds : null,
       p_channel: filters.channel === "all" ? null : filters.channel,
+      p_include_internal: filters.includeInternal,
     } as any);
     if (error) { setError(`${(error as any).code ? `[${(error as any).code}] ` : ""}${error.message}${(error as any).details ? ` — ${(error as any).details}` : ""}`); setRows([]); }
     else setRows(((data as any[]) ?? []).map((r) => ({

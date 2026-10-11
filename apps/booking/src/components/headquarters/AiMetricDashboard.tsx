@@ -48,6 +48,7 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
   const [to, setTo] = useState(() => fmtDate(new Date()));
   const [channel, setChannel] = useState<Channel>("all");
   const [selected, setSelected] = useState<string[]>([]);
+  const [includeInternal, setIncludeInternal] = useState(true);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
       p_accommodation_ids: selected.length ? selected : null,
       p_channel: channel === "all" ? null : channel,
       p_attribution_days: ATTR_DAYS,
+      p_include_internal: includeInternal,
     } as any);
     if (error) {
       setError(error.message);
@@ -84,7 +86,7 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
       })));
     }
     setLoading(false);
-  }, [from, to, selected, channel]);
+  }, [from, to, selected, channel, includeInternal]);
 
   const loadExclusions = useCallback(async () => {
     const { data } = await supabase.from("ai_metric_exclusions" as any).select("*").order("created_at", { ascending: false });
@@ -124,7 +126,7 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
 
   const exportCsv = () => {
     const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
-    const filterDesc = `期間 ${from}~${to}；管道 ${channel === "all" ? "全部" : channel}；館別 ${selected.length ? selected.map(nameOf).join("/") : "全部"}；排除 is_internal 與排除名單 ${exclusions.length} 筆`;
+    const filterDesc = `期間 ${from}~${to}；管道 ${channel === "all" ? "全部" : channel}；館別 ${selected.length ? selected.map(nameOf).join("/") : "全部"}；口徑：${includeInternal ? "含內部上線測試（is_internal）" : "僅真實旅客"}；排除名單 ${exclusions.length} 筆`;
     const header1 = `# AI 成效指標 匯出時間 ${new Date().toISOString()}；${filterDesc}；${METRICS.map((m) => `${m.label}＝${m.formula}（${m.note}）`).join("；")}`;
     const cols = ["館別", "M1 分子", "M1 分母", "M1 比率", "M2 分子", "M2 分母", "M2 比率", "N1 分子", "N1 分母", "N1 比率", "N2 分子", "N2 分母", "N2 比率"];
     const line = (name: string, r: Row) => [
@@ -175,6 +177,10 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows?.length} data-testid="metric-export-csv">
               <Download className="h-4 w-4 mr-1" />匯出 CSV
             </Button>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer" data-testid="metric-include-internal">
+              <Checkbox checked={includeInternal} onCheckedChange={(v) => setIncludeInternal(v === true)} />
+              含內部上線測試
+            </label>
           </div>
           <div>
             <div className="text-xs text-muted-foreground mb-2">館別（不勾＝全部）</div>
@@ -187,8 +193,11 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
               ))}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            口徑：只計真實旅客（排除 is_internal 與下方排除名單）；日期以台北時區計；統計於進頁面時即時彙總，不回填、不模擬歷史數據。
+          <p className="text-xs text-muted-foreground" data-testid="metric-caliber">
+            {includeInternal
+              ? "口徑：含內部上線測試（is_internal）＋真實旅客（仍排除下方排除名單）"
+              : "口徑：僅真實旅客（排除 is_internal 與下方排除名單）"}
+            ；日期以台北時區計；統計於進頁面時即時彙總，不回填、不模擬歷史數據。
           </p>
           {error && <p className="text-sm text-destructive" data-testid="metric-error">{error}</p>}
         </CardContent>

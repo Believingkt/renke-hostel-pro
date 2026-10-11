@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowDown, ArrowUp, ArrowUpDown, Download, Loader2, RefreshCw } from "lucide-react";
 
 export interface AccommodationOption { id: string; name: string }
-export interface Filters { from: string; to: string; accommodationIds: string[]; channel: string }
+export interface Filters { from: string; to: string; accommodationIds: string[]; channel: string; includeInternal: boolean }
 
 export type ColumnDef<R> =
   | { key: string; label: string; kind: "text"; value: (r: R) => string; align?: "left" }
@@ -32,6 +32,7 @@ export const defaultFilters = (): Filters => ({
   to: taipeiDay(0),
   accommodationIds: [],
   channel: "all",
+  includeInternal: true,
 });
 
 export const PLATFORM_LABEL = "平台（未指定館別）";
@@ -105,7 +106,8 @@ export function MetricBreakdownTable<R>({
 
   const exportCsv = () => {
     const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
-    const first = `# ${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}；口徑：${scopeNotes.join("；")}`;
+    const caliber = filters.includeInternal ? "含內部上線測試（is_internal）" : "僅真實旅客";
+    const first = `# ${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}；口徑：${caliber}；${scopeNotes.join("；")}`;
     const lines = [first, columns.map((c) => esc(c.label)).join(",")];
     for (const r of sorted) lines.push(columns.map((c) => esc(c.kind === "number" ? c.value(r) : cell(c, r))).join(","));
     if (rows.length) lines.push(columns.map((c, i) => esc(totalCell(c, i))).join(","));
@@ -151,8 +153,15 @@ export function MetricBreakdownTable<R>({
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} data-testid="bd-export">
               <Download className="h-4 w-4 mr-1" />匯出 CSV
             </Button>
+            <label className="flex items-center gap-1.5 text-sm cursor-pointer" data-testid="bd-include-internal">
+              <Checkbox checked={filters.includeInternal} onCheckedChange={(v) => set({ includeInternal: v === true })} />
+              含內部上線測試
+            </label>
             {extraHeader}
           </div>
+          <p className="text-xs font-medium text-foreground" data-testid="bd-caliber">
+            {filters.includeInternal ? "口徑：含內部上線測試（is_internal）" : "口徑：僅真實旅客"}
+          </p>
           <div>
             <div className="text-xs text-muted-foreground mb-2">業者（不勾＝全部）</div>
             <div className="flex flex-wrap gap-3">
