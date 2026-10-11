@@ -5,9 +5,10 @@
 //   GET  /accommodation-api/room-types/:id          -> 查詢單一房型
 //   POST /accommodation-api/room-types              -> 新增房型（含設施與圖片）
 //   GET  /accommodation-api/availability            -> 每日剩餘房量 / 房價 / 開關房
+//   GET  /accommodation-api/performance             -> 每日進單營收 / 入住營收 / 住房率 / 取消率（績效追蹤）
 
-const API_VERSION = "1.1.0";
-const API_BUILD_DATE = "2026-07-02";
+const API_VERSION = "1.2.0";
+const API_BUILD_DATE = "2026-06-10";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import {
   ACTIVE_ORDER_STATUSES,
@@ -17,6 +18,13 @@ import {
   isValidDateStr,
   MAX_RANGE_DAYS,
 } from "./availability.ts";
+import {
+  buildPerformance,
+  EXCLUDED_TEST_SOURCES,
+  MAX_PERFORMANCE_RANGE_DAYS,
+  PERFORMANCE_DEFINITIONS,
+  taipeiDayRangeUtc,
+} from "./performance.ts";
 import {
   ACCOMMODATION_API_READ_LIMIT,
   ACCOMMODATION_API_WRITE_LIMIT,
@@ -137,6 +145,7 @@ async function handleRequest(req: Request): Promise<Response> {
         endpoints: [
           "GET /version",
           "GET /availability (optional accommodation_id=uuid[,uuid] — must be within key scope)",
+          "GET /performance (from, to ≤ 366 days; optional accommodation_id=uuid[,uuid], source=a[,b])",
           "GET /room-types",
           "GET /room-types/:id",
           "POST /room-types",
@@ -469,6 +478,136 @@ async function handleRequest(req: Request): Promise<Response> {
       });
     }
 
+    // ---- PERFORMANCE（進單營收 / 入住營收 / 住房率 / 取消率，以日為單位）----
+    if (route[0] === "performance" && req.method === "GET" && route.length === 1) {
+      const from = url.searchParams.get("from") || "";
+      const to = url.searchParams.get("to") || "";
+      const accParam = url.searchParams.get("accommodation_id");
+      const sourceParam = url.searchParams.get("source");
+
+      if (!from || !to) return jsonResponse({ error: "from and to are required (YYYY-MM-DD)" }, 400);
+      if (!isValidDateStr(from) || !isValidDateStr(to)) {
+        return jsonResponse({ error: "Invalid date format, expected YYYY-MM-DD" }, 400);
+      }
+      if (to < from) return jsonResponse({ error: "'to' must be on or after 'from'" }, 400);
+      const span = daysBetweenInclusive(from, to);
+      if (span > MAX_PERFORMANCE_RANGE_DAYS) {
+        return jsonResponse({ error: `Date range exceeds ${MAX_PERFORMANCE_RANGE_DAYS} days (got ${span})` }, 400);
+      }
+
+      const multiMode = accParam !== null;
+      let targets = [accommodationId];
+      if (multiMode) {
+        const requestedAccs = accParam.split(",").map((s) => s.trim()).filter(Boolean);
+        if (requestedAccs.length === 0) {
+          return jsonResponse({ error: "accommodation_id must not be empty" }, 400);
+        }
+        const outOfScope = requestedAccs.filter((id) => !allowedAccommodationIds.has(id));
+        if (outOfScope.length > 0) {
+          return jsonResponse(
+            {
+              error: "One or more accommodation_id values are outside this API key's scope",
+              out_of_scope: outOfScope,
+            },
+            403,
+          );
+        }
+        targets = Array.from(new Set(requestedAccs));
+      }
+
+      const sourceFilter = sourceParam
+        ? Array.from(new Set(sourceParam.split(",").map((s) => s.trim()).filter(Boolean)))
+        : null;
+      if (sourceFilter && sourceFilter.length === 0) {
+        return jsonResponse({ error: "source must not be empty" }, 400);
+      }
+
+      const { startUtc, endUtc } = taipeiDayRangeUtc(from, to);
+      const ORDER_COLS =
+        "id, order_date, created_at, order_status, check_in_date, check_out_date, final_price, paid_amount, room_quantity, room_type_id, lock_whole_building, order_source";
+
+      const perAccommodation: Array<Record<string, unknown>> = [];
+      for (const accId of targets) {
+        // 與每日業績推播同口徑：該館關閉的來源不計入
+        const { data: ruleRows } = await supabase
+          .from("performance_notification_source_rules")
+          .select("source, included")
+          .eq("accommodation_id", accId);
+        const excludedSources = new Set<string>(EXCLUDED_TEST_SOURCES);
+        for (const r of ruleRows || []) {
+          if ((r as any).included === false && (r as any).source) excludedSources.add(String((r as any).source));
+        }
+        const excludedList = Array.from(excludedSources)
+          .map((v) => `"${v.replace(/"/g, '\\"')}"`)
+          .join(",");
+
+        const applyFilters = (q: any) => {
+          q = q.eq("accommodation_id", accId).neq("order_status", "hold");
+          q = q.or(`order_source.is.null,order_source.not.in.(${excludedList})`);
+          if (sourceFilter) q = q.in("order_source", sourceFilter);
+          return q;
+        };
+
+        const rtRes = await supabase
+          .from("room_types")
+          .select("id, room_count, is_exclusive_package")
+          .eq("accommodation_id", accId);
+        if (rtRes.error) return jsonResponse({ error: rtRes.error.message }, 500);
+        const rtIds = (rtRes.data || []).map((r: any) => r.id);
+
+        const [invRes, bookedRes, stayRes] = await Promise.all([
+          rtIds.length > 0
+            ? supabase
+              .from("room_inventory_pricing")
+              .select("room_type_id, date, available_rooms, is_available")
+              .in("room_type_id", rtIds)
+              .is("pricing_template_id", null)
+              .gte("date", from)
+              .lte("date", to)
+            : Promise.resolve({ data: [], error: null }),
+          applyFilters(supabase.from("orders").select(ORDER_COLS))
+            .gte("order_date", startUtc)
+            .lt("order_date", endUtc),
+          applyFilters(supabase.from("orders").select(ORDER_COLS))
+            .gt("check_out_date", from)
+            .lte("check_in_date", to),
+        ]);
+        const firstErr = invRes.error || bookedRes.error || stayRes.error;
+        if (firstErr) return jsonResponse({ error: firstErr.message }, 500);
+
+        const orders = [...(bookedRes.data || []), ...(stayRes.data || [])] as any[];
+        const orderIds = Array.from(new Set(orders.map((o) => o.id)));
+        let orderRooms: any[] = [];
+        if (orderIds.length > 0) {
+          const { data: orRows } = await supabase
+            .from("order_rooms")
+            .select("order_id, room_type_id, quantity")
+            .in("order_id", orderIds);
+          orderRooms = orRows || [];
+        }
+
+        const result = buildPerformance({
+          from,
+          to,
+          roomTypes: (rtRes.data || []) as any,
+          inventory: (invRes.data || []) as any,
+          orders,
+          orderRooms,
+        });
+        perAccommodation.push({ accommodation_id: accId, ...result });
+      }
+
+      const base = {
+        from,
+        to,
+        currency: "TWD",
+        timezone: PERFORMANCE_DEFINITIONS.timezone,
+        source_filter: sourceFilter,
+        definitions: PERFORMANCE_DEFINITIONS,
+      };
+      if (!multiMode) return jsonResponse({ ...base, ...perAccommodation[0] });
+      return jsonResponse({ ...base, accommodations: perAccommodation });
+    }
 
     return jsonResponse({ error: "Not found" }, 404);
   } catch (e) {

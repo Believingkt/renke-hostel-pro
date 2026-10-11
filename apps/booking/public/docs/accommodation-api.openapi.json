@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Accommodation API",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "description": "供外部系統（Bot、Channel Manager、旅遊平台）串接民宿房型、房價、庫存的唯讀 API。一把 API Key 綁定單一民宿，僅回傳該館資料。",
     "contact": {
       "name": "Lakeze Hostel Platform"
@@ -34,6 +34,10 @@
     {
       "name": "Room Types",
       "description": "房型列表與詳情"
+    },
+    {
+      "name": "Performance",
+      "description": "績效追蹤：每日進單營收、入住營收、住房率、取消率（AM 儀表板用）"
     }
   ],
   "paths": {
@@ -169,6 +173,177 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/performance": {
+      "get": {
+        "tags": [
+          "Performance"
+        ],
+        "summary": "績效追蹤：每日進單營收 / 入住營收 / 住房率 / 取消率",
+        "description": "以日為單位回傳兩條時間軸：**booked（進單軸，order_date 台北日期）** 衡量期間內下了多少單、預估營收多少、其中多少取消；**stay（入住軸，每晚攤提）** 衡量實際入住房晚、營收與住房率。兩者差異即取消／流失。只回傳 API Key 綁定館別的資料。口徑：排除 hold、test 來源與該館業績推播設定中關閉的來源；包棟方案或整棟保留視為佔滿全部可售房。",
+        "operationId": "getPerformance",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "description": "起始日期（含）YYYY-MM-DD",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-06-01"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "description": "結束日期（含）YYYY-MM-DD。需 ≥ from，區間最多 366 天。",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-06-30"
+            }
+          },
+          {
+            "name": "accommodation_id",
+            "in": "query",
+            "required": false,
+            "description": "逗號分隔多館 ID（須在金鑰範圍內，超出整批 403）。帶此參數回應改為 accommodations 陣列；未帶回金鑰主館單館物件。",
+            "schema": {
+              "type": "string",
+              "example": "uuid-1,uuid-2"
+            }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "description": "只計特定 order_source（逗號分隔，如 website,kol），用於看特定行銷通路成效。",
+            "schema": {
+              "type": "string",
+              "example": "website,kol"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "查詢成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PerformanceResponse"
+                },
+                "example": {
+                  "accommodation_id": "acc-uuid",
+                  "from": "2026-06-01",
+                  "to": "2026-06-02",
+                  "currency": "TWD",
+                  "timezone": "Asia/Taipei",
+                  "source_filter": null,
+                  "summary": {
+                    "booked": {
+                      "orders": 2,
+                      "gross_revenue": 7000,
+                      "cancelled_orders": 1,
+                      "cancelled_revenue": 3000,
+                      "net_orders": 1,
+                      "net_revenue": 4000,
+                      "collected_amount": 1000,
+                      "room_nights": 5,
+                      "cancellation_rate_by_orders": 0.5,
+                      "cancellation_rate_by_revenue": 0.4286
+                    },
+                    "stay": {
+                      "occupied_room_nights": 3,
+                      "available_room_nights": 8,
+                      "occupancy_rate": 0.375,
+                      "revenue": 3000,
+                      "check_ins": 1,
+                      "cancelled_room_nights": 1,
+                      "cancelled_revenue": 3000
+                    },
+                    "by_source": [
+                      {
+                        "source": "website",
+                        "orders": 1,
+                        "gross_revenue": 4000,
+                        "cancelled_orders": 0,
+                        "net_revenue": 4000
+                      },
+                      {
+                        "source": "kol",
+                        "orders": 1,
+                        "gross_revenue": 3000,
+                        "cancelled_orders": 1,
+                        "net_revenue": 0
+                      }
+                    ]
+                  },
+                  "daily": [
+                    {
+                      "date": "2026-06-01",
+                      "booked": {
+                        "orders": 2,
+                        "gross_revenue": 7000,
+                        "cancelled_orders": 1,
+                        "cancelled_revenue": 3000,
+                        "net_orders": 1,
+                        "net_revenue": 4000,
+                        "collected_amount": 1000,
+                        "room_nights": 5
+                      },
+                      "stay": {
+                        "occupied_room_nights": 1,
+                        "available_room_nights": 5,
+                        "occupancy_rate": 0.2,
+                        "revenue": 1000,
+                        "check_ins": 0,
+                        "cancelled_room_nights": 1,
+                        "cancelled_revenue": 3000
+                      }
+                    },
+                    {
+                      "date": "2026-06-02",
+                      "booked": {
+                        "orders": 0,
+                        "gross_revenue": 0,
+                        "cancelled_orders": 0,
+                        "cancelled_revenue": 0,
+                        "net_orders": 0,
+                        "net_revenue": 0,
+                        "collected_amount": 0,
+                        "room_nights": 0
+                      },
+                      "stay": {
+                        "occupied_room_nights": 2,
+                        "available_room_nights": 3,
+                        "occupancy_rate": 0.6667,
+                        "revenue": 2000,
+                        "check_ins": 1,
+                        "cancelled_room_nights": 0,
+                        "cancelled_revenue": 0
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "accommodation_id 超出金鑰範圍"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -735,6 +910,316 @@
             }
           }
         }
+      },
+      "PerformanceBookedBucket": {
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "integer",
+            "description": "當日進單筆數（含後來取消）"
+          },
+          "gross_revenue": {
+            "type": "integer",
+            "description": "進單時預估營收合計（final_price，含後來取消）"
+          },
+          "cancelled_orders": {
+            "type": "integer"
+          },
+          "cancelled_revenue": {
+            "type": "integer"
+          },
+          "net_orders": {
+            "type": "integer",
+            "description": "排除取消後筆數"
+          },
+          "net_revenue": {
+            "type": "integer",
+            "description": "排除取消後營收"
+          },
+          "collected_amount": {
+            "type": "integer",
+            "description": "未取消訂單 paid_amount 合計"
+          },
+          "room_nights": {
+            "type": "integer",
+            "description": "進單帶來的房晚數（含取消）"
+          }
+        }
+      },
+      "PerformanceStayBucket": {
+        "type": "object",
+        "properties": {
+          "occupied_room_nights": {
+            "type": "integer",
+            "description": "當晚被未取消訂單佔用的房數"
+          },
+          "available_room_nights": {
+            "type": "integer",
+            "description": "當晚可售房數（庫存覆寫→房型間數；關房=0；不含包棟虛擬房型）"
+          },
+          "occupancy_rate": {
+            "type": "number",
+            "nullable": true,
+            "description": "occupied / available，四捨五入至小數 4 位；無可售房為 null"
+          },
+          "revenue": {
+            "type": "integer",
+            "description": "實際入住營收：final_price ÷ 晚數 攤到當晚"
+          },
+          "check_ins": {
+            "type": "integer",
+            "description": "當日入住組數"
+          },
+          "cancelled_room_nights": {
+            "type": "integer",
+            "description": "原訂當晚入住但已取消的房晚"
+          },
+          "cancelled_revenue": {
+            "type": "integer",
+            "description": "原訂當晚入住但已取消的攤提營收"
+          }
+        }
+      },
+      "PerformanceAccommodation": {
+        "type": "object",
+        "properties": {
+          "accommodation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "booked": {
+                "type": "object",
+                "properties": {
+                  "orders": {
+                    "type": "integer",
+                    "description": "當日進單筆數（含後來取消）"
+                  },
+                  "gross_revenue": {
+                    "type": "integer",
+                    "description": "進單時預估營收合計（final_price，含後來取消）"
+                  },
+                  "cancelled_orders": {
+                    "type": "integer"
+                  },
+                  "cancelled_revenue": {
+                    "type": "integer"
+                  },
+                  "net_orders": {
+                    "type": "integer",
+                    "description": "排除取消後筆數"
+                  },
+                  "net_revenue": {
+                    "type": "integer",
+                    "description": "排除取消後營收"
+                  },
+                  "collected_amount": {
+                    "type": "integer",
+                    "description": "未取消訂單 paid_amount 合計"
+                  },
+                  "room_nights": {
+                    "type": "integer",
+                    "description": "進單帶來的房晚數（含取消）"
+                  },
+                  "cancellation_rate_by_orders": {
+                    "type": "number",
+                    "nullable": true
+                  },
+                  "cancellation_rate_by_revenue": {
+                    "type": "number",
+                    "nullable": true
+                  }
+                }
+              },
+              "stay": {
+                "type": "object",
+                "properties": {
+                  "occupied_room_nights": {
+                    "type": "integer",
+                    "description": "當晚被未取消訂單佔用的房數"
+                  },
+                  "available_room_nights": {
+                    "type": "integer",
+                    "description": "當晚可售房數（庫存覆寫→房型間數；關房=0；不含包棟虛擬房型）"
+                  },
+                  "occupancy_rate": {
+                    "type": "number",
+                    "nullable": true,
+                    "description": "occupied / available，四捨五入至小數 4 位；無可售房為 null"
+                  },
+                  "revenue": {
+                    "type": "integer",
+                    "description": "實際入住營收：final_price ÷ 晚數 攤到當晚"
+                  },
+                  "check_ins": {
+                    "type": "integer",
+                    "description": "當日入住組數"
+                  },
+                  "cancelled_room_nights": {
+                    "type": "integer",
+                    "description": "原訂當晚入住但已取消的房晚"
+                  },
+                  "cancelled_revenue": {
+                    "type": "integer",
+                    "description": "原訂當晚入住但已取消的攤提營收"
+                  }
+                }
+              },
+              "by_source": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "source": {
+                      "type": "string"
+                    },
+                    "orders": {
+                      "type": "integer"
+                    },
+                    "gross_revenue": {
+                      "type": "integer"
+                    },
+                    "cancelled_orders": {
+                      "type": "integer"
+                    },
+                    "net_revenue": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "booked": {
+                  "type": "object",
+                  "properties": {
+                    "orders": {
+                      "type": "integer",
+                      "description": "當日進單筆數（含後來取消）"
+                    },
+                    "gross_revenue": {
+                      "type": "integer",
+                      "description": "進單時預估營收合計（final_price，含後來取消）"
+                    },
+                    "cancelled_orders": {
+                      "type": "integer"
+                    },
+                    "cancelled_revenue": {
+                      "type": "integer"
+                    },
+                    "net_orders": {
+                      "type": "integer",
+                      "description": "排除取消後筆數"
+                    },
+                    "net_revenue": {
+                      "type": "integer",
+                      "description": "排除取消後營收"
+                    },
+                    "collected_amount": {
+                      "type": "integer",
+                      "description": "未取消訂單 paid_amount 合計"
+                    },
+                    "room_nights": {
+                      "type": "integer",
+                      "description": "進單帶來的房晚數（含取消）"
+                    }
+                  }
+                },
+                "stay": {
+                  "type": "object",
+                  "properties": {
+                    "occupied_room_nights": {
+                      "type": "integer",
+                      "description": "當晚被未取消訂單佔用的房數"
+                    },
+                    "available_room_nights": {
+                      "type": "integer",
+                      "description": "當晚可售房數（庫存覆寫→房型間數；關房=0；不含包棟虛擬房型）"
+                    },
+                    "occupancy_rate": {
+                      "type": "number",
+                      "nullable": true,
+                      "description": "occupied / available，四捨五入至小數 4 位；無可售房為 null"
+                    },
+                    "revenue": {
+                      "type": "integer",
+                      "description": "實際入住營收：final_price ÷ 晚數 攤到當晚"
+                    },
+                    "check_ins": {
+                      "type": "integer",
+                      "description": "當日入住組數"
+                    },
+                    "cancelled_room_nights": {
+                      "type": "integer",
+                      "description": "原訂當晚入住但已取消的房晚"
+                    },
+                    "cancelled_revenue": {
+                      "type": "integer",
+                      "description": "原訂當晚入住但已取消的攤提營收"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "PerformanceResponse": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "from": {
+                "type": "string",
+                "format": "date"
+              },
+              "to": {
+                "type": "string",
+                "format": "date"
+              },
+              "currency": {
+                "type": "string",
+                "example": "TWD"
+              },
+              "timezone": {
+                "type": "string",
+                "example": "Asia/Taipei"
+              },
+              "source_filter": {
+                "type": "array",
+                "nullable": true,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "definitions": {
+                "type": "object",
+                "description": "各欄位口徑說明（timezone / booked / stay / exclusions）"
+              },
+              "accommodations": {
+                "type": "array",
+                "description": "僅在帶 accommodation_id 時出現",
+                "items": {
+                  "$ref": "#/components/schemas/PerformanceAccommodation"
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/PerformanceAccommodation"
+          }
+        ]
       }
     },
     "responses": {

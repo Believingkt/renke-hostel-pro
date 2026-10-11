@@ -58,6 +58,7 @@ const TOC = [
   { id: "auth", label: "3. 認證" },
   { id: "version", label: "4. GET /version（公開，免 API Key）" },
   { id: "availability", label: "5. GET /availability（查價格 + 庫存）" },
+  { id: "performance", label: "5-1. GET /performance（績效：進單營收／住房率／取消率）" },
   { id: "try-it", label: "6. Try it out（互動測試）" },
   { id: "room-types", label: "7. GET /room-types（列全部房型）" },
   { id: "room-type-detail", label: "8. GET /room-types/{id}" },
@@ -171,12 +172,13 @@ export default function AccommodationApiDocs() {
                     <CodeBlock label="cURL（免 API Key）">{`curl -X GET '${BASE_URL}/version'`}</CodeBlock>
                     <CodeBlock label="回應範例 (200)">{`{
   "name": "accommodation-api",
-  "version": "1.1.0",
-  "build_date": "2026-07-02",
+  "version": "1.2.0",
+  "build_date": "2026-06-10",
   "runtime": "deno",
   "endpoints": [
     "GET /version",
     "GET /availability",
+    "GET /performance",
     "GET /room-types",
     "GET /room-types/:id",
     "POST /room-types"
@@ -265,6 +267,101 @@ export default function AccommodationApiDocs() {
                     <div className="p-3 bg-primary/5 border border-primary/20 rounded-md text-sm">
                       <p className="font-medium mb-1">✅ 判斷「這一晚可訂」</p>
                       <code className="text-xs">closed === false &amp;&amp; remaining &gt; 0 &amp;&amp; price !== null</code>
+                    </div>
+                  </CardContent>
+                </Card>
+              </section>
+
+              {/* Performance */}
+              <section id="performance" className="scroll-mt-24" data-testid="docs-performance-section">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary">GET</Badge>
+                      <code className="text-sm">/performance</code>
+                    </div>
+                    <CardDescription>
+                      績效追蹤（AM 儀表板）。以<strong>日</strong>為單位回傳兩條時間軸：<strong>booked 進單軸</strong>（這段期間下了多少單、預估營收多少、其中多少取消）與 <strong>stay 入住軸</strong>（實際入住房晚、營收、住房率）。兩者差異即取消／流失。時間段可自訂，只回傳 API Key 綁定館別的資料。
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <p className="font-medium text-sm mb-2">Query 參數</p>
+                      <div className="rounded-lg border overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3">參數</th>
+                              <th className="text-left p-3">型別</th>
+                              <th className="text-left p-3">必填</th>
+                              <th className="text-left p-3">說明</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y">
+                            <tr><td className="p-3"><code>from</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">起始日期 <code>YYYY-MM-DD</code>（含當日，台北時區）</td></tr>
+                            <tr><td className="p-3"><code>to</code></td><td className="p-3">string</td><td className="p-3">是</td><td className="p-3">結束日期（含當日）。需 ≥ <code>from</code>，區間最多 <strong>366 天</strong></td></tr>
+                            <tr><td className="p-3"><code>accommodation_id</code></td><td className="p-3">string</td><td className="p-3">否</td><td className="p-3">逗號分隔多館 ID（須在金鑰範圍內，超出整批 403）。帶此參數回應改為 <code>accommodations</code> 陣列；未帶則回金鑰主館單館物件</td></tr>
+                            <tr><td className="p-3"><code>source</code></td><td className="p-3">string</td><td className="p-3">否</td><td className="p-3">只計特定 <code>order_source</code>（逗號分隔，如 <code>website,kol</code>），用來看特定行銷通路成效</td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">cURL 範例</p>
+                      <CodeBlock label="某檔活動期間（6/1–6/14）的進單與入住成效">{`curl -X GET '${BASE_URL}/performance?from=2026-06-01&to=2026-06-14' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                      <div className="h-2" />
+                      <CodeBlock label="只看官網＋KOL 來源">{`curl -X GET '${BASE_URL}/performance?from=2026-06-01&to=2026-06-14&source=website,kol' \\
+  -H 'x-api-key: YOUR_API_KEY'`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">回應範例 (200，節錄)</p>
+                      <CodeBlock label="application/json">{`{
+  "accommodation_id": "uuid",
+  "from": "2026-06-01", "to": "2026-06-02",
+  "currency": "TWD", "timezone": "Asia/Taipei",
+  "summary": {
+    "booked": {
+      "orders": 2, "gross_revenue": 7000,
+      "cancelled_orders": 1, "cancelled_revenue": 3000,
+      "net_orders": 1, "net_revenue": 4000,
+      "collected_amount": 1000, "room_nights": 5,
+      "cancellation_rate_by_orders": 0.5, "cancellation_rate_by_revenue": 0.4286
+    },
+    "stay": {
+      "occupied_room_nights": 3, "available_room_nights": 8, "occupancy_rate": 0.375,
+      "revenue": 3000, "check_ins": 1,
+      "cancelled_room_nights": 1, "cancelled_revenue": 3000
+    },
+    "by_source": [
+      { "source": "website", "orders": 1, "gross_revenue": 4000, "cancelled_orders": 0, "net_revenue": 4000 },
+      { "source": "kol",     "orders": 1, "gross_revenue": 3000, "cancelled_orders": 1, "net_revenue": 0 }
+    ]
+  },
+  "daily": [
+    { "date": "2026-06-01",
+      "booked": { "orders": 2, "gross_revenue": 7000, "cancelled_orders": 1, "cancelled_revenue": 3000, "net_orders": 1, "net_revenue": 4000, "collected_amount": 1000, "room_nights": 5 },
+      "stay":   { "occupied_room_nights": 1, "available_room_nights": 5, "occupancy_rate": 0.2, "revenue": 1000, "check_ins": 0, "cancelled_room_nights": 1, "cancelled_revenue": 3000 } },
+    { "date": "2026-06-02",
+      "booked": { "orders": 0, "gross_revenue": 0, "cancelled_orders": 0, "cancelled_revenue": 0, "net_orders": 0, "net_revenue": 0, "collected_amount": 0, "room_nights": 0 },
+      "stay":   { "occupied_room_nights": 2, "available_room_nights": 3, "occupancy_rate": 0.6667, "revenue": 2000, "check_ins": 1, "cancelled_room_nights": 0, "cancelled_revenue": 0 } }
+  ],
+  "definitions": { "...": "各欄位口徑說明" }
+}`}</CodeBlock>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-sm mb-2">口徑說明</p>
+                      <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                        <li><strong>booked（進單軸）</strong>：以 <code>order_date</code> 的台北日期歸到當天。<code>gross_revenue</code> 是進單當下的<strong>預估營收</strong>（含後來取消）；<code>net_*</code> 排除取消；<code>collected_amount</code> 為未取消訂單已收款合計。</li>
+                        <li><strong>stay（入住軸）</strong>：每一晚（<code>check_in_date ≤ 日 &lt; check_out_date</code>）計一次；<code>revenue</code> 為 <code>final_price ÷ 晚數</code> 攤到每晚；<code>occupancy_rate = occupied / available</code>（四捨五入至小數 4 位）。</li>
+                        <li><code>available_room_nights</code>：取 <code>room_inventory_pricing.available_rooms</code>，缺列用房型 <code>room_count</code>，關房視為 0，不含包棟方案虛擬房型。</li>
+                        <li><strong>取消率</strong>：<code>summary.booked.cancellation_rate_by_orders / by_revenue</code>；<code>stay.cancelled_*</code> 則是「原本要住那晚但被取消」的流失量。</li>
+                        <li><strong>排除</strong>：<code>order_status=hold</code>、<code>order_source=test/test_data</code>，以及該館「業績推播來源設定」中關閉的來源（與每日業績推播同口徑）。包棟方案或整棟保留訂單視為當晚佔滿全部可售房。</li>
+                        <li><code>daily</code> 一定補滿 <code>from</code> ~ <code>to</code> 連續日期，可直接畫圖；自訂兩個時間段各呼叫一次即可比較行銷曝光前後差異。</li>
+                      </ul>
                     </div>
                   </CardContent>
                 </Card>
