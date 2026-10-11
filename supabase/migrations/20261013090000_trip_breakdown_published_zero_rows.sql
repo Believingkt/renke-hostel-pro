@@ -6,6 +6,9 @@
 -- 2) 不再列「平台（未指定館別）」：事件 accommodation_id IS NULL 一律排除（合計亦不含）。
 -- 原則：全部即時彙總，不回填、不模擬；0 值列由 trips 當下狀態推導，無事件即為 0。
 
+-- 回傳型別改變（新增 has_events），CREATE OR REPLACE 無法改回傳型別（42P13），需先 DROP 舊版。
+DROP FUNCTION IF EXISTS public.ai_metric_trip_breakdown(date, date, uuid[], text);
+
 CREATE OR REPLACE FUNCTION public.ai_metric_trip_breakdown(
   p_from date, p_to date, p_accommodation_ids uuid[] DEFAULT NULL, p_channel text DEFAULT NULL
 )
