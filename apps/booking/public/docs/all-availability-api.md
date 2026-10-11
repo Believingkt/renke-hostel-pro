@@ -7,7 +7,7 @@
 ## 端點
 
 ```
-GET https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability
+GET https://opaphdargymfyrrzvozs.supabase.co/functions/v1/all-availability
 ```
 
 - Method：`GET`
@@ -121,7 +121,7 @@ Authorization: Bearer <PLATFORM_MASTER_API_KEY>
 ## 範例：cURL
 
 ```bash
-curl -G 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability' \
+curl -G 'https://opaphdargymfyrrzvozs.supabase.co/functions/v1/all-availability' \
   -H "x-api-key: $PLATFORM_MASTER_API_KEY" \
   --data-urlencode 'from=2026-07-05' \
   --data-urlencode 'to=2026-07-10' \
@@ -131,7 +131,7 @@ curl -G 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability'
 指定民宿：
 
 ```bash
-curl -G 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability' \
+curl -G 'https://opaphdargymfyrrzvozs.supabase.co/functions/v1/all-availability' \
   -H "x-api-key: $PLATFORM_MASTER_API_KEY" \
   --data-urlencode 'from=2026-07-05' \
   --data-urlencode 'to=2026-07-10' \
@@ -141,7 +141,7 @@ curl -G 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability'
 ## 範例：Node.js (fetch)
 
 ```js
-const url = new URL('https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability');
+const url = new URL('https://opaphdargymfyrrzvozs.supabase.co/functions/v1/all-availability');
 url.searchParams.set('from', '2026-07-05');
 url.searchParams.set('to', '2026-07-10');
 
@@ -157,7 +157,7 @@ const data = await res.json();
 import os, requests
 
 r = requests.get(
-    "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/all-availability",
+    "https://opaphdargymfyrrzvozs.supabase.co/functions/v1/all-availability",
     headers={"x-api-key": os.environ["PLATFORM_MASTER_API_KEY"]},
     params={"from": "2026-07-05", "to": "2026-07-10"},
     timeout=30,

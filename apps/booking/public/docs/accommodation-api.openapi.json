@@ -10,7 +10,7 @@
   },
   "servers": [
     {
-      "url": "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/accommodation-api",
+      "url": "https://opaphdargymfyrrzvozs.supabase.co/functions/v1/accommodation-api",
       "description": "Production"
     }
   ],
@@ -437,7 +437,7 @@
     "/all-availability": {
       "servers": [
         {
-          "url": "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1",
+          "url": "https://opaphdargymfyrrzvozs.supabase.co/functions/v1",
           "description": "Platform (master key)"
         }
       ],

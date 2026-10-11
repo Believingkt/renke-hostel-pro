@@ -9,7 +9,7 @@
 ## 1. 端點（短網址）
 
 ```
-GET https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-30&key=<API_KEY>
+GET https://opaphdargymfyrrzvozs.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-30&key=<API_KEY>
 ```
 
 | 路徑 | 說明 |
@@ -184,13 +184,13 @@ Authorization: Bearer <API_KEY>
 
 ```bash
 # 1. 全部場域、一檔活動期間（6/1–6/14），Key 放網址
-curl -s 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-14&key=<API_KEY>'
+curl -s 'https://opaphdargymfyrrzvozs.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-14&key=<API_KEY>'
 
 # 2. 先問這把 Key 有哪些場域
-curl -s 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf/venues' -H 'x-api-key: <API_KEY>'
+curl -s 'https://opaphdargymfyrrzvozs.supabase.co/functions/v1/perf/venues' -H 'x-api-key: <API_KEY>'
 
 # 3. 只看兩館（用簡稱）＋ 只算官網與 KOL 來源
-curl -s 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-30&venue=森山,雲岫&source=website,kol' \
+curl -s 'https://opaphdargymfyrrzvozs.supabase.co/functions/v1/perf?from=2026-06-01&to=2026-06-30&venue=森山,雲岫&source=website,kol' \
   -H 'x-api-key: <API_KEY>'
 ```
 
@@ -220,7 +220,7 @@ curl -s 'https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf?from=2026-06
 ## 10. 最小呼叫範本（JavaScript）
 
 ```js
-const BASE = "https://dmafqwfynatdvnaeovhz.supabase.co/functions/v1/perf";
+const BASE = "https://opaphdargymfyrrzvozs.supabase.co/functions/v1/perf";
 async function getPerf(apiKey, from, to, { venues = [], sources = [] } = {}) {
   const q = new URLSearchParams({ from, to });
   if (venues.length) q.set("venue", venues.join(","));
@@ -234,6 +234,6 @@ async function getPerf(apiKey, from, to, { venues = [], sources = [] } = {}) {
 ---
 
 ## 相關連結
-- 互動文件（Swagger，含舊路徑 `/accommodation-api/performance` schema）：`https://<官網網域>/docs/accommodation-api-swagger.html`
-- OpenAPI JSON：`https://<官網網域>/docs/accommodation-api.openapi.json`
-- 本手冊：`https://<官網網域>/docs/accommodation-performance-api.md`
+- 互動文件（Swagger，含舊路徑 `/accommodation-api/performance` schema）：`https://booking.lakeze.com/docs/accommodation-api-swagger.html`
+- OpenAPI JSON：`https://booking.lakeze.com/docs/accommodation-api.openapi.json`
+- 本手冊：`https://booking.lakeze.com/docs/accommodation-performance-api.md`
