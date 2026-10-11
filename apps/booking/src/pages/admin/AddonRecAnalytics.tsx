@@ -46,7 +46,7 @@ export default function AddonRecAnalytics() {
       p_channel: filters.channel === "all" ? null : filters.channel,
       p_attribution_days: ATTR_DAYS,
     } as any);
-    if (error) { setError(error.message); setRows([]); }
+    if (error) { setError(`${(error as any).code ? `[${(error as any).code}] ` : ""}${error.message}${(error as any).details ? ` — ${(error as any).details}` : ""}`); setRows([]); }
     else setRows(((data as any[]) ?? []).map((r) => ({ ...r, shown: Number(r.shown), purchased_qty: Number(r.purchased_qty) })));
     setLoading(false);
   }, [filters]);

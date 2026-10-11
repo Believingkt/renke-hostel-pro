@@ -162,7 +162,11 @@ export function MetricBreakdownTable<R>({
           <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5" data-testid="bd-scope-notes">
             {scopeNotes.map((n) => <li key={n}>{n}</li>)}
           </ul>
-          {error && <p className="text-sm text-destructive" data-testid="bd-error">{error}</p>}
+          {error && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" data-testid="bd-error">
+              RPC 錯誤：{error}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -182,10 +186,17 @@ export function MetricBreakdownTable<R>({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading && rows.length === 0 && (
+              {loading && rows.length === 0 && !error && (
                 <TableRow><TableCell colSpan={columns.length} className="text-center text-muted-foreground">統計中…</TableCell></TableRow>
               )}
-              {!loading && rows.length === 0 && (
+              {error && (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="text-destructive" data-testid="bd-error-row">
+                    統計失敗：{error}
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && !error && rows.length === 0 && (
                 <TableRow><TableCell colSpan={columns.length} className="text-center text-muted-foreground" data-testid="bd-empty">尚無資料（n=0）</TableCell></TableRow>
               )}
               {sorted.map((r) => (
