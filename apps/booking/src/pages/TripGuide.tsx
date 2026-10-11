@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { emitMetric } from "@lakeze/shared/lib/metric";
 import { Loader2, Send, Sparkles, Check } from "lucide-react";
 import { Input } from "@lakeze/shared/components/ui/input";
 import { Button } from "@lakeze/shared/components/ui/button";
@@ -66,6 +67,22 @@ function getSessionId() {
   }
 }
 
+/** 由行程連結取出行程 id：/trips/generate?trip=<id> 或 /trips/<uuid>；非行程連結回 null */
+function extractTripId(href?: string): string | null {
+  if (!href) return null;
+  try {
+    const u = new URL(href, window.location.origin);
+    if (!u.pathname.startsWith("/trips")) return null;
+    const t = u.searchParams.get("trip");
+    if (t) return t;
+    const m = u.pathname.match(/^\/trips\/([0-9a-f-]{8,})$/i);
+    if (m && !["generate", "templates", "guide"].includes(m[1].toLowerCase())) return m[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 const TripGuide = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -85,6 +102,38 @@ const TripGuide = () => {
   }, [messages, isLoading]);
 
   const filledCount = FIELD_LABELS.filter((f) => formatValue(f.key, attrs[f.key])).length;
+
+  // M1 分子：導引回覆中的行程連結被點擊（ref_id 對齊 trip_rec_shown 記錄的 trip id）
+  const mdComponents = useMemo(
+    () => ({
+      a({ href, children }: { href?: string; children?: ReactNode }) {
+        const tripId = extractTripId(href);
+        return (
+          <a
+            href={href}
+            onClick={(e) => {
+              if (tripId) {
+                emitMetric({
+                  event_type: "trip_rec_click",
+                  ref_type: "trip",
+                  ref_id: tripId,
+                  accommodation_id: null,
+                  metadata: { source: "portal_guide" },
+                });
+              }
+              if (href && href.startsWith("/")) {
+                e.preventDefault();
+                navigate(href);
+              }
+            }}
+          >
+            {children}
+          </a>
+        );
+      },
+    }),
+    [navigate],
+  );
 
   const callGuide = async (history: Msg[], known: Attrs) => {
     setIsLoading(true);
@@ -205,7 +254,7 @@ const TripGuide = () => {
             <div key={i} className="flex gap-2">
               <img src={assistantAvatar} alt="" className="h-7 w-7 rounded-full object-cover mt-0.5 shrink-0" />
               <div className="max-w-[85%] rounded-2xl rounded-bl-md bg-card border px-3.5 py-2 text-sm prose prose-sm max-w-none [&>p]:my-0">
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+                <ReactMarkdown components={mdComponents}>{m.content}</ReactMarkdown>
               </div>
             </div>
           ),

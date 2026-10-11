@@ -21,7 +21,8 @@ const SCOPE_NOTES = [
   "推薦總數＝trip_rec_shown 次數；被點擊數＝trip_rec_click 次數；被點擊率＝被點擊數／推薦總數。",
   "複製/收藏/分享數＝trip_copy＋trip_save＋trip_favorite＋trip_share；比例＝該數／推薦總數。分母為 0 顯示「—」。",
   "行程名稱依 ref_id 取 trips.title → trip_generations 標題 → 事件 metadata，皆無則顯示 ID 前 8 碼；來源「上架行程／AI 生成」。",
-  "業者依事件 accommodation_id 對應館名，無則歸「平台（未指定館別）」。",
+  "本表僅列有館別歸屬之行程；全平台（含未指定館別）數字請見 AI 成效指標頁。",
+  "已上架但期間內尚無任何曝光的行程仍會列出（推薦總數 0、來源「上架行程」、比率顯示「—」），有數字的列排前面、0 值列排後面。",
   "排除 is_internal=true 與測試帳號排除名單（AI 成效指標頁管理）。全部由 ai_metric_events 真實事件即時彙總，不回填、不模擬。日期以台北時區計。",
 ];
 

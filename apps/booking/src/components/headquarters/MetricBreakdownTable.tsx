@@ -19,9 +19,17 @@ export type ColumnDef<R> =
   | { key: string; label: string; kind: "number"; value: (r: R) => number }
   | { key: string; label: string; kind: "rate"; num: (r: R) => number; den: (r: R) => number };
 
+/** 台北時區的某日（offsetDays=0 為台北今天）YYYY-MM-DD */
+const taipeiDay = (offsetDays = 0): string => {
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
+  const d = new Date(`${today}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + offsetDays);
+  return d.toISOString().slice(0, 10);
+};
+
 export const defaultFilters = (): Filters => ({
-  from: new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10),
-  to: new Date().toISOString().slice(0, 10),
+  from: taipeiDay(-29),
+  to: taipeiDay(0),
   accommodationIds: [],
   channel: "all",
 });
