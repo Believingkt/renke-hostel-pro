@@ -4,6 +4,7 @@
 import { useSearchParams } from "react-router-dom";
 import { TripCard, type TripCardData } from "@lakeze/shared/components/trips/TripCard";
 import { normalizeLang, type TripLang } from "@lakeze/shared/lib/tripI18n";
+import { emitMetric } from "@lakeze/shared/lib/metric";
 
 const OPEN_TAG = "[TRIP_CARDS]";
 const CLOSE_TAG = "[/TRIP_CARDS]";
@@ -47,16 +48,20 @@ export function parseTripCards(raw: string): { text: string; trips: TripCardData
   return { text: text.trim(), trips };
 }
 
-export function TripCardList({ trips }: { trips: TripCardData[] }) {
+export function TripCardList({ trips, accommodationId }: { trips: TripCardData[]; accommodationId?: string | null }) {
   const [params] = useSearchParams();
   const lang = normalizeLang(params.get("lang"));
 
   if (!trips.length) return null;
 
+  // M1 分子：AI 對話中的行程卡被點開
+  const onOpen = (trip: TripCardData) =>
+    emitMetric({ event_type: "trip_rec_click", ref_type: "trip", ref_id: trip.trip_id, accommodation_id: accommodationId ?? null, metadata: { source: "ai_chat" } });
+
   return (
     <div className="mt-3 space-y-3">
       {trips.map((trip) => (
-        <TripCard key={trip.trip_id} trip={trip} lang={lang} cta={CTA[lang]} />
+        <TripCard key={trip.trip_id} trip={trip} lang={lang} cta={CTA[lang]} onOpen={onOpen} />
       ))}
     </div>
   );

@@ -429,7 +429,7 @@ function MessageBubble({ role, content, accommodationId, onAddonAdded }: {
       )}
       {!isUser && trips.length > 0 && (
         <div className="w-[86%] max-w-[300px]">
-          <TripCardList trips={trips} />
+          <TripCardList trips={trips} accommodationId={accommodationId} />
         </div>
       )}
       {!isUser && addonParsed.addons.length > 0 && (

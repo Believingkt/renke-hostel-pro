@@ -3706,7 +3706,8 @@ const BookingFlow = () => {
         // N2 分子：LINE 來源加購成交埋點（建單成功、與 referral qualify 同一處；不影響金流）
         try {
           const fromWebAi = searchParams.get("addonSrc") === "web_ai";
-          const fromLine = (!!searchParams.get("addons") && !fromWebAi) || !!sessionStorage.getItem("liff_line_user_id");
+          const liffUid = sessionStorage.getItem("liff_line_user_id");
+          const fromLine = (!!searchParams.get("addons") && !fromWebAi) || !!liffUid;
           if (fromLine && tripCheckoutLines.length > 0) {
             for (const l of tripCheckoutLines) {
               emitMetric({
@@ -3715,6 +3716,7 @@ const BookingFlow = () => {
                 ref_type: "trip_product",
                 ref_id: l.product_id,
                 accommodation_id: accommodationId,
+                line_user_id: liffUid,
                 metadata: { order_id: insertedOrder?.id, qty: l.count, total: l.total },
               });
             }
@@ -3729,6 +3731,7 @@ const BookingFlow = () => {
                   ref_type: "addon_setting",
                   ref_id: type,
                   accommodation_id: accommodationId,
+                  line_user_id: liffUid,
                   metadata: { order_id: insertedOrder?.id, qty: count },
                 });
               }

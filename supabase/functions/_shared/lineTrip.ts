@@ -46,7 +46,8 @@ export async function archiveTripAttributes(
 
 export function tripFullUrl(scenario: TripScenario, tripId?: string | null) {
   const base = `${SITE_ORIGIN}/trips/generate?scenario=${scenario}&lang=zh`;
-  const uri = tripId ? `${base}&trip=${tripId}` : base;
+  // src=line_rec：落地頁據此記 trip_rec_click(line)，不再重複記 shown
+  const uri = tripId ? `${base}&trip=${tripId}&src=line_rec` : base;
   console.log("[butler-trip] full trip uri", uri);
   return uri;
 }

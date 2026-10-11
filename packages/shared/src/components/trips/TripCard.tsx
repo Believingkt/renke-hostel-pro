@@ -29,10 +29,12 @@ export function TripCard({
   trip,
   lang,
   cta,
+  onOpen,
 }: {
   trip: TripCardData;
   lang: TripLang;
   cta?: string;
+  onOpen?: (trip: TripCardData) => void;
 }) {
   const t = tripText(lang);
   const cover = typeof trip.cover_image_url === "string" ? trip.cover_image_url.trim() : "";
@@ -42,6 +44,8 @@ export function TripCard({
   return (
     <Link
       to={to}
+      data-testid={`trip-card-${trip.trip_id}`}
+      onClick={onOpen ? () => onOpen(trip) : undefined}
       className="block overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-transform active:scale-[0.99]"
     >
       {cover ? (

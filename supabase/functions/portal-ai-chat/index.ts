@@ -5,6 +5,7 @@ import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { HIDDEN_VENUE_REPLY, loadVenueDirectory, matchHiddenVenue, matchVenue } from "../_shared/venueMatch.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+import { writeMetric } from "../_shared/metric.ts";
 import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
 
@@ -149,6 +150,18 @@ serve(async (req) => {
                     });
                     const block = buildTripCardsBlock(cards as any);
                     if (block) push({ choices: [{ delta: { content: block } }] });
+                    // M1/M2 分母：導引行程卡曝光（fire-and-forget）
+                    for (const c of (cards as any[]) ?? []) {
+                      void writeMetric(supabase as any, {
+                        event_type: 'trip_rec_shown',
+                        ref_type: 'trip',
+                        ref_id: String(c?.trip_id ?? ''),
+                        accommodation_id: typeof context?.accommodation_id === 'string' && UUID_REGEX.test(context.accommodation_id) ? context.accommodation_id : null,
+                        channel: 'web',
+                        session_key: typeof session_id === 'string' ? session_id.slice(0, 80) : null,
+                        metadata: { source: 'portal_guide' },
+                      });
+                    }
                   } catch (genErr) {
                     console.error('guide trip generation failed', genErr);
                   }
@@ -1325,12 +1338,23 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
           // 主題行程圖文卡片（資料全部來自資料庫 trips，模型不參與）
           try {
             if (detectTripIntent(lastUserText)) {
-              const tripBlock = buildTripCardsBlock(
-                await fetchTripCards(supabase, { personalized: hasPersonalContext(lastUserText), limit: 3 }),
-              );
+              const tripCardsShown = await fetchTripCards(supabase, { personalized: hasPersonalContext(lastUserText), limit: 3 });
+              const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 assistantText += tripBlock;
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`));
+                // M1/M2 分母：電腦版管家行程卡曝光（fire-and-forget）
+                for (const c of tripCardsShown) {
+                  void writeMetric(supabase as any, {
+                    event_type: 'trip_rec_shown',
+                    ref_type: 'trip',
+                    ref_id: String(c.trip_id),
+                    accommodation_id: ctxAccId ?? null,
+                    channel: 'web',
+                    session_key: typeof session_id === 'string' ? session_id.slice(0, 80) : null,
+                    metadata: { source: 'portal_ai_chat' },
+                  });
+                }
               }
             }
           } catch (tripErr) {

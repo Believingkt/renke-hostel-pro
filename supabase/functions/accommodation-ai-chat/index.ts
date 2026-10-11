@@ -481,14 +481,25 @@ serve(async (req) => {
           // 串流結束後補上主題行程卡片區塊（資料全部來自資料庫 trips）
           if (wantTripCards) {
             try {
-              const tripBlock = buildTripCardsBlock(
-                await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3 }),
-              );
+              const tripCardsShown = await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3 });
+              const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 fullContent += tripBlock;
                 controller.enqueue(encoder.encode(
                   `data: ${JSON.stringify({ choices: [{ delta: { content: tripBlock } }] })}\n\n`,
                 ));
+                // M1/M2 分母：官網小安行程卡曝光（fire-and-forget，不影響回覆）
+                for (const c of tripCardsShown) {
+                  void writeMetric(supabase, {
+                    event_type: "trip_rec_shown",
+                    ref_type: "trip",
+                    ref_id: String(c.trip_id),
+                    accommodation_id: accommodationId,
+                    channel: "web",
+                    session_key: typeof session_id === "string" ? session_id.slice(0, 80) : null,
+                    metadata: { source: "accommodation_ai_chat" },
+                  });
+                }
               }
             } catch (tripErr) {
               console.error("trip cards failed", tripErr);
@@ -519,6 +530,7 @@ serve(async (req) => {
                 ref_id: a.addonType,
                 accommodation_id: accommodationId,
                 channel: "web",
+                session_key: typeof session_id === "string" ? session_id.slice(0, 80) : null,
               });
             }
           }

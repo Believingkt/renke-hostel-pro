@@ -914,6 +914,7 @@ function tripReply(
           event_type: "trip_rec_shown",
           ref_type: "trip",
           ref_id: tripId,
+          accommodation_id: state.tripVenueId ?? null,
           channel: "line",
           line_user_id: lineUserId,
           metadata: { scenario },
@@ -1314,7 +1315,7 @@ async function handlePostback(
       ref_type: refType,
       ref_id: refId,
       // deno-lint-ignore no-explicit-any
-      accommodation_id: (meta as any)?.accommodation_id ?? null,
+      accommodation_id: (meta as any)?.accommodation_id ?? (refType === "trip" ? state.tripVenueId ?? null : null),
       channel: "line",
       line_user_id: lineUserId,
     });

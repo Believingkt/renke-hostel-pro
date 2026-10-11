@@ -411,10 +411,14 @@ Deno.serve(async (req) => {
         sendRow.status = "skipped";
         sendRow.error_message = "LINE 官方推播尚未介接，文案供人工複製發送";
         skipped++;
+        // 先落 send 列取得 id，連結帶 s= 讓點擊能回到個別推播（N1 歸因）
+        const { id: lineSendId, error: lineErr } = await upsertRealSend(sendRow);
+        if (lineErr) results.push({ traveler_id: t.id, error: lineErr.message });
         const lineCta = rawCta
-          ? `${funcBase}/remarketing-track?c=${encodeURIComponent(campaignId)}&ch=line&u=${encodeURIComponent(rawCta)}`
+          ? `${funcBase}/remarketing-track?${lineSendId ? `s=${lineSendId}&` : ""}c=${encodeURIComponent(campaignId)}&ch=line&u=${encodeURIComponent(rawCta)}`
           : "";
         results.push({ traveler_id: t.id, name, text: `${subject}\n${personalBody}\n${lineCta || rawCta}` });
+        continue;
       } else if (!sendRow.recipient) {
         sendRow.status = "skipped";
         sendRow.error_message = "旅客無 Email";

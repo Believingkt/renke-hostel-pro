@@ -186,7 +186,12 @@ export default function TripGenerate() {
             translation_status: (data?.translation_status as GenTrip["translation_status"]) || "ready",
           },
         ]);
-        emitMetric({ event_type: "trip_rec_shown", ref_type: "trip", ref_id: id, metadata: { source: "snapshot" } });
+        if (params.get("src") === "line_rec") {
+          // LINE 行程卡「查看完整行程」落地：記點擊（分子），不再記 shown
+          emitMetric({ event_type: "trip_rec_click", channel: "line", ref_type: "trip", ref_id: id, metadata: { source: "line_rec" } });
+        } else {
+          emitMetric({ event_type: "trip_rec_shown", ref_type: "trip", ref_id: id, metadata: { source: "snapshot" } });
+        }
         setLoading(false);
         return true;
       }
@@ -478,7 +483,15 @@ export default function TripGenerate() {
                   </span>
                 </div>
                 {savedIds[index] ? (
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/trips/${savedIds[index]}?lang=${lang}`)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    data-testid={`trip-open-${index}`}
+                    onClick={() => {
+                      emitMetric({ event_type: "trip_rec_click", ref_type: "trip", ref_id: trip.snapshot_id ?? savedIds[index], metadata: { scenario: trip.scenario } });
+                      navigate(`/trips/${savedIds[index]}?lang=${lang}`);
+                    }}
+                  >
                     {p.saved} · {t.cta}
                   </Button>
                 ) : (

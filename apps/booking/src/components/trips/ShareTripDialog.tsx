@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@lakeze/shared/components/ui/dialog";
 import { copyText, ensureShareSlug, shareUrl } from "@/lib/tripShare";
+import { emitMetric } from "@/lib/metric";
 import { tripText, type TripLang } from "@lakeze/shared/lib/tripI18n";
 import { toast } from "sonner";
 
@@ -54,6 +55,7 @@ export function ShareTripDialog({ tripId, fallbackSlug, lang }: Props) {
   const onCopy = async () => {
     const ok = await copyText(url);
     if (ok) {
+      emitMetric({ event_type: "trip_copy", ref_type: "trip", ref_id: tripId });
       setCopied(true);
       toast.success(t.copied);
       setTimeout(() => setCopied(false), 2000);
@@ -61,7 +63,13 @@ export function ShareTripDialog({ tripId, fallbackSlug, lang }: Props) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (v) emitMetric({ event_type: "trip_share", ref_type: "trip", ref_id: tripId });
+        setOpen(v);
+      }}
+    >
       <DialogTrigger asChild>
         <button
           className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-background/85 backdrop-blur"
