@@ -365,7 +365,8 @@ export default function AccommodationApiDocs() {
                     </div>
 
                     <div className="p-3 bg-primary/5 border border-primary/20 rounded-md text-sm">
-                      <p className="font-medium mb-1">📄 AI／BI 可讀使用手冊</p>
+                      <p className="font-medium mb-1">📄 AI／BI 可讀使用手冊＋短網址版</p>
+                      <p className="mb-1">多館 Key 建議改用短網址 <code className="text-xs">{FUNCTIONS_URL}/perf?from=…&to=…&key=…</code>（不帶 <code>venue</code> 回全部場域＋跨館合計；<code>/perf/venues</code> 列可看場域），計算與本端點相同。</p>
                       <a href="/docs/accommodation-performance-api.md" target="_blank" rel="noreferrer" className="underline" data-testid="performance-manual-link">/docs/accommodation-performance-api.md</a>
                       <span className="text-muted-foreground">（Markdown，含欄位字典、口徑、錯誤碼與呼叫範本）</span>
                     </div>

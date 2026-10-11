@@ -5,6 +5,8 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.accommodation-api]
     verify_jwt = false
+  [functions.perf]
+    verify_jwt = false
   [functions.ai-metric-track]
     verify_jwt = false
   [functions.ai-booking-chat]
