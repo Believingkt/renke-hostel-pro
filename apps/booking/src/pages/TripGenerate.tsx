@@ -146,12 +146,15 @@ export default function TripGenerate() {
           if (it.ref_type === "product") exclude.push(it.ref_id);
         });
         results.push(trip);
-        emitMetric({
-          event_type: "trip_rec_shown",
-          ref_type: "trip",
-          ref_id: trip.snapshot_id ?? null,
-          metadata: { scenario, source: "web", match_score: trip.match_score },
-        });
+        if (trip.snapshot_id) {
+          // 無快照 ID 時不記 shown：沒有可追蹤的行程 ID 就不計分母
+          emitMetric({
+            event_type: "trip_rec_shown",
+            ref_type: "trip",
+            ref_id: trip.snapshot_id,
+            metadata: { scenario, source: "web", match_score: trip.match_score },
+          });
+        }
         setTrips([...results].sort((a, b) => b.match_score - a.match_score));
         // 有第一條行程就先解除 loading，其餘在背景補齊
         setLoading(false);

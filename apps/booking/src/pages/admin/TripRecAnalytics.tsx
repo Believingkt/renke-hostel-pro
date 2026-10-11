@@ -1,0 +1,92 @@
+/** 總部後台 → 行程引擎 → 行程推薦分析（每館每行程：曝光／點擊／複製收藏分享） */
+import { useCallback, useEffect, useState } from "react";
+import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
+import { Route } from "lucide-react";
+import {
+  MetricBreakdownTable, defaultFilters, PLATFORM_LABEL,
+  type AccommodationOption, type ColumnDef, type Filters,
+} from "@/components/headquarters/MetricBreakdownTable";
+
+interface Row {
+  accommodation_id: string | null;
+  ref_id: string;
+  ref_source: "trip" | "generation" | null;
+  title_zh: string | null;
+  shown: number; clicks: number; engagements: number;
+  copies: number; saves: number; favorites: number; shares: number;
+}
+
+const SCOPE_NOTES = [
+  "推薦總數＝trip_rec_shown 次數；被點擊數＝trip_rec_click 次數；被點擊率＝被點擊數／推薦總數。",
+  "複製/收藏/分享數＝trip_copy＋trip_save＋trip_favorite＋trip_share；比例＝該數／推薦總數。分母為 0 顯示「—」。",
+  "行程名稱依 ref_id 取 trips.title → trip_generations 標題 → 事件 metadata，皆無則顯示 ID 前 8 碼；來源「上架行程／AI 生成」。",
+  "業者依事件 accommodation_id 對應館名，無則歸「平台（未指定館別）」。",
+  "排除 is_internal=true 與測試帳號排除名單（AI 成效指標頁管理）。全部由 ai_metric_events 真實事件即時彙總，不回填、不模擬。日期以台北時區計。",
+];
+
+export default function TripRecAnalytics() {
+  const [accommodations, setAccommodations] = useState<AccommodationOption[]>([]);
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => setAccommodations((data as AccommodationOption[]) ?? []));
+  }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    const { data, error } = await supabase.rpc("ai_metric_trip_breakdown" as any, {
+      p_from: filters.from, p_to: filters.to,
+      p_accommodation_ids: filters.accommodationIds.length ? filters.accommodationIds : null,
+      p_channel: filters.channel === "all" ? null : filters.channel,
+    } as any);
+    if (error) { setError(error.message); setRows([]); }
+    else setRows(((data as any[]) ?? []).map((r) => ({
+      ...r,
+      shown: Number(r.shown), clicks: Number(r.clicks), engagements: Number(r.engagements),
+      copies: Number(r.copies), saves: Number(r.saves), favorites: Number(r.favorites), shares: Number(r.shares),
+    })));
+    setLoading(false);
+  }, [filters]);
+  useEffect(() => { void load(); }, [load]);
+
+  const nameOf = (id: string | null) => (id ? accommodations.find((a) => a.id === id)?.name ?? id.slice(0, 8) : PLATFORM_LABEL);
+  const tripName = (r: Row) => r.title_zh?.trim() || r.ref_id.slice(0, 8);
+
+  const columns: ColumnDef<Row>[] = [
+    { key: "venue", label: "業者名稱", kind: "text", value: (r) => nameOf(r.accommodation_id) },
+    { key: "trip", label: "行程名稱", kind: "text", value: tripName },
+    { key: "source", label: "來源", kind: "text", value: (r) => (r.ref_source === "trip" ? "上架行程" : r.ref_source === "generation" ? "AI 生成" : "—") },
+    { key: "shown", label: "推薦總數", kind: "number", value: (r) => r.shown },
+    { key: "clicks", label: "被點擊數", kind: "number", value: (r) => r.clicks },
+    { key: "ctr", label: "被點擊率%", kind: "rate", num: (r) => r.clicks, den: (r) => r.shown },
+    { key: "eng", label: "複製/收藏/分享數", kind: "number", value: (r) => r.engagements },
+    { key: "engRate", label: "複製/收藏/分享比例%", kind: "rate", num: (r) => r.engagements, den: (r) => r.shown },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <AdminPageHeader title="行程推薦分析" description="AI 行程卡曝光、點擊與互動（複製／收藏／分享）成效，每館每行程一列" icon={Route} />
+      <MetricBreakdownTable
+        title="行程推薦明細"
+        description="資料來源：ai_metric_events（LINE 管家、官網小安、電腦版管家、行程產生頁）"
+        scopeNotes={SCOPE_NOTES}
+        columns={columns}
+        rows={rows}
+        rowKey={(r) => `${r.accommodation_id ?? "null"}:${r.ref_id}`}
+        loading={loading}
+        error={error}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onReload={() => void load()}
+        accommodations={accommodations}
+        channelOptions={[{ value: "all", label: "全部" }, { value: "web", label: "web" }, { value: "line", label: "line" }]}
+        csvFileName="trip-rec-analytics"
+      />
+    </div>
+  );
+}

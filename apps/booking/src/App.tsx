@@ -96,6 +96,7 @@ const TripTemplates = lazy(() => import("@/pages/TripTemplates"));
 const TripGenerate = lazy(() => import("@/pages/TripGenerate"));
 const TravelerAttributes = lazy(() => import("@/pages/admin/TravelerAttributes"));
 const DeployStatus = lazy(() => import("@/pages/admin/DeployStatus"));
+const TripRecAnalytics = lazy(() => import("@/pages/admin/TripRecAnalytics"));
 const TripDetail = lazy(() => import("@/pages/TripDetail"));
 const TripEdit = lazy(() => import("@/pages/TripEdit"));
 const TripShare = lazy(() => import("@/pages/TripShare"));
@@ -810,6 +811,9 @@ function App() {
                       } />
                       <Route path="/hq/deploy-status" element={
                         <Suspense fallback={<FrontendSkeleton />}><DeployStatus /></Suspense>
+                      } />
+                      <Route path="/hq/trip-analytics" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={8} />}><TripRecAnalytics /></Suspense>
                       } />
 
                       {/* 顧客與行銷／創作者與裂變（總部全平台視角） */}

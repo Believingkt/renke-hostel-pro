@@ -106,6 +106,7 @@ const menuItems = [
     tab: "trip-engine",
     subItems: [
       { title: "旅遊屬性", url: "/hq/traveler-attributes", icon: Compass },
+      { title: "行程推薦分析", url: "/hq/trip-analytics", icon: Sparkles },
       { title: "部署佐證", url: "/hq/deploy-status", icon: Activity },
     ],
   },
@@ -232,6 +233,7 @@ export function HQSidebar() {
     }
     if (tab === 'trip-engine') {
       return location.pathname.startsWith('/hq/traveler-attributes')
+        || location.pathname.startsWith('/hq/trip-analytics')
         || location.pathname.startsWith('/hq/deploy-status');
     }
     if (location.pathname !== '/hq') return false;
