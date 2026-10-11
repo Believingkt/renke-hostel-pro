@@ -118,6 +118,8 @@ const menuItems = [
     subItems: [
       { title: "旅客資料匯流", url: "/hq/cdp", icon: Database },
       { title: "AI 再行銷推播", url: "/hq/remarketing", icon: Send },
+      { title: "再行銷轉換分析", url: "/hq/remarketing-analytics", icon: Sparkles },
+      { title: "加購推薦分析", url: "/hq/addon-analytics", icon: Sparkles },
     ],
   },
   {
@@ -225,7 +227,8 @@ export function HQSidebar() {
     }
     if (tab === 'crm-marketing') {
       return location.pathname.startsWith('/hq/cdp')
-        || location.pathname.startsWith('/hq/remarketing');
+        || location.pathname.startsWith('/hq/remarketing')
+        || location.pathname.startsWith('/hq/addon-analytics');
     }
     if (tab === 'creator-growth') {
       return location.pathname.startsWith('/hq/kol-overview')
