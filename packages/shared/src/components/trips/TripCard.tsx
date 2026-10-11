@@ -2,6 +2,7 @@
  * 共用行程卡片（/trips 列表與 AI 管家對話共用同一個元件）
  */
 import { Link } from "react-router-dom";
+import { type ReactNode } from "react";
 import { Map } from "lucide-react";
 import { MatchBadge } from "@lakeze/shared/components/trips/MatchBadge";
 import { pickLang, tripText, type TripLang } from "@lakeze/shared/lib/tripI18n";
@@ -30,11 +31,13 @@ export function TripCard({
   lang,
   cta,
   onOpen,
+  actions,
 }: {
   trip: TripCardData;
   lang: TripLang;
   cta?: string;
   onOpen?: (trip: TripCardData) => void;
+  actions?: ReactNode;
 }) {
   const t = tripText(lang);
   const cover = typeof trip.cover_image_url === "string" ? trip.cover_image_url.trim() : "";
@@ -82,6 +85,7 @@ export function TripCard({
             </span>
           </div>
         )}
+        {actions}
       </div>
     </Link>
   );

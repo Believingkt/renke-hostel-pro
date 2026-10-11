@@ -3,6 +3,7 @@
  */
 import { useSearchParams } from "react-router-dom";
 import { TripCard, type TripCardData } from "@lakeze/shared/components/trips/TripCard";
+import { TripCardActions } from "@lakeze/shared/components/trips/TripCardActions";
 import { normalizeLang, type TripLang } from "@lakeze/shared/lib/tripI18n";
 import { emitMetric } from "@lakeze/shared/lib/metric";
 
@@ -61,7 +62,22 @@ export function TripCardList({ trips, accommodationId }: { trips: TripCardData[]
   return (
     <div className="mt-3 space-y-3">
       {trips.map((trip) => (
-        <TripCard key={trip.trip_id} trip={trip} lang={lang} cta={CTA[lang]} onOpen={onOpen} />
+        <TripCard
+          key={trip.trip_id}
+          trip={trip}
+          lang={lang}
+          cta={CTA[lang]}
+          onOpen={onOpen}
+          actions={
+            <TripCardActions
+              tripId={trip.trip_id}
+              accommodationId={accommodationId ?? null}
+              lang={lang}
+              title={trip.title}
+              tripUrl={trip.trip_url}
+            />
+          }
+        />
       ))}
     </div>
   );
