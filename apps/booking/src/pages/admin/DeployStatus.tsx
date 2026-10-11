@@ -2,76 +2,72 @@ import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Separator } from "@lakeze/shared/components/ui/separator";
-import { Server, ShieldCheck, Database, Cloud } from "lucide-react";
+import { Server, ShieldCheck, Database, Cloud, Route } from "lucide-react";
 
+// 內容對照程式實際設定（supabase/functions、supabase/migrations）填寫；調整功能時請同步更新。
 const INFO_CARDS = [
   {
     icon: Server,
-    title: "部署主機（Level 1）",
+    title: "系統架構",
     items: [
-      ["主機類型", "Windows Server 主機"],
-      ["部署層級", "Level 1（靜態佐證）"],
-      ["前端框架", "React 18 + Vite 5 + TypeScript"],
+      ["前端", "雲端託管之 React SPA（React 18 + Vite 5 + TypeScript）"],
       ["樣式系統", "Tailwind CSS v3 + shadcn/ui"],
+      ["服務端", "Supabase 託管：Edge Functions（Deno）＋ PostgreSQL"],
+      ["身分驗證", "Supabase Auth（Email OTP／密碼）、LINE LIFF 綁定"],
     ],
   },
   {
     icon: Database,
     title: "資料層",
     items: [
-      ["資料庫", "PostgreSQL（雲端後端）"],
-      ["存取控制", "Row Level Security（全表啟用）"],
-      ["新增資料表", "traveler_attributes（旅遊屬性）"],
-      ["歸檔來源", "/trips/guide 對話導引"],
+      ["資料庫", "Supabase PostgreSQL"],
+      ["存取控制", "Row Level Security（traveler_attributes、trips、trip_generations、trip_products 等皆啟用）"],
+      ["旅遊屬性", "traveler_attributes（/trips/guide 對話導引、LINE 管家歸檔）"],
+      ["行程資料", "trip_templates（情境模板）、trip_products（景點／商品）、trips（已發布行程）、trip_generations（生成快照）"],
     ],
   },
   {
     icon: Cloud,
-    title: "服務端函式",
+    title: "C2 服務端函式（對話導引）",
     items: [
       ["對話導引", "traveler-guide"],
       ["平台 AI 管家", "portal-ai-chat"],
-      ["流量限制", "每 IP 每分鐘 30 次"],
-      ["CORS", "已開放前台網域呼叫"],
+      ["流量限制", "traveler-guide 每 IP 每分鐘 30 次；portal-ai-chat 每 IP 每分鐘 20 次"],
+      ["CORS", "Access-Control-Allow-Origin: *（公開前台端點）"],
+    ],
+  },
+  {
+    icon: Route,
+    title: "C3 服務端函式（智能行程推薦）",
+    items: [
+      ["行程推薦", "trip-recommend（每 IP 每分鐘 20 次）"],
+      ["前台入口", "/trips/templates、/trips/generate、官網小安 [TRIP_CARDS]、LINE 管家行程卡"],
+      ["情境模板", "家庭親子／情侶約會／好友出遊／包棟聚會／戶外探索"],
+      ["排序規則", "建議時段 → 各點營業時間窗 → 同時段內最短路徑（貪婪最近鄰）"],
+      ["多語", "trip_templates.name、trips.title 以 jsonb {zh, ja, en} 儲存"],
     ],
   },
   {
     icon: ShieldCheck,
     title: "安全與稽核",
     items: [
-      ["金鑰保管", "伺服端環境變數，前端不可見"],
-      ["訪客紀錄", "以工作階段代碼記錄，不含個資"],
-      ["管理權限", "管理員／最高管理員可檢視全部"],
-      ["資料保留", "append-only，不覆寫歷史紀錄"],
-    ],
-  },
-  {
-    icon: Cloud,
-    title: "C3 部署主機（IBM 雲端）",
-    items: [
-      ["主機類型", "IBM Cloud 雲端主機"],
-      ["模組", "C3 智能多情境行程生成與推薦引擎"],
-      ["前台路由", "/trips/templates、/trips/generate"],
-      ["情境模板", "家庭親子／情侶約會／好友出遊／包棟聚會／戶外探索"],
-    ],
-  },
-  {
-    icon: Cloud,
-    title: "C3 服務端函式",
-    items: [
-      ["行程推薦", "trip-recommend"],
-      ["排序演算法", "時段 → 營業時間窗 → 最短路徑（貪婪）"],
-      ["三語導引", "title／guide 以 jsonb {zh,ja,en} 儲存"],
-      ["流量限制", "每 IP 每分鐘 20 次"],
+      ["金鑰保管", "LLM 與服務金鑰存於 Supabase Edge Function Secrets，前端不可見"],
+      ["訪客紀錄", "匿名以工作階段代碼（session_id）記錄，不含個資"],
+      ["管理權限", "管理員／最高管理員（RLS is_admin_or_super）可檢視全部旅遊屬性"],
+      ["資料保留", "traveler_attributes、trip_generations 由服務端以 insert 寫入，不覆寫歷史紀錄"],
     ],
   },
 ];
 
+const PROGRESS: Array<{ label: string; done: boolean }> = [
+  { label: "C2 對話導引 · 已上線", done: true },
+  { label: "C3 智能推薦 · 已上線", done: true },
+];
 
 const DeployStatus = () => {
   return (
-    <div className="space-y-4">
-      <AdminPageHeader title="部署佐證" description="C2 動態行旅導引推薦模組部署資訊卡" icon={Server} />
+    <div className="space-y-4" data-testid="deploy-status-page">
+      <AdminPageHeader title="部署佐證" description="C2 動態行旅導引／C3 智能行程推薦模組部署資訊卡" icon={Server} />
 
       <div className="grid gap-4 md:grid-cols-2">
         {INFO_CARDS.map((card) => (
@@ -101,9 +97,10 @@ const DeployStatus = () => {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">模組進度</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Badge>C2 對話導引 · 已完成</Badge>
-          <Badge variant="secondary">C3 智能推薦 · 尚未開始</Badge>
+        <CardContent className="flex flex-wrap gap-2" data-testid="deploy-status-progress">
+          {PROGRESS.map((p) => (
+            <Badge key={p.label} variant={p.done ? "default" : "secondary"}>{p.label}</Badge>
+          ))}
         </CardContent>
       </Card>
     </div>
