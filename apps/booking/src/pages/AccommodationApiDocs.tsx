@@ -363,6 +363,12 @@ export default function AccommodationApiDocs() {
                         <li><code>daily</code> 一定補滿 <code>from</code> ~ <code>to</code> 連續日期，可直接畫圖；自訂兩個時間段各呼叫一次即可比較行銷曝光前後差異。</li>
                       </ul>
                     </div>
+
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-md text-sm">
+                      <p className="font-medium mb-1">📄 AI／BI 可讀使用手冊</p>
+                      <a href="/docs/accommodation-performance-api.md" target="_blank" rel="noreferrer" className="underline" data-testid="performance-manual-link">/docs/accommodation-performance-api.md</a>
+                      <span className="text-muted-foreground">（Markdown，含欄位字典、口徑、錯誤碼與呼叫範本）</span>
+                    </div>
                   </CardContent>
                 </Card>
               </section>
