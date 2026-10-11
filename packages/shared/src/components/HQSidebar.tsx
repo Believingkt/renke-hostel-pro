@@ -52,6 +52,7 @@ import { BrandLogoBar } from "@lakeze/shared/components/BrandLogoBar";
 const menuItems = [
   { title: "營運分析", url: "/hq", icon: BarChart3, tab: "overview" },
   { title: "AI 營運洞察", url: "/hq?tab=ai-insights", icon: Sparkles, tab: "ai-insights" },
+  { title: "AI 成效指標", url: "/hq?tab=ai-metrics", icon: Sparkles, tab: "ai-metrics" },
   { 
     title: "金流拆帳", 
     url: "/hq?tab=split", 

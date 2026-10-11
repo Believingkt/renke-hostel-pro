@@ -1,5 +1,12 @@
 // 共用：AI 回覆的主題行程圖文卡片區塊
 // 與房型卡 [ROOM_CARDS] 同風格；資料一律取自資料庫 trips 表實際查詢結果，模型不得自行編造。
+import { nearbyAccommodationIds } from "./tripNearby.ts";
+
+/** 館別小安：周邊無上架行程時注入，文字須照實說、不可列舉行程 */
+export const TRIP_NONE_NEARBY_NOTE = `
+
+## 本館周邊行程查詢結果
+- 本館與同區域目前尚無上架的主題行程，請照實告知客人「周邊行程建置中」，可簡短詢問偏好以便日後推薦；不可列舉具體行程名稱、套裝或他區行程，系統也不會附上行程卡片。`;
 
 export interface TripCardPayload {
   trip_id: string;
@@ -40,22 +47,58 @@ export function hasPersonalContext(text: string): boolean {
     .test(t);
 }
 
-/** 從資料庫取得已發布行程，組成卡片（價格、景點數、封面照全部來自 DB） */
+/** 從資料庫取得已發布行程，組成卡片（價格、景點數、封面照全部來自 DB）
+ *  opts.accommodationId：只保留與該館同館或同 region_1 的行程（依 items 的 room/product 所屬館別判定），沒有就回空陣列 */
 export async function fetchTripCards(
   // deno-lint-ignore no-explicit-any
   supabase: any,
-  opts: { personalized: boolean; limit?: number },
+  opts: { personalized: boolean; limit?: number; accommodationId?: string | null },
 ): Promise<TripCardPayload[]> {
+  const limit = Math.max(1, Math.min(5, opts.limit ?? 3));
+  const scoped = !!opts.accommodationId;
   const { data, error } = await supabase
     .from("trips")
     .select("id, title, cover_url, match_score, items, total_price")
     .eq("status", "published")
     .order("match_score", { ascending: false, nullsFirst: false })
-    .limit(Math.max(1, Math.min(5, opts.limit ?? 3)));
+    .limit(scoped ? 40 : limit);
 
   if (error || !Array.isArray(data)) return [];
 
-  return data.map((t: Record<string, unknown>) => {
+  let rows = data as Array<Record<string, unknown>>;
+  if (scoped) {
+    const nearby = new Set(await nearbyAccommodationIds(supabase, opts.accommodationId!));
+    const itemsOf = (t: Record<string, unknown>) =>
+      Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
+    const productIds = new Set<string>();
+    const roomIds = new Set<string>();
+    for (const t of rows) {
+      for (const i of itemsOf(t)) {
+        if (typeof i.ref_id !== "string") continue;
+        if (i.ref_type === "product") productIds.add(i.ref_id);
+        else if (i.ref_type === "room") roomIds.add(i.ref_id);
+      }
+    }
+    const [prod, room] = await Promise.all([
+      productIds.size
+        ? supabase.from("trip_products").select("id, accommodation_id").in("id", [...productIds])
+        : Promise.resolve({ data: [] }),
+      roomIds.size
+        ? supabase.from("room_types").select("id, accommodation_id").in("id", [...roomIds])
+        : Promise.resolve({ data: [] }),
+    ]);
+    const accOfRef = new Map<string, string | null>();
+    for (const r of prod.data || []) accOfRef.set(`product:${r.id}`, r.accommodation_id ?? null);
+    for (const r of room.data || []) accOfRef.set(`room:${r.id}`, r.accommodation_id ?? null);
+    rows = rows
+      .filter((t) => itemsOf(t).some((i) => {
+        const acc = accOfRef.get(`${i.ref_type}:${i.ref_id}`);
+        return !!acc && nearby.has(acc);
+      }))
+      .slice(0, limit);
+  }
+
+  return rows.map((t: Record<string, unknown>) => {
     const items = Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
     const spotCount = items.filter((i) => i.ref_type !== "room").length;
     const days = items.reduce((max, i) => Math.max(max, Number(i.day) || 1), 1);

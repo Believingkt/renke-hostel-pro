@@ -87,6 +87,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@lakeze/shared/componen
 import { AccommodationManagement, AccommodationManagementRef } from "@/components/headquarters/AccommodationManagement";
 import { OperationalOverview, OperationalOverviewRef } from "@/components/headquarters/OperationalOverview";
 import { AiOpsInsights } from "@/components/headquarters/AiOpsInsights";
+import { AiMetricDashboard } from "@/components/headquarters/AiMetricDashboard";
 
 import { SystemManagement } from "@/components/headquarters/SystemManagement";
 import { SplitManagement, SplitManagementRef } from "@/components/headquarters/SplitManagement";
@@ -1266,6 +1267,7 @@ const Headquarters = () => {
     switch (currentTab) {
       case 'overview': return '營運分析';
       case 'ai-insights': return 'AI 營運洞察';
+      case 'ai-metrics': return 'AI 成效指標';
       case 'split': return '金流拆帳';
       case 'accommodations': return '民宿管理';
       case 'facilities': return '設施管理';
@@ -1305,6 +1307,7 @@ const Headquarters = () => {
     switch (currentTab) {
       case 'overview': return BarChart3;
       case 'ai-insights': return Sparkles;
+      case 'ai-metrics': return Sparkles;
       case 'performance': return TrendingUp;
       case 'split': return DollarSign;
       case 'accommodations': return Building2;
@@ -1344,6 +1347,7 @@ const Headquarters = () => {
     switch (currentTab) {
       case 'overview': return '查看全平台營運數據與分析趨勢';
       case 'ai-insights': return 'AI 營運顧問：摘要、異常判讀與可追蹤的改善洞察卡';
+      case 'ai-metrics': return '結案指標 M1/M2/N1/N2：行程推薦點擊、複製收藏分享、再行銷轉換、加購轉換（即時彙總、可匯出）';
       case 'split': return '設定各民宿分潤比例與管理請款結算記錄';
       case 'accommodations': return '新增、編輯或停用民宿';
       case 'facilities': return '管理全民宿共用的設施服務項目';
@@ -1370,6 +1374,8 @@ const Headquarters = () => {
         );
       case 'ai-insights':
         return <AiOpsInsights accommodations={accommodations as any} />;
+      case 'ai-metrics':
+        return <AiMetricDashboard accommodations={accommodations as any} />;
       case 'split':
         return <SplitManagement ref={splitManagementRef} accommodations={accommodations} />;
       case 'accommodations':

@@ -9,7 +9,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
-import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
 import { lowestPackagePricesForRooms } from "../_shared/packagePricing.ts";
 import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
 import { writeMetric } from "../_shared/metric.ts";
@@ -296,6 +296,23 @@ serve(async (req) => {
           "\n- 只能介紹上列品項與價格，不可推薦他館或編造品項；系統會在文字後自動附上加購卡片，你不可自行輸出 [ADDON_CARDS]。"
         : "\n\n## 本館加購查詢結果\n- 本館無相符加購，請照實告知客人目前沒有此加購，不可推薦他館或編造品項。";
 
+    // 官網小安行程卡：LLM 前先查「本館＋同 region_1」的上架行程；沒有就注入照實說明、不附卡
+    const lastUserText = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === "user");
+      return typeof m?.content === "string" ? m.content : "";
+    })();
+    const wantTripCards = detectTripIntent(lastUserText);
+    const tripPersonalized = hasPersonalContext(lastUserText);
+    let nearbyTripCards: Awaited<ReturnType<typeof fetchTripCards>> = [];
+    if (wantTripCards) {
+      try {
+        nearbyTripCards = await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3, accommodationId });
+      } catch (e) {
+        console.error("nearby trip cards failed", e);
+      }
+    }
+    const tripNoneNote = wantTripCards && nearbyTripCards.length === 0 ? TRIP_NONE_NEARBY_NOTE : "";
+
     const MAX_SYSTEM_PROMPT_CHARS = 16000;
     const promptHead = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
@@ -304,7 +321,7 @@ serve(async (req) => {
     // accCtx（館別資料）永不被截；超過上限時只砍平台 ai_knowledge 尾端
     const assembleSystem = (kt: string) =>
       promptHead + dateBlock + accInfo + roomList + liveAvailabilityBlock + (accCtx as string) + kt + examplesText + tone + forbidden
-      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE + addonBlock;
+      + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE + addonBlock + tripNoneNote;
     let systemMessage = assembleSystem(knowledgeText);
     if (systemMessage.length > MAX_SYSTEM_PROMPT_CHARS) {
       const overflow = systemMessage.length - MAX_SYSTEM_PROMPT_CHARS;
@@ -315,16 +332,6 @@ serve(async (req) => {
     }
     const dbMs = Math.round(performance.now() - tStart);
     console.log("[acc-ai-chat timing]", JSON.stringify({ db_ms: dbMs, source, sys_len: systemMessage.length }));
-
-    // 行程卡意圖判斷（以最後一則客人訊息為準）
-    const lastUserText = (() => {
-      const m = [...messages].reverse().find((x: any) => x.role === "user");
-      return typeof m?.content === "string" ? m.content : "";
-    })();
-    const wantTripCards = detectTripIntent(lastUserText);
-    const tripPersonalized = hasPersonalContext(lastUserText);
-
-
 
     // ===== 呼叫 Lovable AI Gateway（streaming SSE）=====
     const LOVABLE_API_KEY = llmKey();
@@ -479,9 +486,9 @@ serve(async (req) => {
           }
 
           // 串流結束後補上主題行程卡片區塊（資料全部來自資料庫 trips）
-          if (wantTripCards) {
+          if (wantTripCards && nearbyTripCards.length > 0) {
             try {
-              const tripCardsShown = await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3 });
+              const tripCardsShown = nearbyTripCards;
               const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 fullContent += tripBlock;
