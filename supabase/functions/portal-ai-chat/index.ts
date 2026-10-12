@@ -145,14 +145,16 @@ serve(async (req) => {
 
                 if (turn!.done) {
                   try {
-                    const cards = await generateGuideTripCards(supabase, mergedAttrs, {
+                    const cards = (await generateGuideTripCards(supabase, mergedAttrs, {
                       lang: guideLang,
                       source: 'portal_chat',
-                    });
-                    const block = buildTripCardsBlock(cards as any);
+                    }) as any[]) ?? [];
+                    // 每張卡配發曝光編號 rec_id：寫入 shown.metadata.rec_id，並帶進回前端的卡片 payload，供點擊/互動一一對應曝光
+                    const shownCards = cards.map((c) => ({ ...c, rec_id: crypto.randomUUID() }));
+                    const block = buildTripCardsBlock(shownCards as any);
                     if (block) push({ choices: [{ delta: { content: block } }] });
                     // M1/M2 分母：導引行程卡曝光（fire-and-forget）
-                    for (const c of (cards as any[]) ?? []) {
+                    for (const c of shownCards) {
                       void writeMetric(supabase as any, {
                         event_type: 'trip_rec_shown',
                         ref_type: 'trip',
@@ -160,7 +162,7 @@ serve(async (req) => {
                         accommodation_id: typeof context?.accommodation_id === 'string' && UUID_REGEX.test(context.accommodation_id) ? context.accommodation_id : null,
                         channel: 'web',
                         session_key: typeof session_id === 'string' ? session_id.slice(0, 80) : null,
-                        metadata: { source: 'portal_guide' },
+                        metadata: { source: 'portal_guide', rec_id: c.rec_id },
                       });
                     }
                   } catch (genErr) {
@@ -1361,7 +1363,8 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
           // 主題行程圖文卡片（資料全部來自資料庫 trips，模型不參與）
           try {
             if (wantsTripCards) {
-              const tripCardsShown = preTripCards;
+              // 每張卡配發曝光編號 rec_id（帶進 payload 與 shown.metadata）
+              const tripCardsShown = preTripCards.map((c) => ({ ...c, rec_id: crypto.randomUUID() }));
               const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 assistantText += tripBlock;
@@ -1375,7 +1378,7 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
                     accommodation_id: matchedVenue?.id ?? ctxAccId ?? null,
                     channel: 'web',
                     session_key: metricSessionKey,
-                    metadata: { source: 'portal_ai_chat' },
+                    metadata: { source: 'portal_ai_chat', rec_id: c.rec_id },
                   });
                 }
               }

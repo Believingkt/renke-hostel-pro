@@ -20,6 +20,8 @@ export interface TripCardPayload {
   days: number;
   total_price: number;
   trip_url: string;
+  /** 曝光編號：後端記 trip_rec_shown 時產生並寫入 metadata.rec_id，隨卡片帶給前端，供點擊/互動一一對應該次曝光 */
+  rec_id?: string | null;
 }
 
 export function buildTripCardsBlock(cards: TripCardPayload[]): string {

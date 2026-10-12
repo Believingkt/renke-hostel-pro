@@ -495,7 +495,8 @@ serve(async (req) => {
           // 串流結束後補上主題行程卡片區塊（資料全部來自資料庫 trips）
           if (wantTripCards && nearbyTripCards.length > 0) {
             try {
-              const tripCardsShown = nearbyTripCards;
+              // 每張卡配發曝光編號 rec_id（帶進 payload 與 shown.metadata）
+              const tripCardsShown = nearbyTripCards.map((c) => ({ ...c, rec_id: crypto.randomUUID() }));
               const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 fullContent += tripBlock;
@@ -511,7 +512,7 @@ serve(async (req) => {
                     accommodation_id: accommodationId,
                     channel: "web",
                     session_key: metricSessionKey,
-                    metadata: { source: "accommodation_ai_chat" },
+                    metadata: { source: "accommodation_ai_chat", rec_id: c.rec_id },
                   });
                 }
               }

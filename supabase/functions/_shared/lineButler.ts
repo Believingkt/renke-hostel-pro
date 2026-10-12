@@ -910,6 +910,8 @@ function tripReply(
         if (trip?.no_nearby) return [noNearbyTripMessage(state.tripVenueLabel || "這間")];
         if (!trip) throw new Error("trip-recommend returned null");
         const tripId = await saveTripSnapshot(sb, lineUserId, scenario, merged, trip);
+        // 曝光編號 rec_id：寫入 shown.metadata，並帶進行程卡連結(&rec=)，供落地頁點擊一一對應曝光
+        const recId = crypto.randomUUID();
         void writeMetric(sb, {
           event_type: "trip_rec_shown",
           ref_type: "trip",
@@ -917,9 +919,9 @@ function tripReply(
           accommodation_id: state.tripVenueId ?? null,
           channel: "line",
           line_user_id: lineUserId,
-          metadata: { scenario },
+          metadata: { scenario, rec_id: recId },
         });
-        return [tripFlex(scenario, trip, tripId)];
+        return [tripFlex(scenario, trip, tripId, recId)];
       } catch (e) {
         console.error("[butler-trip] plan failed", scenario, e);
         await logLineConversation(sb, {

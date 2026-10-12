@@ -55,9 +55,9 @@ export function TripCardList({ trips, accommodationId }: { trips: TripCardData[]
 
   if (!trips.length) return null;
 
-  // M1 分子：AI 對話中的行程卡被點開
+  // M1 分子：AI 對話中的行程卡被點開（帶 rec_id 一一對應該次曝光）
   const onOpen = (trip: TripCardData) =>
-    emitMetric({ event_type: "trip_rec_click", ref_type: "trip", ref_id: trip.trip_id, accommodation_id: accommodationId ?? null, metadata: { source: "ai_chat" } });
+    emitMetric({ event_type: "trip_rec_click", ref_type: "trip", ref_id: trip.trip_id, accommodation_id: accommodationId ?? null, metadata: { source: "ai_chat", rec_id: trip.rec_id ?? null } });
 
   return (
     <div className="mt-3 space-y-3">
@@ -72,6 +72,7 @@ export function TripCardList({ trips, accommodationId }: { trips: TripCardData[]
             <TripCardActions
               tripId={trip.trip_id}
               accommodationId={accommodationId ?? null}
+              recId={trip.rec_id ?? null}
               lang={lang}
               title={trip.title}
               tripUrl={trip.trip_url}

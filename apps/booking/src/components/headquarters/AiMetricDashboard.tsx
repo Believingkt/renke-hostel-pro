@@ -30,9 +30,9 @@ interface Exclusion { id: string; kind: "email" | "line_user_id"; value: string;
 const ATTR_DAYS = 7;
 const METRICS = [
   { key: "m1", label: "M1 行程推薦點擊率", formula: "trip_rec_click ÷ trip_rec_shown",
-    note: "分母：AI 行程卡曝光（官網小安／電腦版管家／LINE 管家／行程產生頁）；分子：點開「查看完整行程」。" },
+    note: "分母：AI 行程卡曝光（官網小安／電腦版管家／LINE 管家／行程產生頁）；分子：被點擊過的曝光數——新資料以曝光編號 rec_id 一一對應，舊資料無 rec_id 時以曝光數為上限，故 ≤100%。" },
   { key: "m2", label: "M2 行程複製收藏分享率", formula: "(trip_save＋trip_favorite＋trip_share＋trip_copy) ÷ trip_rec_shown",
-    note: "分子：收藏、加入我的行程、開啟分享、複製分享連結。" },
+    note: "分子：收藏、加入我的行程、開啟分享、複製分享連結；各動作各自以 rec_id 去重（舊資料每種動作以曝光數為上限）後相加。同一次推薦可同時被多種動作，故比率可能 >100%。" },
   { key: "n1", label: "N1 再行銷轉換率", formula: "歸因成立訂單數 ÷ 實際寄達推播數",
     note: "寄達口徑：remarketing_sends.status='sent' 且 is_test=false（無 delivered 回報，以成功送出近似）。歸因：訂單 utm_source=remarketing 且 utm_content=推播 ID，訂單非取消／暫鎖且在寄送之後。" },
   { key: "n2", label: "N2 加購轉換率", formula: "推薦後成交加購數量 ÷ addon_rec_shown",

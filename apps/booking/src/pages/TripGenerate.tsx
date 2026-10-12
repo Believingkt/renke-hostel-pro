@@ -190,8 +190,9 @@ export default function TripGenerate() {
           },
         ]);
         if (params.get("src") === "line_rec") {
-          // LINE 行程卡「查看完整行程」落地：記點擊（分子），不再記 shown
-          emitMetric({ event_type: "trip_rec_click", channel: "line", ref_type: "trip", ref_id: id, metadata: { source: "line_rec" } });
+          // LINE 行程卡「查看完整行程」落地：記點擊（分子），帶 rec 對應該次曝光；不再記 shown
+          const rec = params.get("rec");
+          emitMetric({ event_type: "trip_rec_click", channel: "line", ref_type: "trip", ref_id: id, metadata: { source: "line_rec", ...(rec ? { rec_id: rec } : {}) } });
         } else {
           emitMetric({ event_type: "trip_rec_shown", ref_type: "trip", ref_id: id, metadata: { source: "snapshot" } });
         }

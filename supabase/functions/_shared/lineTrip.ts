@@ -44,10 +44,12 @@ export async function archiveTripAttributes(
   if (error) console.error("[butler-trip] archive attributes failed", error);
 }
 
-export function tripFullUrl(scenario: TripScenario, tripId?: string | null) {
+export function tripFullUrl(scenario: TripScenario, tripId?: string | null, recId?: string | null) {
   const base = `${SITE_ORIGIN}/trips/generate?scenario=${scenario}&lang=zh`;
   // src=line_rec：落地頁據此記 trip_rec_click(line)，不再重複記 shown
-  const uri = tripId ? `${base}&trip=${tripId}&src=line_rec` : base;
+  let uri = tripId ? `${base}&trip=${tripId}&src=line_rec` : base;
+  // rec：曝光編號，落地頁點擊帶入 metadata.rec_id，一一對應該次曝光
+  if (tripId && recId) uri += `&rec=${recId}`;
   console.log("[butler-trip] full trip uri", uri);
   return uri;
 }
@@ -164,7 +166,7 @@ export async function recommendTrip(scenario: TripScenario, attributes: TripAttr
 }
 
 // deno-lint-ignore no-explicit-any
-export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | null): OutgoingMessage {
+export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | null, recId?: string | null): OutgoingMessage {
   // deno-lint-ignore no-explicit-any
   const items: any[] = Array.isArray(trip?.items) ? trip.items.slice(0, 6) : [];
   const rows = items.map((i) => ({
@@ -221,7 +223,7 @@ export function tripFlex(scenario: TripScenario, trip: any, tripId?: string | nu
             type: "button",
             style: "primary",
             color: "#E8792B",
-            action: { type: "uri", label: "查看完整行程", uri: tripFullUrl(scenario, tripId) },
+            action: { type: "uri", label: "查看完整行程", uri: tripFullUrl(scenario, tripId, recId) },
           },
           ...(tripId
             ? [{

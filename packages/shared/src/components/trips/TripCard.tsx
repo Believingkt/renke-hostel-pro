@@ -16,6 +16,8 @@ export interface TripCardData {
   days?: number | null;
   total_price: number;
   trip_url?: string | null;
+  /** 曝光編號（後端帶出）：點擊/收藏/分享/複製時放進 metadata.rec_id，一一對應該次曝光 */
+  rec_id?: string | null;
 }
 
 export function durationLabel(days: number | null | undefined, lang: TripLang): string {

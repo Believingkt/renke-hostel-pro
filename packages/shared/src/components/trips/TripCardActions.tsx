@@ -19,12 +19,14 @@ const BTN =
 export function TripCardActions({
   tripId,
   accommodationId,
+  recId,
   lang,
   title,
   tripUrl,
 }: {
   tripId: string;
   accommodationId: string | null;
+  recId?: string | null;
   lang: TripLang;
   title?: unknown;
   tripUrl?: string | null;
@@ -75,7 +77,7 @@ export function TripCardActions({
         ref_type: "trip",
         ref_id: tripId,
         accommodation_id: accommodationId,
-        metadata: { source: "ai_chat_card" },
+        metadata: { source: "ai_chat_card", rec_id: recId ?? null },
       });
       toast.success("已收藏");
     } catch {
@@ -95,7 +97,7 @@ export function TripCardActions({
         ref_type: "trip",
         ref_id: tripId,
         accommodation_id: accommodationId,
-        metadata: { source: "ai_chat_card" },
+        metadata: { source: "ai_chat_card", rec_id: recId ?? null },
       });
       toast.success("已複製");
     }
@@ -111,6 +113,7 @@ export function TripCardActions({
         tripId={tripId}
         lang={lang}
         accommodationId={accommodationId}
+        recId={recId ?? null}
         source="ai_chat_card"
         triggerClassName={BTN}
         triggerLabel="分享"

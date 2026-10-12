@@ -26,6 +26,8 @@ interface Props {
   lang: TripLang;
   /** 事件歸屬館別（AI 對話卡片帶入；行程頁省略＝null） */
   accommodationId?: string | null;
+  /** 曝光編號（AI 對話卡片帶入）：複製/分享事件放進 metadata.rec_id */
+  recId?: string | null;
   /** 事件來源標記（AI 對話卡片帶 "ai_chat_card"） */
   source?: string;
   /** 自訂觸發按鈕樣式與文字（AI 對話卡片用行內 icon+文字；省略＝行程頁浮動圓鈕） */
@@ -38,6 +40,7 @@ export function ShareTripDialog({
   fallbackSlug,
   lang,
   accommodationId,
+  recId,
   source,
   triggerClassName,
   triggerLabel,
@@ -47,7 +50,9 @@ export function ShareTripDialog({
   const [url, setUrl] = useState("");
   const [qr, setQr] = useState<string>("");
   const [copied, setCopied] = useState(false);
-  const meta = source ? { source } : undefined;
+  const meta = (source || recId)
+    ? { ...(source ? { source } : {}), ...(recId ? { rec_id: recId } : {}) }
+    : undefined;
 
   useEffect(() => {
     if (!open) return;
