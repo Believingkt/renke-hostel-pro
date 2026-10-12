@@ -62,7 +62,8 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages, context, session_id, skip_log: bodySkipLog, mode: bodyMode, version: bodyVersion } = body;
+    let { messages, context, session_id, metric_session, skip_log: bodySkipLog, mode: bodyMode, version: bodyVersion } = body;
+    const metricSessionKey = typeof metric_session === 'string' && metric_session ? metric_session.slice(0, 80) : (typeof session_id === 'string' ? session_id.slice(0, 80) : null);
     const url = new URL(req.url);
     const qpMode = url.searchParams.get('mode');
     const qpVersion = url.searchParams.get('version');
@@ -1373,7 +1374,7 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
                     ref_id: String(c.trip_id),
                     accommodation_id: matchedVenue?.id ?? ctxAccId ?? null,
                     channel: 'web',
-                    session_key: typeof session_id === 'string' ? session_id.slice(0, 80) : null,
+                    session_key: metricSessionKey,
                     metadata: { source: 'portal_ai_chat' },
                   });
                 }

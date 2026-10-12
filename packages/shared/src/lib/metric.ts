@@ -17,6 +17,11 @@ function getSessionKey(): string {
   return sessionKey!;
 }
 
+/** emitMetric 所用的同一個瀏覽器 session key（供 AI chat 請求帶給後端做曝光歸屬） */
+export function getMetricSession(): string {
+  return getSessionKey();
+}
+
 export interface MetricInput {
   event_type:
     | "trip_rec_shown" | "trip_rec_click"

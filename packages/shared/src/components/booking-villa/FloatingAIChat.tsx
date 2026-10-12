@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@lakeze/shared/components/ui/sheet";
+import { getMetricSession } from "@lakeze/shared/lib/metric";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
 import { Sparkles, Send, X, Headphones, LogIn, Trash2, MessageCircleMore } from "lucide-react";
@@ -140,6 +141,7 @@ export default function FloatingAIChat({ accommodationId, accommodationName, con
           accommodation_id: accommodationId,
           messages: next.map(({ role, content }) => ({ role, content })),
           features: ["addon_cards"],
+          metric_session: getMetricSession(),
         }),
       });
 

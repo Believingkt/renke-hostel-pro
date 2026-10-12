@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@lakeze/shared/components/ui/button";
+import { getMetricSession } from "@lakeze/shared/lib/metric";
 
 import { Input } from "@lakeze/shared/components/ui/input";
 import { Dialog, DialogContent } from "@lakeze/shared/components/ui/dialog";
@@ -136,6 +137,7 @@ const PortalAIChatPanel = ({ onDecline }: { onDecline?: () => void } = {}) => {
         },
         body: JSON.stringify({
           messages: newMessages.slice(-20).map((m) => ({ role: m.role, content: m.content })),
+          metric_session: getMetricSession(),
           session_id: (() => {
             try {
               let sid = sessionStorage.getItem("ai_chat_session_id");

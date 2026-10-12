@@ -127,7 +127,8 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    let { messages, session_id, skip_log } = body;
+    let { messages, session_id, metric_session, skip_log } = body;
+    const metricSessionKey = typeof metric_session === "string" && metric_session ? metric_session.slice(0, 80) : (typeof session_id === "string" ? session_id.slice(0, 80) : null);
     // 官網 widget 明確開啟才輸出 [ADDON_CARDS]；x-api-key 夥伴請求維持原格式
     const wantAddonFeature = !apiKey && Array.isArray(body.features) && body.features.includes("addon_cards");
 
@@ -509,7 +510,7 @@ serve(async (req) => {
                     ref_id: String(c.trip_id),
                     accommodation_id: accommodationId,
                     channel: "web",
-                    session_key: typeof session_id === "string" ? session_id.slice(0, 80) : null,
+                    session_key: metricSessionKey,
                     metadata: { source: "accommodation_ai_chat" },
                   });
                 }

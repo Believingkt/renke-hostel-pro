@@ -197,7 +197,7 @@ export function AiMetricDashboard({ accommodations }: { accommodations: Accommod
             {includeInternal
               ? "口徑：含內部上線測試（is_internal）＋真實旅客（仍排除下方排除名單）"
               : "口徑：僅真實旅客（排除 is_internal 與下方排除名單）"}
-            ；日期以台北時區計；統計於進頁面時即時彙總，不回填、不模擬歷史數據。
+            ；日期以台北時區計；統計於進頁面時即時彙總，不回填、不模擬歷史數據。同一旅客同日對同一行程的重複點擊／重複動作只計一次。
           </p>
           {error && <p className="text-sm text-destructive" data-testid="metric-error">{error}</p>}
         </CardContent>
