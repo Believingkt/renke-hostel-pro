@@ -119,6 +119,96 @@ export function computeRoomNightsByMonth(
   return result;
 }
 
+/* ============================================================================
+ * 營運分析（HQ OperationalOverview）期間指標計算 —— 本期/前期共用，避免兩份邏輯
+ * 統計基準：
+ *   - "stay"（依住宿日，飯店業慣例、預設）：期間內的住宿夜數
+ *   - "booking"（依下訂日）：期間內下訂的整張訂單
+ * 有效訂單：order_status ∈ {confirmed, checked_in, checked_out}
+ * 每晚房間數：room_quantity||1；包棟(lock_whole_building 或房型 is_exclusive_package)=該館可售房間總數
+ * ========================================================================== */
+export type RevenueBasis = "stay" | "booking";
+
+export interface PerfOrderInput {
+  order_status: string | null;
+  final_price: number | null;
+  check_in_date: string | null;
+  check_out_date: string | null;
+  room_quantity?: number | null;
+  lock_whole_building?: boolean | null;
+  room_type_id?: string | null;
+}
+
+const EFFECTIVE_ORDER_STATUSES = new Set(["confirmed", "checked_in", "checked_out"]);
+
+export function isEffectiveOrder(status: string | null | undefined): boolean {
+  return !!status && EFFECTIVE_ORDER_STATUSES.has(status);
+}
+
+/** [checkIn, checkOut) 與 [periodStart, periodEndExcl) 的重疊夜數 */
+function overlapNights(checkIn: Date, checkOut: Date, periodStart: Date, periodEndExcl: Date): number {
+  const s = checkIn > periodStart ? checkIn : periodStart;
+  const e = checkOut < periodEndExcl ? checkOut : periodEndExcl;
+  const n = differenceInDays(e, s);
+  return n > 0 ? n : 0;
+}
+
+export interface PeriodMetricsOptions {
+  basis: RevenueBasis;
+  /** 期間起（含，當日 00:00） */
+  periodStart: Date;
+  /** 期間迄的隔日 00:00（排除上界，= 期末日 + 1 天） */
+  periodEndExcl: Date;
+  /** 包棟/獨佔的房型 id 集合 */
+  exclusiveRoomTypeIds: Set<string>;
+  /** 該館可售房間總數（room_count 加總，排除包棟虛擬房型） */
+  buildingRooms: number;
+}
+
+/**
+ * 計算單一民宿在指定期間、指定基準下的「訂單數、總營收、房晚數」。
+ * 注意：
+ *   - stay 基準：傳入的 orders 應已用 (check_in_date <= 期末) 且 (check_out_date > 期初) 篩過；此處再把夜數裁切到期間內。
+ *   - booking 基準：傳入的 orders 應已用 created_at 落在期間內篩過；整張訂單全額計入。
+ */
+export function computePeriodMetrics(
+  orders: PerfOrderInput[],
+  opts: PeriodMetricsOptions
+): { orderCount: number; revenue: number; roomNights: number } {
+  const { basis, periodStart, periodEndExcl, exclusiveRoomTypeIds, buildingRooms } = opts;
+  let orderCount = 0;
+  let revenue = 0;
+  let roomNights = 0;
+
+  for (const o of orders) {
+    if (!isEffectiveOrder(o.order_status)) continue;
+    if (!o.check_in_date || !o.check_out_date) continue;
+
+    const checkIn = new Date(o.check_in_date);
+    const checkOut = new Date(o.check_out_date);
+    const totalNights = Math.max(1, differenceInDays(checkOut, checkIn));
+    const isWhole =
+      o.lock_whole_building === true ||
+      (o.room_type_id ? exclusiveRoomTypeIds.has(o.room_type_id) : false);
+    const roomsPerNight = isWhole ? Math.max(1, buildingRooms) : Math.max(1, o.room_quantity || 1);
+    const price = o.final_price || 0;
+
+    if (basis === "stay") {
+      const nights = overlapNights(checkIn, checkOut, periodStart, periodEndExcl);
+      if (nights <= 0) continue;
+      orderCount += 1;
+      roomNights += nights * roomsPerNight;
+      revenue += (price / totalNights) * nights;
+    } else {
+      orderCount += 1;
+      roomNights += totalNights * roomsPerNight;
+      revenue += price;
+    }
+  }
+
+  return { orderCount, revenue, roomNights };
+}
+
 /**
  * Count unique booking orders per month based on stay-date overlap.
  * An order is counted in every month its stay dates overlap with.

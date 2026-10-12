@@ -84,8 +84,11 @@ import {
 import { Switch } from "@lakeze/shared/components/ui/switch";
 import { Checkbox } from "@lakeze/shared/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@lakeze/shared/components/ui/popover";
+import { Calendar as CalendarPicker } from "@lakeze/shared/components/ui/calendar";
+import type { DateRange } from "react-day-picker";
+import type { RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
 import { AccommodationManagement, AccommodationManagementRef } from "@/components/headquarters/AccommodationManagement";
-import { OperationalOverview, OperationalOverviewRef } from "@/components/headquarters/OperationalOverview";
+import { OperationalOverview, OperationalOverviewRef, type TimeRange } from "@/components/headquarters/OperationalOverview";
 import { AiOpsInsights } from "@/components/headquarters/AiOpsInsights";
 import { AiMetricDashboard } from "@/components/headquarters/AiMetricDashboard";
 
@@ -226,7 +229,9 @@ const Headquarters = () => {
   const [selectedOverviewAccommodation, setSelectedOverviewAccommodation] = useState("all");
   const [selectedRole, setSelectedRole] = useState<"super_admin" | "hotel_admin" | "staff">("staff");
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [overviewTimeRange, setOverviewTimeRange] = useState<"today" | "week" | "month" | "quarter" | "year" | "all">("month");
+  const [overviewTimeRange, setOverviewTimeRange] = useState<TimeRange>("month");
+  const [overviewCustomRange, setOverviewCustomRange] = useState<{ from?: Date; to?: Date }>({});
+  const [overviewBasis, setOverviewBasis] = useState<RevenueBasis>("stay");
   
   // Ref for AccommodationManagement
   const accommodationManagementRef = useRef<AccommodationManagementRef>(null);
@@ -1370,6 +1375,8 @@ const Headquarters = () => {
             onAccommodationChange={setSelectedOverviewAccommodation}
             timeRange={overviewTimeRange}
             onTimeRangeChange={setOverviewTimeRange}
+            customRange={overviewCustomRange}
+            basis={overviewBasis}
           />
         );
       case 'ai-insights':
@@ -2104,6 +2111,8 @@ const Headquarters = () => {
             onAccommodationChange={setSelectedOverviewAccommodation}
             timeRange={overviewTimeRange}
             onTimeRangeChange={setOverviewTimeRange}
+            customRange={overviewCustomRange}
+            basis={overviewBasis}
           />
         );
     }
@@ -2178,7 +2187,7 @@ const Headquarters = () => {
           icon={getPageIcon()}
           action={
             currentTab === 'overview' ? (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedOverviewAccommodation} onValueChange={setSelectedOverviewAccommodation}>
                   <SelectTrigger className="w-[160px] bg-background">
@@ -2193,8 +2202,18 @@ const Headquarters = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={overviewTimeRange} onValueChange={(v) => setOverviewTimeRange(v as typeof overviewTimeRange)}>
-                  <SelectTrigger className="w-[140px] bg-background">
+                {/* 統計基準切換 */}
+                <Select value={overviewBasis} onValueChange={(v) => setOverviewBasis(v as RevenueBasis)}>
+                  <SelectTrigger className="w-[130px] bg-background" data-testid="overview-basis-select">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border shadow-lg z-50">
+                    <SelectItem value="stay">依住宿日</SelectItem>
+                    <SelectItem value="booking">依下訂日</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={overviewTimeRange} onValueChange={(v) => setOverviewTimeRange(v as TimeRange)}>
+                  <SelectTrigger className="w-[140px] bg-background" data-testid="overview-period-select">
                     <Calendar className="h-4 w-4 mr-2" />
                     <SelectValue />
                   </SelectTrigger>
@@ -2205,8 +2224,34 @@ const Headquarters = () => {
                     <SelectItem value="quarter">本季</SelectItem>
                     <SelectItem value="year">本年</SelectItem>
                     <SelectItem value="all">全部時間</SelectItem>
+                    <SelectItem value="custom">自訂區間</SelectItem>
                   </SelectContent>
                 </Select>
+                {overviewTimeRange === "custom" && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="bg-background gap-2" data-testid="overview-custom-range-trigger">
+                        <Calendar className="h-4 w-4" />
+                        {overviewCustomRange.from && overviewCustomRange.to
+                          ? `${format(overviewCustomRange.from, "yyyy/MM/dd")} – ${format(overviewCustomRange.to, "yyyy/MM/dd")}`
+                          : "選擇日期區間"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-background border shadow-lg z-50" align="end">
+                      <CalendarPicker
+                        variant="admin"
+                        mode="range"
+                        locale={zhTW}
+                        selected={{ from: overviewCustomRange.from, to: overviewCustomRange.to } as DateRange}
+                        onSelect={(range: DateRange | undefined) =>
+                          setOverviewCustomRange({ from: range?.from, to: range?.to })
+                        }
+                        numberOfMonths={2}
+                        defaultMonth={overviewCustomRange.from}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
                 <Button variant="outline" onClick={() => overviewRef.current?.exportCSV()} className="gap-2">
                   <Download className="h-4 w-4" />
                   匯出 CSV

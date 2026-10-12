@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, type PricingMap } from "@lakeze/shared/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lakeze/shared/components/ui/tooltip";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Badge } from "@lakeze/shared/components/ui/badge";
@@ -43,7 +44,7 @@ import {
   GitCompareArrows
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks, subYears, startOfDay, endOfDay, startOfWeek, endOfWeek, eachDayOfInterval, differenceInDays, eachMonthOfInterval, getMonth, getYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks, subYears, startOfDay, endOfDay, startOfWeek, eachDayOfInterval, differenceInCalendarDays, addDays, eachMonthOfInterval, getMonth, getYear } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { 
   BarChart, 
@@ -87,7 +88,8 @@ interface AccommodationPerformance {
   orderCount: number;
   revenue: number;
   averageOrderValue: number;
-  occupancyRate: number;
+  occupancyRate: number | null;
+  availableRoomNights: number;
   cancelledCount: number;
   roomNights: number;
 }
@@ -126,13 +128,17 @@ interface OperationalOverviewProps {
   onAccommodationChange: (value: string) => void;
   timeRange: TimeRange;
   onTimeRangeChange: (value: TimeRange) => void;
+  /** 自訂區間（timeRange="custom" 時使用；未選完整區間則不查詢） */
+  customRange?: { from?: Date; to?: Date };
+  /** 統計基準：依住宿日(預設) | 依下訂日 */
+  basis?: RevenueBasis;
 }
 
 export interface OperationalOverviewRef {
   exportCSV: () => void;
 }
 
-type TimeRange = "today" | "week" | "month" | "quarter" | "year" | "all";
+export type TimeRange = "today" | "week" | "month" | "quarter" | "year" | "all" | "custom";
 
 const COLORS = [
   'hsl(203, 78%, 43%)', 
@@ -151,7 +157,7 @@ const STATUS_COLORS = {
   cancelled: 'hsl(0, 84%, 60%)',
 };
 
-export const OperationalOverview = forwardRef<OperationalOverviewRef, OperationalOverviewProps>(({ accommodations, selectedAccommodation, onAccommodationChange, timeRange, onTimeRangeChange }, ref) => {
+export const OperationalOverview = forwardRef<OperationalOverviewRef, OperationalOverviewProps>(({ accommodations, selectedAccommodation, onAccommodationChange, timeRange, onTimeRangeChange, customRange, basis = "stay" }, ref) => {
   const navigate = useNavigate();
   
   // Overview states
@@ -196,7 +202,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
   useEffect(() => {
     loadPerformanceData();
-  }, [timeRange, selectedAccommodation]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRange, selectedAccommodation, basis, customRange?.from?.getTime(), customRange?.to?.getTime()]);
 
   // Overview data loading
   const loadStats = async () => {
@@ -402,66 +409,70 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     }
   };
 
-  // Performance data loading
-  const getDateRange = (range: TimeRange, isPrevious = false) => {
+  // 期間計算：current-containing 期間一律「截到今天」，前期取「同樣經過天數」的前一區間；
+  // custom 前期＝緊鄰在前、同樣天數的區間。回傳 start=當日00:00、end=當日23:59。
+  const getDateRange = (range: TimeRange, isPrevious = false): { start: Date; end: Date } => {
     const now = new Date();
-    let start: Date;
-    let end: Date;
 
+    if (range === "all") {
+      return { start: new Date(2020, 0, 1), end: endOfDay(now) };
+    }
+
+    if (range === "custom") {
+      const from = customRange?.from ? startOfDay(customRange.from) : startOfDay(now);
+      const to = customRange?.to ? endOfDay(customRange.to) : endOfDay(now);
+      if (!isPrevious) return { start: from, end: to };
+      const spanDays = differenceInCalendarDays(to, from) + 1;
+      const prevEnd = endOfDay(subDays(from, 1));
+      const prevStart = startOfDay(subDays(prevEnd, spanDays - 1));
+      return { start: prevStart, end: prevEnd };
+    }
+
+    if (range === "today") {
+      if (!isPrevious) return { start: startOfDay(now), end: endOfDay(now) };
+      return { start: startOfDay(subDays(now, 1)), end: endOfDay(subDays(now, 1)) };
+    }
+
+    // week / month / quarter / year：本期＝期初→今天；前期＝前一同名區間的「同樣經過天數」
+    let periodStart: Date;
+    let prevPeriodStart: Date;
     switch (range) {
-      case "today":
-        start = startOfDay(now);
-        end = endOfDay(now);
-        if (isPrevious) {
-          start = startOfDay(subDays(now, 1));
-          end = endOfDay(subDays(now, 1));
-        }
-        break;
       case "week":
-        start = startOfWeek(now, { weekStartsOn: 1 });
-        end = endOfWeek(now, { weekStartsOn: 1 });
-        if (isPrevious) {
-          start = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-          end = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-        }
+        periodStart = startOfWeek(now, { weekStartsOn: 1 });
+        prevPeriodStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+        break;
+      case "quarter": {
+        const qm = Math.floor(now.getMonth() / 3) * 3;
+        periodStart = new Date(now.getFullYear(), qm, 1);
+        prevPeriodStart = new Date(now.getFullYear(), qm - 3, 1);
+        break;
+      }
+      case "year":
+        periodStart = startOfYear(now);
+        prevPeriodStart = startOfYear(subYears(now, 1));
         break;
       case "month":
-        start = startOfMonth(now);
-        end = endOfMonth(now);
-        if (isPrevious) {
-          start = startOfMonth(subMonths(now, 1));
-          end = endOfMonth(subMonths(now, 1));
-        }
-        break;
-      case "quarter":
-        const quarterMonth = Math.floor(now.getMonth() / 3) * 3;
-        start = new Date(now.getFullYear(), quarterMonth, 1);
-        end = new Date(now.getFullYear(), quarterMonth + 3, 0);
-        if (isPrevious) {
-          start = new Date(now.getFullYear(), quarterMonth - 3, 1);
-          end = new Date(now.getFullYear(), quarterMonth, 0);
-        }
-        break;
-      case "year":
-        start = startOfYear(now);
-        end = endOfYear(now);
-        if (isPrevious) {
-          start = startOfYear(subYears(now, 1));
-          end = endOfYear(subYears(now, 1));
-        }
-        break;
-      case "all":
       default:
-        start = new Date(2020, 0, 1);
-        end = now;
+        periodStart = startOfMonth(now);
+        prevPeriodStart = startOfMonth(subMonths(now, 1));
         break;
     }
 
-    return { start, end };
+    const elapsedDays = differenceInCalendarDays(startOfDay(now), startOfDay(periodStart)) + 1;
+    if (!isPrevious) {
+      return { start: startOfDay(periodStart), end: endOfDay(now) };
+    }
+    return {
+      start: startOfDay(prevPeriodStart),
+      end: endOfDay(addDays(startOfDay(prevPeriodStart), elapsedDays - 1)),
+    };
   };
 
+  /** custom 模式下是否已選滿完整區間 */
+  const customReady = timeRange !== "custom" || (!!customRange?.from && !!customRange?.to);
+
   const loadPerformanceData = async () => {
-    if (filteredAccommodations.length === 0) {
+    if (filteredAccommodations.length === 0 || !customReady) {
       setPerformanceLoading(false);
       return;
     }
@@ -477,8 +488,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const prevEndStr = format(prevRange.end, "yyyy-MM-dd");
 
       const [currentData, previousData, trend, monthly] = await Promise.all([
-        loadPeriodData(startStr, endStr),
-        timeRange !== "all" ? loadPeriodData(prevStartStr, prevEndStr) : Promise.resolve([]),
+        loadPeriodData(startStr, endStr, basis),
+        timeRange !== "all" ? loadPeriodData(prevStartStr, prevEndStr, basis) : Promise.resolve([]),
         loadTrendDataWithComparison(start, end, prevRange.start, prevRange.end),
         loadMonthlyComparison(),
       ]);
@@ -676,78 +687,109 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     });
   };
 
-  const loadPeriodData = async (startDate: string, endDate: string): Promise<AccommodationPerformance[]> => {
-    // Fetch room types and inventory pricing for daily revenue splitting
-    const periodAccIds = filteredAccommodations.map(a => a.id);
-    const { data: periodRoomTypes } = await supabase
-      .from("room_types")
-      .select("id")
-      .in("accommodation_id", periodAccIds);
-    
-    const periodRoomTypeIds = (periodRoomTypes || []).map(rt => rt.id);
-    let periodPricingMap: PricingMap = new Map();
-    if (periodRoomTypeIds.length > 0) {
-      const { data: invData } = await supabase
-        .from('room_inventory_pricing')
-        .select('room_type_id, date, price, price_2_meals, price_3_meals')
-        .in('room_type_id', periodRoomTypeIds)
-        .gte('date', startDate).lte('date', endDate)
-        .limit(10000);
-      periodPricingMap = buildPricingMap(invData || []);
+  // 分頁抓完整 orders（繞過 Supabase 預設 1000 筆上限）
+  const fetchAllOrders = async (
+    accIds: string[],
+    applyRange: (q: any) => any
+  ): Promise<any[]> => {
+    const pageSize = 1000;
+    let from = 0;
+    const all: any[] = [];
+    // 一次查全部館（.in），前端再分組，避免每館各打一次
+    while (true) {
+      let q = supabase
+        .from("orders")
+        .select("accommodation_id, order_status, final_price, check_in_date, check_out_date, room_type_id, room_quantity, lock_whole_building")
+        .in("accommodation_id", accIds);
+      q = applyRange(q).order("created_at", { ascending: true }).range(from, from + pageSize - 1);
+      const { data, error } = await q;
+      if (error) throw error;
+      const rows = data || [];
+      all.push(...rows);
+      if (rows.length < pageSize) break;
+      from += pageSize;
     }
+    return all;
+  };
 
-    const results = await Promise.all(
-      filteredAccommodations.map(async (acc) => {
-        const { data: orders } = await supabase
-          .from("orders")
-          .select("order_status, final_price, check_in_date, check_out_date, room_type_id, meal_plan")
-          .eq("accommodation_id", acc.id)
-          .gte("created_at", startDate)
-          .lte("created_at", endDate + "T23:59:59");
+  const loadPeriodData = async (
+    startDate: string,
+    endDate: string,
+    periodBasis: RevenueBasis
+  ): Promise<AccommodationPerformance[]> => {
+    const accIds = filteredAccommodations.map((a) => a.id);
+    if (accIds.length === 0) return [];
 
-        const { data: roomTypes } = await supabase
-          .from("room_types")
-          .select("room_count")
-          .eq("accommodation_id", acc.id);
+    // 房型：可售房間總數（排除包棟虛擬房型）、包棟房型集合
+    const { data: roomTypesData } = await supabase
+      .from("room_types")
+      .select("id, accommodation_id, room_count, is_exclusive_package")
+      .in("accommodation_id", accIds);
 
-        const allOrders = orders || [];
-        const confirmedOrders = allOrders.filter((o) => o.order_status === "confirmed");
-        const cancelledOrders = allOrders.filter((o) => o.order_status === "cancelled");
-        
-        // Revenue using daily price splitting
-        const confirmedWithDates = confirmedOrders.filter(o => o.check_in_date && o.check_out_date);
-        const accRevByMonth = aggregateRevenueByMonth(
-          confirmedWithDates.map(o => ({ check_in_date: o.check_in_date!, check_out_date: o.check_out_date!, room_type_id: o.room_type_id, final_price: o.final_price || 0, meal_plan: o.meal_plan })),
-          periodPricingMap
-        );
-        const revenue = Array.from(accRevByMonth.values()).reduce((sum, v) => sum + v, 0);
-        
-        const roomNights = confirmedOrders.reduce((sum, o) => {
-          const checkIn = new Date(o.check_in_date);
-          const checkOut = new Date(o.check_out_date);
-          return sum + differenceInDays(checkOut, checkIn);
-        }, 0);
+    const buildingRoomsByAcc = new Map<string, number>();
+    const exclusiveRoomTypeIds = new Set<string>();
+    (roomTypesData || []).forEach((rt: any) => {
+      if (rt.is_exclusive_package) {
+        exclusiveRoomTypeIds.add(rt.id);
+        return; // 包棟虛擬房型不計入可售房間總數
+      }
+      buildingRoomsByAcc.set(rt.accommodation_id, (buildingRoomsByAcc.get(rt.accommodation_id) || 0) + (rt.room_count || 0));
+    });
 
-        const totalRooms = (roomTypes || []).reduce((sum, rt) => sum + (rt.room_count || 1), 0);
-        const daysInPeriod = differenceInDays(new Date(endDate), new Date(startDate)) + 1;
-        const totalRoomNights = totalRooms * daysInPeriod;
-        const occupancyRate = totalRoomNights > 0 ? (roomNights / totalRoomNights) * 100 : 0;
+    // 依基準決定查詢條件：依下訂日用 created_at；依住宿日用住宿區間重疊
+    const applyRange =
+      periodBasis === "booking"
+        ? (q: any) => q.gte("created_at", startDate).lte("created_at", endDate + "T23:59:59")
+        : (q: any) => q.lte("check_in_date", endDate).gt("check_out_date", startDate);
 
-        return {
-          id: acc.id,
-          name: acc.name,
-          is_active: acc.is_active !== false,
-          orderCount: confirmedOrders.length,
-          revenue,
-          averageOrderValue: confirmedOrders.length > 0 ? Math.round(revenue / confirmedOrders.length) : 0,
-          occupancyRate: Math.round(occupancyRate * 10) / 10,
-          cancelledCount: cancelledOrders.length,
-          roomNights,
-        };
-      })
-    );
+    const orders = await fetchAllOrders(accIds, applyRange);
 
-    return results;
+    const ordersByAcc = new Map<string, any[]>();
+    orders.forEach((o) => {
+      const arr = ordersByAcc.get(o.accommodation_id) || [];
+      arr.push(o);
+      ordersByAcc.set(o.accommodation_id, arr);
+    });
+
+    const periodStart = new Date(startDate);
+    const periodEndExcl = addDays(new Date(endDate), 1);
+    const daysInPeriod = differenceInCalendarDays(new Date(endDate), new Date(startDate)) + 1;
+
+    return filteredAccommodations.map((acc) => {
+      const accOrders = ordersByAcc.get(acc.id) || [];
+      const buildingRooms = buildingRoomsByAcc.get(acc.id) || 0;
+
+      const { orderCount, revenue, roomNights } = computePeriodMetrics(accOrders, {
+        basis: periodBasis,
+        periodStart,
+        periodEndExcl,
+        exclusiveRoomTypeIds,
+        buildingRooms,
+      });
+
+      const cancelledCount = accOrders.filter((o) => o.order_status === "cancelled").length;
+
+      // 入住率：僅依住宿日有意義；分母＝期間天數 × 可售房間總數
+      const availableRoomNights =
+        periodBasis === "stay" && buildingRooms > 0 ? buildingRooms * daysInPeriod : 0;
+      const occupancyRate =
+        periodBasis === "stay" && availableRoomNights > 0
+          ? Math.round((roomNights / availableRoomNights) * 1000) / 10
+          : null;
+
+      return {
+        id: acc.id,
+        name: acc.name,
+        is_active: acc.is_active !== false,
+        orderCount,
+        revenue: Math.round(revenue),
+        averageOrderValue: orderCount > 0 ? Math.round(revenue / orderCount) : 0,
+        occupancyRate,
+        availableRoomNights,
+        cancelledCount,
+        roomNights,
+      };
+    });
   };
 
   // Computed values
@@ -755,21 +797,31 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const totalRevenue = performanceData.reduce((sum, d) => sum + d.revenue, 0);
     const totalOrders = performanceData.reduce((sum, d) => sum + d.orderCount, 0);
     const totalRoomNights = performanceData.reduce((sum, d) => sum + d.roomNights, 0);
-    const avgOccupancy = performanceData.length > 0
-      ? performanceData.reduce((sum, d) => sum + d.occupancyRate, 0) / performanceData.length
-      : 0;
+    const totalRooms = totalRoomNights / 2; // 間數 = 房晚數 ÷ 2
+
+    // 全平台平均入住率＝Σ房晚 ÷ Σ可售房晚（加權，只算啟用中且有房的館）
+    const occWeighted = performanceData.filter((d) => d.is_active && d.availableRoomNights > 0);
+    const occNum = occWeighted.reduce((sum, d) => sum + d.roomNights, 0);
+    const occDen = occWeighted.reduce((sum, d) => sum + d.availableRoomNights, 0);
+    const avgOccupancy = basis === "stay" && occDen > 0 ? (occNum / occDen) * 100 : null;
 
     const prevRevenue = previousPeriodData.reduce((sum, d) => sum + d.revenue, 0);
     const prevOrders = previousPeriodData.reduce((sum, d) => sum + d.orderCount, 0);
     const prevRoomNights = previousPeriodData.reduce((sum, d) => sum + d.roomNights, 0);
-    const prevAvgOccupancy = previousPeriodData.length > 0
-      ? previousPeriodData.reduce((sum, d) => sum + d.occupancyRate, 0) / previousPeriodData.length
-      : 0;
+    const prevRooms = prevRoomNights / 2;
+    const prevOccW = previousPeriodData.filter((d) => d.is_active && d.availableRoomNights > 0);
+    const prevOccNum = prevOccW.reduce((sum, d) => sum + d.roomNights, 0);
+    const prevOccDen = prevOccW.reduce((sum, d) => sum + d.availableRoomNights, 0);
+    const prevAvgOccupancy = basis === "stay" && prevOccDen > 0 ? (prevOccNum / prevOccDen) * 100 : null;
 
     const revenueChange = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
     const ordersChange = prevOrders > 0 ? ((totalOrders - prevOrders) / prevOrders) * 100 : 0;
     const roomNightsChange = prevRoomNights > 0 ? ((totalRoomNights - prevRoomNights) / prevRoomNights) * 100 : 0;
-    const occupancyChange = prevAvgOccupancy > 0 ? ((avgOccupancy - prevAvgOccupancy) / prevAvgOccupancy) * 100 : 0;
+    const roomsChange = prevRooms > 0 ? ((totalRooms - prevRooms) / prevRooms) * 100 : 0;
+    const occupancyChange =
+      avgOccupancy !== null && prevAvgOccupancy !== null && prevAvgOccupancy > 0
+        ? ((avgOccupancy - prevAvgOccupancy) / prevAvgOccupancy) * 100
+        : 0;
     const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
     const prevAvgOrderValue = prevOrders > 0 ? Math.round(prevRevenue / prevOrders) : 0;
     const avgOrderValueChange = prevAvgOrderValue > 0 
@@ -780,18 +832,24 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       totalRevenue,
       totalOrders,
       totalRoomNights,
-      avgOccupancy: Math.round(avgOccupancy * 10) / 10,
+      totalRooms: Math.round(totalRooms * 10) / 10,
+      avgOccupancy: avgOccupancy === null ? null : Math.round(avgOccupancy * 10) / 10,
       avgOrderValue,
       revenueChange: Math.round(revenueChange * 10) / 10,
       ordersChange: Math.round(ordersChange * 10) / 10,
       roomNightsChange: Math.round(roomNightsChange * 10) / 10,
+      roomsChange: Math.round(roomsChange * 10) / 10,
       occupancyChange: Math.round(occupancyChange * 10) / 10,
       avgOrderValueChange: Math.round(avgOrderValueChange * 10) / 10,
       prevRevenue,
       prevOrders,
       prevRoomNights,
+      prevRooms: Math.round(prevRooms * 10) / 10,
     };
-  }, [performanceData, previousPeriodData]);
+  }, [performanceData, previousPeriodData, basis]);
+
+  // 間數顯示：整數不顯示 .0
+  const formatRooms = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("zh-TW", {
@@ -816,19 +874,25 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       case "quarter": return "本季";
       case "year": return "本年";
       case "all": return "全部時間";
+      case "custom": return "自訂區間";
     }
   };
 
-  const getPreviousLabel = (range: TimeRange) => {
-    switch (range) {
-      case "today": return "昨日";
-      case "week": return "上週";
-      case "month": return "上月";
-      case "quarter": return "上季";
-      case "year": return "去年";
-      case "all": return "";
-    }
-  };
+  // 比較期間一律以「前期」表述（同樣經過天數的前一區間）
+  // 期間/前期的日期區間字串（供副標、tooltip、CSV 使用）
+  const curRangeStr = useMemo(() => {
+    if (!customReady) return "";
+    const { start, end } = getDateRange(timeRange);
+    return `${format(start, "yyyy/MM/dd")} – ${format(end, "yyyy/MM/dd")}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRange, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
+
+  const prevRangeStr = useMemo(() => {
+    if (timeRange === "all" || !customReady) return "";
+    const { start, end } = getDateRange(timeRange, true);
+    return `${format(start, "yyyy/MM/dd")} – ${format(end, "yyyy/MM/dd")}`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeRange, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
 
   const GrowthIndicator = ({ value, showValue = true }: { value: number; showValue?: boolean }) => {
     if (value === 0) return <Minus className="h-4 w-4 text-muted-foreground" />;
@@ -845,8 +909,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     setExporting(true);
     try {
       const { start, end } = getDateRange(timeRange);
-      const headers = ["民宿名稱", "狀態", "訂單數", "營收", "平均客單價", "入住率(%)", "取消訂單數", "房晚數", "營收成長率(%)"];
-      const rows = performanceData.map((d) => {
+      const basisLabel = basis === "stay" ? "依住宿日" : "依下訂日";
+      const headers = ["民宿名稱", "狀態", "訂單數", "營收", "平均客單價", "入住率(%)", "取消訂單數", "房晚數", "間數", "營收成長率(%)"];
+      const rows: (string | number)[][] = performanceData.map((d) => {
         const prevData = previousPeriodData.find(p => p.id === d.id);
         const growth = prevData && prevData.revenue > 0 
           ? ((d.revenue - prevData.revenue) / prevData.revenue * 100).toFixed(1)
@@ -857,9 +922,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           d.orderCount,
           d.revenue,
           d.averageOrderValue,
-          d.occupancyRate,
+          d.occupancyRate === null ? "—" : d.occupancyRate,
           d.cancelledCount,
           d.roomNights,
+          formatRooms(d.roomNights / 2),
           growth,
         ];
       });
@@ -870,15 +936,17 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         performanceTotals.totalOrders,
         performanceTotals.totalRevenue,
         performanceTotals.avgOrderValue,
-        performanceTotals.avgOccupancy,
+        performanceTotals.avgOccupancy === null ? "—" : performanceTotals.avgOccupancy,
         performanceData.reduce((sum, d) => sum + d.cancelledCount, 0),
         performanceTotals.totalRoomNights,
+        formatRooms(performanceTotals.totalRooms),
         performanceTotals.revenueChange,
       ]);
 
       const csvContent = [
         `營運分析 - ${getTimeRangeLabel(timeRange)} (${format(start, "yyyy/MM/dd")} ~ ${format(end, "yyyy/MM/dd")})`,
-        `同期比較: ${getPreviousLabel(timeRange)}`,
+        `統計基準: ${basisLabel}`,
+        timeRange !== "all" ? `前期比較: ${prevRangeStr}` : "前期比較: —",
         "",
         headers.join(","),
         ...rows.map((row) => row.join(",")),
@@ -889,7 +957,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `營運分析_${getTimeRangeLabel(timeRange)}_${format(new Date(), "yyyyMMdd")}.csv`;
+      const nameRange = timeRange === "custom" ? `${format(start, "yyyyMMdd")}-${format(end, "yyyyMMdd")}` : getTimeRangeLabel(timeRange);
+      link.download = `營運分析_${nameRange}_${basisLabel}_${format(new Date(), "yyyyMMdd")}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
@@ -1001,9 +1070,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
             </div>
             <div>
               <h2 className="text-lg font-semibold">營運分析</h2>
-              <p className="text-sm text-muted-foreground">
-                {getTimeRangeLabel(timeRange)}業績總覽與民宿對比
-                {timeRange !== "all" && ` (與${getPreviousLabel(timeRange)}同期比較)`}
+              <p className="text-sm text-muted-foreground" data-testid="operational-period-subtitle">
+                {getTimeRangeLabel(timeRange)}
+                {curRangeStr && ` (${curRangeStr})`}
+                ・{basis === "stay" ? "依住宿日" : "依下訂日"}
+                {timeRange !== "all" && `・與前期比較`}
               </p>
             </div>
           </div>
@@ -1014,7 +1085,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4" data-testid="operational-cards">
             <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -1024,10 +1095,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   {timeRange !== "all" && <GrowthIndicator value={performanceTotals.revenueChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">總營收</p>
-                <p className="text-xl font-bold">{formatCurrency(performanceTotals.totalRevenue)}</p>
+                <p className="text-xl font-bold" data-testid="card-total-revenue">{formatCurrency(performanceTotals.totalRevenue)}</p>
                 {timeRange !== "all" && performanceTotals.prevRevenue > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getPreviousLabel(timeRange)}: {formatCurrency(performanceTotals.prevRevenue)}
+                  <p className="text-xs text-muted-foreground mt-1" title={prevRangeStr}>
+                    前期: {formatCurrency(performanceTotals.prevRevenue)}
                   </p>
                 )}
               </CardContent>
@@ -1042,10 +1113,10 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   {timeRange !== "all" && <GrowthIndicator value={performanceTotals.ordersChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">訂單數</p>
-                <p className="text-xl font-bold">{performanceTotals.totalOrders}</p>
+                <p className="text-xl font-bold" data-testid="card-total-orders">{performanceTotals.totalOrders}</p>
                 {timeRange !== "all" && performanceTotals.prevOrders > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getPreviousLabel(timeRange)}: {performanceTotals.prevOrders} 筆
+                  <p className="text-xs text-muted-foreground mt-1" title={prevRangeStr}>
+                    前期: {performanceTotals.prevOrders} 筆
                   </p>
                 )}
               </CardContent>
@@ -1070,10 +1141,21 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   <div className="p-2 bg-amber-500/10 rounded-lg">
                     <Percent className="h-5 w-5 text-amber-500" />
                   </div>
-                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
+                  {timeRange !== "all" && basis === "stay" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">平均入住率</p>
-                <p className="text-xl font-bold">{performanceTotals.avgOccupancy}%</p>
+                {performanceTotals.avgOccupancy === null ? (
+                  <TooltipProvider>
+                    <UITooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xl font-bold cursor-help" data-testid="card-occupancy">—</p>
+                      </TooltipTrigger>
+                      <TooltipContent>入住率請切換為「依住宿日」</TooltipContent>
+                    </UITooltip>
+                  </TooltipProvider>
+                ) : (
+                  <p className="text-xl font-bold" data-testid="card-occupancy">{performanceTotals.avgOccupancy}%</p>
+                )}
               </CardContent>
             </Card>
 
@@ -1086,14 +1168,77 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomNightsChange} />}
                 </div>
                 <p className="text-sm text-muted-foreground">總房晚數</p>
-                <p className="text-xl font-bold">{performanceTotals.totalRoomNights}</p>
+                <p className="text-xl font-bold" data-testid="card-room-nights">{performanceTotals.totalRoomNights}</p>
                 {timeRange !== "all" && performanceTotals.prevRoomNights > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {getPreviousLabel(timeRange)}: {performanceTotals.prevRoomNights} 晚
+                  <p className="text-xs text-muted-foreground mt-1" title={prevRangeStr}>
+                    前期: {performanceTotals.prevRoomNights} 晚
                   </p>
                 )}
               </CardContent>
             </Card>
+
+            <Card>
+              <CardContent className="pt-5 pb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="p-2 bg-teal-500/10 rounded-lg">
+                    <Building2 className="h-5 w-5 text-teal-500" />
+                  </div>
+                  {timeRange !== "all" && <GrowthIndicator value={performanceTotals.roomsChange} />}
+                </div>
+                <p className="text-sm text-muted-foreground">間數</p>
+                <p className="text-xl font-bold" data-testid="card-rooms">{formatRooms(performanceTotals.totalRooms)}</p>
+                <p className="text-xs text-muted-foreground mt-1">房晚數 ÷ 2</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* 每館明細表 */}
+        {!performanceLoading && performanceData.length > 0 && (
+          <div className="mt-6 rounded-lg border overflow-x-auto" data-testid="operational-detail-table">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>民宿名稱</TableHead>
+                  <TableHead>狀態</TableHead>
+                  <TableHead className="text-right">訂單數</TableHead>
+                  <TableHead className="text-right">營收</TableHead>
+                  <TableHead className="text-right">平均客單價</TableHead>
+                  <TableHead className="text-right">入住率</TableHead>
+                  <TableHead className="text-right">房晚數</TableHead>
+                  <TableHead className="text-right">間數</TableHead>
+                  <TableHead className="text-right">取消數</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {[...performanceData].sort((a, b) => b.revenue - a.revenue).map((d) => (
+                  <TableRow key={d.id} data-testid={`detail-row-${d.id}`}>
+                    <TableCell className="font-medium">{d.name}</TableCell>
+                    <TableCell>
+                      <Badge variant={d.is_active ? "default" : "outline"}>{d.is_active ? "營運中" : "已停用"}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{d.orderCount}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(d.revenue)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(d.averageOrderValue)}</TableCell>
+                    <TableCell className="text-right">{d.occupancyRate === null ? "—" : `${d.occupancyRate}%`}</TableCell>
+                    <TableCell className="text-right">{d.roomNights}</TableCell>
+                    <TableCell className="text-right">{formatRooms(d.roomNights / 2)}</TableCell>
+                    <TableCell className="text-right">{d.cancelledCount}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow className="font-semibold bg-muted/40">
+                  <TableCell>合計</TableCell>
+                  <TableCell />
+                  <TableCell className="text-right">{performanceTotals.totalOrders}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(performanceTotals.totalRevenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(performanceTotals.avgOrderValue)}</TableCell>
+                  <TableCell className="text-right">{performanceTotals.avgOccupancy === null ? "—" : `${performanceTotals.avgOccupancy}%`}</TableCell>
+                  <TableCell className="text-right">{performanceTotals.totalRoomNights}</TableCell>
+                  <TableCell className="text-right">{formatRooms(performanceTotals.totalRooms)}</TableCell>
+                  <TableCell className="text-right">{performanceData.reduce((s, d) => s + d.cancelledCount, 0)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </div>
         )}
       </section>
