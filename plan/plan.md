@@ -1,156 +1,41 @@
-# D2 裂變 — 館別 gate（3-b）施工計畫 ＋ 艾玹爾資料準備指南 ＋ 測試清除 SQL
+# 純唯讀調查計畫：lakeze 工作區 / 資料庫 / GitHub / 殘留網址（A–H）
 
-本批只改 `referral-hook`（qualify），加入「活動綁館別時，訂單館別需相符才發獎」。另附你要的艾玹爾可下單最小設定、隱藏館訂房網址、以及測完清資料的 SQL。不 push、不 Publish、不印任何 key。
+一次性的唯讀調查，產出一份 A～H 分節報告，每項附實際指令／查詢的原文輸出，最後附「已查證／無法查證／部分查證」對照表。
+全程只讀不寫：不改動任何檔案、不 git 寫入、不觸發 Save to GitHub、不 Publish、不跑 migration、不對任何資料庫寫入、不讀取或輸出任何金鑰／密碼／token 的實際值。
 
-## 誰會用到
-總部（/hq/referral）設定裂變活動；一般會員在 /member/referral 拿連結、受邀者經 /r/:code 註冊並下單。
+## 這份調查給誰看
+提出調查的維運負責人，用來釐清：目前工作區有哪些未存檔改動、前後端實際連到哪個 Supabase、GitHub 與自動部署現況、新舊資料庫與舊網址是否仍有殘留與運作。
 
----
+## 交付內容（單一報告，分 A–H 節）
+- **A 工作區現況**：`git status` 全部未存檔檔案 + 每檔 `git diff` 原文；能對應到產生該改動的對話指令者一併註明（只列事實，不評論、不建議存檔／還原、不做任何處理）。目前 branch、HEAD hash 與時間、與 `origin/production` 的 ahead/behind。
+- **B 資料庫連線**：從設定檔／環境變數讀出前端與 Edge Function 實際連到的 Supabase project ref，並明確回答是否等於 `dmafqwfynatdvnaeovhz`；環境變數「名稱」清單（標註有值／空值，不輸出值）；說明本任務能否對正式庫下 SQL、用何連線角色、是否 BYPASSRLS、能否 `SET ROLE authenticated`。
+- **C GitHub 與自動部署**：所有 branch 清單、`production` 與 `main`（或主要分支）差異筆數；`production` 最近 40 筆 commit 原文；Lovable 機器人（名稱含 lovable／gpt-engineer）最新 5 筆 commit 的 branch 與時間，並回答 2026-10-05 後是否仍有 Lovable commit；`.github/workflows/` 所有檔案完整原文；deploy workflow 最近執行紀錄（若查得到）；`scripts/release/`、`docs/release/` 清單與 supabase-release 文件原文。
+- **D 新舊資料庫殘留**：全碼（含 `supabase/`）搜尋 `dmafqwfynatdvnaeovhz` 的每一處路徑／行號／原文；`20261005150000_fix_hotelnabe_trigger_new_project_url.sql` 完整原文與其修改內容說明；pg_proc／trigger／cron 掃 `supabase.co`（需正式庫唯讀權限）。
+- **E 寫死網址**：搜尋 `lovable.app`、`lovableproject`、`emergentagent.com`、`lakeze.com` 的路徑／行號／原文；特別標出 TapPay 3DS 導回、TapPay／OwlTing／HotelNabe webhook、登入／重設密碼導回、通知信連結。
+- **F 舊網站運作**：以 `curl -I` 與 GET 連 `renke-hostel-pro.lovable.app`、`pms.lakeze.com`、`hq.lakeze.com`，列 HTTP 狀態碼與轉址目的地；若舊站仍回應，抓主要 JS 內 `supabase.co` 判斷其 project ref。
+- **G 資料庫現況（需正式庫唯讀權限）**：`schema_migrations` 最新 15 筆並與 repo migrations 比對；`cron.job` 全列與兩支 job 近 5 次執行；5 支指定函式 `pg_get_functiondef` 的 md5／長度／prosecdef。
+- **H 平台功能**：專案記憶／規則檔／系統指示機制現況與原文（在不洩漏機密前提下）；發布管理「Run a review」是否含安全掃描。
 
-## 一、要改什麼（referral-hook qualify 的館別 gate）
+## 可行性分界（依已確認條件）
+- **可執行（執行模式下）**：A、B（讀設定與環境變數名稱）、C、D12/D13、E、F，以及 H23 中屬於本工作區檔案的規則／記憶檔。
+- **標註「無法查證」**：所有需「正式 Supabase 直連唯讀」的項目 —— C5、D14、G19–22。原因：本環境僅有本機 Postgres（供 fixture 測試），無正式庫 psql 直連通道；且依指示不得尋找／讀取正式庫連線字串或金鑰。
+- **可能「部分查證」**：C10（deploy workflow 執行紀錄，取決於是否能從 repo／本地讀到）、C8（Lovable commit，取決於 commit 中繼資料）、H24（發布面板安全掃描，屬平台端，必要時以 support 管道確認或標註無法查證）。
 
-### 現行「首筆」是怎麼認定的（先講清楚）
-- `qualify(member_id, order_id)` 由 `BookingFlow` 在**訂單建立後**呼叫（每次下單都會呼叫一次）。
-- 它找「`invitee_id = 受邀會員` 且 `status ∈ (registered, clicked, pending)`」最早的一列當作該受邀者的裂變關係；找到就發 tier1（給直接邀請人）、再找上一層發 tier2。
-- 一旦該列被標成 `rewarded`／`qualified`，之後的訂單就不再匹配 → 所以現況等於「受邀者**全平台第一筆**訂單」就觸發，**完全不看訂單是哪一館**。
+## 流程
+核准本計畫 → 切回一般（執行）模式 → 依 A→H 逐節執行唯讀指令／查詢並收集原文輸出 → 彙整成報告與對照表 → 停下等待回覆，不提出、不執行任何修正。
 
-### 改成「該活動適用館別的首筆」
-在 qualify 開頭加一道館別判斷：
-1. 讀活動 `referral_campaigns.accommodation_id`。
-2. 若為 NULL（全平台活動）→ 行為完全不變（維持現況）。
-3. 若有值（綁定某館，例：艾玹爾）→ 用 `order_id` 去查 `orders.accommodation_id`：
-   - **相符** → 照常發 tier1＋tier2、把邀請列標成 rewarded（同現行）。
-   - **不相符**（或查不到該訂單）→ **不發獎、不寫任何點數、不新增 tier2 列、不更動邀請列狀態**（維持 `registered`），回傳 `skipped: "accommodation_mismatch"`。
-4. 因為不相符時邀請列維持 `registered`，受邀者**之後在正確館別的下一筆訂單**仍會再次觸發 qualify 並正常發獎。
+## 呈現方式
+純文字報告，依 A～H 分節；每項先列實際指令／查詢，再貼原文輸出（長輸出保留關鍵片段並標明截斷）；金鑰／密碼／token 僅列名稱不列值；結尾附每項狀態對照表（已查證／無法查證／部分查證）。
 
-### 新「首筆」語意與影響（建議採此定義）
-- 定義：**受邀者在「活動綁定館別」的第一筆成立訂單**才發獎。
-- 影響：
-  - 受邀者若先在別館下單，不會「用掉」這個裂變關係，也不會誤發獎；要等他訂到活動指定館別才發。
-  - 隱藏測試館因此能真正隔離：真實會員就算拿到連結、在別館下單，也不會領到測試活動的點數（補上你原本擔心的漏洞）。
-  - tier1、tier2 一起套用同一道館別判斷（不相符時兩層都不發）。
-  - 已發過獎的列不會二次觸發（狀態已非 registered），無重複發獎風險。
-- 全平台活動（accommodation_id 為 NULL）完全不受影響。
+## 實作階段
+- **Phase 1（本次執行）**：完成上述可執行項目的 A～H 唯讀調查與完整回報；需正式庫直連的項目標註「無法查證」並說明原因。
+- **Phase 2（本次不做）**：若之後取得正式庫唯讀連線授權，再補 C5／D14／G19–22 的實際查詢結果。
+- **Phase 3（本次不做）**：依調查結論規劃任何修正（殘留網址、舊站、部署設定等）——屬後續另案，需另行核准。
 
-### 改動範圍
-- 只動 `supabase/functions/remarketing-send`？否 —— 本批只動 **`supabase/functions/referral-hook/index.ts`**。
-- 不需要 migration（`orders.accommodation_id`、`referral_campaigns.accommodation_id` 皆已存在）。
-- 不改 `BookingFlow`、不改共用 `referral.ts`（qualify 已帶 order_id，館別在後端查，前端零改動）。
-- `get_link` 挑選 active 活動的邏輯不動。
-- 6 的 `is_test` 不做。
-
-### 驗收方式（部署後）
-- A→B→C：C 在艾玹爾下單 → B 得 500、A 得 100（member_points / member_point_transactions 有入帳、referral_records 兩列 rewarded）。
-- 反向驗證：任一受邀者在別館下單 → qualify 回 `accommodation_mismatch`、無點數、邀請列仍 registered。
-
----
-
-## 二、艾玹爾要能被下單，最少要設定什麼（你方在館別後台操作）
-
-前台訂房是「**方案制**」：下單時訂單會寫入 `package_id`，所以除了房型與房價，**必須有一個啟用中的訂房方案且該日期有價格**，前台才會出現可訂選項。最小清單：
-
-1. **房型**（後台：房型設施 →「房型與房間照片」，路徑 `/admin/pricing?tab=rooms`）
-   - 新增 1 個房型：填**名稱**、**可住人數（capacity > 0）**。
-   - 上傳**至少 1 張房型照片**（上架引導第 4 步要求；也讓卡片有圖）。
-2. **房價綁定房型**（後台：房價庫存 →「房價設定」，路徑 `/admin/projects`）
-   - 建立房價並綁到上面的房型。
-3. **開放庫存＋逐日房價**（後台：房價庫存 →「房況日曆」，路徑 `/admin/room-price-calendar`）
-   - 把測試要用的那幾天設成**可訂（available_rooms > 0）**並**填入房價**。
-   - 這也是下單時的庫存閘門來源，沒開放會擋單（inventory_unavailable）。
-4. **訂房方案**（後台：房價庫存 →「訂房方案」，路徑 `/admin/packages`）
-   - 建立並**啟用**至少一個方案，關聯到該房型。
-5. **方案逐日價格**（後台：房價庫存 →「前台訂房價格日曆」，路徑 `/admin/package-price-calendar`）
-   - 把測試那幾天的方案**售價**標好（> 0）。
-6. **付款方式**（後台：官網內容 →「訂房資訊」付款方式，路徑 `/admin/website-content?tab=booking-info`）
-   - **開啟「ATM 虛擬帳號」**即可（見下一節，ATM 不需刷卡就能觸發發獎）。
-
-> 上架引導頁（`/admin/onboarding`）可即時看到第 4/5/6/7/8/9/10 步是否變綠，綠了代表前台可訂的條件到位。
-
-### ATM 是否需要額外設定、能不能免刷卡觸發獎勵
-- **可以免刷卡。** 前台選 **ATM 虛擬帳號** 送出時，系統**先把訂單建立起來**（`payment_status = pending_payment`、`order_status = pending`），而 `qualifyReferral` 就在「訂單建立後」立刻呼叫——**不等真的匯款**。所以 C 只要把訂房表單填完、選 ATM、送出，就會觸發發獎，**不需要真的去繳款、也不需後台改成已付款**。
-- ATM 本身不需要你額外接金流設定，只要在付款方式把它打開即可。
-- （備註：目前「建單即發獎、未付款也發」是現況行為；你已決定這批不改、結案審查後再評估改到付款成功。這裡只是說明為何 ATM 對測試最省事。）
-
-### 隱藏館的前台訂房頁網址格式
-- 館別專屬訂房頁（用館別的 alias 網址代稱）：`https://booking.lakeze.com/{alias}`
-- 或用館別 ID 直達：`https://booking.lakeze.com/booking/villa/{accommodation_id}`
-- 單一房型深連結（E2 卡片用的格式）：`https://booking.lakeze.com/book?accId={accommodation_id}&roomId={room_type_id}`
-- 這些「直接網址」即使館別沒有列在平台入口（隱藏）也能開啟，A→B→C 流程照常走。
-  - ⚠️ 但請先用上面網址**實際開一次、確認能進到下單頁**再跑測試：若館別有「未上架/停用」之類的旗標會擋住訂房頁，需要先讓該館處於可訂狀態（可訂但不列在入口＝隱藏測試館的目標）。
-
----
-
-## 三、測試完清除資料的 SQL（你在 Supabase Dashboard 執行）
-
-前提：獎勵型別是 points（你設定 tier1=500、tier2=100），不涉及 coupon 表。把下面的 `<CAMPAIGN_ID>` 與三個測試會員 email 換成實際值。
-
-```sql
--- 0) 找出示範活動與其綁定館別（確認無誤再往下）
-select id, name, accommodation_id, is_active
-from public.referral_campaigns
-where name = '你的示範活動名稱';   -- 取得 <CAMPAIGN_ID>
-
--- 1) 預覽本活動的裂變紀錄（確認都是測試資料）
-select id, tier, status, inviter_id, invitee_id, reward_value, invitee_order_id, created_at
-from public.referral_records
-where campaign_id = '<CAMPAIGN_ID>'
-order by created_at;
-
--- 2) 回沖測試會員的裂變點數交易
-with test_members as (
-  select id from public.platform_members
-  where email in ('A@example.test','B@example.test','C@example.test')
-)
-delete from public.member_point_transactions
-where member_id in (select id from test_members)
-  and description = '社群裂變推廣獎勵';
-
--- 3) 重算這三位測試會員的點數餘額（依其剩餘交易重新加總）
-update public.member_points mp
-   set balance = coalesce(s.bal, 0),
-       lifetime_earned = coalesce(s.earned, 0)
-from (
-  select member_id,
-         sum(amount) as bal,
-         sum(case when amount > 0 then amount else 0 end) as earned
-  from public.member_point_transactions
-  group by member_id
-) s
-where mp.member_id = s.member_id
-  and mp.member_id in (
-    select id from public.platform_members
-    where email in ('A@example.test','B@example.test','C@example.test')
-  );
-
--- 3b) 若這三位是純測試帳號、除了裂變沒有任何其他點數，
---     也可直接刪掉 member_points 列（擇一，不要和 3) 併用）：
--- delete from public.member_points
--- where member_id in (
---   select id from public.platform_members
---   where email in ('A@example.test','B@example.test','C@example.test')
--- );
-
--- 4) 刪除本活動的所有裂變紀錄（含 tier1 / tier2）
-delete from public.referral_records
-where campaign_id = '<CAMPAIGN_ID>';
-
--- 5)（可選）刪除示範活動本身
--- delete from public.referral_campaigns where id = '<CAMPAIGN_ID>';
-```
-
-注意：
-- `member_point_transactions.balance_after` 是當時的快照欄位；步驟 3 的重算只更新 `member_points` 的目前餘額。若你想連歷史交易的 `balance_after` 都乾淨，用 3b 直接刪 `member_points` 列、並確保 3) 已刪掉交易即可（測試帳號建議用 3b 最乾淨）。
-- 測試用 ATM 建立的 C 訂單若也想清，可另外 `delete from public.orders where id = '<C 的 order_id>'`（確認沒有被其他表外鍵參照；一般測試單可直接刪）。
-
----
-
-## 施工階段
-- 階段 1（本批）：referral-hook qualify 館別 gate（上述）；本機 build 驗證後回報 git status / diff / changed-edge-functions 清單，等你確認，不部署。
-- 階段 2（結案審查後再議）：把發獎時點由「建單」改到「付款成功」。
-- 階段 3（可選）：referral is_test 欄位，讓統計可排除測試而不必刪資料。
-
-## 假設（未問你、我逕自決定的）
-- 「首筆」採「活動綁定館別的首筆」（你也傾向此定義）。
-- 訂單查不到或 order_id 缺漏且活動綁館別時，從嚴判為不相符 → 不發獎、維持 registered。
-- 不相符時完全不更動邀請列狀態（維持 registered），讓之後正確館別的訂單可再觸發。
-- 獎勵型別為 points（依你 500/100 設定），清除 SQL 不含 coupon 表。
+## 假設（未詢問即採用的決定）
+- 「跑完 A～H 一次完整回報」＝在切回執行模式後單輪完成，過程維持純唯讀。
+- 需正式庫直連的項目無可用唯讀通道，一律標「無法查證」；不嘗試建立或尋找任何正式庫連線字串／金鑰。
+- F 的外部 URL 探測使用唯讀 HTTP 方法（`curl -I` / GET），不送出任何會造成寫入或狀態改變的請求。
+- A 的「對應到產生改動的對話指令」以本任務對話可追溯者為限；無法對應者標示「來源不明」，不臆測。
+- H24 若非本工作區可讀資訊（屬平台發布面板功能），以「無法從工作區查證」標註，必要時建議改由平台支援管道確認。
+- 報告以繁體中文輸出。
