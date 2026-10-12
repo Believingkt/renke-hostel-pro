@@ -24,7 +24,6 @@ const SCOPE_NOTES = [
   "本表僅列有館別歸屬之行程；全平台（含未指定館別）數字請見 AI 成效指標頁。",
   "平台入口（官網首頁小安、導引頁）之事件，依行程所屬館別歸列。",
   "已上架但期間內尚無任何曝光的行程仍會列出（推薦總數 0、來源「上架行程」、比率顯示「—」），有數字的列排前面、0 值列排後面。",
-  "排除 is_internal=true 與測試帳號排除名單（AI 成效指標頁管理）。全部由 ai_metric_events 真實事件即時彙總，不回填、不模擬。日期以台北時區計。",
 ];
 
 export default function TripRecAnalytics() {
@@ -45,7 +44,7 @@ export default function TripRecAnalytics() {
       p_from: filters.from, p_to: filters.to,
       p_accommodation_ids: filters.accommodationIds.length ? filters.accommodationIds : null,
       p_channel: filters.channel === "all" ? null : filters.channel,
-      p_include_internal: filters.includeInternal,
+      p_include_internal: false,
     } as any);
     if (error) { setError(`${(error as any).code ? `[${(error as any).code}] ` : ""}${error.message}${(error as any).details ? ` — ${(error as any).details}` : ""}`); setRows([]); }
     else setRows(((data as any[]) ?? []).map((r) => ({
@@ -89,6 +88,7 @@ export default function TripRecAnalytics() {
         accommodations={accommodations}
         channelOptions={[{ value: "all", label: "全部" }, { value: "web", label: "web" }, { value: "line", label: "line" }]}
         csvFileName="trip-rec-analytics"
+        showIncludeInternal={false}
       />
     </div>
   );

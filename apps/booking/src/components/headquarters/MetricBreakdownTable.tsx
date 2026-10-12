@@ -54,11 +54,13 @@ interface Props<R> {
   channelOptions: Array<{ value: string; label: string }>;
   csvFileName: string;
   extraHeader?: ReactNode;
+  showIncludeInternal?: boolean;
 }
 
 export function MetricBreakdownTable<R>({
   title, description, scopeNotes, columns, rows, rowKey, loading, error,
   filters, onFiltersChange, onReload, accommodations, channelOptions, csvFileName, extraHeader,
+  showIncludeInternal = true,
 }: Props<R>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -107,7 +109,7 @@ export function MetricBreakdownTable<R>({
   const exportCsv = () => {
     const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
     const caliber = filters.includeInternal ? "含內部上線測試（is_internal）" : "僅真實旅客";
-    const first = `# ${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}；口徑：${caliber}；${scopeNotes.join("；")}`;
+    const first = `# ${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}${showIncludeInternal ? `；口徑：${caliber}` : ""}；${scopeNotes.join("；")}`;
     const lines = [first, columns.map((c) => esc(c.label)).join(",")];
     for (const r of sorted) lines.push(columns.map((c) => esc(c.kind === "number" ? c.value(r) : cell(c, r))).join(","));
     if (rows.length) lines.push(columns.map((c, i) => esc(totalCell(c, i))).join(","));
@@ -153,15 +155,19 @@ export function MetricBreakdownTable<R>({
             <Button variant="outline" size="sm" onClick={exportCsv} disabled={!rows.length} data-testid="bd-export">
               <Download className="h-4 w-4 mr-1" />匯出 CSV
             </Button>
-            <label className="flex items-center gap-1.5 text-sm cursor-pointer" data-testid="bd-include-internal">
-              <Checkbox checked={filters.includeInternal} onCheckedChange={(v) => set({ includeInternal: v === true })} />
-              含內部上線測試
-            </label>
+            {showIncludeInternal && (
+              <label className="flex items-center gap-1.5 text-sm cursor-pointer" data-testid="bd-include-internal">
+                <Checkbox checked={filters.includeInternal} onCheckedChange={(v) => set({ includeInternal: v === true })} />
+                含內部上線測試
+              </label>
+            )}
             {extraHeader}
           </div>
-          <p className="text-xs font-medium text-foreground" data-testid="bd-caliber">
-            {filters.includeInternal ? "口徑：含內部上線測試（is_internal）" : "口徑：僅真實旅客"}
-          </p>
+          {showIncludeInternal && (
+            <p className="text-xs font-medium text-foreground" data-testid="bd-caliber">
+              {filters.includeInternal ? "口徑：含內部上線測試（is_internal）" : "口徑：僅真實旅客"}
+            </p>
+          )}
           <div>
             <div className="text-xs text-muted-foreground mb-2">業者（不勾＝全部）</div>
             <div className="flex flex-wrap gap-3">
