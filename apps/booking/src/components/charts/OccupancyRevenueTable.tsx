@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@lakeze/shared/compone
 import { Skeleton } from '@lakeze/shared/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@lakeze/shared/components/ui/table';
 import { Hotel } from 'lucide-react';
-import { buildPricingMap } from '@lakeze/shared/utils/revenueByMonth';
+import { buildPricingMap, computeOccupancyCapacity } from '@lakeze/shared/utils/revenueByMonth';
 import { isRevenueOrder } from '@/lib/revenueAccrual';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@lakeze/shared/components/ui/hover-card';
 import { ScrollArea } from '@lakeze/shared/components/ui/scroll-area';
@@ -221,39 +221,18 @@ export const OccupancyRevenueTable = ({ accommodationId, selectedYear, currencyM
     const blocksAllRoomTypeIds = new Set(
       roomTypes.filter((rt: any) => rt.blocks_all_inventory === true).map(rt => rt.id)
     );
-    const exclusiveRoomCount = roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
-    const standardRoomCount = roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
-
-    // Split mode:
-    //  1) 管理員在「房型與包棟設定」設定了「每日可售包棟數/散客房數」→ 啟用 split 並以該值為容量上限
-    //  2) 沿用既有的雲岫硬編碼分流（向下相容）
-    const isYunxiu = (accName || '').includes('雲岫');
     const isSensan = (accName || '').includes('森山');
     const isOlivia = (accName || '').includes('奧莉');
-    const adminSplit = dailyVillaCap > 0 || dailyRoomCap > 0;
-    const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
-    // 管理員啟用分流時，包棟訂單一律視為 1 棟（不分內含房數）
-    const villaAsSingleUnit = adminSplit;
 
-    let exclusiveCap: number;
-    let standardCap: number;
-    if (adminSplit) {
-      exclusiveCap = dailyVillaCap;
-      standardCap = dailyRoomCap;
-    } else if (splitMode) {
-      exclusiveCap = exclusiveRoomCount;
-      standardCap = standardRoomCount;
-    } else {
-      exclusiveCap = 0;
-      standardCap = 0;
-    }
-    let allCapacity: number;
-    if (splitMode) {
-      allCapacity = exclusiveCap + standardCap;
-    } else {
-      const total = roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
-      allCapacity = Math.min(total, dailyCap);
-    }
+    // 容量／分流計算抽成共用函式（computeOccupancyCapacity），與總部營運分析同口徑
+    const cap = computeOccupancyCapacity({
+      roomTypes,
+      accName,
+      daily_capacity: dailyCap,
+      daily_villa_capacity: dailyVillaCap,
+      daily_room_capacity: dailyRoomCap,
+    });
+    const { splitMode, allCapacity, exclusiveCap, standardCap, exclusiveRoomCount, standardRoomCount, villaAsSingleUnit } = cap;
     if (allCapacity === 0) return null;
 
     const segmentCapacity: Record<SegmentKey, number> = {

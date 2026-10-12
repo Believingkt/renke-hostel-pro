@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, resolvePeriodRange, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, computeOccupancyCapacity, resolvePeriodRange, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lakeze/shared/components/ui/tooltip";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
@@ -650,9 +650,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     while (true) {
       let q = supabase
         .from("orders")
-        .select("accommodation_id, order_status, final_price, check_in_date, check_out_date, room_type_id, room_quantity, lock_whole_building")
+        .select("id, accommodation_id, order_status, final_price, check_in_date, check_out_date, room_quantity")
         .in("accommodation_id", accIds);
-      q = applyRange(q).order("created_at", { ascending: true }).range(from, from + pageSize - 1);
+      q = applyRange(q).order("id", { ascending: true }).range(from, from + pageSize - 1);
       const { data, error } = await q;
       if (error) throw error;
       const rows = data || [];
@@ -663,6 +663,35 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     return all;
   };
 
+  // order_rooms 以 .in('order_id', ...) 分批查（每批 ≤ 500），不逐筆查
+  const fetchOrderRooms = async (orderIds: string[]): Promise<Map<string, { quantity: number | null }[]>> => {
+    const map = new Map<string, { quantity: number | null }[]>();
+    const CHUNK = 500;
+    for (let i = 0; i < orderIds.length; i += CHUNK) {
+      const slice = orderIds.slice(i, i + CHUNK);
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("order_rooms")
+          .select("order_id, quantity")
+          .in("order_id", slice)
+          .order("order_id", { ascending: true })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        const rows = data || [];
+        rows.forEach((r: any) => {
+          const arr = map.get(r.order_id) || [];
+          arr.push({ quantity: r.quantity });
+          map.set(r.order_id, arr);
+        });
+        if (rows.length < pageSize) break;
+        from += pageSize;
+      }
+    }
+    return map;
+  };
+
   const loadPeriodData = async (
     startDate: string,
     endDate: string,
@@ -671,20 +700,32 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const accIds = filteredAccommodations.map((a) => a.id);
     if (accIds.length === 0) return [];
 
-    // 房型：可售房間總數（排除包棟虛擬房型）、包棟房型集合
-    const { data: roomTypesData } = await supabase
-      .from("room_types")
-      .select("id, accommodation_id, room_count, is_exclusive_package")
-      .in("accommodation_id", accIds);
+    // 房型 + 容量設定：每日可售單位數照 OccupancyRevenueTable 口徑（computeOccupancyCapacity）
+    const [roomTypesRes, accInfoRes] = await Promise.all([
+      supabase.from("room_types").select("accommodation_id, room_count, is_exclusive_package").in("accommodation_id", accIds),
+      supabase.from("accommodation_info").select("id, name, daily_capacity, daily_villa_capacity, daily_room_capacity").in("id", accIds),
+    ]);
 
-    const buildingRoomsByAcc = new Map<string, number>();
-    const exclusiveRoomTypeIds = new Set<string>();
-    (roomTypesData || []).forEach((rt: any) => {
-      if (rt.is_exclusive_package) {
-        exclusiveRoomTypeIds.add(rt.id);
-        return; // 包棟虛擬房型不計入可售房間總數
-      }
-      buildingRoomsByAcc.set(rt.accommodation_id, (buildingRoomsByAcc.get(rt.accommodation_id) || 0) + (rt.room_count || 0));
+    const roomTypesByAcc = new Map<string, { room_count: number | null; is_exclusive_package?: boolean | null }[]>();
+    (roomTypesRes.data || []).forEach((rt: any) => {
+      const arr = roomTypesByAcc.get(rt.accommodation_id) || [];
+      arr.push({ room_count: rt.room_count, is_exclusive_package: rt.is_exclusive_package });
+      roomTypesByAcc.set(rt.accommodation_id, arr);
+    });
+    const accInfoById = new Map<string, any>();
+    (accInfoRes.data || []).forEach((a: any) => accInfoById.set(a.id, a));
+
+    const dailyCapByAcc = new Map<string, number>();
+    accIds.forEach((id) => {
+      const info = accInfoById.get(id) || {};
+      const cap = computeOccupancyCapacity({
+        roomTypes: roomTypesByAcc.get(id) || [],
+        accName: info.name,
+        daily_capacity: info.daily_capacity,
+        daily_villa_capacity: info.daily_villa_capacity,
+        daily_room_capacity: info.daily_room_capacity,
+      });
+      dailyCapByAcc.set(id, cap.allCapacity);
     });
 
     // 依基準決定查詢條件：依下訂日用 created_at；依住宿日用住宿區間重疊
@@ -694,11 +735,12 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         : (q: any) => q.lte("check_in_date", endDate).gt("check_out_date", startDate);
 
     const orders = await fetchAllOrders(accIds, applyRange);
+    const orderRoomsMap = await fetchOrderRooms(orders.map((o) => o.id));
 
     const ordersByAcc = new Map<string, any[]>();
     orders.forEach((o) => {
       const arr = ordersByAcc.get(o.accommodation_id) || [];
-      arr.push(o);
+      arr.push({ ...o, order_rooms: orderRoomsMap.get(o.id) || [] });
       ordersByAcc.set(o.accommodation_id, arr);
     });
 
@@ -708,21 +750,19 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
     return filteredAccommodations.map((acc) => {
       const accOrders = ordersByAcc.get(acc.id) || [];
-      const buildingRooms = buildingRoomsByAcc.get(acc.id) || 0;
+      const dailyCapacity = dailyCapByAcc.get(acc.id) || 0;
 
       const { orderCount, revenue, roomNights } = computePeriodMetrics(accOrders, {
         basis: periodBasis,
         periodStart,
         periodEndExcl,
-        exclusiveRoomTypeIds,
-        buildingRooms,
       });
 
       const cancelledCount = accOrders.filter((o) => o.order_status === "cancelled").length;
 
-      // 入住率：僅依住宿日有意義；分母＝期間天數 × 可售房間總數
+      // 入住率：僅依住宿日有意義；分母＝期間天數 × 每日可售單位數（與後台住房率報表同口徑）
       const availableRoomNights =
-        periodBasis === "stay" && buildingRooms > 0 ? buildingRooms * daysInPeriod : 0;
+        periodBasis === "stay" && dailyCapacity > 0 ? dailyCapacity * daysInPeriod : 0;
       const occupancyRate =
         periodBasis === "stay" && availableRoomNights > 0
           ? Math.round((roomNights / availableRoomNights) * 1000) / 10

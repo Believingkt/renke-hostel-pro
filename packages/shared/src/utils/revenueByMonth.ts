@@ -125,7 +125,8 @@ export function computeRoomNightsByMonth(
  *   - "stay"（依住宿日，飯店業慣例、預設）：期間內的住宿夜數
  *   - "booking"（依下訂日）：期間內下訂的整張訂單
  * 有效訂單：order_status ∈ {confirmed, checked_in, checked_out}
- * 每晚房間數：room_quantity||1；包棟(lock_whole_building 或房型 is_exclusive_package)=該館可售房間總數
+ * 每晚單位數：order_rooms.quantity 加總（包棟房型每個 quantity 算 1 單位，不乘全館房數）；
+ *            無 order_rooms 時退回 room_quantity || 1
  * ========================================================================== */
 export type RevenueBasis = "stay" | "booking";
 
@@ -135,14 +136,26 @@ export interface PerfOrderInput {
   check_in_date: string | null;
   check_out_date: string | null;
   room_quantity?: number | null;
-  lock_whole_building?: boolean | null;
-  room_type_id?: string | null;
+  /** 該訂單的 order_rooms 明細（每列一房型 × 數量）。每晚單位數＝quantity 加總 */
+  order_rooms?: { quantity: number | null }[] | null;
 }
 
 const EFFECTIVE_ORDER_STATUSES = new Set(["confirmed", "checked_in", "checked_out"]);
 
 export function isEffectiveOrder(status: string | null | undefined): boolean {
   return !!status && EFFECTIVE_ORDER_STATUSES.has(status);
+}
+
+/**
+ * 每晚佔用單位數：order_rooms.quantity 加總（包棟房型每個 quantity 算 1 單位，不乘全館房數）；
+ * 無 order_rooms 時退回 room_quantity || 1。
+ */
+export function unitsPerNight(order: PerfOrderInput): number {
+  if (order.order_rooms && order.order_rooms.length > 0) {
+    const sum = order.order_rooms.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    if (sum > 0) return sum;
+  }
+  return Math.max(1, Number(order.room_quantity) || 1);
 }
 
 /** [checkIn, checkOut) 與 [periodStart, periodEndExcl) 的重疊夜數 */
@@ -159,23 +172,19 @@ export interface PeriodMetricsOptions {
   periodStart: Date;
   /** 期間迄的隔日 00:00（排除上界，= 期末日 + 1 天） */
   periodEndExcl: Date;
-  /** 包棟/獨佔的房型 id 集合 */
-  exclusiveRoomTypeIds: Set<string>;
-  /** 該館可售房間總數（room_count 加總，排除包棟虛擬房型） */
-  buildingRooms: number;
 }
 
 /**
  * 計算單一民宿在指定期間、指定基準下的「訂單數、總營收、房晚數」。
- * 注意：
  *   - stay 基準：傳入的 orders 應已用 (check_in_date <= 期末) 且 (check_out_date > 期初) 篩過；此處再把夜數裁切到期間內。
  *   - booking 基準：傳入的 orders 應已用 created_at 落在期間內篩過；整張訂單全額計入。
+ * 房晚數 = Σ(期間內夜數 × 每晚單位數)；每晚單位數見 unitsPerNight。
  */
 export function computePeriodMetrics(
   orders: PerfOrderInput[],
   opts: PeriodMetricsOptions
 ): { orderCount: number; revenue: number; roomNights: number } {
-  const { basis, periodStart, periodEndExcl, exclusiveRoomTypeIds, buildingRooms } = opts;
+  const { basis, periodStart, periodEndExcl } = opts;
   let orderCount = 0;
   let revenue = 0;
   let roomNights = 0;
@@ -187,26 +196,89 @@ export function computePeriodMetrics(
     const checkIn = new Date(o.check_in_date);
     const checkOut = new Date(o.check_out_date);
     const totalNights = Math.max(1, differenceInDays(checkOut, checkIn));
-    const isWhole =
-      o.lock_whole_building === true ||
-      (o.room_type_id ? exclusiveRoomTypeIds.has(o.room_type_id) : false);
-    const roomsPerNight = isWhole ? Math.max(1, buildingRooms) : Math.max(1, o.room_quantity || 1);
+    const units = unitsPerNight(o);
     const price = o.final_price || 0;
 
     if (basis === "stay") {
       const nights = overlapNights(checkIn, checkOut, periodStart, periodEndExcl);
       if (nights <= 0) continue;
       orderCount += 1;
-      roomNights += nights * roomsPerNight;
+      roomNights += nights * units;
       revenue += (price / totalNights) * nights;
     } else {
       orderCount += 1;
-      roomNights += totalNights * roomsPerNight;
+      roomNights += totalNights * units;
       revenue += price;
     }
   }
 
   return { orderCount, revenue, roomNights };
+}
+
+export interface CapacityRoomType {
+  room_count: number | null;
+  is_exclusive_package?: boolean | null;
+}
+
+export interface OccupancyCapacityConfig {
+  roomTypes: CapacityRoomType[];
+  accName?: string | null;
+  daily_capacity?: number | null;
+  daily_villa_capacity?: number | null;
+  daily_room_capacity?: number | null;
+}
+
+export interface OccupancyCapacityResult {
+  splitMode: boolean;
+  allCapacity: number;
+  exclusiveCap: number;
+  standardCap: number;
+  exclusiveRoomCount: number;
+  standardRoomCount: number;
+  villaAsSingleUnit: boolean;
+}
+
+/**
+ * 每日可售單位數 —— 與民宿後台「住房率報表」(OccupancyRevenueTable) 同一套口徑，供總部與後台共用。
+ *   1) 管理員設定 daily_villa_capacity／daily_room_capacity → 兩者相加（包棟以「棟」為單位）。
+ *   2) 雲岫向下相容：有包棟又有散客房型 → 包棟棟數 + 散客間數（全部 room_count）。
+ *   3) 其餘：所有房型 room_count 加總，上限為 daily_capacity（未設時預設 6）。
+ */
+export function computeOccupancyCapacity(cfg: OccupancyCapacityConfig): OccupancyCapacityResult {
+  const dailyCap = Number(cfg.daily_capacity) > 0 ? Number(cfg.daily_capacity) : 6;
+  const villa = Number(cfg.daily_villa_capacity) > 0 ? Number(cfg.daily_villa_capacity) : 0;
+  const room = Number(cfg.daily_room_capacity) > 0 ? Number(cfg.daily_room_capacity) : 0;
+
+  const exclusiveRoomCount = cfg.roomTypes.filter(rt => rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
+  const standardRoomCount = cfg.roomTypes.filter(rt => !rt.is_exclusive_package).reduce((s, rt) => s + (rt.room_count || 0), 0);
+
+  const isYunxiu = (cfg.accName || "").includes("雲岫");
+  const adminSplit = villa > 0 || room > 0;
+  const splitMode = adminSplit || (isYunxiu && exclusiveRoomCount > 0 && standardRoomCount > 0);
+  const villaAsSingleUnit = adminSplit;
+
+  let exclusiveCap: number;
+  let standardCap: number;
+  if (adminSplit) {
+    exclusiveCap = villa;
+    standardCap = room;
+  } else if (splitMode) {
+    exclusiveCap = exclusiveRoomCount;
+    standardCap = standardRoomCount;
+  } else {
+    exclusiveCap = 0;
+    standardCap = 0;
+  }
+
+  let allCapacity: number;
+  if (splitMode) {
+    allCapacity = exclusiveCap + standardCap;
+  } else {
+    const total = cfg.roomTypes.reduce((s, rt) => s + (rt.room_count || 0), 0);
+    allCapacity = Math.min(total, dailyCap);
+  }
+
+  return { splitMode, allCapacity, exclusiveCap, standardCap, exclusiveRoomCount, standardRoomCount, villaAsSingleUnit };
 }
 
 export type OverviewTimeRange = "today" | "week" | "month" | "quarter" | "year" | "all" | "custom";
