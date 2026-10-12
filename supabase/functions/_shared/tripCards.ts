@@ -52,24 +52,25 @@ export function hasPersonalContext(text: string): boolean {
 export async function fetchTripCards(
   // deno-lint-ignore no-explicit-any
   supabase: any,
-  opts: { personalized: boolean; limit?: number; accommodationId?: string | null },
+  opts: { personalized: boolean; limit?: number; accommodationId?: string | null; visibleAccommodationIds?: string[] },
 ): Promise<TripCardPayload[]> {
   const limit = Math.max(1, Math.min(5, opts.limit ?? 3));
   const scoped = !!opts.accommodationId;
+  const excludeHiddenOnly = opts.visibleAccommodationIds !== undefined;
+  const needResolve = scoped || excludeHiddenOnly;
   const { data, error } = await supabase
     .from("trips")
     .select("id, title, cover_url, match_score, items, total_price")
     .eq("status", "published")
     .order("match_score", { ascending: false, nullsFirst: false })
-    .limit(scoped ? 40 : limit);
+    .limit(needResolve ? 40 : limit);
 
   if (error || !Array.isArray(data)) return [];
 
   let rows = data as Array<Record<string, unknown>>;
-  if (scoped) {
-    const nearby = new Set(await nearbyAccommodationIds(supabase, opts.accommodationId!));
-    const itemsOf = (t: Record<string, unknown>) =>
-      Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
+  const itemsOf = (t: Record<string, unknown>) =>
+    Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
+  if (needResolve) {
     const productIds = new Set<string>();
     const roomIds = new Set<string>();
     for (const t of rows) {
@@ -90,16 +91,28 @@ export async function fetchTripCards(
     const accOfRef = new Map<string, string | null>();
     for (const r of prod.data || []) accOfRef.set(`product:${r.id}`, r.accommodation_id ?? null);
     for (const r of room.data || []) accOfRef.set(`room:${r.id}`, r.accommodation_id ?? null);
-    rows = rows
-      .filter((t) => itemsOf(t).some((i) => {
-        const acc = accOfRef.get(`${i.ref_type}:${i.ref_id}`);
-        return !!acc && nearby.has(acc);
-      }))
-      .slice(0, limit);
+    const accsOf = (t: Record<string, unknown>): string[] =>
+      itemsOf(t)
+        .map((i) => accOfRef.get(`${i.ref_type}:${i.ref_id}`))
+        .filter((a): a is string => !!a);
+
+    if (scoped) {
+      // 指定館別：只留同館或同 region_1 的行程
+      const nearby = new Set(await nearbyAccommodationIds(supabase, opts.accommodationId!));
+      rows = rows.filter((t) => accsOf(t).some((a) => nearby.has(a)));
+    } else {
+      // 未指定館別：排除「room/product 館別全部屬隱藏館」的行程（有可見館別或無可解析館別者保留）
+      const visible = new Set(opts.visibleAccommodationIds!);
+      rows = rows.filter((t) => {
+        const accs = accsOf(t);
+        return accs.length === 0 || accs.some((a) => visible.has(a));
+      });
+    }
+    rows = rows.slice(0, limit);
   }
 
   return rows.map((t: Record<string, unknown>) => {
-    const items = Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
+    const items = itemsOf(t);
     const spotCount = items.filter((i) => i.ref_type !== "room").length;
     const days = items.reduce((max, i) => Math.max(max, Number(i.day) || 1), 1);
     return {

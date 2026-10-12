@@ -4,7 +4,7 @@ import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { HIDDEN_VENUE_REPLY, loadVenueDirectory, matchHiddenVenue, matchVenue } from "../_shared/venueMatch.ts";
-import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE } from "../_shared/tripCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE, type TripCardPayload } from "../_shared/tripCards.ts";
 import { writeMetric } from "../_shared/metric.ts";
 import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
@@ -268,6 +268,26 @@ serve(async (req) => {
     const matchedVenue = hiddenVenue ? undefined : matchVenue(lastUserForVenue, accommodationList as any);
     const isBookableAcc = (id: string) => accommodationList.some((a: any) => a.id === id);
     const accommodationMap = new Map(accommodationList.map(a => [a.id, a]));
+
+    // 主題行程卡片範圍（依館別比對結果決定）：
+    //  - 指定「可顯示」館別 → 僅該館＋同 region_1（nearbyAccommodationIds）
+    //  - 未指定館別 → 全平台，但排除「room/product 館別全部屬隱藏館」的行程
+    //  - 指定「隱藏」館別 → 不附任何行程卡（下方維持婉拒）
+    const visibleAccIds = accommodationList.map((a: any) => a.id);
+    const wantsTripCards = detectTripIntent(lastUserForVenue) && !hiddenVenue;
+    let preTripCards: TripCardPayload[] = [];
+    if (wantsTripCards) {
+      try {
+        preTripCards = await fetchTripCards(supabase, {
+          personalized: hasPersonalContext(lastUserForVenue),
+          limit: 3,
+          accommodationId: matchedVenue?.id ?? null,
+          visibleAccommodationIds: matchedVenue ? undefined : visibleAccIds,
+        });
+      } catch (_e) { preTripCards = []; }
+    }
+    // 指定館別但該館周邊無上架行程 → 注入「周邊行程建置中」說法，不改推別區行程
+    const tripNoneNearby = !!matchedVenue && wantsTripCards && preTripCards.length === 0;
 
 
     // Tools
@@ -943,7 +963,7 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
 - 「${hiddenVenue.name}」目前無法透過線上客服預訂。請友善告知（可參考：${HIDDEN_VENUE_REPLY(hiddenVenue.name)}），不要查房、不要列出或推薦其他館房型冒充，也不要沿用先前對話的館別。` : ''}${matchedVenue ? `
 
 ## 客人指定館別（系統比對，必須遵守）：
-- 客人指定館別：${matchedVenue.name}（ID: ${matchedVenue.id}），查房必須帶此 accommodation_id，不可改推其他館（除非該館無房，需先明說）` : ''}`;
+- 客人指定館別：${matchedVenue.name}（ID: ${matchedVenue.id}），查房必須帶此 accommodation_id，不可改推其他館（除非該館無房，需先明說）` : ''}${tripNoneNearby ? TRIP_NONE_NEARBY_NOTE : ''}`;
 
 
     // ===== B1: 動態推薦商品（附加渲染用，不影響對話邏輯） =====
@@ -1337,8 +1357,8 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
         } finally {
           // 主題行程圖文卡片（資料全部來自資料庫 trips，模型不參與）
           try {
-            if (detectTripIntent(lastUserText)) {
-              const tripCardsShown = await fetchTripCards(supabase, { personalized: hasPersonalContext(lastUserText), limit: 3 });
+            if (wantsTripCards) {
+              const tripCardsShown = preTripCards;
               const tripBlock = buildTripCardsBlock(tripCardsShown);
               if (tripBlock) {
                 assistantText += tripBlock;
@@ -1349,7 +1369,7 @@ ${TRIP_CARD_PROMPT_RULE}${hiddenVenue ? `
                     event_type: 'trip_rec_shown',
                     ref_type: 'trip',
                     ref_id: String(c.trip_id),
-                    accommodation_id: ctxAccId ?? null,
+                    accommodation_id: matchedVenue?.id ?? ctxAccId ?? null,
                     channel: 'web',
                     session_key: typeof session_id === 'string' ? session_id.slice(0, 80) : null,
                     metadata: { source: 'portal_ai_chat' },
