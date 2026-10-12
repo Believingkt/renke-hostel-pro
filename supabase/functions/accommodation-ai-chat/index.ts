@@ -9,7 +9,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
-import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, detectTripScenario, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
 import { lowestPackagePricesForRooms } from "../_shared/packagePricing.ts";
 import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
 import { writeMetric } from "../_shared/metric.ts";
@@ -306,7 +306,13 @@ serve(async (req) => {
     let nearbyTripCards: Awaited<ReturnType<typeof fetchTripCards>> = [];
     if (wantTripCards) {
       try {
-        nearbyTripCards = await fetchTripCards(supabase, { personalized: tripPersonalized, limit: 3, accommodationId });
+        nearbyTripCards = await fetchTripCards(supabase, {
+          personalized: tripPersonalized,
+          limit: 3,
+          accommodationId,
+          scenario: detectTripScenario(lastUserText),
+          seed: typeof session_id === "string" ? session_id : undefined,
+        });
       } catch (e) {
         console.error("nearby trip cards failed", e);
       }

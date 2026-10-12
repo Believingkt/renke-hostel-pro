@@ -47,12 +47,30 @@ export function hasPersonalContext(text: string): boolean {
     .test(t);
 }
 
+/** 由對話文字判斷情境，對應 trips.scenario（family/couple/friends/outdoor），無則 undefined */
+export function detectTripScenario(text: string): string | undefined {
+  const t = (text || "").toLowerCase();
+  if (/(親子|帶小孩|小孩|小朋友|兒童|寶寶|kids|family|子連れ|家族)/.test(t)) return "family";
+  if (/(情侶|兩人|二人|約會|蜜月|couple|honeymoon|カップル|デート)/.test(t)) return "couple";
+  if (/(朋友|好友|包棟|包區|團體|一群|同事|friends|group|グループ)/.test(t)) return "friends";
+  if (/(戶外|登山|步道|健行|爬山|單車|自行車|outdoor|hiking|trail|cycling|アウトドア)/.test(t)) return "outdoor";
+  return undefined;
+}
+
 /** 從資料庫取得已發布行程，組成卡片（價格、景點數、封面照全部來自 DB）
+ *  排序：scoped 時本館行程優先 → 情境(scenario)相符優先 → match_score desc → 以 seed 穩定打散（無 seed 則隨機）
  *  opts.accommodationId：只保留與該館同館或同 region_1 的行程（依 items 的 room/product 所屬館別判定），沒有就回空陣列 */
 export async function fetchTripCards(
   // deno-lint-ignore no-explicit-any
   supabase: any,
-  opts: { personalized: boolean; limit?: number; accommodationId?: string | null; visibleAccommodationIds?: string[] },
+  opts: {
+    personalized: boolean;
+    limit?: number;
+    accommodationId?: string | null;
+    visibleAccommodationIds?: string[];
+    scenario?: string;
+    seed?: string;
+  },
 ): Promise<TripCardPayload[]> {
   const limit = Math.max(1, Math.min(5, opts.limit ?? 3));
   const scoped = !!opts.accommodationId;
@@ -60,16 +78,18 @@ export async function fetchTripCards(
   const needResolve = scoped || excludeHiddenOnly;
   const { data, error } = await supabase
     .from("trips")
-    .select("id, title, cover_url, match_score, items, total_price")
+    .select("id, title, cover_url, match_score, items, total_price, scenario")
     .eq("status", "published")
     .order("match_score", { ascending: false, nullsFirst: false })
-    .limit(needResolve ? 40 : limit);
+    .limit(40);
 
   if (error || !Array.isArray(data)) return [];
 
   let rows = data as Array<Record<string, unknown>>;
   const itemsOf = (t: Record<string, unknown>) =>
     Array.isArray(t.items) ? (t.items as Array<Record<string, unknown>>) : [];
+  const accsByRow = new Map<Record<string, unknown>, string[]>();
+
   if (needResolve) {
     const productIds = new Set<string>();
     const roomIds = new Set<string>();
@@ -95,21 +115,49 @@ export async function fetchTripCards(
       itemsOf(t)
         .map((i) => accOfRef.get(`${i.ref_type}:${i.ref_id}`))
         .filter((a): a is string => !!a);
+    for (const t of rows) accsByRow.set(t, accsOf(t));
 
     if (scoped) {
       // 指定館別：只留同館或同 region_1 的行程
       const nearby = new Set(await nearbyAccommodationIds(supabase, opts.accommodationId!));
-      rows = rows.filter((t) => accsOf(t).some((a) => nearby.has(a)));
+      rows = rows.filter((t) => (accsByRow.get(t) || []).some((a) => nearby.has(a)));
     } else {
       // 未指定館別：排除「room/product 館別全部屬隱藏館」的行程（有可見館別或無可解析館別者保留）
       const visible = new Set(opts.visibleAccommodationIds!);
       rows = rows.filter((t) => {
-        const accs = accsOf(t);
+        const accs = accsByRow.get(t) || [];
         return accs.length === 0 || accs.some((a) => visible.has(a));
       });
     }
-    rows = rows.slice(0, limit);
   }
+
+  // 同分打散：有 seed → 以 seed+trip_id 穩定雜湊；無 seed → 每次呼叫隨機（讓同分行程輪流曝光）
+  const hashUnit = (s: string): number => {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return (h >>> 0) / 4294967296;
+  };
+  const tieOf = new Map<Record<string, unknown>, number>();
+  for (const t of rows) tieOf.set(t, opts.seed ? hashUnit(`${opts.seed}:${String(t.id)}`) : Math.random());
+  const wantScenario = (opts.scenario || "").trim();
+
+  rows.sort((a, b) => {
+    if (scoped) {
+      const ao = (accsByRow.get(a) || []).includes(opts.accommodationId!) ? 0 : 1;
+      const bo = (accsByRow.get(b) || []).includes(opts.accommodationId!) ? 0 : 1;
+      if (ao !== bo) return ao - bo;
+    }
+    if (wantScenario) {
+      const as = a.scenario === wantScenario ? 0 : 1;
+      const bs = b.scenario === wantScenario ? 0 : 1;
+      if (as !== bs) return as - bs;
+    }
+    const am = Number(a.match_score) || 0;
+    const bm = Number(b.match_score) || 0;
+    if (am !== bm) return bm - am;
+    return (tieOf.get(a) ?? 0) - (tieOf.get(b) ?? 0);
+  });
+  rows = rows.slice(0, limit);
 
   return rows.map((t: Record<string, unknown>) => {
     const items = itemsOf(t);

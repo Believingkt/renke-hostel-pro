@@ -4,7 +4,7 @@ import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
 import { HIDDEN_VENUE_REPLY, loadVenueDirectory, matchHiddenVenue, matchVenue } from "../_shared/venueMatch.ts";
-import { buildTripCardsBlock, fetchTripCards, detectTripIntent, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE, type TripCardPayload } from "../_shared/tripCards.ts";
+import { buildTripCardsBlock, fetchTripCards, detectTripIntent, detectTripScenario, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE, type TripCardPayload } from "../_shared/tripCards.ts";
 import { writeMetric } from "../_shared/metric.ts";
 import { isGuideTrigger, runGuideTurn, mergeAttrs, archiveGuideAttributes, generateGuideTripCards, type GuideLang } from "../_shared/travelerGuide.ts";
 
@@ -283,6 +283,8 @@ serve(async (req) => {
           limit: 3,
           accommodationId: matchedVenue?.id ?? null,
           visibleAccommodationIds: matchedVenue ? undefined : visibleAccIds,
+          scenario: detectTripScenario(lastUserForVenue),
+          seed: typeof session_id === 'string' ? session_id : undefined,
         });
       } catch (_e) { preTripCards = []; }
     }
