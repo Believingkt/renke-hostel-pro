@@ -4,6 +4,7 @@ import { buildCorsHeaders } from "../_shared/cors.ts";
 import { checkOrderRateLimit, recordOrderAttempt, getClientIp } from "../_shared/orderRateLimit.ts";
 import { evaluateIncludedCapacityPricing, resolveIncludedGuestCount } from "../_shared/includedCapacityPricing.ts";
 import { parseChildAgeRules as parseSharedChildAgeRules } from "../_shared/groupBuyChildRules.ts";
+import { computeDiscountedRoomCharge } from "../_shared/discountPricing.ts";
 
 interface CustomAddonInput {
   addon_type: string;
@@ -598,17 +599,16 @@ serve(async (req) => {
         errors.push("Failed to validate discount code");
       } else if (discountResult && discountResult[0]?.is_valid) {
         const discountInfo = discountResult[0];
-        // 百分比折扣以「方案原價（劃掉價）」為基準，並以計價房費為上限
+        // 百分比／固定金額折扣皆以「方案原價（劃掉價）」為基準；
+        // 房費一律取較便宜者 min(售價總額, 原價總額 − 毛折扣)（與前端 discountPricing.ts 同一公式）
         const discountBase = discountBaseTotal > 0 ? discountBaseTotal : calculatedRoomTotal;
-        if (discountInfo.discount_type === "percentage") {
-          calculatedDiscount = Math.min(
-            Math.round(discountBase * (discountInfo.discount_value / 100)),
-            chargedRoomTotal,
-          );
-        } else if (discountInfo.discount_type === "fixed") {
-          calculatedDiscount = Math.min(discountInfo.discount_value, chargedRoomTotal);
-        }
-
+        const charge = computeDiscountedRoomCharge({
+          saleTotal: calculatedRoomTotal,
+          originalTotal: discountBase,
+          discountKind: discountInfo.discount_type === "percentage" ? "percentage" : "fixed",
+          discountValue: discountInfo.discount_value,
+        });
+        calculatedDiscount = Math.max(0, Math.min(chargedRoomTotal, chargedRoomTotal - charge.chargedRoomTotal));
       } else if (discountResult && discountResult[0] && !discountResult[0].is_valid) {
         errors.push(`Discount code invalid: ${discountResult[0].message || "Unknown error"}`);
       }

@@ -116,6 +116,7 @@ import roomDeluxe from "@lakeze/shared/assets/room-deluxe.jpg";
 import roomSuite from "@lakeze/shared/assets/room-suite.jpg";
 import roomStandard from "@lakeze/shared/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@lakeze/shared/utils/sanitizeHtml";
+import { computeDiscountedRoomCharge } from "@lakeze/shared/utils/discountPricing";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import MobileBottomNav from "@lakeze/shared/components/member/MobileBottomNav";
@@ -2283,24 +2284,37 @@ const BookingFlow = () => {
   };
 
 
+  /** 折扣碼計價（與伺服器 validate-order-prices 共用同一公式） */
+  const getDiscountCharge = () =>
+    computeDiscountedRoomCharge({
+      saleTotal: calculateTotal(),
+      originalTotal: getDiscountBase(),
+      discountKind: appliedDiscount
+        ? (appliedDiscount.type === "percentage" ? "percentage" : "fixed")
+        : null,
+      discountValue: appliedDiscount?.value ?? null,
+    });
+
   /**
    * 套用折扣碼時，房費以「原價」計價（折扣碼與人客多優惠不疊加）：
-   * 最終 = 原價 - 折扣。未套用折扣碼時維持售價。
+   * 帳列房費維持 max(售價, 原價)；實付房費由 calculateDiscount() 折到較便宜者。
    */
   const getRoomChargeTotal = () => {
     const sale = calculateTotal();
     if (!appliedDiscount) return sale;
-    return Math.max(sale, getDiscountBase());
+    return getDiscountCharge().billedRoomTotal;
   };
 
+  /** 帳列折扣 = 帳列房費 − min(售價總額, 原價總額 − 毛折扣) */
   const calculateDiscount = () => {
     if (!appliedDiscount) return 0;
-    const cap = getRoomChargeTotal();
-    if (appliedDiscount.type === "percentage") {
-      const raw = Math.round(getDiscountBase() * (appliedDiscount.value / 100));
-      return Math.min(raw, cap); // 折扣不得超過房費
-    }
-    return Math.min(appliedDiscount.value, cap);
+    return getDiscountCharge().discountAmount;
+  };
+
+  /** 售價已低於「原價打折後」→ 折扣碼不會讓客人更便宜，改以官網優惠價計算 */
+  const isSaleCheaperThanCode = () => {
+    if (!appliedDiscount) return false;
+    return getDiscountCharge().chargedRoomTotal >= calculateTotal();
   };
 
 
@@ -2425,13 +2439,20 @@ const BookingFlow = () => {
           type: result.discount_type as "percentage" | "amount",
           value: result.discount_value
         });
+        const quote = computeDiscountedRoomCharge({
+          saleTotal: calculateTotal(),
+          originalTotal: getDiscountBase(),
+          discountKind: result.discount_type === "percentage" ? "percentage" : "fixed",
+          discountValue: result.discount_value,
+        });
+        const saleCheaper = quote.chargedRoomTotal >= calculateTotal();
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
             result.discount_type === "percentage"
               ? `${result.discount_value}% 折扣`
               : `NT$ ${result.discount_value} 折扣`
-          }`,
+          }${saleCheaper ? "；目前官網優惠價已低於折扣碼價，將以官網優惠價計算" : ""}`,
         });
       } else {
         // 如果是房型限制問題，顯示可使用的房型
@@ -5265,6 +5286,11 @@ const BookingFlow = () => {
                                       ? `原價折扣 ${appliedDiscount.value}%`
                                       : `折抵 NT$ ${appliedDiscount.value.toLocaleString()}`}
                                   </p>
+                                  {isSaleCheaperThanCode() && (
+                                    <p className="text-xs text-primary mt-1" data-testid="discount-sale-cheaper-note">
+                                      目前官網優惠價已低於折扣碼價，將以官網優惠價計算
+                                    </p>
+                                  )}
 
                                 </div>
                               </div>
@@ -5687,6 +5713,11 @@ const BookingFlow = () => {
                                     : ""}
                                   ，折抵 NT$ {calculateDiscount().toLocaleString()}
                                 </p>
+                                {isSaleCheaperThanCode() && (
+                                  <p className="text-xs text-muted-foreground" data-testid="discount-sale-cheaper-note-summary">
+                                    已自動取較便宜的官網優惠價
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>

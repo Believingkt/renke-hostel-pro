@@ -78,7 +78,7 @@ serve(async (req) => {
     const { data: order } = await supabase
       .from("orders")
       .select(
-        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, refunded_amount, final_price, deposit_amount, order_source, payment_provider, total_price, discount_amount, package_id, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id",
+        "id, order_number, member_id, guest_email, guest_count, order_status, payment_status, paid_amount, refunded_amount, final_price, deposit_amount, order_source, payment_provider, total_price, discount_amount, discount_code, package_id, check_in_date, check_out_date, notes, accommodation_id, room_charge_status, room_charge_rec_trade_id, payment_method, deposit_payment_method, balance_payment_method, atm_rec_trade_id",
       )
       .eq("order_number", body.orderNumber)
       .maybeSingle();
@@ -317,6 +317,14 @@ serve(async (req) => {
 
 
     if (body.action === "change_guests" || body.action === "change_guests_quote") {
+      // 已使用折扣碼的訂單：重算會破壞「帳列原價 − 折扣」結構，一律轉客服
+      if (String((order as any).discount_code ?? "").trim() !== "") {
+        return json(
+          { success: false, message: "此訂單已使用折扣碼，如需更改人數請聯繫客服" },
+          400,
+          corsHeaders,
+        );
+      }
       const n = Number(body.guestCount);
       if (!Number.isInteger(n) || n < 1 || n > 30) {
         return json({ success: false, message: "入住人數不正確" }, 400, corsHeaders);

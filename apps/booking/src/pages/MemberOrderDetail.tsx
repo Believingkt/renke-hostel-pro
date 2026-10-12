@@ -248,6 +248,7 @@ interface DetailData {
   guest_count: number;
   total_price: number;
   discount_amount: number;
+  discount_code: string | null;
   final_price: number;
   paid_amount: number;
   deposit_required_amount: number;
@@ -357,7 +358,7 @@ const MemberOrderDetailInner = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, display_room_type_name, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, discount_code, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, display_room_type_name, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -432,6 +433,7 @@ const MemberOrderDetailInner = () => {
         guest_count: data.guest_count || 1,
         total_price: Number(data.total_price || 0),
         discount_amount: Number(data.discount_amount || 0),
+        discount_code: (data as any).discount_code ?? null,
         final_price: Number(data.final_price || 0),
         paid_amount: Number(data.paid_amount || 0),
         deposit_required_amount: Number(data.deposit_required_amount || 0),
@@ -649,6 +651,10 @@ const MemberOrderDetailInner = () => {
   /** 變更人數 → 即時向後端試算是否需補差／退差 */
   const fetchGuestQuote = async (n: number) => {
     setPriceChangeAck(false);
+    if (String(order.discount_code ?? "").trim() !== "") {
+      setGuestQuote(null);
+      return;
+    }
     if (!Number.isInteger(n) || n < 1 || n > 30 || n === order.guest_count) {
       setGuestQuote(null);
       return;
@@ -671,8 +677,11 @@ const MemberOrderDetailInner = () => {
     }
   };
 
+  /** 已使用折扣碼的訂單不可自助改人數（與 member-order-manage 後端條件一致） */
+  const guestChangeLockedByDiscount = String(order.discount_code ?? "").trim() !== "";
   const guestPriceChanged = !!guestQuote?.canAutoPrice && guestQuote.diff !== 0;
   const guestChangeBlocked =
+    guestChangeLockedByDiscount ||
     (guestPriceChanged && fullyPaid) ||
     (!!guestQuote?.needsManualReview && Number(order.paid_amount || 0) > 0);
 
@@ -697,6 +706,10 @@ const MemberOrderDetailInner = () => {
       });
     }
     if (guestsChanged) {
+      if (guestChangeLockedByDiscount) {
+        toast.error("此訂單已使用折扣碼，如需更改人數請聯繫客服");
+        return;
+      }
       await runAction({
         action: "change_guests",
         guestCount: newGuests,
@@ -1468,13 +1481,23 @@ const MemberOrderDetailInner = () => {
                 min={1}
                 max={30}
                 value={newGuests}
+                disabled={guestChangeLockedByDiscount}
+                data-testid="member-change-guests-input"
                 onChange={(e) => {
                   const n = Number(e.target.value);
                   setNewGuests(n);
                   void fetchGuestQuote(n);
                 }}
-                className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base"
+                className="mt-1 w-full rounded-lg border border-input bg-background px-2 py-2 text-base disabled:cursor-not-allowed disabled:opacity-60"
               />
+              {guestChangeLockedByDiscount && (
+                <p
+                  className="mt-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+                  data-testid="member-change-guests-discount-locked"
+                >
+                  此訂單已使用折扣碼，如需更改人數請聯繫客服
+                </p>
+              )}
             </div>
 
             {guestQuoteLoading && (
