@@ -6,6 +6,7 @@ import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lakeze/shared/components/ui/table";
 import { ArrowLeft, Eye, Calendar, DollarSign, Users, Phone, Mail, FileText, UserRound, Globe, User } from "lucide-react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
 import { toast } from "sonner";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { TableSkeleton } from "@lakeze/shared/components/skeletons/TableSkeleton";
@@ -41,6 +42,8 @@ interface Order {
   order_source: string;
   room_type_id: string | null;
   meal_plan: string | null;
+  pricing_template_id?: string | null;
+  package_id?: string | null;
   room_types?: {
     name: string;
   };
@@ -58,6 +61,9 @@ const CustomerOrders = () => {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
+  // D2 顯示用：專案／方案名稱對照（唯讀）
+  const [projectTemplates, setProjectTemplates] = useState<Array<{ id: string; template_name: string | null; project_name: string | null }>>([]);
+  const [projectPackages, setProjectPackages] = useState<Array<{ id: string; name: string | null }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +71,7 @@ const CustomerOrders = () => {
     if (currentAccommodationId && customerId) {
       loadCustomerAndOrders();
       loadCustomMealPlans();
+      loadProjectNames();
     }
   }, [currentAccommodationId, customerId]);
 
@@ -96,6 +103,32 @@ const CustomerOrders = () => {
     };
     return defaultNames[mealPlan] || mealPlan;
   };
+
+  // D2 顯示用：載入專案與方案名稱（唯讀，不影響任何寫入）
+  const loadProjectNames = async () => {
+    if (!currentAccommodationId) return;
+    const [tplRes, pkgRes] = await Promise.all([
+      supabase
+        .from('pricing_templates')
+        .select('id, template_name, project_name')
+        .eq('accommodation_id', currentAccommodationId),
+      supabase
+        .from('accommodation_packages')
+        .select('id, name')
+        .eq('accommodation_id', currentAccommodationId),
+    ]);
+    setProjectTemplates(((tplRes.data as any[]) ?? []) as any);
+    setProjectPackages(((pkgRes.data as any[]) ?? []) as any);
+  };
+
+  /** D2：專案 → 方案 → 現行 meal_plan 顯示 */
+  const getProjectDisplayName = (order: Order): string =>
+    resolveOrderProjectDisplayName({
+      pricingTemplateId: order.pricing_template_id ?? null,
+      templates: projectTemplates,
+      packageId: order.package_id ?? null,
+      packages: projectPackages,
+    }) ?? getMealPlanDisplayName(order.meal_plan);
 
   const loadCustomerAndOrders = async () => {
     if (!currentAccommodationId || !customerId) return;
@@ -373,7 +406,7 @@ const CustomerOrders = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm">{order.room_types?.name || "-"}</TableCell>
-                        <TableCell className="text-sm">{getMealPlanDisplayName(order.meal_plan)}</TableCell>
+                        <TableCell className="text-sm" data-testid="customer-orders-project-name">{getProjectDisplayName(order)}</TableCell>
                         <TableCell className="text-sm">{order.guest_count}</TableCell>
                         <TableCell className="text-right font-medium text-sm">
                           ${order.final_price.toLocaleString()}
@@ -430,7 +463,7 @@ const CustomerOrders = () => {
                         </div>
                         <div>
                           <span className="text-muted-foreground">餐食：</span>
-                          <span>{getMealPlanDisplayName(order.meal_plan)}</span>
+                          <span>{getProjectDisplayName(order)}</span>
                         </div>
                         <div>
                           <span className="text-muted-foreground">人數：</span>

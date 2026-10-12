@@ -38,6 +38,7 @@ import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@lakeze/shared/utils/templatePriceResolver";
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
 import { resolveTemplateId } from "@/lib/resolveTemplateId";
+import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
 import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { useToast } from "@lakeze/shared/hooks/use-toast";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
@@ -343,6 +344,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   const [allRoomTemplates, setAllRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
   const [publicHolidays, setPublicHolidays] = useState<string[]>([]);
   const [allTemplates, setAllTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
+  // D2 顯示用：orders.package_id 對應的方案名稱（僅顯示，不影響任何寫入）
+  const [orderPackageName, setOrderPackageName] = useState<string | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -1878,6 +1881,43 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     return getMealPlanDisplayName(planId);
   };
 
+  /**
+   * D2「專案」欄位顯示順序（只改顯示，不動 orders.meal_plan 寫入）：
+   *   orders.pricing_template_id 的專案名稱 → orders.package_id 的方案名稱 → 現行 meal_plan 顯示
+   */
+  const getOrderProjectLabel = () => {
+    const pkgId = (order as any)?.package_id ?? null;
+    return (
+      resolveOrderProjectDisplayName({
+        pricingTemplateId: (order as any)?.pricing_template_id ?? null,
+        templates: allRoomTemplates.length > 0 ? allRoomTemplates : roomTemplates,
+        packageId: pkgId,
+        packages: pkgId && orderPackageName ? [{ id: pkgId, name: orderPackageName }] : [],
+      }) ?? getTemplateDisplayName(order?.meal_plan ?? null)
+    );
+  };
+
+  // D2 顯示用：載入 orders.package_id 的方案名稱（唯讀，不影響任何寫入）
+  useEffect(() => {
+    const pkgId = (order as any)?.package_id ?? null;
+    if (!pkgId) {
+      setOrderPackageName(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("accommodation_packages")
+        .select("id, name")
+        .eq("id", pkgId)
+        .maybeSingle();
+      if (!cancelled) setOrderPackageName(((data as any)?.name as string) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [(order as any)?.package_id]);
+
   // 確認目前使用者是否為該訂單民宿之管理員（用於顯示「同步 TapPay 退款狀態」按鈕）
   useEffect(() => {
     let cancelled = false;
@@ -3124,7 +3164,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                 <span className="font-medium text-base md:text-base">{order.guest_count} 人</span>
               )}
             </div>
-            {orderRooms.length === 0 && editOrderRooms.length === 0 && (order.meal_plan || isEditing) && (
+            {orderRooms.length === 0 && editOrderRooms.length === 0 && (order.meal_plan || (order as any).pricing_template_id || (order as any).package_id || isEditing) && (
               <>
                 <Separator />
                 <div className="flex justify-between items-center gap-2">
@@ -3141,7 +3181,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                       </SelectContent>
                     </Select>
                   ) : (
-                    <span className="font-medium text-base md:text-base text-right">{getTemplateDisplayName(order.meal_plan)}</span>
+                    <span className="font-medium text-base md:text-base text-right" data-testid="order-project-name">{getOrderProjectLabel()}</span>
                   )}
                 </div>
               </>

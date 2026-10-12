@@ -33,6 +33,7 @@ export interface Order {
   payment_link_created_at?: string | null;
   order_source: string;
   pricing_template_id?: string | null;
+  package_id?: string | null;
   room_types: {
     id: string;
     name: string;

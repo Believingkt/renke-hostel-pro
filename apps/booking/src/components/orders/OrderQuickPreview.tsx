@@ -5,6 +5,7 @@ import { Calendar, User, Phone, FileText, Bed, Utensils } from "lucide-react";
 import { getPaymentStatusConfig, getOrderStatusConfig } from "@lakeze/shared/utils/orderHelpers";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
 
 interface CustomMealPlan {
   id: string;
@@ -19,6 +20,9 @@ interface OrderQuickPreviewProps {
 export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
   const { currentAccommodationId } = useAccommodation();
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
+  // D2 顯示用：專案／方案名稱對照（唯讀）
+  const [projectTemplates, setProjectTemplates] = useState<Array<{ id: string; template_name: string | null; project_name: string | null }>>([]);
+  const [projectPackages, setProjectPackages] = useState<Array<{ id: string; name: string | null }>>([]);
   const orderStatusConfig = getOrderStatusConfig(order.order_status);
   const paymentStatusConfig = getPaymentStatusConfig(order.payment_status);
 
@@ -41,6 +45,30 @@ export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
     fetchCustomMealPlans();
   }, [currentAccommodationId]);
 
+  // D2 顯示用：載入專案與方案名稱（唯讀，不影響任何寫入）
+  useEffect(() => {
+    if (!currentAccommodationId) return;
+    let cancelled = false;
+    (async () => {
+      const [tplRes, pkgRes] = await Promise.all([
+        supabase
+          .from("pricing_templates")
+          .select("id, template_name, project_name")
+          .eq("accommodation_id", currentAccommodationId),
+        supabase
+          .from("accommodation_packages")
+          .select("id, name")
+          .eq("accommodation_id", currentAccommodationId),
+      ]);
+      if (cancelled) return;
+      setProjectTemplates(((tplRes.data as any[]) ?? []) as any);
+      setProjectPackages(((pkgRes.data as any[]) ?? []) as any);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentAccommodationId]);
+
   const getMealPlanDisplayName = (mealPlan: string | null): string => {
     if (!mealPlan) return '無';
     
@@ -56,6 +84,15 @@ export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
   };
   
   const balance = order.final_price - order.paid_amount;
+
+  // D2：專案 → 方案 → 現行 meal_plan 顯示
+  const projectLabel =
+    resolveOrderProjectDisplayName({
+      pricingTemplateId: (order as any).pricing_template_id ?? null,
+      templates: projectTemplates,
+      packageId: (order as any).package_id ?? null,
+      packages: projectPackages,
+    }) ?? (order.meal_plan ? getMealPlanDisplayName(order.meal_plan) : null);
 
   return (
     <HoverCard openDelay={200}>
@@ -94,10 +131,10 @@ export function OrderQuickPreview({ order, children }: OrderQuickPreviewProps) {
               </div>
             )}
 
-            {order.meal_plan && (
+            {projectLabel && (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Utensils className="w-4 h-4" />
-                <span>{getMealPlanDisplayName(order.meal_plan)}</span>
+                <span data-testid="quick-preview-project-name">{projectLabel}</span>
               </div>
             )}
 

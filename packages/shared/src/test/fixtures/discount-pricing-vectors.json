@@ -1,0 +1,87 @@
+{
+  "note": "折扣碼「取較便宜」與「訂單對應專案」共用測試向量。前端（packages/shared/src/utils/discountPricing.ts）、Edge（supabase/functions/_shared/discountPricing.ts）、SQL（validate_order_before_insert，migration 20261013210002）三方共用，total/discount/final 必須完全相等。",
+  "pricingCases": [
+    { "id": "V1", "name": "1 售價較便宜（原價41000/售價38000/5%）", "sale": 38000, "original": 41000, "kind": "percentage", "value": 5, "addon": 1200, "expect": { "total": 42200, "discount": 3000, "final": 39200 } },
+    { "id": "V2", "name": "2 原價打折較便宜（20%）", "sale": 38000, "original": 41000, "kind": "percentage", "value": 20, "addon": 1200, "expect": { "total": 42200, "discount": 8200, "final": 34000 } },
+    { "id": "V3", "name": "3 兩者相等（原價40000/售價38000/5%）", "sale": 38000, "original": 40000, "kind": "percentage", "value": 5, "addon": 1200, "expect": { "total": 41200, "discount": 2000, "final": 39200 } },
+    { "id": "V4", "name": "4 固定金額折扣 2000（39000>38000→取售價）", "sale": 38000, "original": 41000, "kind": "fixed", "value": 2000, "addon": 1200, "expect": { "total": 42200, "discount": 3000, "final": 39200 } },
+    { "id": "V5", "name": "5 固定金額超過原價（99999）", "sale": 38000, "original": 41000, "kind": "fixed", "value": 99999, "addon": 1200, "expect": { "total": 42200, "discount": 41000, "final": 1200 } },
+    { "id": "V6", "name": "6 多晚跨日型（原價86220/售價86000/10%）", "sale": 86000, "original": 86220, "kind": "percentage", "value": 10, "addon": 0, "expect": { "total": 86220, "discount": 8622, "final": 77598 } },
+    { "id": "V7", "name": "7 多間房（案例1×3）", "sale": 114000, "original": 123000, "kind": "percentage", "value": 10, "addon": 0, "expect": { "total": 123000, "discount": 12300, "final": 110700 } },
+    { "id": "V8", "name": "8 非方案型（無原價，逐日價20000/10%）", "sale": 20000, "original": 0, "kind": "percentage", "value": 10, "addon": 0, "expect": { "total": 20000, "discount": 2000, "final": 18000 } },
+    { "id": "V9", "name": "9 原價低於售價（原價30000/售價38000/10%）", "sale": 38000, "original": 30000, "kind": "percentage", "value": 10, "addon": 0, "expect": { "total": 38000, "discount": 11000, "final": 27000 } },
+    { "id": "V10", "name": "10 原價未設定（null→0）", "sale": 25000, "original": 0, "kind": "fixed", "value": 3000, "addon": 0, "expect": { "total": 25000, "discount": 3000, "final": 22000 } },
+    { "id": "V11", "name": "11 未套用折扣碼（回歸）", "sale": 38000, "original": 41000, "kind": null, "value": null, "addon": 1200, "expect": { "total": 39200, "discount": 0, "final": 39200 } },
+    { "id": "V12", "name": "12 固定金額剛好等於價差", "sale": 38000, "original": 41000, "kind": "fixed", "value": 3000, "addon": 0, "expect": { "total": 41000, "discount": 3000, "final": 38000 } },
+    { "id": "V13", "name": "13 單日指定售價高於日型價（41200，無折扣碼）", "sale": 41200, "original": 0, "kind": null, "value": null, "addon": 0, "expect": { "total": 41200, "discount": 0, "final": 41200 } },
+    { "id": "V14", "name": "14 PL7X83C6 實例（原價30900/售價17000/35%）", "sale": 17000, "original": 30900, "kind": "percentage", "value": 35, "addon": 0, "expect": { "total": 30900, "discount": 13900, "final": 17000 } },
+    { "id": "V15", "name": "15 原價折後較便宜（原價30900/售價17000/50%）", "sale": 17000, "original": 30900, "kind": "percentage", "value": 50, "addon": 0, "expect": { "total": 30900, "discount": 15450, "final": 15450 } },
+    { "id": "V16", "name": "16 固定金額20000（原價30900/售價17000）", "sale": 17000, "original": 30900, "kind": "fixed", "value": 20000, "addon": 0, "expect": { "total": 30900, "discount": 20000, "final": 10900 } },
+    { "id": "V17", "name": "17 含加購1500（原價30900/售價17000/35%）", "sale": 17000, "original": 30900, "kind": "percentage", "value": 35, "addon": 1500, "expect": { "total": 32400, "discount": 13900, "final": 18500 } }
+  ],
+  "templateCases": [
+    {
+      "id": "T1",
+      "name": "方案有對應專案（default_package_id 命中，忽略前台 fallback）",
+      "accommodationId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "packageId": "22222222-2222-2222-2222-222222222221",
+      "fallbackTemplateId": "33333333-3333-3333-3333-333333333339",
+      "templates": [
+        { "id": "33333333-3333-3333-3333-333333333339", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": null, "display_order": 9, "created_at": "2026-01-01T00:00:00Z" },
+        { "id": "33333333-3333-3333-3333-333333333331", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": "22222222-2222-2222-2222-222222222221", "display_order": 1, "created_at": "2026-02-01T00:00:00Z" }
+      ],
+      "expectTemplateId": "33333333-3333-3333-3333-333333333331",
+      "expectDiscountApplies": true
+    },
+    {
+      "id": "T2",
+      "name": "方案無對應專案，但前台 fallback 在折扣碼適用範圍內",
+      "accommodationId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "packageId": "22222222-2222-2222-2222-222222222221",
+      "fallbackTemplateId": "33333333-3333-3333-3333-333333333331",
+      "templates": [
+        { "id": "33333333-3333-3333-3333-333333333339", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": null, "display_order": 9, "created_at": "2026-01-01T00:00:00Z" }
+      ],
+      "expectTemplateId": "33333333-3333-3333-3333-333333333331",
+      "expectDiscountApplies": true
+    },
+    {
+      "id": "T3",
+      "name": "方案無對應專案且無前台 fallback → 折扣碼不適用",
+      "accommodationId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "packageId": "22222222-2222-2222-2222-222222222221",
+      "fallbackTemplateId": null,
+      "templates": [
+        { "id": "33333333-3333-3333-3333-333333333339", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": null, "display_order": 9, "created_at": "2026-01-01T00:00:00Z" }
+      ],
+      "expectTemplateId": null,
+      "expectDiscountApplies": false
+    },
+    {
+      "id": "T4",
+      "name": "同一方案多筆專案 → display_order NULLS LAST, created_at 取第一筆",
+      "accommodationId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "packageId": "22222222-2222-2222-2222-222222222221",
+      "fallbackTemplateId": null,
+      "templates": [
+        { "id": "tpl-null-order-old", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": "22222222-2222-2222-2222-222222222221", "display_order": null, "created_at": "2025-01-01T00:00:00Z" },
+        { "id": "tpl-order-5", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": "22222222-2222-2222-2222-222222222221", "display_order": 5, "created_at": "2026-05-01T00:00:00Z" },
+        { "id": "tpl-order-2", "accommodation_id": "aaaaaaaa-0000-0000-0000-000000000001", "default_package_id": "22222222-2222-2222-2222-222222222221", "display_order": 2, "created_at": "2026-06-01T00:00:00Z" }
+      ],
+      "expectTemplateId": "tpl-order-2",
+      "expectDiscountApplies": true
+    },
+    {
+      "id": "T5",
+      "name": "跨館不得互相命中（他館專案忽略，退回 fallback）",
+      "accommodationId": "aaaaaaaa-0000-0000-0000-000000000001",
+      "packageId": "22222222-2222-2222-2222-222222222221",
+      "fallbackTemplateId": "33333333-3333-3333-3333-333333333339",
+      "templates": [
+        { "id": "tpl-other-acc", "accommodation_id": "bbbbbbbb-0000-0000-0000-000000000002", "default_package_id": "22222222-2222-2222-2222-222222222221", "display_order": 1, "created_at": "2026-01-01T00:00:00Z" }
+      ],
+      "expectTemplateId": "33333333-3333-3333-3333-333333333339",
+      "expectDiscountApplies": true
+    }
+  ]
+}

@@ -12,6 +12,7 @@ import { OrderQuickPreview } from "./OrderQuickPreview";
 import { EmptyState } from "@lakeze/shared/components/EmptyState";
 import { useSecondaryCurrency } from "@/hooks/use-secondary-currency";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
 import { getAtmDisplayInfo } from "@lakeze/shared/lib/atmPayment";
 import { useGroupBuyCampaignNames } from "@/hooks/use-group-buy-campaign-names";
 
@@ -85,6 +86,39 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
     // 預設名稱
     return planId === "2_meals" ? "一泊二食" : planId === "3_meals" ? "一泊三食" : planId;
   };
+
+  // D2 顯示用：專案／方案名稱對照（唯讀，不影響任何寫入）
+  const [projectTemplates, setProjectTemplates] = useState<Array<{ id: string; template_name: string | null; project_name: string | null }>>([]);
+  const [projectPackages, setProjectPackages] = useState<Array<{ id: string; name: string | null }>>([]);
+  useEffect(() => {
+    if (!accommodationId) {
+      setProjectTemplates([]);
+      setProjectPackages([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [tplRes, pkgRes] = await Promise.all([
+        supabase.from("pricing_templates").select("id, template_name, project_name").eq("accommodation_id", accommodationId),
+        supabase.from("accommodation_packages").select("id, name").eq("accommodation_id", accommodationId),
+      ]);
+      if (cancelled) return;
+      setProjectTemplates(((tplRes.data as any[]) ?? []) as any);
+      setProjectPackages(((pkgRes.data as any[]) ?? []) as any);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accommodationId]);
+
+  /** D2：專案 → 方案 → 現行 meal_plan 顯示 */
+  const getProjectDisplayName = (order: Order): string | null =>
+    resolveOrderProjectDisplayName({
+      pricingTemplateId: (order as any).pricing_template_id ?? null,
+      templates: projectTemplates,
+      packageId: (order as any).package_id ?? null,
+      packages: projectPackages,
+    }) ?? (order.meal_plan ? getMealPlanDisplayName(order.meal_plan) : null);
 
   const SortableHeader = ({ field, children }: { field: keyof Order; children: React.ReactNode }) => (
     <th
@@ -403,8 +437,8 @@ export function OrdersTable({ orders, onEditOrder, onEditPrice, onChangePaymentS
                     <span className="font-medium text-foreground">{order.check_in_date}</span>
                     <span className="mx-1.5">→</span>
                     <span className="font-medium text-foreground">{order.check_out_date}</span>
-                    {order.meal_plan && (
-                      <span className="ml-2">· {getMealPlanDisplayName(order.meal_plan)}</span>
+                    {getProjectDisplayName(order) && (
+                      <span className="ml-2" data-testid="orders-table-project-name">· {getProjectDisplayName(order)}</span>
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground">

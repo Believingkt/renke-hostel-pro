@@ -45,6 +45,8 @@ interface Props {
   addonLines?: AddonLine[];
   calculateFinalTotal: () => number;
   appliedDiscount: { code: string; type?: string; value?: number } | null;
+  /** 顯示用：實際折扣率（帳列折扣 ÷ 帳列房費），null 時沿用折扣碼面額顯示 */
+  actualDiscountPercent?: number | null;
   calculateDiscount: () => number;
   /** mobile：僅手機顯示；desktop：僅桌機側欄顯示（sticky） */
   variant?: "mobile" | "desktop";
@@ -76,6 +78,7 @@ export default function MobileOrderSummary({
   addonLines,
   calculateFinalTotal,
   appliedDiscount,
+  actualDiscountPercent = null,
   calculateDiscount,
   variant = "mobile",
 }: Props) {
@@ -261,13 +264,15 @@ export default function MobileOrderSummary({
         {/* 折扣 */}
         {appliedDiscount && discount > 0 && (
           <div className="border-t border-border px-4 py-2.5">
-            <div className="inline-flex items-center gap-1.5 text-xs text-destructive bg-primary/10 border border-primary/20 rounded-md px-2 py-1">
+            <div className="inline-flex items-center gap-1.5 text-xs text-destructive bg-primary/10 border border-primary/20 rounded-md px-2 py-1" data-testid="summary-discount-line">
               <Tag className="h-3 w-3" />
               <span>
                 已套用 {appliedDiscount.code}
-                {appliedDiscount.type === "percentage" && appliedDiscount.value
-                  ? ` 折扣原價${appliedDiscount.value}%`
-                  : ""}
+                {actualDiscountPercent != null
+                  ? ` 原價 -${actualDiscountPercent}%`
+                  : appliedDiscount.type === "percentage" && appliedDiscount.value
+                    ? ` 折扣原價${appliedDiscount.value}%`
+                    : ""}
                 ，折抵 NT$ {discount.toLocaleString()}
               </span>
             </div>

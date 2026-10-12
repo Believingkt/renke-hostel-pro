@@ -117,6 +117,8 @@ import roomSuite from "@lakeze/shared/assets/room-suite.jpg";
 import roomStandard from "@lakeze/shared/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@lakeze/shared/utils/sanitizeHtml";
 import { computeDiscountedRoomCharge } from "@lakeze/shared/utils/discountPricing";
+import { resolveOrderPricingTemplateId } from "@lakeze/shared/utils/orderPricingTemplate";
+import { getActualDiscountPercent as computeActualDiscountPercent } from "@lakeze/shared/utils/discountDisplay";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { DevAccommodationSwitcher } from "@/components/DevAccommodationSwitcher";
 import MobileBottomNav from "@lakeze/shared/components/member/MobileBottomNav";
@@ -779,6 +781,10 @@ const BookingFlow = () => {
   // 價格方案（專案模板）
   interface PricingTemplateOption {
     id: string;
+    accommodation_id?: string | null;
+    default_package_id?: string | null;
+    display_order?: number | null;
+    created_at?: string | null;
     template_name: string;
     project_name: string | null;
     meal_plans: any[] | null;
@@ -994,7 +1000,7 @@ const BookingFlow = () => {
         // 獲取所有價格方案（專案模板）
         const { data: allTemplatesData } = await supabase
           .from("pricing_templates")
-          .select("id, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, price, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
+          .select("id, accommodation_id, default_package_id, created_at, template_name, project_name, meal_plans, display_order, room_type_id, room_type_ids, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, price, valid_from, valid_until, room_overrides, season_segments, extra_dates, excluded_dates")
           .eq("accommodation_id", accommodationId)
           .order("display_order", { ascending: true });
 
@@ -1009,6 +1015,10 @@ const BookingFlow = () => {
             }
             return {
               id: t.id,
+              accommodation_id: (t as any).accommodation_id ?? null,
+              default_package_id: (t as any).default_package_id ?? null,
+              display_order: (t as any).display_order ?? null,
+              created_at: (t as any).created_at ?? null,
               template_name: t.template_name,
               project_name: t.project_name,
               meal_plans: meals,
@@ -1226,6 +1236,19 @@ const BookingFlow = () => {
   //   2) 3DS 信用卡 → pending_booking_3ds → complete-3ds-booking Edge Function
   //   3) ATM / 無付款 → 前端直接 insert orders
   const selectedPackageId = searchParams.get("packageId") || null;
+
+  // v5.8 訂單對應專案（折扣碼適用範圍與 orders.pricing_template_id 的單一真理）
+  // 規則與已上線 DB trigger validate_order_before_insert() 完全一致。
+  const orderPricingTemplateId = useMemo(
+    () =>
+      resolveOrderPricingTemplateId({
+        templates: allPricingTemplates,
+        accommodationId,
+        packageId: selectedPackageId,
+        fallbackTemplateId: selectedTemplate?.id || null,
+      }),
+    [allPricingTemplates, accommodationId, selectedPackageId, selectedTemplate?.id],
+  );
 
   // 載入所選包區方案的房型分配、尊榮禮遇與價格（供手機版摘要與總價計算）
   const [selectedPackage, setSelectedPackage] = useState<{
@@ -2317,6 +2340,16 @@ const BookingFlow = () => {
     return getDiscountCharge().chargedRoomTotal >= calculateTotal();
   };
 
+  /** 顯示用：實際折扣率 = 帳列折扣 ÷ 帳列房費（例：原價30900／售價17000／35% → 45%） */
+  const getActualDiscountPercent = () => {
+    if (!appliedDiscount) return null;
+    const charge = getDiscountCharge();
+    return computeActualDiscountPercent({
+      billedRoomTotal: charge.billedRoomTotal,
+      discountAmount: charge.discountAmount,
+    });
+  };
+
 
 
   const getChildSelection = (): ChildSelection => ({
@@ -2426,7 +2459,7 @@ const BookingFlow = () => {
         p_order_amount: orderAmount,
         p_room_type_id: roomId,
         p_check_in_date: checkInDateStr,
-        p_pricing_template_id: selectedTemplate?.id || null
+        p_pricing_template_id: orderPricingTemplateId
       });
 
       if (error) throw error;
@@ -3183,7 +3216,7 @@ const BookingFlow = () => {
             body: {
               accommodationId,
               roomTypeId: selectedRoom.id,
-              pricingTemplateId: selectedTemplate?.id || null,
+              pricingTemplateId: orderPricingTemplateId,
               packageId: selectedPackageId,
               roomQuantity,
               checkInDate: checkInDateStr,
@@ -3334,6 +3367,7 @@ const BookingFlow = () => {
             guestInfo,
             mealPlan: selectedMealPlan,
             packageId: selectedPackageId,
+            pricingTemplateId: orderPricingTemplateId,
             roomQuantity,
             petCount,
             petPlanPrice,
@@ -3688,6 +3722,7 @@ const BookingFlow = () => {
 
             meal_plan: selectedMealPlan,
             package_id: selectedPackageId,
+            pricing_template_id: orderPricingTemplateId,
             total_price: totalPrice,
             discount_code: appliedDiscount ? appliedDiscount.code : null,
             discount_amount: discountAmount,
@@ -3782,6 +3817,7 @@ const BookingFlow = () => {
             order_id: insertedOrder.id,
             room_type_id: selectedRoom.id,
             quantity: roomQuantity,
+            template_id: orderPricingTemplateId,
           }]);
           if (orderRoomsError) {
             console.error("寫入多間房資料失敗:", orderRoomsError);
@@ -4511,6 +4547,7 @@ const BookingFlow = () => {
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
+                  actualDiscountPercent={getActualDiscountPercent()}
                   calculateDiscount={calculateDiscount}
                 />
               );
@@ -5281,10 +5318,12 @@ const BookingFlow = () => {
                                 </div>
                                 <div>
                                   <p className="font-semibold text-base">已套用折扣代碼：{appliedDiscount.code}</p>
-                                  <p className="text-sm text-muted-foreground mt-0.5">
-                                    {appliedDiscount.type === "percentage"
-                                      ? `原價折扣 ${appliedDiscount.value}%`
-                                      : `折抵 NT$ ${appliedDiscount.value.toLocaleString()}`}
+                                  <p className="text-sm text-muted-foreground mt-0.5" data-testid="discount-actual-percent">
+                                    {getActualDiscountPercent() != null
+                                      ? `原價 -${getActualDiscountPercent()}%`
+                                      : appliedDiscount.type === "percentage"
+                                        ? `原價折扣 ${appliedDiscount.value}%`
+                                        : `折抵 NT$ ${appliedDiscount.value.toLocaleString()}`}
                                   </p>
                                   {isSaleCheaperThanCode() && (
                                     <p className="text-xs text-primary mt-1" data-testid="discount-sale-cheaper-note">
@@ -5581,6 +5620,7 @@ const BookingFlow = () => {
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
+                          actualDiscountPercent={getActualDiscountPercent()}
                           calculateDiscount={calculateDiscount}
                         />
                       );
@@ -5705,12 +5745,14 @@ const BookingFlow = () => {
                               <Badge className="h-4 w-4 text-primary" />
                               <div>
                                 <p className="text-xs text-muted-foreground">已套用折扣代碼</p>
-                                <p className="font-medium text-sm text-destructive">
+                                <p className="font-medium text-sm text-destructive" data-testid="discount-confirm-line">
 
                                   {appliedDiscount.code}
-                                  {appliedDiscount.type === "percentage"
-                                    ? ` 折扣原價${appliedDiscount.value}%`
-                                    : ""}
+                                  {getActualDiscountPercent() != null
+                                    ? ` 原價 -${getActualDiscountPercent()}%`
+                                    : appliedDiscount.type === "percentage"
+                                      ? ` 折扣原價${appliedDiscount.value}%`
+                                      : ""}
                                   ，折抵 NT$ {calculateDiscount().toLocaleString()}
                                 </p>
                                 {isSaleCheaperThanCode() && (
@@ -5886,6 +5928,7 @@ const BookingFlow = () => {
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
+                  actualDiscountPercent={getActualDiscountPercent()}
                   calculateDiscount={calculateDiscount}
                 />
               );

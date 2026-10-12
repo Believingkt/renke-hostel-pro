@@ -12,6 +12,7 @@ import {
   mapTapPayErrorToUserMessage,
 } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
+import { resolveOrderPricingTemplateId } from "../_shared/orderPricingTemplate.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
@@ -149,6 +150,7 @@ Deno.serve(async (req) => {
       accommodationId: body.accommodationId,
       roomTypeId: body.selectedRoom.id,
       packageId: (body as any).packageId ?? null,
+      pricingTemplateId: (body as any).pricingTemplateId ?? null,
       roomQuantity: (body as any).roomQuantity ?? 1,
       checkInDate: body.checkInDate,
       checkOutDate: body.checkOutDate,
@@ -266,12 +268,25 @@ Deno.serve(async (req) => {
       console.warn("[create-paid-order] memberId overridden", { requested: body.memberId ?? null, applied: safeMemberId });
     }
 
+    // v5.8 訂單對應專案（規則與 DB trigger、前台一致；body 傳入值僅作 fallback）
+    const { data: orderTemplateRows } = await supabase
+      .from("pricing_templates")
+      .select("id, accommodation_id, default_package_id, display_order, created_at")
+      .eq("accommodation_id", body.accommodationId);
+    const orderPricingTemplateId = resolveOrderPricingTemplateId({
+      templates: orderTemplateRows ?? [],
+      accommodationId: body.accommodationId,
+      packageId: (body as any).packageId ?? null,
+      fallbackTemplateId: (body as any).pricingTemplateId ?? null,
+    });
+
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert([{
         accommodation_id: body.accommodationId,
         room_type_id: body.selectedRoom.id,
         package_id: body.packageId || null,
+        pricing_template_id: orderPricingTemplateId,
         customer_id: body.customerId || null,
         member_id: safeMemberId,
         order_number: "",
@@ -376,6 +391,7 @@ Deno.serve(async (req) => {
         order_id: orderData.id,
         room_type_id: body.selectedRoom.id,
         quantity: roomQuantity,
+        template_id: orderPricingTemplateId,
       }]);
       if (orderRoomsError) {
         console.error("[create-paid-order] order_rooms insert failed:", orderRoomsError);

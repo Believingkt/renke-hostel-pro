@@ -5,6 +5,7 @@ import { checkOrderRateLimit, recordOrderAttempt, getClientIp } from "../_shared
 import { evaluateIncludedCapacityPricing, resolveIncludedGuestCount } from "../_shared/includedCapacityPricing.ts";
 import { parseChildAgeRules as parseSharedChildAgeRules } from "../_shared/groupBuyChildRules.ts";
 import { computeDiscountedRoomCharge } from "../_shared/discountPricing.ts";
+import { resolveOrderPricingTemplateId } from "../_shared/orderPricingTemplate.ts";
 
 interface CustomAddonInput {
   addon_type: string;
@@ -584,6 +585,20 @@ serve(async (req) => {
     // Discount applies only to room total, NOT addons
     let calculatedDiscount = 0;
     if (discountCode) {
+      // v5.8 折扣碼適用範圍以「訂單對應的專案」判斷（規則與 DB trigger、前台一致）：
+      //   (1) 同館 default_package_id = packageId 的專案（display_order NULLS LAST, created_at 第一筆）
+      //   (2) 找不到 → 沿用 body 傳入的 pricingTemplateId
+      //   (3) 都沒有 → null（pricing_template 範圍模式視為不適用）
+      const { data: templateRows } = await supabase
+        .from("pricing_templates")
+        .select("id, accommodation_id, default_package_id, display_order, created_at")
+        .eq("accommodation_id", accommodationId);
+      const resolvedPricingTemplateId = resolveOrderPricingTemplateId({
+        templates: templateRows ?? [],
+        accommodationId,
+        packageId: packageId ?? null,
+        fallbackTemplateId: pricingTemplateId ?? null,
+      });
       const { data: discountResult, error: discountError } = await supabase
         .rpc("validate_discount_code", {
           p_accommodation_id: accommodationId,
@@ -591,7 +606,7 @@ serve(async (req) => {
           p_order_amount: chargedRoomTotal,
           p_room_type_id: roomTypeId,
           p_check_in_date: checkInDate,
-          p_pricing_template_id: pricingTemplateId ?? null
+          p_pricing_template_id: resolvedPricingTemplateId
         });
 
       if (discountError) {

@@ -4,6 +4,8 @@ export interface PriceValidationInput {
   accommodationId: string;
   roomTypeId: string;
   packageId?: string | null;
+  /** 規則 (2) fallback：前台用於折扣碼驗證的專案 id */
+  pricingTemplateId?: string | null;
   roomQuantity?: number;
   checkInDate: string;
   checkOutDate: string;
@@ -45,6 +47,7 @@ export async function validateOrderPrices(
         accommodationId: input.accommodationId,
         roomTypeId: input.roomTypeId,
         packageId: input.packageId || null,
+        pricingTemplateId: input.pricingTemplateId ?? null,
         roomQuantity: input.roomQuantity ?? 1,
         checkInDate: input.checkInDate,
         checkOutDate: input.checkOutDate,

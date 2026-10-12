@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { bindCardByPrime, mapTapPayErrorToUserMessage } from "../_shared/tappay.ts";
 import { validateOrderPrices } from "../_shared/orderPriceValidation.ts";
+import { resolveOrderPricingTemplateId } from "../_shared/orderPricingTemplate.ts";
 import { reportBackendError } from "../_shared/errorReporter.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
@@ -20,6 +21,7 @@ interface RequestBody {
   accommodationId: string;
   selectedRoom: { id: string; name: string };
   packageId?: string | null;
+  pricingTemplateId?: string | null;
   checkInDate: string;
   checkOutDate: string;
   guestInfo: {
@@ -105,6 +107,7 @@ Deno.serve(async (req) => {
       accommodationId: body.accommodationId,
       roomTypeId: body.selectedRoom.id,
       packageId: body.packageId ?? null,
+      pricingTemplateId: (body as any).pricingTemplateId ?? null,
       roomQuantity: (body as any).roomQuantity ?? 1,
       checkInDate: body.checkInDate,
       checkOutDate: body.checkOutDate,
@@ -185,12 +188,25 @@ Deno.serve(async (req) => {
       console.warn("[create-card-bound-order] memberId overridden", { requested: body.memberId ?? null, applied: safeMemberId });
     }
 
+    // v5.8 訂單對應專案（規則與 DB trigger、前台一致；body 傳入值僅作 fallback）
+    const { data: orderTemplateRows } = await supabase
+      .from("pricing_templates")
+      .select("id, accommodation_id, default_package_id, display_order, created_at")
+      .eq("accommodation_id", body.accommodationId);
+    const orderPricingTemplateId = resolveOrderPricingTemplateId({
+      templates: orderTemplateRows ?? [],
+      accommodationId: body.accommodationId,
+      packageId: body.packageId ?? null,
+      fallbackTemplateId: (body as any).pricingTemplateId ?? null,
+    });
+
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
       .insert([{
         accommodation_id: body.accommodationId,
         room_type_id: body.selectedRoom.id,
         package_id: body.packageId || null,
+        pricing_template_id: orderPricingTemplateId,
         customer_id: body.customerId || null,
         member_id: safeMemberId,
         order_number: "",

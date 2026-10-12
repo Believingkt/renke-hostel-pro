@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { resolveMemberId } from "../_shared/resolveMemberId.ts";
+import { resolveOrderPricingTemplateId } from "../_shared/orderPricingTemplate.ts";
 import { sendBookingConfirmationByOrderId } from "../_shared/sendBookingEmail.ts";
 import { finalizeTripOrder } from "../_shared/tripOrder.ts";
 import { refundTapPay } from "../_shared/tappay.ts";
@@ -248,6 +249,7 @@ Deno.serve(async (req) => {
         accommodationId: body.accommodationId,
         roomTypeId: body.selectedRoom.id,
         packageId: (body as any).packageId || null,
+        pricingTemplateId: (body as any).pricingTemplateId ?? null,
         roomQuantity: (body as any).roomQuantity ?? 1,
         checkInDate: body.checkInDate,
         checkOutDate: body.checkOutDate,
@@ -326,6 +328,18 @@ Deno.serve(async (req) => {
       console.warn("[complete-3ds-booking] memberId overridden", { requested: body.memberId ?? null, applied: safeMemberId });
     }
 
+    // v5.8 訂單對應專案（規則與 DB trigger、前台一致；body 傳入值僅作 fallback）
+    const { data: orderTemplateRows } = await supabase
+      .from("pricing_templates")
+      .select("id, accommodation_id, default_package_id, display_order, created_at")
+      .eq("accommodation_id", body.accommodationId);
+    const orderPricingTemplateId = resolveOrderPricingTemplateId({
+      templates: orderTemplateRows ?? [],
+      accommodationId: body.accommodationId,
+      packageId: (body as any).packageId ?? null,
+      fallbackTemplateId: (body as any).pricingTemplateId ?? null,
+    });
+
     // Create the order
     const { data: orderData, error: orderError } = await supabase
       .from("orders")
@@ -333,6 +347,7 @@ Deno.serve(async (req) => {
         accommodation_id: body.accommodationId,
         room_type_id: body.selectedRoom.id,
         package_id: body.packageId || null,
+        pricing_template_id: orderPricingTemplateId,
         customer_id: body.customerId || null,
         member_id: safeMemberId,
         idempotency_key: body.idempotencyKey || null,
