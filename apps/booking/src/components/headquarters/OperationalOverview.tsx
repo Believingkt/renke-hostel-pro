@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
+import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, resolvePeriodRange, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lakeze/shared/components/ui/tooltip";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
@@ -44,7 +44,7 @@ import {
   GitCompareArrows
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks, subYears, startOfDay, endOfDay, startOfWeek, eachDayOfInterval, differenceInCalendarDays, addDays, eachMonthOfInterval, getMonth, getYear } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subDays, subWeeks, subYears, startOfDay, endOfDay, startOfWeek, endOfWeek, eachDayOfInterval, differenceInCalendarDays, addDays, eachMonthOfInterval, getMonth, getYear } from "date-fns";
 import { zhTW } from "date-fns/locale";
 import { 
   BarChart, 
@@ -409,64 +409,15 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     }
   };
 
-  // 期間計算：current-containing 期間一律「截到今天」，前期取「同樣經過天數」的前一區間；
-  // custom 前期＝緊鄰在前、同樣天數的區間。回傳 start=當日00:00、end=當日23:59。
-  const getDateRange = (range: TimeRange, isPrevious = false): { start: Date; end: Date } => {
-    const now = new Date();
-
-    if (range === "all") {
-      return { start: new Date(2020, 0, 1), end: endOfDay(now) };
-    }
-
-    if (range === "custom") {
-      const from = customRange?.from ? startOfDay(customRange.from) : startOfDay(now);
-      const to = customRange?.to ? endOfDay(customRange.to) : endOfDay(now);
-      if (!isPrevious) return { start: from, end: to };
-      const spanDays = differenceInCalendarDays(to, from) + 1;
-      const prevEnd = endOfDay(subDays(from, 1));
-      const prevStart = startOfDay(subDays(prevEnd, spanDays - 1));
-      return { start: prevStart, end: prevEnd };
-    }
-
-    if (range === "today") {
-      if (!isPrevious) return { start: startOfDay(now), end: endOfDay(now) };
-      return { start: startOfDay(subDays(now, 1)), end: endOfDay(subDays(now, 1)) };
-    }
-
-    // week / month / quarter / year：本期＝期初→今天；前期＝前一同名區間的「同樣經過天數」
-    let periodStart: Date;
-    let prevPeriodStart: Date;
-    switch (range) {
-      case "week":
-        periodStart = startOfWeek(now, { weekStartsOn: 1 });
-        prevPeriodStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-        break;
-      case "quarter": {
-        const qm = Math.floor(now.getMonth() / 3) * 3;
-        periodStart = new Date(now.getFullYear(), qm, 1);
-        prevPeriodStart = new Date(now.getFullYear(), qm - 3, 1);
-        break;
-      }
-      case "year":
-        periodStart = startOfYear(now);
-        prevPeriodStart = startOfYear(subYears(now, 1));
-        break;
-      case "month":
-      default:
-        periodStart = startOfMonth(now);
-        prevPeriodStart = startOfMonth(subMonths(now, 1));
-        break;
-    }
-
-    const elapsedDays = differenceInCalendarDays(startOfDay(now), startOfDay(periodStart)) + 1;
-    if (!isPrevious) {
-      return { start: startOfDay(periodStart), end: endOfDay(now) };
-    }
-    return {
-      start: startOfDay(prevPeriodStart),
-      end: endOfDay(addDays(startOfDay(prevPeriodStart), elapsedDays - 1)),
-    };
-  };
+  // 期間計算：委派共用純函式 resolvePeriodRange（依基準決定是否截到今天）。回傳 start=當日00:00、end=當日23:59。
+  const getDateRange = (range: TimeRange, isPrevious = false): { start: Date; end: Date } =>
+    resolvePeriodRange(range, {
+      basis,
+      now: new Date(),
+      isPrevious,
+      customFrom: customRange?.from,
+      customTo: customRange?.to,
+    });
 
   /** custom 模式下是否已選滿完整區間 */
   const customReady = timeRange !== "custom" || (!!customRange?.from && !!customRange?.to);
@@ -885,14 +836,14 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const { start, end } = getDateRange(timeRange);
     return `${format(start, "yyyy/MM/dd")} – ${format(end, "yyyy/MM/dd")}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
+  }, [timeRange, basis, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
 
   const prevRangeStr = useMemo(() => {
     if (timeRange === "all" || !customReady) return "";
     const { start, end } = getDateRange(timeRange, true);
     return `${format(start, "yyyy/MM/dd")} – ${format(end, "yyyy/MM/dd")}`;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeRange, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
+  }, [timeRange, basis, customRange?.from?.getTime(), customRange?.to?.getTime(), customReady]);
 
   const GrowthIndicator = ({ value, showValue = true }: { value: number; showValue?: boolean }) => {
     if (value === 0) return <Minus className="h-4 w-4 text-muted-foreground" />;

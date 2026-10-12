@@ -1,4 +1,4 @@
-import { format, addDays, differenceInDays } from 'date-fns';
+import { format, addDays, differenceInDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subDays, subWeeks, subMonths, subYears, differenceInCalendarDays } from 'date-fns';
 
 export interface InventoryPriceRow {
   room_type_id: string;
@@ -207,6 +207,95 @@ export function computePeriodMetrics(
   }
 
   return { orderCount, revenue, roomNights };
+}
+
+export type OverviewTimeRange = "today" | "week" | "month" | "quarter" | "year" | "all" | "custom";
+
+export interface ResolvePeriodOptions {
+  basis: RevenueBasis;
+  now: Date;
+  isPrevious?: boolean;
+  customFrom?: Date;
+  customTo?: Date;
+}
+
+/**
+ * 解析營運分析期間 → { start(當日00:00), end(當日23:59) }，本期/前期共用。
+ * 依住宿日(stay)：week/month/quarter/year 取「完整期間」（含未來已訂住宿夜），前期取完整前一區間。
+ * 依下訂日(booking)：同上區間「截到今天」，前期取「同樣經過天數」。
+ * today / custom / all 兩基準相同（today=當日、custom=使用者選取、all=自2020起）。
+ */
+export function resolvePeriodRange(
+  range: OverviewTimeRange,
+  { basis, now, isPrevious = false, customFrom, customTo }: ResolvePeriodOptions
+): { start: Date; end: Date } {
+  if (range === "all") {
+    return { start: new Date(2020, 0, 1), end: endOfDay(now) };
+  }
+
+  if (range === "custom") {
+    const from = customFrom ? startOfDay(customFrom) : startOfDay(now);
+    const to = customTo ? endOfDay(customTo) : endOfDay(now);
+    if (!isPrevious) return { start: from, end: to };
+    const spanDays = differenceInCalendarDays(to, from) + 1;
+    const prevEnd = endOfDay(subDays(from, 1));
+    const prevStart = startOfDay(subDays(prevEnd, spanDays - 1));
+    return { start: prevStart, end: prevEnd };
+  }
+
+  if (range === "today") {
+    if (!isPrevious) return { start: startOfDay(now), end: endOfDay(now) };
+    return { start: startOfDay(subDays(now, 1)), end: endOfDay(subDays(now, 1)) };
+  }
+
+  // week / month / quarter / year
+  let periodStart: Date;
+  let periodEnd: Date;
+  let prevPeriodStart: Date;
+  let prevPeriodEnd: Date;
+  switch (range) {
+    case "week":
+      periodStart = startOfWeek(now, { weekStartsOn: 1 });
+      periodEnd = endOfWeek(now, { weekStartsOn: 1 });
+      prevPeriodStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      prevPeriodEnd = endOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
+      break;
+    case "quarter": {
+      const qm = Math.floor(now.getMonth() / 3) * 3;
+      periodStart = new Date(now.getFullYear(), qm, 1);
+      periodEnd = new Date(now.getFullYear(), qm + 3, 0);
+      prevPeriodStart = new Date(now.getFullYear(), qm - 3, 1);
+      prevPeriodEnd = new Date(now.getFullYear(), qm, 0);
+      break;
+    }
+    case "year":
+      periodStart = startOfYear(now);
+      periodEnd = endOfYear(now);
+      prevPeriodStart = startOfYear(subYears(now, 1));
+      prevPeriodEnd = endOfYear(subYears(now, 1));
+      break;
+    case "month":
+    default:
+      periodStart = startOfMonth(now);
+      periodEnd = endOfMonth(now);
+      prevPeriodStart = startOfMonth(subMonths(now, 1));
+      prevPeriodEnd = endOfMonth(subMonths(now, 1));
+      break;
+  }
+
+  if (basis === "stay") {
+    if (!isPrevious) return { start: startOfDay(periodStart), end: endOfDay(periodEnd) };
+    return { start: startOfDay(prevPeriodStart), end: endOfDay(prevPeriodEnd) };
+  }
+
+  const elapsedDays = differenceInCalendarDays(startOfDay(now), startOfDay(periodStart)) + 1;
+  if (!isPrevious) {
+    return { start: startOfDay(periodStart), end: endOfDay(now) };
+  }
+  return {
+    start: startOfDay(prevPeriodStart),
+    end: endOfDay(addDays(startOfDay(prevPeriodStart), elapsedDays - 1)),
+  };
 }
 
 /**

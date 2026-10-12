@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { computePeriodMetrics, type PerfOrderInput } from "@lakeze/shared/utils/revenueByMonth";
+import { computePeriodMetrics, resolvePeriodRange, type PerfOrderInput } from "@lakeze/shared/utils/revenueByMonth";
+import { format } from "date-fns";
+
+const fmt = (d: Date) => format(d, "yyyy-MM-dd");
 
 // 期間：2026-09-01 ~ 2026-09-30（依住宿日）
 const stayOpts = {
@@ -72,5 +75,42 @@ describe("computePeriodMetrics 依下訂日", () => {
     expect(r.orderCount).toBe(1);
     expect(r.roomNights).toBe(8); // 4 晚 × 2 間（全額）
     expect(Math.round(r.revenue)).toBe(4000);
+  });
+});
+
+describe("resolvePeriodRange 依基準決定是否截到今天", () => {
+  const now = new Date(2026, 9, 8, 12, 0, 0); // 2026-10-08（週四）
+
+  it("依住宿日：本月取完整 10/01–10/31（含未來已訂夜），前期取完整 9 月", () => {
+    const cur = resolvePeriodRange("month", { basis: "stay", now });
+    expect([fmt(cur.start), fmt(cur.end)]).toEqual(["2026-10-01", "2026-10-31"]);
+    const prev = resolvePeriodRange("month", { basis: "stay", now, isPrevious: true });
+    expect([fmt(prev.start), fmt(prev.end)]).toEqual(["2026-09-01", "2026-09-30"]);
+  });
+
+  it("依下訂日：本月截到今天 10/01–10/08，前期取同樣經過天數 9/01–9/08", () => {
+    const cur = resolvePeriodRange("month", { basis: "booking", now });
+    expect([fmt(cur.start), fmt(cur.end)]).toEqual(["2026-10-01", "2026-10-08"]);
+    const prev = resolvePeriodRange("month", { basis: "booking", now, isPrevious: true });
+    expect([fmt(prev.start), fmt(prev.end)]).toEqual(["2026-09-01", "2026-09-08"]);
+  });
+
+  it("依住宿日：本年取完整 2026-01-01–2026-12-31；依下訂日截到今天", () => {
+    expect(fmt(resolvePeriodRange("year", { basis: "stay", now }).end)).toBe("2026-12-31");
+    expect(fmt(resolvePeriodRange("year", { basis: "booking", now }).end)).toBe("2026-10-08");
+  });
+
+  it("依住宿日：本季取完整 10/01–12/31，前期完整 7/01–9/30", () => {
+    const cur = resolvePeriodRange("quarter", { basis: "stay", now });
+    expect([fmt(cur.start), fmt(cur.end)]).toEqual(["2026-10-01", "2026-12-31"]);
+    const prev = resolvePeriodRange("quarter", { basis: "stay", now, isPrevious: true });
+    expect([fmt(prev.start), fmt(prev.end)]).toEqual(["2026-07-01", "2026-09-30"]);
+  });
+
+  it("自訂區間兩基準相同：前期取緊鄰在前同天數", () => {
+    const opts = { basis: "stay" as const, now, customFrom: new Date(2026, 8, 1), customTo: new Date(2026, 8, 30) };
+    expect([fmt(resolvePeriodRange("custom", opts).start), fmt(resolvePeriodRange("custom", opts).end)]).toEqual(["2026-09-01", "2026-09-30"]);
+    const prev = resolvePeriodRange("custom", { ...opts, isPrevious: true });
+    expect([fmt(prev.start), fmt(prev.end)]).toEqual(["2026-08-02", "2026-08-31"]); // 前 30 天
   });
 });
