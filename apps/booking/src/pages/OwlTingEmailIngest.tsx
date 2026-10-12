@@ -112,9 +112,12 @@ const TYPE_LABEL: Record<string, string> = {
 
 export default function OwlTingEmailIngest() {
   const { currentAccommodationId } = useAccommodation();
-  const { isAdmin } = useStaffPermissions();
-  // Phase 2C：收件監控可 VIEW，但會觸發 Edge Function 的動作僅管理員可執行。
-  const canRunIngestActions = isAdmin;
+  const { isAdmin, canEdit } = useStaffPermissions();
+  // V5.5C.3：補單／重發通知信開放給「通路管理」可編輯的 staff（與後端 canEditModule 一致）。
+  const canRunIngestActions = isAdmin || canEdit("channel_manager");
+  // 連結自家訂單（owlting-selfpush-link）、回填日期仍維持僅管理員。
+  const canLinkSelfPush = isAdmin;
+  const canReparseDates = isAdmin;
   const [rows, setRows] = useState<RawEmail[]>([]);
   const [stagingMap, setStagingMap] = useState<Record<string, StagingLite>>({});
   const [loading, setLoading] = useState(true);
@@ -244,7 +247,7 @@ export default function OwlTingEmailIngest() {
   useEffect(() => { load(); }, [currentAccommodationId]);
 
   const sendFillupNotification = async (stagingId: string) => {
-    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    if (!canRunIngestActions) { toast.error("權限不足：需管理員或「通路管理」可編輯權限"); return; }
     setSendingId(stagingId);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-fillup-issue", {
@@ -270,7 +273,7 @@ export default function OwlTingEmailIngest() {
   };
 
   const linkSelfPush = async (stagingId: string) => {
-    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    if (!canLinkSelfPush) { toast.error("權限不足：此操作僅管理員可執行"); return; }
     setLinkingId(stagingId);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-selfpush-link", {
@@ -300,7 +303,7 @@ export default function OwlTingEmailIngest() {
 
   const reparseDates = async () => {
     if (!currentAccommodationId) return;
-    if (!canRunIngestActions) { toast.error("權限不足：此操作僅管理員可執行"); return; }
+    if (!canReparseDates) { toast.error("權限不足：此操作僅管理員可執行"); return; }
     setReparsing(true);
     try {
       const { data, error } = await supabase.functions.invoke("owlting-email-reparse-dates", {
@@ -333,7 +336,7 @@ export default function OwlTingEmailIngest() {
             >
               {showSelfPush ? "隱藏自家單" : "顯示自家單"}
             </Button>
-            {canRunIngestActions && (
+            {canReparseDates && (
               <Button size="sm" variant="outline" onClick={reparseDates} disabled={reparsing || loading}>
                 {reparsing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
                 回填日期
@@ -524,7 +527,7 @@ export default function OwlTingEmailIngest() {
                         {/* 固定寬度插槽：主要動作 */}
                         <div className="w-[8.5rem] shrink-0 flex justify-end">
                           {noAction ? null : selfPush ? (
-                            !alreadyLinked && st && canRunIngestActions ? (
+                            !alreadyLinked && st && canLinkSelfPush ? (
                               <Button
                                 size="sm"
                                 variant="default"
@@ -630,7 +633,7 @@ export default function OwlTingEmailIngest() {
                         <FileCode className="h-3.5 w-3.5 mr-1" />信件原文
                       </Button>
                       {noAction ? null : selfPush ? (
-                        !alreadyLinked && st && canRunIngestActions ? (
+                        !alreadyLinked && st && canLinkSelfPush ? (
                           <Button size="sm" variant="default" className="w-full h-10 justify-center" onClick={() => linkSelfPush(st.id)} disabled={linkingId === st.id}>
                             {linkingId === st.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <ClipboardEdit className="h-3.5 w-3.5 mr-1" />}
                             連結自家訂單

@@ -1,9 +1,11 @@
-// Admin endpoint: issue a magic-link fillup token + email accommodation owners.
+// Back-office endpoint: issue a magic-link fillup token + email accommodation owners.
 // POST { staging_id: uuid, accommodation_id?: uuid (override), force?: boolean }
-// Requires authenticated admin (super_admin / hotel_admin).
+// Requires an authenticated caller who can EDIT the Channel Manager module on
+// the accommodation (super_admin / hotel_admin, or staff with
+// staff_module_permissions.channel_manager = 'editable').
 import {
+  canEditModule,
   forbiddenResponse,
-  isAccommodationAdmin,
   resolveCaller,
 } from "../_shared/authz.ts";
 
@@ -134,14 +136,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Authorization (Phase 2D): admin only for interactive callers.
-    // Staff are READONLY on Channel Manager even when
+    // Authorization (V5.5C.3): interactive callers need EDIT rights on the
+    // Channel Manager module for this accommodation — admins, or staff whose
     // staff_module_permissions.channel_manager = 'editable'.
     // Trusted service-role backend callers (owlting-email-ingest) stay allowed.
     if (!isServiceRole) {
-      const allowed = await isAccommodationAdmin(authCtx, accId);
+      const allowed = await canEditModule(authCtx, accId, "channel_manager");
       if (!allowed) {
-        return forbiddenResponse(corsHeaders, "此操作僅限管理員");
+        return forbiddenResponse(corsHeaders, "權限不足：需管理員或「通路管理」可編輯權限");
       }
     }
 

@@ -1450,7 +1450,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       const isBankTransfer = form.balance_payment_method === "bank_transfer";
 
-      // 驗證：訂金欄位只在匯款時有效；金額必須 > 0 且 ≤ 尾款（即 ≤ final/2）
+      // 驗證：訂金欄位只在匯款時有效；後台建單訂金可到訂單總額（0 < 訂金 ≤ final）
       let depositAmount = 0;
       if (isBankTransfer && !form.balance_paid) {
         const rawDeposit = Number(form.deposit_amount) || 0;
