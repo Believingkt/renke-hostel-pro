@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
-import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, computeOccupancyCapacity, resolvePeriodRange, type PricingMap, type RevenueBasis } from "@lakeze/shared/utils/revenueByMonth";
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lakeze/shared/components/ui/tooltip";
+import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, computeOccupancyCapacity, resolvePeriodRange, type PricingMap, type RevenueBasis, type RoomTypeRoomsMeta } from "@lakeze/shared/utils/revenueByMonth";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Badge } from "@lakeze/shared/components/ui/badge";
@@ -34,7 +33,6 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   ShoppingCart,
-  Percent,
   Download,
   ArrowUpRight,
   ArrowDownRight,
@@ -92,6 +90,7 @@ interface AccommodationPerformance {
   availableRoomNights: number;
   cancelledCount: number;
   roomNights: number;
+  rooms: number;
 }
 
 interface TrendDataPoint {
@@ -650,7 +649,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     while (true) {
       let q = supabase
         .from("orders")
-        .select("id, accommodation_id, order_status, final_price, check_in_date, check_out_date, room_quantity")
+        .select("id, accommodation_id, order_status, final_price, check_in_date, check_out_date, room_quantity, room_type_id, lock_whole_building")
         .in("accommodation_id", accIds);
       q = applyRange(q).order("id", { ascending: true }).range(from, from + pageSize - 1);
       const { data, error } = await q;
@@ -664,8 +663,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
   };
 
   // order_rooms 以 .in('order_id', ...) 分批查（每批 ≤ 500），不逐筆查
-  const fetchOrderRooms = async (orderIds: string[]): Promise<Map<string, { quantity: number | null }[]>> => {
-    const map = new Map<string, { quantity: number | null }[]>();
+  const fetchOrderRooms = async (orderIds: string[]): Promise<Map<string, { quantity: number | null; room_type_id?: string | null }[]>> => {
+    const map = new Map<string, { quantity: number | null; room_type_id?: string | null }[]>();
     const CHUNK = 500;
     for (let i = 0; i < orderIds.length; i += CHUNK) {
       const slice = orderIds.slice(i, i + CHUNK);
@@ -674,7 +673,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       while (true) {
         const { data, error } = await supabase
           .from("order_rooms")
-          .select("order_id, quantity")
+          .select("order_id, quantity, room_type_id")
           .in("order_id", slice)
           .order("order_id", { ascending: true })
           .range(from, from + pageSize - 1);
@@ -682,7 +681,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         const rows = data || [];
         rows.forEach((r: any) => {
           const arr = map.get(r.order_id) || [];
-          arr.push({ quantity: r.quantity });
+          arr.push({ quantity: r.quantity, room_type_id: r.room_type_id });
           map.set(r.order_id, arr);
         });
         if (rows.length < pageSize) break;
@@ -702,15 +701,25 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
 
     // 房型 + 容量設定：每日可售單位數照 OccupancyRevenueTable 口徑（computeOccupancyCapacity）
     const [roomTypesRes, accInfoRes] = await Promise.all([
-      supabase.from("room_types").select("accommodation_id, room_count, is_exclusive_package").in("accommodation_id", accIds),
+      supabase
+        .from("room_types")
+        .select("id, accommodation_id, room_count, is_exclusive_package, double_room_count, triple_room_count, quad_room_count")
+        .in("accommodation_id", accIds),
       supabase.from("accommodation_info").select("id, name, daily_capacity, daily_villa_capacity, daily_room_capacity").in("id", accIds),
     ]);
 
     const roomTypesByAcc = new Map<string, { room_count: number | null; is_exclusive_package?: boolean | null }[]>();
+    const roomTypeMeta = new Map<string, RoomTypeRoomsMeta>();
     (roomTypesRes.data || []).forEach((rt: any) => {
       const arr = roomTypesByAcc.get(rt.accommodation_id) || [];
       arr.push({ room_count: rt.room_count, is_exclusive_package: rt.is_exclusive_package });
       roomTypesByAcc.set(rt.accommodation_id, arr);
+      roomTypeMeta.set(rt.id, {
+        is_exclusive_package: rt.is_exclusive_package,
+        double_room_count: rt.double_room_count,
+        triple_room_count: rt.triple_room_count,
+        quad_room_count: rt.quad_room_count,
+      });
     });
     const accInfoById = new Map<string, any>();
     (accInfoRes.data || []).forEach((a: any) => accInfoById.set(a.id, a));
@@ -752,10 +761,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
       const accOrders = ordersByAcc.get(acc.id) || [];
       const dailyCapacity = dailyCapByAcc.get(acc.id) || 0;
 
-      const { orderCount, revenue, roomNights } = computePeriodMetrics(accOrders, {
+      const { orderCount, revenue, roomNights, rooms } = computePeriodMetrics(accOrders, {
         basis: periodBasis,
         periodStart,
         periodEndExcl,
+        roomTypeMeta,
       });
 
       const cancelledCount = accOrders.filter((o) => o.order_status === "cancelled").length;
@@ -779,6 +789,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         availableRoomNights,
         cancelledCount,
         roomNights,
+        rooms: Math.round(rooms * 10) / 10,
       };
     });
   };
@@ -788,7 +799,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const totalRevenue = performanceData.reduce((sum, d) => sum + d.revenue, 0);
     const totalOrders = performanceData.reduce((sum, d) => sum + d.orderCount, 0);
     const totalRoomNights = performanceData.reduce((sum, d) => sum + d.roomNights, 0);
-    const totalRooms = totalRoomNights / 2; // 間數 = 房晚數 ÷ 2
+    const totalRooms = performanceData.reduce((sum, d) => sum + d.rooms, 0);
 
     // 全平台平均入住率＝Σ房晚 ÷ Σ可售房晚（加權，只算啟用中且有房的館）
     const occWeighted = performanceData.filter((d) => d.is_active && d.availableRoomNights > 0);
@@ -799,7 +810,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     const prevRevenue = previousPeriodData.reduce((sum, d) => sum + d.revenue, 0);
     const prevOrders = previousPeriodData.reduce((sum, d) => sum + d.orderCount, 0);
     const prevRoomNights = previousPeriodData.reduce((sum, d) => sum + d.roomNights, 0);
-    const prevRooms = prevRoomNights / 2;
+    const prevRooms = previousPeriodData.reduce((sum, d) => sum + d.rooms, 0);
     const prevOccW = previousPeriodData.filter((d) => d.is_active && d.availableRoomNights > 0);
     const prevOccNum = prevOccW.reduce((sum, d) => sum + d.roomNights, 0);
     const prevOccDen = prevOccW.reduce((sum, d) => sum + d.availableRoomNights, 0);
@@ -901,7 +912,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     try {
       const { start, end } = getDateRange(timeRange);
       const basisLabel = basis === "stay" ? "依住宿日" : "依下訂日";
-      const headers = ["民宿名稱", "狀態", "訂單數", "營收", "平均客單價", "入住率(%)", "取消訂單數", "房晚數", "間數", "營收成長率(%)"];
+      const headers = ["民宿名稱", "狀態", "訂單數", "營收", "平均客單價", "取消訂單數", "房晚數", "間數", "營收成長率(%)"];
       const rows: (string | number)[][] = performanceData.map((d) => {
         const prevData = previousPeriodData.find(p => p.id === d.id);
         const growth = prevData && prevData.revenue > 0 
@@ -913,10 +924,9 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
           d.orderCount,
           d.revenue,
           d.averageOrderValue,
-          d.occupancyRate === null ? "—" : d.occupancyRate,
           d.cancelledCount,
           d.roomNights,
-          formatRooms(d.roomNights / 2),
+          formatRooms(d.rooms),
           growth,
         ];
       });
@@ -927,7 +937,6 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
         performanceTotals.totalOrders,
         performanceTotals.totalRevenue,
         performanceTotals.avgOrderValue,
-        performanceTotals.avgOccupancy === null ? "—" : performanceTotals.avgOccupancy,
         performanceData.reduce((sum, d) => sum + d.cancelledCount, 0),
         performanceTotals.totalRoomNights,
         formatRooms(performanceTotals.totalRooms),
@@ -1076,7 +1085,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4" data-testid="operational-cards">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4" data-testid="operational-cards">
             <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
@@ -1129,30 +1138,6 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
             <Card>
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 bg-amber-500/10 rounded-lg">
-                    <Percent className="h-5 w-5 text-amber-500" />
-                  </div>
-                  {timeRange !== "all" && basis === "stay" && <GrowthIndicator value={performanceTotals.occupancyChange} />}
-                </div>
-                <p className="text-sm text-muted-foreground">平均入住率</p>
-                {performanceTotals.avgOccupancy === null ? (
-                  <TooltipProvider>
-                    <UITooltip>
-                      <TooltipTrigger asChild>
-                        <p className="text-xl font-bold cursor-help" data-testid="card-occupancy">—</p>
-                      </TooltipTrigger>
-                      <TooltipContent>入住率請切換為「依住宿日」</TooltipContent>
-                    </UITooltip>
-                  </TooltipProvider>
-                ) : (
-                  <p className="text-xl font-bold" data-testid="card-occupancy">{performanceTotals.avgOccupancy}%</p>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-center justify-between mb-2">
                   <div className="p-2 bg-orange-500/10 rounded-lg">
                     <Calendar className="h-5 w-5 text-orange-500" />
                   </div>
@@ -1178,7 +1163,11 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                 </div>
                 <p className="text-sm text-muted-foreground">間數</p>
                 <p className="text-xl font-bold" data-testid="card-rooms">{formatRooms(performanceTotals.totalRooms)}</p>
-                <p className="text-xs text-muted-foreground mt-1">房晚數 ÷ 2</p>
+                {timeRange !== "all" && performanceTotals.prevRooms > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1" title={prevRangeStr}>
+                    前期: {formatRooms(performanceTotals.prevRooms)} 間
+                  </p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -1195,7 +1184,6 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   <TableHead className="text-right">訂單數</TableHead>
                   <TableHead className="text-right">營收</TableHead>
                   <TableHead className="text-right">平均客單價</TableHead>
-                  <TableHead className="text-right">入住率</TableHead>
                   <TableHead className="text-right">房晚數</TableHead>
                   <TableHead className="text-right">間數</TableHead>
                   <TableHead className="text-right">取消數</TableHead>
@@ -1211,9 +1199,8 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                     <TableCell className="text-right">{d.orderCount}</TableCell>
                     <TableCell className="text-right">{formatCurrency(d.revenue)}</TableCell>
                     <TableCell className="text-right">{formatCurrency(d.averageOrderValue)}</TableCell>
-                    <TableCell className="text-right">{d.occupancyRate === null ? "—" : `${d.occupancyRate}%`}</TableCell>
                     <TableCell className="text-right">{d.roomNights}</TableCell>
-                    <TableCell className="text-right">{formatRooms(d.roomNights / 2)}</TableCell>
+                    <TableCell className="text-right">{formatRooms(d.rooms)}</TableCell>
                     <TableCell className="text-right">{d.cancelledCount}</TableCell>
                   </TableRow>
                 ))}
@@ -1223,7 +1210,6 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                   <TableCell className="text-right">{performanceTotals.totalOrders}</TableCell>
                   <TableCell className="text-right">{formatCurrency(performanceTotals.totalRevenue)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(performanceTotals.avgOrderValue)}</TableCell>
-                  <TableCell className="text-right">{performanceTotals.avgOccupancy === null ? "—" : `${performanceTotals.avgOccupancy}%`}</TableCell>
                   <TableCell className="text-right">{performanceTotals.totalRoomNights}</TableCell>
                   <TableCell className="text-right">{formatRooms(performanceTotals.totalRooms)}</TableCell>
                   <TableCell className="text-right">{performanceData.reduce((s, d) => s + d.cancelledCount, 0)}</TableCell>

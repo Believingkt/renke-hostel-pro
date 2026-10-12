@@ -3,7 +3,9 @@ import {
   computePeriodMetrics,
   computeOccupancyCapacity,
   resolvePeriodRange,
+  PACKAGE_ROOMS_FALLBACK,
   type PerfOrderInput,
+  type RoomTypeRoomsMeta,
 } from "@lakeze/shared/utils/revenueByMonth";
 import { format } from "date-fns";
 
@@ -152,5 +154,90 @@ describe("resolvePeriodRange 依基準決定是否截到今天", () => {
     expect([fmt(resolvePeriodRange("custom", opts).start), fmt(resolvePeriodRange("custom", opts).end)]).toEqual(["2026-09-01", "2026-09-30"]);
     const prev = resolvePeriodRange("custom", { ...opts, isPrevious: true });
     expect([fmt(prev.start), fmt(prev.end)]).toEqual(["2026-08-02", "2026-08-31"]);
+  });
+});
+
+describe("間數（依房型逐筆計算）", () => {
+  const RT_NORMAL = "rt-normal";
+  const RT_PKG_NO_COMPOSITION = "rt-pkg-plain";
+  const RT_SENSHAN_18 = "rt-senshan-18";
+
+  const meta = new Map<string, RoomTypeRoomsMeta>([
+    [RT_NORMAL, { is_exclusive_package: false, double_room_count: 1, triple_room_count: 0, quad_room_count: 0 }],
+    [RT_PKG_NO_COMPOSITION, { is_exclusive_package: true, double_room_count: 0, triple_room_count: 0, quad_room_count: 0 }],
+    // 森山「18 人包區」：3 雙 + 3 四
+    [RT_SENSHAN_18, { is_exclusive_package: true, double_room_count: 3, triple_room_count: 0, quad_room_count: 3 }],
+  ]);
+  const opts = { ...stayOpts, roomTypeMeta: meta };
+
+  it("一般房型 1 間住 2 晚 → 間數 2", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 8000, check_in_date: "2026-09-10", check_out_date: "2026-09-12", order_rooms: [{ quantity: 1, room_type_id: RT_NORMAL }] },
+    ];
+    const r = computePeriodMetrics(orders, opts);
+    expect(r.roomNights).toBe(2);
+    expect(r.rooms).toBe(2);
+  });
+
+  it("包棟房型未填房間組成住 2 晚 → 間數 5（2 × PACKAGE_ROOMS_FALLBACK）", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 50000, check_in_date: "2026-09-10", check_out_date: "2026-09-12", order_rooms: [{ quantity: 1, room_type_id: RT_PKG_NO_COMPOSITION }] },
+    ];
+    const r = computePeriodMetrics(orders, opts);
+    expect(r.roomNights).toBe(2);
+    expect(r.rooms).toBe(2 * PACKAGE_ROOMS_FALLBACK);
+    expect(r.rooms).toBe(5);
+  });
+
+  it("森山「18 人包區」（3 雙＋3 四）住 1 晚 → 間數 6", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 36000, check_in_date: "2026-09-10", check_out_date: "2026-09-11", order_rooms: [{ quantity: 1, room_type_id: RT_SENSHAN_18 }] },
+    ];
+    const r = computePeriodMetrics(orders, opts);
+    expect(r.roomNights).toBe(1);
+    expect(r.rooms).toBe(6);
+  });
+
+  it("同一訂單混房型：一般 2 間 + 森山包區 1 間住 1 晚 → 房晚 3、間數 8", () => {
+    const orders: PerfOrderInput[] = [
+      {
+        order_status: "confirmed", final_price: 50000, check_in_date: "2026-09-10", check_out_date: "2026-09-11",
+        order_rooms: [{ quantity: 2, room_type_id: RT_NORMAL }, { quantity: 1, room_type_id: RT_SENSHAN_18 }],
+      },
+    ];
+    const r = computePeriodMetrics(orders, opts);
+    expect(r.roomNights).toBe(3);
+    expect(r.rooms).toBe(8);
+  });
+
+  it("訂單層 lock_whole_building 且房型無組成 → 走 fallback 2.5", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 20000, check_in_date: "2026-09-10", check_out_date: "2026-09-11", lock_whole_building: true, order_rooms: [{ quantity: 1 }] },
+    ];
+    expect(computePeriodMetrics(orders, opts).rooms).toBe(PACKAGE_ROOMS_FALLBACK);
+  });
+
+  it("未提供房型資訊時一律視為一般房（間數 = 房晚數）", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 8000, check_in_date: "2026-09-10", check_out_date: "2026-09-12", order_rooms: [{ quantity: 2 }] },
+    ];
+    const r = computePeriodMetrics(orders, stayOpts);
+    expect(r.roomNights).toBe(4);
+    expect(r.rooms).toBe(4);
+  });
+
+  it("依下訂日基準同樣套用房型係數（森山包區 2 晚 → 12）", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 72000, check_in_date: "2026-11-01", check_out_date: "2026-11-03", order_rooms: [{ quantity: 1, room_type_id: RT_SENSHAN_18 }] },
+    ];
+    const r = computePeriodMetrics(orders, { ...opts, basis: "booking" });
+    expect(r.rooms).toBe(12);
+  });
+
+  it("無 order_rooms 時用訂單層 room_type_id（包棟無組成 2 間 1 晚 → 5）", () => {
+    const orders: PerfOrderInput[] = [
+      { order_status: "confirmed", final_price: 60000, check_in_date: "2026-09-10", check_out_date: "2026-09-11", room_quantity: 2, room_type_id: RT_PKG_NO_COMPOSITION, order_rooms: [] },
+    ];
+    expect(computePeriodMetrics(orders, opts).rooms).toBe(5);
   });
 });

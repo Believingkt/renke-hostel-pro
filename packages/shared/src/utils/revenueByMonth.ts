@@ -136,8 +136,66 @@ export interface PerfOrderInput {
   check_in_date: string | null;
   check_out_date: string | null;
   room_quantity?: number | null;
+  room_type_id?: string | null;
+  /** 訂單層包棟鎖定（orders.lock_whole_building） */
+  lock_whole_building?: boolean | null;
   /** 該訂單的 order_rooms 明細（每列一房型 × 數量）。每晚單位數＝quantity 加總 */
-  order_rooms?: { quantity: number | null }[] | null;
+  order_rooms?: { quantity: number | null; room_type_id?: string | null }[] | null;
+}
+
+/** 包棟房型未填房間組成時，間數換算採用的預設值 */
+export const PACKAGE_ROOMS_FALLBACK = 2.5;
+
+/** 間數換算所需的房型資訊 */
+export interface RoomTypeRoomsMeta {
+  is_exclusive_package?: boolean | null;
+  lock_whole_building?: boolean | null;
+  double_room_count?: number | null;
+  triple_room_count?: number | null;
+  quad_room_count?: number | null;
+}
+
+/**
+ * 單一「每晚單位」換算為間數的係數：
+ *   - 一般房型 → 1
+ *   - 包棟房型（is_exclusive_package / lock_whole_building，或訂單層 lock_whole_building）
+ *     → double+triple+quad 房間數總和；總和為 0 時用 PACKAGE_ROOMS_FALLBACK
+ */
+export function roomsPerUnit(
+  meta?: RoomTypeRoomsMeta | null,
+  orderLocksWholeBuilding = false
+): number {
+  const isPackage = !!(meta?.is_exclusive_package || meta?.lock_whole_building || orderLocksWholeBuilding);
+  if (!isPackage) return 1;
+  const composed =
+    (Number(meta?.double_room_count) || 0) +
+    (Number(meta?.triple_room_count) || 0) +
+    (Number(meta?.quad_room_count) || 0);
+  return composed > 0 ? composed : PACKAGE_ROOMS_FALLBACK;
+}
+
+/**
+ * 每晚間數：逐筆 order_rooms 依其房型判斷係數後加總（Σ quantity × 係數）。
+ * 無 order_rooms 時退回 room_quantity || 1，房型取訂單層 room_type_id。
+ */
+export function roomsPerNight(
+  order: PerfOrderInput,
+  roomTypeMeta?: Map<string, RoomTypeRoomsMeta>
+): number {
+  const locked = !!order.lock_whole_building;
+  if (order.order_rooms && order.order_rooms.length > 0) {
+    let qty = 0;
+    let rooms = 0;
+    for (const r of order.order_rooms) {
+      const q = Number(r.quantity) || 0;
+      if (q <= 0) continue;
+      qty += q;
+      rooms += q * roomsPerUnit(r.room_type_id ? roomTypeMeta?.get(r.room_type_id) : undefined, locked);
+    }
+    if (qty > 0) return rooms;
+  }
+  const units = Math.max(1, Number(order.room_quantity) || 1);
+  return units * roomsPerUnit(order.room_type_id ? roomTypeMeta?.get(order.room_type_id) : undefined, locked);
 }
 
 const EFFECTIVE_ORDER_STATUSES = new Set(["confirmed", "checked_in", "checked_out"]);
@@ -172,6 +230,8 @@ export interface PeriodMetricsOptions {
   periodStart: Date;
   /** 期間迄的隔日 00:00（排除上界，= 期末日 + 1 天） */
   periodEndExcl: Date;
+  /** 房型間數換算資訊（room_type_id → meta）；未提供時所有房型視為一般房 */
+  roomTypeMeta?: Map<string, RoomTypeRoomsMeta>;
 }
 
 /**
@@ -183,11 +243,12 @@ export interface PeriodMetricsOptions {
 export function computePeriodMetrics(
   orders: PerfOrderInput[],
   opts: PeriodMetricsOptions
-): { orderCount: number; revenue: number; roomNights: number } {
-  const { basis, periodStart, periodEndExcl } = opts;
+): { orderCount: number; revenue: number; roomNights: number; rooms: number } {
+  const { basis, periodStart, periodEndExcl, roomTypeMeta } = opts;
   let orderCount = 0;
   let revenue = 0;
   let roomNights = 0;
+  let rooms = 0;
 
   for (const o of orders) {
     if (!isEffectiveOrder(o.order_status)) continue;
@@ -197,6 +258,7 @@ export function computePeriodMetrics(
     const checkOut = new Date(o.check_out_date);
     const totalNights = Math.max(1, differenceInDays(checkOut, checkIn));
     const units = unitsPerNight(o);
+    const roomUnits = roomsPerNight(o, roomTypeMeta);
     const price = o.final_price || 0;
 
     if (basis === "stay") {
@@ -204,15 +266,17 @@ export function computePeriodMetrics(
       if (nights <= 0) continue;
       orderCount += 1;
       roomNights += nights * units;
+      rooms += nights * roomUnits;
       revenue += (price / totalNights) * nights;
     } else {
       orderCount += 1;
       roomNights += totalNights * units;
+      rooms += totalNights * roomUnits;
       revenue += price;
     }
   }
 
-  return { orderCount, revenue, roomNights };
+  return { orderCount, revenue, roomNights, rooms };
 }
 
 export interface CapacityRoomType {
