@@ -12,7 +12,6 @@
 import {
   aggregateN1,
   aggregateN2,
-  buildRun,
   toTaipeiIso,
   CASE_SPECS,
   SCENARIO_VERSION,
@@ -22,8 +21,9 @@ import {
   type ScenarioVenue,
   type SimEvent,
 } from "./scenarioSim";
+import { buildFixtureRunResult, fixtureItemIndex, DEMO_FIXTURE_VERSION } from "./demoFixture";
 
-export const DEMO_PRESENTATION_VERSION = "demo-pres-v1.0.0";
+export const DEMO_PRESENTATION_VERSION = "demo-pres-v1.1.0";
 export const DEMO_BANNER = "簡報示範｜模擬資料，非實際營運成果";
 export const DEMO_ROW_NATURE = "簡報示範｜模擬資料";
 /** 示範資料讓各館發送日相隔 1 天，日期篩選才會對模擬事件真正生效 */
@@ -64,6 +64,8 @@ export interface DemoRun {
   generatedAt: string;
   demoVersion: string;
   scenarioVersion: string;
+  /** fixture 生成器版本（簡報示範事件） */
+  fixtureVersion?: string;
   venues: ScenarioVenue[];
   /** 各館示範發送日（Asia/Taipei，YYYY-MM-DD） */
   venueDates: Record<string, string>;
@@ -102,11 +104,14 @@ export interface DemoN2Row {
 
 export function buildDemoRun(input: { venues: ScenarioVenue[]; now?: Date; seed?: number }): DemoRun {
   const now = input.now ?? new Date();
-  const engine = buildRun({
+  const seed = input.seed ?? Math.floor(Math.random() * 10000);
+  const stamp = toTaipeiIso(now).replace(/[-:+]/g, "").replace("T", "-").slice(0, 15);
+  const runId = `DEMORUN-${stamp}-${seed}`;
+  const engine = buildFixtureRunResult({
+    runId,
     venues: input.venues,
     now,
-    seed: input.seed,
-    venueDayStride: DEMO_VENUE_DAY_STRIDE,
+    dayStride: DEMO_VENUE_DAY_STRIDE,
   });
   const venueDates: Record<string, string> = {};
   for (const v of input.venues) {
@@ -117,10 +122,11 @@ export function buildDemoRun(input: { venues: ScenarioVenue[]; now?: Date; seed?
     venueDates[v.id] = dates[0] ?? toTaipeiIso(now).slice(0, 10);
   }
   return {
-    runId: engine.runId.replace("SIMRUN-", "DEMORUN-"),
+    runId,
     generatedAt: engine.executedAt,
     demoVersion: DEMO_PRESENTATION_VERSION,
     scenarioVersion: SCENARIO_VERSION,
+    fixtureVersion: DEMO_FIXTURE_VERSION,
     venues: input.venues,
     venueDates,
     engine,
@@ -200,7 +206,7 @@ export function demoN2Rows(run: DemoRun, names: DemoNameConfig, f: DemoFilters):
     const venue = run.venues.find((v) => v.id === agg.venueId);
     if (!venue) continue;
     const caseId = caseIdOf(agg.itemId, "N2");
-    const itemIndex = caseId ? N2_ITEM_INDEX[caseId] ?? 0 : 0;
+    const itemIndex = fixtureItemIndex(agg.itemId) ?? (caseId ? N2_ITEM_INDEX[caseId] ?? 0 : 0);
     const itemName = names.n2ItemNames[itemIndex % Math.max(names.n2ItemNames.length, 1)] ?? `示範品項 ${itemIndex + 1}`;
     const key = `${venue.id}|${itemIndex}`;
     if (!map.has(key)) {
@@ -224,19 +230,21 @@ export function demoN2Rows(run: DemoRun, names: DemoNameConfig, f: DemoFilters):
 
 export const DEMO_N1_NOTES = [
   `${DEMO_BANNER}：以下每一列都是模擬事件彙總，不是實際營運成果，也不代表任何正式活動有這些成交。`,
-  "數據來源：N1／N2 情境模擬引擎（前端純函式），未讀取 ai_metric_remarketing_breakdown 等正式 RPC，不與正式總計混用。",
+  `數據來源：簡報示範合成事件 fixture（${DEMO_FIXTURE_VERSION}，前端純函式），未讀取 ai_metric_remarketing_breakdown 等正式 RPC，不與正式總計混用。`,
   "發送數只計 sendStatus='sent'；點擊數為同 run、同館、對應 sent 發送的去重點擊（每發送最多 1）；skipped 發送點擊另列，不進入點擊率。",
   `下房數＝同發送 ID、同館、未取消且發送後 ≤${N1_ATTRIBUTION_HOURS} 小時內的訂單（每發送最多 1 單）；分母 0 顯示「—」。`,
+  "整體平均一律採「合計分子／合計分母」（非各館比率再平均）。",
   "活動名稱為示範用暫定名稱，可於本機編輯；館名為引用名稱（公開館級欄位），數據為模擬。",
   `歸因視窗（N1 ${N1_ATTRIBUTION_HOURS} 小時、N2 ${N2_ATTRIBUTION_DAYS} 日）為模擬器參數，未經正式 RPC 比對，不宣稱與正式口徑一致。`,
-  "未成交／不同旅客／跨館／超時／取消／零分母等案例全部保留在聚合內，未挑選結果。",
+  "負面樣本（超時、取消、他人訂單、跨館、LINE 人工發送）全部保留在事件集合內，依規則不計入分子，未挑選結果。",
 ];
 
 export const DEMO_N2_NOTES = [
   `${DEMO_BANNER}：以下每一列都是模擬事件彙總，不是實際營運成果，也不代表任何正式品項有這些成交。`,
-  "數據來源：N1／N2 情境模擬引擎（前端純函式），未讀取 ai_metric_addon_breakdown 等正式 RPC，不與正式總計混用。",
+  `數據來源：簡報示範合成事件 fixture（${DEMO_FIXTURE_VERSION}，前端純函式），未讀取 ai_metric_addon_breakdown 等正式 RPC，不與正式總計混用。`,
   `成交數量＝同旅客、同館、同品項且推薦後 ≤${N2_ATTRIBUTION_DAYS} 日內的 qty 合計；加購轉換率＝成交數量／推薦總數（數量口徑，可能超過 100%，不截斷）。`,
+  "整體平均一律採「合計分子／合計分母」（非各館比率再平均）。",
   "品項名稱為示範用暫定名稱，可於本機編輯；館名為引用名稱（公開館級欄位），數據為模擬。",
-  "未成交／不同旅客／不同品項／跨館／超時／取消／零分母等案例全部保留在聚合內，未挑選結果。",
+  "負面樣本（超時、取消、他人加購、未曾推薦的品項）全部保留在事件集合內，依規則不計入分子，未挑選結果。",
   `歸因視窗（N2 ${N2_ATTRIBUTION_DAYS} 日）為模擬器參數，未經正式 RPC 比對。`,
 ];

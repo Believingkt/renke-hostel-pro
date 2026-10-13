@@ -16,6 +16,8 @@ import {
   buildDemoRun, DEMO_BANNER, DEMO_PRESENTATION_VERSION, DEFAULT_DEMO_NAMES,
   type DemoNameConfig, type DemoRun,
 } from "@lakeze/shared/utils/demoPresentation";
+import { fixtureBreakdown, DEMO_FIXTURE_VERSION } from "@lakeze/shared/utils/demoFixture";
+import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/ui/alert";
 import { loadDemo, saveDemoNames, saveDemoRun, clearDemo, type DemoStoreMode } from "@lakeze/shared/utils/demoRunStore";
 import type { AccommodationOption } from "@/components/headquarters/MetricBreakdownTable";
 
@@ -29,6 +31,7 @@ export function useDemoPresentation(accommodations: AccommodationOption[]) {
   const [names, setNames] = useState<DemoNameConfig>(DEFAULT_DEMO_NAMES);
   const [storeMode, setStoreMode] = useState<DemoStoreMode>("localStorage");
   const [recovered, setRecovered] = useState(false);
+  const [staleVersion, setStaleVersion] = useState<string | undefined>(undefined);
 
   const refresh = useCallback(() => {
     const loaded = loadDemo();
@@ -36,6 +39,7 @@ export function useDemoPresentation(accommodations: AccommodationOption[]) {
     setNames(loaded.names);
     setStoreMode(loaded.mode);
     setRecovered(loaded.recovered);
+    setStaleVersion(loaded.staleVersion);
   }, []);
 
   useEffect(() => { refresh(); }, [refresh]);
@@ -49,6 +53,7 @@ export function useDemoPresentation(accommodations: AccommodationOption[]) {
     setRun(saved.run);
     setStoreMode(saved.mode);
     setRecovered(false);
+    setStaleVersion(undefined);
   }, [accommodations]);
 
   const updateNames = useCallback((patch: Partial<DemoNameConfig>) => {
@@ -66,7 +71,7 @@ export function useDemoPresentation(accommodations: AccommodationOption[]) {
     setNames(DEFAULT_DEMO_NAMES);
   }, []);
 
-  return { mode, setMode, run, names, updateNames, generate, clear, storeMode, recovered, refresh };
+  return { mode, setMode, run, names, updateNames, generate, clear, storeMode, recovered, staleVersion, refresh };
 }
 
 export function AnalyticsModeToggle({ mode, onChange }: { mode: AnalyticsMode; onChange: (m: AnalyticsMode) => void }) {
@@ -113,15 +118,16 @@ interface PanelProps {
   onClear: () => void;
   storeMode: DemoStoreMode;
   recovered: boolean;
+  staleVersion?: string;
   canGenerate: boolean;
 }
 
 export function DemoControlPanel({
-  track, run, names, onNamesChange, onGenerate, onClear, storeMode, recovered, canGenerate,
+  track, run, names, onNamesChange, onGenerate, onClear, storeMode, recovered, staleVersion, canGenerate,
 }: PanelProps) {
   const [showCases, setShowCases] = useState(false);
-  const cases = useMemo(
-    () => (run ? run.engine.cases.filter((c) => c.track === track) : []),
+  const breakdown = useMemo(
+    () => (run ? fixtureBreakdown(run.engine.events, track) : []),
     [run, track],
   );
 
@@ -143,15 +149,25 @@ export function DemoControlPanel({
           <span className="text-xs text-muted-foreground">
             儲存位置：{storeMode === "localStorage" ? "此瀏覽器 localStorage" : "記憶體（localStorage 不可用）"}；
             不同網域（預覽／正式）各自獨立，部署後請在該網域重新建立一次。
-            {recovered ? "（偵測到版本不符的舊示範資料，已捨棄）" : ""}
           </span>
         </div>
+
+        {recovered && (
+          <Alert variant="destructive" data-testid="demo-stale-version-alert">
+            <AlertTitle>偵測到舊版示範資料（{staleVersion ?? "版本不符"}）</AlertTitle>
+            <AlertDescription className="text-sm">
+              舊批次資料與現行 {DEMO_PRESENTATION_VERSION} 口徑／量級不相容，已捨棄（<strong>不會被當成新版數據使用</strong>）；
+              你的名稱設定已保留。請按上方「建立示範資料」重新執行一次。
+            </AlertDescription>
+          </Alert>
+        )}
 
         {run ? (
           <div className="space-y-1 text-xs text-muted-foreground" data-testid="demo-run-meta">
             <p>
               run ID：<span className="font-mono">{run.runId}</span> ・ 生成時間：{run.generatedAt}（Asia/Taipei）
               ・ 情境引擎版本：{run.scenarioVersion} ・ 示範版本：{run.demoVersion}
+              ・ fixture：{run.fixtureVersion ?? DEMO_FIXTURE_VERSION}
             </p>
             <p>
               示範館別（{run.venues.length} 家）：
@@ -214,36 +230,24 @@ export function DemoControlPanel({
           <div>
             <Button size="sm" variant="outline" onClick={() => setShowCases((v) => !v)} data-testid="demo-toggle-cases">
               {showCases ? <ChevronUp className="mr-1 h-4 w-4" /> : <ChevronDown className="mr-1 h-4 w-4" />}
-              技術案例明細（{cases.length} 筆，含未成交／超時／取消／零分母）
+              事件明細（可追溯，{breakdown.reduce((s, r) => s + r.count, 0)} 筆事件，含超時／取消／他人／跨館等負面樣本）
             </Button>
             {showCases && (
               <div className="mt-2 overflow-x-auto">
                 <Table data-testid="demo-case-table">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>示範館別</TableHead>
-                      <TableHead>技術案例</TableHead>
-                      <TableHead>模擬事件</TableHead>
-                      <TableHead>預期</TableHead>
-                      <TableHead>實際</TableHead>
-                      <TableHead>判定</TableHead>
+                      <TableHead>事件類別（caseId）</TableHead>
+                      <TableHead>說明</TableHead>
+                      <TableHead className="text-right">件數</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cases.map((c, i) => (
-                      <TableRow key={`${c.venueId}-${c.caseId}-${i}`}>
-                        <TableCell className="text-xs">{c.venueName}（示範）</TableCell>
-                        <TableCell className="text-xs">{c.title}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{c.note}</TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {Object.entries(c.expected).map(([k, v]) => `${k}=${v === null ? "—" : v}`).join("; ")}
-                        </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {Object.entries(c.actual).map(([k, v]) => `${k}=${v === null ? "—" : v}`).join("; ")}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={c.passed ? "default" : "destructive"}>{c.passed ? "通過" : "失敗"}</Badge>
-                        </TableCell>
+                    {breakdown.map((r) => (
+                      <TableRow key={r.caseId}>
+                        <TableCell className="font-mono text-xs">{r.caseId}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{r.label}</TableCell>
+                        <TableCell className="text-right text-xs">{r.count.toLocaleString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

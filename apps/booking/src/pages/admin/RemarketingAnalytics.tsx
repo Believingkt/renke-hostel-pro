@@ -95,7 +95,7 @@ export default function RemarketingAnalytics() {
     { key: "skipped", label: "skipped 點擊", kind: "number", value: (r) => r.skippedClicks },
     { key: "ctr", label: "點擊率%", kind: "rate", num: (r) => r.clicks, den: (r) => r.sends },
     { key: "orders", label: "下房數", kind: "number", value: (r) => r.orders },
-    { key: "cvr", label: "轉換率%", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
+    { key: "cvr", label: "轉換率%（下房／發送，合計分子／合計分母）", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
   ];
 
   return (
@@ -126,6 +126,7 @@ export default function RemarketingAnalytics() {
             onClear={demo.clear}
             storeMode={demo.storeMode}
             recovered={demo.recovered}
+            staleVersion={demo.staleVersion}
             canGenerate={accommodations.length > 0}
           />
           <MetricBreakdownTable

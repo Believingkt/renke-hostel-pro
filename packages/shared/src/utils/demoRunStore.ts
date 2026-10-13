@@ -22,8 +22,10 @@ export interface DemoLoadResult {
   run: DemoRun | null;
   names: DemoNameConfig;
   mode: DemoStoreMode;
-  /** 舊資料損壞或版本不符而被捨棄 */
+  /** 舊資料損壞或版本不符而被捨棄（名稱設定仍保留） */
   recovered: boolean;
+  /** 被捨棄的舊示範版本（供畫面提示「請重新執行」） */
+  staleVersion?: string;
 }
 
 let memoryState: DemoStoreState | null = null;
@@ -81,8 +83,11 @@ export function loadDemo(): DemoLoadResult {
     const parsed = JSON.parse(raw) as DemoStoreState;
     const versionOk = parsed?.version === DEMO_STORE_VERSION && parsed?.demoVersion === DEMO_PRESENTATION_VERSION;
     if (!versionOk) {
-      s.removeItem(DEMO_STORE_KEY);
-      return { run: null, names: { ...DEFAULT_DEMO_NAMES }, mode: "localStorage", recovered: true };
+      // 舊批次升級：保留名稱設定，丟棄舊數據（不得把舊口徑／舊量級當新版使用）
+      const names = normalizeNames(parsed?.names);
+      const staleVersion = typeof parsed?.demoVersion === "string" ? parsed.demoVersion : "未知版本";
+      persist({ version: DEMO_STORE_VERSION, demoVersion: DEMO_PRESENTATION_VERSION, run: null, names });
+      return { run: null, names, mode: "localStorage", recovered: true, staleVersion };
     }
     const run = isRunLike(parsed.run) ? parsed.run : null;
     return {

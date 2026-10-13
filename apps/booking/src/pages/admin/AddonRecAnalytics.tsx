@@ -118,6 +118,7 @@ export default function AddonRecAnalytics() {
             onClear={demo.clear}
             storeMode={demo.storeMode}
             recovered={demo.recovered}
+            staleVersion={demo.staleVersion}
             canGenerate={accommodations.length > 0}
           />
           <MetricBreakdownTable
