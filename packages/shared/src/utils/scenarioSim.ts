@@ -711,17 +711,21 @@ function actualForCase(spec: CaseSpec, venue: ScenarioVenue, caseEvents: SimEven
 }
 
 /** 按下「執行情境測試」時呼叫；每次 run 完全獨立，不累加任何歷史 run */
-export function buildRun(input: { venues: ScenarioVenue[]; now?: Date; seed?: number }): RunResult {
+export function buildRun(input: { venues: ScenarioVenue[]; now?: Date; seed?: number; venueDayStride?: number }): RunResult {
   const now = input.now ?? new Date();
   const runId = makeRunId(now, input.seed ?? Math.floor(Math.random() * 10000));
   const events: SimEvent[] = [];
   const cases: CaseResult[] = [];
 
   input.venues.forEach((venue, venueIndex) => {
+    // venueDayStride > 0 時，各館事件相隔整天（供日期篩選生效）；相對時間差不變，判定不受影響
+    const venueNow = input.venueDayStride
+      ? new Date(now.getTime() - venueIndex * input.venueDayStride * 24 * 3600 * 1000)
+      : now;
     for (const spec of CASE_SPECS) {
       const travelerId = syntheticTravelerId(runId, venueIndex, spec.caseId);
       const built = spec
-        .build({ runId, now, venue, venueIndex, travelerId, caseId: spec.caseId })
+        .build({ runId, now: venueNow, venue, venueIndex, travelerId, caseId: spec.caseId })
         .map((e) => ({ ...e, id: `${runId}|V${venueIndex + 1}|${e.id}` }));
       events.push(...built);
 

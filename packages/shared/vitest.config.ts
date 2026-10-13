@@ -14,6 +14,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@lakeze/shared": path.resolve(__dirname, "./src"),
+      "@": path.resolve(__dirname, "../../apps/booking/src"),
     },
   },
 });

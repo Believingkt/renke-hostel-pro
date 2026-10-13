@@ -1,5 +1,5 @@
 /** 總部後台 → 顧客與行銷 → 再行銷轉換分析（每活動每通路：發送／點擊／下房） */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
@@ -8,6 +8,10 @@ import {
   MetricBreakdownTable, defaultFilters,
   type AccommodationOption, type ColumnDef, type Filters,
 } from "@/components/headquarters/MetricBreakdownTable";
+import {
+  useDemoPresentation, AnalyticsModeToggle, DemoBanner, DemoControlPanel,
+} from "@/components/headquarters/DemoPresentationPanel";
+import { demoN1Rows, DEMO_N1_NOTES, DEMO_ROW_NATURE, DEMO_BANNER, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
 interface Row {
   accommodation_id: string | null;
@@ -35,6 +39,8 @@ export default function RemarketingAnalytics() {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const demo = useDemoPresentation(accommodations);
+  const demoMode = demo.mode === "demo";
 
   useEffect(() => {
     void supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("name")
@@ -53,7 +59,8 @@ export default function RemarketingAnalytics() {
     else setRows(((data as any[]) ?? []).map((r) => ({ ...r, sends: Number(r.sends), clicks: Number(r.clicks), orders: Number(r.orders) })));
     setLoading(false);
   }, [filters]);
-  useEffect(() => { void load(); }, [load]);
+  // 簡報示範模式不呼叫任何正式 RPC，正式資料路徑完全不變
+  useEffect(() => { if (!demoMode) void load(); }, [load, demoMode]);
 
   const nameOf = (id: string | null) => (id ? accommodations.find((a) => a.id === id)?.name ?? id.slice(0, 8) : "全平台");
 
@@ -69,30 +76,96 @@ export default function RemarketingAnalytics() {
     { key: "venues", label: "下房館別", kind: "text", value: (r) => r.order_venues ?? "—" },
   ];
 
+  const demoRows = useMemo<DemoN1Row[]>(
+    () => (demo.run
+      ? demoN1Rows(demo.run, demo.names, {
+        from: filters.from, to: filters.to,
+        venueIds: filters.accommodationIds, channel: filters.channel,
+      })
+      : []),
+    [demo.run, demo.names, filters.from, filters.to, filters.accommodationIds, filters.channel],
+  );
+
+  const demoColumns: ColumnDef<DemoN1Row>[] = [
+    { key: "venue", label: "業者名稱", kind: "text", value: (r) => `${r.venueName}（示範）` },
+    { key: "campaign", label: "活動名稱", kind: "text", value: (r) => r.campaignName },
+    { key: "channel", label: "通路", kind: "text", value: (r) => r.channelLabel },
+    { key: "sends", label: "發送數", kind: "number", value: (r) => r.sends },
+    { key: "clicks", label: "點擊數（有效）", kind: "number", value: (r) => r.clicks },
+    { key: "skipped", label: "skipped 點擊", kind: "number", value: (r) => r.skippedClicks },
+    { key: "ctr", label: "點擊率%", kind: "rate", num: (r) => r.clicks, den: (r) => r.sends },
+    { key: "orders", label: "下房數", kind: "number", value: (r) => r.orders },
+    { key: "cvr", label: "轉換率%", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
+  ];
+
   return (
     <div className="space-y-4">
       <AdminPageHeader title="再行銷轉換分析" description="AI 再行銷推播的寄達、點擊與下房轉換，每活動每通路一列（以活動設定館別歸屬）" icon={Send} />
-      <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
-        本頁為實際營運資料。歸因邏輯的情境驗證請見
-        <Link to="/hq/scenario-validation" className="mx-1 underline">N1／N2 情境驗證（隔離模擬器）</Link>
-        ，該頁為情境測試資料、非實際營運成果。
-      </p>
-      <MetricBreakdownTable
-        title="再行銷轉換明細"
-        description="資料來源：remarketing_sends、remarketing_campaigns、order_attributions、orders"
-        scopeNotes={SCOPE_NOTES}
-        columns={columns}
-        rows={rows}
-        rowKey={(r) => `${r.accommodation_id ?? "null"}:${r.campaign_id}:${r.channel}`}
-        loading={loading}
-        error={error}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onReload={() => void load()}
-        accommodations={accommodations}
-        channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
-        csvFileName="remarketing-analytics"
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <AnalyticsModeToggle mode={demo.mode} onChange={demo.setMode} />
+        <span className="text-xs text-muted-foreground">
+          {demoMode ? "簡報示範：模擬資料，不呼叫正式 RPC、不與正式總計混用。" : "正式營運：資料來自正式 RPC 即時彙總。"}
+        </span>
+      </div>
+      {demoMode && <DemoBanner />}
+      {!demoMode && (
+        <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
+          本頁為實際營運資料。歸因邏輯的情境驗證請見
+          <Link to="/hq/scenario-validation" className="mx-1 underline">N1／N2 情境驗證（隔離模擬器）</Link>
+          ，該頁為情境測試資料、非實際營運成果。
+        </p>
+      )}
+      {demoMode ? (
+        <>
+          <DemoControlPanel
+            track="N1"
+            run={demo.run}
+            names={demo.names}
+            onNamesChange={demo.updateNames}
+            onGenerate={demo.generate}
+            onClear={demo.clear}
+            storeMode={demo.storeMode}
+            recovered={demo.recovered}
+            canGenerate={accommodations.length > 0}
+          />
+          <MetricBreakdownTable
+            title="再行銷轉換明細（簡報示範）"
+            description={`${DEMO_BANNER}｜資料來源：N1／N2 情境模擬引擎（前端純函式），未讀取任何正式行銷表或 RPC`}
+            scopeNotes={DEMO_N1_NOTES}
+            columns={demoColumns}
+            rows={demoRows}
+            rowKey={(r) => r.key}
+            loading={false}
+            error={null}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onReload={demo.refresh}
+            accommodations={accommodations}
+            channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
+            csvFileName="DEMO_簡報示範_模擬資料_remarketing-analytics"
+            showIncludeInternal={false}
+            rowNature={DEMO_ROW_NATURE}
+            csvNature={DEMO_BANNER}
+          />
+        </>
+      ) : (
+        <MetricBreakdownTable
+          title="再行銷轉換明細"
+          description="資料來源：remarketing_sends、remarketing_campaigns、order_attributions、orders"
+          scopeNotes={SCOPE_NOTES}
+          columns={columns}
+          rows={rows}
+          rowKey={(r) => `${r.accommodation_id ?? "null"}:${r.campaign_id}:${r.channel}`}
+          loading={loading}
+          error={error}
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReload={() => void load()}
+          accommodations={accommodations}
+          channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
+          csvFileName="remarketing-analytics"
+        />
+      )}
     </div>
   );
 }
