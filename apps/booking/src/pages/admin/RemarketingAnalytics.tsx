@@ -1,5 +1,6 @@
 /** 總部後台 → 顧客與行銷 → 再行銷轉換分析（每活動每通路：發送／點擊／下房） */
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { Send } from "lucide-react";
@@ -71,6 +72,11 @@ export default function RemarketingAnalytics() {
   return (
     <div className="space-y-4">
       <AdminPageHeader title="再行銷轉換分析" description="AI 再行銷推播的寄達、點擊與下房轉換，每活動每通路一列（以活動設定館別歸屬）" icon={Send} />
+      <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
+        本頁為實際營運資料。歸因邏輯的情境驗證請見
+        <Link to="/hq/scenario-validation" className="mx-1 underline">N1／N2 情境驗證（隔離模擬器）</Link>
+        ，該頁為情境測試資料、非實際營運成果。
+      </p>
       <MetricBreakdownTable
         title="再行銷轉換明細"
         description="資料來源：remarketing_sends、remarketing_campaigns、order_attributions、orders"

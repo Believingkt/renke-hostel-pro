@@ -99,6 +99,7 @@ const DeployStatus = lazy(() => import("@/pages/admin/DeployStatus"));
 const TripRecAnalytics = lazy(() => import("@/pages/admin/TripRecAnalytics"));
 const RemarketingAnalytics = lazy(() => import("@/pages/admin/RemarketingAnalytics"));
 const AddonRecAnalytics = lazy(() => import("@/pages/admin/AddonRecAnalytics"));
+const ScenarioValidation = lazy(() => import("@/pages/admin/ScenarioValidation"));
 const TripDetail = lazy(() => import("@/pages/TripDetail"));
 const TripEdit = lazy(() => import("@/pages/TripEdit"));
 const TripShare = lazy(() => import("@/pages/TripShare"));
@@ -822,6 +823,10 @@ function App() {
                       } />
                       <Route path="/hq/addon-analytics" element={
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><AddonRecAnalytics /></Suspense>
+                      } />
+                      {/* 隔離模擬器：情境測試資料，非實際營運成果 */}
+                      <Route path="/hq/scenario-validation" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={9} />}><ScenarioValidation /></Suspense>
                       } />
 
                       {/* 顧客與行銷／創作者與裂變（總部全平台視角） */}

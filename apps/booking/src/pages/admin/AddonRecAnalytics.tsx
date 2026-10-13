@@ -1,5 +1,6 @@
 /** 總部後台 → 顧客與行銷 → 加購推薦分析（每館每品項：推薦／成交／轉換率，個人層級歸因） */
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { ShoppingBag } from "lucide-react";
@@ -66,6 +67,11 @@ export default function AddonRecAnalytics() {
   return (
     <div className="space-y-4">
       <AdminPageHeader title="加購推薦分析" description="AI 管家加購推薦曝光與推薦後成交（個人層級歸因），每館每品項一列" icon={ShoppingBag} />
+      <p className="text-xs text-muted-foreground" data-testid="addon-scenario-entry">
+        本頁為實際營運資料。歸因邏輯的情境驗證請見
+        <Link to="/hq/scenario-validation" className="mx-1 underline">N1／N2 情境驗證（隔離模擬器）</Link>
+        ，該頁為情境測試資料、非實際營運成果。
+      </p>
       <MetricBreakdownTable
         title="加購推薦明細"
         description="資料來源：ai_metric_events（addon_rec_shown／addon_purchased）"
