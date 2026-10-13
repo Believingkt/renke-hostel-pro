@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, forwardRef, useImperativeHandle } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { buildPricingMap, aggregateRevenueByMonth, computeBookingCountByMonth, computePeriodMetrics, computeOccupancyCapacity, resolvePeriodRange, type PricingMap, type RevenueBasis, type RoomTypeRoomsMeta } from "@lakeze/shared/utils/revenueByMonth";
+import { computeVillaCount } from "@lakeze/shared/utils/villaCount";
 import { HQOverviewSkeleton } from "@/components/skeletons/HQSkeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Badge } from "@lakeze/shared/components/ui/badge";
@@ -189,6 +190,42 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
     if (selectedAccommodation === "all") return accommodations;
     return accommodations.filter(a => a.id === selectedAccommodation);
   }, [accommodations, selectedAccommodation]);
+
+  // 「民宿數量」卡顯示的包棟數：Σ daily_villa_capacity（僅營運中），
+  // null／0 但有 is_exclusive_package 房型者以 1 計，無包棟房型者 0。
+  const [villaCount, setVillaCount] = useState(0);
+  useEffect(() => {
+    const accIds = filteredAccommodations.filter(a => a.is_active !== false).map(a => a.id);
+    if (accIds.length === 0) {
+      setVillaCount(0);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const [infoRes, roomTypesRes] = await Promise.all([
+        supabase.from("accommodation_info").select("id, is_active, daily_villa_capacity").in("id", accIds),
+        supabase
+          .from("room_types")
+          .select("accommodation_id, is_exclusive_package")
+          .in("accommodation_id", accIds)
+          .eq("is_exclusive_package", true),
+      ]);
+      if (cancelled) return;
+      const villaAccIds = new Set((roomTypesRes.data || []).map((rt: any) => rt.accommodation_id));
+      setVillaCount(
+        computeVillaCount(
+          (infoRes.data || []).map((a: any) => ({
+            is_active: a.is_active,
+            daily_villa_capacity: a.daily_villa_capacity,
+            hasExclusiveRoomType: villaAccIds.has(a.id),
+          })),
+        ),
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredAccommodations]);
 
   useImperativeHandle(ref, () => ({
     exportCSV: handleExportCSV,
@@ -1014,7 +1051,7 @@ export const OperationalOverview = forwardRef<OperationalOverviewRef, Operationa
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">民宿數量</p>
-                  <p className="text-2xl font-bold">{filteredAccommodations.length}</p>
+                  <p className="text-2xl font-bold" data-testid="hq-villa-count">{villaCount}</p>
                 </div>
               </div>
             </CardContent>
