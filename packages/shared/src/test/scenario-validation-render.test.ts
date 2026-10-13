@@ -35,4 +35,8 @@ describe("情境驗證頁渲染（隔離標示與未預填結果）", () => {
     expect(html).toContain("/hq/remarketing-analytics");
     expect(html).toContain("/hq/addon-analytics");
   });
+
+  it("限制說明明示歸因視窗為模擬器參數，未宣稱與正式 RPC 口徑一致", () => {
+    expect(html).toContain("為本模擬器參數，未經正式 RPC 比對，不宣稱與正式口徑一致");
+  });
 });

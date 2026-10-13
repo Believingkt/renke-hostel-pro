@@ -19,7 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/u
 import { FlaskConical, Download, Play, ShieldAlert, Trash2 } from "lucide-react";
 import {
   buildRun, toCsv, formatRate, CASE_SPECS, SCENARIO_VERSION, DATA_NATURE, ISOLATION_LABEL,
-  N1_ATTRIBUTION_HOURS, N2_ATTRIBUTION_DAYS,
+  N1_ATTRIBUTION_HOURS, N2_ATTRIBUTION_DAYS, RATE_BASIS_NOTE,
   type RunResult, type ScenarioVenue,
 } from "@lakeze/shared/utils/scenarioSim";
 import { loadRuns, saveRun, clearRuns, MAX_RUNS, type StoreMode } from "@lakeze/shared/utils/scenarioRunStore";
@@ -31,6 +31,7 @@ const LIMITATIONS = [
   "未驗證實際發送與寄達（Email／LINE）、付款與訂單寫入、OTA／PMS 串接、端到端串接。",
   "本頁不重構任何正式流程；正式 /hq/remarketing-analytics、/hq/addon-analytics 與其「含內部上線測試」口徑完全保留。",
   "情境館別僅用於標示情境歸屬，不代表該業者已實際參與測試。",
+  `歸因視窗（N1 ${N1_ATTRIBUTION_HOURS} 小時、N2 ${N2_ATTRIBUTION_DAYS} 日）為本模擬器參數，未經正式 RPC 比對，不宣稱與正式口徑一致。`,
   "匯出的 CSV 僅供情境驗證附件，不可匯入正式資料；不作為 N1／N2 真實成果達標依據。",
 ];
 
@@ -204,8 +205,21 @@ export default function ScenarioValidation() {
               <CardDescription>
                 run ID：{activeRun.runId} ・ 執行時間：{activeRun.executedAt}（Asia/Taipei） ・ 情境版本：{activeRun.scenarioVersion}
                 ・ 情境館別：{activeRun.venues.map((v) => `${v.name}（情境）`).join("、")}
+                <span className="mt-1 block">{RATE_BASIS_NOTE}</span>
               </CardDescription>
             </CardHeader>
+            {activeRun.scenarioVersion !== SCENARIO_VERSION && (
+              <CardContent className="pt-0">
+                <Alert variant="destructive" data-testid="scenario-legacy-warning">
+                  <ShieldAlert className="h-4 w-4" />
+                  <AlertTitle>舊口徑結果（{activeRun.scenarioVersion}）</AlertTitle>
+                  <AlertDescription className="text-sm">
+                    此 run 以舊版口徑計算（skipped 發送的點擊曾混入點擊率分子），與現行 {SCENARIO_VERSION} <strong>不相容</strong>。
+                    不會自動套用新公式，請重新執行情境測試後再引用；兩個版本的數字不可混用。
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            )}
             <CardContent className="grid grid-cols-2 gap-4 lg:grid-cols-4">
               <div className="rounded-md border p-3" data-testid="scenario-pass-rate">
                 <p className="text-xs text-muted-foreground">測試通過率（邏輯驗證）</p>
@@ -224,7 +238,12 @@ export default function ScenarioValidation() {
               <div className="rounded-md border p-3" data-testid="scenario-n1-ctr">
                 <p className="text-xs text-muted-foreground">模擬 N1 點擊率（非實際營運）</p>
                 <p className="text-2xl font-bold">{formatRate(activeRun.summary.simN1Ctr)}</p>
-                <p className="text-xs text-muted-foreground">模擬點擊 {activeRun.summary.clicks}</p>
+                <p className="text-xs text-muted-foreground">
+                  模擬點擊（eligible sent）{activeRun.summary.clicks}／模擬發送 {activeRun.summary.sends}
+                </p>
+                <p className="text-xs text-muted-foreground" data-testid="scenario-n1-skipped-clicks">
+                  skipped 發送點擊：{activeRun.summary.skippedClicks ?? 0}（不計入點擊率）
+                </p>
               </div>
               <div className="rounded-md border p-3" data-testid="scenario-n2-cvr">
                 <p className="text-xs text-muted-foreground">模擬 N2 加購轉換率（非實際營運）</p>
@@ -241,7 +260,7 @@ export default function ScenarioValidation() {
               <CardTitle className="text-lg">案例明細（{DATA_NATURE}）</CardTitle>
               <CardDescription>
                 每案獨立預期值／實際值／判定；分子分母由本次事件計算，分母 0 顯示「—」。
-                N1 歸因視窗 {N1_ATTRIBUTION_HOURS} 小時、N2 歸因視窗 {N2_ATTRIBUTION_DAYS} 日。
+                N1 歸因視窗 {N1_ATTRIBUTION_HOURS} 小時、N2 歸因視窗 {N2_ATTRIBUTION_DAYS} 日，<strong>皆為本模擬器參數，未經正式 RPC 比對</strong>。
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -287,7 +306,7 @@ export default function ScenarioValidation() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">模擬事件彙總（{DATA_NATURE}）</CardTitle>
-              <CardDescription>左：N1 每情境活動每通路；右：N2 每情境館別每品項。全部由本次模擬事件計算。</CardDescription>
+              <CardDescription>左：N1 每情境活動每通路；右：N2 每情境館別每品項。全部由本次模擬事件計算。「skipped 點擊」僅供明細，不進入點擊率分子。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-6 lg:grid-cols-2">
               <div className="overflow-x-auto">
@@ -299,6 +318,7 @@ export default function ScenarioValidation() {
                       <TableHead>通路</TableHead>
                       <TableHead className="text-right">發送</TableHead>
                       <TableHead className="text-right">點擊</TableHead>
+                      <TableHead className="text-right">skipped 點擊</TableHead>
                       <TableHead className="text-right">點擊率</TableHead>
                       <TableHead className="text-right">下單</TableHead>
                       <TableHead className="text-right">轉換率</TableHead>
@@ -312,6 +332,7 @@ export default function ScenarioValidation() {
                         <TableCell className="text-xs">{r.channel}</TableCell>
                         <TableCell className="text-right">{r.sends}</TableCell>
                         <TableCell className="text-right">{r.clicks}</TableCell>
+                        <TableCell className="text-right">{r.skippedClicks ?? 0}</TableCell>
                         <TableCell className="text-right">{formatRate(r.sends > 0 ? Math.round((r.clicks / r.sends) * 1000) / 10 : null)}</TableCell>
                         <TableCell className="text-right">{r.orders}</TableCell>
                         <TableCell className="text-right">{formatRate(r.sends > 0 ? Math.round((r.orders / r.sends) * 1000) / 10 : null)}</TableCell>

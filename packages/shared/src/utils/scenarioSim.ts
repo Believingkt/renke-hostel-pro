@@ -10,15 +10,19 @@
  * 未驗證範圍（本模擬器不涵蓋，不得視為端到端通過）：
  *   正式 SQL／RPC（ai_metric_remarketing_breakdown、ai_metric_addon_breakdown）、
  *   實際發送與寄達、付款與訂單寫入、OTA／PMS 串接、端到端串接。
+ *   歸因視窗（N1 72h／N2 7 日）為本模擬器參數，未與正式 RPC 口徑逐項比對。
  */
 
-export const SCENARIO_VERSION = "n1n2-sim-v1.0.0";
+export const SCENARIO_VERSION = "n1n2-sim-v1.0.1";
 export const DATA_NATURE = "情境測試資料（非實際營運成果）";
 export const ISOLATION_LABEL = "隔離模擬器驗證";
+/** 口徑說明：v1.0.1 起點擊率分子只計 eligible sent 發送的去重點擊（舊版 v1.0.0 結果不相容，需重新執行） */
+export const RATE_BASIS_NOTE =
+  "點擊率＝eligible 點擊／sent 發送（同 run、同館、對應 sendStatus='sent'，每發送最多 1）；skipped 發送點擊另列，不計入任何比率";
 
-/** N1：發送後幾小時內的下單才歸因 */
+/** N1 歸因視窗（本模擬器參數，未與正式 RPC 比對） */
 export const N1_ATTRIBUTION_HOURS = 72;
-/** N2：推薦後幾天內的加購才歸因（與正式口徑同為 7 日） */
+/** N2 歸因視窗（本模擬器參數，未與正式 RPC 比對） */
 export const N2_ATTRIBUTION_DAYS = 7;
 
 export type Track = "N1" | "N2";
@@ -63,7 +67,12 @@ export interface N1Aggregate {
   campaignName: string;
   channel: string;
   sends: number;
+  /** 以 sent 發送為分母的分子：同 run、同館、對應 sent 發送的去重點擊 */
   clicks: number;
+  /** 對應 skipped 發送的去重點擊（明細／稽核用，不進入任何比率） */
+  skippedClicks: number;
+  /** 已匹配 sent／skipped 發送的總點擊（clicks + skippedClicks），不含其他未知事件 */
+  rawClicks: number;
   orders: number;
 }
 
@@ -109,11 +118,14 @@ export interface RunResult {
     passRatePct: number | null;
     /** 模擬 N1 轉換率＝模擬下單數／模擬發送數 */
     simN1Cvr: number | null;
+    /** 模擬 N1 點擊率＝eligible 點擊／sent 發送（skipped 點擊不列入） */
     simN1Ctr: number | null;
     /** 模擬 N2 加購轉換率＝模擬成交數量／模擬推薦數 */
     simN2Cvr: number | null;
     sends: number;
     clicks: number;
+    skippedClicks: number;
+    rawClicks: number;
     orders: number;
     shown: number;
     purchasedQty: number;
@@ -373,9 +385,10 @@ export const CASE_SPECS: CaseSpec[] = [
     caseId: "n1-zero-denominator",
     track: "N1",
     title: "N1 零分母：LINE 人工發送（status=skipped）",
-    formula: "發送數只計 status='sent'；分母 0 → 點擊率／轉換率顯示「—」",
-    note: "合成事件：1 skipped 發送 / 1 點擊 / 0 訂單",
-    expected: { sends: 0, clicks: 1, orders: 0, ctr: null, cvr: null },
+    formula:
+      "發送數只計 status='sent'；skipped 發送的點擊列為 skippedClicks，不進入點擊率分子；分母 0 → 點擊率／轉換率顯示「—」",
+    note: "合成事件：1 skipped 發送 / 1 點擊（對應 skipped 發送）/ 0 訂單",
+    expected: { sends: 0, clicks: 0, skippedClicks: 1, ctr: null, cvr: null, orders: 0 },
     build: (ctx) => {
       const sendId = `SIMSEND-${ctx.caseId}`;
       return [
@@ -600,14 +613,24 @@ export function aggregateN1(rawEvents: SimEvent[]): N1Aggregate[] {
         channel: send.channel ?? "email",
         sends: 0,
         clicks: 0,
+        skippedClicks: 0,
+        rawClicks: 0,
         orders: 0,
       });
     }
     const row = map.get(key)!;
-    if (send.sendStatus === "sent") row.sends += 1;
+    const isSent = send.sendStatus === "sent";
+    if (isSent) row.sends += 1;
 
-    const clicked = clicks.some((c) => c.sendId === send.sendId && c.venueId === send.venueId);
-    if (clicked) row.clicks += 1;
+    // 點擊需與本次 run、同館、同一發送 ID 對應；每發送最多 1（事件去重）
+    const clicked = clicks.some(
+      (c) => c.runId === send.runId && c.sendId === send.sendId && c.venueId === send.venueId,
+    );
+    if (clicked) {
+      if (isSent) row.clicks += 1;
+      else row.skippedClicks += 1;
+      row.rawClicks += 1;
+    }
 
     const attributed = orders.some(
       (o) =>
@@ -673,6 +696,8 @@ function actualForCase(spec: CaseSpec, venue: ScenarioVenue, caseEvents: SimEven
     const clicks = rows.reduce((s, r) => s + r.clicks, 0);
     const orders = rows.reduce((s, r) => s + r.orders, 0);
     const out: Record<string, number | null> = { sends, clicks, orders };
+    if ("skippedClicks" in spec.expected) out.skippedClicks = rows.reduce((s, r) => s + r.skippedClicks, 0);
+    if ("rawClicks" in spec.expected) out.rawClicks = rows.reduce((s, r) => s + r.rawClicks, 0);
     if ("ctr" in spec.expected) out.ctr = rate(clicks, sends);
     if ("cvr" in spec.expected) out.cvr = rate(orders, sends);
     return out;
@@ -722,6 +747,8 @@ export function buildRun(input: { venues: ScenarioVenue[]; now?: Date; seed?: nu
   const n2 = aggregateN2(events);
   const sends = n1.reduce((s, r) => s + r.sends, 0);
   const clicks = n1.reduce((s, r) => s + r.clicks, 0);
+  const skippedClicks = n1.reduce((s, r) => s + r.skippedClicks, 0);
+  const rawClicks = n1.reduce((s, r) => s + r.rawClicks, 0);
   const orders = n1.reduce((s, r) => s + r.orders, 0);
   const shown = n2.reduce((s, r) => s + r.shown, 0);
   const purchasedQty = n2.reduce((s, r) => s + r.purchasedQty, 0);
@@ -747,6 +774,8 @@ export function buildRun(input: { venues: ScenarioVenue[]; now?: Date; seed?: nu
       simN2Cvr: rate(purchasedQty, shown),
       sends,
       clicks,
+      skippedClicks,
+      rawClicks,
       orders,
       shown,
       purchasedQty,
@@ -818,10 +847,10 @@ export function toCsv(run: RunResult): string {
       "SUMMARY",
       "測試通過率與模擬轉換率分開呈現",
       "—",
-      `sends=${run.summary.sends}; clicks=${run.summary.clicks}; orders=${run.summary.orders}; shown=${run.summary.shown}; purchasedQty=${run.summary.purchasedQty}`,
-      "測試通過率＝通過案例數／案例總數；模擬轉換率＝模擬事件分子／分母（0 分母為 —）",
+      `sends=${run.summary.sends}; clicks(eligible)=${run.summary.clicks}; skippedClicks=${run.summary.skippedClicks}; rawClicks(sent+skipped)=${run.summary.rawClicks}; orders=${run.summary.orders}; shown=${run.summary.shown}; purchasedQty=${run.summary.purchasedQty}`,
+      `測試通過率＝通過案例數／案例總數；${RATE_BASIS_NOTE}；模擬轉換率＝模擬事件分子／分母（0 分母為 —）；N1 ${N1_ATTRIBUTION_HOURS}h／N2 ${N2_ATTRIBUTION_DAYS} 日為本模擬器參數`,
       `通過案例=${run.summary.casePassed}/${run.summary.caseTotal}`,
-      `測試通過率=${formatRate(run.summary.passRatePct)}; 模擬N1轉換率=${formatRate(run.summary.simN1Cvr)}; 模擬N2加購轉換率=${formatRate(run.summary.simN2Cvr)}`,
+      `測試通過率=${formatRate(run.summary.passRatePct)}; 模擬N1點擊率=${formatRate(run.summary.simN1Ctr)}; 模擬N1轉換率=${formatRate(run.summary.simN1Cvr)}; 模擬N2加購轉換率=${formatRate(run.summary.simN2Cvr)}`,
       run.summary.caseFailed === 0 ? "通過" : "失敗",
     ]
       .map(csvCell)

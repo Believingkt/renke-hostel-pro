@@ -58,6 +58,22 @@ describe("情境模擬器：基本保證", () => {
     expect(run.summary.passRatePct).not.toBe(run.summary.simN1Cvr);
   });
 
+  it("點擊率分子只計 eligible sent 發送的點擊；skipped 點擊另列且不得讓點擊率 > 100%", () => {
+    const run = buildRun({ venues: VENUES, now: NOW, seed: 31 });
+    // 5 家 × 7 sent 發送、5 家 × 7 eligible 點擊、5 家 × 1 skipped 點擊
+    expect(run.summary.sends).toBe(35);
+    expect(run.summary.clicks).toBe(35);
+    expect(run.summary.skippedClicks).toBe(5);
+    expect(run.summary.rawClicks).toBe(40);
+    expect(run.summary.rawClicks).toBe(run.summary.clicks + run.summary.skippedClicks);
+    expect(run.summary.simN1Ctr).toBe(100);
+    expect(run.summary.simN1Ctr!).toBeLessThanOrEqual(100);
+  });
+
+  it("情境版本為 v1.0.1（點擊率口徑修正版）", () => {
+    expect(SCENARIO_VERSION).toBe("n1n2-sim-v1.0.1");
+  });
+
   it("模擬事件彙總的分子分母與案例預期一致（無硬編碼總計）", () => {
     const run = buildRun({ venues: [VENUES[0]], now: NOW, seed: 3 });
     const sumExpected = (track: "N1" | "N2", key: string) =>
@@ -95,12 +111,38 @@ describe("反案例：歸因規則必須擋掉不該計入的事件", () => {
     expect(caseOf("n2-duplicate").actual).toMatchObject({ shown: 1, purchasedQty: 2 });
   });
 
-  it("零分母：N1 skipped 發送 → ctr/cvr 為 —；N2 無推薦 → cvr 為 —", () => {
-    expect(caseOf("n1-zero-denominator").actual.sends).toBe(0);
-    expect(caseOf("n1-zero-denominator").actual.ctr).toBeNull();
-    expect(caseOf("n1-zero-denominator").actual.cvr).toBeNull();
+  it("零分母：N1 skipped 發送 → 點擊不進分子、ctr/cvr 為 —；N2 無推薦 → cvr 為 —", () => {
+    const zero = caseOf("n1-zero-denominator");
+    expect(zero.actual.sends).toBe(0);
+    expect(zero.actual.clicks).toBe(0);
+    expect(zero.actual.skippedClicks).toBe(1);
+    expect(zero.actual.ctr).toBeNull();
+    expect(zero.actual.cvr).toBeNull();
+    expect(zero.passed).toBe(true);
     expect(caseOf("n2-zero-denominator").actual.shown).toBe(0);
     expect(caseOf("n2-zero-denominator").actual.cvr).toBeNull();
+  });
+
+  it("aggregateN1：skipped 發送的點擊只進 skippedClicks；跨 run 點擊不計入", () => {
+    const sentSend = {
+      id: "s1", runId: "rA", track: "N1" as const, caseId: "c", venueId: "v", venueName: "情境館",
+      travelerId: "SYN-1", type: "send" as const, occurredAt: "2026-06-01T10:00:00+08:00",
+      campaignId: "c1", campaignName: "c1", channel: "email" as const, sendId: "S1", sendStatus: "sent" as const,
+    };
+    const rows = aggregateN1([
+      sentSend,
+      { ...sentSend, id: "s2", sendId: "S2", sendStatus: "skipped" },
+      // S1 的點擊屬於其他 run → 不計入
+      { ...sentSend, id: "c-other-run", runId: "rB", type: "click", sendId: "S1", sendStatus: undefined },
+      // S2（skipped）的點擊 → 只進 skippedClicks
+      { ...sentSend, id: "c-skip", type: "click", sendId: "S2", sendStatus: undefined },
+    ]);
+    const row = rows[0];
+    expect(row.sends).toBe(1);
+    expect(row.clicks).toBe(0);
+    expect(row.skippedClicks).toBe(1);
+    expect(row.rawClicks).toBe(1);
+    expect(rate(row.clicks, row.sends)).toBe(0);
   });
 
   it("歸因視窗邊界：剛好在視窗內成立、超過 1 小時／1 日不成立", () => {
@@ -165,6 +207,15 @@ describe("CSV 與畫面一致 + 標示不可隱藏", () => {
     expect(csv).toContain("情境館 A（情境）");
     expect(csv).toContain("SYN-");
     expect(csv).toContain("計算公式");
+  });
+
+  it("SUMMARY 列明示 eligible／skipped／raw 點擊與模擬器參數視窗", () => {
+    const summaryLine = lines[lines.length - 1];
+    expect(summaryLine).toContain(`clicks(eligible)=${run.summary.clicks}`);
+    expect(summaryLine).toContain(`skippedClicks=${run.summary.skippedClicks}`);
+    expect(summaryLine).toContain(`rawClicks(sent+skipped)=${run.summary.rawClicks}`);
+    expect(summaryLine).toContain("模擬N1點擊率=100%");
+    expect(summaryLine).toContain("為本模擬器參數");
   });
 
   it("匯出不含任何正式 KPI 達標字樣，且標示無法移除", () => {
@@ -238,6 +289,15 @@ describe("頁面與入口：標示與隔離宣告不可隱藏", () => {
     expect(src).toContain("不預先填造執行結果");
     expect(src).toContain("非伺服器稽核紀錄");
     expect(src).toContain("不表示該業者已實際參測");
+  });
+
+  it("情境頁的點擊率口徑：另列 skipped 點擊、舊口徑 run 明示不相容", () => {
+    const src = read("apps/booking/src/pages/admin/ScenarioValidation.tsx");
+    expect(src).toContain("skipped 發送點擊");
+    expect(src).toContain("不計入點擊率");
+    expect(src).toContain("skippedClicks");
+    expect(src).toContain("scenario-legacy-warning");
+    expect(src).toContain("皆為本模擬器參數，未經正式 RPC 比對");
   });
 
   it("兩個正式分析頁新增情境驗證入口，原有口徑保留", () => {
