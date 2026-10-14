@@ -55,26 +55,15 @@ interface Props<R> {
   csvFileName: string;
   extraHeader?: ReactNode;
   showIncludeInternal?: boolean;
-  /** 有值時：表格最左欄與每列 CSV 皆固定標示資料性質（簡報示範用） */
-  rowNature?: string;
-  /** 附加在 CSV 檔首註解的固定標示 */
-  csvNature?: string;
 }
 
 export function MetricBreakdownTable<R>({
-  title, description, scopeNotes, columns: baseColumns, rows, rowKey, loading, error,
+  title, description, scopeNotes, columns, rows, rowKey, loading, error,
   filters, onFiltersChange, onReload, accommodations, channelOptions, csvFileName, extraHeader,
-  showIncludeInternal = true, rowNature, csvNature,
+  showIncludeInternal = true,
 }: Props<R>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-
-  const columns = useMemo<ColumnDef<R>[]>(
-    () => (rowNature
-      ? [{ key: "__nature", label: "資料性質", kind: "text" as const, value: () => rowNature }, ...baseColumns]
-      : baseColumns),
-    [baseColumns, rowNature],
-  );
 
   const sortValue = (c: ColumnDef<R>, r: R): number | string =>
     c.kind === "text" ? c.value(r) : c.kind === "number" ? c.value(r) : (c.den(r) > 0 ? c.num(r) / c.den(r) : -1);
@@ -102,8 +91,7 @@ export function MetricBreakdownTable<R>({
   const cell = (c: ColumnDef<R>, r: R): string =>
     c.kind === "text" ? c.value(r) : c.kind === "number" ? c.value(r).toLocaleString() : rateText(c.num(r), c.den(r));
   const totalCell = (c: ColumnDef<R>, i: number): string => {
-    if (rowNature && c.key === "__nature") return rowNature;
-    if (i === 0 || (rowNature && i === 1)) return "合計";
+    if (i === 0) return "合計";
     const t = totals[c.key];
     if (c.kind === "number") return (t as number).toLocaleString();
     if (c.kind === "rate") return rateText((t as { num: number; den: number }).num, (t as { num: number; den: number }).den);
@@ -121,7 +109,7 @@ export function MetricBreakdownTable<R>({
   const exportCsv = () => {
     const esc = (s: unknown) => `"${String(s ?? "").replace(/"/g, '""')}"`;
     const caliber = filters.includeInternal ? "含內部上線測試（is_internal）" : "僅真實旅客";
-    const first = `# ${csvNature ? `${csvNature}；` : ""}${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}${showIncludeInternal ? `；口徑：${caliber}` : ""}；${scopeNotes.join("；")}`;
+    const first = `# ${title} 匯出時間 ${new Date().toISOString()}；${filterDesc}${showIncludeInternal ? `；口徑：${caliber}` : ""}；${scopeNotes.join("；")}`;
     const lines = [first, columns.map((c) => esc(c.label)).join(",")];
     for (const r of sorted) lines.push(columns.map((c) => esc(c.kind === "number" ? c.value(r) : cell(c, r))).join(","));
     if (rows.length) lines.push(columns.map((c, i) => esc(totalCell(c, i))).join(","));

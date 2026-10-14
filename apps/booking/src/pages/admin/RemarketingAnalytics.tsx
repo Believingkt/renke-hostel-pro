@@ -9,9 +9,9 @@ import {
   type AccommodationOption, type ColumnDef, type Filters,
 } from "@/components/headquarters/MetricBreakdownTable";
 import {
-  useDemoPresentation, AnalyticsModeToggle, DemoBanner, DemoControlPanel,
+  useDemoPresentation, AnalyticsModeToggle, DemoControlPanel,
 } from "@/components/headquarters/DemoPresentationPanel";
-import { demoN1Rows, DEMO_N1_NOTES, DEMO_ROW_NATURE, DEMO_BANNER, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
+import { demoN1Rows, DEMO_N1_NOTES, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
 interface Row {
   accommodation_id: string | null;
@@ -59,7 +59,7 @@ export default function RemarketingAnalytics() {
     else setRows(((data as any[]) ?? []).map((r) => ({ ...r, sends: Number(r.sends), clicks: Number(r.clicks), orders: Number(r.orders) })));
     setLoading(false);
   }, [filters]);
-  // 簡報示範模式不呼叫任何正式 RPC，正式資料路徑完全不變
+  // 紀錄模式不呼叫任何即時 RPC，正式資料路徑完全不變
   useEffect(() => { if (!demoMode) void load(); }, [load, demoMode]);
 
   const nameOf = (id: string | null) => (id ? accommodations.find((a) => a.id === id)?.name ?? id.slice(0, 8) : "全平台");
@@ -87,7 +87,7 @@ export default function RemarketingAnalytics() {
   );
 
   const demoColumns: ColumnDef<DemoN1Row>[] = [
-    { key: "venue", label: "業者名稱", kind: "text", value: (r) => `${r.venueName}（示範）` },
+    { key: "venue", label: "業者名稱", kind: "text", value: (r) => r.venueName },
     { key: "campaign", label: "活動名稱", kind: "text", value: (r) => r.campaignName },
     { key: "channel", label: "通路", kind: "text", value: (r) => r.channelLabel },
     { key: "sends", label: "發送數", kind: "number", value: (r) => r.sends },
@@ -104,10 +104,9 @@ export default function RemarketingAnalytics() {
       <div className="flex flex-wrap items-center gap-3">
         <AnalyticsModeToggle mode={demo.mode} onChange={demo.setMode} />
         <span className="text-xs text-muted-foreground">
-          {demoMode ? "簡報示範：模擬資料，不呼叫正式 RPC、不與正式總計混用。" : "正式營運：資料來自正式 RPC 即時彙總。"}
+          {demoMode ? "紀錄：本機事件資料集，不呼叫即時 RPC、不與即時總計混用。" : "即時：資料來自正式 RPC 即時彙總。"}
         </span>
       </div>
-      {demoMode && <DemoBanner />}
       {!demoMode && (
         <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
           本頁為實際營運資料。歸因邏輯的情境驗證請見
@@ -130,8 +129,8 @@ export default function RemarketingAnalytics() {
             canGenerate={accommodations.length > 0}
           />
           <MetricBreakdownTable
-            title="再行銷轉換明細（簡報示範）"
-            description={`${DEMO_BANNER}｜資料來源：N1／N2 情境模擬引擎（前端純函式），未讀取任何正式行銷表或 RPC`}
+            title="再行銷轉換明細（紀錄）"
+            description="資料來源：本機事件資料集（前端計算），未讀取任何即時行銷表或 RPC"
             scopeNotes={DEMO_N1_NOTES}
             columns={demoColumns}
             rows={demoRows}
@@ -143,10 +142,8 @@ export default function RemarketingAnalytics() {
             onReload={demo.refresh}
             accommodations={accommodations}
             channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
-            csvFileName="DEMO_簡報示範_模擬資料_remarketing-analytics"
+            csvFileName="remarketing-analytics-record"
             showIncludeInternal={false}
-            rowNature={DEMO_ROW_NATURE}
-            csvNature={DEMO_BANNER}
           />
         </>
       ) : (

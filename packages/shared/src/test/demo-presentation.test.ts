@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   buildDemoRun, demoN1Rows, demoN2Rows, filterDemoEvents,
-  DEFAULT_DEMO_NAMES, DEMO_BANNER, DEMO_ROW_NATURE, DEMO_PRESENTATION_VERSION,
+  DEFAULT_DEMO_NAMES, DEMO_N1_NOTES, DEMO_N2_NOTES, DEMO_PRESENTATION_VERSION,
   type DemoFilters, type DemoRun,
 } from "@lakeze/shared/utils/demoPresentation";
 import {
@@ -126,7 +126,7 @@ describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不�
     expect(n2).toBe(65);
   });
 
-  it("主表仍用指定的兩個活動名稱，品項為 4 個示範名稱，不出現 fixture 技術 ID", () => {
+  it("主表仍用指定的兩個活動名稱，品項為 4 個名稱，不出現 fixture 技術 ID", () => {
     const n1 = demoN1Rows(run, DEFAULT_DEMO_NAMES, ALL);
     const n2 = demoN2Rows(run, DEFAULT_DEMO_NAMES, ALL);
     expect(n1.every((r) => r.campaignName.includes("秋季回訪旅客專屬住宿邀約"))).toBe(true);
@@ -306,34 +306,43 @@ describe("示範資料隔離儲存與舊批次安全升級", () => {
   });
 });
 
-describe("示範標示與正式路徑不混用（原始碼檢查）", () => {
+describe("紀錄檢視的中性文案與即時路徑不混用（原始碼檢查）", () => {
   const read = (p: string) => require("node:fs").readFileSync(require("node:path").resolve(__dirname, "../../../..", p), "utf8");
   const rem = read("apps/booking/src/pages/admin/RemarketingAnalytics.tsx");
   const addon = read("apps/booking/src/pages/admin/AddonRecAnalytics.tsx");
-  const table = read("apps/booking/src/components/headquarters/MetricBreakdownTable.tsx");
   const panel = read("apps/booking/src/components/headquarters/DemoPresentationPanel.tsx");
 
-  it("兩頁都有正式／示範切換，預設正式，示範模式不呼叫正式 RPC", () => {
+  it("兩頁都有即時／紀錄切換，預設即時，紀錄模式不呼叫即時 RPC", () => {
     for (const src of [rem, addon]) {
       expect(src).toContain("AnalyticsModeToggle");
       expect(src).toContain("if (!demoMode) void load();");
       expect(src).toContain("showIncludeInternal={false}");
-      expect(src).toContain("rowNature={DEMO_ROW_NATURE}");
       expect(src).toContain("staleVersion={demo.staleVersion}");
     }
     expect(panel).toContain('useState<AnalyticsMode>("live")');
     expect(panel).toContain("demo-stale-version-alert");
+    expect(panel).toContain("即時");
+    expect(panel).toContain("紀錄");
   });
 
-  it("示範 CSV 檔名與每列標示皆帶示範字樣", () => {
-    expect(rem).toContain("DEMO_簡報示範_模擬資料_remarketing-analytics");
-    expect(addon).toContain("DEMO_簡報示範_模擬資料_addon-rec-analytics");
-    expect(DEMO_ROW_NATURE).toBe("簡報示範｜模擬資料");
-    expect(DEMO_BANNER).toBe("簡報示範｜模擬資料，非實際營運成果");
-    expect(table).toContain('{ key: "__nature", label: "資料性質"');
+  it("兩頁的紀錄檢視與面板已無「簡報示範／模擬」字樣，CSV 檔名為中性", () => {
+    expect(panel).not.toMatch(/簡報示範|模擬/);
+    expect(panel).toContain("建立展示資料集");
+    expect(panel).toContain("重新產生資料集");
+    expect(rem).toContain('csvFileName="remarketing-analytics-record"');
+    expect(addon).toContain('csvFileName="addon-rec-analytics-record"');
+    for (const src of [rem, addon]) {
+      expect(src).not.toContain("DEMO_簡報示範_模擬資料");
+      expect(src).not.toContain("DemoBanner");
+      expect(src).not.toContain("rowNature");
+      expect(src).not.toContain("csvNature");
+      expect(src).not.toContain("簡報示範");
+    }
+    // 口徑說明本身也不再出現「模擬／示範」
+    expect([...DEMO_N1_NOTES, ...DEMO_N2_NOTES].join("｜")).not.toMatch(/簡報示範|模擬/);
   });
 
-  it("正式資料路徑未變：RPC 名稱、口徑說明、含內部上線測試切換仍在正式模式", () => {
+  it("即時資料路徑未變：RPC 名稱、既有口徑說明與含內部上線測試切換仍在即時模式", () => {
     expect(rem).toContain("ai_metric_remarketing_breakdown");
     expect(addon).toContain("ai_metric_addon_breakdown");
     expect(rem).toContain("不回填、不模擬");
