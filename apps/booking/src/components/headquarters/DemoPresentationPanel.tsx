@@ -27,7 +27,7 @@ export const SHOW_DEMO_CONTROL_PANEL = false;
 /** 暫時隱藏紀錄檢視表格上方的口徑說明清單（之後要開啟時改回 true） */
 export const SHOW_DEMO_SCOPE_NOTES = false;
 
-export type AnalyticsMode = "live" | "demo";
+export type AnalyticsMode = "live" | "demo" | "shared";
 
 export function useDemoPresentation(accommodations: AccommodationOption[]) {
   const [mode, setMode] = useState<AnalyticsMode>("live");
@@ -101,6 +101,14 @@ export function AnalyticsModeToggle({ mode, onChange }: { mode: AnalyticsMode; o
         data-testid="analytics-mode-demo"
       >
         紀錄
+      </Button>
+      <Button
+        size="sm"
+        variant={mode === "shared" ? "default" : "ghost"}
+        onClick={() => onChange("shared")}
+        data-testid="analytics-mode-shared-demo"
+      >
+        共用 Demo
       </Button>
     </div>
   );

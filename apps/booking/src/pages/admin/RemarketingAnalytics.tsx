@@ -12,6 +12,10 @@ import {
   useDemoPresentation, AnalyticsModeToggle, DemoControlPanel,
   SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
+import {
+  useSharedDemo, SharedDemoBanner, SharedDemoControls, SHARED_DEMO_NATURE_COLUMN, SHARED_DEMO_TITLE_SUFFIX,
+} from "@/components/headquarters/SharedDemoPanel";
+import { SHARED_DEMO_LABEL } from "@lakeze/shared/utils/sharedDemo";
 import { demoN1Rows, DEMO_N1_NOTES, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
 interface Row {
@@ -42,6 +46,8 @@ export default function RemarketingAnalytics() {
   const [error, setError] = useState<string | null>(null);
   const demo = useDemoPresentation(accommodations);
   const demoMode = demo.mode === "demo";
+  const sharedMode = demo.mode === "shared";
+  const shared = useSharedDemo(accommodations, sharedMode);
 
   useEffect(() => {
     void supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("name")
@@ -61,7 +67,7 @@ export default function RemarketingAnalytics() {
     setLoading(false);
   }, [filters]);
   // 紀錄模式不呼叫任何即時 RPC，正式資料路徑完全不變
-  useEffect(() => { if (!demoMode) void load(); }, [load, demoMode]);
+  useEffect(() => { if (demo.mode === "live") void load(); }, [load, demo.mode]);
 
   const nameOf = (id: string | null) => (id ? accommodations.find((a) => a.id === id)?.name ?? id.slice(0, 8) : "全平台");
 
@@ -99,23 +105,57 @@ export default function RemarketingAnalytics() {
     { key: "cvr", label: "轉換率%（下房／發送，合計分子／合計分母）", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
   ];
 
+  const sharedRows = useMemo(
+    () => (shared.run && shared.dataset
+      ? demoN1Rows(shared.run, shared.dataset.names, {
+        from: filters.from, to: filters.to,
+        venueIds: filters.accommodationIds, channel: filters.channel,
+      })
+      : []),
+    [shared.run, shared.dataset, filters.from, filters.to, filters.accommodationIds, filters.channel],
+  );
+
   return (
     <div className="space-y-4">
       <AdminPageHeader title="再行銷轉換分析" description="AI 再行銷推播的寄達、點擊與下房轉換，每活動每通路一列（以活動設定館別歸屬）" icon={Send} />
       <div className="flex flex-wrap items-center gap-3">
         <AnalyticsModeToggle mode={demo.mode} onChange={demo.setMode} />
         <span className="text-xs text-muted-foreground">
-          {demoMode ? "紀錄：本機事件資料集，不呼叫即時 RPC、不與即時總計混用。" : "即時：資料來自正式 RPC 即時彙總。"}
+          {sharedMode ? `共用 Demo：${SHARED_DEMO_LABEL}（服務端共用資料集，不呼叫即時 RPC）。` : demoMode ? "紀錄：本機事件資料集，不呼叫即時 RPC、不與即時總計混用。" : "即時：資料來自正式 RPC 即時彙總。"}
         </span>
       </div>
-      {!demoMode && (
+      {demo.mode === "live" && (
         <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
           本頁為實際營運資料。歸因邏輯的情境驗證請見
           <Link to="/hq/scenario-validation" className="mx-1 underline">N1／N2 情境驗證（隔離模擬器）</Link>
           ，該頁為情境測試資料、非實際營運成果。
         </p>
       )}
-      {demoMode ? (
+      {sharedMode ? (
+        <>
+          <SharedDemoBanner />
+          <SharedDemoControls s={shared} track="N1" canGenerate={accommodations.length > 0} />
+          {shared.showTable && (
+            <MetricBreakdownTable
+              title={`再行銷轉換明細${SHARED_DEMO_TITLE_SUFFIX}`}
+              description={`資料來源：共用 Demo 資料集 revision ${shared.dataset?.revision}（合成 fixture，前端重建），未讀取任何正式營運表或即時 RPC`}
+              scopeNotes={[SHARED_DEMO_LABEL]}
+              columns={[SHARED_DEMO_NATURE_COLUMN, ...demoColumns]}
+              rows={sharedRows}
+              rowKey={(r) => r.key}
+              loading={false}
+              error={null}
+              filters={filters}
+              onFiltersChange={setFilters}
+              onReload={() => void shared.load()}
+              accommodations={accommodations}
+              channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
+              csvFileName="DEMO-shared-remarketing-analytics"
+              showIncludeInternal={false}
+            />
+          )}
+        </>
+      ) : demoMode ? (
         <>
           {SHOW_DEMO_CONTROL_PANEL && <DemoControlPanel
             track="N1"

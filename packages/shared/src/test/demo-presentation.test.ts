@@ -315,7 +315,7 @@ describe("紀錄檢視的中性文案與即時路徑不混用（原始碼檢查�
   it("兩頁都有即時／紀錄切換，預設即時，紀錄模式不呼叫即時 RPC", () => {
     for (const src of [rem, addon]) {
       expect(src).toContain("AnalyticsModeToggle");
-      expect(src).toContain("if (!demoMode) void load();");
+      expect(src).toContain('if (demo.mode === "live") void load();');
       expect(src).toContain("showIncludeInternal={false}");
       expect(src).toContain("staleVersion={demo.staleVersion}");
     }
@@ -333,7 +333,8 @@ describe("紀錄檢視的中性文案與即時路徑不混用（原始碼檢查�
     expect(addon).toContain('csvFileName="addon-rec-analytics-record"');
     for (const src of [rem, addon]) {
       expect(src).not.toContain("DEMO_簡報示範_模擬資料");
-      expect(src).not.toContain("DemoBanner");
+      // 只有「共用 Demo」模式使用 SharedDemoBanner；紀錄檢視不得有舊 DemoBanner
+      expect(src).not.toMatch(/(?<!Shared)DemoBanner/);
       expect(src).not.toContain("rowNature");
       expect(src).not.toContain("csvNature");
       expect(src).not.toContain("簡報示範");
