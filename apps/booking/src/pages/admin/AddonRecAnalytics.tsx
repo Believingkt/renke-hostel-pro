@@ -10,6 +10,7 @@ import {
 } from "@/components/headquarters/MetricBreakdownTable";
 import {
   useDemoPresentation, AnalyticsModeToggle, DemoControlPanel,
+  SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import { demoN2Rows, DEMO_N2_NOTES, type DemoN2Row } from "@lakeze/shared/utils/demoPresentation";
 
@@ -108,7 +109,7 @@ export default function AddonRecAnalytics() {
       )}
       {demoMode ? (
         <>
-          <DemoControlPanel
+          {SHOW_DEMO_CONTROL_PANEL && <DemoControlPanel
             track="N2"
             run={demo.run}
             names={demo.names}
@@ -119,11 +120,11 @@ export default function AddonRecAnalytics() {
             recovered={demo.recovered}
             staleVersion={demo.staleVersion}
             canGenerate={accommodations.length > 0}
-          />
+          />}
           <MetricBreakdownTable
             title="加購推薦明細（紀錄）"
             description="資料來源：本機事件資料集（前端計算），未讀取 ai_metric_events 或任何即時 RPC"
-            scopeNotes={DEMO_N2_NOTES}
+            scopeNotes={SHOW_DEMO_SCOPE_NOTES ? DEMO_N2_NOTES : []}
             columns={demoColumns}
             rows={demoRows}
             rowKey={(r) => r.key}

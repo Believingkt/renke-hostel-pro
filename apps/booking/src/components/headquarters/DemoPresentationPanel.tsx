@@ -22,6 +22,11 @@ import type { AccommodationOption } from "@/components/headquarters/MetricBreakd
 
 const DEMO_VENUE_COUNT = 5;
 
+/** 暫時隱藏紀錄檢視的資料集控制面板（之後要開啟時改回 true） */
+export const SHOW_DEMO_CONTROL_PANEL = false;
+/** 暫時隱藏紀錄檢視表格上方的口徑說明清單（之後要開啟時改回 true） */
+export const SHOW_DEMO_SCOPE_NOTES = false;
+
 export type AnalyticsMode = "live" | "demo";
 
 export function useDemoPresentation(accommodations: AccommodationOption[]) {

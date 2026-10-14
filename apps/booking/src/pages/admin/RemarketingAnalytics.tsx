@@ -10,6 +10,7 @@ import {
 } from "@/components/headquarters/MetricBreakdownTable";
 import {
   useDemoPresentation, AnalyticsModeToggle, DemoControlPanel,
+  SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import { demoN1Rows, DEMO_N1_NOTES, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
@@ -116,7 +117,7 @@ export default function RemarketingAnalytics() {
       )}
       {demoMode ? (
         <>
-          <DemoControlPanel
+          {SHOW_DEMO_CONTROL_PANEL && <DemoControlPanel
             track="N1"
             run={demo.run}
             names={demo.names}
@@ -127,11 +128,11 @@ export default function RemarketingAnalytics() {
             recovered={demo.recovered}
             staleVersion={demo.staleVersion}
             canGenerate={accommodations.length > 0}
-          />
+          />}
           <MetricBreakdownTable
             title="再行銷轉換明細（紀錄）"
             description="資料來源：本機事件資料集（前端計算），未讀取任何即時行銷表或 RPC"
-            scopeNotes={DEMO_N1_NOTES}
+            scopeNotes={SHOW_DEMO_SCOPE_NOTES ? DEMO_N1_NOTES : []}
             columns={demoColumns}
             rows={demoRows}
             rowKey={(r) => r.key}

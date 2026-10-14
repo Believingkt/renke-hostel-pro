@@ -342,6 +342,15 @@ describe("紀錄檢視的中性文案與即時路徑不混用（原始碼檢查�
     expect([...DEMO_N1_NOTES, ...DEMO_N2_NOTES].join("｜")).not.toMatch(/簡報示範|模擬/);
   });
 
+  it("紀錄檢視的資料集面板與口徑說明目前隱藏（旗標集中控管，之後可開回）", () => {
+    expect(panel).toContain("export const SHOW_DEMO_CONTROL_PANEL = false;");
+    expect(panel).toContain("export const SHOW_DEMO_SCOPE_NOTES = false;");
+    for (const src of [rem, addon]) {
+      expect(src).toContain("{SHOW_DEMO_CONTROL_PANEL && <DemoControlPanel");
+      expect(src).toMatch(/scopeNotes=\{SHOW_DEMO_SCOPE_NOTES \? DEMO_N[12]_NOTES : \[\]\}/);
+    }
+  });
+
   it("即時資料路徑未變：RPC 名稱、既有口徑說明與含內部上線測試切換仍在即時模式", () => {
     expect(rem).toContain("ai_metric_remarketing_breakdown");
     expect(addon).toContain("ai_metric_addon_breakdown");
