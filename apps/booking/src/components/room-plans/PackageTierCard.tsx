@@ -32,7 +32,9 @@ export function PackageTierCard({ pkg, syncTemplateNames, syncEnabled, canEdit, 
   const [draft, setDraft] = useState<TierDraft>(() => toTierDraft(pkg));
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { setDraft(toTierDraft(pkg)); setErrors([]); }, [pkg]);
+  // 只在該方案的資料庫值真的改變時重設，避免重讀全部方案時清掉其他卡片未儲存的輸入
+  const dbKey = JSON.stringify([pkg.sale_price, pkg.original_price, pkg.tier_prices]);
+  useEffect(() => { setDraft(toTierDraft(pkg)); setErrors([]); }, [dbKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setCell = (tier: keyof TierDraft, field: "sale" | "original", value: string) =>
     setDraft((d) => ({ ...d, [tier]: { ...d[tier], [field]: value } }));

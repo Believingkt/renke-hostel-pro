@@ -32,8 +32,9 @@ export function toTierDraft(pkg: PackageLike): TierDraft {
 const parse = (s: string): number | null | "invalid" => {
   const t = s.trim();
   if (!t) return null;
-  if (!/^\d+$/.test(t)) return "invalid";
-  return Number(t);
+  // 允許千分位逗號（17,000），分組須為每 3 位
+  if (!/^(\d+|\d{1,3}(,\d{3})+)$/.test(t)) return "invalid";
+  return Number(t.replace(/,/g, ""));
 };
 
 export function validateTierDraft(draft: TierDraft): { ok: true; payload: TierPayload } | { ok: false; errors: string[] } {
