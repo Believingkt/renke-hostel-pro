@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
+import { useAccommodationPriceFlags } from "@lakeze/shared/hooks/useAccommodationPriceFlags";
 import {
   useAccommodationPackages,
   type AccommodationPackage,
@@ -132,6 +133,9 @@ const AdminPackages = () => {
   });
   const [roomTypes, setRoomTypes] = useState<RoomTypeOption[]>([]);
   const [editing, setEditing] = useState<AccommodationPackage | null>(null);
+  const priceFlags = useAccommodationPriceFlags(currentAccommodationId);
+  // 啟用新價格頁的館：編輯既有方案時價格唯讀（新增方案不受影響）
+  const lockPrices = !!editing && priceFlags.newPriceUiEnabled;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -528,6 +532,12 @@ const AdminPackages = () => {
         .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,
       child_age_rules_override: form.child_age_rules_override as any,
     };
+    if (lockPrices) {
+      // 價格改由「房型與方案」頁（save_package_tier_prices）寫入，舊頁面不送價格欄位
+      delete (payload as any).original_price;
+      delete (payload as any).sale_price;
+      delete (payload as any).tier_prices;
+    }
     const { data: saved, error } = editing
       ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id).select("id").maybeSingle()
       : await supabase.from("accommodation_packages").insert([payload as any]).select("id").maybeSingle();
@@ -985,12 +995,16 @@ const AdminPackages = () => {
             </div>
 
 
+            {lockPrices && (
+              <p className="text-sm text-amber-700" data-testid="package-price-locked-notice">價格請到『房型與方案』編輯</p>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>原價（選填，劃掉用）</Label>
                 <Input
                   type="number"
                   min={0}
+                  disabled={lockPrices}
                   value={form.original_price ?? ""}
                   onChange={(e) =>
                     setForm({
@@ -1005,6 +1019,7 @@ const AdminPackages = () => {
                 <Input
                   type="number"
                   min={0}
+                  disabled={lockPrices}
                   value={form.sale_price}
                   onChange={(e) =>
                     setForm({ ...form, sale_price: parseFloat(e.target.value) || 0 })
@@ -1023,7 +1038,7 @@ const AdminPackages = () => {
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {TIER_OPTIONS.filter((o) => !form.tier_prices?.[o.value]).map((opt) => (
+                  {!lockPrices && TIER_OPTIONS.filter((o) => !form.tier_prices?.[o.value]).map((opt) => (
                     <Button
                       key={opt.value}
                       type="button"
@@ -1067,6 +1082,7 @@ const AdminPackages = () => {
                             type="number"
                             min={0}
                             placeholder="原價（選填）"
+                            disabled={lockPrices}
                             value={entry.original ?? ""}
                             onChange={(e) =>
                               setForm((f) => ({
@@ -1089,6 +1105,7 @@ const AdminPackages = () => {
                             type="number"
                             min={0}
                             placeholder="售價"
+                            disabled={lockPrices}
                             value={entry.sale}
                             onChange={(e) =>
                               setForm((f) => ({
@@ -1108,6 +1125,7 @@ const AdminPackages = () => {
                           type="button"
                           variant="ghost"
                           size="icon"
+                          disabled={lockPrices}
                           onClick={() =>
                             setForm((f) => {
                               const next = { ...f.tier_prices };

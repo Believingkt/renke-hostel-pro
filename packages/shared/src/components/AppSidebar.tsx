@@ -20,6 +20,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@lakeze/shared/components/ui/collapsible";
 import { BrandLogoBar } from "@lakeze/shared/components/BrandLogoBar";
 import { ADMIN_MENU_ITEMS } from "@lakeze/shared/config/adminMenu";
+import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
+import { useAccommodationPriceFlags } from "@lakeze/shared/hooks/useAccommodationPriceFlags";
 
 const menuItems = ADMIN_MENU_ITEMS;
 
@@ -29,6 +31,11 @@ export function AppSidebar() {
   const location = useLocation();
   const { withPrefix, prefix } = useAliasPrefix();
   const { canView, isStaff, isLoading } = useStaffPermissions();
+  const { currentAccommodationId } = useAccommodation();
+  const priceFlags = useAccommodationPriceFlags(currentAccommodationId);
+  // 依館別開關隱藏子選單（目前只有「房型與方案」需 new_price_ui_enabled）
+  const isSubItemVisible = (subItem: any) =>
+    subItem.requiresFlag !== "new_price_ui_enabled" || priceFlags.newPriceUiEnabled;
 
   // 權限尚未載入完成前不渲染選單，避免先閃出不可見的分頁再消失
   const visibleMenuItems =
@@ -91,7 +98,7 @@ export function AppSidebar() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="overflow-hidden transition-all duration-300 ease-in-out data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
                         <SidebarMenuSub className="ml-2 border-l-2 border-sidebar-border px-0 space-y-1 mt-1">
-                        {item.subItems.map((subItem: any, index: number) => (
+                        {item.subItems.filter(isSubItemVisible).map((subItem: any, index: number) => (
                           <SidebarMenuSubItem 
                             key={subItem.title}
                             className="animate-in fade-in-0 slide-in-from-left-2"

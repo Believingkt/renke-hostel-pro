@@ -1,0 +1,485 @@
+{
+ "read_at_utc": "2026-10-14T08:31:42.509105Z",
+ "packages": [
+  {
+   "id": "4478c114-63ad-4e2d-92ca-62cdcb664cf4",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1001,
+   "name": "6人包棟",
+   "enabled": true,
+   "sale_price": 8500.0,
+   "original_price": 15500.0,
+   "tier_prices": {},
+   "applicable_tiers": [
+    "weekday"
+   ],
+   "guest_count": 6,
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a",
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 1
+  },
+  {
+   "id": "c4a76622-8c5a-4f8c-9d27-249f37baeb83",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1002,
+   "name": "海景四人房",
+   "enabled": true,
+   "sale_price": 3600.0,
+   "original_price": 6900.0,
+   "tier_prices": {
+    "weekend": {
+     "sale": 5800,
+     "original": 9700
+    },
+    "friday_sunday": {
+     "sale": 4000,
+     "original": 8000
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday",
+    "weekend"
+   ],
+   "guest_count": 4,
+   "room_type_ids": [
+    "01e27ccc-81fe-4135-aaad-fa100fcc6495"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 7
+  },
+  {
+   "id": "a1950bd7-9f57-4552-b236-69b872a0cfaa",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1003,
+   "name": "8人包棟",
+   "enabled": true,
+   "sale_price": 11000.0,
+   "original_price": 20600.0,
+   "tier_prices": {
+    "friday_sunday": {
+     "sale": 13000,
+     "original": 23600
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday"
+   ],
+   "guest_count": 8,
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a",
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 2
+  },
+  {
+   "id": "b2c17a5f-a9ad-4163-b21a-bcf8131a264e",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1004,
+   "name": "10人包棟",
+   "enabled": true,
+   "sale_price": 14400.0,
+   "original_price": 25800.0,
+   "tier_prices": {
+    "friday_sunday": {
+     "sale": 16000,
+     "original": 29000
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday"
+   ],
+   "guest_count": 10,
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a",
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 3
+  },
+  {
+   "id": "0681ce82-28e8-4f56-894f-9d8931c10280",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1005,
+   "name": "12人包棟",
+   "enabled": true,
+   "sale_price": 17000.0,
+   "original_price": 30900.0,
+   "tier_prices": {
+    "weekend": {
+     "sale": 23000,
+     "original": 41200
+    },
+    "friday_sunday": {
+     "sale": 19000,
+     "original": 34300
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday",
+    "weekend"
+   ],
+   "guest_count": 12,
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a",
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 4
+  },
+  {
+   "id": "620e7294-4a5d-418c-be11-aa29a9720102",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1006,
+   "name": "14人包棟",
+   "enabled": true,
+   "sale_price": 20000.0,
+   "original_price": 36000.0,
+   "tier_prices": {
+    "weekend": {
+     "sale": 26000,
+     "original": 48000
+    },
+    "friday_sunday": {
+     "sale": 22000,
+     "original": 40000
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday",
+    "weekend"
+   ],
+   "guest_count": 14,
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a",
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 5
+  },
+  {
+   "id": "7579717e-f664-4ef4-9b2d-90aa274c6912",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "numeric_code": 1007,
+   "name": "16人包棟",
+   "enabled": true,
+   "sale_price": 23000.0,
+   "original_price": 41000.0,
+   "tier_prices": {
+    "weekend": {
+     "sale": 29000,
+     "original": 54800
+    },
+    "friday_sunday": {
+     "sale": 25000,
+     "original": 45000
+    }
+   },
+   "applicable_tiers": [
+    "weekday",
+    "friday_sunday",
+    "weekend"
+   ],
+   "guest_count": 16,
+   "room_type_ids": [
+    "54631347-095d-45c0-a066-e5e39211668e"
+   ],
+   "excluded_date_ranges": [],
+   "display_order": 6
+  }
+ ],
+ "templates": [
+  {
+   "id": "7577b6f2-dc13-401d-8811-fb1f009e3e89",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "10人包棟",
+   "numeric_code": 1030,
+   "price": 25800,
+   "weekday_price": 25800,
+   "peak_price": null,
+   "weekend_price": null,
+   "weekday_enabled": true,
+   "peak_enabled": false,
+   "weekend_enabled": false,
+   "default_package_id": "b2c17a5f-a9ad-4163-b21a-bcf8131a264e",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "64343ffa-709b-46ed-a639-5937a566fae4",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "12人包棟",
+   "numeric_code": 1031,
+   "price": 30900,
+   "weekday_price": 30900,
+   "peak_price": 34300,
+   "weekend_price": 41200,
+   "weekday_enabled": true,
+   "peak_enabled": true,
+   "weekend_enabled": true,
+   "default_package_id": "0681ce82-28e8-4f56-894f-9d8931c10280",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "2945cc9e-a26b-407b-8772-cf79bfd79d62",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "14人包棟",
+   "numeric_code": 1025,
+   "price": 36000,
+   "weekday_price": 36000,
+   "peak_price": 40000,
+   "weekend_price": 48000,
+   "weekday_enabled": true,
+   "peak_enabled": true,
+   "weekend_enabled": true,
+   "default_package_id": "620e7294-4a5d-418c-be11-aa29a9720102",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "7c457061-aca5-48f2-bdcc-eff29f1e6422",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "16人包棟",
+   "numeric_code": 1027,
+   "price": 39000,
+   "weekday_price": 39000,
+   "peak_price": 45000,
+   "weekend_price": 54800,
+   "weekday_enabled": true,
+   "peak_enabled": true,
+   "weekend_enabled": true,
+   "default_package_id": "7579717e-f664-4ef4-9b2d-90aa274c6912",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "02f134fc-4a12-4b4f-a87e-44f13a7e3aa1",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "6人包棟",
+   "numeric_code": 1028,
+   "price": 15500,
+   "weekday_price": 15500,
+   "peak_price": null,
+   "weekend_price": null,
+   "weekday_enabled": true,
+   "peak_enabled": false,
+   "weekend_enabled": false,
+   "default_package_id": "4478c114-63ad-4e2d-92ca-62cdcb664cf4",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "326fc21c-982c-4511-aacb-21cc6f2d9712",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "8人包棟",
+   "numeric_code": 1029,
+   "price": 20600,
+   "weekday_price": 20600,
+   "peak_price": null,
+   "weekend_price": null,
+   "weekday_enabled": true,
+   "peak_enabled": false,
+   "weekend_enabled": false,
+   "default_package_id": "a1950bd7-9f57-4552-b236-69b872a0cfaa",
+   "available_rooms": 1,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "2ab16f88-9c72-443a-9d7e-91831c618274",
+    "54631347-095d-45c0-a066-e5e39211668e",
+    "a6d49a3a-0b48-4465-ba0c-d643b4f6700a",
+    "c65366d3-c1d6-4a93-b5c8-34a15c3ea8de",
+    "ca578b7c-4dff-49da-b487-703cb5a94c1d",
+    "1d5b12f2-7d90-43a2-8251-8d2341b5d04a"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  },
+  {
+   "id": "c8b86fa2-9dcc-4f02-9760-c0b85ab3b172",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "template_name": "海景四人房",
+   "numeric_code": 1032,
+   "price": 6900,
+   "weekday_price": 6900,
+   "peak_price": 8000,
+   "weekend_price": 9700,
+   "weekday_enabled": true,
+   "peak_enabled": true,
+   "weekend_enabled": true,
+   "default_package_id": "c4a76622-8c5a-4f8c-9d27-249f37baeb83",
+   "available_rooms": 7,
+   "season_segments": [],
+   "room_overrides": [],
+   "room_type_ids": [
+    "01e27ccc-81fe-4135-aaad-fa100fcc6495"
+   ],
+   "valid_from": null,
+   "valid_until": null,
+   "extra_dates": [],
+   "excluded_dates": []
+  }
+ ],
+ "package_date_prices": [
+  {
+   "id": "122d4a1b-c2f1-4d23-99c4-258e771b0608",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "package_id": "0681ce82-28e8-4f56-894f-9d8931c10280",
+   "date": "2026-12-31",
+   "sale_price": 41200.0,
+   "original_price": null,
+   "is_available": null
+  },
+  {
+   "id": "495c9abd-e1af-4d55-99c0-8e5db8c96545",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "package_id": "620e7294-4a5d-418c-be11-aa29a9720102",
+   "date": "2026-12-31",
+   "sale_price": 48000.0,
+   "original_price": null,
+   "is_available": null
+  },
+  {
+   "id": "d98ea74e-d34d-49a4-a8ac-e83d891c2ddc",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "package_id": "7579717e-f664-4ef4-9b2d-90aa274c6912",
+   "date": "2026-12-31",
+   "sale_price": 54800.0,
+   "original_price": null,
+   "is_available": null
+  },
+  {
+   "id": "3b898c35-ec26-444b-bdcb-4632d1f3bb61",
+   "accommodation_id": "7690a606-6bac-4cd5-a3e7-2fa754b318e8",
+   "package_id": "c4a76622-8c5a-4f8c-9d27-249f37baeb83",
+   "date": "2026-12-31",
+   "sale_price": 9700.0,
+   "original_price": null,
+   "is_available": null
+  }
+ ],
+ "public_holidays": [
+  {
+   "holiday_date": "2026-10-25",
+   "holiday_type": "holiday",
+   "holiday_name": "光復節補假"
+  },
+  {
+   "holiday_date": "2026-10-26",
+   "holiday_type": "holiday",
+   "holiday_name": "光復節補假"
+  },
+  {
+   "holiday_date": "2026-12-25",
+   "holiday_type": "holiday",
+   "holiday_name": "行憲紀念日"
+  },
+  {
+   "holiday_date": "2026-12-31",
+   "holiday_type": "holiday",
+   "holiday_name": "跨年"
+  },
+  {
+   "holiday_date": "2027-01-01",
+   "holiday_type": "holiday",
+   "holiday_name": "元旦"
+  }
+ ],
+ "discount_code_168168_note": "anon 讀取 discount_codes 回傳 []（RLS），E3-D 依規格採原價 35%"
+}

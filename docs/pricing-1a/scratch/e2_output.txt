@@ -1,0 +1,199 @@
+== E2-0 anon 呼叫 → 拒絕（無 EXECUTE）
+BEGIN
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:15: ERROR:  permission denied for function save_package_tier_prices
+ROLLBACK
+== E2-1 無權限（雲岫 staff，room_price=readonly）→ 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 33333333-3333-4333-8333-333333333333
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:20: ERROR:  沒有房價編輯權限
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 29 at RAISE
+ROLLBACK
+== E2-1b 他館 hotel_admin 改雲岫方案 → 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 44444444-4444-4444-8444-444444444444
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:25: ERROR:  沒有房價編輯權限
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 29 at RAISE
+ROLLBACK
+== E2-2 new_price_ui_enabled = false 的館（測試館B，flags 列存在且為預設）→ 拒絕
+           accommodation_id           | new_price_ui_enabled | price_sync_mode 
+--------------------------------------+----------------------+-----------------
+ 00000000-0000-4000-8000-0000000000b1 | f                    | no_sync
+
+BEGIN
+              set_config              
+--------------------------------------
+ 44444444-4444-4444-8444-444444444444
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:31: ERROR:  此館尚未啟用「房型與方案」新價格頁
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 36 at RAISE
+ROLLBACK
+== E2-2b 館別沒有 flags 列（測試館C，尚未建立）→ 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 11111111-1111-4111-8111-111111111111
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:36: ERROR:  此館尚未啟用「房型與方案」新價格頁
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 36 at RAISE
+ROLLBACK
+== E2-3 平日售價缺漏 → 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:41: ERROR:  平日售價必填且需大於 0
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 96 at RAISE
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:44: ERROR:  weekday 售價必須為正整數
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 77 at RAISE
+ROLLBACK
+== E2-4 原價低於售價 → 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:49: ERROR:  weekday 原價不得低於售價
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 86 at RAISE
+ROLLBACK
+== E2-4b 其他輸入檢查：未知 key／有原價沒售價／非整數 → 拒絕
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:54: ERROR:  只允許 weekday / friday_sunday / weekend 三個日型
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 48 at RAISE
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:57: ERROR:  weekend 有原價但沒有售價
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 74 at RAISE
+ROLLBACK
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+psql:docs/pricing-1a/scratch/e2_rpc_cases.sql:60: ERROR:  weekday 售價必須為正整數
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 77 at RAISE
+ROLLBACK
+== E2-5 原價留空 → 自動等於售價（雲岫 package_original，交易結束後 ROLLBACK）
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+                                                                 save_package_tier_prices                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "0681ce82-28e8-4f56-894f-9d8931c10280", "synced_template_ids": ["64343ffa-709b-46ed-a639-5937a566fae4"]}
+
+RESET
+ numeric_code |                                          tier_prices                                           | sale_price | original_price | applicable_tiers  
+--------------+------------------------------------------------------------------------------------------------+------------+----------------+-------------------
+         1005 | {"weekday": {"sale": 17000, "original": 17000}, "weekend": {"sale": 23000, "original": 23000}} |   17000.00 |       17000.00 | {weekday,weekend}
+
+ template_name | price | weekday_price | peak_price | peak_enabled | weekend_price | weekend_enabled 
+---------------+-------+---------------+------------+--------------+---------------+-----------------
+ 12人包棟      | 17000 |         17000 |            | f            |         23000 | t
+
+ROLLBACK
+== E2-6 no_sync 館（測試館B 開 new_price_ui_enabled、維持 no_sync）→ 只改方案、不改專案
+UPDATE 1
+ template_name | price | weekday_price | peak_price | weekend_price |          updated_at           
+---------------+-------+---------------+------------+---------------+-------------------------------
+ B專案         |  8000 |          8000 |            |               | 2026-10-14 08:33:16.715584+00
+
+BEGIN
+              set_config              
+--------------------------------------
+ 44444444-4444-4444-8444-444444444444
+
+SET
+                                         save_package_tier_prices                                          
+-----------------------------------------------------------------------------------------------------------
+ {"sync_mode": "no_sync", "package_id": "00000000-0000-4000-8000-0000000000b2", "synced_template_ids": []}
+
+COMMIT
+ numeric_code | enabled |                                        tier_prices                                         | sale_price | original_price | applicable_tiers  
+--------------+---------+--------------------------------------------------------------------------------------------+------------+----------------+-------------------
+         2001 | t       | {"weekday": {"sale": 5500, "original": 8800}, "weekend": {"sale": 6600, "original": 6600}} |    5500.00 |        8800.00 | {weekday,weekend}
+
+ template_name | price | weekday_price | peak_price | weekend_price |          updated_at           
+---------------+-------+---------------+------------+---------------+-------------------------------
+ B專案         |  8000 |          8000 |            |               | 2026-10-14 08:33:16.715584+00
+
+== E2-7 package_original 館（雲岫 12人包棟 1005）→ 方案與對應專案同步
+                  id                  | numeric_code | enabled | guest_count | has_rooms 
+--------------------------------------+--------------+---------+-------------+-----------
+ 0681ce82-28e8-4f56-894f-9d8931c10280 |         1005 | t       |          12 | t
+
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+                                                                 save_package_tier_prices                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "0681ce82-28e8-4f56-894f-9d8931c10280", "synced_template_ids": ["64343ffa-709b-46ed-a639-5937a566fae4"]}
+
+COMMIT
+                  id                  | numeric_code | enabled | guest_count | has_rooms |                                             tier_prices                                              | sale_price | original_price |    applicable_tiers     
+--------------------------------------+--------------+---------+-------------+-----------+------------------------------------------------------------------------------------------------------+------------+----------------+-------------------------
+ 0681ce82-28e8-4f56-894f-9d8931c10280 |         1005 | t       |          12 | t         | {"weekday": {"sale": 17500, "original": 31500}, "friday_sunday": {"sale": 19500, "original": 35000}} |   17500.00 |       31500.00 | {weekday,friday_sunday}
+
+ template_name | price | weekday_price | weekday_enabled | peak_price | peak_enabled | weekend_price | weekend_enabled 
+---------------+-------+---------------+-----------------+------------+--------------+---------------+-----------------
+ 12人包棟      | 31500 |         31500 | t               |      35000 | t            |               | f
+
+== E2-8 一個方案對應兩個專案（測試館C package_original；方案 enabled=false 必須維持）→ 兩個都同步、無關專案不動
+INSERT 0 1
+BEGIN
+              set_config              
+--------------------------------------
+ 11111111-1111-4111-8111-111111111111
+
+SET
+                                                                                     save_package_tier_prices                                                                                     
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "00000000-0000-4000-8000-0000000000c2", "synced_template_ids": ["00000000-0000-4000-8000-0000000000c3", "00000000-0000-4000-8000-0000000000c4"]}
+
+COMMIT
+                  id                  | numeric_code | enabled |                                                                  tier_prices                                                                   | sale_price | original_price |        applicable_tiers         
+--------------------------------------+--------------+---------+------------------------------------------------------------------------------------------------------------------------------------------------+------------+----------------+---------------------------------
+ 00000000-0000-4000-8000-0000000000c2 |         3001 | f       | {"weekday": {"sale": 6200, "original": 9500}, "weekend": {"sale": 8000, "original": 12000}, "friday_sunday": {"sale": 7000, "original": 7000}} |    6200.00 |        9500.00 | {weekday,friday_sunday,weekend}
+
+ template_name | price | weekday_price | peak_price | peak_enabled | weekend_price | weekend_enabled | linked 
+---------------+-------+---------------+------------+--------------+---------------+-----------------+--------
+ C專案1        |  9500 |          9500 |       7000 | t            |         12000 | t               | t
+ C專案2        |  9500 |          9500 |       7000 | t            |         12000 | t               | t
+ C無關專案     |  7777 |          7777 |            | t            |               | t               | f
+

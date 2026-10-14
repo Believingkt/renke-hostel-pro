@@ -19,6 +19,7 @@ import { classifyDayTier } from "@lakeze/shared/utils/templatePriceResolverPure"
 import { SeasonSegmentsEditor } from "@/components/SeasonSegmentsEditor";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions";
+import { useAccommodationPriceFlags } from "@lakeze/shared/hooks/useAccommodationPriceFlags";
 import { writeWithRowCheck, writeErrorMessage } from "@lakeze/shared/lib/supabaseWriteGuard";
 import { ShieldAlert } from "lucide-react";
 import { toast } from "sonner";
@@ -129,6 +130,9 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<PricingTemplate | null>(null);
+  const priceFlags = useAccommodationPriceFlags(accommodationId);
+  // 啟用新價格頁的館：已綁定方案（default_package_id）的專案，三層價格由方案原價同步，此處唯讀
+  const lockTplPrices = priceFlags.newPriceUiEnabled && !!(editingTemplate as any)?.default_package_id;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -681,6 +685,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         default_package_id: formData.default_package_id || null,
       };
 
+      if (lockTplPrices) {
+        for (const k of ['weekday_price', 'peak_price', 'weekend_price', 'price', 'weekday_enabled', 'peak_enabled', 'weekend_enabled']) {
+          delete dataToSave[k];
+        }
+      }
+
       if (editingTemplate) {
         const { error } = await supabase
           .from('pricing_templates')
@@ -944,12 +954,12 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                     : weekendPrice != null ? `NT$ ${weekendPrice.toLocaleString()}` : '未設定'}
                 </div>
               </div>
-              <div>
+              {!priceFlags.newPriceUiEnabled && <div>
                 <span className="text-muted-foreground text-xs">庫存量</span>
                 <div className="font-semibold tabular-nums">
                   {availRooms} 間
                 </div>
-              </div>
+              </div>}
             </div>
           )}
         </div>
@@ -1296,12 +1306,16 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           {!isTS && (
             <div className="space-y-2">
               <Label>價格設定 <span className="text-xs text-muted-foreground font-normal">（擇一必填）</span></Label>
+              {lockTplPrices && (
+                <p className="text-sm text-amber-700" data-testid="template-price-locked-notice">價格請到『房型與方案』編輯</p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-2 rounded-md border p-3">
                   <div className="flex items-center justify-between gap-2">
                     <Label htmlFor="weekday_price" className="text-sm font-medium">平日價格</Label>
                     <Switch
                       checked={formData.weekday_enabled}
+                      disabled={lockTplPrices}
                       onCheckedChange={(v) => setFormData({ ...formData, weekday_enabled: !!v })}
                     />
                   </div>
@@ -1316,7 +1330,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       weekday_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入平日價格"
-                    disabled={!formData.weekday_enabled}
+                    disabled={lockTplPrices || !formData.weekday_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
@@ -1330,6 +1344,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                     <Label htmlFor="peak_price" className="text-sm font-medium">旺日價格</Label>
                     <Switch
                       checked={formData.peak_enabled}
+                      disabled={lockTplPrices}
                       onCheckedChange={(v) => setFormData({ ...formData, peak_enabled: !!v })}
                     />
                   </div>
@@ -1344,7 +1359,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       peak_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入旺日價格"
-                    disabled={!formData.peak_enabled}
+                    disabled={lockTplPrices || !formData.peak_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
@@ -1358,6 +1373,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                     <Label htmlFor="weekend_price" className="text-sm font-medium">假日價格</Label>
                     <Switch
                       checked={formData.weekend_enabled}
+                      disabled={lockTplPrices}
                       onCheckedChange={(v) => setFormData({ ...formData, weekend_enabled: !!v })}
                     />
                   </div>
@@ -1372,7 +1388,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                       weekend_price: e.target.value ? parseInt(e.target.value) : null
                     })}
                     placeholder="請輸入假日價格"
-                    disabled={!formData.weekend_enabled}
+                    disabled={lockTplPrices || !formData.weekend_enabled}
                     className="h-12 text-base sm:h-10 sm:text-sm touch-manipulation"
                     inputMode="numeric"
                   />
@@ -1387,8 +1403,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
             </div>
           )}
 
-          {/* 庫存量 — 天送由每房型獨立設定 */}
-          {!isTS && (
+          {/* 庫存量 — 天送由每房型獨立設定；啟用新價格頁的館隱藏 */}
+          {!isTS && !priceFlags.newPriceUiEnabled && (
             <div className="space-y-2">
               <Label htmlFor="available_rooms">庫存量 *</Label>
               <Input

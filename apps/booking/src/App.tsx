@@ -121,6 +121,7 @@ const Orders = lazy(() => import("@/pages/Orders"));
 const OrderDetail = lazy(() => import("@/pages/OrderDetail"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const AdminPackages = lazy(() => import("@/pages/AdminPackages"));
+const RoomPlans = lazy(() => import("@/pages/admin/RoomPlans"));
 const AdminPackagesPreview = lazy(() => import("@/pages/AdminPackagesPreview"));
 const AdminSearchCard = lazy(() => import("@/pages/AdminSearchCard"));
 const RoomInventory = lazy(() => import("@/pages/RoomInventory"));
@@ -542,6 +543,11 @@ function App() {
                     <Route path="admin/packages" element={
                       <RequireModule module="room_price">
                         <Suspense fallback={<FormSkeleton fields={8} />}><AdminPackages /></Suspense>
+                      </RequireModule>
+                    } />
+                    <Route path="admin/room-plans" element={
+                      <RequireModule module="room_price">
+                        <Suspense fallback={<FormSkeleton fields={8} />}><RoomPlans /></Suspense>
                       </RequireModule>
                     } />
                     <Route path="admin/packages-preview" element={

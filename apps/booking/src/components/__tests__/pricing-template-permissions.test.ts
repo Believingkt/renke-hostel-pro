@@ -96,3 +96,44 @@ describe("delete flow：RPC + row check", () => {
     expect(del.indexOf("writeWithRowCheck(")).toBeLessThan(del.indexOf("toast.success('專案已刪除')"));
   });
 });
+
+describe("新價格頁啟用館：專案價格唯讀、庫存量隱藏；未啟用館不變", () => {
+  const pkgSrc = fs.readFileSync(path.resolve(__dirname, "../../pages/AdminPackages.tsx"), "utf8");
+
+  it("PricingTemplateManager：唯讀條件 = 館別開關 + 已綁定 default_package_id", () => {
+    expect(src).toContain("useAccommodationPriceFlags(accommodationId)");
+    expect(src).toContain("const lockTplPrices = priceFlags.newPriceUiEnabled && !!(editingTemplate as any)?.default_package_id;");
+  });
+
+  it("PricingTemplateManager：三層價格與開關在唯讀時停用，並顯示提示", () => {
+    for (const t of ["weekday", "peak", "weekend"]) {
+      expect(src).toContain(`disabled={lockTplPrices || !formData.${t}_enabled}`);
+    }
+    expect(src.match(/disabled=\{lockTplPrices\}/g)?.length).toBe(3);
+    expect(src).toContain("價格請到『房型與方案』編輯");
+  });
+
+  it("PricingTemplateManager：唯讀時存檔不送三層價格、price 與日型開關（code-level guard）", () => {
+    const body = src.slice(src.indexOf("if (lockTplPrices) {"), src.indexOf("if (editingTemplate) {\n        const { error } = await supabase"));
+    for (const k of ["weekday_price", "peak_price", "weekend_price", "'price'", "weekday_enabled", "peak_enabled", "weekend_enabled"]) {
+      expect(body).toContain(k);
+    }
+    expect(body).toContain("delete dataToSave[k]");
+  });
+
+  it("PricingTemplateManager：庫存量只在啟用館隱藏（表單與卡片）", () => {
+    expect(src).toContain("{!isTS && !priceFlags.newPriceUiEnabled && (");
+    expect(src).toContain("{!priceFlags.newPriceUiEnabled && <div>");
+  });
+
+  it("AdminPackages：只有『編輯既有方案』且館別啟用時唯讀；新增方案不受影響", () => {
+    expect(pkgSrc).toContain("const lockPrices = !!editing && priceFlags.newPriceUiEnabled;");
+    expect(pkgSrc.match(/disabled=\{lockPrices\}/g)?.length).toBe(5);
+    expect(pkgSrc).toContain("{!lockPrices && TIER_OPTIONS.filter");
+    expect(pkgSrc).toContain("價格請到『房型與方案』編輯");
+    const guard = pkgSrc.slice(pkgSrc.indexOf("if (lockPrices) {"), pkgSrc.indexOf("const { data: saved, error } = editing"));
+    expect(guard).toContain("delete (payload as any).original_price;");
+    expect(guard).toContain("delete (payload as any).sale_price;");
+    expect(guard).toContain("delete (payload as any).tier_prices;");
+  });
+});

@@ -1,0 +1,133 @@
+==== 初始狀態 ====
+pkg 1001 {} sale=8500.00 orig=15500.00
+pkg 1002 {"weekend": {"sale": 5800, "original": 9700}, "friday_sunday": {"sale": 4000, "original": 8000}} sale=3600.00 orig=6900.00
+pkg 1003 {"friday_sunday": {"sale": 13000, "original": 23600}} sale=11000.00 orig=20600.00
+pkg 1004 {"friday_sunday": {"sale": 16000, "original": 29000}} sale=14400.00 orig=25800.00
+pkg 1005 {"weekend": {"sale": 23000, "original": 41200}, "friday_sunday": {"sale": 19000, "original": 34300}} sale=17000.00 orig=30900.00
+pkg 1006 {"weekend": {"sale": 26000, "original": 48000}, "friday_sunday": {"sale": 22000, "original": 40000}} sale=20000.00 orig=36000.00
+pkg 1007 {"weekend": {"sale": 29000, "original": 54800}, "friday_sunday": {"sale": 25000, "original": 45000}} sale=23000.00 orig=41000.00
+tpl 14人包棟 price=36000 wd=36000 pk=40000/true we=48000/true
+tpl 16人包棟 price=39000 wd=39000 pk=45000/true we=54800/true
+tpl 6人包棟 price=15500 wd=15500 pk=∅/false we=∅/false
+tpl 8人包棟 price=20600 wd=20600 pk=∅/false we=∅/false
+tpl 10人包棟 price=25800 wd=25800 pk=∅/false we=∅/false
+tpl 12人包棟 price=30900 wd=30900 pk=34300/true we=41200/true
+tpl 海景四人房 price=6900 wd=6900 pk=8000/true we=9700/true
+ERROR:  column "new_price_ui_enabled" does not exist
+LINE 1: select 'flags '||coalesce((select new_price_ui_enabled||'/'|...
+                                          ^
+==== 1. 依序套用 ①②③ ====
+---- ① 套用 ----
+DO
+SELECT 1
+ALTER TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+COMMENT
+CREATE POLICY
+DO
+DROP TABLE
+exit=0
+---- ② 套用 ----
+DO
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+exit=0
+---- ③ 套用 ----
+psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 c052f96ec671f5c6a80693acbc52accc / 雲岫專案其他欄位 70c8e187d1e11d61fff96d2abb54c6a3 / 其他館方案 efd08e0b9e1ba6e3f7a9daaf5eb94e2c / 其他館專案 5d030cd6a05ed4098b77044f91b7a6d5 / package_date_prices fba7d7dba5211e832c6c86317df5fb75 / room_inventory_pricing 3d04f5060f14ad7bfdfe1ab89eeeb1bd / 其他館 flags e25d61c0b9974f0e3ebe763904dee54f
+DO
+exit=0
+==== 套用後狀態 ====
+pkg 1001 {"weekday": {"sale": 8500, "original": 15500}} sale=8500.00 orig=15500.00
+pkg 1002 {"weekday": {"sale": 3600, "original": 6900}, "weekend": {"sale": 5800, "original": 9700}, "friday_sunday": {"sale": 4000, "original": 8000}} sale=3600.00 orig=6900.00
+pkg 1003 {"weekday": {"sale": 11000, "original": 20600}, "friday_sunday": {"sale": 13000, "original": 23600}} sale=11000.00 orig=20600.00
+pkg 1004 {"weekday": {"sale": 14400, "original": 25800}, "friday_sunday": {"sale": 16000, "original": 29000}} sale=14400.00 orig=25800.00
+pkg 1005 {"weekday": {"sale": 17000, "original": 30900}, "weekend": {"sale": 23000, "original": 41200}, "friday_sunday": {"sale": 19000, "original": 34300}} sale=17000.00 orig=30900.00
+pkg 1006 {"weekday": {"sale": 20000, "original": 36000}, "weekend": {"sale": 26000, "original": 48000}, "friday_sunday": {"sale": 22000, "original": 40000}} sale=20000.00 orig=36000.00
+pkg 1007 {"weekday": {"sale": 23000, "original": 41000}, "weekend": {"sale": 29000, "original": 54800}, "friday_sunday": {"sale": 25000, "original": 45000}} sale=23000.00 orig=41000.00
+tpl 14人包棟 price=36000 wd=36000 pk=40000/true we=48000/true
+tpl 16人包棟 price=41000 wd=41000 pk=45000/true we=54800/true
+tpl 6人包棟 price=15500 wd=15500 pk=∅/false we=∅/false
+tpl 8人包棟 price=20600 wd=20600 pk=23600/true we=∅/false
+tpl 10人包棟 price=25800 wd=25800 pk=29000/true we=∅/false
+tpl 12人包棟 price=30900 wd=30900 pk=34300/true we=41200/true
+tpl 海景四人房 price=6900 wd=6900 pk=8000/true we=9700/true
+flags true/package_original/false
+backup acl packages=postgres=arwdDxt/postgres,service_role=arwd/postgres rls=true
+fn prosecdef=true cfg=search_path=public acl=postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres
+==== 2. 重複套用（應全部中止） ====
+---- ① 重跑 ----
+psql:supabase/migrations/20261014090000_accommodation_info_flags_price_ui.sql:33: ERROR:  PRECHECK 失敗：開關欄位已存在，疑似已套用過本 migration
+CONTEXT:  PL/pgSQL function inline_code_block line 11 at RAISE
+exit=3
+---- ② 重跑 ----
+psql:supabase/migrations/20261014090001_save_package_tier_prices.sql:42: ERROR:  PRECHECK 失敗：public.save_package_tier_prices(uuid, jsonb) 已存在，疑似已套用過本 migration
+CONTEXT:  PL/pgSQL function inline_code_block line 5 at RAISE
+exit=3
+---- ③ 重跑 ----
+psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: ERROR:  PRECHECK 失敗：雲岫已有方案的 tier_prices 含 weekday，疑似已套用過本 migration
+CONTEXT:  PL/pgSQL function inline_code_block line 21 at RAISE
+exit=3
+==== 3. rollback ③ → ② → ① ====
+---- ③ rollback ----
+psql:docs/pricing-1a/rollback_20261014090002.sql:62: NOTICE:  ROLLBACK：還原方案 7 筆
+psql:docs/pricing-1a/rollback_20261014090002.sql:62: NOTICE:  ROLLBACK：還原專案 7 筆
+DO
+exit=0
+---- ② rollback ----
+DROP FUNCTION
+exit=0
+---- ① rollback ----
+DROP POLICY
+ALTER TABLE
+ALTER TABLE
+exit=0
+==== rollback 後狀態 ====
+pkg 1001 {} sale=8500.00 orig=15500.00
+pkg 1002 {"weekend": {"sale": 5800, "original": 9700}, "friday_sunday": {"sale": 4000, "original": 8000}} sale=3600.00 orig=6900.00
+pkg 1003 {"friday_sunday": {"sale": 13000, "original": 23600}} sale=11000.00 orig=20600.00
+pkg 1004 {"friday_sunday": {"sale": 16000, "original": 29000}} sale=14400.00 orig=25800.00
+pkg 1005 {"weekend": {"sale": 23000, "original": 41200}, "friday_sunday": {"sale": 19000, "original": 34300}} sale=17000.00 orig=30900.00
+pkg 1006 {"weekend": {"sale": 26000, "original": 48000}, "friday_sunday": {"sale": 22000, "original": 40000}} sale=20000.00 orig=36000.00
+pkg 1007 {"weekend": {"sale": 29000, "original": 54800}, "friday_sunday": {"sale": 25000, "original": 45000}} sale=23000.00 orig=41000.00
+tpl 14人包棟 price=36000 wd=36000 pk=40000/true we=48000/true
+tpl 16人包棟 price=39000 wd=39000 pk=45000/true we=54800/true
+tpl 6人包棟 price=15500 wd=15500 pk=∅/false we=∅/false
+tpl 8人包棟 price=20600 wd=20600 pk=∅/false we=∅/false
+tpl 10人包棟 price=25800 wd=25800 pk=∅/false we=∅/false
+tpl 12人包棟 price=30900 wd=30900 pk=34300/true we=41200/true
+tpl 海景四人房 price=6900 wd=6900 pk=8000/true we=9700/true
+ERROR:  column "new_price_ui_enabled" does not exist
+LINE 1: select 'flags '||coalesce((select new_price_ui_enabled||'/'|...
+                                          ^
+columns left=0
+fn exists=false
+policy left=0
+==== 4. 清掉備份表後重新套用 ①②③（供 E2） ====
+DROP TABLE
+---- ① 再套用 ----
+DO
+SELECT 1
+ALTER TABLE
+ALTER TABLE
+COMMENT
+COMMENT
+COMMENT
+CREATE POLICY
+DO
+DROP TABLE
+exit=0
+---- ② 再套用 ----
+DO
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+exit=0
+---- ③ 再套用 ----
+psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 c052f96ec671f5c6a80693acbc52accc / 雲岫專案其他欄位 70c8e187d1e11d61fff96d2abb54c6a3 / 其他館方案 efd08e0b9e1ba6e3f7a9daaf5eb94e2c / 其他館專案 5d030cd6a05ed4098b77044f91b7a6d5 / package_date_prices fba7d7dba5211e832c6c86317df5fb75 / room_inventory_pricing 3d04f5060f14ad7bfdfe1ab89eeeb1bd / 其他館 flags e25d61c0b9974f0e3ebe763904dee54f
+DO
+exit=0

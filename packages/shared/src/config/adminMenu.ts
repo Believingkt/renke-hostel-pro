@@ -48,6 +48,8 @@ export interface AdminSubMenuItem {
   title: string;
   url: string;
   icon?: LucideIcon;
+  /** 需館別開關（accommodation_info_flags）為 true 才顯示 */
+  requiresFlag?: "new_price_ui_enabled";
 }
 
 export interface AdminMenuItem {
@@ -114,6 +116,7 @@ export const ADMIN_MENU_ITEMS: AdminMenuItem[] = [
     subItems: [
       { title: "庫存設定", url: "/admin/room-price-calendar", icon: DollarSign },
       { title: "房價價格設定", url: "/admin/projects", icon: TrendingUp },
+      { title: "房型與方案", url: "/admin/room-plans", icon: Package, requiresFlag: "new_price_ui_enabled" },
       { title: "訂房入住方案", url: "/admin/packages", icon: Package },
       { title: "前台訂房價格", url: "/admin/package-price-calendar", icon: DollarSign },
       { title: "搜尋圖卡設定", url: "/admin/search-card", icon: Package },
