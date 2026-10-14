@@ -6,6 +6,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 import { autoCreatePendingOrder, cancelAutoPendingOrders, applyModificationToExistingOrder } from "../_shared/owltingAutoOrder.ts";
+import { classifyObeOwner, handlePmsOwnedEcho, handleOwnerCheckError, type OwnerCheck } from "../_shared/owltingEchoGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,9 @@ type IngestOutcome =
   | "order_created"
   | "order_cancelled"
   | "apply_failed"
-  | "staged";
+  | "staged"
+  | "pms_echo_ignored"
+  | "pms_echo_mismatch";
 
 /** 記錄本封信的處理結果（供後台看板統計 / 依 OBE 追查） */
 async function recordOutcome(
@@ -429,12 +432,41 @@ Deno.serve(async (req) => {
         }).eq("id", stagingRow.id);
       }
 
+      // 擁有者判斷（修改信／取消信）：PMS 擁有的訂單不套用、不重建、不建單、不取消，也不通知業主
+      const isCancelled = fields.message_type === "cancelled";
+      let owner: OwnerCheck | null = null;
+      if (stagingRow?.id && (isModified || isCancelled) && fields.obe_number) {
+        owner = await classifyObeOwner(supabase, fields.obe_number);
+        const echoDeps = { recordOutcome: (rawId: string, outcome: IngestOutcome, detail: Record<string, unknown>) => recordOutcome(supabase, rawId, outcome, detail) };
+        const messageType = isCancelled ? "cancelled" : "modified";
+        if (owner.kind === "pms" && !isNoopModification) {
+          await handlePmsOwnedEcho(supabase, {
+            rawId: inserted.id, stagingId: stagingRow.id, obe: fields.obe_number, owner,
+            mail: {
+              message_type: messageType,
+              check_in_date: fields.check_in_date ?? null,
+              check_out_date: fields.check_out_date ?? null,
+              room_type_name: fields.room_type_name ?? null,
+              room_quantity: fields.room_quantity ?? null,
+              total_amount: fields.total_amount ?? null,
+            },
+          }, echoDeps);
+        } else if (owner.kind === "error" && !isNoopModification) {
+          await handleOwnerCheckError(supabase, {
+            rawId: inserted.id, stagingId: stagingRow.id, obe: fields.obe_number, error: owner.error, messageType,
+          }, echoDeps);
+        }
+      }
+      // PMS 擁有或無法判斷：之後的自動套用、自動建單、自動取消、業主通知全部略過
+      const ownerBlocksAuto = owner?.kind === "pms" || owner?.kind === "error";
+
       // 修改通知（有實質差異 or 差異無法可靠判定）：更新既有訂單，不重複建單造成佔位。
       if (
         stagingRow?.id &&
         isModified &&
         !isNoopModification &&
-        fields.obe_number
+        fields.obe_number &&
+        !ownerBlocksAuto
       ) {
         const modRes = await applyModificationToExistingOrder(supabase, {
           staging_id: stagingRow.id,
@@ -528,6 +560,7 @@ Deno.serve(async (req) => {
         stagingRow?.id &&
         resolvedAccId &&
         !isNoopModification &&
+        !ownerBlocksAuto &&
         (fields.message_type === "cancelled" || fields.message_type === "modified")
       ) {
         fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
@@ -643,7 +676,7 @@ Deno.serve(async (req) => {
       }
 
       // NEW: cancelled email → auto-cancel any PMS orders linked to this OBE.
-      if (stagingRow?.id && fields.message_type === "cancelled" && fields.obe_number) {
+      if (stagingRow?.id && fields.message_type === "cancelled" && fields.obe_number && !ownerBlocksAuto) {
         // 同一 OBE 先前仍「待補」的 staging 也一併結束（不再提醒、不再顯示待補）
         await supabase.from("owlting_email_parsed_staging").update({
           pii_status: "skipped",
