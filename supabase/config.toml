@@ -33,6 +33,8 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.create-accommodation-ai-api-key]
     verify_jwt = true
+  [functions.create-pms-api-key]
+    verify_jwt = true
   [functions.create-user]
     verify_jwt = true
   [functions.delete-user]

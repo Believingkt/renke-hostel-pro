@@ -141,7 +141,7 @@ const menuItems = [
       { title: "系統設定", url: "/hq?tab=system&section=settings", icon: Settings },
       { title: "操作日誌", url: "/hq?tab=system&section=logs", icon: FileText },
       { title: "系統健康監控", url: "/hq?tab=system&section=health", icon: Activity },
-      { title: "民宿 API Keys", url: "/hq?tab=system&section=api-keys", icon: FileText },
+      { title: "PMS API 金鑰", url: "/hq/pms-api-keys", icon: FileText },
       { title: "奧丁丁服務帳號", url: "/hq?tab=system&section=owlting", icon: FileText },
       { title: "奧丁丁物業設定", url: "/hq?tab=system&section=owlting-config", icon: FileText },
       { title: "奧丁丁推送監控", url: "/hq?tab=system&section=owlting-push", icon: Activity },
@@ -239,6 +239,7 @@ export function HQSidebar() {
         || location.pathname.startsWith('/hq/trip-analytics')
         || location.pathname.startsWith('/hq/deploy-status');
     }
+    if (tab === 'system' && location.pathname.startsWith('/hq/pms-api-keys')) return true;
     if (location.pathname !== '/hq') return false;
     if (tab === 'overview') {
       return currentTab === 'overview' || !searchParams.has('tab');
