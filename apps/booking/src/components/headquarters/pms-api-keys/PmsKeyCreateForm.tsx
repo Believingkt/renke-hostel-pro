@@ -42,8 +42,18 @@ export function PmsKeyCreateForm({ primaryName, others, submitting, onCancel, on
           onChange={(e) => setName(e.target.value)} placeholder="例：PMS 每日營運報表、BI 儀表板" />
       </div>
       <div className="space-y-2">
-        <Label>額外可存取館別（選填）</Label>
-        <p className="text-xs text-muted-foreground">主館：「{primaryName}」。勾選任一館別即成為多館金鑰，一律強制唯讀。</p>
+        <div className="flex items-center justify-between">
+          <Label>額外可存取館別（選填）</Label>
+          <Button type="button" variant="outline" size="sm" data-testid="pms-key-scope-select-all"
+            onClick={() => {
+              const all = extraAccIds.length === others.length;
+              setExtraAccIds(all ? [] : others.map((a) => a.id));
+              if (!all) setReadWrite(false);
+            }}>
+            {others.length > 0 && extraAccIds.length === others.length ? "取消全選" : "全選所有館別"}
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">主館：「{primaryName}」。勾選任一館別即成為多館金鑰，一律強制唯讀。「全選所有館別」只包含產生當下的館別，之後新開的館需另外產生新金鑰。</p>
         <div className="max-h-40 overflow-y-auto rounded-md border p-2 space-y-1" data-testid="pms-key-scope-list">
           {others.map((a) => (
             <label key={a.id} className="flex items-center gap-2 py-1 cursor-pointer">

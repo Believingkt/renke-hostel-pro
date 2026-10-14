@@ -23,7 +23,7 @@ import {
 } from "./scenarioSim";
 import { buildFixtureRunResult, fixtureItemIndex, DEMO_FIXTURE_VERSION } from "./demoFixture";
 
-export const DEMO_PRESENTATION_VERSION = "demo-pres-v1.1.0";
+export const DEMO_PRESENTATION_VERSION = "demo-pres-v1.2.0";
 /** 各館發送日相隔 1 天，日期篩選才會對事件真正生效 */
 export const DEMO_VENUE_DAY_STRIDE = 1;
 

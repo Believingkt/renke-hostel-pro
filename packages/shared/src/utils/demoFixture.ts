@@ -23,7 +23,7 @@ import {
   type SimEvent,
 } from "./scenarioSim";
 
-export const DEMO_FIXTURE_VERSION = "demo-fixture-v1.1.0";
+export const DEMO_FIXTURE_VERSION = "demo-fixture-v1.2.0";
 
 /** 簡報用量級（可追溯的合成事件數量，不是顯示用的百分比） */
 export const DEMO_FIXTURE_SPEC = {
@@ -37,15 +37,21 @@ export const DEMO_FIXTURE_SPEC = {
   n1SkippedSends: [12, 14, 10, 9, 11],
   /** 每館 skipped 發送的點擊（只進 skippedClicks） */
   n1SkippedClicks: [5, 6, 4, 3, 5],
-  /** 每館 20 次推薦曝光分配到 4 個品項（合計 100） */
-  n2ShownSplit: [6, 5, 5, 4],
-  /** 每館各品項成交數量（合計 65 → 65/100＝65%） */
+  /** 每館各品項推薦曝光（各館 24／23／24／22／23，合計 116） */
+  n2ShownByVenue: [
+    [7, 6, 6, 5],
+    [7, 6, 5, 5],
+    [7, 6, 6, 5],
+    [6, 6, 5, 5],
+    [7, 6, 5, 5],
+  ],
+  /** 每館各品項成交數量（各館 15／14／15／13／15，合計 72 → 72/116≈62.1%；各品項 ≤ 該品項曝光） */
   n2QtyByVenue: [
-    [4, 3, 3, 2],
+    [5, 4, 3, 3],
+    [4, 4, 3, 3],
+    [5, 4, 3, 3],
     [4, 4, 3, 2],
-    [5, 4, 3, 2],
-    [4, 3, 3, 2],
-    [5, 4, 3, 2],
+    [5, 4, 3, 3],
   ],
   /** 每館固定的負面樣本數（依規則不計入分子） */
   negatives: {
@@ -200,7 +206,7 @@ export function buildFixtureEvents(input: {
 
     // ── N2：推薦曝光與歸因成交 ───────────────────────────────────
     const qtyByItem = spec.n2QtyByVenue[vi % spec.n2QtyByVenue.length];
-    spec.n2ShownSplit.forEach((shownCount, itemIndex) => {
+    spec.n2ShownByVenue[vi % spec.n2ShownByVenue.length].forEach((shownCount, itemIndex) => {
       const itemId = fixtureItemId(itemIndex);
       const targetQty = qtyByItem[itemIndex] ?? 0;
       for (let j = 0; j < shownCount; j += 1) {

@@ -41,14 +41,14 @@ const totalsN2 = (run: DemoRun, f: DemoFilters = ALL) => {
   };
 };
 
-describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不硬寫百分比", () => {
+describe("簡報示範 fixture（v1.2.0）：量級由合成事件算出，不硬寫百分比", () => {
   const run = buildDemoRun({ venues: VENUES, now: NOW, seed: 1 });
 
   it("run 帶 run ID、生成時間、示範版本、fixture 版本；不使用技術情境 80 案", () => {
     expect(run.runId.startsWith("DEMORUN-")).toBe(true);
     expect(run.generatedAt).toMatch(/\+08:00$/);
     expect(run.demoVersion).toBe(DEMO_PRESENTATION_VERSION);
-    expect(DEMO_PRESENTATION_VERSION).toBe("demo-pres-v1.1.0");
+    expect(DEMO_PRESENTATION_VERSION).toBe("demo-pres-v1.2.0");
     expect(run.fixtureVersion).toBe(DEMO_FIXTURE_VERSION);
     expect(run.scenarioVersion).toBe(SCENARIO_VERSION);
     expect(run.engine.cases).toHaveLength(0);
@@ -64,11 +64,11 @@ describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不�
     expect(run.engine.summary.simN1Ctr).toBe(22.4);
   });
 
-  it("N2 整體：推薦 100、成交數量 65 → 65%", () => {
+  it("N2 整體：推薦 116、成交數量 72 → 62.1%", () => {
     const t = totalsN2(run);
-    expect(t).toEqual({ rows: 20, shown: 100, purchasedQty: 65 });
-    expect(rate(t.purchasedQty, t.shown)).toBe(65);
-    expect(run.engine.summary.simN2Cvr).toBe(65);
+    expect(t).toEqual({ rows: 20, shown: 116, purchasedQty: 72 });
+    expect(rate(t.purchasedQty, t.shown)).toBe(62.1);
+    expect(run.engine.summary.simN2Cvr).toBe(62.1);
   });
 
   it("各館分布符合 fixture 規格，且是自然分布（非每館相同）", () => {
@@ -79,7 +79,7 @@ describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不�
     const n2 = demoN2Rows(run, DEFAULT_DEMO_NAMES, ALL);
     for (const [vi, venue] of VENUES.entries()) {
       const rows = n2.filter((r) => r.venueId === venue.id);
-      expect(rows.map((r) => r.shown)).toEqual([...DEMO_FIXTURE_SPEC.n2ShownSplit]);
+      expect(rows.map((r) => r.shown)).toEqual([...DEMO_FIXTURE_SPEC.n2ShownByVenue[vi]]);
       expect(rows.map((r) => r.purchasedQty)).toEqual([...DEMO_FIXTURE_SPEC.n2QtyByVenue[vi]]);
     }
   });
@@ -107,14 +107,14 @@ describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不�
 
     const b2 = fixtureBreakdown(run.engine.events, "N2");
     const count2 = (id: string) => b2.find((r) => r.caseId === id)?.count ?? 0;
-    expect(count2("demo-n2-shown")).toBe(100);
-    expect(count2("demo-n2-purchased")).toBe(65);
+    expect(count2("demo-n2-shown")).toBe(116);
+    expect(count2("demo-n2-purchased")).toBe(72);
     expect(count2("demo-n2-purchased-timeout")).toBe(5);
     expect(count2("demo-n2-purchased-cancelled")).toBe(5);
     expect(count2("demo-n2-purchased-other-traveler")).toBe(5);
     expect(count2("demo-n2-purchased-other-item")).toBe(5);
     // 20 筆負面加購事件（每筆 qty 2＝40 單位）全數未計入
-    expect(totalsN2(run).purchasedQty).toBe(65);
+    expect(totalsN2(run).purchasedQty).toBe(72);
   });
 
   it("移除負面樣本後分子不變（證明它們確實不在分子裡）", () => {
@@ -123,7 +123,7 @@ describe("簡報示範 fixture（v1.1.0）：量級由合成事件算出，不�
     const n1 = aggregateN1(positiveOnly).reduce((s, r) => s + r.orders, 0);
     const n2 = aggregateN2(positiveOnly).reduce((s, r) => s + r.purchasedQty, 0);
     expect(n1).toBe(40);
-    expect(n2).toBe(65);
+    expect(n2).toBe(72);
   });
 
   it("主表仍用指定的兩個活動名稱，品項為 4 個名稱，不出現 fixture 技術 ID", () => {
@@ -154,7 +154,7 @@ describe("篩選真正作用在模擬事件上", () => {
     expect(totalsN1(run, { ...ALL, venueIds: ["v1", "v2"] }))
       .toEqual({ rows: 4, sends: 420, clicks: 94, skippedClicks: 11, orders: 16 });
     expect(totalsN2(run, { ...ALL, venueIds: ["v1", "v2"] }))
-      .toEqual({ rows: 8, shown: 40, purchasedQty: 25 });
+      .toEqual({ rows: 8, shown: 47, purchasedQty: 29 });
   });
 
   it("日期篩選：2026-06-09~06-10 只剩 2 家；區間外為 0 列", () => {
@@ -195,7 +195,7 @@ describe("fixture 生成器本身", () => {
     const events = buildFixtureEvents({ runId: "R", venues: VENUES.slice(0, 2), now: NOW });
     const agg = aggregateN1(events);
     expect(agg.reduce((s, r) => s + r.sends, 0)).toBe(420);
-    expect(aggregateN2(events).reduce((s, r) => s + r.purchasedQty, 0)).toBe(25);
+    expect(aggregateN2(events).reduce((s, r) => s + r.purchasedQty, 0)).toBe(29);
   });
 });
 
@@ -216,7 +216,7 @@ describe("名稱編輯與重新執行", () => {
     }).toEqual(before);
     const n2 = demoN2Rows(run, names, ALL);
     expect(new Set(n2.map((r) => r.itemName))).toEqual(new Set(["A", "B", "C", "D"]));
-    expect(n2.reduce((s, r) => s + r.purchasedQty, 0)).toBe(65);
+    expect(n2.reduce((s, r) => s + r.purchasedQty, 0)).toBe(72);
   });
 
   it("重新執行不累加：統計相同、run ID 與事件 ID 不重疊", () => {
@@ -256,7 +256,7 @@ describe("示範資料隔離儲存與舊批次安全升級", () => {
     expect(loaded.mode).toBe("localStorage");
     expect(loaded.run?.venues.map((v) => v.id)).toEqual(VENUES.map((v) => v.id));
     expect(totalsN1(loaded.run!)).toEqual(totalsN1(run));
-    expect(totalsN2(loaded.run!).purchasedQty).toBe(65);
+    expect(totalsN2(loaded.run!).purchasedQty).toBe(72);
   });
 
   it("舊版（v1.0.0）批次：保留名稱設定、捨棄舊數據、回報版本不符", () => {

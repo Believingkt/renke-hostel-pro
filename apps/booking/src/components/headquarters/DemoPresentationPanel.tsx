@@ -60,6 +60,11 @@ export function useDemoPresentation(accommodations: AccommodationOption[]) {
     setStaleVersion(undefined);
   }, [accommodations]);
 
+  // 切到紀錄檢視時若無資料或版本不符（已被 loadDemo 清空），自動以目前版本重新產生
+  useEffect(() => {
+    if (mode === "demo" && !run && accommodations.length > 0) generate();
+  }, [mode, run, accommodations.length, generate]);
+
   const updateNames = useCallback((patch: Partial<DemoNameConfig>) => {
     setNames((prev) => {
       const next = { ...prev, ...patch };
