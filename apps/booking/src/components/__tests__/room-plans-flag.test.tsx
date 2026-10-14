@@ -4,7 +4,7 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 const state = {
-  flags: { newPriceUiEnabled: true, newOrderDialogEnabled: false, priceSyncMode: "package_original", loaded: true },
+  flags: { newPriceUiEnabled: true, newOrderDialogEnabled: false, priceSyncMode: "package_original", loaded: true, failed: false },
   channel: "owlting" as string | null,
   rpcCalls: [] as Array<{ fn: string; args: any }>,
 };
@@ -59,7 +59,7 @@ const renderPage = () => render(<MemoryRouter><RoomPlans /></MemoryRouter>);
 
 describe("「房型與方案」頁：只在啟用館出現", () => {
   beforeEach(() => {
-    state.flags = { newPriceUiEnabled: true, newOrderDialogEnabled: false, priceSyncMode: "package_original", loaded: true };
+    state.flags = { newPriceUiEnabled: true, newOrderDialogEnabled: false, priceSyncMode: "package_original", loaded: true, failed: false };
     state.channel = "owlting";
     state.rpcCalls = [];
   });

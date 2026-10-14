@@ -37,7 +37,7 @@ GRANT
 DO
 exit=0
 ---- ③ 套用 ----
-psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 c052f96ec671f5c6a80693acbc52accc / 雲岫專案其他欄位 70c8e187d1e11d61fff96d2abb54c6a3 / 其他館方案 efd08e0b9e1ba6e3f7a9daaf5eb94e2c / 其他館專案 5d030cd6a05ed4098b77044f91b7a6d5 / package_date_prices fba7d7dba5211e832c6c86317df5fb75 / room_inventory_pricing 3d04f5060f14ad7bfdfe1ab89eeeb1bd / 其他館 flags e25d61c0b9974f0e3ebe763904dee54f
+psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 bd7f24952d0124f65cb260131b5cd9f5 / 雲岫專案其他欄位 1f2f13fe5adb55afcaf76b9ba5f913ad / 其他館方案 6055323c79fcfd8b27b3ac16627f83f4 / 其他館專案 273490f4af785a854ab061b303832b8a / package_date_prices bfc8a6751f03be0e24384c0daafe1f4c / room_inventory_pricing c5f01bca53c6911cb66e79abf45ea03b / 其他館 flags 9770832de4e742ae86cd8b6db9bfb0dc
 DO
 exit=0
 ==== 套用後狀態 ====
@@ -128,6 +128,6 @@ GRANT
 DO
 exit=0
 ---- ③ 再套用 ----
-psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 c052f96ec671f5c6a80693acbc52accc / 雲岫專案其他欄位 70c8e187d1e11d61fff96d2abb54c6a3 / 其他館方案 efd08e0b9e1ba6e3f7a9daaf5eb94e2c / 其他館專案 5d030cd6a05ed4098b77044f91b7a6d5 / package_date_prices fba7d7dba5211e832c6c86317df5fb75 / room_inventory_pricing 3d04f5060f14ad7bfdfe1ab89eeeb1bd / 其他館 flags e25d61c0b9974f0e3ebe763904dee54f
+psql:supabase/migrations/20261014090002_yunxiu_tier_price_conversion.sql:290: NOTICE:  md5 雲岫方案其他欄位 bd7f24952d0124f65cb260131b5cd9f5 / 雲岫專案其他欄位 1f2f13fe5adb55afcaf76b9ba5f913ad / 其他館方案 6055323c79fcfd8b27b3ac16627f83f4 / 其他館專案 273490f4af785a854ab061b303832b8a / package_date_prices bfc8a6751f03be0e24384c0daafe1f4c / room_inventory_pricing c5f01bca53c6911cb66e79abf45ea03b / 其他館 flags 9770832de4e742ae86cd8b6db9bfb0dc
 DO
 exit=0

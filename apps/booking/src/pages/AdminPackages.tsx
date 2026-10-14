@@ -136,6 +136,8 @@ const AdminPackages = () => {
   const priceFlags = useAccommodationPriceFlags(currentAccommodationId);
   // 啟用新價格頁的館：編輯既有方案時價格唯讀（新增方案不受影響）
   const lockPrices = !!editing && priceFlags.newPriceUiEnabled;
+  // 館別開關載入完成前、或載入失敗時，一律不可儲存
+  const flagsBlockSave = !priceFlags.loaded || priceFlags.failed;
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -477,6 +479,13 @@ const AdminPackages = () => {
   };
 
   const handleSave = async () => {
+    if (flagsBlockSave) {
+      toast({
+        title: priceFlags.failed ? "無法讀取館別設定，暫時無法儲存" : "館別設定載入中，請稍候再儲存",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!currentAccommodationId) return;
     if (!form.name.trim()) {
       toast({ title: "請輸入方案名稱", variant: "destructive" });
@@ -537,6 +546,7 @@ const AdminPackages = () => {
       delete (payload as any).original_price;
       delete (payload as any).sale_price;
       delete (payload as any).tier_prices;
+      delete (payload as any).applicable_tiers;
     }
     const { data: saved, error } = editing
       ? await supabase.from("accommodation_packages").update(payload as any).eq("id", editing.id).select("id").maybeSingle()
@@ -1303,6 +1313,7 @@ const AdminPackages = () => {
                 {TIER_OPTIONS.map((opt) => (
                   <label key={opt.value} className="flex items-center gap-2 cursor-pointer">
                     <Checkbox
+                      disabled={lockPrices}
                       checked={form.applicable_tiers.includes(opt.value)}
                       onCheckedChange={(c) => {
                         setForm((f) => ({
@@ -1563,7 +1574,10 @@ const AdminPackages = () => {
             <Button variant="outline" onClick={() => setOpen(false)}>
               取消
             </Button>
-            <Button onClick={handleSave} disabled={saving}>
+            {priceFlags.failed && (
+              <span className="text-sm text-destructive" data-testid="package-flags-failed-notice">無法讀取館別設定，暫時無法儲存</span>
+            )}
+            <Button onClick={handleSave} disabled={saving || flagsBlockSave} data-testid="package-save-btn">
               {saving ? "儲存中..." : "儲存"}
             </Button>
           </DialogFooter>

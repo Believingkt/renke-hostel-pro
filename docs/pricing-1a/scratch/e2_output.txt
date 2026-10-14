@@ -129,7 +129,7 @@ ROLLBACK
 UPDATE 1
  template_name | price | weekday_price | peak_price | weekend_price |          updated_at           
 ---------------+-------+---------------+------------+---------------+-------------------------------
- B專案         |  8000 |          8000 |            |               | 2026-10-14 08:33:16.715584+00
+ B專案         |  8000 |          8000 |            |               | 2026-10-14 09:05:56.519674+00
 
 BEGIN
               set_config              
@@ -148,7 +148,7 @@ COMMIT
 
  template_name | price | weekday_price | peak_price | weekend_price |          updated_at           
 ---------------+-------+---------------+------------+---------------+-------------------------------
- B專案         |  8000 |          8000 |            |               | 2026-10-14 08:33:16.715584+00
+ B專案         |  8000 |          8000 |            |               | 2026-10-14 09:05:56.519674+00
 
 == E2-7 package_original 館（雲岫 12人包棟 1005）→ 方案與對應專案同步
                   id                  | numeric_code | enabled | guest_count | has_rooms 

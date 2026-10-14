@@ -1,0 +1,83 @@
+INSERT 0 2
+INSERT 0 1
+== E2-9 五種身分：get_staff_module_permission／staff_can_edit_module（雲岫、room_price）
+CREATE TABLE
+INSERT 0 5
+                   label                    | module_level | staff_can_edit_module 
+--------------------------------------------+--------------+-----------------------
+ super_admin（總部，accommodation_id NULL） | editable     | t
+ 總部 admin（accommodation_id NULL）        | hidden       | f
+ 雲岫 hotel_admin                           | editable     | t
+ 雲岫 staff（room_price=editable）          | editable     | t
+ 雲岫 staff（room_price=readonly）          | readonly     | f
+
+== E2-10 雲岫 hotel_admin 存檔（8人包棟 1003）→ 允許
+BEGIN
+              set_config              
+--------------------------------------
+ 22222222-2222-4222-8222-222222222222
+
+SET
+                                                                 save_package_tier_prices                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "a1950bd7-9f57-4552-b236-69b872a0cfaa", "synced_template_ids": ["326fc21c-982c-4511-aacb-21cc6f2d9712"]}
+
+COMMIT
+ numeric_code |                                             tier_prices                                              | sale_price | original_price |    applicable_tiers     
+--------------+------------------------------------------------------------------------------------------------------+------------+----------------+-------------------------
+         1003 | {"weekday": {"sale": 11000, "original": 20600}, "friday_sunday": {"sale": 13500, "original": 24000}} |   11000.00 |       20600.00 | {weekday,friday_sunday}
+
+ template_name | price | weekday_price | peak_price | peak_enabled | weekend_price | weekend_enabled 
+---------------+-------+---------------+------------+--------------+---------------+-----------------
+ 8人包棟       | 20600 |         20600 |      24000 | t            |               | f
+
+== E2-11 super_admin（總部，accommodation_id NULL）存檔（10人包棟 1004）→ 允許
+BEGIN
+              set_config              
+--------------------------------------
+ 11111111-1111-4111-8111-111111111111
+
+SET
+                                                                 save_package_tier_prices                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "b2c17a5f-a9ad-4163-b21a-bcf8131a264e", "synced_template_ids": ["7577b6f2-dc13-401d-8811-fb1f009e3e89"]}
+
+COMMIT
+ numeric_code |                                                                     tier_prices                                                                     | sale_price | original_price |        applicable_tiers         
+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+------------+----------------+---------------------------------
+         1004 | {"weekday": {"sale": 14400, "original": 25800}, "weekend": {"sale": 18000, "original": 18000}, "friday_sunday": {"sale": 16000, "original": 29000}} |   14400.00 |       25800.00 | {weekday,friday_sunday,weekend}
+
+ template_name | price | weekday_price | peak_price | peak_enabled | weekend_price | weekend_enabled 
+---------------+-------+---------------+------------+--------------+---------------+-----------------
+ 10人包棟      | 25800 |         25800 |      29000 | t            |         18000 | t
+
+== E2-12 雲岫 staff（room_price=editable）存檔（14人包棟 1006）→ 允許
+BEGIN
+              set_config              
+--------------------------------------
+ 66666666-6666-4666-8666-666666666666
+
+SET
+                                                                 save_package_tier_prices                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"sync_mode": "package_original", "package_id": "620e7294-4a5d-418c-be11-aa29a9720102", "synced_template_ids": ["2945cc9e-a26b-407b-8772-cf79bfd79d62"]}
+
+COMMIT
+ numeric_code |                                                                     tier_prices                                                                     | sale_price | original_price |        applicable_tiers         
+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------+------------+----------------+---------------------------------
+         1006 | {"weekday": {"sale": 20000, "original": 36000}, "weekend": {"sale": 26500, "original": 48000}, "friday_sunday": {"sale": 22000, "original": 40000}} |   20000.00 |       36000.00 | {weekday,friday_sunday,weekend}
+
+ template_name | price | weekday_price | peak_price | peak_enabled | weekend_price | weekend_enabled 
+---------------+-------+---------------+------------+--------------+---------------+-----------------
+ 14人包棟      | 36000 |         36000 |      40000 | t            |         48000 | t
+
+== E2-13 總部 admin（非 super_admin）存檔 → 拒絕（記錄現況）
+BEGIN
+              set_config              
+--------------------------------------
+ 55555555-5555-4555-8555-555555555555
+
+SET
+psql:docs/pricing-1a/scratch/e2b_allowed_cases.sql:53: ERROR:  沒有房價編輯權限
+CONTEXT:  PL/pgSQL function save_package_tier_prices(uuid,jsonb) line 29 at RAISE
+ROLLBACK

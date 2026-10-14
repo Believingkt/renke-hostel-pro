@@ -128,12 +128,31 @@ describe("新價格頁啟用館：專案價格唯讀、庫存量隱藏；未啟�
 
   it("AdminPackages：只有『編輯既有方案』且館別啟用時唯讀；新增方案不受影響", () => {
     expect(pkgSrc).toContain("const lockPrices = !!editing && priceFlags.newPriceUiEnabled;");
-    expect(pkgSrc.match(/disabled=\{lockPrices\}/g)?.length).toBe(5);
+    expect(pkgSrc.match(/disabled=\{lockPrices\}/g)?.length).toBe(6);
     expect(pkgSrc).toContain("{!lockPrices && TIER_OPTIONS.filter");
     expect(pkgSrc).toContain("價格請到『房型與方案』編輯");
     const guard = pkgSrc.slice(pkgSrc.indexOf("if (lockPrices) {"), pkgSrc.indexOf("const { data: saved, error } = editing"));
     expect(guard).toContain("delete (payload as any).original_price;");
     expect(guard).toContain("delete (payload as any).sale_price;");
     expect(guard).toContain("delete (payload as any).tier_prices;");
+    expect(guard).toContain("delete (payload as any).applicable_tiers;");
+  });
+
+  it("AdminPackages：適用日型與價格同一唯讀條件", () => {
+    const tiers = pkgSrc.slice(pkgSrc.indexOf("<Label>適用日 *</Label>"), pkgSrc.indexOf("<Label>適用日 *</Label>") + 600);
+    expect(tiers).toContain("disabled={lockPrices}");
+  });
+
+  it("兩個舊頁面：館別開關載入完成前或載入失敗時一律不可儲存（按鈕停用＋handler guard＋失敗提示）", () => {
+    for (const s of [src, pkgSrc]) {
+      expect(s).toContain("const flagsBlockSave = !priceFlags.loaded || priceFlags.failed;");
+      expect(s).toContain("無法讀取館別設定，暫時無法儲存");
+    }
+    expect(pkgSrc).toContain("disabled={saving || flagsBlockSave}");
+    expect(src).toContain("<Button onClick={handleSubmit} disabled={flagsBlockSave}");
+    const pkgSave = pkgSrc.slice(pkgSrc.indexOf("const handleSave = async () => {"), pkgSrc.indexOf("const handleSave = async () => {") + 200);
+    expect(pkgSave).toContain("if (flagsBlockSave) {");
+    const tplSave = src.slice(src.indexOf("const handleSubmit = async () => {"), src.indexOf("const handleSubmit = async () => {") + 200);
+    expect(tplSave).toContain("if (flagsBlockSave) {");
   });
 });

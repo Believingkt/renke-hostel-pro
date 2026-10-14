@@ -133,6 +133,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const priceFlags = useAccommodationPriceFlags(accommodationId);
   // 啟用新價格頁的館：已綁定方案（default_package_id）的專案，三層價格由方案原價同步，此處唯讀
   const lockTplPrices = priceFlags.newPriceUiEnabled && !!(editingTemplate as any)?.default_package_id;
+  // 館別開關載入完成前、或載入失敗時，一律不可儲存
+  const flagsBlockSave = !priceFlags.loaded || priceFlags.failed;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
@@ -576,6 +578,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
   const handleSubmit = async () => {
     if (!canEditRoomPrice) return denyWrite();
+    if (flagsBlockSave) {
+      toast.error(priceFlags.failed ? '無法讀取館別設定，暫時無法儲存' : '館別設定載入中，請稍候再儲存');
+      return;
+    }
     if (!validateForm()) {
       toast.error('請修正表單錯誤後再試');
       return;
@@ -1700,8 +1706,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            {priceFlags.failed && (
+              <span className="text-sm text-destructive self-center" data-testid="template-flags-failed-notice">無法讀取館別設定，暫時無法儲存</span>
+            )}
             {canEditRoomPrice && (
-            <Button onClick={handleSubmit} className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
+            <Button onClick={handleSubmit} disabled={flagsBlockSave} data-testid="template-save-btn" className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
               {editingTemplate ? '更新' : '新增'}
             </Button>
