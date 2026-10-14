@@ -160,9 +160,14 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- ---- revision 衝突保護（PT409 → HTTP 409） ----
+  IF p_expected_revision IS NULL OR p_expected_revision < 0 THEN
+    RAISE EXCEPTION 'invalid_payload: expected_revision must be >= 0' USING ERRCODE = '22023';
+  END IF;
+
+  -- ---- revision 衝突保護（PT409 → HTTP 409）；固定 slot 鍵的交易鎖讓空表首次發布也序列化 ----
+  PERFORM pg_advisory_xact_lock(hashtextextended('hq_shared_demo:analytics', 0));
   SELECT * INTO cur FROM public.hq_shared_demo_datasets WHERE slot = 'analytics' FOR UPDATE;
-  IF p_expected_revision IS NULL OR p_expected_revision <> coalesce(cur.revision, 0) THEN
+  IF p_expected_revision <> coalesce(cur.revision, 0) THEN
     RAISE EXCEPTION 'revision_conflict'
       USING ERRCODE = 'PT409', DETAIL = format('current_revision=%s', coalesce(cur.revision, 0));
   END IF;
