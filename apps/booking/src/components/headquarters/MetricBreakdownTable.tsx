@@ -55,12 +55,13 @@ interface Props<R> {
   csvFileName: string;
   extraHeader?: ReactNode;
   showIncludeInternal?: boolean;
+  showScopeNotes?: boolean;
 }
 
 export function MetricBreakdownTable<R>({
   title, description, scopeNotes, columns, rows, rowKey, loading, error,
   filters, onFiltersChange, onReload, accommodations, channelOptions, csvFileName, extraHeader,
-  showIncludeInternal = true,
+  showIncludeInternal = true, showScopeNotes = true,
 }: Props<R>) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -182,9 +183,11 @@ export function MetricBreakdownTable<R>({
               ))}
             </div>
           </div>
-          <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5" data-testid="bd-scope-notes">
-            {scopeNotes.map((n) => <li key={n}>{n}</li>)}
-          </ul>
+          {showScopeNotes && (
+            <ul className="text-xs text-muted-foreground list-disc pl-4 space-y-0.5" data-testid="bd-scope-notes">
+              {scopeNotes.map((n) => <li key={n}>{n}</li>)}
+            </ul>
+          )}
           {error && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" data-testid="bd-error">
               RPC 錯誤：{error}

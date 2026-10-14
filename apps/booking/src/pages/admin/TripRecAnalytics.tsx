@@ -78,6 +78,7 @@ export default function TripRecAnalytics() {
         title="行程推薦明細"
         description="資料來源：ai_metric_events（LINE 管家、官網小安、電腦版管家、行程產生頁）"
         scopeNotes={SCOPE_NOTES}
+        showScopeNotes={false}
         columns={columns}
         rows={rows}
         rowKey={(r) => `${r.accommodation_id ?? "null"}:${r.ref_id}`}
