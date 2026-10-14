@@ -6,6 +6,7 @@ import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { mergeLaterStaging, normalizeMerged } from "../_shared/owltingStagingMerge.ts";
 import { extractSpecialRequests } from "../_shared/owltingSpecialRequests.ts";
 import { upsertCustomerForOrder } from "../_shared/customerUpsert.ts";
+import { pickFillupRows, writeFillupRooms } from "../_shared/fillupRooms.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -326,8 +327,6 @@ Deno.serve(async (req) => {
         }
         inserted = updated as any;
         updatedExisting = true;
-        // Clear existing order_rooms so we can re-insert per assignment.
-        await admin.from("order_rooms").delete().eq("order_id", pendingOrder.id);
       }
     }
 
@@ -425,44 +424,25 @@ Deno.serve(async (req) => {
       pickedByType.set(a.room_type_id, picked);
     }
 
-    // Pass 2: insert rows, auto-picking any remaining
-    for (const a of roomAssignments) {
-      let assignedUnitId: string | null = a.room_unit_id;
-      try {
-        if (!assignedUnitId) {
-          const units = unitCache.get(a.room_type_id) ?? [];
-          const busy = busyCache.get(a.room_type_id) ?? new Set<string>();
-          const picked = pickedByType.get(a.room_type_id) ?? new Set<string>();
-          const free = units.find((u) => !busy.has(u.id) && !picked.has(u.id));
-          if (free) {
-            assignedUnitId = free.id;
-            picked.add(free.id);
-            pickedByType.set(a.room_type_id, picked);
-          }
-        }
-
-        const { error: orErr } = await admin.from("order_rooms").insert({
-          order_id: inserted!.id,
-          room_type_id: a.room_type_id,
-          quantity: 1,
-          room_price: perRoomPrice,
-          room_unit_id: assignedUnitId,
-        });
-        if (orErr) {
-          console.error("[owlting-fillup-submit] order_rooms insert error:", orErr);
-          if (assignedUnitId) {
-            await admin.from("order_rooms").insert({
-              order_id: inserted!.id,
-              room_type_id: a.room_type_id,
-              quantity: 1,
-              room_price: perRoomPrice,
-              room_unit_id: null,
-            });
-          }
-        }
-      } catch (e) {
-        console.error("[owlting-fillup-submit] assign room unit failed:", e);
-      }
+    // Pass 2: 組好全部列，以 sync_order_rooms_v1 在單一交易內寫入（含刪除舊明細）；失敗時保留訂單、不刪除
+    const rows = pickFillupRows(roomAssignments, unitCache, busyCache, pickedByType, perRoomPrice);
+    const unitNumberById = new Map<string, string>();
+    for (const list of unitCache.values()) for (const u of list) unitNumberById.set(u.id, u.unit_number);
+    const roomsRes = await writeFillupRooms(admin, {
+      orderId: inserted!.id,
+      orderNumber: inserted!.order_number,
+      updatedExisting,
+      rows,
+      stagingId: staging.id,
+      obeNumber: staging.obe_number ?? null,
+      accommodationId: accId ?? null,
+      unitNumberById,
+    });
+    if (!roomsRes.ok) {
+      // 不標記 staging promoted、不標記 token used，讓業主可重新送出
+      return new Response(JSON.stringify(roomsRes.body), {
+        status: roomsRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
 
@@ -563,6 +543,7 @@ Deno.serve(async (req) => {
       order_id: inserted!.id,
       order_number: inserted!.order_number,
       email_sent: emailSent,
+      unassigned_rooms: roomsRes.unassigned,
     }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("[owlting-fillup-submit] fatal:", e);
