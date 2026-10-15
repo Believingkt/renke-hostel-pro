@@ -6,7 +6,7 @@ import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
 import {
   buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoOverlaps, demoRange, fmtRate, toCsv,
-  FORMULA, INTERNAL_NOTE, MIN_VENUES, SCOPE_NOTE, TARGET_RATE,
+  FORMULA, INTERNAL_NOTE, MIN_VENUES, SCOPE_NOTE,
   type ConversionResult, type DemoRun, type DemoVenue, type Filters,
 } from "@lakeze/shared/lib/aiBookingConversion";
 
@@ -22,41 +22,21 @@ function download(csv: string, name: string) {
   URL.revokeObjectURL(a.href);
 }
 
-function Kpi({ label, value, hint, testId }: { label: string; value: string; hint?: string; testId: string }) {
-  return (
-    <div className="rounded-lg border bg-card p-4" data-testid={testId}>
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-2xl font-semibold mt-1">{value}</div>
-      {hint && <div className="text-xs text-muted-foreground mt-1">{hint}</div>}
-    </div>
-  );
-}
-
 function ResultView({ result }: { result: ConversionResult }) {
   const t = result.totals;
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi testId="aibk-total-rate" label="AI 訂房轉換率（合計加權）" value={fmtRate(t.rate)}
-          hint={`${t.ai_orders} ÷ ${t.effective_orders}｜目標 ≥ ${(TARGET_RATE * 100).toFixed(1)}%：${t.effective_orders ? (t.meets_target ? "達標" : "未達標") : "—"}`} />
-        <Kpi testId="aibk-total-ai" label="AI 推薦訂房數（分子）" value={String(t.ai_orders)} hint="目前只計 AI 再行銷推播可驗證歸因" />
-        <Kpi testId="aibk-total-effective" label="有效訂房數（分母）" value={String(t.effective_orders)} hint="所有訂單來源，已確認／已入住／已退房" />
-        <Kpi testId="aibk-venues" label="選取館數／有有效訂房館數" value={`${result.selected_venues}／${result.venues_with_orders}`} hint={`目標至少 ${MIN_VENUES} 家業者`} />
-      </div>
       {result.venues_with_orders < MIN_VENUES && (
         <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" data-testid="aibk-min-venues-warning">
           有有效訂房的館別只有 {result.venues_with_orders} 家，少於 {MIN_VENUES} 家；此結果不足以作為「至少 {MIN_VENUES} 家業者」的達標依據。
         </div>
       )}
-      <div className="text-xs text-muted-foreground" data-testid="aibk-coverage">
-        有歸因紀錄訂房數 {t.attributed_orders}（歸因涵蓋率 {fmtRate(t.attribution_coverage)}）：僅表示訂單帶有任何來源參數紀錄，不是 AI 成功率；沒有歸因紀錄的訂單多數本來就不是經由追蹤連結進站。
-      </div>
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full text-sm" data-testid="aibk-table">
           <thead className="bg-muted/50 text-left">
             <tr>
               <th className="p-2">館別</th><th className="p-2 text-right">有效訂房數</th><th className="p-2 text-right">AI 推薦訂房數</th>
-              <th className="p-2 text-right">AI 訂房轉換率</th><th className="p-2">≥2.5%</th><th className="p-2 text-right">有歸因紀錄訂房數</th>
+              <th className="p-2 text-right">AI 訂房轉換率</th>
             </tr>
           </thead>
           <tbody>
@@ -66,14 +46,11 @@ function ResultView({ result }: { result: ConversionResult }) {
                 <td className="p-2 text-right">{r.effective_orders}</td>
                 <td className="p-2 text-right">{r.ai_orders}</td>
                 <td className="p-2 text-right">{fmtRate(r.rate)}</td>
-                <td className="p-2">{r.effective_orders ? (r.meets_target ? "達標" : "未達標") : "—"}</td>
-                <td className="p-2 text-right">{r.attributed_orders}</td>
               </tr>
             ))}
             <tr className="border-t font-medium bg-muted/30">
-              <td className="p-2">合計（加權）</td><td className="p-2 text-right">{t.effective_orders}</td><td className="p-2 text-right">{t.ai_orders}</td>
-              <td className="p-2 text-right">{fmtRate(t.rate)}</td><td className="p-2">{t.effective_orders ? (t.meets_target ? "達標" : "未達標") : "—"}</td>
-              <td className="p-2 text-right">{t.attributed_orders}</td>
+              <td className="p-2">合計</td><td className="p-2 text-right">{t.effective_orders}</td><td className="p-2 text-right">{t.ai_orders}</td>
+              <td className="p-2 text-right">{fmtRate(t.rate)}</td>
             </tr>
           </tbody>
         </table>
