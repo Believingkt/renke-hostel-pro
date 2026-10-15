@@ -93,7 +93,7 @@ export default function AddonRecAnalytics() {
     { key: "item", label: "加購品項", kind: "text", value: (r) => r.itemName },
     { key: "shown", label: "推薦總數", kind: "number", value: (r) => r.shown },
     { key: "qty", label: "成交數量", kind: "number", value: (r) => r.purchasedQty },
-    { key: "cvr", label: "加購轉換率%（數量／推薦）", kind: "rate", num: (r) => r.purchasedQty, den: (r) => r.shown },
+    { key: "cvr", label: "轉換率%", kind: "rate", num: (r) => r.purchasedQty, den: (r) => r.shown },
   ];
 
   const sharedRows = useMemo(

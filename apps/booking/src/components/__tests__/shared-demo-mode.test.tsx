@@ -89,6 +89,8 @@ describe("共用資料集（紀錄）模式", () => {
     expect(text).not.toContain("Demo 測試資料");
     expect(text).not.toContain("資料性質");
     expect(text).toContain("加購推薦明細");
+    expect(text).toContain("轉換率%");
+    expect(text).not.toContain("加購轉換率%（數量／推薦）");
     click.mockRestore();
   });
 
