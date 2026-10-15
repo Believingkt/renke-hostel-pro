@@ -21,21 +21,21 @@ describe("AI 訂房轉換 Demo fixture", () => {
     expect(() => buildDemoRun(venues.slice(0, 4))).toThrow();
   });
 
-  it("v1.1.0：逐筆合成訂單算出有效 7/8/6/9/5、AI 1/0/0/0/0，合計 1/35=2.857142…%＝2.86%", () => {
+  it("v1.1.0：逐筆合成訂單算出有效 203/247/186/229/165、AI 6/7/4/6/5，合計 28/1030=2.7184466%＝2.72%", () => {
     const orders = buildDemoOrders(run);
-    expect(orders).toHaveLength(35);
-    expect(orders.filter((o) => o.is_ai)).toHaveLength(1);
+    expect(orders).toHaveLength(1030);
+    expect(orders.filter((o) => o.is_ai)).toHaveLength(28);
     const r = computeConversion(orders, run.venues, all());
-    expect(r.rows.map((x) => x.effective_orders)).toEqual([7, 8, 6, 9, 5]);
-    expect(r.rows.map((x) => x.ai_orders)).toEqual([1, 0, 0, 0, 0]);
-    expect(r.rows.every((x) => Number.isInteger(x.effective_orders) && x.effective_orders >= 1 && x.effective_orders <= 9)).toBe(true);
+    expect(r.rows.map((x) => x.effective_orders)).toEqual([203, 247, 186, 229, 165]);
+    expect(r.rows.map((x) => x.ai_orders)).toEqual([6, 7, 4, 6, 5]);
+    expect(r.rows.every((x) => Number.isInteger(x.effective_orders) && x.effective_orders >= 100 && x.effective_orders % 10 !== 0)).toBe(true);
     expect(r.rows.every((x) => x.ai_orders >= 0 && x.ai_orders <= x.effective_orders)).toBe(true);
-    expect([r.totals.effective_orders, r.totals.ai_orders]).toEqual([35, 1]);
-    expect(r.totals.rate).toBe(1 / 35);
-    expect(Math.trunc(r.totals.rate! * 100 * 1e6) / 1e6).toBe(2.857142);
-    expect(fmtRate(r.totals.rate)).toBe("2.86%");
+    expect([r.totals.effective_orders, r.totals.ai_orders]).toEqual([1030, 28]);
+    expect(r.totals.rate).toBe(28 / 1030);
+    expect(Math.trunc(r.totals.rate! * 100 * 1e7) / 1e7).toBe(2.7184466);
+    expect(fmtRate(r.totals.rate)).toBe("2.72%");
     expect(r.totals.meets_target).toBe(true);
-    expect(r.rows.map((x) => x.meets_target)).toEqual([true, false, false, false, false]);
+    expect(r.rows.map((x) => x.meets_target)).toEqual([true, true, false, true, true]);
     expect([r.selected_venues, r.venues_with_orders]).toEqual([5, 5]);
   });
 
@@ -59,7 +59,7 @@ describe("AI 訂房轉換 Demo fixture", () => {
     const other = { ...run, runId: "AIBKRUN-20261016-090000-7" };
     expect(buildDemoOrders(other).map((o) => o.date)).not.toEqual(buildDemoOrders(run).map((o) => o.date));
     const r = computeConversion(buildDemoOrders(other), other.venues, all());
-    expect([r.totals.effective_orders, r.totals.ai_orders]).toEqual([35, 1]);
+    expect([r.totals.effective_orders, r.totals.ai_orders]).toEqual([1030, 28]);
   });
 
   it("日期／館別／來源篩選真的作用在事件上，分子分母同時篩", () => {
@@ -69,14 +69,16 @@ describe("AI 訂房轉換 Demo fixture", () => {
     expect(firstDay.totals.effective_orders).toBe(orders.filter((o) => o.date === from).length);
     const aiDate = orders.find((o) => o.is_ai)!.date;
     const aiDay = computeConversion(orders, run.venues, { from: aiDate, to: aiDate, accommodationIds: null, orderSource: null });
-    expect(aiDay.totals.ai_orders).toBe(1);
+    expect(aiDay.totals.ai_orders).toBe(orders.filter((o) => o.is_ai && o.date === aiDate).length);
+    expect(aiDay.totals.ai_orders).toBeGreaterThanOrEqual(1);
+    expect(aiDay.totals.ai_orders).toBeLessThan(28);
     expect(aiDay.totals.effective_orders).toBe(orders.filter((o) => o.date === aiDate).length);
     const hakuna = computeConversion(orders, run.venues, { from, to, accommodationIds: [run.venues[0].id], orderSource: null });
-    expect([hakuna.rows.length, hakuna.totals.effective_orders, hakuna.totals.ai_orders]).toEqual([1, 7, 1]);
+    expect([hakuna.rows.length, hakuna.totals.effective_orders, hakuna.totals.ai_orders]).toEqual([1, 203, 6]);
     const tensou = computeConversion(orders, run.venues, { from, to, accommodationIds: [run.venues[2].id], orderSource: null });
-    expect([tensou.totals.effective_orders, tensou.totals.ai_orders, tensou.totals.meets_target]).toEqual([6, 0, false]);
+    expect([tensou.totals.effective_orders, tensou.totals.ai_orders, tensou.totals.meets_target]).toEqual([186, 4, false]);
     const web = computeConversion(orders, run.venues, { from, to, accommodationIds: null, orderSource: "website" });
-    expect(web.totals.ai_orders).toBe(1);
+    expect(web.totals.ai_orders).toBe(28);
     expect(web.totals.effective_orders).toBe(orders.filter((o) => o.order_source === "website").length);
     const ota = computeConversion(orders, run.venues, { from, to, accommodationIds: null, orderSource: "owlting" });
     expect(ota.totals.ai_orders).toBe(0);
@@ -113,7 +115,7 @@ describe("AI 訂房轉換 Demo fixture", () => {
     const demo = toCsv(r, { demo: true, runId: run.runId, filters: all() });
     expect(demo).toContain(DEMO_LABEL);
     expect(demo).toContain(run.runId);
-    expect(demo).toContain('"2.86%"');
+    expect(demo).toContain('"2.72%"');
     expect(demo.split("\n").filter((l) => l.startsWith('"Demo"'))).toHaveLength(6);
     const prod = toCsv(r, { demo: false, filters: all() });
     expect(prod).toContain("目前僅涵蓋可驗證的 AI 再行銷推播歸因");

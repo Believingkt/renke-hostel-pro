@@ -12,7 +12,7 @@ export const FIXTURE_VERSION = "aibk-fixture-v1.1.0";
 /** 各 fixture 版本的每館合成訂單數／AI 數（依 run.venues 順序）；舊版保留，舊 run 重建數值不變 */
 export const DEMO_FIXTURES: Record<string, { orders: number[]; ai: number[] }> = {
   "aibk-fixture-v1.0.0": { orders: [200, 240, 180, 220, 160], ai: [6, 7, 4, 6, 5] },
-  "aibk-fixture-v1.1.0": { orders: [7, 8, 6, 9, 5], ai: [1, 0, 0, 0, 0] },
+  "aibk-fixture-v1.1.0": { orders: [203, 247, 186, 229, 165], ai: [6, 7, 4, 6, 5] },
 };
 const DEMO_SOURCES = ["website", "owlting", "manual", "hotelnabe"];
 const DEMO_DAYS = 30;
