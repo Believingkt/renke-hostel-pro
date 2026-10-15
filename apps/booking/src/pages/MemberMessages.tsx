@@ -19,6 +19,7 @@ import {
 } from "@lakeze/shared/lib/appBadge";
 import { getCategoryUnread, type MessageCategory } from "@lakeze/shared/lib/messagesUnread";
 import { useIsNativeApp } from "@lakeze/shared/hooks/use-is-native-app";
+import { getIntercomAppId, showIntercom } from "@lakeze/shared/lib/intercom";
 import { OFFLINE_KEYS, readOfflineCache, writeOfflineCache } from "@/lib/native/offlineStore";
 import PullToRefresh from "@/components/native/PullToRefresh";
 import OfflineBanner from "@lakeze/shared/components/native/OfflineBanner";
@@ -312,12 +313,23 @@ const MemberMessages = () => {
             </span>
           )}
         </h1>
-        <button
-          onClick={handleMarkAllRead}
-          className="text-xs text-orange-500 font-medium"
-        >
-          全部已讀
-        </button>
+        <div className="flex items-center gap-3">
+          {native && getIntercomAppId() && (
+            <button
+              data-testid="member-messages-contact-support-btn"
+              onClick={showIntercom}
+              className="text-xs font-medium border border-orange-500 text-orange-500 rounded-full px-3 h-7"
+            >
+              聯絡客服
+            </button>
+          )}
+          <button
+            onClick={handleMarkAllRead}
+            className="text-xs text-orange-500 font-medium"
+          >
+            全部已讀
+          </button>
+        </div>
       </div>
 
       {/* Notify banner */}

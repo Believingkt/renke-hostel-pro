@@ -381,3 +381,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.migration-env-dump]
     verify_jwt = false
+  [functions.intercom-user-hash]
+    verify_jwt = false

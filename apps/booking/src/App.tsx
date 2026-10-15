@@ -34,6 +34,7 @@ import Auth from "@/pages/Auth";
 const OAuthConsent = lazy(() => import("@/pages/OAuthConsent"));
 import HQAuth from "@/pages/HQAuth";
 import TeamAuth from "@/pages/TeamAuth";
+import { IntercomMessenger } from "@lakeze/shared/components/IntercomMessenger";
 const PmsLogin = lazy(() => import("@/pages/PmsLogin"));
 
 // 平台入口 & 會員頁面 - lazy load
@@ -217,6 +218,7 @@ function App() {
   return (
     <BrowserRouter>
       <AccommodationProvider>
+        <IntercomMessenger />
         <HQDomainRedirect>
         <BookingDomainRedirect>
         <PmsDomainGuard>
