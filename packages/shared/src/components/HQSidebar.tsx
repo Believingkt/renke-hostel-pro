@@ -120,6 +120,7 @@ const menuItems = [
       { title: "AI 再行銷推播", url: "/hq/remarketing", icon: Send },
       { title: "再行銷轉換分析", url: "/hq/remarketing-analytics", icon: Sparkles },
       { title: "加購推薦分析", url: "/hq/addon-analytics", icon: Sparkles },
+      { title: "AI 訂房轉換分析", url: "/hq/ai-booking-conversion", icon: Sparkles },
     ],
   },
   {

@@ -100,6 +100,7 @@ const DeployStatus = lazy(() => import("@/pages/admin/DeployStatus"));
 const TripRecAnalytics = lazy(() => import("@/pages/admin/TripRecAnalytics"));
 const RemarketingAnalytics = lazy(() => import("@/pages/admin/RemarketingAnalytics"));
 const AddonRecAnalytics = lazy(() => import("@/pages/admin/AddonRecAnalytics"));
+const AiBookingConversion = lazy(() => import("@/pages/admin/AiBookingConversion"));
 const ScenarioValidation = lazy(() => import("@/pages/admin/ScenarioValidation"));
 const PmsApiKeys = lazy(() => import("@/pages/admin/PmsApiKeys"));
 const TripDetail = lazy(() => import("@/pages/TripDetail"));
@@ -832,6 +833,9 @@ function App() {
                       } />
                       <Route path="/hq/addon-analytics" element={
                         <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><AddonRecAnalytics /></Suspense>
+                      } />
+                      <Route path="/hq/ai-booking-conversion" element={
+                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AiBookingConversion /></Suspense>
                       } />
                       {/* 隔離模擬器：情境測試資料，非實際營運成果 */}
                       <Route path="/hq/scenario-validation" element={
