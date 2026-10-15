@@ -385,3 +385,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.export-fin-knowledge]
     verify_jwt = false
+  [functions.fin-line-callback]
+    verify_jwt = false

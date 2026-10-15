@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { maybeForward } from "../_shared/migrationForward.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { handleButlerEvent } from "../_shared/lineButler.ts";
+import { butlerFinEnabled, finConfigured, finEnv, isFinCandidate, routeToFin } from "../_shared/finLineBridge.ts";
 
 
 const supabase = createClient(
@@ -211,6 +212,26 @@ async function handleEvents(channel: any, events: any[]) {
   }
 }
 
+/** Fin 橋接：另查 fin_enabled（不併入 findMatchingChannel，避免 migration 未套用時整個 webhook 失效）；查詢錯誤視為 false */
+async function channelFinEnabled(channelId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("line_oa_channels").select("fin_enabled").eq("id", channelId).maybeSingle();
+  if (error) {
+    console.warn("[line-webhook] fin_enabled lookup failed", error.message);
+    return false;
+  }
+  return data?.fin_enabled === true;
+}
+
+/** Fin 橋接：交給 Fin 的事件被拿掉，其餘（含失敗退回）原樣回傳 */
+async function finFilter(events: any[], channelId: string | null, accessToken: string | null): Promise<any[]> {
+  try {
+    return await routeToFin(supabase, events, { channelId, accessToken, env: finEnv() });
+  } catch (e) {
+    console.error("[line-webhook] fin bridge error, fallback", e);
+    return events;
+  }
+}
+
 /** C4：小安旅宿管家頻道（LINE_CHANNEL_SECRET / LINE_CHANNEL_ACCESS_TOKEN） */
 async function handleButlerEvents(events: any[], accessToken: string | null) {
   const sb = supabase;
@@ -281,15 +302,30 @@ Deno.serve(async (req) => {
     // 必須 await 整段 pipeline（佔位訊息已用 reply 先送出），
     // 否則 Edge Function 回應後 runtime 會終止背景 promise，導致行程卡永遠沒 push。
     try {
-      await handleButlerEvents(events, butlerToken);
+      const butlerEvents = finConfigured() && butlerFinEnabled() && events.some(isFinCandidate)
+        ? await finFilter(events, null, butlerToken)
+        : events;
+      await handleButlerEvents(butlerEvents, butlerToken);
     } catch (e) {
       console.error("[line-webhook] butler pipeline error", e);
     }
     return new Response("ok", { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain" } });
   }
 
-  // Process asynchronously to respond fast (<1s)
-  handleEvents(channel, events).catch((e) => console.error(e));
+  if (finConfigured() && events.some(isFinCandidate)) {
+    // Fin 橋接需 await 網路呼叫：以 waitUntil 讓回應先回、背景工作不被 runtime 中止
+    const ch = channel!; // 簽章驗證已通過（非 butler 分支）
+    const work = (async () => {
+      const rest = (await channelFinEnabled(ch.id))
+        ? await finFilter(events, ch.id, ch.channel_access_token)
+        : events;
+      await handleEvents(ch, rest);
+    })().catch((e) => console.error(e));
+    (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+  } else {
+    // Process asynchronously to respond fast (<1s)
+    handleEvents(channel, events).catch((e) => console.error(e));
+  }
 
   return new Response("ok", {
     status: 200,
