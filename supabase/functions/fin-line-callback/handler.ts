@@ -8,8 +8,10 @@ type Db = any;
 type Payload = Record<string, any>;
 
 export const HANDOFF_TEXT = "已為您轉接真人客服，請稍候";
-const HANDOFF_EVENTS = new Set(["resolution_state_updated", "workflow_finished"]);
 const HANDOFF_RE = /hand_?off|escalat|transfer/i;
+const RESOLUTION_HANDOFF_RE = /route|team|hand_?off|escalat|transfer|human|agent/i;
+const RESOLUTION_CLOSED_RE = /resolv|clos/i;
+const RESOLUTION_NOT_CLOSED_RE = /unresolv|not_?resolv|reopen/i;
 
 const ok = () => new Response("ok", { status: 200, headers: { "Content-Type": "text/plain" } });
 const json = (body: unknown, status: number) =>
@@ -61,8 +63,18 @@ export function quickReplyMessage(p: Payload): OutgoingMessage | null {
   return { type: "text", text: extractText(p) || "請選擇：", quickReply: { items } };
 }
 
+const stateOf = (p: Payload) => String(p.state ?? p.resolution_state ?? p.status ?? "");
+
+/** resolution_state_updated：轉人工 → handoff；已解決／關閉 → closed；其他（含 unresolved）→ 只落表 */
+export function resolutionOutcome(p: Payload): "handoff" | "closed" | null {
+  const state = stateOf(p);
+  if (RESOLUTION_HANDOFF_RE.test(state)) return "handoff";
+  if (RESOLUTION_CLOSED_RE.test(state) && !RESOLUTION_NOT_CLOSED_RE.test(state)) return "closed";
+  return null;
+}
+
 const isHandoff = (type: string, p: Payload) =>
-  HANDOFF_EVENTS.has(type) || HANDOFF_RE.test(type) || HANDOFF_RE.test(String(p.state ?? p.resolution_state ?? p.status ?? ""));
+  type === "workflow_finished" || HANDOFF_RE.test(type) || HANDOFF_RE.test(stateOf(p));
 
 export interface CallbackDeps {
   db: Db;
@@ -100,6 +112,14 @@ async function handleOne(deps: CallbackDeps, p: Payload): Promise<void> {
   } else if (type === "quick_reply_options") {
     const m = quickReplyMessage(p);
     if (m) messages = [m];
+  } else if (type === "resolution_state_updated") {
+    const outcome = resolutionOutcome(p);
+    if (outcome === "handoff" && session.status !== "handoff") {
+      patch.status = "handoff";
+      messages = [{ type: "text", text: HANDOFF_TEXT }];
+    } else if (outcome === "closed") {
+      patch.status = "closed"; // 下一則 LINE 訊息重新開對話
+    }
   } else if (isHandoff(type, p)) {
     if (session.status !== "handoff") {
       patch.status = "handoff";

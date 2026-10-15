@@ -6,7 +6,7 @@
 //  - apps/booking/src/pages/MemberProfile.tsx、MemberPoints.tsx（紅利點數）
 //  - apps/booking/src/pages/Privacy.tsx（客服信箱）
 import { BOOKING_BASE_URL } from "../fin-availability/core.ts";
-import { FOOTER_LINE } from "./core.ts";
+import { FOOTER_LINE, renderKnowledge, section } from "./core.ts";
 
 export const TW_DEFAULT_CANCEL_LABELS = [
   "住宿日當日取消，扣 100%",
@@ -18,7 +18,10 @@ export const TW_DEFAULT_CANCEL_LABELS = [
   "住宿日前 14 日（含）以前取消，不收取費用",
 ];
 
-export function renderPlatformMarkdown(date: string): string {
+// deno-lint-ignore no-explicit-any
+export function renderPlatformMarkdown(date: string, knowledge: Record<string, any>[] = []): string {
+  // 總部全域知識（ai_knowledge.accommodation_id IS NULL 且 is_active）
+  const kb = section("## 知識庫", renderKnowledge(knowledge));
   return `來源：人客多系統匯出 ${date}
 
 # 人客多 Lakeze 訂房平台
@@ -65,7 +68,7 @@ ${TW_DEFAULT_CANCEL_LABELS.map((l) => `- ${l}`).join("\n")}
 - 客服信箱：service@lakeze.com
 - 各民宿的電話與 LINE 請見該民宿的知識內容或民宿頁面。
 
----
+${kb ? `${kb}\n` : ""}---
 
 ${FOOTER_LINE}
 `;

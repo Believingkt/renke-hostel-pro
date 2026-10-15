@@ -18,6 +18,7 @@ function fakeClient(tables: Record<string, Row[]>) {
     const b: any = {
       select: () => b,
       eq: (c: string, v: any) => { preds.push((r) => r[c] === v); return b; },
+      is: (c: string, v: any) => { preds.push((r) => (r[c] ?? null) === v); return b; },
       in: (c: string, vs: any[]) => { preds.push((r) => vs.includes(r[c])); return b; },
       order: () => b,
       range: (s: number, e: number) => { range = [s, e]; return b; },
@@ -67,6 +68,9 @@ const fixture = () => ({
     { id: "k1", accommodation_id: S, category: "policy", title: "退房", content: "11:00 前退房。", tags: ["退房"], priority: 5, is_active: true, created_by: "staff-uuid" },
     { id: "k2", accommodation_id: S, category: "location", title: "交通", content: "距羅東站 15 分鐘。", tags: [], priority: 9, is_active: true },
     { id: "k3", accommodation_id: S, category: "policy", title: "停用知識", content: "x", tags: [], priority: 99, is_active: false },
+    { id: "g1", accommodation_id: null, category: "policy", title: "全域：發票開立", content: "<p>訂單完成後開立電子發票。</p>", tags: ["發票"], priority: 3, is_active: true },
+    { id: "g2", accommodation_id: null, category: "faq", title: "全域：如何修改訂單", content: "請聯繫客服。", tags: [], priority: 8, is_active: true },
+    { id: "g3", accommodation_id: null, category: "other", title: "全域停用", content: "不應出現", tags: [], priority: 99, is_active: false },
   ],
 });
 
@@ -162,6 +166,31 @@ Deno.test("4. platform：含訂房流程、付款、取消政策（級距與前�
   const labels = [...src.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
   assertEquals(labels, TW_DEFAULT_CANCEL_LABELS);
   for (const l of labels) assert(r.text.includes(`- ${l}`));
+});
+
+Deno.test("platform：納入總部全域知識（accommodation_id IS NULL 且 is_active），依 priority 分組；不混入館別知識", async () => {
+  const md = (await call("accommodation_id=platform")).text;
+  const hs = headingsOf(md);
+  const i = hs.findIndex(([d, t]) => d === 2 && t === "知識庫");
+  assert(i > 0);
+  assertEquals(hs.slice(i), [[2, "知識庫"], [3, "常見問答"], [4, "全域：如何修改訂單"], [3, "政策"], [4, "全域：發票開立"]]);
+  assert(md.indexOf("## 知識庫") > md.indexOf("## 客服聯絡方式") && md.indexOf("## 知識庫") < md.lastIndexOf("---"));
+  assert(md.includes("訂單完成後開立電子發票。") && md.includes("標籤：發票") && !/<\/?p>/.test(md));
+  for (const s of ["全域停用", "11:00 前退房。", "距羅東站 15 分鐘。"]) assert(!md.includes(s), s);
+  assert(md.trimEnd().endsWith("如需查即時房況與價格，請使用查房況工具（fin-availability）"));
+});
+
+Deno.test("platform：沒有全域知識 → 不輸出「## 知識庫」空標題", async () => {
+  const t = fixture();
+  t.ai_knowledge = t.ai_knowledge.filter((k) => k.accommodation_id !== null);
+  const md = (await call("accommodation_id=platform", { tables: t })).text;
+  assert(!md.includes("## 知識庫"));
+  headingsOf(md);
+});
+
+Deno.test("館別匯出不含全域知識", async () => {
+  const md = (await call(`accommodation_id=${S}`)).text;
+  assert(!md.includes("全域："));
 });
 
 Deno.test("escapeBlock：行首 # 跳脫，其他內容不變", () => {

@@ -84,7 +84,12 @@ export async function handleExport(req: Request, deps: { client: any; apiKey: st
       const bundles = await loadBundles(deps.client, accs);
       return json(bundles.map((b) => ({ alias: b.acc.short_url_alias || b.acc.id, name: b.acc.name, markdown: renderAccommodationMarkdown(b, date) })));
     }
-    if (accId === "platform") return markdown(renderPlatformMarkdown(date));
+    if (accId === "platform") {
+      const knowledge = await fetchAll(() => deps.client.from("ai_knowledge").select("accommodation_id, category, title, content, tags, priority")
+        .is("accommodation_id", null).eq("is_active", true)
+        .order("priority", { ascending: false }).order("id", { ascending: true }));
+      return markdown(renderPlatformMarkdown(date, knowledge));
+    }
     if (!accId) return json({ error: "請提供 accommodation_id（館別 uuid 或 platform）或 all=1" }, 400);
     if (!UUID_RE.test(accId)) return json({ error: "找不到此館別" }, 404);
 

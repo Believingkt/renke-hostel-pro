@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { extractText, handleCallback, HANDOFF_TEXT, quickReplyMessage, stripHtml } from "./handler.ts";
+import { extractText, handleCallback, HANDOFF_TEXT, quickReplyMessage, resolutionOutcome, stripHtml } from "./handler.ts";
 import { routeToFin, type FinEnv } from "../_shared/finLineBridge.ts";
 import { fakeDb, fakeFetch } from "../_shared/finLineTestDb.ts";
 
@@ -88,7 +88,8 @@ Deno.test("4d. workflow_finished → status=handoff、推「已轉接」一次�
   await withFetch(f, () => post(db, { event_type: "workflow_finished", external_conversation_id: EXT }));
   assertEquals(db.tables.fin_line_sessions[0].status, "handoff");
   assertEquals(f.calls[0].body.messages, [{ type: "text", text: HANDOFF_TEXT }]);
-  await withFetch(f, () => post(db, { event_type: "resolution_state_updated", external_conversation_id: EXT }));
+  await withFetch(f, () => post(db, { event_type: "workflow_finished", external_conversation_id: EXT }));
+  await withFetch(f, () => post(db, { event_type: "resolution_state_updated", state: "routed_to_team", external_conversation_id: EXT }));
   assertEquals(f.calls.length, 1); // 已 handoff 不重複推
 
   const fin = fakeFetch(() => Response.json({}));
@@ -97,6 +98,43 @@ Deno.test("4d. workflow_finished → status=handoff、推「已轉接」一次�
   const rest = await routeToFin(db, [ev], { channelId: CH, accessToken: "x", env, fetchFn: fin.fn, now: new Date() });
   assertEquals(rest, [ev]);
   assertEquals(fin.calls.filter((c) => c.url.includes("intercom")).length, 0);
+});
+
+Deno.test("resolution_state_updated routed_to_team → handoff 且只推一次轉接文字", async () => {
+  const db = setup(); const f = lineOk();
+  await withFetch(f, async () => {
+    await post(db, { event_type: "resolution_state_updated", state: "routed_to_team", external_conversation_id: EXT });
+    await post(db, { event_type: "resolution_state_updated", resolution_state: "routed_to_team", external_conversation_id: EXT });
+  });
+  assertEquals(db.tables.fin_line_sessions[0].status, "handoff");
+  assertEquals(f.calls.length, 1);
+  assertEquals(f.calls[0].body.messages, [{ type: "text", text: HANDOFF_TEXT }]);
+});
+
+Deno.test("resolution_state_updated resolved → status=closed、不推文字；下一則 LINE 訊息重新開對話並送 Fin", async () => {
+  const db = setup(); const f = lineOk();
+  await withFetch(f, () => post(db, { event_type: "resolution_state_updated", state: "resolved", external_conversation_id: EXT }));
+  assertEquals(db.tables.fin_line_sessions[0].status, "closed");
+  assertEquals(f.calls.length, 0);
+  assertEquals(db.tables.fin_line_events.at(-1)!.event_type, "resolution_state_updated");
+
+  const fin = fakeFetch(() => Response.json({}));
+  const env: FinEnv = { token: "t", base: "https://api.intercom.io", path: "/custom_channel_events" };
+  const ev = { type: "message", source: { type: "user", userId: U }, message: { type: "text", text: "再問一下" } };
+  assertEquals(await routeToFin(db, [ev], { channelId: CH, accessToken: "x", env, fetchFn: fin.fn, now: new Date() }), []);
+  assertEquals(fin.calls.filter((c) => c.url.includes("intercom")).map((c) => c.url.split("/").pop()), ["notify_new_conversation", "notify_new_message"]);
+  assert(db.tables.fin_line_sessions.at(-1)!.external_conversation_id !== EXT);
+});
+
+Deno.test("resolution_state_updated 其他狀態（無狀態、unresolved、snoozed）→ 只落表，status 不變、不推", async () => {
+  for (const extra of [{}, { state: "unresolved" }, { status: "snoozed" }]) {
+    const db = setup(); const f = lineOk();
+    assertEquals((await withFetch(f, () => post(db, { event_type: "resolution_state_updated", ...extra, external_conversation_id: EXT }))).status, 200);
+    assertEquals([db.tables.fin_line_sessions[0].status, f.calls.length], ["active", 0], JSON.stringify(extra));
+  }
+  assertEquals(resolutionOutcome({ state: "closed" }), "closed");
+  assertEquals(resolutionOutcome({ state: "assigned_to_human_agent" }), "handoff");
+  assertEquals(resolutionOutcome({ resolution_state: "Escalated" }), "handoff");
 });
 
 Deno.test("含 handoff 語意的事件（event_type 或 state）→ handoff", async () => {

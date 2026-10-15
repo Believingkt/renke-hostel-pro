@@ -51,7 +51,7 @@ export function escapeBlock(text: unknown): string {
 const inline = (text: unknown) => escapeBlock(text).replace(/\s*\n+\s*/g, " ");
 
 /** 內容為空就不輸出標題 */
-function section(heading: string, body: string): string {
+export function section(heading: string, body: string): string {
   return body.trim() ? `${heading}\n\n${body.trim()}\n` : "";
 }
 const join = (parts: string[]) => parts.filter((p) => p.trim()).join("\n");
@@ -140,7 +140,7 @@ function renderPackage(p: Row): string {
   return `#### ${inline(p.name)}\n\n${lines.join("\n")}\n`;
 }
 
-function renderKnowledge(rows: Row[]): string {
+export function renderKnowledge(rows: Row[]): string {
   const groups = new Map<string, Row[]>();
   const sorted = [...rows].sort((a, b) => Number(b.priority ?? 0) - Number(a.priority ?? 0));
   for (const k of sorted) {
