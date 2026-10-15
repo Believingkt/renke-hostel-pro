@@ -52,8 +52,8 @@ export function buildIntercomSettings(args: {
     app_id: appId,
     api_base: INTERCOM_API_BASE,
     language_override: "zh-TW",
-    // 網頁版放左下，避免與右下的小安 AI 管家重疊；App 隱藏浮動啟動器（改由「訊息」Tab 開啟）
-    ...(native ? { hide_default_launcher: true } : { alignment: "left" }),
+    // 網頁版不帶 alignment，位置依 Intercom 後台 Launcher Position；App 隱藏浮動啟動器（改由「訊息」Tab 開啟）
+    ...(native ? { hide_default_launcher: true } : {}),
     ...(identity
       ? {
           user_id: identity.user_id,

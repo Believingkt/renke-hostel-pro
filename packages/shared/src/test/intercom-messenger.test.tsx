@@ -68,7 +68,9 @@ describe("IntercomMessenger", () => {
     mount("/booking");
     await waitFor(() => expect(cmds()).toContain("boot"));
     expect(scripts().map((s) => s.src)).toEqual(["https://widget.intercom.io/widget/abc123"]);
-    expect(window.intercomSettings).toMatchObject({ app_id: "abc123", language_override: "zh-TW", api_base: "https://api-iam.intercom.io", alignment: "left" });
+    expect(window.intercomSettings).toMatchObject({ app_id: "abc123", language_override: "zh-TW", api_base: "https://api-iam.intercom.io" });
+    expect(window.intercomSettings).not.toHaveProperty("alignment");
+    expect(window.intercomSettings).not.toHaveProperty("hide_default_launcher");
     expect(window.intercomSettings).not.toHaveProperty("user_id");
     expect(h.invoke).not.toHaveBeenCalled();
   });
