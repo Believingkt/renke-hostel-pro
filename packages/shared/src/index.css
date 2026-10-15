@@ -2289,19 +2289,24 @@ html.native-app [data-site-chrome] {
   display: none !important;
 }
 
-/* ── 手機版 Intercom 啟動器推到小安 AI 管家按鈕上方（小安：right 12px、bottom 24px+safe-area、高 56px；24+56+12=92）；桌面依 Intercom 後台設定 ── */
+/* ── Intercom 啟動器（原生 48px）與小安 AI 管家按鈕同尺寸、位於其正上方；以右下角為基準縮放 ──
+   桌面（≥768px）：小安 56px → scale 1.1667；位置 24+56+12=92 由 Intercom 後台處理
+   手機（≤767px）：小安 44px、bottom 232px+safe-area → scale 0.9167；bottom 232+44+12=288、right 12px */
+@media (min-width: 768px) {
+  .intercom-lightweight-app-launcher,
+  iframe.intercom-launcher-frame,
+  .intercom-launcher {
+    transform: scale(1.1667) !important;
+    transform-origin: bottom right !important;
+  }
+}
 @media (max-width: 767px) {
   .intercom-lightweight-app-launcher,
   iframe.intercom-launcher-frame,
   .intercom-launcher {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 300px) !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 288px) !important;
     right: 12px !important;
+    transform: scale(0.9167) !important;
+    transform-origin: bottom right !important;
   }
-}
-/* Intercom 啟動器 48px 放大到與小安按鈕同為 56px（48×1.1667）；以右下角為基準，位置不變；所有尺寸生效 */
-.intercom-lightweight-app-launcher,
-iframe.intercom-launcher-frame,
-.intercom-launcher {
-  transform: scale(1.1667) !important;
-  transform-origin: bottom right !important;
 }
