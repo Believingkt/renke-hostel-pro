@@ -6,6 +6,31 @@ import { handleFin, resetRateLimit } from "./handler.ts";
 
 type Row = Record<string, any>;
 
+// 解析 PostgREST 邏輯樹：or(...)/and(...) 可巢狀，葉節點為 col.ilike.%x%
+function splitTop(s: string): string[] {
+  const out: string[] = [];
+  let depth = 0, cur = "";
+  for (const ch of s) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) { out.push(cur); cur = ""; } else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+function parseLogic(expr: string): (r: Row) => boolean {
+  const m = expr.match(/^(and|or)\((.*)\)$/);
+  if (m) {
+    const kids = splitTop(m[2]).map(parseLogic);
+    return m[1] === "and" ? (r) => kids.every((f) => f(r)) : (r) => kids.some((f) => f(r));
+  }
+  const [col, op, pat] = expr.split(".");
+  if (op !== "ilike") throw new Error(`unsupported op ${op}`);
+  const needle = pat.replace(/%/g, "").toLowerCase();
+  return (r) => String(r[col] ?? "").toLowerCase().includes(needle);
+}
+
+
 function fakeClient(tables: Record<string, Row[]>) {
   const calls: string[] = [];
   const from = (table: string) => {
@@ -20,15 +45,7 @@ function fakeClient(tables: Record<string, Row[]>) {
       gte: (c: string, v: any) => { preds.push((r) => r[c] >= v); return b; },
       lte: (c: string, v: any) => { preds.push((r) => r[c] <= v); return b; },
       is: (c: string, v: any) => { preds.push((r) => (r[c] ?? null) === v); return b; },
-      or: (expr: string) => {
-        const alts = expr.split(",").map((p) => {
-          const [col, , pat] = p.split(".");
-          const needle = pat.replace(/%/g, "").toLowerCase();
-          return (r: Row) => String(r[col] ?? "").toLowerCase().includes(needle);
-        });
-        preds.push((r) => alts.some((f) => f(r)));
-        return b;
-      },
+      or: (expr: string) => { preds.push(parseLogic(`or(${expr})`)); return b; },
       order: () => b,
       range: (s: number, e: number) => { range = [s, e]; return b; },
       then: (res: any, rej: any) => {
@@ -185,6 +202,10 @@ Deno.test("6. region／accommodation 部分比對；guests 篩 capacity", async 
   assert(sen.body.results.every((x: Row) => x.accommodation_name === "森山寫照"));
   const alias = await call("check_in=2026-11-07&check_out=2026-11-09&accommodation=SENSHAN");
   assert(alias.body.results.length > 0 && alias.body.results.every((x: Row) => x.accommodation_id === A));
+  const both = await call(`check_in=2026-11-07&check_out=2026-11-09&region=${encodeURIComponent("宜蘭")}&accommodation=${encodeURIComponent("森山")}`);
+  assert(both.body.results.length > 0 && both.body.results.every((x: Row) => x.accommodation_id === A));
+  const mismatch = await call(`check_in=2026-11-07&check_out=2026-11-09&region=${encodeURIComponent("宜蘭")}&accommodation=${encodeURIComponent("海角")}`);
+  assertEquals(mismatch.body.results, []); // region 與 accommodation 為 AND
   const none = await call(`check_in=2026-11-07&check_out=2026-11-09&region=${encodeURIComponent("花蓮")}`);
   assertEquals([none.status, none.body.results, none.body.unavailable_count, none.body.message], [200, [], 0, "這段日期沒有符合的房型"]);
   const six = await call("check_in=2026-11-07&check_out=2026-11-09&guests=6");

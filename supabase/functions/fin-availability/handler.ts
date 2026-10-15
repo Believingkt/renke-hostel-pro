@@ -106,8 +106,11 @@ export async function handleFin(req: Request, deps: { client: any; apiKey: strin
 
     const accs = await fetchAll(() => {
       let b = activeAccQuery(client, "id, name, region_1, region_2, short_url_alias");
-      if (q.region) b = b.or(`region_1.ilike.%${q.region}%,region_2.ilike.%${q.region}%`);
-      if (q.accommodation) b = b.or(`name.ilike.%${q.accommodation}%,short_url_alias.ilike.%${q.accommodation}%`);
+      const groups: string[] = [];
+      if (q.region) groups.push(`or(region_1.ilike.%${q.region}%,region_2.ilike.%${q.region}%)`);
+      if (q.accommodation) groups.push(`or(name.ilike.%${q.accommodation}%,short_url_alias.ilike.%${q.accommodation}%)`);
+      // 單一 or= 參數內以 and(...) 明確組合，避免依賴重複 or= 參數的語意
+      if (groups.length) b = b.or(`and(${groups.join(",")})`);
       return b.order("name", { ascending: true }).order("id", { ascending: true });
     });
     const base = { check_in: q.checkIn, check_out: q.checkOut, nights: q.nights, guests: q.guests, currency: "TWD" };
