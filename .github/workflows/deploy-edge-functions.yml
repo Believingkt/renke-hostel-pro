@@ -29,7 +29,7 @@ name: Deploy Supabase Backend
 
 on:
   push:
-    branches: [production]
+    branches: [main]
     # 每次 push 都跑（不設 paths 過濾），讓團隊「一律等綠燈再 Publish」；沒改到 supabase/ 的 push 兩個 job 都會自動略過
   workflow_dispatch:
     inputs:
