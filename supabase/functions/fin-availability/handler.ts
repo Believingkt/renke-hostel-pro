@@ -19,7 +19,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 // 與 all-availability 相同的常數時間比對
-function safeEqual(a: string, b: string) {
+export function safeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
   let diff = 0;
   for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -48,7 +48,7 @@ const ID_CHUNK = 150;
 const chunk = <T>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 /** PostgREST 單次最多回 1000 列：以 range 分頁取完 */
-async function fetchAll(build: () => any): Promise<any[]> {
+export async function fetchAll(build: () => any): Promise<any[]> {
   const out: any[] = [];
   for (let start = 0; ; start += PAGE) {
     const { data, error } = await build().range(start, start + PAGE - 1);
@@ -59,7 +59,7 @@ async function fetchAll(build: () => any): Promise<any[]> {
 }
 
 /** id 清單過長會讓 URL 超限：分批 in() 後合併 */
-async function fetchIn(ids: string[], build: (part: string[]) => any): Promise<any[]> {
+export async function fetchIn(ids: string[], build: (part: string[]) => any): Promise<any[]> {
   if (!ids.length) return [];
   const parts = await Promise.all(chunk(ids, ID_CHUNK).map((p) => fetchAll(() => build(p))));
   return parts.flat();

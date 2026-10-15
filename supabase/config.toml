@@ -383,3 +383,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.intercom-user-hash]
     verify_jwt = false
+  [functions.export-fin-knowledge]
+    verify_jwt = false
