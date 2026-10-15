@@ -98,10 +98,9 @@ export default function RemarketingAnalytics() {
     { key: "channel", label: "通路", kind: "text", value: (r) => r.channelLabel },
     { key: "sends", label: "發送數", kind: "number", value: (r) => r.sends },
     { key: "clicks", label: "點擊數（有效）", kind: "number", value: (r) => r.clicks },
-    { key: "skipped", label: "skipped 點擊", kind: "number", value: (r) => r.skippedClicks },
     { key: "ctr", label: "點擊率%", kind: "rate", num: (r) => r.clicks, den: (r) => r.sends },
     { key: "orders", label: "下房數", kind: "number", value: (r) => r.orders },
-    { key: "cvr", label: "轉換率%（下房／發送，合計分子／合計分母）", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
+    { key: "cvr", label: "轉換率%", kind: "rate", num: (r) => r.orders, den: (r) => r.sends },
   ];
 
   const sharedRows = useMemo(

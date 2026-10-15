@@ -69,6 +69,9 @@ describe("共用資料集（紀錄）模式", () => {
     expect(screen.queryByText(/即時：資料來自正式 RPC/)).toBeNull();
     expect(screen.queryByText(/Demo 測試資料，非實際營運成果/)).toBeNull();
     expect(screen.queryByText("資料性質")).toBeNull();
+    expect(screen.queryByText("skipped 點擊")).toBeNull();
+    expect(screen.getByText("轉換率%")).toBeTruthy();
+    expect(screen.queryByText(/合計分子／合計分母）/)).toBeNull();
   });
 
   it("CSV 匯出：檔名與內容不帶 Demo 標示", async () => {
