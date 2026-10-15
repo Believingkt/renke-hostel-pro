@@ -94,7 +94,7 @@ DO $$ BEGIN
   PERFORM public.ai_metric_booking_conversion('2026-10-01', '2026-10-10');
   RAISE EXCEPTION 'FAIL anon allowed';
 EXCEPTION WHEN insufficient_privilege THEN RAISE NOTICE 'PASS anonymous → 42501'; END $$;
-SELECT pg_temp.check('anon role has no EXECUTE', NOT has_function_privilege('anon', 'public.ai_metric_booking_conversion(date,date,uuid[],text[],boolean)', 'EXECUTE'), NULL);
+SELECT pg_temp.check('anon role has no EXECUTE', NOT has_function_privilege('anon', 'public.ai_metric_booking_conversion(date,date,uuid[],text[])', 'EXECUTE'), NULL);
 SELECT pg_temp.check('PUBLIC has no EXECUTE (proacl)', NOT EXISTS (SELECT 1 FROM pg_proc p, aclexplode(p.proacl) a WHERE p.proname = 'ai_metric_booking_conversion' AND a.grantee = 0), NULL);
 
 SET test.uid = 'aaaaaaaa-0000-4000-8000-00000000000a'; -- admin（HQ）
@@ -103,7 +103,7 @@ DO $$ DECLARE r jsonb; BEGIN
   RAISE NOTICE 'RESULT %', jsonb_pretty(r);
   -- 甲館分母：#1,2,3,4,5,6,7,8,9,15 = 10（排除 cancelled/hold/pending/test/排除名單/日界外）；分子：#1,#2 = 2
   PERFORM pg_temp.check('甲館 effective=10', (SELECT (x->>'effective_orders')::int = 10 FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '甲館'), r);
-  PERFORM pg_temp.check('甲館 ai=2（first+last 同單只算一次；send 前、跨館、跨活動、is_test、failed、排除收件者、非精確 source 都不算）', (SELECT (x->>'ai_orders')::int = 2 FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '甲館'), r);
+  PERFORM pg_temp.check('甲館 ai=2（first+last 同單只算一次；sent_at 晚於訂單、跨館、跨活動、is_test、failed、排除收件者、非精確 source 都不算）', (SELECT (x->>'ai_orders')::int = 2 FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '甲館'), r);
   PERFORM pg_temp.check('甲館 attributed=9（#1-9 有歸因列）', (SELECT (x->>'attributed_orders')::int = 9 FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '甲館'), r);
   PERFORM pg_temp.check('甲館 rate=0.2 未捨入、達標', (SELECT (x->>'rate')::numeric = 0.2 AND (x->>'meets_target')::boolean FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '甲館'), r);
   PERFORM pg_temp.check('乙館 effective=2 ai=1 rate=0.5', (SELECT (x->>'effective_orders')::int = 2 AND (x->>'ai_orders')::int = 1 AND (x->>'rate')::numeric = 0.5 FROM jsonb_array_elements(r->'rows') x WHERE x->>'accommodation_name' = '乙館'), r);
@@ -125,9 +125,10 @@ DO $$ DECLARE r jsonb; BEGIN
   PERFORM pg_temp.check('日界 10/11 只含 00:00:00+08 那筆', (r->'totals'->>'effective_orders')::int = 1, r);
   r := public.ai_metric_booking_conversion('2026-09-30', '2026-09-30', ARRAY['a0000000-0000-4000-8000-000000000001'::uuid]);
   PERFORM pg_temp.check('日界 09/30 只含 23:59:59+08 那筆', (r->'totals'->>'effective_orders')::int = 1, r);
-  -- 含內部測試：no-op，排除名單與 test 仍排除
-  r := public.ai_metric_booking_conversion('2026-10-01', '2026-10-10', NULL, NULL, true);
-  PERFORM pg_temp.check('include_internal=true 結果不變（排除名單／test 仍排除）', (r->'totals'->>'effective_orders')::int = 12 AND (r->'totals'->>'ai_orders')::int = 3, r);
+  -- 不提供含內部參數；回傳誠實說明排除方式
+  PERFORM pg_temp.check('無 p_include_internal 參數、回傳 internal_exclusion 且 orders_internal_dimension=false',
+    NOT EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'ai_metric_booking_conversion' AND pronargs <> 4)
+    AND (r->'internal_exclusion'->>'orders_internal_dimension')::boolean = false AND NOT r ? 'include_internal_applied', r);
   -- 全域 0 分母
   r := public.ai_metric_booking_conversion('2025-01-01', '2025-01-02');
   PERFORM pg_temp.check('全域 0 分母：totals.rate=null、不達標', r->'totals'->'rate' = 'null'::jsonb AND (r->'totals'->>'meets_target')::boolean = false, r);
@@ -151,6 +152,43 @@ INSERT INTO public.orders (id, accommodation_id, order_status, order_source, gue
 DO $$ DECLARE r jsonb; BEGIN
   r := public.ai_metric_booking_conversion('2026-10-01', '2026-10-10', ARRAY['a0000000-0000-4000-8000-000000000004'::uuid]);
   PERFORM pg_temp.check('1/41 = 0.02439… 未達標（捨入成 2.4% 前即比較）', (r->'totals'->>'rate')::numeric < 0.025 AND NOT (r->'totals'->>'meets_target')::boolean, r);
+END $$;
+
+-- sent_at 晚於訂單不計：時序館 send 於 10/05 12:00:00+08；訂單 11:59:59（早 1 秒）不計、12:00:00（同時）計
+INSERT INTO public.accommodation_info (id, name, is_active) VALUES
+  ('a0000000-0000-4000-8000-000000000005', '時序館', true), ('a0000000-0000-4000-8000-000000000006', '活動館', true);
+INSERT INTO public.remarketing_campaigns (id, content) VALUES
+  ('c0000000-0000-4000-8000-000000000005', '{"accommodation_id":"a0000000-0000-4000-8000-000000000005"}'),
+  ('c0000000-0000-4000-8000-000000000006', '{"accommodation_id":"a0000000-0000-4000-8000-000000000006"}');
+INSERT INTO public.remarketing_sends (id, campaign_id, traveler_profile_id, status, is_test, recipient, sent_at) VALUES
+  ('50000000-0000-4000-8000-000000000050', 'c0000000-0000-4000-8000-000000000005', '70000000-0000-4000-8000-000000000001', 'sent', false, 'guest1@example.com', '2026-10-05 12:00:00+08'),
+  ('50000000-0000-4000-8000-000000000060', 'c0000000-0000-4000-8000-000000000006', '70000000-0000-4000-8000-000000000001', 'sent', false, 'guest1@example.com', '2026-10-01 00:00+08');
+INSERT INTO public.orders (id, accommodation_id, order_status, order_source, guest_email, created_at) VALUES
+  ('00000000-0000-4000-8000-000000000050', 'a0000000-0000-4000-8000-000000000005', 'confirmed', 'website', 'g@example.com', '2026-10-05 11:59:59+08'),
+  ('00000000-0000-4000-8000-000000000051', 'a0000000-0000-4000-8000-000000000005', 'confirmed', 'website', 'g@example.com', '2026-10-05 12:00:00+08'),
+  ('00000000-0000-4000-8000-000000000060', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08'),
+  ('00000000-0000-4000-8000-000000000061', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08'),
+  ('00000000-0000-4000-8000-000000000062', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08'),
+  ('00000000-0000-4000-8000-000000000063', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08'),
+  ('00000000-0000-4000-8000-000000000064', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08'),
+  ('00000000-0000-4000-8000-000000000065', 'a0000000-0000-4000-8000-000000000006', 'confirmed', 'website', 'g@example.com', '2026-10-02 10:00+08');
+-- 活動館 utm_campaign：#60 正確、#61 NULL、#62 ''（皆計）；#63 ' '、#64 其他活動 id、#65 任意字串（皆不計）
+INSERT INTO public.order_attributions (order_id, last_utm_source, last_utm_content, last_utm_campaign) VALUES
+  ('00000000-0000-4000-8000-000000000050', 'remarketing', '50000000-0000-4000-8000-000000000050', 'c0000000-0000-4000-8000-000000000005'),
+  ('00000000-0000-4000-8000-000000000051', 'remarketing', '50000000-0000-4000-8000-000000000050', 'c0000000-0000-4000-8000-000000000005'),
+  ('00000000-0000-4000-8000-000000000060', 'remarketing', '50000000-0000-4000-8000-000000000060', 'c0000000-0000-4000-8000-000000000006'),
+  ('00000000-0000-4000-8000-000000000061', 'remarketing', '50000000-0000-4000-8000-000000000060', NULL),
+  ('00000000-0000-4000-8000-000000000062', 'remarketing', '50000000-0000-4000-8000-000000000060', ''),
+  ('00000000-0000-4000-8000-000000000063', 'remarketing', '50000000-0000-4000-8000-000000000060', ' '),
+  ('00000000-0000-4000-8000-000000000064', 'remarketing', '50000000-0000-4000-8000-000000000060', 'c0000000-0000-4000-8000-000000000005'),
+  ('00000000-0000-4000-8000-000000000065', 'remarketing', '50000000-0000-4000-8000-000000000060', 'spring_sale');
+DO $$ DECLARE r jsonb; BEGIN
+  r := public.ai_metric_booking_conversion('2026-10-01', '2026-10-10', ARRAY['a0000000-0000-4000-8000-000000000005'::uuid]);
+  PERFORM pg_temp.check('sent_at 晚於訂單 1 秒不計、同時刻計：分母 2 分子 1', (r->'totals'->>'effective_orders')::int = 2 AND (r->'totals'->>'ai_orders')::int = 1, r);
+  r := public.ai_metric_booking_conversion('2026-10-05', '2026-10-05', ARRAY['a0000000-0000-4000-8000-000000000005'::uuid]);
+  PERFORM pg_temp.check('sent_at 晚於訂單（同一台北日）仍不計：分母 2 分子 1', (r->'totals'->>'effective_orders')::int = 2 AND (r->'totals'->>'ai_orders')::int = 1, r);
+  r := public.ai_metric_booking_conversion('2026-10-01', '2026-10-10', ARRAY['a0000000-0000-4000-8000-000000000006'::uuid]);
+  PERFORM pg_temp.check('utm_campaign：正確/NULL/空字串計 3；空白/他活動/任意字串不計（分母 6）', (r->'totals'->>'effective_orders')::int = 6 AND (r->'totals'->>'ai_orders')::int = 3, r);
 END $$;
 
 -- 唯讀：RPC 不寫任何表

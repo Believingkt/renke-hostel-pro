@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoRange, fmtRate, toCsv, DEMO_LABEL, type DemoRun,
+  buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoOverlaps, demoRange, fmtRate, toCsv, DEMO_LABEL, INTERNAL_NOTE, type DemoRun,
 } from "@lakeze/shared/lib/aiBookingConversion";
 
 const venues = ["甲", "乙", "丙", "丁", "戊", "己"].map((n, i) => ({ id: `0000000${i}-0000-4000-8000-000000000000`, name: `${n}館` }));
@@ -39,13 +39,22 @@ describe("AI 訂房轉換 Demo fixture", () => {
   it("日期／館別／來源篩選真的作用在事件上，分子分母同時篩", () => {
     const orders = buildDemoOrders(run);
     const { from, to } = demoRange(run);
-    const firstWeek = computeConversion(orders, run.venues, { from, to: from.replace(/\d{2}$/, (d) => d), accommodationIds: null, orderSource: null });
-    expect(firstWeek.totals.effective_orders).toBe(orders.filter((o) => o.date === from).length);
+    const firstDay = computeConversion(orders, run.venues, { from, to: from, accommodationIds: null, orderSource: null });
+    expect(firstDay.totals.effective_orders).toBe(orders.filter((o) => o.date === from).length);
     const one = computeConversion(orders, run.venues, { from, to, accommodationIds: [run.venues[2].id], orderSource: null });
     expect([one.rows.length, one.totals.effective_orders, one.totals.ai_orders]).toEqual([1, 180, 4]);
     const ota = computeConversion(orders, run.venues, { from, to, accommodationIds: null, orderSource: "owlting" });
     expect(ota.totals.ai_orders).toBe(0);
     expect(ota.totals.effective_orders).toBe(orders.filter((o) => o.order_source === "owlting").length);
+  });
+
+  it("Demo 生成期間外無交集、部分交集仍有資料", () => {
+    const { from, to } = demoRange(run);
+    expect([from, to]).toEqual(["2026-09-17", "2026-10-16"]);
+    expect(demoOverlaps(run, { from: "2026-10-17", to: "2026-10-20" })).toBe(false);
+    expect(demoOverlaps(run, { from: "2026-08-01", to: "2026-09-16" })).toBe(false);
+    expect(demoOverlaps(run, { from: "2026-10-16", to: "2026-10-30" })).toBe(true);
+    expect(demoOverlaps(run, { from: "2026-09-01", to: "2026-09-17" })).toBe(true);
   });
 
   it("0 分母：rate=null 顯示—、不達標，館別仍列出", () => {
@@ -73,6 +82,9 @@ describe("AI 訂房轉換 Demo fixture", () => {
     const prod = toCsv(r, { demo: false, filters: all() });
     expect(prod).toContain("目前僅涵蓋可驗證的 AI 再行銷推播歸因");
     expect(prod).not.toContain(DEMO_LABEL);
+    expect(prod).toContain(INTERNAL_NOTE);
+    expect(INTERNAL_NOTE).toContain("無法辨識全部內部訂單");
+    expect(demo).not.toContain(INTERNAL_NOTE);
   });
 
   it("預設期間＝近 30 天到今天（台北日界）", () => {

@@ -2,13 +2,16 @@
 -- 1) 正式 RPC ai_metric_booking_conversion：AI 推薦之訂房數 ÷ 總（有效）訂房數，每館一列＋加權合計。
 --    分子目前「只」涵蓋可驗證的 AI 再行銷推播歸因（N1 同源）：
 --      order_attributions 的 first 或 last 觸點 utm_source = 'remarketing'（精確），utm_content = 真實 remarketing_sends.id，
---      utm_campaign 若有值必須等於該 send 的 campaign_id（remarketing-send 以 c=<campaignId> → remarketing-track 寫入 utm_campaign）；
---      send：status='sent' 且 is_test=false、收件者不在排除名單（同 N1）；send 所屬活動館別 = 訂單館別（跨館不計）；
---      訂單建立時間 >= send.sent_at（同 N1，不另設時間窗）；同一訂單以 EXISTS 計至多一次。
+--      utm_campaign：NULL 或空字串 '' 視為「未帶活動參數」（2026-10-08 前的 remarketing-track 不寫 utm_campaign；
+--        之後由 c=<campaignId> 寫入，追蹤端不會產生空字串，'' 只可能來自手動網址 utm_campaign=）→ 以 utm_content 的 send 決定活動；
+--        其他任何非空值（含空白字元、其他活動 id、任意字串）都必須「完全等於」該 send 的 campaign_id，否則不計；
+--      send：status='sent' 且 is_test=false（remarketing_sends 無 is_internal 欄位）、收件者不在排除名單（同 N1）；
+--      send 所屬活動館別 = 訂單館別（跨館不計）；send.sent_at 晚於訂單建立時間者不計（訂單 created_at >= sent_at 才計，同 N1）；
+--      同一訂單以 EXISTS 計至多一次。
 --    分母：有效訂單 = order_status IN (confirmed, checked_in, checked_out)（同 revenueByMonth EFFECTIVE_ORDER_STATUSES），
 --      預設所有 order_source（含 OTA／手動）；order_source IN ('test','test_data') 為既有慣例的種子資料，一律排除；
 --      ai_metric_excluded_order_ids() 排除名單永遠排除。日期 = orders.created_at 的台北日界 [p_from, p_to]。
---    p_include_internal：訂單與 remarketing_sends 皆無 is_internal 維度，對本指標為 no-op（與 remarketing_breakdown 相同），僅為簽名一致。
+--    內部／測試排除：orders 無內部維度，僅能以既有排除名單與 test/test_data 來源排除，無法辨識全部內部訂單；故不提供「含內部測試」參數。
 -- 2) 獨立共用 Demo：hq_ai_booking_demo_dataset(+history)，與 N1/N2 的 hq_shared_demo_datasets 完全分離。
 -- 只新增：不修改既有 migration／函式；不寫入任何營運表；不回填。
 
@@ -17,8 +20,7 @@ CREATE OR REPLACE FUNCTION public.ai_metric_booking_conversion(
   p_from date,
   p_to date,
   p_accommodation_ids uuid[] DEFAULT NULL,
-  p_order_sources text[] DEFAULT NULL,
-  p_include_internal boolean DEFAULT false
+  p_order_sources text[] DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -66,9 +68,9 @@ BEGIN
         FROM public.order_attributions oa
         JOIN public.remarketing_sends s
           ON (oa.last_utm_source = 'remarketing' AND oa.last_utm_content = s.id::text
-              AND (oa.last_utm_campaign IS NULL OR oa.last_utm_campaign = s.campaign_id::text))
+              AND (NULLIF(oa.last_utm_campaign, '') IS NULL OR oa.last_utm_campaign = s.campaign_id::text))
           OR (oa.first_utm_source = 'remarketing' AND oa.first_utm_content = s.id::text
-              AND (oa.first_utm_campaign IS NULL OR oa.first_utm_campaign = s.campaign_id::text))
+              AND (NULLIF(oa.first_utm_campaign, '') IS NULL OR oa.first_utm_campaign = s.campaign_id::text))
         JOIN public.remarketing_campaigns c ON c.id = s.campaign_id
         LEFT JOIN public.traveler_profiles tp ON tp.id = s.traveler_profile_id
         WHERE oa.order_id = e.id
@@ -106,7 +108,10 @@ BEGIN
     'target_rate', 0.025, 'min_venues', 5,
     'effective_statuses', jsonb_build_array('confirmed', 'checked_in', 'checked_out'),
     'excluded_order_sources', jsonb_build_array('test', 'test_data'),
-    'include_internal_applied', false,
+    'internal_exclusion', jsonb_build_object(
+      'remarketing_sends', 'is_test=false（無 is_internal 欄位）',
+      'orders', 'ai_metric_excluded_order_ids() + order_source NOT IN (test, test_data)',
+      'orders_internal_dimension', false),
     'numerator_scope', 'remarketing_only',
     'rows', v_rows,
     'totals', jsonb_build_object(
@@ -118,8 +123,8 @@ BEGIN
     'venues_with_orders', v_with_orders);
 END;
 $$;
-REVOKE ALL ON FUNCTION public.ai_metric_booking_conversion(date, date, uuid[], text[], boolean) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.ai_metric_booking_conversion(date, date, uuid[], text[], boolean) TO authenticated;
+REVOKE ALL ON FUNCTION public.ai_metric_booking_conversion(date, date, uuid[], text[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.ai_metric_booking_conversion(date, date, uuid[], text[]) TO authenticated;
 
 -- 訂單來源選項（只回來源字串，不含個資）
 CREATE OR REPLACE FUNCTION public.ai_metric_booking_order_sources()

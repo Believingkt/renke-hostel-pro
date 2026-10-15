@@ -1,6 +1,6 @@
 == migration 重跑（idempotent）
-psql:../../supabase/migrations/20261016120000_ai_booking_conversion.sql:151: NOTICE:  relation "hq_ai_booking_demo_dataset" already exists, skipping
-psql:../../supabase/migrations/20261016120000_ai_booking_conversion.sql:159: NOTICE:  relation "hq_ai_booking_demo_dataset_history" already exists, skipping
+psql:../../supabase/migrations/20261016120000_ai_booking_conversion.sql:156: NOTICE:  relation "hq_ai_booking_demo_dataset" already exists, skipping
+psql:../../supabase/migrations/20261016120000_ai_booking_conversion.sql:164: NOTICE:  relation "hq_ai_booking_demo_dataset_history" already exists, skipping
 OK
 == conversion
 psql:selftest_conversion.sql:91: NOTICE:  PASS non-hq user → 42501
@@ -8,7 +8,7 @@ psql:selftest_conversion.sql:96: NOTICE:  PASS anonymous → 42501
 psql:selftest_conversion.sql:97: NOTICE:  PASS anon role has no EXECUTE
 psql:selftest_conversion.sql:98: NOTICE:  PASS PUBLIC has no EXECUTE (proacl)
 psql:selftest_conversion.sql:114: NOTICE:  PASS 甲館 effective=10
-psql:selftest_conversion.sql:114: NOTICE:  PASS 甲館 ai=2（first+last 同單只算一次；send 前、跨館、跨活動、is_test、failed、排除收件者、非精確 source 都不算）
+psql:selftest_conversion.sql:114: NOTICE:  PASS 甲館 ai=2（first+last 同單只算一次；sent_at 晚於訂單、跨館、跨活動、is_test、failed、排除收件者、非精確 source 都不算）
 psql:selftest_conversion.sql:114: NOTICE:  PASS 甲館 attributed=9（#1-9 有歸因列）
 psql:selftest_conversion.sql:114: NOTICE:  PASS 甲館 rate=0.2 未捨入、達標
 psql:selftest_conversion.sql:114: NOTICE:  PASS 乙館 effective=2 ai=1 rate=0.5
@@ -16,16 +16,19 @@ psql:selftest_conversion.sql:114: NOTICE:  PASS 丙館 0 分母：rate=null、�
 psql:selftest_conversion.sql:114: NOTICE:  PASS 停用館不列、選取 3 館、有訂單 2 館
 psql:selftest_conversion.sql:114: NOTICE:  PASS 合計加權 3/12 = 0.25（不是各館比率平均 0.35）
 psql:selftest_conversion.sql:114: NOTICE:  PASS 歸因涵蓋率 10/12
-psql:selftest_conversion.sql:134: NOTICE:  PASS 來源=owlting：分母 2、分子 0
-psql:selftest_conversion.sql:134: NOTICE:  PASS 館別=乙館：只 1 列
-psql:selftest_conversion.sql:134: NOTICE:  PASS 日界 10/11 只含 00:00:00+08 那筆
-psql:selftest_conversion.sql:134: NOTICE:  PASS 日界 09/30 只含 23:59:59+08 那筆
-psql:selftest_conversion.sql:134: NOTICE:  PASS include_internal=true 結果不變（排除名單／test 仍排除）
-psql:selftest_conversion.sql:134: NOTICE:  PASS 全域 0 分母：totals.rate=null、不達標
-psql:selftest_conversion.sql:148: NOTICE:  PASS 1/40 = 0.025 剛好達標
-psql:selftest_conversion.sql:154: NOTICE:  PASS 1/41 = 0.02439… 未達標（捨入成 2.4% 前即比較）
-psql:selftest_conversion.sql:157: NOTICE:  PASS RPC 為 STABLE（不可寫）
-psql:selftest_conversion.sql:158: NOTICE:  PASS search_path 固定
+psql:selftest_conversion.sql:135: NOTICE:  PASS 來源=owlting：分母 2、分子 0
+psql:selftest_conversion.sql:135: NOTICE:  PASS 館別=乙館：只 1 列
+psql:selftest_conversion.sql:135: NOTICE:  PASS 日界 10/11 只含 00:00:00+08 那筆
+psql:selftest_conversion.sql:135: NOTICE:  PASS 日界 09/30 只含 23:59:59+08 那筆
+psql:selftest_conversion.sql:135: NOTICE:  PASS 無 p_include_internal 參數、回傳 internal_exclusion 且 orders_internal_dimension=false
+psql:selftest_conversion.sql:135: NOTICE:  PASS 全域 0 分母：totals.rate=null、不達標
+psql:selftest_conversion.sql:149: NOTICE:  PASS 1/40 = 0.025 剛好達標
+psql:selftest_conversion.sql:155: NOTICE:  PASS 1/41 = 0.02439… 未達標（捨入成 2.4% 前即比較）
+psql:selftest_conversion.sql:192: NOTICE:  PASS sent_at 晚於訂單 1 秒不計、同時刻計：分母 2 分子 1
+psql:selftest_conversion.sql:192: NOTICE:  PASS sent_at 晚於訂單（同一台北日）仍不計：分母 2 分子 1
+psql:selftest_conversion.sql:192: NOTICE:  PASS utm_campaign：正確/NULL/空字串計 3；空白/他活動/任意字串不計（分母 6）
+psql:selftest_conversion.sql:195: NOTICE:  PASS RPC 為 STABLE（不可寫）
+psql:selftest_conversion.sql:196: NOTICE:  PASS search_path 固定
 == demo
 psql:selftest_demo.sql:20: NOTICE:  PASS owner 不能讀 → 42501 forbidden: hq admin only
 psql:selftest_demo.sql:25: NOTICE:  PASS admin 可讀、空 dataset、canWrite=false

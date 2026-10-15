@@ -5,6 +5,7 @@ export const TARGET_RATE = 0.025;
 export const MIN_VENUES = 5;
 export const SCOPE_NOTE = "目前僅涵蓋可驗證的 AI 再行銷推播歸因；其他 AI 入口追蹤尚未涵蓋";
 export const FORMULA = "AI 推薦之訂房數 ÷ 總訂房數（有效訂房：已確認／已入住／已退房）";
+export const INTERNAL_NOTE = "內部／測試排除：再行銷發送排除 is_test=true（發送紀錄無內部欄位）；訂單無內部維度，僅以既有排除名單與訂單來源 test／test_data 排除，無法辨識全部內部訂單";
 export const DEMO_LABEL = "Demo 測試資料，非實際營運成果";
 export const DEMO_VERSION = "aibk-demo-v1.0.0";
 export const FIXTURE_VERSION = "aibk-fixture-v1.0.0";
@@ -74,6 +75,12 @@ export function demoRange(run: DemoRun): { from: string; to: string } {
   return { from: addDays(to, -(DEMO_DAYS - 1)), to };
 }
 
+/** 篩選期間是否與 Demo 生成期間有交集 */
+export function demoOverlaps(run: DemoRun, f: { from: string; to: string }): boolean {
+  const r = demoRange(run);
+  return f.from <= r.to && f.to >= r.from;
+}
+
 /** 由 run 確定性重建合成訂單（同 run 任何 client 結果相同） */
 export function buildDemoOrders(run: DemoRun): DemoOrder[] {
   const { from } = demoRange(run);
@@ -126,6 +133,7 @@ export function toCsv(result: ConversionResult, meta: { demo: boolean; runId?: s
     ["資料性質", nature],
     ...(meta.demo ? [["Demo run", meta.runId ?? ""]] : []),
     ["公式", FORMULA],
+    ...(meta.demo ? [] : [["內部／測試排除", INTERNAL_NOTE]]),
     ["期間（台北）", `${meta.filters.from}～${meta.filters.to}`],
     ["訂單來源", meta.filters.orderSource ?? "全部"],
     [],

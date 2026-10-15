@@ -4,10 +4,9 @@ import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
-import { Switch } from "@lakeze/shared/components/ui/switch";
 import {
-  buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoRange, fmtRate, toCsv,
-  DEMO_LABEL, FORMULA, MIN_VENUES, SCOPE_NOTE, TARGET_RATE,
+  buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoOverlaps, demoRange, fmtRate, toCsv,
+  DEMO_LABEL, FORMULA, INTERNAL_NOTE, MIN_VENUES, SCOPE_NOTE, TARGET_RATE,
   type ConversionResult, type DemoRun, type DemoVenue, type Filters,
 } from "@lakeze/shared/lib/aiBookingConversion";
 
@@ -91,7 +90,6 @@ export default function AiBookingConversion() {
   const [venues, setVenues] = useState<DemoVenue[]>([]);
   const [sources, setSources] = useState<string[]>([]);
   const [filters, setFilters] = useState<Filters>({ ...defaultRange(), accommodationIds: null, orderSource: null });
-  const [includeInternal, setIncludeInternal] = useState(false);
   const [result, setResult] = useState<ConversionResult | null>(null);
   const [demo, setDemo] = useState<DemoState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -107,12 +105,12 @@ export default function AiBookingConversion() {
     setLoading(true); setError(null);
     const { data, error: e } = await rpc("ai_metric_booking_conversion", {
       p_from: filters.from, p_to: filters.to, p_accommodation_ids: filters.accommodationIds,
-      p_order_sources: filters.orderSource ? [filters.orderSource] : null, p_include_internal: includeInternal,
+      p_order_sources: filters.orderSource ? [filters.orderSource] : null,
     });
     setLoading(false);
     if (e) { setResult(null); setError(`正式資料讀取失敗：${e.message}`); return; }
     setResult(data as ConversionResult);
-  }, [filters, includeInternal]);
+  }, [filters]);
 
   const loadDemo = useCallback(async () => {
     setLoading(true); setError(null);
@@ -130,10 +128,12 @@ export default function AiBookingConversion() {
     else setFilters((f) => ({ ...f, ...defaultRange() }));
   }, [mode, loadDemo]);
 
+  const demoInRange = mode === "demo" && !!demo?.run && demoOverlaps(demo.run, filters);
   const demoResult = useMemo(
-    () => (mode === "demo" && demo?.run ? computeConversion(buildDemoOrders(demo.run), demo.run.venues, filters) : null),
-    [mode, demo, filters],
+    () => (demoInRange && demo?.run ? computeConversion(buildDemoOrders(demo.run), demo.run.venues, filters) : null),
+    [demoInRange, demo, filters],
   );
+  const demoGen = demo?.run ? demoRange(demo.run) : null;
 
   const publishDemo = async () => {
     if (!demo) return;
@@ -165,11 +165,13 @@ export default function AiBookingConversion() {
       {mode === "prod" ? (
         <div className="rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900" data-testid="aibk-scope-note">
           {SCOPE_NOTE}。本頁不代表全部 AI 入口的完整成效；分子為 AI 再行銷推播連結（utm_source=remarketing 且對應真實發送紀錄、同館、發送後成立）的有效訂房。
+          <div className="text-xs mt-1" data-testid="aibk-internal-note">{INTERNAL_NOTE}。</div>
         </div>
       ) : (
         <div className="rounded-md border-2 border-amber-400 bg-amber-50 p-3 text-sm text-amber-900" data-testid="aibk-demo-banner">
           <div className="font-semibold">{DEMO_LABEL}</div>
           <div className="text-xs mt-1">由合成 run 在瀏覽器確定性重建，不讀取、不寫入任何營運資料。{demo?.run && `Run：${demo.run.runId}｜${demo.run.demoVersion}／${demo.run.fixtureVersion}｜revision ${demo.revision}`}</div>
+          {demoGen && <div className="text-xs mt-1" data-testid="aibk-demo-period">Demo 生成期間（台北）：{demoGen.from}～{demoGen.to}</div>}
         </div>
       )}
 
@@ -190,11 +192,6 @@ export default function AiBookingConversion() {
             {(mode === "demo" ? ["website", "owlting", "manual", "hotelnabe"] : sources).map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </label>
-        {mode === "prod" && (
-          <label className="flex items-center gap-2 text-xs pb-2" title="訂單與再行銷發送皆無 is_internal 維度，本指標結果不受影響；排除名單與 order_source=test／test_data 永遠排除">
-            <Switch checked={includeInternal} onCheckedChange={setIncludeInternal} data-testid="aibk-include-internal" />含內部測試（本指標無此維度；排除名單與 test 訂單永遠排除）
-          </label>
-        )}
         <Button size="sm" variant="outline" onClick={mode === "prod" ? loadProd : loadDemo} disabled={loading} data-testid="aibk-refresh"><RefreshCw className="h-4 w-4 mr-1" />重新整理</Button>
         {shown && (
           <Button size="sm" variant="outline" data-testid="aibk-csv"
@@ -210,6 +207,11 @@ export default function AiBookingConversion() {
       {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800" data-testid="aibk-error">{error}</div>}
       {mode === "demo" && demo && !demo.run && !error && (
         <div className="text-sm text-muted-foreground" data-testid="aibk-demo-empty">尚未建立共用 Demo{demo.canWrite ? "，可按「建立共用 Demo」。" : "，需由 super_admin 建立。"}</div>
+      )}
+      {mode === "demo" && demoGen && !demoInRange && !loading && (
+        <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground" data-testid="aibk-demo-out-of-range">
+          所選期間 {filters.from}～{filters.to} 不在 Demo 生成期間 {demoGen.from}～{demoGen.to} 內，沒有 Demo 資料。請將期間調整到生成期間內。
+        </div>
       )}
       {loading && <div className="text-sm text-muted-foreground">載入中…</div>}
       {shown && !loading && <ResultView result={shown} demo={mode === "demo"} />}
