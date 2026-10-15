@@ -2288,3 +2288,13 @@ button > svg,
 html.native-app [data-site-chrome] {
   display: none !important;
 }
+
+/* ── 手機版 Intercom 啟動器推到小安 AI 管家按鈕上方（小安：right 12px、bottom 24px+safe-area、高 56px；24+56+12=92）；桌面依 Intercom 後台設定 ── */
+@media (max-width: 767px) {
+  .intercom-lightweight-app-launcher,
+  iframe.intercom-launcher-frame,
+  .intercom-launcher {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 92px) !important;
+    right: 12px !important;
+  }
+}
