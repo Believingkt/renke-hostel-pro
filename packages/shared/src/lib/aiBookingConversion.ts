@@ -7,10 +7,13 @@ export const SCOPE_NOTE = "目前僅涵蓋可驗證的 AI 再行銷推播歸因�
 export const FORMULA = "AI 推薦之訂房數 ÷ 總訂房數（有效訂房：已確認／已入住／已退房）";
 export const INTERNAL_NOTE = "內部／測試排除：再行銷發送排除 is_test=true（發送紀錄無內部欄位）；訂單無內部維度，僅以既有排除名單與訂單來源 test／test_data 排除，無法辨識全部內部訂單";
 export const DEMO_LABEL = "Demo 測試資料，非實際營運成果";
-export const DEMO_VERSION = "aibk-demo-v1.0.0";
-export const FIXTURE_VERSION = "aibk-fixture-v1.0.0";
-export const DEMO_ORDER_COUNTS = [200, 240, 180, 220, 160];
-export const DEMO_AI_COUNTS = [6, 7, 4, 6, 5];
+export const DEMO_VERSION = "aibk-demo-v1.1.0";
+export const FIXTURE_VERSION = "aibk-fixture-v1.1.0";
+/** 各 fixture 版本的每館合成訂單數／AI 數（依 run.venues 順序）；舊版保留，舊 run 重建數值不變 */
+export const DEMO_FIXTURES: Record<string, { orders: number[]; ai: number[] }> = {
+  "aibk-fixture-v1.0.0": { orders: [200, 240, 180, 220, 160], ai: [6, 7, 4, 6, 5] },
+  "aibk-fixture-v1.1.0": { orders: [7, 8, 6, 9, 5], ai: [1, 0, 0, 0, 0] },
+};
 const DEMO_SOURCES = ["website", "owlting", "manual", "hotelnabe"];
 const DEMO_DAYS = 30;
 
@@ -84,10 +87,12 @@ export function demoOverlaps(run: DemoRun, f: { from: string; to: string }): boo
 /** 由 run 確定性重建合成訂單（同 run 任何 client 結果相同） */
 export function buildDemoOrders(run: DemoRun): DemoOrder[] {
   const { from } = demoRange(run);
+  const fx = DEMO_FIXTURES[run.fixtureVersion];
+  if (!fx) throw new Error(`不支援的 Demo fixture 版本：${run.fixtureVersion}`);
   const out: DemoOrder[] = [];
   run.venues.forEach((v, i) => {
-    const n = DEMO_ORDER_COUNTS[i] ?? 0;
-    const ai = DEMO_AI_COUNTS[i] ?? 0;
+    const n = fx.orders[i] ?? 0;
+    const ai = fx.ai[i] ?? 0;
     for (let k = 0; k < n; k++) {
       const h = fnv(`${run.runId}|${run.fixtureVersion}|${i}|${k}`);
       const isAi = k < ai;

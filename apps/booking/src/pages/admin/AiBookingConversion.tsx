@@ -129,10 +129,15 @@ export default function AiBookingConversion() {
   }, [mode, loadDemo]);
 
   const demoInRange = mode === "demo" && !!demo?.run && demoOverlaps(demo.run, filters);
-  const demoResult = useMemo(
-    () => (demoInRange && demo?.run ? computeConversion(buildDemoOrders(demo.run), demo.run.venues, filters) : null),
-    [demoInRange, demo, filters],
-  );
+  const demoBuilt = useMemo(() => {
+    if (!demoInRange || !demo?.run) return { result: null, error: null };
+    try {
+      return { result: computeConversion(buildDemoOrders(demo.run), demo.run.venues, filters), error: null };
+    } catch (e) {
+      return { result: null, error: (e as Error).message };
+    }
+  }, [demoInRange, demo, filters]);
+  const demoResult = demoBuilt.result;
   const demoGen = demo?.run ? demoRange(demo.run) : null;
 
   const publishDemo = async () => {
@@ -204,6 +209,7 @@ export default function AiBookingConversion() {
         )}
       </div>
 
+      {mode === "demo" && demoBuilt.error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800" data-testid="aibk-demo-fixture-error">{demoBuilt.error}</div>}
       {error && <div className="rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-800" data-testid="aibk-error">{error}</div>}
       {mode === "demo" && demo && !demo.run && !error && (
         <div className="text-sm text-muted-foreground" data-testid="aibk-demo-empty">尚未建立共用 Demo{demo.canWrite ? "，可按「建立共用 Demo」。" : "，需由 super_admin 建立。"}</div>

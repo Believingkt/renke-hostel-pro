@@ -39,10 +39,11 @@ DO $$ DECLARE r jsonb; BEGIN
 END $$;
 SELECT pg_temp.expect_err('過期 revision → PT409', $q$SELECT public.hq_ai_booking_demo_put(0, pg_temp.run('AIBKRUN-20261016-090000-2'))$q$, 'PT409');
 DO $$ DECLARE r jsonb; BEGIN
-  r := public.hq_ai_booking_demo_put(1, pg_temp.run('AIBKRUN-20261016-090000-2'));
-  IF (r->'dataset'->>'revision')::int <> 2 THEN RAISE EXCEPTION 'FAIL update %', r; END IF;
+  r := public.hq_ai_booking_demo_put(1, pg_temp.run('AIBKRUN-20261016-090000-2') || '{"demoVersion":"aibk-demo-v1.1.0","fixtureVersion":"aibk-fixture-v1.1.0"}');
+  IF (r->'dataset'->>'revision')::int <> 2 OR r->'dataset'->>'fixtureVersion' <> 'aibk-fixture-v1.1.0' THEN RAISE EXCEPTION 'FAIL update %', r; END IF;
   IF (SELECT count(*) FROM public.hq_ai_booking_demo_dataset_history) <> 1 THEN RAISE EXCEPTION 'FAIL history'; END IF;
-  RAISE NOTICE 'PASS 更新 revision=2、history 1 筆';
+  IF (SELECT snapshot->>'fixtureVersion' FROM public.hq_ai_booking_demo_dataset_history) <> 'aibk-fixture-v1.0.0' THEN RAISE EXCEPTION 'FAIL history keeps old version'; END IF;
+  RAISE NOTICE 'PASS 以新版 fixture v1.1.0 更新 revision=2（既有 migration 格式白名單即接受）、history 保留 v1.0.0 快照';
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'hq_shared_demo_datasets') THEN RAISE EXCEPTION 'unexpected'; END IF;
