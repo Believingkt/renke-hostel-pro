@@ -1,5 +1,5 @@
-// LINE → Fin（Intercom Custom Channel）橋接：line-webhook 在原流程前呼叫 routeToFin，
-// 回傳「Fin 沒接手」的事件（非候選、handoff、Fin 失敗）交回原流程。依賴可注入，方便 mock 測試。
+// LINE → Fin（Intercom Fin Agent API：POST /fin/start、/fin/reply）橋接：line-webhook 在原流程前呼叫 routeToFin，
+// 回傳「Fin 沒接手」的事件（非候選、handoff、Fin 失敗）交回原流程。Fin 的回答走 webhook（fin-line-callback）。依賴可注入，方便 mock 測試。
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -13,21 +13,21 @@ const BIND_RE = /(?:text=)?bind:([a-f0-9-]+)/i;
 export interface FinEnv {
   token: string | undefined;
   base: string;
-  path: string;
+  version: string;
 }
 
 export function finEnv(): FinEnv {
   return {
     token: Deno.env.get("FIN_AGENT_API_TOKEN") || undefined,
     base: (Deno.env.get("FIN_AGENT_API_BASE") || "https://api.intercom.io").replace(/\/+$/, ""),
-    path: "/" + (Deno.env.get("FIN_AGENT_API_PATH") || "/custom_channel_events").replace(/^\/+|\/+$/g, ""),
+    version: Deno.env.get("FIN_INTERCOM_VERSION") || "2.16",
   };
 }
 
 export const finConfigured = (env: FinEnv = finEnv()) => !!env.token;
 export const butlerFinEnabled = () => Deno.env.get("FIN_LINE_BUTLER_ENABLED") === "true";
 
-/** 只有使用者的一般文字訊息（bind: 指令除外）與 fin_qr= postback 會交給 Fin */
+/** 只有使用者的一般文字訊息（bind: 指令除外）與 fin_qr= postback（相容舊按鈕）會交給 Fin */
 export function isFinCandidate(ev: LineEvent): boolean {
   if (ev?.source?.type !== "user" || !ev.source.userId) return false;
   if (ev.type === "message" && ev.message?.type === "text") {
@@ -38,12 +38,11 @@ export function isFinCandidate(ev: LineEvent): boolean {
   return false;
 }
 
-export function quickReplyOptionId(data: string): string | null {
-  try {
-    return new URLSearchParams(data).get("fin_qr") || null;
-  } catch {
-    return null;
-  }
+/** 要送給 Fin 的使用者文字：文字訊息本文；fin_qr postback 取 displayText（沒有則 null → 交回原流程） */
+export function finUserText(ev: LineEvent): string | null {
+  const raw = ev.type === "postback" ? ev.postback?.displayText : ev.message?.text;
+  const text = typeof raw === "string" ? raw.trim() : "";
+  return text || null;
 }
 
 async function logEvent(db: Db, row: { session_id: string | null; direction: "in" | "out"; event_type: string | null; payload: unknown; http_status?: number | null }) {
@@ -67,15 +66,20 @@ async function lineDisplayName(accessToken: string | null, userId: string, fetch
   }
 }
 
-/** 呼叫 Fin inbound API；request／response 一律落表；非 2xx 或逾時回 false */
-async function postFin(db: Db, env: FinEnv, sessionId: string, event: string, body: Record<string, unknown>, fetchFn: typeof fetch): Promise<boolean> {
-  const url = `${env.base}${env.path}/${event}`;
+/** 呼叫 Fin Agent API（start／reply）；request／response 一律落表；2xx 視為成功，非 2xx 或逾時回 false */
+async function postFin(db: Db, env: FinEnv, sessionId: string, op: "start" | "reply", body: Record<string, unknown>, fetchFn: typeof fetch): Promise<boolean> {
+  const url = `${env.base}/fin/${op}`;
   let status: number | null = null;
   let response: unknown = null;
   try {
     const r = await fetchFn(url, {
       method: "POST",
-      headers: { Authorization: `Bearer ${env.token}`, "Content-Type": "application/json", Accept: "application/json" },
+      headers: {
+        Authorization: `Bearer ${env.token}`,
+        "Intercom-Version": env.version,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(FIN_TIMEOUT_MS),
     });
@@ -85,7 +89,7 @@ async function postFin(db: Db, env: FinEnv, sessionId: string, event: string, bo
   } catch (e) {
     response = { error: String((e as Error)?.name === "TimeoutError" ? "timeout" : e) };
   }
-  await logEvent(db, { session_id: sessionId, direction: "in", event_type: event, payload: { url, request: body, response }, http_status: status });
+  await logEvent(db, { session_id: sessionId, direction: "in", event_type: `fin_${op}`, payload: { url, request: body, response }, http_status: status });
   return status !== null && status >= 200 && status < 300;
 }
 
@@ -106,6 +110,8 @@ const touch = (db: Db, id: string, now: Date, patch: Record<string, unknown> = {
 
 /** 單一事件交給 Fin；回 true = Fin 已接手，false = 退回原流程 */
 async function bridgeOne(db: Db, ev: LineEvent, ctx: RouteCtx): Promise<boolean> {
+  const text = finUserText(ev);
+  if (!text) return false;
   const now = ctx.now ?? new Date();
   const fetchFn = ctx.fetchFn ?? fetch;
   const userId: string = ev.source.userId;
@@ -116,30 +122,25 @@ async function bridgeOne(db: Db, ev: LineEvent, ctx: RouteCtx): Promise<boolean>
     return false;
   }
 
-  let isNew = false;
-  if (!session) {
-    const { data, error } = await db.from("fin_line_sessions").insert({
-      line_oa_channel_id: ctx.channelId, line_user_id: userId, external_conversation_id: crypto.randomUUID(),
-      status: "active", last_event_at: now.toISOString(),
-    }).select("id, external_conversation_id, status, last_event_at").single();
-    if (error || !data) throw new Error(`session insert failed: ${error?.message ?? error}`);
-    session = data as Session;
-    isNew = true;
+  const message = { author: "user", body: text };
+  if (session) {
+    const ok = await postFin(db, ctx.env, session.id, "reply", { conversation_id: session.external_conversation_id, message, user: { id: `line:${userId}` } }, fetchFn);
+    if (ok) await touch(db, session.id, now);
+    return ok;
   }
 
-  const name = isNew ? await lineDisplayName(ctx.accessToken, userId, fetchFn) : undefined;
-  const contact = { type: "user", external_id: `line:${userId}`, ...(name ? { name } : {}) };
-  const base = (extra: Record<string, unknown>) => ({ event_id: crypto.randomUUID(), external_conversation_id: session!.external_conversation_id, contact, ...extra });
+  const { data, error } = await db.from("fin_line_sessions").insert({
+    line_oa_channel_id: ctx.channelId, line_user_id: userId, external_conversation_id: crypto.randomUUID(),
+    status: "active", last_event_at: now.toISOString(),
+  }).select("id, external_conversation_id, status, last_event_at").single();
+  if (error || !data) throw new Error(`session insert failed: ${error?.message ?? error}`);
+  session = data as Session;
 
-  if (isNew && !(await postFin(db, ctx.env, session.id, "notify_new_conversation", base({}), fetchFn))) {
-    await touch(db, session.id, now, { status: "closed" }); // 建立失敗：下一則重新開對話
-    return false;
-  }
-
-  const ok = ev.type === "postback"
-    ? await postFin(db, ctx.env, session.id, "notify_quick_reply_selected", base({ quick_reply_option_id: quickReplyOptionId(String(ev.postback.data)) }), fetchFn)
-    : await postFin(db, ctx.env, session.id, "notify_new_message", base({ body: String(ev.message.text).trim() }), fetchFn);
-  if (ok) await touch(db, session.id, now);
+  const name = await lineDisplayName(ctx.accessToken, userId, fetchFn);
+  const ok = await postFin(db, ctx.env, session.id, "start", {
+    conversation_id: session.external_conversation_id, message, user: { id: `line:${userId}`, ...(name ? { name } : {}) },
+  }, fetchFn);
+  await touch(db, session.id, now, ok ? {} : { status: "closed" }); // start 失敗：下一則重新開對話
   return ok;
 }
 
