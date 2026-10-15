@@ -54,20 +54,24 @@ describe("共用 Demo 模式", () => {
     expect(state.calls.filter((c) => c.fn === "hq_shared_demo_get")).toHaveLength(1);
   });
 
-  it("admin（唯讀）：固定標示、表格含資料性質欄與 Demo 標題，無發布／匯入按鈕；新電腦直接讀到同一 run", async () => {
+  it("admin（唯讀）：無紀錄按鈕／說明文字／黃色區塊／Demo 標示，無發布／匯入按鈕；新電腦直接讀到同一 run", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(3), canWrite: false }, error: null });
     await open(RemarketingAnalytics);
-    expect(screen.getByTestId("shared-demo-banner").textContent).toContain("Demo 測試資料，非實際營運成果");
+    expect(screen.queryByTestId("analytics-mode-demo")).toBeNull();
+    expect(screen.queryByTestId("shared-demo-banner")).toBeNull();
+    expect(screen.queryByText(/即時：資料來自正式 RPC/)).toBeNull();
+    expect(screen.queryByText(/Demo 測試資料，非實際營運成果/)).toBeNull();
     expect((await screen.findByTestId("shared-demo-run-id")).textContent).toBe(RUN.runId);
     expect(screen.getByTestId("shared-demo-revision").textContent).toBe("3");
-    expect(screen.getByText(/再行銷轉換明細（共用 Demo｜Demo 測試資料，非實際營運成果）/)).toBeTruthy();
-    expect(screen.getByText("資料性質")).toBeTruthy();
+    expect(screen.getByText("再行銷轉換明細")).toBeTruthy();
+    expect(screen.getByTestId("breakdown-remarketing-analytics-shared")).toBeTruthy();
+    expect(screen.queryByText("資料性質")).toBeNull();
     expect(screen.queryByTestId("shared-demo-publish-btn")).toBeNull();
     expect(screen.queryByTestId("shared-demo-import-local-btn")).toBeNull();
     expect(screen.queryByTestId("shared-demo-save-names")).toBeNull();
   });
 
-  it("CSV 匯出檔名與檔內標題、每列都可辨識為 Demo", async () => {
+  it("CSV 匯出：檔名與內容不再帶 Demo 標示", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(2), canWrite: false }, error: null });
     const blobs: Blob[] = [];
     const names: string[] = [];
@@ -78,11 +82,10 @@ describe("共用 Demo 模式", () => {
     await screen.findByTestId("shared-demo-meta");
     fireEvent.click(await screen.findByTestId("bd-export"));
     const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blobs[0]); });
-    expect(names[0]).toMatch(/^DEMO-shared-addon-rec-analytics_/);
-    const lines = text.replace(/^\ufeff/, "").split("\n");
-    expect(lines[0]).toContain("共用 Demo｜Demo 測試資料，非實際營運成果");
-    expect(lines[1]).toContain("資料性質");
-    expect(lines.slice(2, -1).every((l) => l.startsWith('"Demo 測試資料，非實際營運成果"'))).toBe(true);
+    expect(names[0]).toMatch(/^addon-rec-analytics-shared_/);
+    expect(text).not.toContain("Demo 測試資料");
+    expect(text).not.toContain("資料性質");
+    expect(text).toContain("加購推薦明細");
     click.mockRestore();
   });
 
@@ -90,16 +93,15 @@ describe("共用 Demo 模式", () => {
     state.handlers.hq_shared_demo_get = () => ({ data: null, error: { code: "42501", message: "forbidden" } });
     await open(RemarketingAnalytics);
     expect((await screen.findByTestId("shared-demo-load-error")).textContent).toContain("讀取失敗");
-    expect(screen.queryByTestId("breakdown-DEMO-shared-remarketing-analytics")).toBeNull();
+    expect(screen.queryByTestId("breakdown-remarketing-analytics-shared")).toBeNull();
     expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
-    expect(screen.getByTestId("shared-demo-banner")).toBeTruthy();
   });
 
   it("版本不相容：不顯示數據、不自動重建", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: { ...dataset(4), run: { ...toDescriptor(RUN), demoVersion: "demo-pres-v0.1.0" } }, canWrite: true }, error: null });
     await open(RemarketingAnalytics);
     await screen.findByTestId("shared-demo-incompatible");
-    expect(screen.queryByTestId("breakdown-DEMO-shared-remarketing-analytics")).toBeNull();
+    expect(screen.queryByTestId("breakdown-remarketing-analytics-shared")).toBeNull();
     expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
   });
 

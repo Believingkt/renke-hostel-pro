@@ -13,9 +13,8 @@ import {
   SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import {
-  useSharedDemo, SharedDemoBanner, SharedDemoControls, SHARED_DEMO_NATURE_COLUMN, SHARED_DEMO_TITLE_SUFFIX,
+  useSharedDemo, SharedDemoControls,
 } from "@/components/headquarters/SharedDemoPanel";
-import { SHARED_DEMO_LABEL } from "@lakeze/shared/utils/sharedDemo";
 import { demoN2Rows, DEMO_N2_NOTES, type DemoN2Row } from "@lakeze/shared/utils/demoPresentation";
 
 interface Row {
@@ -112,9 +111,6 @@ export default function AddonRecAnalytics() {
       <AdminPageHeader title="加購推薦分析" description="AI 管家加購推薦曝光與推薦後成交（個人層級歸因），每館每品項一列" icon={ShoppingBag} />
       <div className="flex flex-wrap items-center gap-3">
         <AnalyticsModeToggle mode={demo.mode} onChange={demo.setMode} />
-        <span className="text-xs text-muted-foreground">
-          {sharedMode ? `共用 Demo：${SHARED_DEMO_LABEL}（服務端共用資料集，不呼叫即時 RPC）。` : demoMode ? "紀錄：本機事件資料集，不呼叫即時 RPC、不與即時總計混用。" : "即時：資料來自正式 RPC 即時彙總。"}
-        </span>
       </div>
       {demo.mode === "live" && (
         <p className="text-xs text-muted-foreground" data-testid="addon-scenario-entry">
@@ -125,14 +121,13 @@ export default function AddonRecAnalytics() {
       )}
       {sharedMode ? (
         <>
-          <SharedDemoBanner />
           <SharedDemoControls s={shared} track="N2" canGenerate={accommodations.length > 0} />
           {shared.showTable && (
             <MetricBreakdownTable
-              title={`加購推薦明細${SHARED_DEMO_TITLE_SUFFIX}`}
-              description={`資料來源：共用 Demo 資料集 revision ${shared.dataset?.revision}（合成 fixture，前端重建），未讀取任何正式營運表或即時 RPC`}
-              scopeNotes={[SHARED_DEMO_LABEL]}
-              columns={[SHARED_DEMO_NATURE_COLUMN, ...demoColumns]}
+              title="加購推薦明細"
+              description={`資料來源：共用資料集 revision ${shared.dataset?.revision}`}
+              scopeNotes={[]}
+              columns={demoColumns}
               rows={sharedRows}
               rowKey={(r) => r.key}
               loading={false}
@@ -142,7 +137,7 @@ export default function AddonRecAnalytics() {
               onReload={() => void shared.load()}
               accommodations={accommodations}
               channelOptions={[{ value: "all", label: "全部" }, { value: "web", label: "web" }, { value: "line", label: "line" }]}
-              csvFileName="DEMO-shared-addon-rec-analytics"
+              csvFileName="addon-rec-analytics-shared"
               showIncludeInternal={false}
             />
           )}

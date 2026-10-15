@@ -96,14 +96,6 @@ export function AnalyticsModeToggle({ mode, onChange }: { mode: AnalyticsMode; o
       </Button>
       <Button
         size="sm"
-        variant={mode === "demo" ? "default" : "ghost"}
-        onClick={() => onChange("demo")}
-        data-testid="analytics-mode-demo"
-      >
-        紀錄
-      </Button>
-      <Button
-        size="sm"
         variant={mode === "shared" ? "default" : "ghost"}
         onClick={() => onChange("shared")}
         data-testid="analytics-mode-shared-demo"

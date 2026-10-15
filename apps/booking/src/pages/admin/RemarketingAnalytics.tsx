@@ -13,9 +13,8 @@ import {
   SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import {
-  useSharedDemo, SharedDemoBanner, SharedDemoControls, SHARED_DEMO_NATURE_COLUMN, SHARED_DEMO_TITLE_SUFFIX,
+  useSharedDemo, SharedDemoControls,
 } from "@/components/headquarters/SharedDemoPanel";
-import { SHARED_DEMO_LABEL } from "@lakeze/shared/utils/sharedDemo";
 import { demoN1Rows, DEMO_N1_NOTES, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
 interface Row {
@@ -120,9 +119,6 @@ export default function RemarketingAnalytics() {
       <AdminPageHeader title="再行銷轉換分析" description="AI 再行銷推播的寄達、點擊與下房轉換，每活動每通路一列（以活動設定館別歸屬）" icon={Send} />
       <div className="flex flex-wrap items-center gap-3">
         <AnalyticsModeToggle mode={demo.mode} onChange={demo.setMode} />
-        <span className="text-xs text-muted-foreground">
-          {sharedMode ? `共用 Demo：${SHARED_DEMO_LABEL}（服務端共用資料集，不呼叫即時 RPC）。` : demoMode ? "紀錄：本機事件資料集，不呼叫即時 RPC、不與即時總計混用。" : "即時：資料來自正式 RPC 即時彙總。"}
-        </span>
       </div>
       {demo.mode === "live" && (
         <p className="text-xs text-muted-foreground" data-testid="remarketing-scenario-entry">
@@ -133,14 +129,13 @@ export default function RemarketingAnalytics() {
       )}
       {sharedMode ? (
         <>
-          <SharedDemoBanner />
           <SharedDemoControls s={shared} track="N1" canGenerate={accommodations.length > 0} />
           {shared.showTable && (
             <MetricBreakdownTable
-              title={`再行銷轉換明細${SHARED_DEMO_TITLE_SUFFIX}`}
-              description={`資料來源：共用 Demo 資料集 revision ${shared.dataset?.revision}（合成 fixture，前端重建），未讀取任何正式營運表或即時 RPC`}
-              scopeNotes={[SHARED_DEMO_LABEL]}
-              columns={[SHARED_DEMO_NATURE_COLUMN, ...demoColumns]}
+              title="再行銷轉換明細"
+              description={`資料來源：共用資料集 revision ${shared.dataset?.revision}`}
+              scopeNotes={[]}
+              columns={demoColumns}
               rows={sharedRows}
               rowKey={(r) => r.key}
               loading={false}
@@ -150,7 +145,7 @@ export default function RemarketingAnalytics() {
               onReload={() => void shared.load()}
               accommodations={accommodations}
               channelOptions={[{ value: "all", label: "全部" }, { value: "email", label: "Email" }, { value: "line_share", label: "LINE" }]}
-              csvFileName="DEMO-shared-remarketing-analytics"
+              csvFileName="remarketing-analytics-shared"
               showIncludeInternal={false}
             />
           )}

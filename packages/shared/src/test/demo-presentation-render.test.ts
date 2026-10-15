@@ -14,14 +14,15 @@ describe("兩頁預設為即時模式", () => {
   const rem = render(React.createElement(RemarketingAnalytics));
   const addon = render(React.createElement(AddonRecAnalytics));
 
-  it("提供即時／紀錄切換，預設不顯示資料集面板，且無簡報示範或模擬字樣", () => {
+  it("提供即時／共用 Demo 切換（無紀錄按鈕、無模式說明文字），預設不顯示資料集面板，且無簡報示範或模擬字樣", () => {
     for (const html of [rem, addon]) {
       expect(html).toContain("analytics-mode-toggle");
       expect(html).toContain("即時");
-      expect(html).toContain("紀錄");
+      expect(html).not.toContain("analytics-mode-demo");
+      expect(html).toContain("analytics-mode-shared-demo");
       expect(html).not.toContain("demo-control-panel");
       expect(html).not.toContain("簡報示範");
-      expect(html).toContain("即時：資料來自正式 RPC 即時彙總。");
+      expect(html).not.toContain("即時：資料來自正式 RPC 即時彙總。");
     }
   });
 

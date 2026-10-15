@@ -1,20 +1,19 @@
 /**
  * 總部分析頁「共用 Demo」模式：資料集存在服務端（hq_shared_demo_get／put），不同電腦讀同一 run。
- * 一律標示「Demo 測試資料，非實際營運成果」，不受 SHOW_DEMO_* 旗標影響；不呼叫任何即時 RPC。
+ * 不呼叫任何即時 RPC。
  */
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
-import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/ui/alert";
-import { FlaskConical, RefreshCw, Upload, Send } from "lucide-react";
+import { RefreshCw, Upload, Send } from "lucide-react";
 import { buildDemoRun, DEFAULT_DEMO_NAMES, type DemoNameConfig, type DemoRun } from "@lakeze/shared/utils/demoPresentation";
 import { loadDemo } from "@lakeze/shared/utils/demoRunStore";
 import {
   compatibilityIssue, fetchSharedDemo, publishSharedDemo, rebuildRun, toDescriptor, verifyLocalRun,
-  SHARED_DEMO_LABEL, type SharedDemoDataset, type SharedDemoRunDescriptor,
+  type SharedDemoDataset, type SharedDemoRunDescriptor,
 } from "@lakeze/shared/utils/sharedDemo";
 import type { AccommodationOption } from "@/components/headquarters/MetricBreakdownTable";
 
@@ -92,16 +91,6 @@ export function useSharedDemo(accommodations: AccommodationOption[], active: boo
 
 export type SharedDemoState = ReturnType<typeof useSharedDemo>;
 
-export function SharedDemoBanner() {
-  return (
-    <Alert className="border-amber-400 bg-amber-50 text-amber-900" data-testid="shared-demo-banner">
-      <FlaskConical className="h-4 w-4" />
-      <AlertTitle>共用 Demo</AlertTitle>
-      <AlertDescription>{SHARED_DEMO_LABEL}。資料為合成 fixture，未讀取任何正式營運資料或即時 RPC。</AlertDescription>
-    </Alert>
-  );
-}
-
 function ConflictAlert({ s }: { s: SharedDemoState }) {
   if (!s.conflict) return null;
   return (
@@ -173,7 +162,7 @@ function NamesEditor({ s, track }: { s: SharedDemoState; track: "N1" | "N2" }) {
 export function SharedDemoControls({ s, track, canGenerate }: { s: SharedDemoState; track: "N1" | "N2"; canGenerate: boolean }) {
   return (
     <Card data-testid="shared-demo-panel">
-      <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-base">共用 Demo 資料集<Badge variant="outline">{SHARED_DEMO_LABEL}</Badge></CardTitle></CardHeader>
+      <CardHeader className="pb-3"><CardTitle className="text-base">共用 Demo 資料集</CardTitle></CardHeader>
       <CardContent className="space-y-3 text-sm">
         <StatusBlock s={s} />
         <ConflictAlert s={s} />
@@ -193,7 +182,3 @@ export function SharedDemoControls({ s, track, canGenerate }: { s: SharedDemoSta
     </Card>
   );
 }
-
-/** 表格與 CSV 每列都帶「資料性質」欄 */
-export const SHARED_DEMO_NATURE_COLUMN = { key: "nature", label: "資料性質", kind: "text" as const, value: () => SHARED_DEMO_LABEL };
-export const SHARED_DEMO_TITLE_SUFFIX = `（共用 Demo｜${SHARED_DEMO_LABEL}）`;
