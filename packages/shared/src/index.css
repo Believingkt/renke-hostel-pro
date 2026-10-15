@@ -2294,7 +2294,7 @@ html.native-app [data-site-chrome] {
   .intercom-lightweight-app-launcher,
   iframe.intercom-launcher-frame,
   .intercom-launcher {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 92px) !important;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 300px) !important;
     right: 12px !important;
   }
 }
