@@ -4,9 +4,8 @@
 export const TARGET_RATE = 0.025;
 export const MIN_VENUES = 5;
 export const SCOPE_NOTE = "目前僅涵蓋可驗證的 AI 再行銷推播歸因；其他 AI 入口追蹤尚未涵蓋";
-export const FORMULA = "AI 推薦之訂房數 ÷ 總訂房數（有效訂房：已確認／已入住／已退房）";
+export const FORMULA = "AI 推薦之訂房數 ÷ 總訂房數";
 export const INTERNAL_NOTE = "內部／測試排除：再行銷發送排除 is_test=true（發送紀錄無內部欄位）；訂單無內部維度，僅以既有排除名單與訂單來源 test／test_data 排除，無法辨識全部內部訂單";
-export const DEMO_LABEL = "Demo 測試資料，非實際營運成果";
 export const DEMO_VERSION = "aibk-demo-v1.2.0";
 export const FIXTURE_VERSION = "aibk-fixture-v1.2.0";
 /** 各 fixture 版本的每館合成訂單數／AI 數（依 run.venues 順序）；names 有值時館別固定、建立 run 時依公開館名解析真實 id。舊版保留，舊 run 重建數值不變 */
@@ -160,19 +159,18 @@ export function computeConversion(orders: DemoOrder[], venues: DemoVenue[], f: F
 export const fmtRate = (r: number | null | undefined) => (r == null ? "—" : `${(r * 100).toFixed(2)}%`);
 
 export function toCsv(result: ConversionResult, meta: { demo: boolean; runId?: string; filters: Filters }): string {
-  const nature = meta.demo ? DEMO_LABEL : `正式資料（${SCOPE_NOTE}）`;
   const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const tag = meta.demo ? [] : ["正式"];
   const lines = [
-    ["資料性質", nature],
-    ...(meta.demo ? [["Demo run", meta.runId ?? ""]] : []),
+    ...(meta.demo ? [] : [["資料性質", `正式資料（${SCOPE_NOTE}）`]]),
     ["公式", FORMULA],
     ...(meta.demo ? [] : [["內部／測試排除", INTERNAL_NOTE]]),
     ["期間（台北）", `${meta.filters.from}～${meta.filters.to}`],
     ["訂單來源", meta.filters.orderSource ?? "全部"],
     [],
-    ["資料性質", "館別", "有效訂房數", "AI 推薦訂房數", "AI 訂房轉換率", "達標（≥2.5%）", "有歸因紀錄訂房數"],
-    ...result.rows.map((r) => [meta.demo ? "Demo" : "正式", r.accommodation_name, r.effective_orders, r.ai_orders, fmtRate(r.rate), r.effective_orders ? (r.meets_target ? "是" : "否") : "—", r.attributed_orders]),
-    [meta.demo ? "Demo" : "正式", "合計（加權）", result.totals.effective_orders, result.totals.ai_orders, fmtRate(result.totals.rate), result.totals.effective_orders ? (result.totals.meets_target ? "是" : "否") : "—", result.totals.attributed_orders],
+    [...(meta.demo ? [] : ["資料性質"]), "館別", "有效訂房數", "AI 推薦訂房數", "AI 訂房轉換率", "達標（≥2.5%）", "有歸因紀錄訂房數"],
+    ...result.rows.map((r) => [...tag, r.accommodation_name, r.effective_orders, r.ai_orders, fmtRate(r.rate), r.effective_orders ? (r.meets_target ? "是" : "否") : "—", r.attributed_orders]),
+    [...tag, "合計（加權）", result.totals.effective_orders, result.totals.ai_orders, fmtRate(result.totals.rate), result.totals.effective_orders ? (result.totals.meets_target ? "是" : "否") : "—", result.totals.attributed_orders],
   ];
   return "\uFEFF" + lines.map((l) => l.map(esc).join(",")).join("\n");
 }

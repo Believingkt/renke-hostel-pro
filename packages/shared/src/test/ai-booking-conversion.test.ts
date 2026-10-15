@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoOverlaps, demoRange, fmtRate, toCsv,
-  DEMO_FIXTURES, DEMO_LABEL, FIXTURE_VERSION, INTERNAL_NOTE, type DemoRun, type DemoVenue,
+  DEMO_FIXTURES, FIXTURE_VERSION, FORMULA, INTERNAL_NOTE, type DemoRun, type DemoVenue,
 } from "@lakeze/shared/lib/aiBookingConversion";
 
 const NAMES = ["哈庫納馬塔塔", "森山寫照", "櫻家小築", "淞湘卉館", "雲岫海景渡假會館"];
@@ -139,17 +139,18 @@ describe("AI 訂房轉換 Demo fixture", () => {
     expect(fmtRate(1 / 41)).toBe("2.44%");
   });
 
-  it("CSV 可識別資料性質；Demo 每列標 Demo 並帶 run id", () => {
+  it("CSV：紀錄模式不含 Demo 標示／run id／資料性質欄；即時模式保留正式資料說明", () => {
+    expect(FORMULA).toBe("AI 推薦之訂房數 ÷ 總訂房數");
     const r = computeConversion(buildDemoOrders(run), run.venues, all());
     const demo = toCsv(r, { demo: true, runId: run.runId, filters: all() });
-    expect(demo).toContain(DEMO_LABEL);
-    expect(demo).toContain(run.runId);
+    expect(demo).not.toMatch(/Demo|demo|非實際營運成果|資料性質/);
+    expect(demo).not.toContain(run.runId);
     expect(demo).toContain('"2.89%"');
     expect(demo).toContain('"雲岫海景渡假會館","427","11"');
-    expect(demo.split("\n").filter((l) => l.startsWith('"Demo"'))).toHaveLength(6);
+    expect(demo.split("\n").filter((l) => l.startsWith('"館別"'))).toHaveLength(1);
     const prod = toCsv(r, { demo: false, filters: all() });
     expect(prod).toContain("目前僅涵蓋可驗證的 AI 再行銷推播歸因");
-    expect(prod).not.toContain(DEMO_LABEL);
+    expect(prod.split("\n").filter((l) => l.startsWith('"正式"'))).toHaveLength(6);
     expect(prod).toContain(INTERNAL_NOTE);
     expect(INTERNAL_NOTE).toContain("無法辨識全部內部訂單");
     expect(demo).not.toContain(INTERNAL_NOTE);
