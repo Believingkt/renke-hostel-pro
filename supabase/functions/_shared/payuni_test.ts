@@ -2,7 +2,7 @@
 // 只用官方文件公開的測試 key/iv，不含任何真實金鑰；不讀環境變數、不連網。
 import { assert, assertEquals, assertMatch, assertNotEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
-  callPayuni, decrypt, encrypt, hashInfo, parseNotify, PAYUNI_TIMEOUT_MS,
+  buildQuery, callPayuni, decrypt, encrypt, hashInfo, parseNotify, PAYUNI_TIMEOUT_MS,
   type PayuniConfig, type PayuniTransport,
 } from "./payuni.ts";
 
@@ -43,6 +43,27 @@ Deno.test("decrypt：密文被竄改 → GCM 驗證失敗丟錯", async () => {
 Deno.test("encrypt／decrypt 往返：中文、空白、符號", async () => {
   const p = { MerID: "S01", ProdDesc: "雲岫 海景 房 & 早餐=2", TradeAmt: 1234 };
   assertEquals(await decrypt(await encrypt(p, KEY, IV), KEY, IV), { MerID: "S01", ProdDesc: "雲岫 海景 房 & 早餐=2", TradeAmt: "1234" });
+});
+
+Deno.test("buildQuery 與 PHP http_build_query 一致：* → %2A（空白 → +、~ → %7E、中文 UTF-8）", () => {
+  // PHP: http_build_query(["ProdDesc"=>"A*B C~", "Name"=>"雲*岫"]) === "ProdDesc=A%2AB+C%7E&Name=%E9%9B%B2%2A%E5%B2%AB"
+  assertEquals(buildQuery({ ProdDesc: "A*B C~", Name: "雲*岫" }), "ProdDesc=A%2AB+C%7E&Name=%E9%9B%B2%2A%E5%B2%AB");
+  assertEquals(buildQuery({ MerID: "AAA", MerTradeNo: "BBB" }), "MerID=AAA&MerTradeNo=BBB");
+});
+
+Deno.test("含 * 的參數：密文以 %2A 編碼的明文加密，decrypt 仍還原為 *", async () => {
+  const p = { MerTradeNo: "T*1", ProdDesc: "**" };
+  const enc = await encrypt(p, KEY, IV);
+  const sealed = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: new TextEncoder().encode(IV), tagLength: 128 },
+    await crypto.subtle.importKey("raw", new TextEncoder().encode(KEY), { name: "AES-GCM" }, false, ["encrypt"]),
+    new TextEncoder().encode("MerTradeNo=T%2A1&ProdDesc=%2A%2A"),
+  );
+  const b = new Uint8Array(sealed);
+  const b64 = (u: Uint8Array) => btoa(String.fromCharCode(...u));
+  const expected = Array.from(new TextEncoder().encode(`${b64(b.slice(0, -16))}:::${b64(b.slice(-16))}`), (x) => x.toString(16).padStart(2, "0")).join("");
+  assertEquals(enc, expected);
+  assertEquals(await decrypt(enc, KEY, IV), { MerTradeNo: "T*1", ProdDesc: "**" });
 });
 
 type Captured = { url: string; init: Parameters<PayuniTransport>[1] };

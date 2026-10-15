@@ -85,10 +85,11 @@ function safeEqual(a: string, b: string): boolean {
 
 // ---------------- 加解密 ----------------
 
+/** 等同 PHP http_build_query：URLSearchParams 不編碼 "*"，PHP 會編成 %2A，其餘字元一致 */
 export function buildQuery(params: Record<string, string | number>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) sp.append(k, String(v));
-  return sp.toString();
+  return sp.toString().replaceAll("*", "%2A");
 }
 
 export async function encrypt(params: Record<string, string | number>, key: string, iv: string): Promise<string> {
