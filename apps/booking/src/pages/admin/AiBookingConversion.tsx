@@ -4,6 +4,8 @@ import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { Button } from "@lakeze/shared/components/ui/button";
 import { Input } from "@lakeze/shared/components/ui/input";
+import { Card, CardContent } from "@lakeze/shared/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@lakeze/shared/components/ui/table";
 import {
   buildDemoOrders, buildDemoRun, computeConversion, defaultRange, demoOverlaps, demoRange, fmtRate, toCsv,
   FORMULA, INTERNAL_NOTE, MIN_VENUES, SCOPE_NOTE,
@@ -31,30 +33,34 @@ function ResultView({ result }: { result: ConversionResult }) {
           有有效訂房的館別只有 {result.venues_with_orders} 家，少於 {MIN_VENUES} 家；此結果不足以作為「至少 {MIN_VENUES} 家業者」的達標依據。
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm" data-testid="aibk-table">
-          <thead className="bg-muted/50 text-left">
-            <tr>
-              <th className="p-2">館別</th><th className="p-2 text-right">有效訂房數</th><th className="p-2 text-right">AI 推薦訂房數</th>
-              <th className="p-2 text-right">AI 訂房轉換率</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.rows.map((r) => (
-              <tr key={r.accommodation_id} className="border-t" data-testid={`aibk-row-${r.accommodation_id}`}>
-                <td className="p-2">{r.accommodation_name}</td>
-                <td className="p-2 text-right">{r.effective_orders}</td>
-                <td className="p-2 text-right">{r.ai_orders}</td>
-                <td className="p-2 text-right">{fmtRate(r.rate)}</td>
-              </tr>
-            ))}
-            <tr className="border-t font-medium bg-muted/30">
-              <td className="p-2">合計</td><td className="p-2 text-right">{t.effective_orders}</td><td className="p-2 text-right">{t.ai_orders}</td>
-              <td className="p-2 text-right">{fmtRate(t.rate)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <Card>
+        <CardContent className="pt-6 overflow-x-auto">
+          <Table data-testid="aibk-table">
+            <TableHeader>
+              <TableRow>
+                <TableHead>館別</TableHead><TableHead className="text-right">有效訂房數</TableHead>
+                <TableHead className="text-right">AI 推薦訂房數</TableHead><TableHead className="text-right">AI 訂房轉換率</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {result.rows.map((r) => (
+                <TableRow key={r.accommodation_id} data-testid={`aibk-row-${r.accommodation_id}`}>
+                  <TableCell>{r.accommodation_name}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.effective_orders}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.ai_orders}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtRate(r.rate)}</TableCell>
+                </TableRow>
+              ))}
+              <TableRow className="bg-muted/40 font-medium" data-testid="aibk-total-row">
+                <TableCell>合計</TableCell>
+                <TableCell className="text-right tabular-nums">{t.effective_orders}</TableCell>
+                <TableCell className="text-right tabular-nums">{t.ai_orders}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmtRate(t.rate)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </>
   );
 }
