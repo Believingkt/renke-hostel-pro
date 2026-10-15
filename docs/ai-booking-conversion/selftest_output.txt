@@ -42,8 +42,9 @@ psql:selftest_demo.sql:33: NOTICE:  PASS 館數非 5 → 22023 invalid_payload: 
 psql:selftest_demo.sql:34: NOTICE:  PASS 超過 2048 bytes → 22023 invalid_payload: run must be an object <= 2048 bytes
 psql:selftest_demo.sql:39: NOTICE:  PASS 首次發布 revision=1
 psql:selftest_demo.sql:40: NOTICE:  PASS 過期 revision → PT409 → PT409 revision_conflict
-psql:selftest_demo.sql:47: NOTICE:  PASS 以新版 fixture v1.1.0 更新 revision=2（既有 migration 格式白名單即接受）、history 保留 v1.0.0 快照
-psql:selftest_demo.sql:52: NOTICE:  PASS 表不對 anon/authenticated 開放（只能經 RPC）
+psql:selftest_demo.sql:49: NOTICE:  PASS v1.2.0 館名與 id 錯配 → 22023 invalid_payload: venue not found or name mismatch
+psql:selftest_demo.sql:57: NOTICE:  PASS 以 v1.2.0（5 家指定館名＋對應 id）更新 revision=2（既有 migration 即接受）、history 保留 v1.0.0 快照
+psql:selftest_demo.sql:62: NOTICE:  PASS 表不對 anon/authenticated 開放（只能經 RPC）
 == 兩連線：A 持鎖未提交時 B 以相同 revision=2 發布 → A 提交後 B 得 PT409
 [A]  a_rev 
 [A] -------

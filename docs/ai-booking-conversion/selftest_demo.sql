@@ -38,12 +38,22 @@ DO $$ DECLARE r jsonb; BEGIN
   RAISE NOTICE 'PASS 首次發布 revision=1';
 END $$;
 SELECT pg_temp.expect_err('過期 revision → PT409', $q$SELECT public.hq_ai_booking_demo_put(0, pg_temp.run('AIBKRUN-20261016-090000-2'))$q$, 'PT409');
+-- v1.2.0：固定 5 館（依公開館名解析出的 id）；scratch 以假 id 建同名館
+INSERT INTO public.accommodation_info (id, name, is_active) VALUES
+  ('e0000000-0000-4000-8000-000000000001', '哈庫納馬塔塔', true), ('e0000000-0000-4000-8000-000000000002', '森山寫照', true),
+  ('e0000000-0000-4000-8000-000000000003', '櫻家小築', true), ('e0000000-0000-4000-8000-000000000004', '淞湘卉館', true),
+  ('e0000000-0000-4000-8000-000000000005', '雲岫海景渡假會館', true);
+CREATE OR REPLACE FUNCTION pg_temp.run12(rid text) RETURNS jsonb LANGUAGE sql AS $$
+  SELECT pg_temp.run(rid) || jsonb_build_object('demoVersion', 'aibk-demo-v1.2.0', 'fixtureVersion', 'aibk-fixture-v1.2.0',
+    'venues', (SELECT jsonb_agg(jsonb_build_object('id', id, 'name', name) ORDER BY id) FROM public.accommodation_info WHERE id::text LIKE 'e0000000%')) $$;
+SELECT pg_temp.expect_err('v1.2.0 館名與 id 錯配', $q$SELECT public.hq_ai_booking_demo_put(1, jsonb_set(pg_temp.run12('AIBKRUN-20261016-090000-2'), '{venues,0,id}', '"e0000000-0000-4000-8000-000000000002"'))$q$, '22023');
 DO $$ DECLARE r jsonb; BEGIN
-  r := public.hq_ai_booking_demo_put(1, pg_temp.run('AIBKRUN-20261016-090000-2') || '{"demoVersion":"aibk-demo-v1.1.0","fixtureVersion":"aibk-fixture-v1.1.0"}');
-  IF (r->'dataset'->>'revision')::int <> 2 OR r->'dataset'->>'fixtureVersion' <> 'aibk-fixture-v1.1.0' THEN RAISE EXCEPTION 'FAIL update %', r; END IF;
+  r := public.hq_ai_booking_demo_put(1, pg_temp.run12('AIBKRUN-20261016-090000-2'));
+  IF (r->'dataset'->>'revision')::int <> 2 OR r->'dataset'->>'fixtureVersion' <> 'aibk-fixture-v1.2.0'
+     OR (SELECT array_agg(v->>'name' ORDER BY v->>'id') FROM jsonb_array_elements(r->'dataset'->'run'->'venues') v) <> ARRAY['哈庫納馬塔塔', '森山寫照', '櫻家小築', '淞湘卉館', '雲岫海景渡假會館'] THEN RAISE EXCEPTION 'FAIL update %', r; END IF;
   IF (SELECT count(*) FROM public.hq_ai_booking_demo_dataset_history) <> 1 THEN RAISE EXCEPTION 'FAIL history'; END IF;
   IF (SELECT snapshot->>'fixtureVersion' FROM public.hq_ai_booking_demo_dataset_history) <> 'aibk-fixture-v1.0.0' THEN RAISE EXCEPTION 'FAIL history keeps old version'; END IF;
-  RAISE NOTICE 'PASS 以新版 fixture v1.1.0 更新 revision=2（既有 migration 格式白名單即接受）、history 保留 v1.0.0 快照';
+  RAISE NOTICE 'PASS 以 v1.2.0（5 家指定館名＋對應 id）更新 revision=2（既有 migration 即接受）、history 保留 v1.0.0 快照';
 END $$;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'hq_shared_demo_datasets') THEN RAISE EXCEPTION 'unexpected'; END IF;

@@ -7,12 +7,17 @@ export const SCOPE_NOTE = "目前僅涵蓋可驗證的 AI 再行銷推播歸因�
 export const FORMULA = "AI 推薦之訂房數 ÷ 總訂房數（有效訂房：已確認／已入住／已退房）";
 export const INTERNAL_NOTE = "內部／測試排除：再行銷發送排除 is_test=true（發送紀錄無內部欄位）；訂單無內部維度，僅以既有排除名單與訂單來源 test／test_data 排除，無法辨識全部內部訂單";
 export const DEMO_LABEL = "Demo 測試資料，非實際營運成果";
-export const DEMO_VERSION = "aibk-demo-v1.1.0";
-export const FIXTURE_VERSION = "aibk-fixture-v1.1.0";
-/** 各 fixture 版本的每館合成訂單數／AI 數（依 run.venues 順序）；舊版保留，舊 run 重建數值不變 */
-export const DEMO_FIXTURES: Record<string, { orders: number[]; ai: number[] }> = {
+export const DEMO_VERSION = "aibk-demo-v1.2.0";
+export const FIXTURE_VERSION = "aibk-fixture-v1.2.0";
+/** 各 fixture 版本的每館合成訂單數／AI 數（依 run.venues 順序）；names 有值時館別固定、建立 run 時依公開館名解析真實 id。舊版保留，舊 run 重建數值不變 */
+export const DEMO_FIXTURES: Record<string, { orders: number[]; ai: number[]; names?: string[] }> = {
   "aibk-fixture-v1.0.0": { orders: [200, 240, 180, 220, 160], ai: [6, 7, 4, 6, 5] },
   "aibk-fixture-v1.1.0": { orders: [203, 247, 186, 229, 165], ai: [6, 7, 4, 6, 5] },
+  "aibk-fixture-v1.2.0": {
+    names: ["哈庫納馬塔塔", "森山寫照", "櫻家小築", "淞湘卉館", "雲岫海景渡假會館"],
+    orders: [124, 247, 49, 52, 427],
+    ai: [4, 7, 2, 2, 11],
+  },
 };
 const DEMO_SOURCES = ["website", "owlting", "manual", "hotelnabe"];
 const DEMO_DAYS = 30;
@@ -60,15 +65,35 @@ function fnv(s: string): number {
   return h >>> 0;
 }
 
+/** 依目前 fixture 決定 run 的 5 家館別：固定館名者以完全相同的公開館名對應真實 id，找不到或重名即報錯 */
+function demoVenuesFor(venues: DemoVenue[]): DemoVenue[] {
+  const names = DEMO_FIXTURES[FIXTURE_VERSION].names;
+  if (!names) {
+    if (venues.length < 5) throw new Error("需要至少 5 家啟用館別才能建立 Demo");
+    return venues.slice(0, 5).map((v) => ({ id: v.id, name: v.name }));
+  }
+  const missing: string[] = [];
+  const dup: string[] = [];
+  const out = names.map((n) => {
+    const hits = venues.filter((v) => v.name.trim() === n);
+    if (hits.length === 0) missing.push(n);
+    if (hits.length > 1) dup.push(n);
+    return hits[0] ? { id: hits[0].id, name: hits[0].name } : null;
+  });
+  if (missing.length) throw new Error(`找不到 Demo 指定的啟用館別：${missing.join("、")}`);
+  if (dup.length) throw new Error(`Demo 指定館名對應到多個館別：${dup.join("、")}`);
+  return out as DemoVenue[];
+}
+
 export function buildDemoRun(venues: DemoVenue[], now = new Date()): DemoRun {
-  if (venues.length < 5) throw new Error("需要至少 5 家啟用館別才能建立 Demo");
+  const demoVenues = demoVenuesFor(venues);
   const tp = new Date(now.getTime() + 8 * 3600_000).toISOString();
   const stamp = `${tp.slice(0, 10).replace(/-/g, "")}-${tp.slice(11, 19).replace(/:/g, "")}`;
   return {
     runId: `AIBKRUN-${stamp}-${now.getUTCMilliseconds() % 1000}`,
     generatedAt: `${tp.slice(0, 19)}+08:00`,
     demoVersion: DEMO_VERSION, fixtureVersion: FIXTURE_VERSION, dataNature: "synthetic_demo",
-    venues: venues.slice(0, 5).map((v) => ({ id: v.id, name: v.name })),
+    venues: demoVenues,
   };
 }
 
@@ -89,6 +114,9 @@ export function buildDemoOrders(run: DemoRun): DemoOrder[] {
   const { from } = demoRange(run);
   const fx = DEMO_FIXTURES[run.fixtureVersion];
   if (!fx) throw new Error(`不支援的 Demo fixture 版本：${run.fixtureVersion}`);
+  if (fx.names && (run.venues.length !== fx.names.length || run.venues.some((v, i) => v.name.trim() !== fx.names![i]))) {
+    throw new Error("Demo run 的館別與 fixture 指定館名不符，請重新產生共用 Demo");
+  }
   const out: DemoOrder[] = [];
   run.venues.forEach((v, i) => {
     const n = fx.orders[i] ?? 0;
