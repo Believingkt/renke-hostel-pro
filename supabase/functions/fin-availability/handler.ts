@@ -5,7 +5,8 @@ import {
   buildAvailability,
 } from "../_shared/availability.ts";
 import {
-  bookingUrl, capacityFits, finalize, parseFinQuery, summarizeRoomType, type FinResultRow,
+  bookingUrl, capacityFits, discountLabel, finalize, packageCapacity, packageRoomTypeId, parseFinQuery,
+  summarizePackage, summarizeRoomType, type FinResultRow, type PackageRow, type PkgDateOverride,
 } from "./core.ts";
 
 export const corsHeaders = {
@@ -75,9 +76,11 @@ const groupBy = (rows: any[], key: string) => {
 };
 
 function activeAccQuery(client: any, select: string, opts?: { count?: "exact"; head?: boolean }) {
-  // 與前台入口列表（BookingPortal）相同：is_active 且 show_on_portal
-  return client.from("accommodation_info").select(select, opts).eq("is_active", true).eq("show_on_portal", true);
+  // 所有可訂的館：只看 is_active（show_on_portal 僅為首頁精選）
+  return client.from("accommodation_info").select(select, opts).eq("is_active", true);
 }
+
+const HOLIDAY_TYPES_AS_WEEKEND = ["holiday", "compensatory_day_off"];
 
 export async function handleFin(req: Request, deps: { client: any; apiKey: string | undefined }): Promise<Response> {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -117,8 +120,9 @@ export async function handleFin(req: Request, deps: { client: any; apiKey: strin
     if (!accs.length) return json({ ...base, ...finalize([], 0) });
 
     const accIds = accs.map((a) => a.id);
-    // 以下查詢條件與 all-availability 相同
-    const [roomTypes, templates, orders, holidays] = await Promise.all([
+    const nowIso = new Date().toISOString();
+    // 房型／範本／假日與 all-availability 相同；訂單與付款保留對齊結帳端 RPC get_adjusted_room_inventory_batch
+    const [roomTypes, templates, rawOrders, holidays, holds, packages, pkgOverrides] = await Promise.all([
       fetchIn(accIds, (p) => client.from("room_types")
         .select("id, accommodation_id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
         .in("accommodation_id", p).order("display_order", { ascending: true, nullsFirst: false }).order("id", { ascending: true })),
@@ -127,19 +131,44 @@ export async function handleFin(req: Request, deps: { client: any; apiKey: strin
         .in("accommodation_id", p).order("display_order", { ascending: true, nullsFirst: false }).order("id", { ascending: true })),
       fetchIn(accIds, (p) => client.from("orders")
         .select("id, accommodation_id, room_type_id, check_in_date, check_out_date, order_status, lock_whole_building")
-        .in("accommodation_id", p).in("order_status", ACTIVE_ORDER_STATUSES)
+        .in("accommodation_id", p).neq("order_status", "cancelled")
         .gt("check_out_date", from).lte("check_in_date", to).order("id", { ascending: true })),
       fetchIn(accIds, (p) => client.from("public_holidays")
         .select("accommodation_id, holiday_date, holiday_type")
         .in("accommodation_id", p).gte("holiday_date", from).lte("holiday_date", to).order("id", { ascending: true })),
+      // 團購信用卡有效保留：未轉單，且（付款中未過期 或 已付款待建單）
+      fetchIn(accIds, (p) => client.from("group_buy_payment_drafts")
+        .select("id, accommodation_id, room_type_id, check_in_date, check_out_date, room_quantity")
+        .in("accommodation_id", p).is("converted_order_id", null)
+        .gt("check_out_date", from).lte("check_in_date", to)
+        .or(`and(status.in.(pending,payment_processing),expires_at.gt.${nowIso}),status.eq.paid`)
+        .order("id", { ascending: true })),
+      fetchIn(accIds, (p) => client.from("accommodation_packages")
+        .select("id, accommodation_id, name, guest_count, guest_count_max, applicable_tiers, primary_room_type_id, room_type_ids, original_price, sale_price, tier_prices, excluded_date_ranges, display_order")
+        .in("accommodation_id", p).eq("enabled", true)
+        .order("display_order", { ascending: true }).order("guest_count", { ascending: true }).order("id", { ascending: true })),
+      fetchIn(accIds, (p) => client.from("package_date_prices")
+        .select("package_id, date, sale_price, original_price, is_available")
+        .in("accommodation_id", p).gte("date", from).lte("date", to).order("id", { ascending: true })),
     ]);
+
+    // buildAvailability 只扣 ACTIVE_ORDER_STATUSES；RPC 為 cancelled 以外全扣 → 正規化狀態，付款保留轉為虛擬訂單
+    const holdStatus = ACTIVE_ORDER_STATUSES[0];
+    const orders = [
+      ...rawOrders.map((o) => ({ ...o, order_status: holdStatus })),
+      ...holds.map((h) => ({
+        id: `hold-${h.id}`, accommodation_id: h.accommodation_id, room_type_id: h.room_type_id,
+        check_in_date: h.check_in_date, check_out_date: h.check_out_date, order_status: holdStatus, lock_whole_building: false,
+      })),
+    ];
+    const holdRooms = holds.map((h) => ({ order_id: `hold-${h.id}`, room_type_id: h.room_type_id, quantity: Math.max(Number(h.room_quantity ?? 1), 1) }));
 
     const rtIds = roomTypes.map((r) => r.id);
     const [inventory, orderRooms] = await Promise.all([
       fetchIn(rtIds, (p) => client.from("room_inventory_pricing")
         .select("room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available")
         .in("room_type_id", p).is("pricing_template_id", null).gte("date", from).lte("date", to).order("id", { ascending: true })),
-      fetchIn(orders.map((o) => o.id), (p) => client.from("order_rooms")
+      fetchIn(rawOrders.map((o) => o.id), (p) => client.from("order_rooms")
         .select("order_id, room_type_id, quantity").in("order_id", p).order("id", { ascending: true })),
     ]);
 
@@ -148,39 +177,73 @@ export async function handleFin(req: Request, deps: { client: any; apiKey: strin
     const ordersByAcc = groupBy(orders, "accommodation_id");
     const holByAcc = groupBy(holidays, "accommodation_id");
     const invByRt = groupBy(inventory, "room_type_id");
+    const pkgByAcc = groupBy(packages, "accommodation_id");
+    const ovMap = new Map<string, PkgDateOverride>(pkgOverrides.map((o) => [`${o.package_id}_${o.date}`, o]));
+    const allOrderRooms = [...orderRooms, ...holdRooms];
 
     const rows: FinResultRow[] = [];
     let unavailable = 0;
     for (const acc of accs) {
       const rtList = rtByAcc.get(acc.id) || [];
       if (!rtList.length) continue;
+      const accHolidays = holByAcc.get(acc.id) || [];
       const computed = buildAvailability({
         from, to,
         roomTypes: rtList as any,
         inventory: rtList.flatMap((r) => invByRt.get(r.id) || []) as any,
         orders: (ordersByAcc.get(acc.id) || []) as any,
-        orderRooms: orderRooms as any,
+        orderRooms: allOrderRooms as any,
         templates: (tmplByAcc.get(acc.id) || []) as any,
-        holidays: (holByAcc.get(acc.id) || []) as any,
+        holidays: accHolidays as any,
       });
+      const common = {
+        accommodation_id: acc.id,
+        accommodation_name: acc.name,
+        region: [acc.region_1, acc.region_2].filter(Boolean).join(" "),
+        booking_url: bookingUrl(acc, q),
+      };
+      const priced = (list: number | null, total: number | null) => {
+        const label = discountLabel(list, total);
+        return {
+          list_price: list,
+          ...(label ? { discount_label: label } : {}),
+          total_price: total,
+          avg_nightly_price: total == null ? null : Math.round(total / q.nights),
+          ...(total == null ? { price_note: "請洽客服" } : {}),
+        };
+      };
+
+      const accPkgs = (pkgByAcc.get(acc.id) || []) as PackageRow[];
+      if (accPkgs.length) {
+        // 有啟用方案的館：與前台館別頁一致，以方案為單位
+        const holidaySet = new Set(accHolidays.filter((h) => HOLIDAY_TYPES_AS_WEEKEND.includes(h.holiday_type)).map((h) => h.holiday_date));
+        for (const pkg of accPkgs) {
+          const capacity = packageCapacity(pkg);
+          if (!capacityFits(capacity, q.guests)) continue;
+          const rtRes = computed.find((r) => r.room_type_id === packageRoomTypeId(pkg));
+          if (!rtRes) continue; // 未綁房型無法驗庫存
+          const s = summarizePackage(pkg, rtRes, q.nights, holidaySet, ovMap);
+          if (!s.available) { unavailable++; continue; }
+          rows.push({
+            ...common,
+            room_type_id: rtRes.room_type_id, room_type_name: rtRes.name, plan_name: pkg.name,
+            capacity, available: true, remaining: s.remaining,
+            ...priced(s.list_price, s.total_price),
+          });
+        }
+        continue;
+      }
+
       for (const rtRes of computed) {
         const capacity = rtList.find((r) => r.id === rtRes.room_type_id)?.capacity ?? null;
         if (!capacityFits(capacity, q.guests)) continue;
         const s = summarizeRoomType(rtRes, q.nights);
         if (!s.available) { unavailable++; continue; }
         rows.push({
-          accommodation_id: acc.id,
-          accommodation_name: acc.name,
-          region: [acc.region_1, acc.region_2].filter(Boolean).join(" "),
-          room_type_id: rtRes.room_type_id,
-          room_type_name: rtRes.name,
-          capacity,
-          available: true,
-          remaining: s.remaining,
-          total_price: s.total_price,
-          avg_nightly_price: s.avg_nightly_price,
-          ...(s.price_note ? { price_note: s.price_note } : {}),
-          booking_url: bookingUrl(acc, q),
+          ...common,
+          room_type_id: rtRes.room_type_id, room_type_name: rtRes.name, plan_name: null,
+          capacity, available: true, remaining: s.remaining,
+          ...priced(s.total_price, s.total_price),
         });
       }
     }

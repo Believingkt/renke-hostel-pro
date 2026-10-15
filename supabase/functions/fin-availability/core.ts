@@ -94,13 +94,119 @@ export interface FinResultRow {
   region: string;
   room_type_id: string;
   room_type_name: string;
+  plan_name: string | null;
   capacity: number | null;
   available: true;
   remaining: number;
+  list_price: number | null;
+  discount_label?: string;
   total_price: number | null;
   avg_nightly_price: number | null;
   price_note?: string;
   booking_url: string;
+}
+
+// ── 包區／入住方案（accommodation_packages）計價：與 validate-order-prices 相同順序 ──
+export type PkgTier = "weekday" | "friday_sunday" | "weekend";
+
+export interface PackageRow {
+  id: string;
+  accommodation_id: string;
+  name: string;
+  guest_count: number;
+  guest_count_max: number | null;
+  applicable_tiers: PkgTier[] | null;
+  primary_room_type_id: string | null;
+  room_type_ids: string[] | null;
+  original_price: number | null;
+  sale_price: number | null;
+  tier_prices: Partial<Record<PkgTier, { sale?: number | null; original?: number | null }>> | null;
+  excluded_date_ranges: Array<{ start?: string; end?: string }> | null;
+}
+
+export interface PkgDateOverride {
+  package_id: string;
+  date: string;
+  sale_price: number | null;
+  original_price: number | null;
+  is_available: boolean | null;
+}
+
+/** 國定假日／補假或週六 → weekend；週五、週日 → friday_sunday；其餘 weekday */
+export function packageTier(date: string, holidaySet: Set<string>): PkgTier {
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+  if (holidaySet.has(date) || day === 6) return "weekend";
+  if (day === 5 || day === 0) return "friday_sunday";
+  return "weekday";
+}
+
+/** 與前台 SavingsBadge.calcDiscountPercent 相同：四捨五入，無折扣回 undefined */
+export function discountLabel(list: number | null, total: number | null): string | undefined {
+  if (list == null || total == null || !list || list <= total) return undefined;
+  const pct = Math.round(((list - total) / list) * 100);
+  return pct > 0 ? `人客多優惠 -${pct}%` : undefined;
+}
+
+export const packageCapacity = (p: PackageRow) => p.guest_count_max ?? p.guest_count;
+export const packageRoomTypeId = (p: PackageRow) => p.primary_room_type_id ?? p.room_type_ids?.[0] ?? null;
+
+const num = (v: unknown) => (v == null ? null : Number(v));
+
+export interface PackageSummary {
+  available: boolean;
+  remaining: number;
+  list_price: number | null;
+  total_price: number | null;
+}
+
+/**
+ * 方案在住宿期間是否可訂與價格：
+ * 房型每晚可售、任一晚不在不適用區間、單日 is_available≠false、入住日 tier 在適用日型內（單日 true 可補開）。
+ * 售價：單日指定價 > tier 價 > 預設售價；原價：單日原價 > 單日售價 > tier 原價 > 方案原價 > 房價 > 售價。
+ */
+export function summarizePackage(
+  pkg: PackageRow,
+  rt: RoomTypeResult,
+  nights: number,
+  holidaySet: Set<string>,
+  overrides: Map<string, PkgDateOverride>,
+): PackageSummary {
+  const room = summarizeRoomType(rt, nights);
+  const ranges = Array.isArray(pkg.excluded_date_ranges) ? pkg.excluded_date_ranges : [];
+  const ovOf = (d: string) => overrides.get(`${pkg.id}_${d}`);
+  const excluded = rt.days.some((d) => ranges.some((r) => r?.start && r?.end && d.date >= r.start && d.date <= r.end));
+  const closedByOverride = rt.days.some((d) => ovOf(d.date)?.is_available === false);
+  const firstNight = rt.days[0]?.date;
+  const tierOpen = !!firstNight && (
+    (pkg.applicable_tiers || []).includes(packageTier(firstNight, holidaySet)) || ovOf(firstNight)?.is_available === true
+  );
+  const available = room.available && !excluded && !closedByOverride && tierOpen;
+
+  if (pkg.sale_price == null) {
+    return { available, remaining: room.remaining, list_price: room.total_price, total_price: room.total_price };
+  }
+  const salePrice = Number(pkg.sale_price);
+  const pkgOriginal = num(pkg.original_price);
+  let total = 0;
+  let list = 0;
+  for (const d of rt.days) {
+    const tier = packageTier(d.date, holidaySet);
+    const ov = ovOf(d.date);
+    const ovSale = num(ov?.sale_price);
+    const ovOriginal = num(ov?.original_price);
+    const tierSale = num(pkg.tier_prices?.[tier]?.sale);
+    const tierOriginal = num(pkg.tier_prices?.[tier]?.original);
+    const sale = ovSale != null ? ovSale : tierSale != null ? tierSale : salePrice;
+    const original = ovSale != null && ovOriginal != null && ovOriginal > 0 ? ovOriginal
+      : ovSale != null ? ovSale
+      : tierOriginal != null && tierOriginal > 0 ? tierOriginal
+      : pkgOriginal != null && pkgOriginal > 0 ? pkgOriginal
+      : d.price != null && d.price > 0 ? d.price
+      : sale;
+    total += sale;
+    list += original;
+  }
+  return { available, remaining: room.remaining, list_price: list, total_price: total };
 }
 
 /** 依 total_price 升冪（無價排最後），最多 10 筆；message 以全部可訂數量計 */

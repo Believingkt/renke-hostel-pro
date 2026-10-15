@@ -32,16 +32,27 @@ GET https://<project>.supabase.co/functions/v1/fin-availability
 `region`／`accommodation` 會移除 `, ( ) * % \ : . " '` 等字元後再比對，最長 50 字。
 
 ### 館別範圍
-與前台入口列表（`BookingPortal`）相同：`accommodation_info.is_active = true` 且 `show_on_portal = true`。
+所有可訂的館：`accommodation_info.is_active = true`（`show_on_portal` 只是首頁精選，不再過濾）。
 
-### 判定與價格
+### 庫存（對齊結帳端 `get_adjusted_room_inventory_batch` + `validate-order-prices`）
 - 計算區間為入住日至**退房前一晚**。
-- 可訂：住宿期間每一晚 `is_available` 且 `remaining > 0`。
+- 扣房：`cancelled` 以外的所有訂單，加上團購信用卡有效保留（`group_buy_payment_drafts` 未轉單，且付款中未過期或已付款）。
+- 可訂：住宿期間每一晚 `is_available ≠ false` 且 `remaining > 0`（含包棟互斥、全區鎖定）。
 - `remaining`：各晚剩餘間數的最小值。
-- `total_price`：各晚 `price` 加總；任一晚無價 → `total_price: null`、`avg_nightly_price: null`、`price_note: "請洽客服"`。
-- `avg_nightly_price`：`total_price / nights` 四捨五入。
-- `results` 只放可訂房型，依 `total_price` 升冪（無價排最後），最多 10 筆。
-- `unavailable_count`：符合人數但不可訂的房型數。
+
+### 輸出單位
+- **有啟用方案（`accommodation_packages.enabled`）的館**：與前台館別頁相同，以方案為單位，`plan_name` 為方案名稱，`room_type_*` 為方案綁定的房型（`primary_room_type_id`，否則 `room_type_ids[0]`），`capacity` 為 `guest_count_max ?? guest_count`。未綁定任何方案的房型不列出。方案另需：任一晚不在 `excluded_date_ranges`、任一晚 `package_date_prices.is_available ≠ false`、入住日的日型在 `applicable_tiers` 內（或該日 `is_available = true`）。
+- **沒有方案的館**：以房型為單位，`plan_name: null`。
+
+### 價格
+- 日型：國定假日／補假或週六 = weekend；週五、週日 = friday_sunday；其餘 weekday（補班日不算假日）。
+- 方案每晚售價：單日指定價 > tier 價 > 方案預設售價；原價：單日原價 > 單日售價 > tier 原價 > 方案原價 > 房價 > 售價（同 `validate-order-prices`）。
+- `list_price`：原價總額；`total_price`：**折後實付**總額；`avg_nightly_price`：`total_price / nights` 四捨五入。
+- `discount_label`：`人客多優惠 -X%`（X = round((list − total) / list × 100)，與前台 `SavingsBadge` 相同）；無折扣時省略。
+- 沒有方案的館：`list_price = total_price`，不回 `discount_label`。
+- 任一晚無價 → `list_price`／`total_price`／`avg_nightly_price` 為 `null`、`price_note: "請洽客服"`。
+- `results` 只放可訂項目，依 `total_price` 升冪（無價排最後），最多 10 筆。
+- `unavailable_count`：符合人數但不可訂的方案／房型數。
 - `message`：`共 N 間可訂`（N 為全部可訂房型數，可能大於 results 筆數）或 `這段日期沒有符合的房型`。
 
 ### booking_url
@@ -57,7 +68,7 @@ https://booking.lakeze.com/<short_url_alias>?checkIn=YYYY-MM-DD&checkOut=YYYY-MM
   "check_in": "2026-11-07",
   "check_out": "2026-11-09",
   "nights": 2,
-  "guests": 6,
+  "guests": 12,
   "currency": "TWD",
   "results": [
     {
@@ -65,13 +76,16 @@ https://booking.lakeze.com/<short_url_alias>?checkIn=YYYY-MM-DD&checkOut=YYYY-MM
       "accommodation_name": "森山寫照",
       "region": "宜蘭縣 冬山鄉",
       "room_type_id": "uuid",
-      "room_type_name": "四人包棟",
-      "capacity": 8,
+      "room_type_name": "12 人 (含以下) 包區",
+      "plan_name": "12人包區",
+      "capacity": 12,
       "available": true,
       "remaining": 1,
-      "total_price": 25600,
-      "avg_nightly_price": 12800,
-      "booking_url": "https://booking.lakeze.com/senshan?checkIn=2026-11-07&checkOut=2026-11-09&adults=6"
+      "list_price": 105000,
+      "discount_label": "人客多優惠 -25%",
+      "total_price": 78750,
+      "avg_nightly_price": 39375,
+      "booking_url": "https://booking.lakeze.com/sensaninn?checkIn=2026-11-07&checkOut=2026-11-09&adults=12"
     }
   ],
   "unavailable_count": 3,
