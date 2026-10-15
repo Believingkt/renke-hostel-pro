@@ -2298,3 +2298,10 @@ html.native-app [data-site-chrome] {
     right: 12px !important;
   }
 }
+/* Intercom 啟動器 48px 放大到與小安按鈕同為 56px（48×1.1667）；以右下角為基準，位置不變；所有尺寸生效 */
+.intercom-lightweight-app-launcher,
+iframe.intercom-launcher-frame,
+.intercom-launcher {
+  transform: scale(1.1667) !important;
+  transform-origin: bottom right !important;
+}
