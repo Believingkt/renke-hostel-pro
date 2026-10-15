@@ -104,6 +104,8 @@ async function handleRelay(req, res) {
   const allowedDomains = [
     'booking.taiwantravelmap.com',
     'booking.travelmap.com.tw',
+    'sandbox-api.payuni.com.tw',
+    'api.payuni.com.tw',
     ...(process.env.EXTRA_ALLOWED_DOMAINS || '')
       .split(',')
       .map(s => s.trim())
@@ -132,12 +134,16 @@ async function handleRelay(req, res) {
   }
 
   // Extract forwarded headers (X-Forward-Header-*)
-  const forwardHeaders = { 'Content-Type': 'application/json' };
+  // 先收集 X-Forward-Header-*，再不分大小寫合併：有帶 content-type 就用帶的，沒有才預設 JSON
+  const forwardHeaders = {};
   for (const [key, value] of Object.entries(req.headers)) {
     if (key.startsWith('x-forward-header-')) {
       const originalHeader = key.slice('x-forward-header-'.length);
       forwardHeaders[originalHeader] = value;
     }
+  }
+  if (!Object.keys(forwardHeaders).some(k => k.toLowerCase() === 'content-type')) {
+    forwardHeaders['Content-Type'] = 'application/json';
   }
 
   const startTime = Date.now();

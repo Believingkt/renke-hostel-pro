@@ -1,7 +1,7 @@
 // 付款 Provider 抽象層（最小架構，本輪僅啟用 manual）
 //
 // 語意界線（務必維持）：
-//   payment_provider = 處理付款的「系統」→ manual（人工銀行匯款）／tappay
+//   payment_provider = 處理付款的「系統」→ manual（人工銀行匯款）／tappay／payuni（W1 僅型別，尚未接流程）
 //   payment_method   = 付款的「工具」  → bank_transfer / atm / cash / credit_card ...
 // 兩者不可互相取代。
 //
@@ -24,7 +24,7 @@ import {
 } from "./orderRefund.ts";
 import { queryTapPayRecord } from "./tappay.ts";
 
-export type PaymentProvider = "manual" | "tappay";
+export type PaymentProvider = "manual" | "tappay" | "payuni";
 
 /** group_buy_campaigns.payment_method 允許值 */
 export type CampaignPaymentMethod = "manual_bank_transfer" | "tappay";
@@ -41,7 +41,9 @@ export interface OrderPaymentShape {
 
 /** 訂單的付款 provider：一律以 orders 資料為準，不得用目前 campaign 設定回推歷史訂單 */
 export function getPaymentProvider(order: OrderPaymentShape): PaymentProvider {
-  return order?.payment_provider === "tappay" ? "tappay" : "manual";
+  if (order?.payment_provider === "tappay") return "tappay";
+  if (order?.payment_provider === "payuni") return "payuni";
+  return "manual";
 }
 
 /** 活動付款方式 → 建單時要寫入訂單的 provider / method */
