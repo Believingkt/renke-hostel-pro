@@ -1,0 +1,189 @@
+// fin-availability 請求處理：認證、rate limit、查詢（與 all-availability 同源）、扁平化輸出。
+// client 可注入以便測試；正式由 index.ts 傳入 service role client。
+import {
+  ACTIVE_ORDER_STATUSES,
+  buildAvailability,
+} from "../_shared/availability.ts";
+import {
+  bookingUrl, capacityFits, finalize, parseFinQuery, summarizeRoomType, type FinResultRow,
+} from "./core.ts";
+
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+};
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+// 與 all-availability 相同的常數時間比對
+function safeEqual(a: string, b: string) {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+// 與 accommodation-ai-chat 相同的記憶體 rate limit（每個 isolate 各自計算）
+const RATE_LIMIT_WINDOW = 60 * 1000;
+export const RATE_LIMIT_PER_MIN = 60;
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+function checkRateLimit(key: string, max: number): boolean {
+  const now = Date.now();
+  const rec = rateLimitMap.get(key);
+  if (!rec || now > rec.resetTime) {
+    rateLimitMap.set(key, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (rec.count >= max) return false;
+  rec.count++;
+  return true;
+}
+export function resetRateLimit() { rateLimitMap.clear(); }
+
+const PAGE = 1000;
+const ID_CHUNK = 150;
+const chunk = <T>(a: T[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
+
+/** PostgREST 單次最多回 1000 列：以 range 分頁取完 */
+async function fetchAll(build: () => any): Promise<any[]> {
+  const out: any[] = [];
+  for (let start = 0; ; start += PAGE) {
+    const { data, error } = await build().range(start, start + PAGE - 1);
+    if (error) throw new Error(error.message);
+    out.push(...(data || []));
+    if (!data || data.length < PAGE) return out;
+  }
+}
+
+/** id 清單過長會讓 URL 超限：分批 in() 後合併 */
+async function fetchIn(ids: string[], build: (part: string[]) => any): Promise<any[]> {
+  if (!ids.length) return [];
+  const parts = await Promise.all(chunk(ids, ID_CHUNK).map((p) => fetchAll(() => build(p))));
+  return parts.flat();
+}
+
+const groupBy = (rows: any[], key: string) => {
+  const m = new Map<string, any[]>();
+  for (const r of rows) {
+    const list = m.get(r[key]) || [];
+    list.push(r);
+    m.set(r[key], list);
+  }
+  return m;
+};
+
+function activeAccQuery(client: any, select: string, opts?: { count?: "exact"; head?: boolean }) {
+  // 與前台入口列表（BookingPortal）相同：is_active 且 show_on_portal
+  return client.from("accommodation_info").select(select, opts).eq("is_active", true).eq("show_on_portal", true);
+}
+
+export async function handleFin(req: Request, deps: { client: any; apiKey: string | undefined }): Promise<Response> {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "GET") return json({ error: "只支援 GET" }, 405);
+
+  try {
+    if (!deps.apiKey) return json({ error: "伺服器設定錯誤：尚未設定 FIN_API_KEY" }, 500);
+    const provided = req.headers.get("x-api-key") || "";
+    if (!provided || !safeEqual(provided, deps.apiKey)) return json({ error: "API 金鑰錯誤或未提供" }, 401);
+    if (!checkRateLimit("fin", RATE_LIMIT_PER_MIN)) return json({ error: "查詢太頻繁，請稍後再試（每分鐘上限 60 次）" }, 429);
+
+    const url = new URL(req.url);
+    const client = deps.client;
+
+    if (url.searchParams.get("ping") === "1") {
+      const { count, error } = await activeAccQuery(client, "id", { count: "exact", head: true });
+      if (error) throw new Error(error.message);
+      return json({ ok: true, accommodations: count ?? 0 });
+    }
+
+    const parsed = parseFinQuery(url.searchParams);
+    if (!parsed.ok) return json({ error: parsed.error }, 400);
+    const q = parsed.q;
+    const from = q.checkIn;
+    const to = q.lastNight; // 退房前一晚
+
+    const accs = await fetchAll(() => {
+      let b = activeAccQuery(client, "id, name, region_1, region_2, short_url_alias");
+      if (q.region) b = b.or(`region_1.ilike.%${q.region}%,region_2.ilike.%${q.region}%`);
+      if (q.accommodation) b = b.or(`name.ilike.%${q.accommodation}%,short_url_alias.ilike.%${q.accommodation}%`);
+      return b.order("name", { ascending: true }).order("id", { ascending: true });
+    });
+    const base = { check_in: q.checkIn, check_out: q.checkOut, nights: q.nights, guests: q.guests, currency: "TWD" };
+    if (!accs.length) return json({ ...base, ...finalize([], 0) });
+
+    const accIds = accs.map((a) => a.id);
+    // 以下查詢條件與 all-availability 相同
+    const [roomTypes, templates, orders, holidays] = await Promise.all([
+      fetchIn(accIds, (p) => client.from("room_types")
+        .select("id, accommodation_id, name, capacity, room_count, display_order, is_exclusive_package, is_bound_to_exclusive, bound_exclusive_ids, blocks_all_inventory, blocks_all_target_ids")
+        .in("accommodation_id", p).order("display_order", { ascending: true, nullsFirst: false }).order("id", { ascending: true })),
+      fetchIn(accIds, (p) => client.from("pricing_templates")
+        .select("accommodation_id, room_type_id, template_name, project_name, price, weekday_price, peak_price, weekend_price, weekday_enabled, peak_enabled, weekend_enabled, room_overrides, season_segments, valid_from, valid_until, extra_dates, excluded_dates, display_order, default_package_id, numeric_code")
+        .in("accommodation_id", p).order("display_order", { ascending: true, nullsFirst: false }).order("id", { ascending: true })),
+      fetchIn(accIds, (p) => client.from("orders")
+        .select("id, accommodation_id, room_type_id, check_in_date, check_out_date, order_status, lock_whole_building")
+        .in("accommodation_id", p).in("order_status", ACTIVE_ORDER_STATUSES)
+        .gt("check_out_date", from).lte("check_in_date", to).order("id", { ascending: true })),
+      fetchIn(accIds, (p) => client.from("public_holidays")
+        .select("accommodation_id, holiday_date, holiday_type")
+        .in("accommodation_id", p).gte("holiday_date", from).lte("holiday_date", to).order("id", { ascending: true })),
+    ]);
+
+    const rtIds = roomTypes.map((r) => r.id);
+    const [inventory, orderRooms] = await Promise.all([
+      fetchIn(rtIds, (p) => client.from("room_inventory_pricing")
+        .select("room_type_id, date, price, price_2_meals, price_3_meals, available_rooms, is_available")
+        .in("room_type_id", p).is("pricing_template_id", null).gte("date", from).lte("date", to).order("id", { ascending: true })),
+      fetchIn(orders.map((o) => o.id), (p) => client.from("order_rooms")
+        .select("order_id, room_type_id, quantity").in("order_id", p).order("id", { ascending: true })),
+    ]);
+
+    const rtByAcc = groupBy(roomTypes, "accommodation_id");
+    const tmplByAcc = groupBy(templates, "accommodation_id");
+    const ordersByAcc = groupBy(orders, "accommodation_id");
+    const holByAcc = groupBy(holidays, "accommodation_id");
+    const invByRt = groupBy(inventory, "room_type_id");
+
+    const rows: FinResultRow[] = [];
+    let unavailable = 0;
+    for (const acc of accs) {
+      const rtList = rtByAcc.get(acc.id) || [];
+      if (!rtList.length) continue;
+      const computed = buildAvailability({
+        from, to,
+        roomTypes: rtList as any,
+        inventory: rtList.flatMap((r) => invByRt.get(r.id) || []) as any,
+        orders: (ordersByAcc.get(acc.id) || []) as any,
+        orderRooms: orderRooms as any,
+        templates: (tmplByAcc.get(acc.id) || []) as any,
+        holidays: (holByAcc.get(acc.id) || []) as any,
+      });
+      for (const rtRes of computed) {
+        const capacity = rtList.find((r) => r.id === rtRes.room_type_id)?.capacity ?? null;
+        if (!capacityFits(capacity, q.guests)) continue;
+        const s = summarizeRoomType(rtRes, q.nights);
+        if (!s.available) { unavailable++; continue; }
+        rows.push({
+          accommodation_id: acc.id,
+          accommodation_name: acc.name,
+          region: [acc.region_1, acc.region_2].filter(Boolean).join(" "),
+          room_type_id: rtRes.room_type_id,
+          room_type_name: rtRes.name,
+          capacity,
+          available: true,
+          remaining: s.remaining,
+          total_price: s.total_price,
+          avg_nightly_price: s.avg_nightly_price,
+          ...(s.price_note ? { price_note: s.price_note } : {}),
+          booking_url: bookingUrl(acc, q),
+        });
+      }
+    }
+    return json({ ...base, ...finalize(rows, unavailable) });
+  } catch (e) {
+    console.error("[fin-availability]", (e as Error).message);
+    return json({ error: "查詢房況時發生錯誤，請稍後再試" }, 500);
+  }
+}
