@@ -13,7 +13,7 @@ import {
   SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import {
-  useSharedDemo, SharedDemoControls,
+  useSharedDemo,
 } from "@/components/headquarters/SharedDemoPanel";
 import { demoN2Rows, DEMO_N2_NOTES, type DemoN2Row } from "@lakeze/shared/utils/demoPresentation";
 
@@ -121,7 +121,6 @@ export default function AddonRecAnalytics() {
       )}
       {sharedMode ? (
         <>
-          <SharedDemoControls s={shared} track="N2" canGenerate={accommodations.length > 0} />
           {shared.showTable && (
             <MetricBreakdownTable
               title="加購推薦明細"

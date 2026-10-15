@@ -13,7 +13,7 @@ import {
   SHOW_DEMO_CONTROL_PANEL, SHOW_DEMO_SCOPE_NOTES,
 } from "@/components/headquarters/DemoPresentationPanel";
 import {
-  useSharedDemo, SharedDemoControls,
+  useSharedDemo,
 } from "@/components/headquarters/SharedDemoPanel";
 import { demoN1Rows, DEMO_N1_NOTES, type DemoN1Row } from "@lakeze/shared/utils/demoPresentation";
 
@@ -129,7 +129,6 @@ export default function RemarketingAnalytics() {
       )}
       {sharedMode ? (
         <>
-          <SharedDemoControls s={shared} track="N1" canGenerate={accommodations.length > 0} />
           {shared.showTable && (
             <MetricBreakdownTable
               title="再行銷轉換明細"

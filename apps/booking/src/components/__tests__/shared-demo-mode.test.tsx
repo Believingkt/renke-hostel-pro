@@ -42,36 +42,35 @@ const liveRpcCalls = () => state.calls.filter((c) => c.fn.startsWith("ai_metric_
 
 beforeEach(() => { state.calls = []; state.handlers = {}; });
 
-describe("共用 Demo 模式", () => {
-  it("預設仍為即時；切到共用 Demo 後不再呼叫即時 RPC，只讀 hq_shared_demo_get", async () => {
+describe("共用資料集（紀錄）模式", () => {
+  it("預設仍為即時；按鈕名稱為「紀錄」，切換後不再呼叫即時 RPC，只讀 hq_shared_demo_get", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(3), canWrite: false }, error: null });
     render(<MemoryRouter><RemarketingAnalytics /></MemoryRouter>);
     await waitFor(() => expect(liveRpcCalls().length).toBe(1));
-    expect(screen.queryByTestId("shared-demo-banner")).toBeNull();
+    expect(screen.getByTestId("analytics-mode-shared-demo").textContent).toBe("紀錄");
+    expect(screen.queryByTestId("analytics-mode-demo")).toBeNull();
     fireEvent.click(screen.getByTestId("analytics-mode-shared-demo"));
-    await screen.findByTestId("shared-demo-meta");
+    await screen.findByTestId("breakdown-remarketing-analytics-shared");
     expect(liveRpcCalls().length).toBe(1);
     expect(state.calls.filter((c) => c.fn === "hq_shared_demo_get")).toHaveLength(1);
   });
 
-  it("admin（唯讀）：無紀錄按鈕／說明文字／黃色區塊／Demo 標示，無發布／匯入按鈕；新電腦直接讀到同一 run", async () => {
-    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(3), canWrite: false }, error: null });
+  it("讀到資料集即顯示表格；無資料集面板、無說明文字、無 Demo 標示", async () => {
+    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(3), canWrite: true }, error: null });
     await open(RemarketingAnalytics);
-    expect(screen.queryByTestId("analytics-mode-demo")).toBeNull();
-    expect(screen.queryByTestId("shared-demo-banner")).toBeNull();
+    expect(await screen.findByTestId("breakdown-remarketing-analytics-shared")).toBeTruthy();
+    expect(screen.getByText("再行銷轉換明細")).toBeTruthy();
+    expect(screen.getByText("資料來源：共用資料集 revision 3")).toBeTruthy();
+    for (const id of ["shared-demo-panel", "shared-demo-banner", "shared-demo-meta", "shared-demo-publish-btn", "shared-demo-import-local-btn", "shared-demo-save-names"]) {
+      expect(screen.queryByTestId(id)).toBeNull();
+    }
+    expect(screen.queryByText(/共用 Demo 資料集/)).toBeNull();
     expect(screen.queryByText(/即時：資料來自正式 RPC/)).toBeNull();
     expect(screen.queryByText(/Demo 測試資料，非實際營運成果/)).toBeNull();
-    expect((await screen.findByTestId("shared-demo-run-id")).textContent).toBe(RUN.runId);
-    expect(screen.getByTestId("shared-demo-revision").textContent).toBe("3");
-    expect(screen.getByText("再行銷轉換明細")).toBeTruthy();
-    expect(screen.getByTestId("breakdown-remarketing-analytics-shared")).toBeTruthy();
     expect(screen.queryByText("資料性質")).toBeNull();
-    expect(screen.queryByTestId("shared-demo-publish-btn")).toBeNull();
-    expect(screen.queryByTestId("shared-demo-import-local-btn")).toBeNull();
-    expect(screen.queryByTestId("shared-demo-save-names")).toBeNull();
   });
 
-  it("CSV 匯出：檔名與內容不再帶 Demo 標示", async () => {
+  it("CSV 匯出：檔名與內容不帶 Demo 標示", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(2), canWrite: false }, error: null });
     const blobs: Blob[] = [];
     const names: string[] = [];
@@ -79,7 +78,7 @@ describe("共用 Demo 模式", () => {
     (URL as any).revokeObjectURL = () => {};
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) { names.push(this.download); });
     await open(AddonRecAnalytics);
-    await screen.findByTestId("shared-demo-meta");
+    await screen.findByTestId("breakdown-addon-rec-analytics-shared");
     fireEvent.click(await screen.findByTestId("bd-export"));
     const text = await new Promise<string>((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result)); fr.readAsText(blobs[0]); });
     expect(names[0]).toMatch(/^addon-rec-analytics-shared_/);
@@ -89,65 +88,21 @@ describe("共用 Demo 模式", () => {
     click.mockRestore();
   });
 
-  it("讀取失敗：顯示讀取失敗與重試，不顯示空表、不自動以本機資料補上", async () => {
-    state.handlers.hq_shared_demo_get = () => ({ data: null, error: { code: "42501", message: "forbidden" } });
-    await open(RemarketingAnalytics);
-    expect((await screen.findByTestId("shared-demo-load-error")).textContent).toContain("讀取失敗");
-    expect(screen.queryByTestId("breakdown-remarketing-analytics-shared")).toBeNull();
-    expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
-  });
-
-  it("版本不相容：不顯示數據、不自動重建", async () => {
-    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: { ...dataset(4), run: { ...toDescriptor(RUN), demoVersion: "demo-pres-v0.1.0" } }, canWrite: true }, error: null });
-    await open(RemarketingAnalytics);
-    await screen.findByTestId("shared-demo-incompatible");
-    expect(screen.queryByTestId("breakdown-remarketing-analytics-shared")).toBeNull();
-    expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
-  });
-
-  it("super_admin：revision 衝突時不覆蓋，提供「載入最新」與「以我的變更覆蓋」並可恢復", async () => {
-    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(5), canWrite: true }, error: null });
-    let putCount = 0;
-    state.handlers.hq_shared_demo_put = (args) => {
-      putCount += 1;
-      if (args.p_expected_revision !== 6) return { data: null, error: { code: "PT409", message: "revision_conflict", details: "current_revision=6" } };
-      return { data: { dataset: dataset(7, args.p_names), canWrite: true }, error: null };
-    };
-    await open(RemarketingAnalytics);
-    await screen.findByTestId("shared-demo-meta");
-    fireEvent.change(screen.getByTestId("shared-demo-campaign-name"), { target: { value: "冬季回訪邀約" } });
-    fireEvent.click(screen.getByTestId("shared-demo-save-names"));
-    expect((await screen.findByTestId("shared-demo-conflict")).textContent).toContain("revision 6");
-    expect(screen.getByTestId("shared-demo-revision").textContent).toBe("5");
-    fireEvent.click(screen.getByTestId("shared-demo-conflict-overwrite"));
-    await waitFor(() => expect(screen.getByTestId("shared-demo-revision").textContent).toBe("7"));
-    expect(screen.queryByTestId("shared-demo-conflict")).toBeNull();
-    const puts = state.calls.filter((c) => c.fn === "hq_shared_demo_put");
-    expect(puts.map((p) => p.args.p_expected_revision)).toEqual([5, 6]);
-    expect(puts[1].args.p_names.n1CampaignName).toBe("冬季回訪邀約");
-    expect(putCount).toBe(2);
-  });
-
-  it("super_admin 匯入本機紀錄：無本機資料時明確提示，不自動上傳", async () => {
-    localStorage.clear();
-    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: null, canWrite: true }, error: null });
-    await open(AddonRecAnalytics);
-    await screen.findByTestId("shared-demo-empty");
-    fireEvent.click(screen.getByTestId("shared-demo-import-local-btn"));
-    expect((await screen.findByTestId("shared-demo-action-error")).textContent).toContain("沒有可匯入的本機紀錄");
-    expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
-  });
-
-  it("super_admin 建立並發布：以 expected revision 0 上傳描述（只含允許欄位）", async () => {
-    state.handlers.hq_shared_demo_get = () => ({ data: { dataset: null, canWrite: true }, error: null });
-    state.handlers.hq_shared_demo_put = (args) => ({ data: { dataset: { ...dataset(1), run: args.p_run, runId: args.p_run.runId, generatedAt: args.p_run.generatedAt }, canWrite: true }, error: null });
-    await open(AddonRecAnalytics);
-    await screen.findByTestId("shared-demo-empty");
-    fireEvent.click(screen.getByTestId("shared-demo-publish-btn"));
-    await waitFor(() => expect(screen.getByTestId("shared-demo-revision").textContent).toBe("1"));
-    const put = state.calls.find((c) => c.fn === "hq_shared_demo_put")!;
-    expect(put.args.p_expected_revision).toBe(0);
-    expect(Object.keys(put.args.p_run).sort()).toEqual(["dataNature", "demoVersion", "fixtureVersion", "generatedAt", "runId", "scenarioVersion", "venues"]);
-    expect(put.args.p_run.venues).toEqual(VENUES);
-  });
+  for (const [label, handler] of [
+    ["讀取失敗", () => ({ data: null, error: { code: "42501", message: "forbidden" } })],
+    ["尚未發布", () => ({ data: { dataset: null, canWrite: true }, error: null })],
+    ["版本不相容", () => ({ data: { dataset: { ...dataset(4), run: { ...toDescriptor(RUN), demoVersion: "demo-pres-v0.1.0" } }, canWrite: true }, error: null })],
+  ] as const) {
+    it(`${label}：不顯示表格與任何提示，也不自動寫入`, async () => {
+      state.handlers.hq_shared_demo_get = handler as any;
+      await open(RemarketingAnalytics);
+      await waitFor(() => expect(state.calls.some((c) => c.fn === "hq_shared_demo_get")).toBe(true));
+      await new Promise((r) => setTimeout(r, 50));
+      expect(screen.queryByTestId("breakdown-remarketing-analytics-shared")).toBeNull();
+      for (const id of ["shared-demo-load-error", "shared-demo-empty", "shared-demo-incompatible", "shared-demo-loading", "shared-demo-panel"]) {
+        expect(screen.queryByTestId(id)).toBeNull();
+      }
+      expect(state.calls.some((c) => c.fn === "hq_shared_demo_put")).toBe(false);
+    });
+  }
 });

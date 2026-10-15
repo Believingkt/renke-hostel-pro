@@ -100,7 +100,7 @@ export function AnalyticsModeToggle({ mode, onChange }: { mode: AnalyticsMode; o
         onClick={() => onChange("shared")}
         data-testid="analytics-mode-shared-demo"
       >
-        共用 Demo
+        紀錄
       </Button>
     </div>
   );
