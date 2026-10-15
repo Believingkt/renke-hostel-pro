@@ -132,7 +132,8 @@ export default function RemarketingAnalytics() {
           {shared.showTable && (
             <MetricBreakdownTable
               title="再行銷轉換明細"
-              description={`資料來源：共用資料集 revision ${shared.dataset?.revision}`}
+              hideHeader
+              description=""
               scopeNotes={[]}
               columns={demoColumns}
               rows={sharedRows}

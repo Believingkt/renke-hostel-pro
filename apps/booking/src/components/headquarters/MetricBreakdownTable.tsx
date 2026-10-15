@@ -40,6 +40,8 @@ export const rateText = (n: number, d: number) => (d > 0 ? `${((n / d) * 100).to
 
 interface Props<R> {
   title: string;
+  /** 不顯示卡片標題與說明（title 仍用於 CSV） */
+  hideHeader?: boolean;
   description: string;
   scopeNotes: string[];
   columns: ColumnDef<R>[];
@@ -59,7 +61,7 @@ interface Props<R> {
 }
 
 export function MetricBreakdownTable<R>({
-  title, description, scopeNotes, columns, rows, rowKey, loading, error,
+  title, hideHeader, description, scopeNotes, columns, rows, rowKey, loading, error,
   filters, onFiltersChange, onReload, accommodations, channelOptions, csvFileName, extraHeader,
   showIncludeInternal = true, showScopeNotes = true,
 }: Props<R>) {
@@ -127,11 +129,13 @@ export function MetricBreakdownTable<R>({
   return (
     <div className="space-y-4" data-testid={`breakdown-${csvFileName}`}>
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        {!hideHeader && (
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+        )}
+        <CardContent className={hideHeader ? "space-y-4 pt-6" : "space-y-4"}>
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <label className="text-xs text-muted-foreground">起</label>

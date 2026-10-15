@@ -55,12 +55,13 @@ describe("共用資料集（紀錄）模式", () => {
     expect(state.calls.filter((c) => c.fn === "hq_shared_demo_get")).toHaveLength(1);
   });
 
-  it("讀到資料集即顯示表格；無資料集面板、無說明文字、無 Demo 標示", async () => {
+  it("讀到資料集即顯示表格；無表格標題／資料來源、無資料集面板、無說明文字、無 Demo 標示", async () => {
     state.handlers.hq_shared_demo_get = () => ({ data: { dataset: dataset(3), canWrite: true }, error: null });
     await open(RemarketingAnalytics);
     expect(await screen.findByTestId("breakdown-remarketing-analytics-shared")).toBeTruthy();
-    expect(screen.getByText("再行銷轉換明細")).toBeTruthy();
-    expect(screen.getByText("資料來源：共用資料集 revision 3")).toBeTruthy();
+    expect(screen.queryByText("再行銷轉換明細")).toBeNull();
+    expect(screen.queryByText(/資料來源：共用資料集/)).toBeNull();
+    expect(screen.getByTestId("bd-export")).toBeTruthy();
     for (const id of ["shared-demo-panel", "shared-demo-banner", "shared-demo-meta", "shared-demo-publish-btn", "shared-demo-import-local-btn", "shared-demo-save-names"]) {
       expect(screen.queryByTestId(id)).toBeNull();
     }
