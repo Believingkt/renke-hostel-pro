@@ -2294,18 +2294,20 @@ html.native-app [data-site-chrome] {
    手機（≤767px）：小安 44px、bottom 232px+safe-area → scale 0.9167；bottom 232+44+12=288、right 12px */
 @media (min-width: 768px) {
   .intercom-lightweight-app-launcher,
-  iframe.intercom-launcher-frame,
-  .intercom-launcher {
+  iframe.intercom-launcher-frame {
     transform: scale(1.1667) !important;
     transform-origin: bottom right !important;
   }
 }
 @media (max-width: 767px) {
+  /* 開過對話後改渲染 iframe（position:static），定位需套在其 fixed wrapper */
   .intercom-lightweight-app-launcher,
-  iframe.intercom-launcher-frame,
-  .intercom-launcher {
+  div:has(> iframe.intercom-launcher-frame) {
     bottom: calc(env(safe-area-inset-bottom, 0px) + 288px) !important;
     right: 12px !important;
+  }
+  .intercom-lightweight-app-launcher,
+  iframe.intercom-launcher-frame {
     transform: scale(0.9167) !important;
     transform-origin: bottom right !important;
   }
