@@ -15,6 +15,11 @@ import { sendOrderRoomsAlertEmail } from "./orderRoomsAlert.ts";
 import { updateOrderWithContext } from "./orderContext.ts";
 import { reportOwltingSyncFailure } from "./owltingSyncAlert.ts";
 import { resolveTemplateId } from "./resolveTemplateId.ts";
+import { reportBackendError } from "./errorReporter.ts";
+import {
+  planOtaModification, buildOtaRooms, classifyApplyError, formatNotApplied, formatRoomWarnings,
+  type ExistingRoom, type OtaConflict,
+} from "./syncOtaOrderRooms.ts";
 
 export function normalizeName(s: string | null | undefined): string {
   return (s ?? "").replace(/\s+/g, "").toLowerCase();
@@ -306,7 +311,7 @@ export async function cancelAutoPendingOrders(
  * 優先參考該訂單既有 order_rooms 中同房型的 template_id / template_name，
  * 再用 resolveTemplateId 驗證名稱與房型是否仍吻合；無法唯一確定時回傳 null。
  */
-async function resolveRoomTemplate(
+export async function resolveRoomTemplate(
   admin: any,
   opts: {
     accommodationId: string;
@@ -495,6 +500,10 @@ export interface ApplyModificationResult {
   /** 結構化 diff（欄位、前值、後值），寫入審計欄位方便追查 */
   diff?: OrderFieldDiff[];
   skipped_reason?: string;
+  /** skipped_reason = "modify_blocked" 時的原因代碼 */
+  blocked_code?: string;
+  /** 套用失敗分類：inventory_exceeded / amenity_exceeded / double_submit / order_changed / unknown */
+  error_reason?: string;
   error?: string;
 }
 
@@ -527,61 +536,43 @@ export async function applyModificationToExistingOrder(
     parser_diff_status?: string | null;
   },
 ): Promise<ApplyModificationResult> {
+  const alert = async (orderId: string | null, orderNumber: string | null, step: string, text: string, accId: string | null, ctx: Record<string, unknown>) => {
+    await reportBackendError({ functionName: "owlting-email-ingest", category: "owlting_modify_rooms", step,
+      errorMessage: text, accommodationId: accId, context: { obe: input.obe_number, staging_id: input.staging_id, order_id: orderId, ...ctx } }).catch(() => {});
+    await sendOrderRoomsAlertEmail(admin, { orderNumber, orderId, obeNumber: input.obe_number, stagingId: input.staging_id, error: text }).catch(() => false);
+  };
   try {
     if (!input.obe_number) return { ok: false, skipped_reason: "no_obe_number" };
-
-    const { data: order } = await admin
-      .from("orders")
+    const { data: orders, error: ordErr } = await admin.from("orders")
       .select("id, order_number, accommodation_id, room_type_id, check_in_date, check_out_date, guest_count, total_price, final_price, paid_amount, payment_status, order_status, notes")
-      .eq("owlting_reservation_id", input.obe_number)
-      .neq("order_status", "cancelled")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!order) return { ok: false, skipped_reason: "order_not_found" };
-
+      .eq("owlting_reservation_id", input.obe_number).neq("order_status", "cancelled")
+      .order("created_at", { ascending: false });
+    if (ordErr) return { ok: false, error: ordErr.message };
+    if (!orders || orders.length === 0) return { ok: false, skipped_reason: "order_not_found" };
+    const order = orders[0];
     const accId = input.accommodation_id ?? order.accommodation_id;
-    const patch: Record<string, unknown> = {};
-    const diff: OrderFieldDiff[] = [];
-    const push = (field: string, label: string, before: any, after: any) =>
-      diff.push({ field, label, before: before ?? null, after: after ?? null });
 
-    if (input.check_in_date && input.check_in_date !== order.check_in_date) {
-      patch.check_in_date = input.check_in_date;
-      push("check_in_date", "入住日期", order.check_in_date, input.check_in_date);
-    }
-    if (input.check_out_date && input.check_out_date !== order.check_out_date) {
-      patch.check_out_date = input.check_out_date;
-      push("check_out_date", "退房日期", order.check_out_date, input.check_out_date);
-    }
-    const guestCount = Number(input.guest_count ?? 0);
-    if (guestCount > 0 && guestCount !== Number(order.guest_count)) {
-      patch.guest_count = guestCount;
-      push("guest_count", "人數", order.guest_count, guestCount);
-    }
+    const [{ data: rows, error: rowsErr }, { data: roomTypes, error: rtErr }] = await Promise.all([
+      admin.from("order_rooms").select("id, room_type_id, quantity, room_price, room_unit_id, template_id, template_name")
+        .eq("order_id", order.id).order("created_at", { ascending: true }),
+      admin.from("room_types").select("id, name").eq("accommodation_id", accId),
+    ]);
+    if (rowsErr || rtErr) return { ok: false, error: (rowsErr ?? rtErr).message };
+    const existing = (rows ?? []) as ExistingRoom[];
 
-    let roomTypeId: string | null = order.room_type_id;
-    if (input.room_type_name && accId) {
-      const matched = await matchRoomTypeByName(admin, accId, input.room_type_name);
-      if (matched && matched !== order.room_type_id) {
-        roomTypeId = matched;
-        patch.room_type_id = matched;
-        push("room_type_id", "房型", order.room_type_id, `${input.room_type_name}(${matched})`);
-      }
+    const plan = planOtaModification({ activeOrderCount: orders.length, order, rows: existing, roomTypes: roomTypes ?? [],
+      mail: { check_in_date: input.check_in_date, check_out_date: input.check_out_date, room_type_name: input.room_type_name,
+              room_quantity: input.room_quantity, guest_count: input.guest_count, total_amount: input.total_amount,
+              parser_diff_status: input.parser_diff_status ?? null } });
+
+    if (plan.kind === "blocked") {
+      const text = formatNotApplied({ code: plan.code, obe: input.obe_number, orderNumber: order.order_number, mailChanges: input.change_summary ?? null, diff: [] });
+      await admin.from("owlting_email_parsed_staging").update({ auto_order_id: order.id, review_status: "pending_review",
+        auto_create_error: `modify_blocked:${plan.code}`, review_notes: `[需人工] ${text}` }).eq("id", input.staging_id);
+      await alert(order.id, order.order_number, "modify_blocked", text, accId, { code: plan.code });
+      return { ok: false, skipped_reason: "modify_blocked", blocked_code: plan.code, order_id: order.id, order_number: order.order_number };
     }
-
-    const total = input.total_amount != null ? Math.max(0, Math.round(Number(input.total_amount))) : null;
-    if (total != null && total !== Number(order.final_price)) {
-      patch.total_price = total;
-      patch.final_price = total;
-      if (order.payment_status === "paid") patch.paid_amount = total;
-      push("final_price", "金額", Number(order.final_price ?? 0), total);
-    }
-
-    const changed = diff.map((d) => d.label);
-
-    if (changed.length === 0) {
+    if (plan.kind === "noop") {
       // 與 DB 既有訂單完全一致 → 記錄「已比對無差異」到 staging，方便追查
       await admin
         .from("owlting_email_parsed_staging")
@@ -592,76 +583,72 @@ export async function applyModificationToExistingOrder(
           review_notes: `[auto-update] 與既有訂單 ${order.order_number} 逐欄比對後無差異，未更新。`,
         })
         .eq("id", input.staging_id);
-      return {
-        ok: true,
-        order_id: order.id,
-        order_number: order.order_number,
-        updated_fields: [],
-        diff: [],
-        skipped_reason: "no_material_change",
-      };
+      return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: [], diff: [], skipped_reason: "no_material_change" };
     }
 
-    const stamp = new Date().toISOString().slice(0, 10);
-    const summary = formatOrderDiff(diff);
-    patch.notes = `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary}${input.change_summary ? `\n（信件差異：${input.change_summary}）` : ""}`;
-
-    try {
-      await updateOrderWithContext(admin, order.id, patch, {
-        source: "owlting_email_modify",
-        reason: `OBE ${input.obe_number} 修改通知自動更新`,
-        actorLabel: "OwlTing 修改通知",
-        actorType: "system",
-      });
-    } catch (e) {
-      return { ok: false, error: (e as Error).message, diff };
-    }
-
-    // Rebuild room rows when dates / room type / quantity / price changed.
-    const finalCheckIn = (patch.check_in_date as string) ?? order.check_in_date;
-    const finalCheckOut = (patch.check_out_date as string) ?? order.check_out_date;
-    const finalTotal = total ?? Number(order.final_price ?? 0);
-    if (roomTypeId) {
-      const { count } = await admin
-        .from("order_rooms")
-        .select("id", { count: "exact", head: true })
-        .eq("order_id", order.id);
-      const qty = Math.max(1, Math.min(20, Number(input.room_quantity ?? count ?? 1) || 1));
-      try {
-        await rebuildOrderRooms(admin, {
-          orderId: order.id,
-          accommodationId: accId,
-          roomTypeId,
-          roomQuantity: qty,
-          total: finalTotal,
-          checkIn: finalCheckIn,
-          checkOut: finalCheckOut,
-        });
-      } catch (e) {
-        const msg = (e as Error).message;
-        await markRebuildFailure(admin, {
-          stagingId: input.staging_id,
-          orderId: order.id,
-          orderNumber: order.order_number,
-          obeNumber: (input as any).obe_number ?? null,
-          error: msg,
-        });
-        return { ok: false, error: msg, diff };
+    let rooms: any[] | null = null;
+    let units: { id: string; unit_number: string }[] = [];
+    if (plan.roomsChange !== "none") {
+      const { data: u, error: uErr } = await admin.from("room_units").select("id, unit_number")
+        .eq("room_type_id", plan.target.roomTypeId).eq("is_active", true)
+        .order("display_order", { ascending: true }).order("unit_number", { ascending: true });
+      if (uErr) return { ok: false, error: `room_units query failed: ${uErr.message}` };
+      units = u ?? [];
+      const needPick = plan.roomsChange === "replace" || (plan.roomsChange === "resize" && plan.target.qty > existing.length);
+      const busy = new Set<string>();
+      if (needPick && units.length) {
+        // 與 rebuildOrderRooms 相同條件（排除本訂單、未取消、日期重疊）
+        const { data: c, error: cErr } = await admin.from("order_rooms")
+          .select("room_unit_id, order_id, orders!inner(order_status, check_in_date, check_out_date)")
+          .in("room_unit_id", units.map((x) => x.id)).neq("order_id", order.id)
+          .neq("orders.order_status", "cancelled").lt("orders.check_in_date", plan.target.checkOut).gt("orders.check_out_date", plan.target.checkIn);
+        if (cErr) return { ok: false, error: `order_rooms conflict query failed: ${cErr.message}` };
+        for (const x of c ?? []) if ((x as any).room_unit_id) busy.add((x as any).room_unit_id);
       }
+      const newTemplate = plan.roomsChange === "replace"
+        ? await resolveRoomTemplate(admin, { accommodationId: accId, orderId: order.id, roomTypeId: plan.target.roomTypeId })
+        : { template_id: null, template_name: null };
+      rooms = buildOtaRooms({ plan, rows: existing, units, busy, newTemplate });
     }
+
+    const summary = formatOrderDiff(plan.diff);
+    const stamp = new Date().toISOString().slice(0, 10);
+    const patch = { ...plan.patch, notes: `${order.notes ? `${order.notes}\n` : ""}[${stamp} 奧丁丁修改通知] 已依 OBE ${input.obe_number} 自動更新既有訂單：${summary}${input.change_summary ? `\n（信件差異：${input.change_summary}）` : ""}` };
+    const { data: rpc, error: rpcErr } = await admin.rpc("apply_ota_modification_v1", {
+      p_order_id: order.id, p_patch: patch,
+      p_expect: { check_in_date: order.check_in_date, check_out_date: order.check_out_date, room_type_id: order.room_type_id,
+                  total_price: order.total_price, order_status: order.order_status },
+      p_source: "owlting_email_modify", p_reason: `OBE ${input.obe_number} 修改通知自動更新`, p_actor_label: "OwlTing 修改通知",
+      p_sync_rooms: rooms !== null, p_rooms: rooms ?? [],
+    });
+    if (rpcErr) {
+      const reason = classifyApplyError(rpcErr.message ?? "", (rpcErr as any).code);
+      const text = `修改信套用失敗（整筆回滾，訂單未變更）｜原因：${reason}｜OBE：${input.obe_number}｜訂單：${order.order_number}｜修改內容：${summary}｜${rpcErr.message}`;
+      await admin.from("owlting_email_parsed_staging").update({ auto_order_id: order.id, review_status: "pending_review",
+        auto_create_error: `${reason}: ${rpcErr.message}`, review_notes: `[需人工] ${text}` }).eq("id", input.staging_id);
+      await alert(order.id, order.order_number, "apply_ota_modification_v1", text, accId, { reason, rooms });
+      return { ok: false, error: `${reason}: ${rpcErr.message}`, error_reason: reason, diff: plan.diff, order_id: order.id, order_number: order.order_number };
+    }
+
+    const conflicts = ((rpc as any)?.conflicts ?? []) as OtaConflict[];
+    const warn = formatRoomWarnings({ orderNumber: order.order_number, conflicts,
+      newRowsWithoutUnit: (rooms ?? []).filter((r) => r.id === null && !r.room_unit_id),
+      typeName: (id) => (roomTypes ?? []).find((t: any) => t.id === id)?.name ?? "房型",
+      unitNo: (id) => units.find((x) => x.id === id)?.unit_number ?? "房號", amountNeedsReview: plan.amountNeedsReview });
+    if (warn) await alert(order.id, order.order_number, "post_apply_warning", warn, accId, { conflicts });
 
     await admin
       .from("owlting_email_parsed_staging")
       .update({
         auto_order_id: order.id,
         auto_create_error: null,
-        modification_diff: diff,
+        modification_diff: plan.diff,
         modification_diff_status: input.parser_diff_status ?? "db_compared",
-        review_notes: `[auto-update] 修改通知已自動更新既有訂單 ${order.order_number}：${summary}`,
+        review_notes: `[auto-update] 修改通知已自動更新既有訂單 ${order.order_number}：${summary}${warn ? `\n${warn}` : ""}`,
       })
       .eq("id", input.staging_id);
 
-    return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: changed, diff };
+    return { ok: true, order_id: order.id, order_number: order.order_number, updated_fields: plan.diff.map((d) => d.label), diff: plan.diff };
   } catch (e) {
     return { ok: false, error: (e as Error).message };
   }
