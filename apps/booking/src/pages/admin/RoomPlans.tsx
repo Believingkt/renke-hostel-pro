@@ -12,7 +12,9 @@ import { PackageTierCard, type RoomPlanPackage } from "@/components/room-plans/P
 export default function RoomPlans() {
   const { currentAccommodationId } = useAccommodation();
   const flags = useAccommodationPriceFlags(currentAccommodationId);
-  const { canEdit } = useStaffPermissions();
+  const { canEdit, isStrictAdmin, isStaff } = useStaffPermissions();
+  // 與後端 staff_can_edit_module 一致：館別 hotel_admin／super_admin，或 room_price 可編輯的館員；泛用 admin 不可存檔
+  const canSavePrices = isStrictAdmin || (isStaff && canEdit("room_price"));
   const { withPrefix } = useAliasPrefix();
   const [packages, setPackages] = useState<RoomPlanPackage[]>([]);
   const [templates, setTemplates] = useState<Array<{ template_name: string; default_package_id: string | null }>>([]);
@@ -70,7 +72,7 @@ export default function RoomPlans() {
           pkg={pkg}
           syncEnabled={flags.priceSyncMode === "package_original"}
           syncTemplateNames={templates.filter((t) => t.default_package_id === pkg.id).map((t) => t.template_name)}
-          canEdit={canEdit("room_price")}
+          canEdit={canSavePrices}
           packagesLink={withPrefix("/admin/packages")}
           onSaved={load}
         />

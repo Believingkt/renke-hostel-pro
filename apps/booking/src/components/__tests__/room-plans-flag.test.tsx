@@ -17,6 +17,7 @@ const state = {
   pkgs: PKGS as any[],
   pkgError: null as null | { message: string },
   failAfterRpc: false,
+  perms: { isStrictAdmin: true, isStaff: false, roomPrice: true },
 };
 const TPLS = [
   { template_name: "12人包棟", default_package_id: "p1" },
@@ -30,7 +31,12 @@ vi.mock("@lakeze/shared/contexts/AccommodationContext", () => ({
   useAccommodation: () => ({ currentAccommodationId: "acc-1" }),
 }));
 vi.mock("@lakeze/shared/hooks/use-staff-permissions", () => ({
-  useStaffPermissions: () => ({ canEdit: () => true, canView: () => true }),
+  useStaffPermissions: () => ({
+    canEdit: (k: string) => (k === "room_price" ? state.perms.roomPrice : true),
+    canView: () => true,
+    isStrictAdmin: state.perms.isStrictAdmin,
+    isStaff: state.perms.isStaff,
+  }),
 }));
 vi.mock("@lakeze/shared/hooks/use-alias-prefix", () => ({
   useAliasPrefix: () => ({ withPrefix: (u: string) => u, prefix: "" }),
@@ -77,6 +83,7 @@ describe("「房型與方案」頁：只在啟用館出現", () => {
     state.pkgs = PKGS;
     state.pkgError = null;
     state.failAfterRpc = false;
+    state.perms = { isStrictAdmin: true, isStaff: false, roomPrice: true };
   });
 
   it("啟用館：顯示方案卡片、三層價格、實際折數、同步專案名稱、OTA 與奧丁丁提示", async () => {
@@ -182,6 +189,42 @@ describe("「房型與方案」頁：只在啟用館出現", () => {
     renderPage();
     expect(screen.getByTestId("room-plans-disabled")).toBeTruthy();
     expect(screen.queryByTestId("room-plans-page")).toBeNull();
+  });
+});
+
+describe("「房型與方案」存檔權限與後端 staff_can_edit_module 一致", () => {
+  beforeEach(() => {
+    state.flags = { newPriceUiEnabled: true, newOrderDialogEnabled: false, priceSyncMode: "package_original", loaded: true, failed: false };
+    state.pkgs = PKGS;
+    state.pkgError = null;
+    state.rpcCalls = [];
+  });
+
+  it("總部泛用 admin（hook 回報 canEdit 但非 strict admin、非館員）：看不到儲存鈕、輸入框停用", async () => {
+    state.perms = { isStrictAdmin: false, isStaff: false, roomPrice: true };
+    renderPage();
+    await screen.findByTestId("room-plan-card-p1");
+    expect(screen.queryByTestId("room-plan-save-p1")).toBeNull();
+    expect((screen.getByTestId("room-plan-sale-p1-weekend") as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it("館別 hotel_admin／super_admin（strict admin）：可儲存", async () => {
+    state.perms = { isStrictAdmin: true, isStaff: false, roomPrice: true };
+    renderPage();
+    await screen.findByTestId("room-plan-card-p1");
+    expect(screen.getByTestId("room-plan-save-p1")).toBeTruthy();
+  });
+
+  it("館員 room_price 可編輯：可儲存；room_price 非可編輯：不可儲存", async () => {
+    state.perms = { isStrictAdmin: false, isStaff: true, roomPrice: true };
+    const first = renderPage();
+    await screen.findByTestId("room-plan-card-p1");
+    expect(screen.getByTestId("room-plan-save-p1")).toBeTruthy();
+    first.unmount();
+    state.perms = { isStrictAdmin: false, isStaff: true, roomPrice: false };
+    renderPage();
+    await screen.findByTestId("room-plan-card-p1");
+    expect(screen.queryByTestId("room-plan-save-p1")).toBeNull();
   });
 });
 

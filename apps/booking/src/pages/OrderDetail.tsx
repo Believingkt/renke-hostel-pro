@@ -72,6 +72,7 @@ import {
   buildCheckinActionPatch,
   buildInlineEditPatch,
 } from "@/lib/orderFieldPatches";
+import { decideOrderRoomsSave, type SyntheticDecision } from "@/lib/orderRoomsSaveGuard";
 import { buildCancelBlockHint, isCancelBlockedError, isCancelBlockedOrder } from "@/lib/cancelEntryGuard";
 import {
   AlertDialog,
@@ -338,6 +339,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   // V5.5C.1：改為「已付清」但已付金額不足時的三選一提示
   const [paidSyncPrompt, setPaidSyncPrompt] = useState<{ expected: number; current: number } | null>(null);
   const paidSyncOverrideRef = useRef<{ paid_amount?: number; payment_status?: string } | null>(null);
+  // 房間明細安全：讀取狀態、合成列確認、刪房確認、進入編輯時的 updated_at
+  const [orderRoomsLoaded, setOrderRoomsLoaded] = useState(false);
+  const [orderRoomsLoadError, setOrderRoomsLoadError] = useState<string | null>(null);
+  const [syntheticRoomPrompt, setSyntheticRoomPrompt] = useState(false);
+  const syntheticDecisionRef = useRef<SyntheticDecision>(null);
+  const [pendingRemoveRoomId, setPendingRemoveRoomId] = useState<string | null>(null);
+  const openedUpdatedAtRef = useRef<string | null>(null);
   const [changeDatesOpen, setChangeDatesOpen] = useState(false);
   const [customMealPlans, setCustomMealPlans] = useState<CustomMealPlan[]>([]);
   const [roomTemplates, setRoomTemplates] = useState<(PricingTemplateLite & { room_type_id?: string | null })[]>([]);
@@ -829,7 +837,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       setEditForm(f => ({ ...f, total_price: roomsTotal }));
     } else {
       // 保留單 / 舊單沒有 order_rooms：若有 room_type_id，從訂單合成一筆，存檔時會寫回 order_rooms，與一般新建訂單一致
-      if (order.room_type_id) {
+      if (order.room_type_id && orderRoomsLoaded) {
         const syntheticPrice = Number(order.total_price || 0);
         setEditOrderRooms([{
           id: `synthetic-${order.id}`,
@@ -856,6 +864,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     // Fallback to accommodation default deposit ratio when order has no deposit yet
     depositRatioRef.current = existingRatio > 0 ? existingRatio : defaultDepositRatio;
     originalDiscountCode.current = order.discount_code || "";
+    openedUpdatedAtRef.current = (order as any).updated_at ?? null;
+    syntheticDecisionRef.current = null;
     setIsEditing(true);
   };
 
@@ -990,7 +1000,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   // Legacy fallback: if editing an order that has no order_rooms but has a chosen room_type_id,
   // auto-populate a synthetic editOrderRoom so the new UI (with 棟號/房號 selector) is shown.
   useEffect(() => {
-    if (!isEditing || !order) return;
+    if (!isEditing || !order || !orderRoomsLoaded) return;
     if (editOrderRooms.length > 0 || orderRooms.length > 0) return;
     if (!editForm.room_type_id) return;
     const syntheticPrice = Number(order.total_price || 0);
@@ -1004,19 +1014,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       template_name: null,
       room_unit_id: null,
     }]);
-  }, [isEditing, order, editForm.room_type_id, orderRooms.length, editOrderRooms.length]);
+  }, [isEditing, order, editForm.room_type_id, orderRooms.length, editOrderRooms.length, orderRoomsLoaded]);
 
   useEffect(() => {
     if (embedded) return; // Ignore URL editing flag in embedded (tab) mode
-    if (searchParams.get("editing") === "true" && order && !isEditing) {
-      // Wait for orderRooms to be loaded before starting edit
-      // orderRooms are fetched alongside order, so once order is set they should follow
+    if (searchParams.get("editing") === "true" && order && !isEditing && (orderRoomsLoaded || orderRoomsLoadError)) {
+      // 等 order_rooms 讀取完成（或確定失敗）才進入編輯，避免以 0 筆合成假房間
       startEditing();
       const next = new URLSearchParams(searchParams);
       next.delete("editing");
       setSearchParams(next, { replace: true });
     }
-  }, [searchParams, order, orderRooms, embedded]);
+  }, [searchParams, order, orderRooms, embedded, orderRoomsLoaded, orderRoomsLoadError]);
 
   const cancelEditing = () => {
     setIsEditing(false);
@@ -1044,6 +1053,24 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         description: buildCancelBlockHint(order as any),
         variant: "destructive",
       });
+      return;
+    }
+    const roomsAction = decideOrderRoomsSave({
+      roomsLoaded: orderRoomsLoaded,
+      savedRoomCount: orderRooms.length,
+      editRoomIds: editOrderRooms.map(r => r.id),
+      syntheticDecision: syntheticDecisionRef.current,
+    });
+    if (roomsAction.kind === "block") {
+      toast({
+        title: "房間明細不可為 0 間",
+        description: "此訂單原本有房間明細，請至少保留一間房再儲存；若要取消訂單請改用取消流程。",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (roomsAction.kind === "confirm_synthetic") {
+      setSyntheticRoomPrompt(true);
       return;
     }
     // V5.5C.1：本次存檔正要把付款狀態改成「已付清」，但已付金額低於應收 → 先問清楚
@@ -1258,6 +1285,23 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         originalOrderStatus: order.order_status,
       });
 
+      // 進入編輯後若訂單已被其他人或系統更新，停止存檔（此時尚未寫入任何資料）
+      const { data: freshOrder, error: freshError } = await supabase
+        .from("orders")
+        .select("updated_at")
+        .eq("id", order.id)
+        .maybeSingle();
+      if (freshError) throw freshError;
+      if (!freshOrder) throw new Error("找不到訂單，請重新整理");
+      if (openedUpdatedAtRef.current && (freshOrder as any).updated_at !== openedUpdatedAtRef.current) {
+        toast({
+          title: "訂單已被更新，未儲存",
+          description: "您進入編輯後，這張訂單已被其他人或系統更新。請重新整理頁面後再編輯。",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.rpc("update_order_fields_v1", {
         p_order_id: order.id,
         p_patch: updateData as any,
@@ -1267,8 +1311,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
       if (error) throw error;
 
+      // 第二步失敗時，第一步的欄位已存檔，不可再顯示「儲存失敗」
+      let roomsSynced = false;
+      let roomsSyncFailure: string | null = null;
       // V5.5A.9: order_rooms 改由 sync_order_rooms_v1 以 diff 方式在單一交易內同步
-      {
+      if (roomsAction.kind === "sync") try {
         // 自動安排：對於 quantity===1 且未手動指派的列，依 display_order 找出可用 unit
         const needsAuto = editOrderRooms.filter(r => r.quantity === 1 && !r.room_unit_id);
         const autoAssignMap = new Map<string, string>();
@@ -1320,12 +1367,22 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           room_unit_id: r.quantity !== 1 ? null : (r.room_unit_id || autoAssignMap.get(r.id) || null),
         }));
 
+        // 以第一步存檔後的 updated_at 作為樂觀鎖；中間若被更新，RPC 會回 STALE_ORDER
+        const { data: afterFields, error: afterFieldsError } = await supabase
+          .from("orders")
+          .select("updated_at")
+          .eq("id", order.id)
+          .maybeSingle();
+        if (afterFieldsError) throw afterFieldsError;
+        if (!(afterFields as any)?.updated_at) throw new Error("讀不到訂單更新時間");
+
         const { data: syncResult, error: syncError } = await supabase.rpc("sync_order_rooms_v1" as any, {
           p_order_id: order.id,
-          p_expected_updated_at: null,
+          p_expected_updated_at: (afterFields as any).updated_at,
           p_rooms: payloadRooms as any,
         });
         if (syncError) throw syncError;
+        roomsSynced = true;
 
         const conflicts = ((syncResult as any)?.conflicts ?? []) as any[];
         if (conflicts.length > 0) {
@@ -1338,6 +1395,12 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             variant: "destructive",
           });
         }
+      } catch (syncErr: any) {
+        console.error("房間明細儲存失敗:", syncErr);
+        const raw = String(syncErr?.message || syncErr?.error_description || "");
+        roomsSyncFailure = raw.includes("STALE_ORDER")
+          ? "儲存過程中，這張訂單被其他人或系統更新。"
+          : (raw || "請稍後再試。");
       }
 
 
@@ -1365,7 +1428,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             roomTypeNameMap,
             unitNameMap,
           );
-          if (roomsDiff) changes.push(roomsDiff);
+          if (roomsDiff && roomsSynced) changes.push(roomsDiff);
           const exclusiveDiff = computeExclusiveConfigDiff(
             initialEditSnapshot.current.exclusiveConfigs,
             editExclusiveConfigs,
@@ -1415,7 +1478,17 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         });
       }
 
-      toast({ title: "儲存成功", description: "訂單已更新" });
+      if (roomsSyncFailure) {
+        toast({
+          title: "訂單欄位已儲存，房間明細未儲存",
+          description: `${roomsSyncFailure}請重新整理頁面確認後，再修改房間明細。`,
+          variant: "destructive",
+        });
+      } else if (roomsAction.kind === "skip" && roomsAction.reason === "synthetic_skipped") {
+        toast({ title: "儲存成功", description: "訂單已更新（未寫入房間明細）" });
+      } else {
+        toast({ title: "儲存成功", description: "訂單已更新" });
+      }
       setIsEditing(false);
 
       // Notify kol-webhook of potential discount-code change
@@ -1450,6 +1523,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     } finally {
       savingEditRef.current = false;
       paidSyncOverrideRef.current = null;
+      syntheticDecisionRef.current = null;
     }
   };
 
@@ -1673,8 +1747,18 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             : Promise.resolve({ data: null } as any),
         ]);
 
-        const orderRoomsData = orderRoomsRes.data;
-        setOrderRooms(orderRoomsData && orderRoomsData.length > 0 ? (orderRoomsData as unknown as OrderRoom[]) : []);
+        // 讀取失敗不可當成 0 筆：鎖住房間明細的編輯與儲存
+        if (orderRoomsRes.error) {
+          console.error("order_rooms 讀取失敗:", orderRoomsRes.error);
+          setOrderRooms([]);
+          setOrderRoomsLoaded(false);
+          setOrderRoomsLoadError(orderRoomsRes.error.message || "未知錯誤");
+        } else {
+          const orderRoomsData = orderRoomsRes.data;
+          setOrderRooms(orderRoomsData && orderRoomsData.length > 0 ? (orderRoomsData as unknown as OrderRoom[]) : []);
+          setOrderRoomsLoadError(null);
+          setOrderRoomsLoaded(true);
+        }
 
         if (accId) {
           const rtData = rtRes.data as any[] | null;
@@ -2624,6 +2708,11 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <CardTitle className="text-lg md:text-lg">住宿資訊</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {orderRoomsLoadError && (
+              <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="order-rooms-load-error">
+                房間明細讀取失敗（{orderRoomsLoadError}）。為避免覆蓋既有資料，已暫停編輯與儲存房間明細，其他欄位仍可儲存。請重新整理頁面。
+              </div>
+            )}
             {/* Multi-room details */}
             {(isEditing ? editOrderRooms.length > 0 : orderRooms.length > 0) ? (
               <>
@@ -2722,7 +2811,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setEditOrderRooms(prev => prev.filter(r => r.id !== or.id))}
+                                onClick={() => setPendingRemoveRoomId(or.id)}
+                                data-testid={`order-room-remove-${idx}`}
                                 className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
                               >
                                 <Trash2 className="h-3 w-3" />
@@ -3056,6 +3146,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   {isEditing ? (
                     <Select
                       value={editForm.room_type_id}
+                      disabled={!orderRoomsLoaded}
                       onValueChange={async (v) => {
                         const changed = v !== editForm.room_type_id;
                         setEditForm(f => ({ ...f, room_type_id: v }));
@@ -4065,6 +4156,76 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {/* 移除房間前確認（移除後需按儲存才會寫入） */}
+      <AlertDialog open={!!pendingRemoveRoomId} onOpenChange={(o) => { if (!o) setPendingRemoveRoomId(null); }}>
+        <AlertDialogContent data-testid="order-room-remove-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>確定移除這間房？</AlertDialogTitle>
+            <AlertDialogDescription>
+              移除後按「儲存」才會寫入資料庫。此訂單原本有房間明細時，房間明細不可存成 0 間。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="order-room-remove-cancel">取消</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="order-room-remove-confirm"
+              onClick={() => {
+                const id = pendingRemoveRoomId;
+                setEditOrderRooms(prev => prev.filter(r => r.id !== id));
+                setPendingRemoveRoomId(null);
+              }}
+            >
+              移除
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 原本沒有房間明細、由系統合成的房間：客服確認後才寫入 */}
+      <AlertDialog open={syntheticRoomPrompt} onOpenChange={(o) => { if (!o) setSyntheticRoomPrompt(false); }}>
+        <AlertDialogContent data-testid="order-room-synthetic-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>此訂單原本沒有房間明細</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>系統依訂單資料帶出以下房間，尚未存進資料庫。請確認內容正確再寫入；不確定時可只儲存其他欄位。</p>
+                <ul className="list-disc pl-5" data-testid="order-room-synthetic-list">
+                  {editOrderRooms.map(r => (
+                    <li key={r.id}>
+                      {roomTypes.find(t => t.id === r.room_type_id)?.name || "房型"} × {r.quantity}，房價 NT${Number(r.room_price || 0).toLocaleString()}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col sm:space-x-0">
+            <Button
+              data-testid="order-room-synthetic-write"
+              onClick={() => {
+                syntheticDecisionRef.current = "write";
+                setSyntheticRoomPrompt(false);
+                void handleSaveEdit();
+              }}
+            >
+              確認無誤，寫入房間明細並儲存
+            </Button>
+            <Button
+              variant="outline"
+              data-testid="order-room-synthetic-skip"
+              onClick={() => {
+                syntheticDecisionRef.current = "skip";
+                setSyntheticRoomPrompt(false);
+                void handleSaveEdit();
+              }}
+            >
+              只儲存其他欄位，不寫入房間明細
+            </Button>
+            <AlertDialogCancel data-testid="order-room-synthetic-cancel">返回編輯</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* V5.5C.1：改為「已付清」但已付金額不足 */}
       <AlertDialog open={!!paidSyncPrompt} onOpenChange={(o) => { if (!o) setPaidSyncPrompt(null); }}>
