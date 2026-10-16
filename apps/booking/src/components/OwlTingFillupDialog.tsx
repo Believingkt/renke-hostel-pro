@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { isAmountSuspicious, isGuestCountValid } from "@/lib/owltingFillupValidation";
 import { parseFunctionInvokeError } from "@lakeze/shared/utils/parseFunctionError";
 import { mergeLaterStagingClient } from "@/lib/owltingStagingMergeClient";
+import { formatUnassignedRooms } from "@/utils/formatUnassignedRooms";
 
 interface Props {
   open: boolean;
@@ -529,7 +530,12 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         throw new Error(parsed.backendError || parsed.message);
       }
       if (!data?.ok) throw new Error(data?.error || "送出失敗");
-      toast.success(`訂單已建立：${data.order_number}`);
+      const unassigned = formatUnassignedRooms(data.unassigned_rooms, roomTypes, "請到訂單詳情手動安排");
+      if (unassigned) {
+        toast.warning(unassigned.text, { duration: 15000 });
+      } else {
+        toast.success(`訂單已建立：${data.order_number}`);
+      }
       onSubmitted?.();
       onOpenChange(false);
     } catch (e: any) {

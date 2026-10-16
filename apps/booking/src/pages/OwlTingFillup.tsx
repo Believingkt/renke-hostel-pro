@@ -11,6 +11,7 @@ import {
 import { Copy, ExternalLink, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from "@lakeze/shared/hooks/use-toast";
 import { parseFunctionInvokeError } from "@lakeze/shared/utils/parseFunctionError";
+import { formatUnassignedRooms, type UnassignedRoomsSummary } from "@/utils/formatUnassignedRooms";
 
 interface StagingData {
   id: string;
@@ -56,7 +57,7 @@ export default function OwlTingFillup() {
   const [checkInDate, setCheckInDate] = useState<string>("");
   const [checkOutDate, setCheckOutDate] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
-  const [submittedOrder, setSubmittedOrder] = useState<{ id: string; order_number: string } | null>(null);
+  const [submittedOrder, setSubmittedOrder] = useState<{ id: string; order_number: string; unassigned: UnassignedRoomsSummary | null } | null>(null);
 
   useEffect(() => {
     if (!token) { setError("缺少 token"); setLoading(false); return; }
@@ -128,7 +129,11 @@ export default function OwlTingFillup() {
         const desc = parsed?.backendError || data?.error || parsed?.message || invokeErr?.message || "請稍後再試";
         toast({ title: "送出失敗", description: desc, variant: "destructive" });
       } else {
-        setSubmittedOrder({ id: data.order_id, order_number: data.order_number });
+        setSubmittedOrder({
+          id: data.order_id,
+          order_number: data.order_number,
+          unassigned: formatUnassignedRooms(data.unassigned_rooms, roomTypes, "客服將協助安排"),
+        });
         toast({ title: "訂單已建立" });
       }
     } catch (e: any) {
@@ -170,6 +175,19 @@ export default function OwlTingFillup() {
             <CheckCircle2 className="h-12 w-12 text-primary mx-auto" />
             <h2 className="text-lg font-semibold">訂單已建立</h2>
             <p className="text-sm">訂單編號：<strong className="font-mono">{submittedOrder.order_number}</strong></p>
+            {submittedOrder.unassigned && (
+              <div
+                data-testid="fillup-unassigned-rooms"
+                className="rounded-lg border border-amber-400/50 bg-amber-50 dark:bg-amber-950/30 p-3 text-left space-y-1"
+              >
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">{submittedOrder.unassigned.heading}：</p>
+                <ul className="text-xs text-amber-700 dark:text-amber-300 space-y-0.5">
+                  {submittedOrder.unassigned.items.map((item, i) => (
+                    <li key={i}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">系統將自動寄送抵達指引給住客。此連結已失效。</p>
           </CardContent>
         </Card>
