@@ -102,42 +102,51 @@ const rpcArgs = (r: Awaited<ReturnType<typeof run>>) => {
 const keptRow = (r: Row) => ({ id: r.id, room_type_id: r.room_type_id, quantity: 1, room_price: r.room_price,
   room_unit_id: r.room_unit_id, template_id: r.template_id, template_name: r.template_name });
 
-// ---------------------------------------------------------------- 舊版 ingest（fc59fa2 = 現行 index.ts 第 491–575 行）分支對照
-function oldIngest(modRes: ApplyModificationResult, ctx: { isSelfPush: boolean; resolvedAccId: string | null }) {
+// ---------------------------------------------------------------- 新版 ingest（2b-3）修改信分支對照（實際執行見 owltingIngest_test.ts）
+function ingestBranch(modRes: ApplyModificationResult, ctx: { isSelfPush: boolean; resolvedAccId: string | null }) {
   let outcome: string; let reason: string | null = null;
   if (!modRes.ok && modRes.skipped_reason === "order_not_found" && ctx.isSelfPush) { outcome = "noop_modification"; reason = "self_push_no_local_order"; }
   else if (!modRes.ok && modRes.skipped_reason === "order_not_found" && ctx.resolvedAccId) { outcome = "order_created|apply_failed (autoCreatePendingOrder 結果)"; }
+  else if (!modRes.ok && modRes.skipped_reason === "modify_blocked") { outcome = "modify_blocked"; reason = modRes.blocked_code ?? null; }
   else if (!modRes.ok) { outcome = "apply_failed"; reason = modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed"; }
   else if (modRes.skipped_reason === "no_material_change") outcome = "noop_modification";
   else outcome = "order_updated";
-  // 業主通知條件不看 modRes：stagingRow && resolvedAccId && !isNoopModification && !ownerBlocksAuto && modified
+  // 業主通知條件不看 modRes；只有舊信（skipOwnerNotify）不通知：stagingRow && resolvedAccId && !isNoopModification && !ownerBlocksAuto && !skipOwnerNotify && modified
   const ownerNotified = !!ctx.resolvedAccId;
   return { outcome, reason, ownerNotified };
 }
 
-Deno.test("舊版 ingest 原文：分支與業主通知條件與 oldIngest 對照一致（原始碼檢查）", async () => {
+Deno.test("新版 ingest 原文：分支與業主通知條件與對照函式一致（原始碼檢查）", async () => {
   const src = await Deno.readTextFile(new URL("../owlting-email-ingest/index.ts", import.meta.url));
   for (const s of [
     `if (!modRes.ok && modRes.skipped_reason === "order_not_found" && isSelfPushMod) {`,
     `} else if (!modRes.ok && modRes.skipped_reason === "order_not_found" && resolvedAccId) {`,
+    `} else if (!modRes.ok && modRes.skipped_reason === "modify_blocked") {`,
+    `await recordOutcome(supabase, inserted.id, "modify_blocked", {`,
+    `reason_code: modRes.blocked_code,`,
     `} else if (!modRes.ok) {`,
     `reason: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",`,
+    `error_reason: modRes.error_reason ?? null,`,
     `} else if (modRes.skipped_reason === "no_material_change") {`,
     `await recordOutcome(supabase, inserted.id, "order_updated", {`,
+    `skipOwnerNotify = code === "stale_ignored";`,
   ]) assertStringIncludes(src, s);
+  const blocked = src.slice(src.indexOf(`modRes.skipped_reason === "modify_blocked") {`), src.indexOf(`} else if (!modRes.ok) {`));
+  assert(blocked.length > 0 && !blocked.includes(".update(") && !blocked.includes("auto_create_error:"), "modify_blocked 分支不得覆蓋 staging.auto_create_error");
   const notify = src.slice(src.indexOf("// Auto-notify owners on cancel/modify"), src.indexOf("functions/v1/owlting-change-notify"));
   assert(notify.length > 0);
   assert(!notify.includes("modRes"), "業主通知條件不得依賴 modRes");
   assertStringIncludes(notify, "resolvedAccId &&");
+  assertStringIncludes(notify, "!skipOwnerNotify &&");
 });
 
 Deno.test("ingest 對照：order_not_found", async () => {
   const r = await run(fx({ orders: [] }), baseInput());
   assertEquals(r.res, { ok: false, skipped_reason: "order_not_found" });
   assertEquals(r.rpcCalls.length, 0);
-  assertEquals(oldIngest(r.res, { isSelfPush: true, resolvedAccId: ACC }).outcome, "noop_modification");
-  assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: ACC }).outcome, "order_created|apply_failed (autoCreatePendingOrder 結果)");
-  assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: null }), { outcome: "apply_failed", reason: "order_not_found", ownerNotified: false });
+  assertEquals(ingestBranch(r.res, { isSelfPush: true, resolvedAccId: ACC }).outcome, "noop_modification");
+  assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: ACC }).outcome, "order_created|apply_failed (autoCreatePendingOrder 結果)");
+  assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: null }), { outcome: "apply_failed", reason: "order_not_found", ownerNotified: false });
 });
 
 Deno.test("ingest 對照：no_material_change → noop_modification，業主通知照寄", async () => {
@@ -146,14 +155,14 @@ Deno.test("ingest 對照：no_material_change → noop_modification，業主通�
   assertEquals(r.res.skipped_reason, "no_material_change");
   assertEquals(r.rpcCalls.length, 0);
   assertEquals(r.staging[0].patch.review_notes, "[auto-update] 與既有訂單 LKZ001 逐欄比對後無差異，未更新。");
-  assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "noop_modification", reason: null, ownerNotified: true });
+  assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "noop_modification", reason: null, ownerNotified: true });
 });
 
-Deno.test("ingest 對照：modify_blocked → 暫記 apply_failed（reason=modify_blocked），業主通知照寄", async () => {
+Deno.test("ingest 對照：modify_blocked → modify_blocked（reason=原因代碼），業主通知照寄", async () => {
   const r = await run(fx(), baseInput({ room_type_name: "套房" }));
   assertEquals(r.res.skipped_reason, "modify_blocked");
   assertEquals(r.res.blocked_code, "room_type_unmatched");
-  assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "apply_failed", reason: "modify_blocked", ownerNotified: true });
+  assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "modify_blocked", reason: "room_type_unmatched", ownerNotified: true });
 });
 
 Deno.test("ingest 對照：各種 error_reason → apply_failed（reason=錯誤字串），業主通知照寄", async () => {
@@ -170,7 +179,7 @@ Deno.test("ingest 對照：各種 error_reason → apply_failed（reason=錯誤�
     assertEquals(r.res.ok, false);
     assertEquals(r.res.error_reason, reason);
     assertEquals(r.res.error, `${reason}: ${err.message}`);
-    assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "apply_failed", reason: `${reason}: ${err.message}`, ownerNotified: true });
+    assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "apply_failed", reason: `${reason}: ${err.message}`, ownerNotified: true });
   }
 });
 
@@ -178,7 +187,7 @@ Deno.test("ingest 對照：成功 → order_updated，業主通知照寄", async
   const r = await run(fx(), baseInput({ guest_count: 5 }));
   assertEquals(r.res.ok, true);
   assertEquals(r.res.skipped_reason, undefined);
-  assertEquals(oldIngest(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "order_updated", reason: null, ownerNotified: true });
+  assertEquals(ingestBranch(r.res, { isSelfPush: false, resolvedAccId: ACC }), { outcome: "order_updated", reason: null, ownerNotified: true });
 });
 
 // ---------------------------------------------------------------- 第 9 節情境表

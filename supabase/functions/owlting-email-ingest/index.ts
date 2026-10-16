@@ -7,6 +7,9 @@ import { updateOrderWithContext } from "../_shared/orderContext.ts";
 import { parseOwlNestForwardEmail } from "../_shared/owltingHtmlParser.ts";
 import { autoCreatePendingOrder, cancelAutoPendingOrders, applyModificationToExistingOrder } from "../_shared/owltingAutoOrder.ts";
 import { classifyObeOwner, handlePmsOwnedEcho, handleOwnerCheckError, type OwnerCheck } from "../_shared/owltingEchoGuard.ts";
+import { parseMailSentAt, isStaleMail, formatNotApplied } from "../_shared/syncOtaOrderRooms.ts";
+import { reportBackendError } from "../_shared/errorReporter.ts";
+import { sendOrderRoomsAlertEmail } from "../_shared/orderRoomsAlert.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -79,7 +82,9 @@ type IngestOutcome =
   | "apply_failed"
   | "staged"
   | "pms_echo_ignored"
-  | "pms_echo_mismatch";
+  | "pms_echo_mismatch"
+  | "stale_ignored"
+  | "modify_blocked";
 
 /** 記錄本封信的處理結果（供後台看板統計 / 依 OBE 追查） */
 async function recordOutcome(
@@ -246,6 +251,7 @@ Deno.serve(async (req) => {
     }
   }
 
+  const mailSentAt = parseMailSentAt(rawPayload.headers);
   const { data: inserted, error: insertErr } = await supabase
     .from("owlting_email_orders_raw")
     .insert({
@@ -271,8 +277,9 @@ Deno.serve(async (req) => {
       status,
       notes,
       processed_at: status === "parsed" ? null : new Date().toISOString(),
+      mail_sent_at: mailSentAt,
     })
-    .select("id")
+    .select("id, received_at")
     .single();
 
   if (insertErr) {
@@ -460,13 +467,42 @@ Deno.serve(async (req) => {
       // PMS 擁有或無法判斷：之後的自動套用、自動建單、自動取消、業主通知全部略過
       const ownerBlocksAuto = owner?.kind === "pms" || owner?.kind === "error";
 
+      // 舊信判斷：同一 OBE 已有較新的已套用信 → 本封不套用（stale_ignored，不通知業主）；查詢失敗 → modify_blocked（照常通知）
+      let skipApply = false;
+      let skipOwnerNotify = false;
+      const wantsApply = !!stagingRow?.id && isModified && !isNoopModification && !!fields.obe_number && !ownerBlocksAuto;
+      if (wantsApply) {
+        const { data: prevMails, error: prevErr } = await supabase.from("owlting_email_orders_raw")
+          .select("id, mail_sent_at, received_at").eq("obe_number", fields.obe_number).neq("id", inserted.id)
+          .in("ingest_outcome", ["order_created", "order_updated", "noop_modification"]);
+        const code = prevErr ? "stale_check_failed"
+          : isStaleMail({ mail_sent_at: mailSentAt, received_at: (inserted as any).received_at }, prevMails ?? []) ? "stale_ignored" : null;
+        skipApply = code !== null;
+        skipOwnerNotify = code === "stale_ignored";
+        if (code) {
+          const text = formatNotApplied({ code, obe: fields.obe_number, orderNumber: null, mailChanges: changeSummary || null, diff: [] });
+          await supabase.from("owlting_email_parsed_staging").update({
+            review_status: "pending_review",
+            auto_create_error: code === "stale_ignored" ? "stale_ignored" : `modify_blocked:${code}`,
+            review_notes: `[需人工] ${text}`,
+          }).eq("id", stagingRow!.id);
+          await recordOutcome(supabase, inserted.id, code === "stale_ignored" ? "stale_ignored" : "modify_blocked", {
+            obe_number: fields.obe_number, reason_code: code, mail_sent_at: mailSentAt, diff_status: diffStatus,
+            ...(prevErr ? { error: prevErr.message } : {}),
+          });
+          await reportBackendError({ functionName: "owlting-email-ingest", category: "owlting_modify_rooms", step: code, errorMessage: text, accommodationId: resolvedAccId, context: { staging_id: stagingRow!.id, raw_id: inserted.id } }).catch(() => {});
+          await sendOrderRoomsAlertEmail(supabase, { orderNumber: null, orderId: null, obeNumber: fields.obe_number, stagingId: stagingRow!.id, error: text }).catch(() => false);
+        }
+      }
+
       // 修改通知（有實質差異 or 差異無法可靠判定）：更新既有訂單，不重複建單造成佔位。
       if (
         stagingRow?.id &&
         isModified &&
         !isNoopModification &&
         fields.obe_number &&
-        !ownerBlocksAuto
+        !ownerBlocksAuto &&
+        !skipApply
       ) {
         const modRes = await applyModificationToExistingOrder(supabase, {
           staging_id: stagingRow.id,
@@ -526,6 +562,14 @@ Deno.serve(async (req) => {
             diff_status: diffStatus,
             reason: fallback.ok ? null : (fallback.skipped_reason ?? fallback.error ?? "unknown"),
           });
+        } else if (!modRes.ok && modRes.skipped_reason === "modify_blocked") {
+          // staging.auto_create_error 已由 applyModificationToExistingOrder 寫成 modify_blocked:<代碼>，此處不覆蓋
+          await recordOutcome(supabase, inserted.id, "modify_blocked", {
+            obe_number: fields.obe_number,
+            order_number: modRes.order_number,
+            reason_code: modRes.blocked_code,
+            diff_status: diffStatus,
+          });
         } else if (!modRes.ok) {
           await supabase.from("owlting_email_parsed_staging").update({
             auto_create_error: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",
@@ -533,6 +577,7 @@ Deno.serve(async (req) => {
           await recordOutcome(supabase, inserted.id, "apply_failed", {
             obe_number: fields.obe_number,
             reason: modRes.skipped_reason ?? modRes.error ?? "modification_apply_failed",
+            error_reason: modRes.error_reason ?? null,
             diff_status: diffStatus,
           });
         } else if (modRes.skipped_reason === "no_material_change") {
@@ -561,6 +606,7 @@ Deno.serve(async (req) => {
         resolvedAccId &&
         !isNoopModification &&
         !ownerBlocksAuto &&
+        !skipOwnerNotify &&
         (fields.message_type === "cancelled" || fields.message_type === "modified")
       ) {
         fetch(`${supabaseUrl}/functions/v1/owlting-change-notify`, {
