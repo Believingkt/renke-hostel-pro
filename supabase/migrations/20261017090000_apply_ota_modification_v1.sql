@@ -122,7 +122,7 @@ BEGIN
   IF v_new IS NULL OR NOT (SELECT prosecdef FROM pg_proc WHERE oid = v_new) THEN
     RAISE EXCEPTION 'POSTCHECK 失敗：apply_ota_modification_v1 未建立或非 SECURITY DEFINER';
   END IF;
-  IF NOT ('search_path=public' = ANY ((SELECT proconfig FROM pg_proc WHERE oid = v_new))) THEN
+  IF NOT coalesce((SELECT 'search_path=public' = ANY (proconfig) FROM pg_proc WHERE oid = v_new), false) THEN
     RAISE EXCEPTION 'POSTCHECK 失敗：search_path 未設定';
   END IF;
   IF has_function_privilege('anon', v_sig, 'EXECUTE')

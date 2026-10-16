@@ -1,5 +1,6 @@
 -- 2b-1 整合測試案例 2～10（以 postgres 身分建資料；呼叫 RPC 前設定 request.jwt.claims）
 \pset pager off
+\pset format unaligned
 SET client_min_messages = notice;
 
 -- ---------- 測試資料 ----------
