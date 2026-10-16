@@ -48,3 +48,7 @@ credentials.json
 *.pem
 *.key
 .credentials
+!/.env
+!/.env.example
+!/scripts/migration/secrets.template.env
+!/vps-relay-server/.env.example
