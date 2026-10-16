@@ -27,9 +27,11 @@ export function formatUnassignedRooms(
   rooms: unknown,
   roomTypes: RoomTypeName[],
   ending: string,
+  orderNumber?: string,
 ): UnassignedRoomsSummary | null {
   if (!Array.isArray(rooms) || rooms.length === 0) return null;
   const items = (rooms as UnassignedRoom[]).map((r) => describeRoom(r, roomTypes));
-  const heading = `訂單已建立，但以下 ${items.length} 間未分配房號，${ending}`;
+  const created = orderNumber ? `訂單 ${orderNumber} 已建立` : "訂單已建立";
+  const heading = `${created}，但以下 ${items.length} 間未分配房號，${ending}`;
   return { heading, items, text: `${heading}：${items.join("、")}` };
 }

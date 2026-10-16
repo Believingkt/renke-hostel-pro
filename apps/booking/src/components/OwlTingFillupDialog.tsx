@@ -530,7 +530,7 @@ export function OwlTingFillupDialog({ open, onOpenChange, stagingId, onSubmitted
         throw new Error(parsed.backendError || parsed.message);
       }
       if (!data?.ok) throw new Error(data?.error || "送出失敗");
-      const unassigned = formatUnassignedRooms(data.unassigned_rooms, roomTypes, "請到訂單詳情手動安排");
+      const unassigned = formatUnassignedRooms(data.unassigned_rooms, roomTypes, "請到訂單詳情手動安排", data.order_number);
       if (unassigned) {
         toast.warning(unassigned.text, { duration: 15000 });
       } else {

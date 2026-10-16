@@ -19,6 +19,19 @@ describe("formatUnassignedRooms", () => {
     );
   });
 
+  it("有 orderNumber 時 heading 帶訂單編號", () => {
+    const r = formatUnassignedRooms(
+      [{ room_type_id: "rt-1", requested_unit: "821", reason: "occupied" }],
+      roomTypes,
+      "請到訂單詳情手動安排",
+      "EW12345",
+    );
+    expect(r?.heading).toBe("訂單 EW12345 已建立，但以下 1 間未分配房號，請到訂單詳情手動安排");
+    expect(r?.text).toBe(
+      "訂單 EW12345 已建立，但以下 1 間未分配房號，請到訂單詳情手動安排：B1-四人房（原指定 821，已被佔用）",
+    );
+  });
+
   it("房型名稱查不到時顯示「房型」，不顯示 uuid", () => {
     const uuid = "7f0c2a7e-1111-4222-8333-944455556666";
     const r = formatUnassignedRooms(

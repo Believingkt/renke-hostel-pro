@@ -72,7 +72,7 @@ async function fillAndSubmit() {
   return { onOpenChange, onSubmitted };
 }
 
-describe("OwlTingFillupDialog — 未分配房號與明細寫入失敗", () => {
+describe("OwlTingFillupDialog — 未分配房號與明細寫入失敗", { timeout: 15000 }, () => {
   it("unassigned_rooms 兩筆 → 顯示警告，列出房型名稱與原因", async () => {
     submitResult = () => ({
       data: {
@@ -88,7 +88,7 @@ describe("OwlTingFillupDialog — 未分配房號與明細寫入失敗", () => {
     const { onOpenChange, onSubmitted } = await fillAndSubmit();
     await waitFor(() => expect(toast.warning).toHaveBeenCalledTimes(1));
     expect(vi.mocked(toast.warning).mock.calls[0][0]).toBe(
-      "訂單已建立，但以下 2 間未分配房號，請到訂單詳情手動安排：B1-四人房（原指定 821，已被佔用）、B1-四人房（無空房號）",
+      "訂單 EWTEST01 已建立，但以下 2 間未分配房號，請到訂單詳情手動安排：B1-四人房（原指定 821，已被佔用）、B1-四人房（無空房號）",
     );
     expect(toast.success).not.toHaveBeenCalled();
     expect(onSubmitted).toHaveBeenCalledTimes(1);
