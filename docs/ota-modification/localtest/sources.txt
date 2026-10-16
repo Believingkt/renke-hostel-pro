@@ -1,0 +1,21 @@
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:2:17:order_change_log 表
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:42:58:set_order_change_context
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:60:61:set_order_change_context 權限
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:64:89:resolve_change_actor
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:91:92:resolve_change_actor 權限
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:95:181:log_order_change
+20260909071053_b9246d67-19d0-4b8b-902d-05665c67e360.sql:183:186:zzz_order_change_log trigger
+20260909183844_1cee9ab9-9ad2-49f3-9ee2-77cf684d4970.sql:13:87:update_order_with_context
+20260909183844_1cee9ab9-9ad2-49f3-9ee2-77cf684d4970.sql:89:92:update_order_with_context 權限
+20260908112719_834de398-3ab7-4ccf-a765-3c7ec12061f2.sql:30:175:sync_order_rooms_v1
+20260908112719_834de398-3ab7-4ccf-a765-3c7ec12061f2.sql:177:179:sync_order_rooms_v1 權限
+20260807124141_40d673f7-6976-4f9e-ba86-603ab54cc8c9.sql:121:285:validate_order_rooms_inventory
+20260429103722_796a0ce5-96bd-4ed7-aff4-09eda80334f5.sql:87:90:validate_order_rooms_inventory_trigger
+20260612023109_1d206f73-8a86-4919-aae4-bf09750e0c53.sql:2:47:validate_room_unit_no_conflict
+20260506063503_945d9bf8-576d-4158-a9eb-98f59e2d4bb2.sql:50:53:trg_validate_room_unit_no_conflict
+20260815184625_a018ff89-69b2-4d31-99ca-6b09db0cea82.sql:61:91:order_rooms_prevent_double_submit
+20260815184625_a018ff89-69b2-4d31-99ca-6b09db0cea82.sql:94:96:trg_order_rooms_prevent_double_submit
+20260701045522_79f9affc-27b6-40c4-bb02-68390f7e6f16.sql:102:104:trg_hotelnabe_enqueue_from_order_rooms（函式為空殼）
+20260722090858_5f85b490-3c96-45ec-b0f1-4c438eb6bfef.sql:76:78:trg_order_rooms_owlting_enqueue（函式為空殼）
+20260817152435_b3af9392-5389-4cdd-9e7d-014a19d766e6.sql:195:232:revalidate_amenity_on_order_change
+20260817152435_b3af9392-5389-4cdd-9e7d-014a19d766e6.sql:234:236:trg_revalidate_amenity_on_order_change
