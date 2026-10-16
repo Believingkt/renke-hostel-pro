@@ -57,4 +57,15 @@ describe("OrderDetail 房間明細安全（原始碼契約）", () => {
   it("第二步失敗顯示「欄位已存、明細未存」", () => {
     expect(src).toContain("訂單欄位已儲存，房間明細未儲存");
   });
+  it("合成列選擇在 handleSaveEdit 一開始就取出並清空，早於任何 return", () => {
+    const save = src.indexOf("const handleSaveEdit = async () => {");
+    const body = src.slice(save, save + 400);
+    const take = body.indexOf("const syntheticDecision = syntheticDecisionRef.current;");
+    const clear = body.indexOf("syntheticDecisionRef.current = null;");
+    const firstReturn = body.indexOf("return;");
+    expect(take).toBeGreaterThan(-1);
+    expect(clear).toBeGreaterThan(take);
+    expect(clear).toBeLessThan(firstReturn);
+    expect(src).not.toContain("syntheticDecision: syntheticDecisionRef.current");
+  });
 });

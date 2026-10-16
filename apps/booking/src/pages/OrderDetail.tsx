@@ -1032,6 +1032,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
   };
 
   const handleSaveEdit = async () => {
+    // 合成列的選擇只用於這一次存檔：先取出再清空，任何結束路徑（成功、失敗、中途返回）都不會沿用
+    const syntheticDecision = syntheticDecisionRef.current;
+    syntheticDecisionRef.current = null;
     if (!order || isSavingEdit || savingEditRef.current) return;
     // 硬守門：任何 orders / order_rooms 寫入前先擋掉無編輯權限者
     if (!canManageOrders) {
@@ -1059,7 +1062,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       roomsLoaded: orderRoomsLoaded,
       savedRoomCount: orderRooms.length,
       editRoomIds: editOrderRooms.map(r => r.id),
-      syntheticDecision: syntheticDecisionRef.current,
+      syntheticDecision,
     });
     if (roomsAction.kind === "block") {
       toast({
@@ -1523,7 +1526,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     } finally {
       savingEditRef.current = false;
       paidSyncOverrideRef.current = null;
-      syntheticDecisionRef.current = null;
     }
   };
 
