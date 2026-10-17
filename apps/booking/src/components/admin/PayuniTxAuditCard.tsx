@@ -38,7 +38,7 @@ export function PayuniTxAuditCard({ accommodationId }: { accommodationId: string
             <span className="font-mono">{r.mer_trade_no}</span>
             <span>NT$ {Number(r.amount).toLocaleString()}</span>
             <Badge variant="outline">{STATUS_LABEL[r.status] ?? r.status}</Badge>
-            {r.anomaly && <Badge variant="destructive">金額異常</Badge>}
+            {r.anomaly && <Badge variant="destructive" data-testid={`payuni-anomaly-${r.mer_trade_no}`}>{r.anomaly === "PAID_AFTER_CANCEL" ? "取消後入帳" : "金額異常"}</Badge>}
             <Button size="sm" variant="outline" className="ml-auto" disabled={busy === r.mer_trade_no}
               onClick={() => requery(r.mer_trade_no)} data-testid={`payuni-tx-requery-${r.mer_trade_no}`}>
               {busy === r.mer_trade_no ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}重新查詢

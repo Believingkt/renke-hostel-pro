@@ -331,3 +331,71 @@ Deno.test("D1 list：只列該館的金額異常／pending／unknown；非該館
   assertEquals((r.body.rows as any[]).map((x) => x.mer_trade_no).sort(), ["LL8Y46U8-P1", "LL8Y46U8-P3"]);
   assertEquals((await handleTradeQuery(deps, { action: "list", accommodation_id: "other" }, admin)).status, 403);
 });
+
+Deno.test("取消後入帳：交易 paid＋PAID_AFTER_CANCEL，訂單不復活、無付款成功副作用；通知＋告警；重送不重複", async () => {
+  const { db, deps, fx } = setup({ accommodation_info: [acc()], orders: [order({ order_status: "cancelled" })], payment_transactions: [tx({ status: "expired" })] });
+  await handleTradeNotify(deps, await parseNotify(await notifyReq(PAID), { config: cfg }));
+  const t = db.rows("payment_transactions")[0];
+  assertEquals([t.status, t.raw_response.anomaly, t.provider_trade_no], ["paid", "PAID_AFTER_CANCEL", "PN1"]);
+  const o = db.rows("orders")[0];
+  assertEquals([o.order_status, o.payment_status, o.paid_amount], ["cancelled", "pending_payment", 0]);
+  assertEquals([fx.booking, fx.final, fx.kol, fx.push, db.rpcCalls.length], [0, 0, 0, 0, 0]);
+  assertEquals(fx.alerts.length, 1);
+  const n = db.rows("notifications");
+  assertEquals(n.length, 1);
+  assertEquals(n[0].description, "測試館A 訂單 LL8Y46U8 已逾時取消但 PAYUNi 回報付款成功 NT$12000，請人工處理（退款或恢復訂單）");
+  db.rows("payuni_notify_events").length = 0;
+  await handleTradeNotify(deps, await parseNotify(await notifyReq(PAID), { config: cfg }));
+  assertEquals([fx.alerts.length, db.rows("notifications").length], [1, 1]);
+});
+
+Deno.test("取消後入帳且金額不符：以 PAID_AFTER_CANCEL 為主，告警註明金額不符", async () => {
+  const { db, deps, fx } = setup({ accommodation_info: [acc()], orders: [order({ order_status: "cancelled" })], payment_transactions: [tx()] });
+  await handleTradeNotify(deps, await parseNotify(await notifyReq({ ...PAID, TradeAmt: "1" }), { config: cfg }));
+  const t = db.rows("payment_transactions")[0];
+  assertEquals([t.status, t.raw_response.anomaly, t.raw_response.amount_mismatch], ["paid", "PAID_AFTER_CANCEL", "AMOUNT_MISMATCH expected=12000 got=1"]);
+  assert(String(db.rows("notifications")[0].description).includes("金額不符：應付 NT$12000"));
+  assertEquals([fx.alerts.length, fx.booking, db.rows("orders")[0].order_status], [1, 0, "cancelled"]);
+});
+
+Deno.test("PaymentAudit list 會列出取消後入帳的交易", async () => {
+  const { deps } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [
+    tx({ id: "a", status: "paid", raw_response: { anomaly: "PAID_AFTER_CANCEL" } }),
+    tx({ id: "b", mer_trade_no: "LL8Y46U8-P2", status: "paid", raw_response: {} }),
+  ] });
+  const admin = { isService: false, isSuperAdmin: true, isAccommodationAdmin: () => Promise.resolve(false) };
+  const r = await handleTradeQuery(deps, { action: "list", accommodation_id: ACC }, admin);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((r.body.rows as any[]).map((x) => [x.mer_trade_no, x.anomaly]), [["LL8Y46U8-P1", "PAID_AFTER_CANCEL"]]);
+});
+
+Deno.test("sweep：超過 24 小時的 unknown 每筆只告警一次（stale_alerted），24 小時內不觸發", async () => {
+  const at = (m: number) => new Date(NOW - m * 60_000).toISOString();
+  const rows = [
+    tx({ id: "old", mer_trade_no: "LL8Y46U8-P1", status: "unknown", created_at: at(25 * 60), raw_response: {} }),
+    tx({ id: "new", mer_trade_no: "LL8Y46U8-P2", status: "unknown", created_at: at(60), raw_response: {} }),
+  ];
+  const { db, deps, fx } = setup({ accommodation_info: [acc()], orders: [order({ payment_status: "paid", paid_amount: 12000 })], payment_transactions: rows },
+    { ok: true, status: "SUCCESS", data: { TradeStatus: "8" }, raw: {} });
+  const r1 = await handleTradeQuery(deps, { action: "sweep" }, SVC);
+  assertEquals(r1.body.staleAlerted, ["LL8Y46U8-P1"]);
+  assertEquals(fx.alerts.length, 1);
+  assert(fx.alerts[0].includes("LL8Y46U8-P1"));
+  assertEquals(db.rows("payment_transactions").find((t) => t.id === "old")!.raw_response.stale_alerted, true);
+  assertFalse(db.rows("payment_transactions").find((t) => t.id === "new")!.raw_response.stale_alerted);
+  const r2 = await handleTradeQuery(deps, { action: "sweep" }, SVC);
+  assertEquals([r2.body.staleAlerted, fx.alerts.length], [[], 1]);
+});
+
+Deno.test("sweep：stale 告警寄送失敗（throw 或回 false）→ 不標 stale_alerted，下輪重試", async () => {
+  const at = (m: number) => new Date(NOW - m * 60_000).toISOString();
+  const { db, deps } = setup({ accommodation_info: [acc()], orders: [order({ payment_status: "paid", paid_amount: 12000 })],
+    payment_transactions: [tx({ status: "unknown", created_at: at(25 * 60), raw_response: {} })] });
+  deps.sendAlert = () => Promise.reject(new Error("smtp down"));
+  assertEquals((await handleTradeQuery(deps, { action: "sweep" }, SVC)).body.staleAlerted, []);
+  deps.sendAlert = () => Promise.resolve(false);
+  assertEquals((await handleTradeQuery(deps, { action: "sweep" }, SVC)).body.staleAlerted, []);
+  assertFalse(db.rows("payment_transactions")[0].raw_response.stale_alerted);
+  deps.sendAlert = () => Promise.resolve(true);
+  assertEquals((await handleTradeQuery(deps, { action: "sweep" }, SVC)).body.staleAlerted, ["LL8Y46U8-P1"]);
+});

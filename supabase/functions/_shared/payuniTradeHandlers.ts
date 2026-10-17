@@ -283,5 +283,22 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
     cancelled.push(o.order_number);
     console.log(`[payuni-sweep] payment_timeout cancelled ${o.order_number}`);
   }
-  return { ok: true, queried, cancelled };
+
+  // 超過 24 小時仍 unknown：每筆只告警一次，請總部至稽核頁手動查詢
+  const { data: stale } = await deps.admin.from("payment_transactions").select("*")
+    .eq("provider", "payuni").eq("status", "unknown").lt("created_at", since);
+  const staleAlerted: string[] = [];
+  for (const t of (stale ?? []).filter((t: any) => !t.raw_response?.stale_alerted)) {
+    try {
+      const sent = await deps.sendAlert(`[PAYUNi] 交易狀態未明逾 24 小時 ${t.mer_trade_no}`,
+        `<p>MerTradeNo ${t.mer_trade_no}（NT$${t.amount}）建立超過 24 小時仍為 unknown，系統不再自動查詢，請至付款稽核頁手動查詢。</p>`);
+      if (sent === false) continue;
+    } catch (e) {
+      console.error(`[payuni-sweep] stale alert ${t.mer_trade_no} failed: ${e instanceof Error ? e.message : e}`);
+      continue;
+    }
+    await updateTx(deps.admin, t.id, { raw_response: { ...(t.raw_response ?? {}), stale_alerted: true } });
+    staleAlerted.push(t.mer_trade_no);
+  }
+  return { ok: true, queried, cancelled, staleAlerted };
 }

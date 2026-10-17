@@ -8,8 +8,8 @@ export const PAYMENT_TIMEOUT_MS = 30 * 60 * 1000;
 export const SWEEP_MIN_AGE_MS = 15 * 60 * 1000;
 export const SWEEP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
-/** 與 packages/shared/src/utils/paymentDomain.ts 的 LIVE_DOMAINS 相同（Vitest 比對） */
-export const PAYUNI_LIVE_DOMAINS = ["booking.lakeze.com", "hq.lakeze.com", "renke-hostel-pro.lovable.app"];
+/** = packages/shared/src/utils/paymentDomain.ts 的 LIVE_DOMAINS 去掉 *.lovable.app（Vitest 比對） */
+export const PAYUNI_LIVE_DOMAINS = ["booking.lakeze.com", "hq.lakeze.com"];
 const SANDBOX_HOST_RE = /(^localhost$)|(\.emergentagent\.com$)/;
 
 /** IFrameDomain：只接受 https 且在允許清單（sandbox 另允許預覽網域；localhost 可 http） */
@@ -109,12 +109,34 @@ export async function applyPayuniTradeResult(deps: TradeDeps, tx: TxRow, data: R
       notified_at: nowIso(),
     };
     const mismatch = paidAmt !== Number(tx.amount);
+    const { data: order, error } = await deps.admin.from("orders")
+      .select("id, order_number, final_price, paid_amount, payment_status, order_status, notes, discount_code")
+      .eq("id", tx.order_id).maybeSingle();
+    if (error || !order) throw new Error(`order read failed: ${error?.message ?? "not found"}`);
+    const afterCancel = order.order_status === "cancelled";
+    const mismatchNote = `AMOUNT_MISMATCH expected=${tx.amount} got=${data.TradeAmt}`;
+    const anomalyRaw = afterCancel
+      ? { ...raw, anomaly: "PAID_AFTER_CANCEL", ...(mismatch ? { amount_mismatch: mismatchNote } : {}) }
+      : mismatch ? { ...raw, anomaly: mismatchNote } : raw;
     // 以「非 paid 才更新」搶佔，避免 card-charge 與 Notify 同時入帳兩次
     const { data: claimed, error: claimErr } = await deps.admin.from("payment_transactions")
-      .update({ ...fields, raw_response: mismatch ? { ...raw, anomaly: `AMOUNT_MISMATCH expected=${tx.amount} got=${data.TradeAmt}` } : raw, updated_at: nowIso() })
+      .update({ ...fields, raw_response: anomalyRaw, updated_at: nowIso() })
       .eq("id", tx.id).neq("status", "paid").select("id").maybeSingle();
     if (claimErr) throw new Error(`payment_transactions update failed: ${claimErr.message}`);
     if (!claimed) return { status: "paid", changed: false };
+    if (afterCancel) {
+      // 訂單已取消：交易照記 paid，不復活訂單，交總部人工處理
+      const { data: acc } = await deps.admin.from("accommodation_info").select("name").eq("id", tx.accommodation_id).maybeSingle();
+      const mismatchText = mismatch ? `（金額不符：應付 NT$${tx.amount}）` : "";
+      const msg = `${acc?.name ?? ""} 訂單 ${order.order_number} 已逾時取消但 PAYUNi 回報付款成功 NT$${data.TradeAmt}${mismatchText}，請人工處理（退款或恢復訂單）`;
+      await deps.admin.from("notifications").insert({
+        accommodation_id: tx.accommodation_id, type: "payment", title: "PAYUNi 取消後付款成功",
+        description: msg, order_id: tx.order_id, is_read: false,
+      });
+      await deps.sendAlert(`[PAYUNi] 取消後付款成功 ${order.order_number}`, `<p>${msg}</p><p>MerTradeNo ${tx.mer_trade_no}</p>`)
+        .catch((e) => console.error(`[payuniTrade] alert failed: ${e instanceof Error ? e.message : e}`));
+      return { status: "paid", changed: true };
+    }
     if (mismatch) {
       await deps.admin.from("notifications").insert({
         accommodation_id: tx.accommodation_id, type: "payment", title: "PAYUNi 付款金額異常",
@@ -126,10 +148,6 @@ export async function applyPayuniTradeResult(deps: TradeDeps, tx: TxRow, data: R
         .catch((e) => console.error(`[payuniTrade] alert failed: ${e instanceof Error ? e.message : e}`));
       return { status: "paid", changed: true };
     }
-    const { data: order, error } = await deps.admin.from("orders")
-      .select("id, order_number, final_price, paid_amount, payment_status, order_status, notes, discount_code")
-      .eq("id", tx.order_id).maybeSingle();
-    if (error || !order) throw new Error(`order read failed: ${error?.message ?? "not found"}`);
     await applyOrderPaymentSuccess(deps.admin, deps.effects, order, paidAmt,
       { merTradeNo: tx.mer_trade_no, tradeNo: data.TradeNo ?? null, authCode: data.AuthCode ?? null });
     return { status: "paid", changed: true };
