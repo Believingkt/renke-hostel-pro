@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractStay, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload, type Stay } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, detectTripScenario, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
-import { buildLiveAvailability, selectKnowledge, selectExamples, chatGenParams } from "./chatContext.ts";
+import { buildLiveAvailability, selectKnowledge, selectExamples, chatGenParams, resolveGuests } from "./chatContext.ts";
 import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
 import { writeMetric } from "../_shared/metric.ts";
 
@@ -225,6 +225,7 @@ serve(async (req) => {
       stay = extractStay(t, today);
       if (stay) break;
     }
+    stay = resolveGuests(stay, [...messages].reverse().filter((m: any) => m.role === "user").map((m: any) => String(m.content || "")));
     const checkIn = stay?.checkIn ?? null;
     const checkOut = stay?.checkOut ?? null;
 

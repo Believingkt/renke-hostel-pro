@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
-import { buildLiveAvailability, chatGenParams, selectExamples, selectKnowledge, tokenize } from "./chatContext.ts";
+import { buildLiveAvailability, chatGenParams, resolveGuests, selectExamples, selectKnowledge, tokenize } from "./chatContext.ts";
 import { toClaudeBody } from "../_shared/llm.ts";
 
 // 假 Supabase：from(table) 回傳可串接、可 await 的查詢；rpc 依房型回傳每晚剩餘
@@ -60,7 +60,7 @@ Deno.test("buildLiveAvailability：多晚總價、每晚最低價、任一晚 0 
   assert(live.block.includes("入住 2026-12-01、退房 2026-12-03、共 2 晚、4 人"));
   assert(live.block.includes("- 雙人房（容納 2 人）（不符人數）：2晚總價 NT$4200 / 每晚最低價 12/01 NT$2000、12/02 NT$2200 / 剩 1 間"));
   assert(live.block.includes("- 四人房（容納 4 人）：2晚總價 NT$7000 / 每晚最低價 12/01 NT$3500、12/02 NT$3500 / 已額滿（0 間）"));
-  assert(live.block.includes("- 六人包棟（容納 6 人）：2晚總價 NT$15000 / 每晚最低價 12/01 NT$8000、12/02 NT$7000 / 剩 1 間"));
+  assert(live.block.includes("- 六人包棟（容納 6 人）：2晚總價 NT$15000（方案：包棟含早） / 每晚最低價 12/01 NT$8000、12/02 NT$7000 / 剩 1 間"));
   assert(live.block.includes("表中『額滿』或『不符人數』的房型不得推薦可訂。"));
   assertEquals(live.cardPriceByRoom.get("r6"), 8000);
   assertEquals(live.cardPkgByRoom.get("r6")?.packageId, "p6");
@@ -122,4 +122,17 @@ Deno.test("Claude 路徑：toClaudeBody 刪 temperature 但保留 max_tokens 400
   const out = toClaudeBody({ model: "google/x", stream: true, messages: [], ...chatGenParams(() => undefined) });
   assertEquals(out.max_tokens, 400);
   assertEquals("temperature" in out, false);
+});
+
+const ST = { checkIn: "2026-12-01", checkOut: "2026-12-03", nights: 2, guests: null };
+Deno.test("resolveGuests：本輪沒人數 → 沿用上一則使用者訊息", () => {
+  assertEquals(resolveGuests(ST, ["12/1 到 12/3 有房嗎", "我們四個人"])?.guests, 4);
+});
+Deno.test("resolveGuests：只往回看一則", () => {
+  assertEquals(resolveGuests(ST, ["12/1 到 12/3 有房嗎", "好", "我們四個人"])?.guests, null);
+});
+Deno.test("resolveGuests：本輪有人數優先；區間已解析到的不覆蓋", () => {
+  assertEquals(resolveGuests(ST, ["那改 2 位", "我們四個人"])?.guests, 2);
+  assertEquals(resolveGuests({ ...ST, guests: 3 }, ["", "我們四個人"])?.guests, 3);
+  assertEquals(resolveGuests(null, ["4人"]), null);
 });

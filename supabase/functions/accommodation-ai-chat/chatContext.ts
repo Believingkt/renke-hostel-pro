@@ -1,5 +1,5 @@
 // 小安 system prompt 的取材：知識庫／範例篩選、即時房況區塊、輸出參數
-import { addDaysISO, type Stay } from "../_shared/roomCards.ts";
+import { addDaysISO, extractGuests, type Stay } from "../_shared/roomCards.ts";
 import { lowestPackagePricesForRooms, type PackagePriceResult } from "../_shared/packagePricing.ts";
 
 // deno-lint-ignore no-explicit-any
@@ -54,6 +54,13 @@ export function chatGenParams(env: (k: string) => string | undefined = (k) => De
     max_tokens: env("LLM_MAX_TOKENS") && Number.isFinite(mt) && mt > 0 ? Math.floor(mt) : 400,
     temperature: env("LLM_TEMPERATURE") && Number.isFinite(tp) && tp >= 0 ? tp : 0.3,
   };
+}
+
+/** 人數：區間解析到的 > 本輪使用者訊息 > 上一則使用者訊息（只往回看一則）；userTexts 由新到舊 */
+export function resolveGuests(stay: Stay | null, userTexts: string[]): Stay | null {
+  if (!stay || stay.guests != null) return stay;
+  const g = extractGuests(userTexts[0] ?? "") ?? extractGuests(userTexts[1] ?? "");
+  return { ...stay, guests: g };
 }
 
 export interface RoomRow { id: string; name: string; capacity?: number | null }
@@ -126,13 +133,14 @@ export async function buildLiveAvailability(sb: Sb, accId: string, roomRows: Roo
     if (firstPkg) { cardPkgByRoom.set(r.id, firstPkg); cardPriceByRoom.set(r.id, firstPkg.saleTotal); }
     else if (perNight[0] != null) cardPriceByRoom.set(r.id, perNight[0]!);
 
+    const pkgName = stayPkg.get(r.id)?.packageName;
     const total = stayPkg.get(r.id)?.saleTotal
       ?? (perNight.every((p) => p != null) ? perNight.reduce((s, p) => s + (p as number), 0) : null);
     const a = availByRoom.get(r.id);
     const avail = a === undefined ? "未知" : a > 0 ? `剩 ${a} 間` : "已額滿（0 間）";
     const nightTxt = perNight.map((p, i) => `${md(dates[i])} ${p != null ? `NT$${p}` : "未設定"}`).join("、");
     const misfit = guests != null && r.capacity != null && Number(r.capacity) < guests ? "（不符人數）" : "";
-    return `- ${r.name}（容納 ${r.capacity ?? "?"} 人）${misfit}：${nights}晚總價 ${total != null ? `NT$${total}` : "未設定"} / 每晚最低價 ${nightTxt} / ${avail}`;
+    return `- ${r.name}（容納 ${r.capacity ?? "?"} 人）${misfit}：${nights}晚總價 ${total != null ? `NT$${total}` : "未設定"}${pkgName ? `（方案：${pkgName}）` : ""} / 每晚最低價 ${nightTxt} / ${avail}`;
   });
 
   const head = `入住 ${checkIn}、退房 ${checkOut}、共 ${nights} 晚${guests != null ? `、${guests} 人` : ""}`;
