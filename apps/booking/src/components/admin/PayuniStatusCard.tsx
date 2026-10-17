@@ -7,11 +7,12 @@ import { Button } from "@lakeze/shared/components/ui/button";
 import { Badge } from "@lakeze/shared/components/ui/badge";
 import { ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { merStatusLabel } from "@/lib/payuniMerchantRules";
+import { memberStatusLabel, merStatusLabel } from "@/lib/payuniMerchantRules";
 
 type CardRow = {
   payuni_mer_id: string | null;
   payuni_mer_status: number | null;
+  payuni_member_status: number | null;
   payuni_payment_tools: Record<string, number> | null;
 };
 
@@ -29,7 +30,7 @@ export function PayuniStatusCard({ accommodationId }: { accommodationId: string 
     setLoading(true);
     const { data } = await supabase
       .from("accommodation_info")
-      .select("payuni_mer_id, payuni_mer_status, payuni_payment_tools")
+      .select("payuni_mer_id, payuni_mer_status, payuni_member_status, payuni_payment_tools")
       .eq("id", accommodationId)
       .maybeSingle();
     setRow((data as unknown as CardRow) ?? null);
@@ -46,6 +47,7 @@ export function PayuniStatusCard({ accommodationId }: { accommodationId: string 
       });
       if (error) throw new Error((await parseFunctionInvokeError(error)).message);
       if (!data?.ok) toast.error(`查詢失敗：${data?.message ?? data?.status ?? ""}`);
+      if (data?.provider_changed) toast.warning("商店目前非啟用狀態，線上收款已暫停（金流切回 none），請聯繫人客多總部");
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "查詢失敗");
@@ -68,6 +70,7 @@ export function PayuniStatusCard({ accommodationId }: { accommodationId: string 
           <>
             <p>商店代號：<span className="font-mono" data-testid="payuni-status-card-merid">{row.payuni_mer_id}</span></p>
             <p>商店狀態：<Badge variant="outline" data-testid="payuni-status-card-status">{merStatusLabel(row.payuni_mer_status)}</Badge></p>
+            <p>會員狀態：<span data-testid="payuni-status-card-member">{memberStatusLabel(row.payuni_member_status)}</span></p>
             <p data-testid="payuni-status-card-tools">
               已開通工具：{enabledTools.length > 0 ? enabledTools.map((k) => TOOL_LABELS[k] ?? k).join("、") : "尚無"}
             </p>

@@ -4,7 +4,7 @@ import { encrypt, hashInfo, type PayuniCall, type PayuniConfig, type PayuniResul
 import { handleAgentNotify, handleBind, handleStatus, type MerchantDeps } from "./payuniMerchantHandlers.ts";
 import { FakeDb } from "./payuniTestFakes.ts";
 import {
-  buildBindPayload, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, nextMerId, validateBindForm,
+  buildBindPayload, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, memberStatusLabel, nextMerId, validateBindForm,
 } from "./payuniMerchant.ts";
 
 const ACC = "11111111-1111-4111-8111-111111111111";
@@ -263,4 +263,54 @@ Deno.test("notify：找不到 MerID → UNKNOWN_MER；Refund 只入庫；處理�
 Deno.test("notify：非 POST → 405", async () => {
   const { d } = notifyDeps(new FakeDb());
   assertEquals((await handleAgentNotify(new Request("https://x", { method: "GET" }), d)).status, 405);
+});
+
+// ---------------- 審查後修正（MCC、會員狀態、查詢時切回 none） ----------------
+
+Deno.test("bind：MCC 為 000／全 0 → 400「MCC 尚未設定」，不呼叫 PAYUNi", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow()] });
+  const { d, calls } = deps(db, SUCCESS);
+  for (const mcc of ["000", "0000"]) {
+    const r = await handleBind(d, { accommodation_id: ACC, form: { ...FORM, mer_mcc: mcc } });
+    assertEquals(r.status, 400);
+    assertEquals(r.body.error, "MCC 尚未設定");
+    assertEquals((r.body.errors as Record<string, string>).mer_mcc, "MCC 尚未設定");
+  }
+  assertEquals(calls.length, 0);
+  assertEquals(validateBindForm({ ...FORM, mer_mcc: "0701" }).mer_mcc, undefined);
+});
+
+Deno.test("規則：會員狀態中文對照", () => {
+  assertEquals([1, 5, 8, 9, 92, 99].map(memberStatusLabel), ["啟用", "待補資料", "拒絕", "待審核", "審核失敗", "關閉／停權"]);
+  assertEquals(memberStatusLabel(null), "—");
+});
+
+Deno.test("status query：MerStatus 非 1 且金流為 payuni → 切回 none、providerLog 記 system:status-sync、provider_changed:true", async () => {
+  const db = new FakeDb({
+    accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payuni_mer_status: 1, payment_provider_active: "payuni" })],
+    accommodation_payuni_private: [{ accommodation_id: ACC, payuni_settings: { providerLog: [{ from: "tappay", to: "payuni", by: "u0", at: "t0" }] } }],
+  });
+  const reply = { ...STATUS_REPLY, data: { ...STATUS_REPLY.data!, MerStatus: "99", Reason: "停權" } };
+  const { d } = deps(db, reply);
+  const r = await handleStatus(d, { accommodation_id: ACC });
+  assertEquals([r.body.provider_changed, r.body.payment_provider_active, r.body.payuni_mer_status], [true, "none", 99]);
+  assertEquals(db.rows("accommodation_info")[0].payment_provider_active, "none");
+  const priv = db.rows("accommodation_payuni_private")[0];
+  assertEquals(priv.payuni_status_reason, "停權");
+  const log = priv.payuni_settings.providerLog;
+  assertEquals(log.length, 2);
+  assertEquals([log[1].from, log[1].to, log[1].by], ["payuni", "none", "system:status-sync"]);
+  assert(log[1].at);
+});
+
+Deno.test("status query：金流不是 payuni、或狀態仍為 1 → 不切換、provider_changed:false", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payment_provider_active: "tappay" })] });
+  const { d } = deps(db, { ...STATUS_REPLY, data: { ...STATUS_REPLY.data!, MerStatus: "2" } });
+  const r1 = await handleStatus(d, { accommodation_id: ACC });
+  assertEquals([r1.body.provider_changed, db.rows("accommodation_info")[0].payment_provider_active], [false, "tappay"]);
+  db.rows("accommodation_info")[0].payment_provider_active = "payuni";
+  const { d: d2 } = deps(db, STATUS_REPLY);
+  const r2 = await handleStatus(d2, { accommodation_id: ACC });
+  assertEquals([r2.body.provider_changed, db.rows("accommodation_info")[0].payment_provider_active], [false, "payuni"]);
+  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_settings, undefined);
 });

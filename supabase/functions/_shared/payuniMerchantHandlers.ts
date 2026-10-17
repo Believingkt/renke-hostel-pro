@@ -5,7 +5,7 @@ import type { PayuniCall, PayuniConfig, PayuniResult } from "./payuni.ts";
 import { parseNotify } from "./payuni.ts";
 import {
   backSettingAlertKeys, buildBindPayload, buildMerUrl, canSwitchToPayuni, extractPaymentTools, isBindable,
-  merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_SETTING_KEYS, pickKeys,
+  merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_UNSET, PAYUNI_SETTING_KEYS, pickKeys,
   snapshotWithoutMcid, validateBindForm, type PayuniBindForm,
 } from "./payuniMerchant.ts";
 
@@ -70,7 +70,11 @@ export async function handleBind(deps: MerchantDeps, body: any): Promise<Handler
 
   const form = (body?.form ?? {}) as PayuniBindForm;
   const errors = validateBindForm(form);
-  if (Object.keys(errors).length > 0) return res(400, { error: "VALIDATION_FAILED", errors });
+  if (Object.keys(errors).length > 0) {
+    // 只有 MCC 未設定時，error 直接回「MCC 尚未設定」
+    const onlyMcc = Object.keys(errors).length === 1 && errors.mer_mcc === PAYUNI_MCC_UNSET;
+    return res(400, { error: onlyMcc ? PAYUNI_MCC_UNSET : "VALIDATION_FAILED", errors });
+  }
 
   let merId: string = acc.payuni_mer_id ?? "";
   if (!merId) {
@@ -179,9 +183,23 @@ export async function handleStatus(deps: MerchantDeps, body: any): Promise<Handl
     payuni_status_synced_at: nowIso(),
   };
   const reason = r.data.Reason ? String(r.data.Reason) : null;
-  await updateAccommodation(deps.admin, accommodationId, synced);
-  await upsertPrivate(deps.admin, accommodationId, { payuni_status_reason: reason });
-  return res(200, { ok: true, payuni_mer_id: acc.payuni_mer_id, ...synced, payuni_status_reason: reason });
+  // 比照 Notify：商店已非啟用但仍在用 payuni 收款 → 切回 none 並記入 providerLog
+  const providerChanged = synced.payuni_mer_status !== 1 && acc.payment_provider_active === "payuni";
+  await updateAccommodation(deps.admin, accommodationId, providerChanged ? { ...synced, payment_provider_active: "none" } : synced);
+  const privateValues: Record<string, unknown> = { payuni_status_reason: reason };
+  if (providerChanged) {
+    const settings = await loadPrivateSettings(deps.admin, accommodationId);
+    const providerLog = Array.isArray(settings.providerLog) ? settings.providerLog : [];
+    privateValues.payuni_settings = {
+      ...settings,
+      providerLog: [...providerLog, { from: "payuni", to: "none", by: "system:status-sync", at: nowIso() }],
+    };
+  }
+  await upsertPrivate(deps.admin, accommodationId, privateValues);
+  return res(200, {
+    ok: true, payuni_mer_id: acc.payuni_mer_id, ...synced, payuni_status_reason: reason,
+    payment_provider_active: providerChanged ? "none" : acc.payment_provider_active, provider_changed: providerChanged,
+  });
 }
 
 async function setProvider(deps: MerchantDeps, acc: any, to: string): Promise<HandlerResult> {

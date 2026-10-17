@@ -18,9 +18,10 @@ const h = vi.hoisted(() => ({
   invoke: vi.fn(),
   toastError: vi.fn(),
   toastSuccess: vi.fn(),
+  toastWarning: vi.fn(),
 }));
 
-vi.mock("sonner", () => ({ toast: { success: h.toastSuccess, error: h.toastError } }));
+vi.mock("sonner", () => ({ toast: { success: h.toastSuccess, error: h.toastError, warning: h.toastWarning } }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
@@ -62,6 +63,8 @@ describe("HQ「PAYUNi 金流」分頁", () => {
     expect(screen.getByTestId("payuni-status-b1").textContent).toBe("審核失敗");
     expect(screen.getByTestId("payuni-status-c1").textContent).toBe("審核中");
     expect(screen.getByTestId("payuni-merid-b1").textContent).toBe("TEST0002");
+    expect(screen.getByTestId("payuni-member-b1").textContent).toBe("待審核");
+    expect(screen.getByTestId("payuni-member-a1").textContent).toBe("—");
     expect(screen.getByTestId("payuni-tool-b1-CREDIT").className).toContain("bg-green-100");
     expect(screen.getByTestId("payuni-tool-b1-ATM").className).toContain("bg-yellow-100");
     expect(screen.getByTestId("payuni-tool-b1-ForeignCard").className).toContain("bg-muted");
@@ -108,5 +111,16 @@ describe("HQ「PAYUNi 金流」分頁", () => {
     expect(canSwitchToPayuni(ACC_C.payuni_mer_status, ACC_C.payuni_payment_tools).ok).toBe(false);
     await waitFor(() => expect(h.invoke).toHaveBeenCalled());
     expect(h.invoke.mock.calls.some((c) => c[1]?.body?.action === "set_provider")).toBe(false);
+  });
+
+  it("重新查詢：後端回 provider_changed:true 時跳出切回 none 的提示", async () => {
+    h.toastWarning.mockReset();
+    h.invoke.mockImplementation(async (_fn: string, { body }: any) =>
+      body.action === "list_reasons" ? { data: { ok: true, reasons: {} }, error: null }
+        : { data: { ok: true, payuni_mer_status: 99, provider_changed: true, payment_provider_active: "none" }, error: null });
+    render(<PayuniMerchantManagement />);
+    fireEvent.click(await screen.findByTestId("payuni-refresh-c1"));
+    await waitFor(() => expect(h.toastWarning).toHaveBeenCalledWith("測試館C 商店已非啟用，金流已自動由 payuni 切回 none"));
+    expect(h.invoke).toHaveBeenCalledWith("payuni-merchant-status", { body: { action: "query", accommodation_id: "c1" } });
   });
 });

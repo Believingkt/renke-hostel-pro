@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@lakeze/shared/components/ui/tooltip";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { canSwitchToPayuni, isBindable, merStatusLabel } from "@/lib/payuniMerchantRules";
+import { canSwitchToPayuni, isBindable, memberStatusLabel, merStatusLabel } from "@/lib/payuniMerchantRules";
 import { PayuniBindDialog, type PayuniBindAccommodation } from "./PayuniBindDialog";
 
 export interface PayuniAccRow extends PayuniBindAccommodation {
@@ -84,6 +84,7 @@ export function PayuniMerchantManagement() {
     try {
       const r = await invokeStatus({ action: "query", accommodation_id: row.id });
       if (r?.ok) toast.success(`${row.name}：${merStatusLabel(r.payuni_mer_status)}`);
+      if (r?.provider_changed) toast.warning(`${row.name} 商店已非啟用，金流已自動由 payuni 切回 none`);
       else toast.error(`查詢失敗：${r?.status ?? ""} ${r?.message ?? ""}`);
       await load();
     } catch (e) {
@@ -160,7 +161,7 @@ function PayuniRow({ row, reason, busy, onBind, onRefresh, onSwitch }: {
     <TableRow data-testid={`payuni-row-${row.id}`}>
       <TableCell className="font-medium">{row.name}</TableCell>
       <TableCell className="font-mono text-xs" data-testid={`payuni-merid-${row.id}`}>{row.payuni_mer_id ?? "—"}</TableCell>
-      <TableCell data-testid={`payuni-member-${row.id}`}>{row.payuni_member_status ?? "—"}</TableCell>
+      <TableCell data-testid={`payuni-member-${row.id}`}>{memberStatusLabel(row.payuni_member_status)}</TableCell>
       <TableCell>
         {reason ? (
           <Tooltip><TooltipTrigger asChild><span>{statusBadge}</span></TooltipTrigger><TooltipContent>{reason}</TooltipContent></Tooltip>

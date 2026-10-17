@@ -15,6 +15,12 @@ export const PAYUNI_MER_STATUS_LABELS: Record<number, string> = {
   1: "啟用", 2: "關閉", 8: "拒絕", 9: "審核中", 91: "待補資料", 92: "審核失敗", 99: "停用",
 };
 
+export const PAYUNI_MEMBER_STATUS_LABELS: Record<number, string> = {
+  1: "啟用", 5: "待補資料", 8: "拒絕", 9: "待審核", 92: "審核失敗", 99: "關閉／停權",
+};
+
+export const PAYUNI_MCC_UNSET = "MCC 尚未設定";
+
 export const PAYUNI_SETTING_KEYS = ["ThreeDCREDIT", "ThreeDForeignCard", "ThreeDUnionPay", "MerClose", "ATMSet"] as const;
 export const PAYUNI_BACK_SETTING_KEYS = [
   "BackSetCREDIT", "BackSetATM", "BackSetCVS", "BackSetCreditToken", "BackSetUnCreditRefund",
@@ -100,7 +106,9 @@ export function validateBindForm(raw: Partial<PayuniBindForm> | null | undefined
   const desc = str(f.mer_desc);
   if (!desc) e.mer_desc = "商店簡介必填";
   else if (len(desc) > 500) e.mer_desc = "商店簡介最多 500 字";
-  if (!/^\d{3,4}$/.test(str(f.mer_mcc))) e.mer_mcc = "MCC 須為 3–4 碼數字";
+  const mcc = str(f.mer_mcc);
+  if (!/^\d{3,4}$/.test(mcc)) e.mer_mcc = "MCC 須為 3–4 碼數字";
+  else if (/^0+$/.test(mcc)) e.mer_mcc = PAYUNI_MCC_UNSET;
   if (!isValidGoodsRate(f.goods_rate)) e.goods_rate = "商品比例須為 4 個數字，總和 100";
   const pay = normalizePayment(f.payment);
   if (pay.length === 0) e.payment = "至少選一種支付工具";
@@ -204,6 +212,11 @@ export function parseStatus(v: unknown): number | null {
 export function merStatusLabel(status: number | null | undefined): string {
   if (status == null) return "未建店";
   return PAYUNI_MER_STATUS_LABELS[status] ?? `未知（${status}）`;
+}
+
+export function memberStatusLabel(status: number | null | undefined): string {
+  if (status == null) return "—";
+  return PAYUNI_MEMBER_STATUS_LABELS[status] ?? `未知（${status}）`;
 }
 
 /** 切到 payuni 的前置條件：商店啟用，且信用卡或 ATM 已開通 */

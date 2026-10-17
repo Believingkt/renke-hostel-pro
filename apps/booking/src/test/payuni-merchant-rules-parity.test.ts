@@ -16,7 +16,7 @@ const CASES: Array<Record<string, unknown>> = [
   { member_email: "x@" }, { mer_eng_name: "Test 民宿" }, { mer_eng_name: "A".repeat(51) }, { mer_eng_name: "Tom's B&B (No.1)" },
   { mer_name: "一".repeat(21) }, { mer_addr_post: "1100" }, { goods_rate: "0,90,0,0" }, { goods_rate: "25,25,25,25" },
   { contact_tel: "", contact_mobile: "" }, { contact_tel: "029888888" }, { contact_mobile: "0812345678" },
-  { payment: [] }, { payment: "CREDIT,LinePay" }, { mer_unit_price: "0" }, { escrow_type: "2" }, { mer_mcc: "AB12" },
+  { payment: [] }, { payment: "CREDIT,LinePay" }, { mer_unit_price: "0" }, { escrow_type: "2" }, { mer_mcc: "AB12" }, { mer_mcc: "000" }, { mer_mcc: "0000" }, { mer_mcc: "0" }, { mer_mcc: "0701" },
 ];
 
 describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 結果一致", () => {
@@ -29,6 +29,8 @@ describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 
     expect(front.buildBindPayload(FORM as any, "TEST0001", "https://booking.lakeze.com/a"))
       .toEqual(back.buildBindPayload(FORM as any, "TEST0001", "https://booking.lakeze.com/a"));
     for (const v of [null, 1, 2, 8, 9, 91, 92, 99, 5]) expect(front.merStatusLabel(v)).toBe(back.merStatusLabel(v));
+    for (const v of [null, 1, 5, 8, 9, 92, 99, 3]) expect(front.memberStatusLabel(v)).toBe(back.memberStatusLabel(v));
+    expect(front.validateBindForm({ ...FORM, mer_mcc: "000" } as any).mer_mcc).toBe("MCC 尚未設定");
     expect(front.nextMerId("TEST", ["TEST0009"])).toBe(back.nextMerId("TEST", ["TEST0009"]));
     expect(front.canSwitchToPayuni(1, { ATM: 1 })).toEqual(back.canSwitchToPayuni(1, { ATM: 1 }));
     expect(front.canSwitchToPayuni(9, {})).toEqual(back.canSwitchToPayuni(9, {}));
