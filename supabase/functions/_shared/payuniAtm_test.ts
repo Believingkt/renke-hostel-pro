@@ -221,3 +221,44 @@ Deno.test("cancel-expired-atm-orders：未改動；條件只看 atm_vacc_no／at
   for (const s of [".eq('payment_status', 'pending_payment')", ".not('atm_vacc_no', 'is', null)", ".lt('atm_expire_at', cutoffIso)"]) assert(src.includes(s), s);
   assertFalse(/payment_method/.test(src));
 });
+
+// ---------------- sweep：無虛擬帳號的 ATM 待付款單 ----------------
+const SVC = { isService: true, isSuperAdmin: false, isAccommodationAdmin: () => Promise.resolve(false) };
+const ago = (m: number) => new Date(NOW - m * 60_000).toISOString();
+const UNPAID: PayuniResult = { ok: true, status: "SUCCESS", data: { TradeStatus: "0" }, raw: {} };
+
+Deno.test("sweep：無虛擬帳號的 ATM 單（取號失敗／未取號）30 分鐘後取消；未滿 30 分鐘不取消", async () => {
+  const failed = setup({ ...base(), orders: [order({ created_at: ago(40) })], payment_transactions: [atmTx({ status: "failed", created_at: ago(40), raw_response: {} })] }, UNPAID);
+  assertEquals((await handleTradeQuery(failed.deps, { action: "sweep" }, SVC)).body.cancelled, ["LL8Y46U8"]);
+  const call = failed.db.rpcCalls.find((c) => c.name === "update_order_with_context")!;
+  assertEquals([call.args.p_source, call.args.p_patch.order_status], ["payuni_payment_timeout", "cancelled"]);
+  const none = setup({ ...base(), orders: [order({ created_at: ago(40) })] }, UNPAID);
+  assertEquals((await handleTradeQuery(none.deps, { action: "sweep" }, SVC)).body.cancelled, ["LL8Y46U8"]);
+  const fresh = setup({ ...base(), orders: [order({ created_at: ago(10) })] }, UNPAID);
+  assertEquals((await handleTradeQuery(fresh.deps, { action: "sweep" }, SVC)).body.cancelled, []);
+});
+
+Deno.test("sweep：已有虛擬帳號的 ATM 單不碰（交給 cancel-expired-atm-orders）", async () => {
+  const { db, deps } = setup({
+    ...base(), orders: [order({ created_at: ago(40), atm_vacc_no: "96880012345678", atm_expire_at: ago(20) })],
+    payment_transactions: [atmTx({ created_at: ago(40), raw_response: { ...atmTx().raw_response, expire_at: ago(20) } })],
+  }, UNPAID);
+  assertEquals((await handleTradeQuery(deps, { action: "sweep" }, SVC)).body.cancelled, []);
+  assertEquals([db.rows("orders")[0].order_status, db.rpcCalls.length, db.rows("payment_transactions")[0].status], ["pending", 0, "pending"]);
+});
+
+Deno.test("sweep：ATM 取號 unknown → 取消前先補查；仍 unknown 或查詢失敗就不取消", async () => {
+  const old = ago(25 * 60);
+  const rows = () => ({ ...base(), orders: [order({ created_at: old })], payment_transactions: [atmTx({ status: "unknown", created_at: old, raw_response: { purpose: "deposit" } })] });
+  const still = setup(rows(), UNPAID);
+  assertEquals((await handleTradeQuery(still.deps, { action: "sweep" }, SVC)).body.cancelled, []);
+  assertEquals(still.calls.filter((c) => c.path === "/api/trade/query").map((c) => c.payload.MerTradeNo), ["LL8Y46U8-D1"]);
+  const fail = setup(rows(), { ok: false, status: "ERROR", raw: {} });
+  assertEquals((await handleTradeQuery(fail.deps, { action: "sweep" }, SVC)).body.cancelled, []);
+  assertEquals(fail.db.rpcCalls.length, 0);
+});
+
+Deno.test("sweep：無虛擬帳號 ATM 單若有 paid 交易不取消", async () => {
+  const { deps } = setup({ ...base(), orders: [order({ created_at: ago(40) })], payment_transactions: [atmTx({ status: "paid", created_at: ago(40) })] }, UNPAID);
+  assertEquals((await handleTradeQuery(deps, { action: "sweep" }, SVC)).body.cancelled, []);
+});

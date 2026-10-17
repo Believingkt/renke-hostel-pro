@@ -5,7 +5,7 @@ import {
   applyPayuniTradeResult, inSweepWindow, maskPayNo, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
   resolveChargeAmount, resolveIframeDomain, SWEEP_MAX_AGE_MS, TOKEN_TTL_MS, type TradeDeps, type TxRow,
 } from "./payuniTrade.ts";
-import { PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
+import { PAYUNI_ATM_METHOD, PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
 
 export interface PayuniTradeDeps extends TradeDeps {
   env: "sandbox" | "production";
@@ -256,20 +256,23 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
     }
   }
 
-  // 逾時取消：PAYUNi 待付款訂單，以最後一次付款嘗試起算 30 分鐘；有 paid／unknown 或本輪查詢失敗就不取消
-  const { data: orders } = await deps.admin.from("orders").select("id, order_number, notes, created_at, payment_status, paid_amount")
-    .eq("payment_method", PAYUNI_PAYMENT_METHOD).eq("payment_status", "pending_payment").neq("order_status", "cancelled")
+  // 逾時取消：PAYUNi 待付款訂單，以最後一次付款嘗試起算 30 分鐘；有 paid／unknown 或本輪查詢失敗就不取消。
+  // ATM 單只處理尚無虛擬帳號者（已有 atm_vacc_no 的交給 cancel-expired-atm-orders）
+  const { data: orders } = await deps.admin.from("orders").select("id, order_number, notes, created_at, payment_status, paid_amount, payment_method, atm_vacc_no")
+    .in("payment_method", [PAYUNI_PAYMENT_METHOD, PAYUNI_ATM_METHOD]).eq("payment_status", "pending_payment").neq("order_status", "cancelled")
     .gte("created_at", new Date(now - 2 * SWEEP_MAX_AGE_MS).toISOString());
   const cancelled: string[] = [];
   for (const o of orders ?? []) {
+    if (o.payment_method === PAYUNI_ATM_METHOD && o.atm_vacc_no) continue;
     if (queryFailed.has(o.id) || Number(o.paid_amount || 0) > 0) continue;
     const loadList = async () => (await deps.admin.from("payment_transactions").select("*").eq("order_id", o.id).eq("provider", "payuni")).data ?? [];
     let all = await loadList();
     const latest = all.map((t: any) => t.created_at).sort().pop() ?? o.created_at;
     if (!isPaymentTimedOut(latest, now)) continue;
-    // 取消前：本輪沒查過的 pending 交易（含 24 小時外）補查一次；查詢失敗就不取消
+    // 取消前：本輪沒查過的 pending 交易（含 24 小時外；ATM 另含 unknown 取號交易）補查一次；查詢失敗就不取消
     let skip = false;
-    for (const t of all.filter((t: any) => t.status === "pending" && !queriedIds.has(t.id))) {
+    const needsQuery = (t: any) => t.status === "pending" || (Number(t.payment_type) === 2 && t.status === "unknown");
+    for (const t of all.filter((t: any) => needsQuery(t) && !queriedIds.has(t.id))) {
       try {
         if (!(await queryAndApply(deps, t, now)).ok) skip = true;
       } catch { skip = true; }
@@ -277,7 +280,8 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
     if (skip) continue;
     all = await loadList();
     if (all.some((t: any) => t.status === "paid" || t.status === "unknown")) continue;
-    const { data: fresh } = await deps.admin.from("orders").select("id, notes, payment_status, order_status, paid_amount").eq("id", o.id).maybeSingle();
+    const { data: fresh } = await deps.admin.from("orders").select("id, notes, payment_status, order_status, paid_amount, atm_vacc_no").eq("id", o.id).maybeSingle();
+    if (fresh?.atm_vacc_no) continue;
     if (!fresh || fresh.payment_status !== "pending_payment" || fresh.order_status === "cancelled" || Number(fresh.paid_amount || 0) > 0) continue;
     const iso = new Date(now).toISOString();
     const note = `[PAYUNi payment_timeout] ${iso} - 最後一次付款嘗試逾 30 分鐘未完成，系統自動取消`;
