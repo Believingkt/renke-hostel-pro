@@ -393,3 +393,15 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.payuni-agent-notify]
     verify_jwt = false
+  [functions.payuni-create-pending-order]
+    verify_jwt = false
+  [functions.payuni-embed-token]
+    verify_jwt = false
+  [functions.payuni-card-charge]
+    verify_jwt = false
+  [functions.payuni-trade-return]
+    verify_jwt = false
+  [functions.payuni-trade-notify]
+    verify_jwt = false
+  [functions.payuni-trade-query]
+    verify_jwt = false

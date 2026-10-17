@@ -20,7 +20,7 @@ const stripDomain = (value: string) =>
  * 若推導出的網域不在清單內，一律留在目前網域完成付款，
  * 避免導向不存在的網站造成「網頁失效」。
  */
-const LIVE_DOMAINS = new Set([
+export const LIVE_DOMAINS = new Set([
   "booking.lakeze.com",
   "hq.lakeze.com",
   "renke-hostel-pro.lovable.app",

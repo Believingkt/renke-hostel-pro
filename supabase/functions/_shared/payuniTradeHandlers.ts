@@ -1,0 +1,245 @@
+// PAYUNi 信用卡（W3）edge function 核心邏輯；依賴注入（DB、PAYUNi 呼叫、副作用）方便以 mock 測試。不記卡號、不 log 解密內容。
+// deno-lint-ignore-file no-explicit-any
+import type { PayuniCall, PayuniResult, ParseNotifyResult } from "./payuni.ts";
+import {
+  applyPayuniTradeResult, inSweepWindow, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
+  resolveChargeAmount, resolveIframeDomain, SWEEP_MAX_AGE_MS, TOKEN_TTL_MS, type TradeDeps, type TxRow,
+} from "./payuniTrade.ts";
+import { PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
+
+export interface PayuniTradeDeps extends TradeDeps {
+  env: "sandbox" | "production";
+  notifyBase: string;
+  callPayuni: (call: PayuniCall) => Promise<PayuniResult>;
+  now?: () => number;
+}
+type Res = { status: number; body: Record<string, unknown> };
+const res = (status: number, body: Record<string, unknown>): Res => ({ status, body });
+const ts = (now: number) => String(Math.floor(now / 1000));
+const ORDER_COLS = "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, guest_email, payment_method, created_at";
+
+async function loadAcc(admin: any, id: string) {
+  const { data } = await admin.from("accommodation_info")
+    .select("id, name, custom_domain, short_url_alias, payment_provider_active, payuni_mer_id, payuni_mer_status, payuni_payment_tools")
+    .eq("id", id).maybeSingle();
+  return data;
+}
+const creditReady = (acc: any) =>
+  acc && acc.payment_provider_active === "payuni" && acc.payuni_mer_status === 1 && Number(acc.payuni_payment_tools?.CREDIT) === 1 && !!acc.payuni_mer_id;
+const accDomains = (acc: any) => [
+  acc?.custom_domain ? String(acc.custom_domain).replace(/^https?:\/\//, "").replace(/\/.*$/, "") : "",
+  acc?.short_url_alias ? `${acc.short_url_alias}.lakeze.com` : "",
+].filter(Boolean);
+
+// ---------------- payuni-embed-token ----------------
+export async function handleEmbedToken(deps: PayuniTradeDeps, body: any, origin: string | null): Promise<Res> {
+  const now = deps.now?.() ?? Date.now();
+  const orderNumber = String(body?.order_number ?? "");
+  const purpose = body?.purpose === "supplement" ? "supplement" : body?.purpose === "booking" ? "booking" : null;
+  if (!/^[A-Za-z0-9]{4,20}$/.test(orderNumber) || !purpose) return res(400, { error: "參數不正確" });
+  const { data: order } = await deps.admin.from("orders").select(ORDER_COLS).eq("order_number", orderNumber).maybeSingle();
+  if (!order || order.order_status === "cancelled") return res(404, { error: "找不到訂單" });
+  const acc = await loadAcc(deps.admin, order.accommodation_id);
+  if (!creditReady(acc)) return res(400, { error: "此館尚未開通線上刷卡" });
+  const iframeDomain = resolveIframeDomain(origin, deps.env, accDomains(acc));
+  if (!iframeDomain) return res(400, { error: "付款網域不在允許清單" });
+
+  const kind = purpose === "booking" ? "full" : "addon";
+  const { data: txs } = await deps.admin.from("payment_transactions").select("mer_trade_no, kind, status")
+    .eq("order_id", order.id).eq("provider", "payuni");
+  if (purpose === "booking" && (txs ?? []).some((t: any) => t.kind === "full" && t.status === "paid")) return res(409, { error: "已付款" });
+  const amount = resolveChargeAmount(order);
+  if (amount <= 0) return res(purpose === "booking" ? 409 : 400, { error: purpose === "booking" ? "已付款" : "無需付款" });
+  const merTradeNo = nextMerTradeNo(order.order_number, purpose === "booking" ? "P" : "A", (txs ?? []).map((t: any) => t.mer_trade_no));
+
+  const r = await deps.callPayuni({
+    kind: "merchant", merId: acc.payuni_mer_id, path: "/api/iframe/token_get", version: "3.0",
+    payload: { MerID: acc.payuni_mer_id, Timestamp: ts(now), IFrameDomain: iframeDomain },
+  });
+  const sdkToken = r.data?.Token ?? r.data?.SDKToken ?? null;
+  if (!r.ok || !sdkToken) return res(502, { error: "取得付款元件失敗", status: r.status, message: r.message ?? null });
+  const expiresAt = new Date(now + TOKEN_TTL_MS).toISOString();
+  const { error } = await deps.admin.from("payment_transactions").insert({
+    order_id: order.id, accommodation_id: order.accommodation_id, provider: "payuni", mer_id: acc.payuni_mer_id,
+    mer_trade_no: merTradeNo, kind, payment_type: 1, amount, status: "pending",
+    raw_response: { sdk_token: sdkToken, iframe_domain: iframeDomain, token_expired: r.data?.TokenExpired ?? expiresAt, purpose },
+    created_at: new Date(now).toISOString(),
+  });
+  if (error) throw new Error(`payment_transactions insert failed: ${error.message}`);
+  return res(200, { sdk_token: sdkToken, env: deps.env === "production" ? "P" : "S", mer_trade_no: merTradeNo, amount, expires_at: expiresAt });
+}
+
+async function loadTx(admin: any, merTradeNo: string): Promise<TxRow & { created_at: string; mer_id: string; kind: string } | null> {
+  const { data } = await admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("mer_trade_no", merTradeNo).maybeSingle();
+  return data ?? null;
+}
+
+// ---------------- payuni-card-charge ----------------
+export async function handleCardCharge(deps: PayuniTradeDeps, body: any, forwardedFor: string | null): Promise<Res> {
+  const now = deps.now?.() ?? Date.now();
+  const merTradeNo = String(body?.mer_trade_no ?? "");
+  if (!/^[A-Za-z0-9_-]{1,25}$/.test(merTradeNo)) return res(400, { error: "參數不正確" });
+  const tx = await loadTx(deps.admin, merTradeNo);
+  if (!tx || tx.status !== "pending") return res(409, { ok: false, code: "INVALID_STATE" });
+  const raw = tx.raw_response ?? {};
+  if (isTokenExpired(tx.created_at, now) || !raw.sdk_token) {
+    await deps.admin.from("payment_transactions").update({ status: "expired", raw_response: { ...raw, sdk_token: undefined } }).eq("id", tx.id);
+    return res(200, { ok: false, code: "TOKEN_EXPIRED" });
+  }
+  const { data: order } = await deps.admin.from("orders").select(ORDER_COLS).eq("id", tx.order_id).maybeSingle();
+  const acc = await loadAcc(deps.admin, tx.accommodation_id);
+  if (!order || !creditReady(acc)) return res(400, { ok: false, message: "此館尚未開通線上刷卡" });
+  const ip = (forwardedFor ?? "").split(",")[0].trim();
+  const payload: Record<string, string | number> = {
+    MerID: tx.mer_id, MerTradeNo: tx.mer_trade_no, Token: raw.sdk_token, TradeAmt: tx.amount, Timestamp: ts(now),
+    ProdDesc: `${acc.name} 訂房 ${order.order_number}`.slice(0, 550), API3D: 1,
+    NotifyURL: `${deps.notifyBase}/payuni-trade-notify`, ReturnURL: `${deps.notifyBase}/payuni-trade-return`,
+  };
+  if (order.guest_email) payload.UsrMail = order.guest_email;
+  if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) payload.UserIP = ip;
+  // 呼叫前先清 sdk_token（Token 只能用一次）
+  const cleared = { ...raw };
+  delete cleared.sdk_token;
+  await deps.admin.from("payment_transactions").update({ raw_response: cleared }).eq("id", tx.id);
+  const r = await deps.callPayuni({ kind: "merchant", merId: tx.mer_id, path: "/api/iframe/merchant_trade", version: "1.0", payload });
+  const d = r.data ?? {};
+  if (r.ok && d.URL) return res(200, { ok: true, redirect_url: d.URL });
+  if (r.ok && String(d.TradeStatus) === "1") {
+    await applyPayuniTradeResult(deps, { ...tx, raw_response: cleared }, d);
+    return res(200, { ok: true, paid: true });
+  }
+  if (r.status === "UNKNOWN") {
+    await deps.admin.from("payment_transactions").update({ status: "unknown", raw_response: { ...cleared, last_status: r.status } }).eq("id", tx.id);
+    return res(200, { ok: true, pending: true });
+  }
+  await deps.admin.from("payment_transactions").update({
+    status: "failed", raw_response: { ...cleared, last_status: r.status, last_message: r.message ?? null },
+  }).eq("id", tx.id);
+  return res(200, { ok: false, message: r.message ?? "付款失敗" });
+}
+
+// ---------------- payuni-trade-return ----------------
+export const RETURN_ERROR_URL = "https://booking.lakeze.com/payment-result?error=1";
+export async function handleTradeReturn(admin: any, parsed: ParseNotifyResult): Promise<Response> {
+  const go = (url: string) => new Response(null, { status: 303, headers: { Location: url } });
+  if (!parsed.ok) return go(RETURN_ERROR_URL);
+  const tx = await loadTx(admin, String(parsed.data.MerTradeNo ?? ""));
+  const domain = tx?.raw_response?.iframe_domain;
+  if (!tx || typeof domain !== "string" || !/^https?:\/\/[^/?#]+$/.test(domain)) return go(RETURN_ERROR_URL);
+  const { data: order } = await admin.from("orders").select("order_number").eq("id", tx.order_id).maybeSingle();
+  if (!order) return go(RETURN_ERROR_URL);
+  return go(`${domain}/payment-result?order=${encodeURIComponent(order.order_number)}&tx=${encodeURIComponent(tx.mer_trade_no)}`);
+}
+
+// ---------------- payuni-trade-notify ----------------
+const okText = () => new Response("OK", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } });
+export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNotifyResult): Promise<Response> {
+  const outer = parsed.ok ? parsed.outer : (parsed.outer ?? {});
+  const data = parsed.ok ? parsed.data : null;
+  // W4 會依 PaymentType 加 ATM 分支；W3 只處理信用卡
+  const notifyType = "credit";
+  const { data: ev, error: insErr } = await deps.admin.from("payuni_notify_events").insert({
+    source: "trade", notify_type: notifyType, mer_id: data?.MerID ?? outer.MerID ?? null, trade_no: data?.TradeNo ?? null,
+    execute_time: data ? notifyExecuteTime(data) : null, hash_valid: parsed.ok || parsed.reason === "DECRYPT_FAILED",
+    payload_raw: outer, decrypted: data, processed: false, process_error: parsed.ok ? null : parsed.reason,
+  }).select("id").single();
+  if (insErr) {
+    if (insErr.code !== "23505") console.error(`[payuni-trade-notify] event insert failed: ${insErr.message}`);
+    return okText();
+  }
+  if (!data) return okText();
+  let processed = false;
+  let processError: string | null = null;
+  try {
+    const tx = await loadTx(deps.admin, String(data.MerTradeNo ?? ""));
+    if (!tx) processError = "UNKNOWN_TRADE";
+    else { await applyPayuniTradeResult(deps, tx, data); processed = true; }
+  } catch (e) {
+    processError = e instanceof Error ? e.message.slice(0, 500) : "UNKNOWN_ERROR";
+  }
+  await deps.admin.from("payuni_notify_events").update({ processed, process_error: processError }).eq("id", ev.id);
+  return okText();
+}
+
+// ---------------- payuni-trade-query ----------------
+/** 交易查詢回傳可能是平鋪或 Result[0][...]；取第一筆（待 Sandbox 確認實際格式） */
+export function extractQueryResult(d: Record<string, string> | undefined): Record<string, string> | null {
+  if (!d) return null;
+  if (d.TradeStatus != null) return d;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(d)) {
+    const m = /^Result\[0\]\[(\w+)\]$/.exec(k);
+    if (m) out[m[1]] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+async function queryAndApply(deps: PayuniTradeDeps, tx: any, now: number) {
+  const r = await deps.callPayuni({
+    kind: "merchant", merId: tx.mer_id, path: "/api/trade/query", version: "2.0",
+    payload: { MerID: tx.mer_id, MerTradeNo: tx.mer_trade_no, Timestamp: ts(now) },
+  });
+  const q = r.ok ? extractQueryResult(r.data) : null;
+  if (!q) return { ok: false as const, status: r.status };
+  const applied = await applyPayuniTradeResult(deps, tx, q);
+  return { ok: true as const, trade_status: q.TradeStatus ?? null, close_status: q.CloseStatus ?? null, refund_status: q.RefundStatus ?? null, tx_status: applied.status };
+}
+
+export async function handleTradeQuery(
+  deps: PayuniTradeDeps, body: any,
+  caller: { isService: boolean; isSuperAdmin: boolean; isAccommodationAdmin: (id: string) => Promise<boolean> },
+): Promise<Res> {
+  const now = deps.now?.() ?? Date.now();
+  if (body?.action === "sweep") {
+    if (!caller.isService) return res(403, { error: "Forbidden" });
+    return res(200, await sweep(deps, now));
+  }
+  const tx = await loadTx(deps.admin, String(body?.mer_trade_no ?? ""));
+  if (!tx) return res(404, { error: "找不到交易" });
+  if (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(tx.accommodation_id))) return res(403, { error: "Forbidden" });
+  return res(200, await queryAndApply(deps, tx, now));
+}
+
+async function sweep(deps: PayuniTradeDeps, now: number) {
+  const since = new Date(now - SWEEP_MAX_AGE_MS).toISOString();
+  const { data: txs } = await deps.admin.from("payment_transactions").select("*")
+    .eq("provider", "payuni").in("status", ["pending", "unknown"]).gte("created_at", since);
+  const queryFailed = new Set<string>();
+  let queried = 0;
+  for (const tx of (txs ?? []).filter((t: any) => inSweepWindow(t.created_at, now))) {
+    queried++;
+    try {
+      const r = await queryAndApply(deps, tx, now);
+      if (!r.ok) queryFailed.add(tx.order_id);
+    } catch (e) {
+      queryFailed.add(tx.order_id);
+      console.error(`[payuni-sweep] query ${tx.mer_trade_no} failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+
+  // 逾時取消：PAYUNi 待付款訂單，以最後一次付款嘗試起算 30 分鐘；有 paid／unknown 或本輪查詢失敗就不取消
+  const { data: orders } = await deps.admin.from("orders").select("id, order_number, notes, created_at, payment_status, paid_amount")
+    .eq("payment_method", PAYUNI_PAYMENT_METHOD).eq("payment_status", "pending_payment").neq("order_status", "cancelled")
+    .gte("created_at", new Date(now - 2 * SWEEP_MAX_AGE_MS).toISOString());
+  const cancelled: string[] = [];
+  for (const o of orders ?? []) {
+    if (queryFailed.has(o.id) || Number(o.paid_amount || 0) > 0) continue;
+    const { data: list } = await deps.admin.from("payment_transactions").select("id, status, created_at").eq("order_id", o.id).eq("provider", "payuni");
+    const all = list ?? [];
+    if (all.some((t: any) => t.status === "paid" || t.status === "unknown")) continue;
+    const latest = all.map((t: any) => t.created_at).sort().pop() ?? o.created_at;
+    if (!isPaymentTimedOut(latest, now)) continue;
+    const iso = new Date(now).toISOString();
+    const note = `[PAYUNi payment_timeout] ${iso} - 最後一次付款嘗試逾 30 分鐘未完成，系統自動取消`;
+    const { data: upd } = await deps.admin.from("orders")
+      .update({ order_status: "cancelled", cancelled_at: iso, notes: o.notes ? `${o.notes}\n${note}` : note, updated_at: iso })
+      .eq("id", o.id).eq("payment_status", "pending_payment").neq("order_status", "cancelled").select("id").maybeSingle();
+    if (!upd) continue;
+    for (const t of all.filter((t: any) => t.status === "pending")) {
+      await deps.admin.from("payment_transactions").update({ status: "expired" }).eq("id", t.id);
+    }
+    cancelled.push(o.order_number);
+    console.log(`[payuni-sweep] payment_timeout cancelled ${o.order_number}`);
+  }
+  return { ok: true, queried, cancelled };
+}
