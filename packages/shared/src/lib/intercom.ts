@@ -60,7 +60,7 @@ export function buildIntercomSettings(args: {
           ...(identity.user_hash ? { user_hash: identity.user_hash } : {}),
           ...(identity.email ? { email: identity.email } : {}),
           ...(identity.name ? { name: identity.name } : {}),
-          role,
+          lakeze_role: role,
           ...(role !== "guest" && accommodationId ? { accommodation_id: accommodationId } : {}),
         }
       : {}),

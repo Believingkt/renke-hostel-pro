@@ -80,7 +80,8 @@ describe("IntercomMessenger", () => {
     h.session = { user: { id: "staff-1", email: "s@x.tw" } };
     mount("/sensaninn/admin/orders");
     await waitFor(() => expect(cmds()).toContain("boot"));
-    expect(window.intercomSettings).toMatchObject({ user_id: "staff-1", user_hash: HASH, email: "s@x.tw", name: "員工甲", role: "owner", accommodation_id: "acc-1" });
+    expect(window.intercomSettings).toMatchObject({ user_id: "staff-1", user_hash: HASH, email: "s@x.tw", name: "員工甲", lakeze_role: "owner", accommodation_id: "acc-1" });
+    expect(window.intercomSettings).not.toHaveProperty("role");
     expect(h.invoke).toHaveBeenCalledWith("intercom-user-hash", { method: "POST" });
 
     act(() => nav!("/sensaninn/admin/rooms"));
@@ -105,11 +106,11 @@ describe("IntercomMessenger", () => {
     vi.stubEnv("VITE_INTERCOM_APP_ID", "abc123");
     h.session = { user: { id: "u9", email: "g@x.tw" } };
     mount("/booking");
-    await waitFor(() => expect((window.intercomSettings as any)?.role).toBe("guest"));
+    await waitFor(() => expect((window.intercomSettings as any)?.lakeze_role).toBe("guest"));
     expect(window.intercomSettings).toMatchObject({ user_id: "u9", name: "會員乙" });
     expect(window.intercomSettings).not.toHaveProperty("accommodation_id");
     act(() => nav!("/hq"));
-    await waitFor(() => expect((window.intercomSettings as any)?.role).toBe("hq"));
+    await waitFor(() => expect((window.intercomSettings as any)?.lakeze_role).toBe("hq"));
     expect(cmds()).toContain("shutdown");
     expect(h.invoke).toHaveBeenCalledTimes(1);
   });
