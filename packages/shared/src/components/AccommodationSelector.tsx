@@ -7,6 +7,7 @@ import { isPmsMode, pmsHref, normalizePmsPath, LAST_PROPERTY_ALIAS_KEY } from "@
 import { GLOBAL_VIEWER_ROLES } from "@lakeze/shared/lib/globalViewerRoles";
 
 import { Button } from "@lakeze/shared/components/ui/button";
+import { NotLiveBadge } from "@lakeze/shared/components/NotLiveBadge";
 import { ExternalLink, Loader2 } from "lucide-react";
 import {
   Tooltip,
@@ -27,6 +28,7 @@ interface Accommodation {
   name: string;
   short_url_alias: string | null;
   custom_domain: string | null;
+  is_active?: boolean;
   is_villa?: boolean;
 }
 
@@ -93,11 +95,10 @@ export function AccommodationSelector() {
 
       let query = supabase
         .from('accommodation_info')
-        .select('id, name, short_url_alias, custom_domain, display_order');
+        .select('id, name, short_url_alias, custom_domain, display_order, is_active');
 
-      if (isGlobalViewer) {
-        query = query.eq('is_active', true);
-      } else {
+      // 全域角色列出全部館（含未開賣）；其他角色只列綁定的館
+      if (!isGlobalViewer) {
         query = query.in('id', accommodationIds);
       }
 
@@ -242,8 +243,9 @@ export function AccommodationSelector() {
         </SelectTrigger>
         <SelectContent>
           {accommodations.map((accommodation) => (
-            <SelectItem key={accommodation.id} value={accommodation.id}>
+            <SelectItem key={accommodation.id} value={accommodation.id} data-testid={`accommodation-option-${accommodation.id}`}>
               {accommodation.name}
+              {accommodation.is_active === false && <NotLiveBadge testId={`not-live-badge-${accommodation.id}`} />}
             </SelectItem>
           ))}
         </SelectContent>

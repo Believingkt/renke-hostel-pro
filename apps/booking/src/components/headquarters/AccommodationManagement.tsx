@@ -1,4 +1,4 @@
-import { useState, useMemo, forwardRef, useImperativeHandle, useCallback } from "react";
+import { useState, useMemo, forwardRef, useImperativeHandle, useCallback, useEffect } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { invalidateAccommodationCache } from "@lakeze/shared/hooks/use-accommodation-cache";
 import { HQAccommodationSkeleton } from "@/components/skeletons/HQSkeleton";
@@ -51,6 +51,7 @@ import { GoogleReviewsSettings } from "@lakeze/shared/components/website-content
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@lakeze/shared/constants/themes";
 import { useAuditLog } from "@lakeze/shared/hooks/use-audit-log";
+import { cloneTemplatesForAccommodation } from "@/lib/onboarding/cloneTemplates";
 import {
   DndContext,
   closestCenter,
@@ -104,6 +105,20 @@ export interface AccommodationManagementRef {
   openAddDialog: () => void;
 }
 
+// 新館：新版價格頁＋方案原價同步＋方案自動建專案
+const insertNewAccommodationFlags = async (accommodationId: string) => {
+  const { error } = await (supabase.from("accommodation_info_flags") as any).insert({
+    accommodation_id: accommodationId,
+    new_price_ui_enabled: true,
+    price_sync_mode: "package_original",
+    auto_template_enabled: true,
+  });
+  if (error) {
+    console.warn("Failed to create accommodation flags:", error);
+    toast.error("新館開關建立失敗，請到館別開關手動設定", { description: error.message });
+  }
+};
+
 export const AccommodationManagement = forwardRef<AccommodationManagementRef, AccommodationManagementProps>(({
   accommodations,
   onRefresh,
@@ -130,6 +145,22 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [deletingAccommodation, setDeletingAccommodation] = useState<Accommodation | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
+
+  // 核准／暫停開賣只限 super_admin（DB 另有 trg_accommodation_info_guard_is_active）
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  useEffect(() => {
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", auth.user.id)
+        .eq("role", "super_admin")
+        .limit(1);
+      setIsSuperAdmin((data ?? []).length > 0);
+    })();
+  }, []);
 
   // Expose openAddDialog to parent
   useImperativeHandle(ref, () => ({
@@ -256,7 +287,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           building_count: Math.max(1, parseInt(String(data.building_count)) || 1),
           bundled_lock_inventory: data.bundled_lock_inventory === true,
           package_inventory_as_one: data.package_inventory_as_one === true,
-          is_active: true,
+          is_active: false,
         })
         .select("id")
         .single();
@@ -264,6 +295,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       if (createError) throw createError;
 
       const accommodationId = newAccommodation.id;
+      await insertNewAccommodationFlags(accommodationId);
 
       // Step 2: Create user role for current user (super_admin)
       const { error: roleError } = await supabase
@@ -330,8 +362,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         details: { type: data.type, region: `${data.region_1 || ''} ${data.region_2 || ''}`.trim() }
       });
 
-      toast.success("民宿新增成功", {
-        description: "已自動建立預訂設定等基礎資料",
+      toast.success("民宿新增成功（尚未開賣）", {
+        description: "已自動建立預訂設定等基礎資料；設定完成後由總部核准開賣",
       });
       onRefresh();
     } catch (error: any) {
@@ -418,7 +450,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
       // 清除前台快取
       invalidateAccommodationCache(togglingAccommodation.id);
-      toast.success(newStatus ? "民宿已啟用" : "民宿已停用");
+      toast.success(newStatus ? "已核准開賣" : "已暫停開賣");
       setToggleDialogOpen(false);
       setTogglingAccommodation(null);
       onRefresh();
@@ -589,13 +621,14 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           email: cloningAccommodation.email,
           description: cloningAccommodation.description,
           theme_preset: "default", // 一律使用人客多橘色
-          is_active: true,
+          is_active: false,
         })
         .select("id")
         .single();
 
       if (createError) throw createError;
       const newId = newAccommodation.id;
+      await insertNewAccommodationFlags(newId);
       setCloneProgress(5);
 
       // Helper to update progress
@@ -666,23 +699,6 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       } catch (e) { console.warn("Failed to copy location info:", e); }
       updateProgress(3);
 
-      // Step 6: Copy pricing templates
-      setCloneStep(steps[4].name);
-      try {
-        const { data } = await supabase
-          .from("pricing_templates")
-          .select("*")
-          .eq("accommodation_id", sourceId);
-        if (data && data.length > 0) {
-          const newTemplates = data.map(({ id, accommodation_id, created_at, updated_at, ...rest }) => ({
-            ...rest,
-            accommodation_id: newId,
-          }));
-          await supabase.from("pricing_templates").insert(newTemplates);
-        }
-      } catch (e) { console.warn("Failed to copy pricing templates:", e); }
-      updateProgress(4);
-
       // Step 7: Copy FAQs
       setCloneStep(steps[5].name);
       try {
@@ -717,8 +733,9 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       } catch (e) { console.warn("Failed to copy facilities:", e); }
       updateProgress(6);
 
-      // Step 9: Copy room types with amenities
+      // Step 9: Copy room types with amenities（numeric_code 全域唯一，交給 DB trigger 重新編號）
       setCloneStep(steps[7].name);
+      const roomTypeMap: Record<string, string> = {};
       try {
         const { data: roomTypes } = await supabase
           .from("room_types")
@@ -727,15 +744,17 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         
         if (roomTypes && roomTypes.length > 0) {
           for (const roomType of roomTypes) {
-            const { id: oldRoomId, accommodation_id, created_at, updated_at, ...rest } = roomType;
+            const { id: oldRoomId, accommodation_id, created_at, updated_at, numeric_code, ...rest } = roomType;
             
-            const { data: newRoomType } = await supabase
+            const { data: newRoomType, error: roomTypeError } = await supabase
               .from("room_types")
               .insert({ ...rest, accommodation_id: newId })
               .select("id")
               .single();
+            if (roomTypeError) console.warn("Failed to copy room type:", roomTypeError);
             
             if (newRoomType) {
+              roomTypeMap[oldRoomId] = newRoomType.id;
               const { data: amenities } = await supabase
                 .from("room_amenities")
                 .select("*")
@@ -753,6 +772,21 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
         }
       } catch (e) { console.warn("Failed to copy room types:", e); }
       updateProgress(7);
+
+      // Step 6（移到房型之後）: Copy pricing templates — 不帶方案綁定、房型換成新館對應房型、無法對應清空
+      setCloneStep(steps[4].name);
+      try {
+        const { data } = await supabase
+          .from("pricing_templates")
+          .select("*")
+          .eq("accommodation_id", sourceId);
+        if (data && data.length > 0) {
+          const newTemplates = cloneTemplatesForAccommodation(data, newId, roomTypeMap);
+          const { error: tplError } = await supabase.from("pricing_templates").insert(newTemplates);
+          if (tplError) console.warn("Failed to copy pricing templates:", tplError);
+        }
+      } catch (e) { console.warn("Failed to copy pricing templates:", e); }
+      updateProgress(4);
 
       // Step 10: Copy addon settings
       setCloneStep(steps[8].name);
@@ -905,7 +939,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           accommodation={acc}
                           onEdit={openEditDialog}
                           onClone={openCloneDialog}
-                          onToggle={openToggleDialog}
+                          onToggle={isSuperAdmin ? openToggleDialog : undefined}
                           onDelete={openDeleteDialog}
                           onGoogleReviews={(a) => setGoogleReviewsAcc(a)}
                           onTogglePortal={handleTogglePortal}
@@ -951,13 +985,13 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       <AlertDialog open={toggleDialogOpen} onOpenChange={setToggleDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {togglingAccommodation?.is_active ? "停用民宿" : "啟用民宿"}
+            <AlertDialogTitle data-testid="toggle-live-dialog-title">
+              {togglingAccommodation?.is_active ? "暫停開賣" : "核准開賣"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {togglingAccommodation?.is_active
-                ? `確定要停用「${togglingAccommodation?.name}」嗎？停用後該民宿將無法接受新訂單。`
-                : `確定要啟用「${togglingAccommodation?.name}」嗎？啟用後該民宿可以正常接受訂單。`}
+                ? `確定要暫停「${togglingAccommodation?.name}」開賣嗎？暫停後該民宿將無法接受新訂單。`
+                : `確定要核准「${togglingAccommodation?.name}」開賣嗎？核准後該民宿可以正常接受訂單。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -966,9 +1000,10 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
               onClick={handleToggleActive}
               disabled={isToggling}
               className={togglingAccommodation?.is_active ? "bg-destructive hover:bg-destructive/90" : ""}
+              data-testid="toggle-live-confirm-btn"
             >
               {isToggling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {togglingAccommodation?.is_active ? "停用" : "啟用"}
+              {togglingAccommodation?.is_active ? "暫停開賣" : "核准開賣"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

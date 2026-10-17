@@ -1,0 +1,259 @@
+=== 步驟 0：以 repo migrations 重建本機 DB（截至 20261017090000）
+replay 完成：成功 955 支、失敗 27 支（明細 /root/onb1/replay_onb1.log）
+補建 owlting_room_type_groups／members DDL 完成
+補建 owlting_room_type_sync DDL 完成
+補跑 20260703070031_b74162f0-4916-4a7c-87bd-511646318616 完成
+補跑 20260717051119_8e77c93c-979e-45c0-a4da-7d83cc6e486b 完成
+=== 步驟 1：本機與正式庫查證結果比對（orders BEFORE INSERT 順序、pricing_templates NOT NULL 與索引）
+                tgname                
+--------------------------------------
+ orders_set_cancelled_at_trg
+ set_order_exchange_rate_snapshot
+ set_order_number_trigger
+ trg_orders_autofill_package_id
+ trg_orders_owlting_set_unique_id
+ trg_orders_prevent_double_submit
+ trg_orders_website_inventory_gate
+ trg_sync_order_payment_fields
+ validate_order_before_insert
+ validate_order_before_insert_trigger
+ zzz_validate_order_deposit_on_insert
+(11 rows)
+
+                tgname                |              func              
+--------------------------------------+--------------------------------
+ validate_order_before_insert         | validate_order_insert()
+ validate_order_before_insert_trigger | validate_order_before_insert()
+(2 rows)
+
+   column_name    |  column_default   
+------------------+-------------------
+ id               | gen_random_uuid()
+ accommodation_id | 
+ template_name    | 
+ created_at       | now()
+ updated_at       | now()
+ available_rooms  | 1
+ room_type_ids    | '{}'::uuid[]
+ room_overrides   | '[]'::jsonb
+ weekday_enabled  | true
+ peak_enabled     | true
+ weekend_enabled  | true
+ extra_dates      | '[]'::jsonb
+ excluded_dates   | '[]'::jsonb
+ season_segments  | '[]'::jsonb
+(14 rows)
+
+                indexname                 |                                                      indexdef                                                      
+------------------------------------------+--------------------------------------------------------------------------------------------------------------------
+ idx_pricing_templates_accommodation      | CREATE INDEX idx_pricing_templates_accommodation ON public.pricing_templates USING btree (accommodation_id)
+ idx_pricing_templates_default_package_id | CREATE INDEX idx_pricing_templates_default_package_id ON public.pricing_templates USING btree (default_package_id)
+ pricing_templates_numeric_code_key       | CREATE UNIQUE INDEX pricing_templates_numeric_code_key ON public.pricing_templates USING btree (numeric_code)
+ pricing_templates_pkey                   | CREATE UNIQUE INDEX pricing_templates_pkey ON public.pricing_templates USING btree (id)
+ pricing_templates_room_type_ids_gin      | CREATE INDEX pricing_templates_room_type_ids_gin ON public.pricing_templates USING gin (room_type_ids)
+(5 rows)
+
+=== 步驟 2：precheck（唯讀）
+ column_name | data_type | is_nullable | column_default 
+-------------+-----------+-------------+----------------
+ is_active   | boolean   | NO          | true
+(1 row)
+
+ has_is_super_admin | guard_already_exists 
+--------------------+----------------------
+ t                  | f
+(1 row)
+
+                tgname                | tgenabled |                                                                                       def                                                                                        
+--------------------------------------+-----------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ auto_generate_reviews_trigger        | O         | CREATE TRIGGER auto_generate_reviews_trigger AFTER INSERT ON public.accommodation_info FOR EACH ROW EXECUTE FUNCTION auto_generate_reviews()
+ update_accommodation_info_updated_at | O         | CREATE TRIGGER update_accommodation_info_updated_at BEFORE UPDATE ON public.accommodation_info FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+ validate_short_url_alias_trigger     | O         | CREATE TRIGGER validate_short_url_alias_trigger BEFORE INSERT OR UPDATE OF short_url_alias ON public.accommodation_info FOR EACH ROW EXECUTE FUNCTION validate_short_url_alias()
+(3 rows)
+
+ n_all | n_active | inactive_names 
+-------+----------+----------------
+     1 |        1 | 
+(1 row)
+
+    column_name     | data_type | is_nullable | column_default 
+--------------------+-----------+-------------+----------------
+ default_package_id | uuid      | YES         | 
+ display_order      | integer   | YES         | 0
+ peak_enabled       | boolean   | NO          | true
+ peak_price         | integer   | YES         | 
+ price              | integer   | YES         | 
+ room_type_id       | uuid      | YES         | 
+ room_type_ids      | ARRAY     | NO          | '{}'::uuid[]
+ weekday_enabled    | boolean   | NO          | true
+ weekday_price      | integer   | YES         | 
+ weekend_enabled    | boolean   | NO          | true
+ weekend_price      | integer   | YES         | 
+(11 rows)
+
+                  conname                  | confdeltype |                                            def                                            
+-------------------------------------------+-------------+-------------------------------------------------------------------------------------------
+ pricing_templates_accommodation_id_fkey   | c           | FOREIGN KEY (accommodation_id) REFERENCES accommodation_info(id) ON DELETE CASCADE
+ pricing_templates_default_package_id_fkey | n           | FOREIGN KEY (default_package_id) REFERENCES accommodation_packages(id) ON DELETE SET NULL
+ pricing_templates_room_type_id_fkey       | n           | FOREIGN KEY (room_type_id) REFERENCES room_types(id) ON DELETE SET NULL
+(3 rows)
+
+                indexname                 |                                                      indexdef                                                      
+------------------------------------------+--------------------------------------------------------------------------------------------------------------------
+ idx_pricing_templates_accommodation      | CREATE INDEX idx_pricing_templates_accommodation ON public.pricing_templates USING btree (accommodation_id)
+ idx_pricing_templates_default_package_id | CREATE INDEX idx_pricing_templates_default_package_id ON public.pricing_templates USING btree (default_package_id)
+ pricing_templates_numeric_code_key       | CREATE UNIQUE INDEX pricing_templates_numeric_code_key ON public.pricing_templates USING btree (numeric_code)
+ pricing_templates_pkey                   | CREATE UNIQUE INDEX pricing_templates_pkey ON public.pricing_templates USING btree (id)
+ pricing_templates_room_type_ids_gin      | CREATE INDEX pricing_templates_room_type_ids_gin ON public.pricing_templates USING gin (room_type_ids)
+(5 rows)
+
+       column_name        
+--------------------------
+ id
+ accommodation_id
+ has_franchise
+ has_starlink
+ updated_by
+ updated_at
+ new_price_ui_enabled
+ new_order_dialog_enabled
+ price_sync_mode
+(9 rows)
+
+                tgname                 | tgenabled |                                                                             def                                                                              
+---------------------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ trg_accommodation_packages_updated_at | O         | CREATE TRIGGER trg_accommodation_packages_updated_at BEFORE UPDATE ON public.accommodation_packages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()
+ trg_packages_assign_numeric_code      | O         | CREATE TRIGGER trg_packages_assign_numeric_code BEFORE INSERT ON public.accommodation_packages FOR EACH ROW EXECUTE FUNCTION assign_numeric_code_packages()
+(2 rows)
+
+ n_flags | n_tpl | n_pkg 
+---------+-------+-------
+       0 |     0 |     0
+(1 row)
+
+=== 步驟 3：套用 migration
+20261018090000 套用成功
+20261018090001 套用成功
+=== 步驟 4：重跑 migration，應被內建 PRECHECK 擋下
+psql:/app/supabase/migrations/20261018090000_accommodation_is_active_guard.sql:37: ERROR:  PRECHECK 失敗：public.accommodation_info_guard_is_active() 已存在，疑似已套用過本 migration
+CONTEXT:  PL/pgSQL function inline_code_block line 14 at RAISE
+EXPECTED：20261018090000_accommodation_is_active_guard 重跑被擋下
+psql:/app/supabase/migrations/20261018090001_auto_template_for_packages.sql:80: ERROR:  PRECHECK 失敗：auto_template_enabled 已存在，疑似已套用過本 migration
+CONTEXT:  PL/pgSQL function inline_code_block line 16 at RAISE
+EXPECTED：20261018090001_auto_template_for_packages 重跑被擋下
+=== 步驟 5：postcheck（唯讀）
+                 tgname                 | tgenabled |                                                                                            def                                                                                             
+----------------------------------------+-----------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ trg_accommodation_info_guard_is_active | O         | CREATE TRIGGER trg_accommodation_info_guard_is_active BEFORE INSERT OR UPDATE OF is_active ON public.accommodation_info FOR EACH ROW EXECUTE FUNCTION accommodation_info_guard_is_active()
+(1 row)
+
+              proname               | prosecdef 
+------------------------------------+-----------
+ accommodation_info_guard_is_active | t
+(1 row)
+
+ n_all | n_active 
+-------+----------
+     1 |        1
+(1 row)
+
+      column_name      | data_type | is_nullable | column_default 
+-----------------------+-----------+-------------+----------------
+ auto_template_enabled | boolean   | NO          | false
+(1 row)
+
+             tgname              | tgenabled |                                                                                                                                   def                                                                                                                                   
+---------------------------------+-----------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ trg_packages_auto_template_del  | O         | CREATE TRIGGER trg_packages_auto_template_del BEFORE DELETE ON public.accommodation_packages FOR EACH ROW EXECUTE FUNCTION packages_auto_template_on_delete()
+ trg_packages_auto_template_ins  | O         | CREATE TRIGGER trg_packages_auto_template_ins AFTER INSERT ON public.accommodation_packages FOR EACH ROW EXECUTE FUNCTION packages_auto_template_on_insert()
+ trg_packages_auto_template_room | O         | CREATE TRIGGER trg_packages_auto_template_room AFTER UPDATE OF primary_room_type_id ON public.accommodation_packages FOR EACH ROW WHEN ((old.primary_room_type_id IS DISTINCT FROM new.primary_room_type_id)) EXECUTE FUNCTION packages_auto_template_on_primary_room()
+(3 rows)
+
+                proname                 | prosecdef 
+----------------------------------------+-----------
+ packages_auto_template_on_delete       | t
+ packages_auto_template_on_insert       | t
+ packages_auto_template_on_primary_room | t
+(3 rows)
+
+ n_auto_on | n_flags 
+-----------+---------
+         0 |       0
+(1 row)
+
+ n_tpl | n_pkg 
+-------+-------
+     0 |     0
+(1 row)
+
+=== 步驟 6：BEGIN…ROLLBACK 測試案例
+                                        案例                                        |                                                          預期                                                          |                                                          實際                                                          | 結果 
+ M2-01 hotel_admin 把未開賣館改為開賣                                               | ERR %only_super_admin_can_change_is_active%                                                                            | ERR 只有總部最高管理員可以核准或暫停開賣（only_super_admin_can_change_is_active）                                      | PASS
+ M2-02 hotel_admin 改館名（不動 is_active）                                         | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-03 hotel_admin 整列更新、is_active 帶相同值 false                               | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-04 全域 admin 經 RLS 改 is_active（RLS 不允許 admin 更新 → 0 列）               | OK rows=0                                                                                                              | OK rows=0                                                                                                              | PASS
+ M2-05 全域 admin 身分直接觸發 trigger（owner 繞過 RLS，只驗 trigger）              | ERR %only_super_admin_can_change_is_active%                                                                            | ERR 只有總部最高管理員可以核准或暫停開賣（only_super_admin_can_change_is_active）                                      | PASS
+ M2-06 hotel_admin 身分直接觸發 trigger 暫停開賣中的館                              | ERR %only_super_admin_can_change_is_active%                                                                            | ERR 只有總部最高管理員可以核准或暫停開賣（only_super_admin_can_change_is_active）                                      | PASS
+ M2-07 super_admin 核准開賣                                                         | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-08 super_admin 暫停開賣                                                         | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-09 系統身分（無 auth.uid，SQL Editor／migration）改 is_active                   | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-10 service_role（Edge Function 系統身分）改 is_active                           | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-11 hotel_admin 身分新增館並帶 is_active = true（只驗 trigger）                  | ERR %only_super_admin_can_change_is_active%                                                                            | ERR 只有總部最高管理員可以核准開賣（only_super_admin_can_change_is_active）                                            | PASS
+ M2-12 hotel_admin 身分新增館 is_active = false（只驗 trigger）                     | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-13 super_admin 經 RLS 新增未開賣館（前端新館流程）                              | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M2-14 結果：A 館目前仍為未開賣                                                     | false                                                                                                                  | false                                                                                                                  | PASS
+ M3-01 hotel_admin 在開關館新增有主房型＋分日價的方案                               | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M3-02 自動建立 1 筆綁定專案，房型＝主房型、價格＝各日型原價                        | 1|雙人一泊一食|bbbbbbbb-0000-0000-0000-000000000001|{bbbbbbbb-0000-0000-0000-000000000001}|3600/t|4000/t|4500/t|3600|3 | 1|雙人一泊一食|bbbbbbbb-0000-0000-0000-000000000001|{bbbbbbbb-0000-0000-0000-000000000001}|3600/t|4000/t|4500/t|3600|3 | PASS
+ M3-03 建立沒有主房型的方案（只有平日價）                                           | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M3-04 無主房型：專案成功建立、room_type_id NULL、room_type_ids = {}、假日日型關閉  | 1|NULL|{}|2500|f|f                                                                                                     | 1|NULL|{}|2500|f|f                                                                                                     | PASS
+ M3-05 補上主房型（NULL → A-四人房）                                                | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M3-06 專案房型跟著更新                                                             | bbbbbbbb-0000-0000-0000-000000000002|{bbbbbbbb-0000-0000-0000-000000000002}                                            | bbbbbbbb-0000-0000-0000-000000000002|{bbbbbbbb-0000-0000-0000-000000000002}                                            | PASS
+ M3-07 主房型改變（雙人房 → 四人房），專案房型等於舊值                              | OK rows=1                                                                                                              | OK rows=1                                                                                                              | PASS
+ M3-08 專案房型同步為四人房                                                         | bbbbbbbb-0000-0000-0000-000000000002|{bbbbbbbb-0000-0000-0000-000000000002}                                            | bbbbbbbb-0000-0000-0000-000000000002|{bbbbbbbb-0000-0000-0000-000000000002}                                            | PASS
+ M3-09 專案房型已被手動改過（≠ 舊主房型、≠ NULL）→ 不覆蓋                           | bbbbbbbb-0000-0000-0000-000000000001|{bbbbbbbb-0000-0000-0000-000000000001}                                            | bbbbbbbb-0000-0000-0000-000000000001|{bbbbbbbb-0000-0000-0000-000000000001}                                            | PASS
+ M3-10 主房型改回 NULL：專案房型為舊值時寫 {}（不寫 NULL）                          | NULL|{}                                                                                                                | NULL|{}                                                                                                                | PASS
+ M3-11 沒有 tier_prices 的方案：三種日型都用原價且開啟                              | 3500|3500|3500|t|t|t                                                                                                   | 3500|3500|3500|t|t|t                                                                                                   | PASS
+ M3-12 未開開關的館新增方案：不建專案                                               | 0                                                                                                                      | 0                                                                                                                      | PASS
+ M3-13 未開開關的館改主房型：既有手動專案不受影響                                   | bbbbbbbb-0000-0000-0000-000000000003|{bbbbbbbb-0000-0000-0000-000000000003}                                            | bbbbbbbb-0000-0000-0000-000000000003|{bbbbbbbb-0000-0000-0000-000000000003}                                            | PASS
+ M3-14 一對一：開關館每個方案剛好 1 筆綁定專案                                      | 3|3                                                                                                                    | 3|3                                                                                                                    | PASS
+ M3-15 hotel_admin 刪除方案 1、2、3                                                 | OK rows=3                                                                                                              | OK rows=3                                                                                                              | PASS
+ M3-16 未被引用的專案（方案 3）一併刪除                                             | 0                                                                                                                      | 0                                                                                                                      | PASS
+ M3-17 被奧丁丁群組引用的專案（方案 1）保留、解除綁定、群組成員仍在                 | 1|NULL|1                                                                                                               | 1|NULL|1                                                                                                               | PASS
+ M3-18 被訂單引用的專案（方案 2）保留、解除綁定、訂單 pricing_template_id 不變      | 1|NULL|1                                                                                                               | 1|NULL|1                                                                                                               | PASS
+ M3-19 未開開關的館刪除方案：手動專案保留並解除綁定（既有 FK 行為）                 | 1|NULL                                                                                                                 | 1|NULL                                                                                                                 | PASS
+ M3-20 一般登入者不能直接呼叫 trigger 函式                                          | ERR %                                                                                                                  | ERR permission denied for function packages_auto_template_on_insert                                                    | PASS
+ C-01 舊流程：房型帶原 numeric_code 複製 → 全域唯一衝突（舊版複製房型一律失敗）     | ERR %numeric_code%                                                                                                     | ERR duplicate key value violates unique constraint "room_types_numeric_code_key"                                       | PASS
+ C-02 新流程：房型不帶 numeric_code 複製                                            | OK rows=2                                                                                                              | OK rows=2                                                                                                              | PASS
+ C-03 新流程：專案不帶 numeric_code／default_package_id，房型換成對應、無法對應清空 | OK rows=2                                                                                                              | OK rows=2                                                                                                              | PASS
+ C-04 複製後新館專案的房型全部屬於新館                                              | 2|0|0                                                                                                                  | 2|0|0                                                                                                                  | PASS
+ C-05 指到別館房型的專案：room_type_id 清成 NULL，room_type_ids 只留可對應的        | NULL|1                                                                                                                 | NULL|1                                                                                                                 | PASS
+ C-06 複製館專案沒有任何 default_package_id                                         | 0                                                                                                                      | 0                                                                                                                      | PASS
+ O-01 未開賣館：官網匿名 website 單（只驗 trigger）                                 | ERR 此民宿不存在或已停用%                                                                                              | ERR 此民宿不存在或已停用，無法建立訂單                                                                                 | PASS
+ O-02 未開賣館：後台人員 manual 單                                                  | ERR 此民宿不存在或已停用%                                                                                              | ERR 此民宿不存在或已停用，無法建立訂單                                                                                 | PASS
+ O-03 未開賣館：系統身分 owlting 單（現況同樣被擋，OTA 例外列後續待辦）             | ERR 此民宿不存在或已停用%                                                                                              | ERR 此民宿不存在或已停用，無法建立訂單                                                                                 | PASS
+ O-04 accommodation_id 為 NULL（現況被擋）                                          | ERR 此民宿不存在或已停用%                                                                                              | ERR 此民宿不存在或已停用，無法建立訂單                                                                                 | PASS
+(44 rows)
+ pass | fail | total 
+   44 |    0 |    44
+=== 步驟 7：測試交易已 ROLLBACK，資料未殘留
+ leftover 
+----------
+        0
+(1 row)
+
+=== 步驟 8：rollback
+ id | accommodation_id | template_name | default_package_id 
+----+------------------+---------------+--------------------
+(0 rows)
+
+rollback 20261018090001 成功
+rollback 20261018090000 成功
+ guard_fn | ins_fn | has_col 
+----------+--------+---------
+          |        | f
+(1 row)
+
+=== 步驟 9：rollback 後可再次套用
+20261018090000 再次套用成功
+20261018090001 再次套用成功
+=== 全部完成

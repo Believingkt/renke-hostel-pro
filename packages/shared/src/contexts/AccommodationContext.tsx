@@ -284,10 +284,10 @@ export function AccommodationProvider({ children }: { children: React.ReactNode 
       let data = scoped;
 
       if (isGlobalViewer) {
+        // 含未開賣館（is_active = false）：總部需在開賣前進入草稿館設定
         const { data: allAccs } = await supabase
           .from('accommodation_info')
-          .select('id')
-          .eq('is_active', true);
+          .select('id');
         const existing = new Set(scoped.map((row) => row.accommodation_id));
         data = [
           ...scoped,

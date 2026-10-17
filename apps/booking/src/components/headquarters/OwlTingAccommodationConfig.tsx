@@ -23,10 +23,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Loader2, Save, AlertTriangle, Download, Copy, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { NotLiveBadge } from "@lakeze/shared/components/NotLiveBadge";
 
 interface Accommodation {
   id: string;
   name: string;
+  is_active: boolean;
 }
 
 interface OwltingConfig {
@@ -105,7 +107,7 @@ export function OwlTingAccommodationConfig() {
   const load = async () => {
     setLoading(true);
     const [accRes, cfgRes, rtRes, pkgRes, tplRes, grpRes, memRes, syncRes] = await Promise.all([
-      supabase.from("accommodation_info").select("id, name").eq("is_active", true).order("display_order"),
+      supabase.from("accommodation_info").select("id, name, is_active").order("display_order"),
       supabase.from("accommodation_owlting_config").select("id, accommodation_id, owlting_hotel_code, sync_enabled, last_successful_sync_at"),
       supabase.from("room_types").select("id, accommodation_id, name, numeric_code, capacity, is_exclusive_package").order("display_order"),
       supabase.from("accommodation_packages").select("id, accommodation_id, name, numeric_code, enabled, room_type_ids, sale_price").order("display_order"),
@@ -475,7 +477,10 @@ export function OwlTingAccommodationConfig() {
                 const dirty = draft !== (cfg?.owlting_hotel_code ?? "");
                 return (
                   <TableRow key={acc.id}>
-                    <TableCell className="font-medium">{acc.name}</TableCell>
+                    <TableCell className="font-medium">
+                      {acc.name}
+                      {!acc.is_active && <NotLiveBadge testId={`owlting-not-live-${acc.id}`} />}
+                    </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Input
@@ -545,6 +550,7 @@ export function OwlTingAccommodationConfig() {
                 <AccordionTrigger>
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{acc.name}</span>
+                    {!acc.is_active && <NotLiveBadge testId={`owlting-group-not-live-${acc.id}`} />}
                     <Badge variant="outline">房型 {rts.length}</Badge>
                     <Badge variant="outline">方案 {pkgs.length}</Badge>
                     <Badge variant="outline">範本 {tpls.length}</Badge>

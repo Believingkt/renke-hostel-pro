@@ -13,12 +13,13 @@ import { PmsKeyCreateForm, type CreateFormValue } from "@/components/headquarter
 import { PmsKeyReveal } from "@/components/headquarters/pms-api-keys/PmsKeyReveal";
 import { PmsKeyTable } from "@/components/headquarters/pms-api-keys/PmsKeyTable";
 import { PmsKeyConfirmDialog } from "@/components/headquarters/pms-api-keys/PmsKeyConfirmDialog";
+import { NotLiveBadge } from "@lakeze/shared/components/NotLiveBadge";
 
 type Created = { key: string; isReadOnly: boolean };
 type Pending = { key: PmsApiKeyRow; action: "disable" | "delete" } | null;
 
 export default function PmsApiKeys() {
-  const [accs, setAccs] = useState<{ id: string; name: string }[]>([]);
+  const [accs, setAccs] = useState<{ id: string; name: string; is_active: boolean }[]>([]);
   const [accId, setAccId] = useState("");
   const [keys, setKeys] = useState<PmsApiKeyRow[]>([]);
   const [scopes, setScopes] = useState<Record<string, string[]>>({});
@@ -30,7 +31,8 @@ export default function PmsApiKeys() {
   const [pending, setPending] = useState<Pending>(null);
 
   useEffect(() => {
-    supabase.from("accommodation_info").select("id, name").eq("is_active", true)
+    supabase.from("accommodation_info").select("id, name, is_active")
+      .order("is_active", { ascending: false })
       .order("display_order", { ascending: true })
       .then(({ data }) => { setAccs(data || []); if (data?.length) setAccId(data[0].id); });
   }, []);
@@ -121,7 +123,12 @@ export default function PmsApiKeys() {
             <Select value={accId} onValueChange={setAccId}>
               <SelectTrigger data-testid="pms-key-acc-select"><SelectValue /></SelectTrigger>
               <SelectContent className="bg-background">
-                {accs.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+                {accs.map((a) => (
+                  <SelectItem key={a.id} value={a.id} data-testid={`pms-api-acc-option-${a.id}`}>
+                    {a.name}
+                    {!a.is_active && <NotLiveBadge testId={`pms-api-not-live-${a.id}`} />}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

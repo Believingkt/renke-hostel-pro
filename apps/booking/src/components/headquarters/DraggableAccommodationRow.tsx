@@ -39,7 +39,7 @@ interface DraggableAccommodationRowProps {
   accommodation: Accommodation;
   onEdit: (acc: Accommodation) => void;
   onClone: (acc: Accommodation) => void;
-  onToggle: (acc: Accommodation) => void;
+  onToggle?: (acc: Accommodation) => void;
   onDelete: (acc: Accommodation) => void;
   onGoogleReviews?: (acc: Accommodation) => void;
   onTogglePortal?: (acc: Accommodation, next: boolean) => void;
@@ -235,18 +235,22 @@ export function DraggableAccommodationRow({
               <Star className="h-4 w-4" />
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onToggle(accommodation)}
-            title={accommodation.is_active ? "停用" : "啟用"}
-          >
-            {accommodation.is_active ? (
-              <PowerOff className="h-4 w-4 text-destructive" />
-            ) : (
-              <Power className="h-4 w-4 text-green-600" />
-            )}
-          </Button>
+          {onToggle && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onToggle(accommodation)}
+              title={accommodation.is_active ? "暫停開賣" : "核准開賣"}
+              aria-label={accommodation.is_active ? "暫停開賣" : "核准開賣"}
+              data-testid={`toggle-live-btn-${accommodation.id}`}
+            >
+              {accommodation.is_active ? (
+                <PowerOff className="h-4 w-4 text-destructive" />
+              ) : (
+                <Power className="h-4 w-4 text-green-600" />
+              )}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
