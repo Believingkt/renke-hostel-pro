@@ -21,7 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "已取消",
 };
 
-const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行" };
+const BANK_NAMES: Record<string, string> = { "822": "中國信託商業銀行", "004": "臺灣銀行", "013": "國泰世華商業銀行" };
 
 export const esc = (s: unknown): string =>
   String(s ?? "")
@@ -405,6 +405,7 @@ export function renderOrderConfirmationEmail(
         ${row(`銀行代碼${BANK_NAMES[order.atm_vacc_bank_code || ""] ? `（${BANK_NAMES[order.atm_vacc_bank_code]}）` : ""}`, `<span style="font-weight:700;">${esc(order.atm_vacc_bank_code || "—")}</span>`)}
         ${row("虛擬帳號", `<span style="font-weight:700;letter-spacing:1px;">${esc(order.atm_vacc_no)}</span>`)}
         ${row(`轉帳金額${depositPct ? `（訂金 ${depositPct}%）` : ""}`, `<span style="font-weight:800;color:${ORANGE};">NT$ ${nf(atmAmount)}</span>`)}
+        ${order.payment_method === "atm_payuni" && atmAmount < finalPrice - paid ? `<p style="margin:10px 0 0 0;font-size:13px;font-weight:600;">尾款 NT$ ${nf(finalPrice - paid - atmAmount)} 請於入住時付給民宿。</p>` : ""}
         <p style="margin:10px 0 0 0;font-size:12px;color:#888;">系統收到入帳通知後將自動更新訂單狀態，無需另行通知。</p>`),
       )
     : "";

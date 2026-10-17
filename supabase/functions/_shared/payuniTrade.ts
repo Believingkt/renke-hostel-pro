@@ -2,7 +2,7 @@
 // deno-lint-ignore-file no-explicit-any
 import { applyOrderPaymentSuccess, type PaymentSuccessEffects } from "./orderPaymentSuccess.ts";
 
-export type PayuniTradeKind = "P" | "A";
+export type PayuniTradeKind = "P" | "A" | "D" | "F";
 export const TOKEN_TTL_MS = 10 * 60 * 1000;
 export const PAYMENT_TIMEOUT_MS = 30 * 60 * 1000;
 export const SWEEP_MIN_AGE_MS = 15 * 60 * 1000;
@@ -57,6 +57,13 @@ export function isPaymentTimedOut(latestAttemptIso: string, now = Date.now()): b
   return now - Date.parse(latestAttemptIso) > PAYMENT_TIMEOUT_MS;
 }
 
+/** 虛擬帳號遮中間：前 4 後 4 */
+export function maskPayNo(p: unknown): string | null {
+  const v = typeof p === "string" ? p : "";
+  if (!v) return null;
+  return v.length <= 8 ? `${v.slice(0, 2)}****` : `${v.slice(0, 4)}${"*".repeat(v.length - 8)}${v.slice(-4)}`;
+}
+
 export function notifyExecuteTime(d: Record<string, string>): string | null {
   if (d.AuthDay || d.AuthTime) return `${d.AuthDay ?? ""}${d.AuthTime ?? ""}` || null;
   return d.PayTime ?? null;
@@ -76,6 +83,7 @@ export interface TxRow {
   amount: number;
   status: string;
   raw_response: Record<string, any> | null;
+  payment_type?: number | null;
 }
 
 const nowIso = () => new Date().toISOString();
@@ -87,16 +95,31 @@ export async function updateTx(admin: any, id: string, values: Record<string, un
 }
 
 /** 依 PAYUNi 交易結果（TradeStatus）更新交易列與訂單；已 paid 的交易不重做任何事 */
-export async function applyPayuniTradeResult(deps: TradeDeps, tx: TxRow, data: Record<string, string>): Promise<{ status: string; changed: boolean }> {
+export async function applyPayuniTradeResult(
+  deps: TradeDeps, tx: TxRow, data: Record<string, string>,
+): Promise<{ status: string; changed: boolean; error?: string }> {
   if (tx.status === "paid") return { status: "paid", changed: false };
   const ts = String(data.TradeStatus ?? "");
   const raw: Record<string, any> = { ...(tx.raw_response ?? {}), last_status: data.Status ?? null, last_message: data.Message ?? null, trade_status: ts };
   delete raw.sdk_token;
+  const isAtm = Number(tx.payment_type) === 2;
+  if (isAtm && ts === "4") {
+    // 繳費期限到期：只改交易；訂單取消交給 cancel-expired-atm-orders
+    await updateTx(deps.admin, tx.id, { status: "expired", raw_response: raw });
+    return { status: "expired", changed: true };
+  }
 
   if (ts === "1" && (data.TradeAmt == null || String(data.TradeAmt).trim() === "")) {
     // 缺 TradeAmt 不入帳，等 Notify 或 sweep
     await updateTx(deps.admin, tx.id, { raw_response: { ...raw, awaiting_notify: true } });
     return { status: tx.status, changed: false };
+  }
+  if (isAtm && ts === "1") {
+    const reason = data.NewMerTradeNo ? `NewMerTradeNo=${data.NewMerTradeNo}`
+      : Number(data.TradeAmt) !== Number(tx.amount) ? `expected=${tx.amount} got=${data.TradeAmt}` : null;
+    if (reason) return await flagAtmMismatch(deps, tx, raw, reason, data);
+    raw.account5 = data.Account5No ? String(data.Account5No).slice(-5) : null;
+    raw.pay_time = data.PayTime ?? null;
   }
   if (ts === "1") {
     const paidAmt = Number(data.TradeAmt);
@@ -149,11 +172,25 @@ export async function applyPayuniTradeResult(deps: TradeDeps, tx: TxRow, data: R
       return { status: "paid", changed: true };
     }
     await applyOrderPaymentSuccess(deps.admin, deps.effects, order, paidAmt,
-      { merTradeNo: tx.mer_trade_no, tradeNo: data.TradeNo ?? null, authCode: data.AuthCode ?? null });
+      { merTradeNo: tx.mer_trade_no, tradeNo: data.TradeNo ?? null, authCode: data.AuthCode ?? null, channel: isAtm ? "atm" : "card" });
     return { status: "paid", changed: true };
   }
   const next = ts === "2" ? "failed" : ts === "3" ? "cancelled" : ts === "8" ? "unknown" : null;
   if (!next) return { status: tx.status, changed: false };
   await updateTx(deps.admin, tx.id, { status: next, raw_response: raw });
   return { status: next, changed: true };
+}
+
+/** ATM 錯帳／金額不符：交易狀態不動、訂單不動；記異常（稽核頁可見）並告警，同一筆只告警一次 */
+async function flagAtmMismatch(deps: TradeDeps, tx: TxRow, raw: Record<string, any>, reason: string, data: Record<string, string>) {
+  if (!String(tx.raw_response?.anomaly ?? "").startsWith("ATM_MISMATCH")) {
+    await updateTx(deps.admin, tx.id, { raw_response: { ...raw, anomaly: `ATM_MISMATCH ${reason}` } });
+    const msg = `ATM 交易 ${tx.mer_trade_no} 應繳 NT$${tx.amount}，PAYUNi 回報 NT$${data.TradeAmt ?? "—"}（${reason}），訂單未自動入帳，請人工核對。`;
+    await deps.admin.from("notifications").insert({
+      accommodation_id: tx.accommodation_id, type: "payment", title: "PAYUNi ATM 入帳異常", description: msg, order_id: tx.order_id, is_read: false,
+    });
+    await deps.sendAlert(`[PAYUNi] ATM 入帳異常 ${tx.mer_trade_no}`, `<p>${msg}</p>`)
+      .catch((e) => console.error(`[payuniTrade] alert failed: ${e instanceof Error ? e.message : e}`));
+  }
+  return { status: tx.status, changed: false, error: "ATM_MISMATCH" };
 }

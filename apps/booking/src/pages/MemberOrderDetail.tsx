@@ -109,7 +109,9 @@ const htmlToLines = (html?: string | null): string[] => {
     .filter(Boolean);
 };
 
-const BANK_NAME_KEYS: Record<string, string> = { "822": "booking.member.atm.bank822" };
+const BANK_NAME_KEYS: Record<string, string> = {
+  "822": "booking.member.atm.bank822", "004": "booking.member.atm.bank004", "013": "booking.member.atm.bank013",
+};
 
 const CopyField = ({ label, value, highlight, copyValue }: { label: string; value: string; highlight?: boolean; copyValue?: string }) => {
   const { t } = useBookingLocale();

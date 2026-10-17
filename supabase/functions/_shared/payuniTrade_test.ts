@@ -44,6 +44,8 @@ function setup(tables: Record<string, any[]>, reply: PayuniResult | ((c: PayuniC
       sendFinalPaymentReceived: () => { fx.final++; return Promise.resolve(); },
       kolWebhook: () => { fx.kol++; return Promise.resolve(); },
       push: () => { fx.push++; return Promise.resolve(); },
+      sendAtmPaymentReceived: () => Promise.resolve(),
+      sendAtmCreated: () => Promise.resolve(),
     },
   };
   return { db, deps, calls, fx };
@@ -302,7 +304,8 @@ function insertKeys(path: string): Set<string> {
   return new Set([...src.slice(start, end).matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]));
 }
 Deno.test("D3：payuni-create-pending-order 與 create-paid-order 的 orders insert 欄位只差允許清單", () => {
-  const ALLOWED = new Set(["payment_method", "payment_status", "paid_amount", "deposit_amount", "deposit_payment_method", "balance_payment_method", "notes", "order_status"]);
+  const ALLOWED = new Set(["payment_method", "payment_status", "paid_amount", "deposit_amount", "deposit_payment_method", "balance_payment_method", "notes", "order_status",
+    "booking_deposit_amount", "booking_deposit_percentage"]); // W4：ATM 訂金快照
   const a = insertKeys("../create-paid-order/index.ts");
   const b = insertKeys("../payuni-create-pending-order/index.ts");
   assert(a.size > 20 && b.size > 20);

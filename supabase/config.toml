@@ -405,3 +405,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.payuni-trade-query]
     verify_jwt = false
+  [functions.payuni-atm-create]
+    verify_jwt = false

@@ -160,7 +160,7 @@ export default function Settlement() {
       if (error) throw error;
       
       // 只保留刷卡與 LINE Pay 付款的訂單
-      const onlinePaymentMethods = ['credit_card', 'credit_card_3ds', 'credit_card_payuni', 'line_pay', 'LINE Pay'];
+      const onlinePaymentMethods = ['credit_card', 'credit_card_3ds', 'credit_card_payuni', 'atm_payuni', 'line_pay', 'LINE Pay'];
       const filtered = (data || []).filter(r => {
         const pm = r.orders?.payment_method;
         const dpm = r.orders?.deposit_payment_method;

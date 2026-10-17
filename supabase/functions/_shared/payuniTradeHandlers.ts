@@ -2,23 +2,25 @@
 // deno-lint-ignore-file no-explicit-any
 import type { PayuniCall, PayuniResult, ParseNotifyResult } from "./payuni.ts";
 import {
-  applyPayuniTradeResult, inSweepWindow, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
+  applyPayuniTradeResult, inSweepWindow, maskPayNo, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
   resolveChargeAmount, resolveIframeDomain, SWEEP_MAX_AGE_MS, TOKEN_TTL_MS, type TradeDeps, type TxRow,
 } from "./payuniTrade.ts";
 import { PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
 
 export interface PayuniTradeDeps extends TradeDeps {
   env: "sandbox" | "production";
+  /** PAYUNI_ATM_BANK_TYPE（004／822／013）；未設定為 null */
+  atmBankType?: string | null;
   notifyBase: string;
   callPayuni: (call: PayuniCall) => Promise<PayuniResult>;
   now?: () => number;
 }
-type Res = { status: number; body: Record<string, unknown> };
-const res = (status: number, body: Record<string, unknown>): Res => ({ status, body });
-const ts = (now: number) => String(Math.floor(now / 1000));
+export type Res = { status: number; body: Record<string, unknown> };
+export const res = (status: number, body: Record<string, unknown>): Res => ({ status, body });
+export const ts = (now: number) => String(Math.floor(now / 1000));
 const ORDER_COLS = "id, order_number, accommodation_id, final_price, paid_amount, payment_status, order_status, guest_email, payment_method, created_at";
 
-async function loadAcc(admin: any, id: string) {
+export async function loadAcc(admin: any, id: string) {
   const { data } = await admin.from("accommodation_info")
     .select("id, name, custom_domain, short_url_alias, payment_provider_active, payuni_mer_id, payuni_mer_status, payuni_payment_tools")
     .eq("id", id).maybeSingle();
@@ -138,8 +140,8 @@ const okText = () => new Response("OK", { status: 200, headers: { "Content-Type"
 export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNotifyResult): Promise<Response> {
   const outer = parsed.ok ? parsed.outer : (parsed.outer ?? {});
   const data = parsed.ok ? parsed.data : null;
-  // W4 會依 PaymentType 加 ATM 分支；W3 只處理信用卡
-  const notifyType = "credit";
+  const tsv = String(data?.TradeStatus ?? "");
+  const notifyType = data?.PayNo && tsv === "1" ? "atm_paid" : tsv === "4" ? "expired" : "credit";
   const { data: ev, error: insErr } = await deps.admin.from("payuni_notify_events").insert({
     source: "trade", notify_type: notifyType, mer_id: data?.MerID ?? outer.MerID ?? null, trade_no: data?.TradeNo ?? null,
     execute_time: data ? notifyExecuteTime(data) : null, hash_valid: parsed.ok || parsed.reason === "DECRYPT_FAILED",
@@ -155,7 +157,11 @@ export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNoti
   try {
     const tx = await loadTx(deps.admin, String(data.MerTradeNo ?? ""));
     if (!tx) processError = "UNKNOWN_TRADE";
-    else { await applyPayuniTradeResult(deps, tx, data); processed = true; }
+    else {
+      const r = await applyPayuniTradeResult(deps, tx, data);
+      processed = true;
+      processError = r.error ?? null;
+    }
   } catch (e) {
     processError = e instanceof Error ? e.message.slice(0, 500) : "UNKNOWN_ERROR";
   }
@@ -197,14 +203,22 @@ export async function handleTradeQuery(
     return res(200, await sweep(deps, now));
   }
   if (body?.action === "list") {
-    // PaymentAudit：該館 PAYUNi 交易（金額異常、pending、unknown，近 30 天）
+    // PaymentAudit：該館 PAYUNi 交易（異常、pending、unknown、所有 ATM，近 30 天）
     const accId = String(body?.accommodation_id ?? "");
     if (!accId || (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(accId)))) return res(403, { error: "Forbidden" });
-    const { data } = await deps.admin.from("payment_transactions").select("mer_trade_no, amount, status, raw_response, created_at")
+    const { data } = await deps.admin.from("payment_transactions").select("mer_trade_no, amount, status, payment_type, raw_response, notified_at, created_at")
       .eq("provider", "payuni").eq("accommodation_id", accId).gte("created_at", new Date(now - 30 * 86400000).toISOString());
     const rows = (data ?? [])
-      .filter((t: any) => t.raw_response?.anomaly || t.status === "pending" || t.status === "unknown")
-      .map((t: any) => ({ mer_trade_no: t.mer_trade_no, amount: t.amount, status: t.status, anomaly: t.raw_response?.anomaly ?? null, created_at: t.created_at }))
+      .filter((t: any) => t.raw_response?.anomaly || t.status === "pending" || t.status === "unknown" || Number(t.payment_type) === 2)
+      .map((t: any) => ({
+        mer_trade_no: t.mer_trade_no, amount: t.amount, status: t.status, anomaly: t.raw_response?.anomaly ?? null, created_at: t.created_at,
+        ...(Number(t.payment_type) === 2 ? {
+          atm: {
+            pay_no: maskPayNo(t.raw_response?.PayNo), bank_type: t.raw_response?.BankType ?? null, expire_at: t.raw_response?.expire_at ?? null,
+            paid_at: t.status === "paid" ? (t.notified_at ?? null) : null, account5: t.raw_response?.account5 ?? null,
+          },
+        } : {}),
+      }))
       .sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
     return res(200, { ok: true, rows });
   }

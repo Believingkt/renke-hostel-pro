@@ -22,6 +22,7 @@ export function buildPayuniTradeDeps(): PayuniTradeDeps {
     admin,
     env: config.env as "sandbox" | "production",
     notifyBase: notifyBase.replace(/\/$/, ""),
+    atmBankType: Deno.env.get("PAYUNI_ATM_BANK_TYPE") ?? null,
     callPayuni: (call) => callPayuni(call, { config }),
     sendAlert: (subject, html) => sendPaymentAlertEmail(admin, subject, html),
     effects: {
@@ -30,6 +31,12 @@ export function buildPayuniTradeDeps(): PayuniTradeDeps {
         post("send-final-payment-received", { orderId, triggerSource: "auto_payuni", paymentMethodLabel: "信用卡(PAYUNi)", paidThisTime, paymentKind: "final" }),
       kolWebhook: (orderId) => post("kol-webhook", { order_id: orderId }),
       push: (orderId, event) => pushOrderEvent(orderId, event),
+      sendAtmPaymentReceived: (orderId, paidThisTime, kind) =>
+        post("send-final-payment-received", {
+          orderId, triggerSource: kind === "deposit" ? "auto_atm_deposit" : "auto_atm_final",
+          paymentMethodLabel: "ATM 虛擬帳號轉帳", paidThisTime, paymentKind: kind,
+        }),
+      sendAtmCreated: (orderId) => sendBookingConfirmationByOrderId(url, key, orderId, "ATM 虛擬帳號（待匯款）", "atm_va_created"),
     },
   };
 }

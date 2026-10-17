@@ -311,6 +311,7 @@ const BookingFlow = () => {
   const [chargeCardImmediately, setChargeCardImmediately] = useState(false);
   // PAYUNi 館：信用卡一律全額、先建待付款單再刷卡（不提供「先綁卡、入住日扣款」）
   const [isPayuniCard, setIsPayuniCard] = useState(false);
+  const [payuniAtmEnabled, setPayuniAtmEnabled] = useState(false);
   const [payuniPendingOrder, setPayuniPendingOrder] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
@@ -850,7 +851,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately, payment_provider_active")
+          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately, payment_provider_active, payuni_mer_status, payuni_payment_tools")
           .eq("id", accommodationId)
           .single();
         
@@ -861,6 +862,7 @@ const BookingFlow = () => {
           setAllowCreditCard((infoData as any).allow_credit_card_payment !== false);
           const payuni = (infoData as any).payment_provider_active === "payuni";
           setIsPayuniCard(payuni);
+          setPayuniAtmEnabled(payuni && (infoData as any).payuni_mer_status === 1 && Number((infoData as any).payuni_payment_tools?.ATM) === 1);
           setChargeCardImmediately(payuni || (infoData as any).charge_card_immediately === true);
           setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
@@ -2440,6 +2442,15 @@ const BookingFlow = () => {
 
   /** ATM 匯款訂金拆分：線上僅收訂金（預設 30%），尾款現場付清 */
   const getAtmDepositBreakdown = () => getDepositBreakdown(calculateFinalTotal(), bookingSettings);
+  // PAYUNi 館：ATM 未開通或訂金超過單筆上限 → 不提供 ATM
+  const payuniAtmOverLimit = isPayuniCard && payuniAtmEnabled && !isAtmAmountAllowed(getAtmDepositBreakdown().deposit);
+  const payuniAtmHidden = isPayuniCard && (!payuniAtmEnabled || payuniAtmOverLimit);
+  useEffect(() => {
+    if (payuniAtmHidden && orderPaymentType === "atm") {
+      setOrderPaymentType("");
+      setPaymentMethod("");
+    }
+  }, [payuniAtmHidden, orderPaymentType]);
 
 
   const handleApplyDiscount = async (code?: string) => {
@@ -3337,7 +3348,8 @@ const BookingFlow = () => {
       let paymentTransactionId = null;
       let paidOrderResult: { id: string; order_number: string; final_price: number } | null = null;
 
-      if (paymentMethod === '信用卡') {
+      const isPayuniAtm = isPayuniCard && orderPaymentType === "atm";
+      if (paymentMethod === '信用卡' || isPayuniAtm) {
         setIsProcessingPayment(true);
 
         try {
@@ -3394,11 +3406,19 @@ const BookingFlow = () => {
 
           // PAYUNi 館：後端驗價建待付款單，再於對話框中以 UNi Embed 刷卡
           if (isPayuniCard) {
-            const { data: pend, error: pendErr } = await supabase.functions.invoke('payuni-create-pending-order', { body: orderPayload });
+            const { data: pend, error: pendErr } = await supabase.functions.invoke('payuni-create-pending-order', {
+              body: { ...orderPayload, paymentType: isPayuniAtm ? 'atm' : 'credit_card' },
+            });
             if (pendErr || !pend?.success || !pend?.order?.order_number) {
               let msg = pend?.message || '建立訂單失敗，請稍後再試';
               try { const j = await (pendErr as any)?.context?.json?.(); if (j?.message) msg = j.message; } catch { /* ignore */ }
               toast({ title: '預訂失敗', description: msg, variant: 'destructive' });
+            } else if (isPayuniAtm) {
+              // ATM：跳轉 ATM 匯款資訊頁，由 PayuniAtmPanel 呼叫 payuni-atm-create 取號
+              const params = new URLSearchParams({ order_number: pend.order.order_number, acc: accommodationId });
+              const baseUrl = await getPaymentOriginForAccommodation(accommodationId);
+              window.location.href = `${baseUrl}/booking/atm-info?${params.toString()}`;
+              return;
             } else {
               setPayuniPendingOrder(pend.order.order_number);
             }
@@ -5402,7 +5422,7 @@ const BookingFlow = () => {
                         {([
                           {
                             key: "credit_card",
-                            label: chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）",
+                            label: isPayuniCard ? "信用卡（全額）" : chargeCardImmediately ? "信用卡（立即付款）" : "信用卡（入住當天扣款）",
                             icon: CreditCard,
                             desc: chargeCardImmediately
                               ? `送出訂單時即以信用卡扣取全額 NT$ ${calculateFinalTotal().toLocaleString()}，付款成功即完成訂房；取消依「預收房價總額」制度退款（前 3 日以前 100%、前 1～2 日 50%、當日 0%）`
@@ -5410,11 +5430,15 @@ const BookingFlow = () => {
                           },
                           {
                             key: "atm",
-                            label: `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
+                            label: isPayuniCard
+                              ? (getAtmDepositBreakdown().isFullPayment
+                                ? `ATM 轉帳（全額 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}）`
+                                : `ATM 轉帳（訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款現場付）`)
+                              : `ATM 虛擬帳號轉帳（先付 ${getAtmDepositBreakdown().percentage}% 訂金）`,
                             icon: Building2,
                             desc: `僅需先匯訂金 NT$ ${getAtmDepositBreakdown().deposit.toLocaleString()}，尾款 NT$ ${getAtmDepositBreakdown().balance.toLocaleString()} 入住現場付清（繳費期限 20 分鐘）`,
                           },
-                        ] as const).filter((opt) => opt.key !== "credit_card" || allowCreditCard).map((opt) => {
+                        ] as const).filter((opt) => (opt.key !== "credit_card" || allowCreditCard) && (opt.key !== "atm" || !payuniAtmHidden)).map((opt) => {
                           const Icon = opt.icon;
                           const selected = orderPaymentType === opt.key;
                           const atmBlocked = opt.key === "atm" && !isAtmAmountAllowed(getAtmDepositBreakdown().deposit);
@@ -5450,6 +5474,9 @@ const BookingFlow = () => {
                             </div>
                           );
                         })}
+                        {payuniAtmOverLimit && (
+                          <p className="text-xs text-muted-foreground" data-testid="payuni-atm-over-limit">金額超過 ATM 單筆上限，請改用信用卡</p>
+                        )}
 
                         {orderPaymentType === "credit_card" && isPayuniCard && (
                           <div className="mt-4 p-4 border rounded-lg bg-card space-y-1" data-testid="payuni-card-notice">
@@ -5574,7 +5601,7 @@ const BookingFlow = () => {
                                   </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                  ・ 送出訂單後將跳轉到「ATM 匯款資訊頁」，由 TapPay 開立此筆訂單的專屬虛擬帳號。<br />
+                                  ・ 送出訂單後將跳轉到「ATM 匯款資訊頁」，由 {isPayuniCard ? "PAYUNi" : "TapPay"} 開立此筆訂單的專屬虛擬帳號。<br />
                                   ・ 虛擬帳號金額為 <span className="font-medium text-foreground">訂金 NT$ {dep.deposit.toLocaleString()}</span>，請勿更改匯款金額，以免無法自動核帳。<br />
                                   ・ 可使用 ATM、網路銀行或臨櫃方式轉帳。<br />
                                   ・ 繳費期限 20 分鐘，逾期未繳訂金訂單將自動取消。<br />

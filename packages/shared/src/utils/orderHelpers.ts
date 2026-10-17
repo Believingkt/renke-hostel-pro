@@ -223,6 +223,7 @@ export const getPaymentMethodLabel = (method: string | null | undefined): string
     credit_card_3ds: "信用卡",
     credit_card_payuni: "信用卡(PAYUNi)",
     atm: "ATM 虛擬帳號",
+    atm_payuni: "ATM 虛擬帳號(PAYUNi)",
     line_pay: "LINE Pay",
     bank_transfer: "轉帳匯款",
     cash: "現金",

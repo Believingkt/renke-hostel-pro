@@ -5,6 +5,9 @@ import { buildTappayNotifySuccessPatch } from "./patchBuilders.ts";
 
 export const PAYUNI_PAYMENT_METHOD = "credit_card_payuni";
 export const PAYUNI_PAID_LABEL = "信用卡(PAYUNi)";
+export const PAYUNI_ATM_METHOD = "atm_payuni";
+export const PAYUNI_ATM_PAID_LABEL = "ATM 虛擬帳號轉帳(PAYUNi)";
+export type PayuniChannel = "card" | "atm";
 
 export function buildPayuniSuccessPatch(input: {
   newPaymentStatus: string;
@@ -12,12 +15,13 @@ export function buildPayuniSuccessPatch(input: {
   newNotes: string;
   currentOrderStatus: string | null;
   confirmedAtIso: string;
-}): Record<string, unknown> {
+}, channel: PayuniChannel = "card"): Record<string, unknown> {
   const base = buildTappayNotifySuccessPatch({ ...input, isAtm: false }) as Record<string, unknown>;
+  const atm = channel === "atm";
   return {
     ...base,
-    payment_method: PAYUNI_PAYMENT_METHOD,
-    balance_payment_method: input.newPaymentStatus === "paid" ? PAYUNI_PAID_LABEL : null,
+    payment_method: atm ? PAYUNI_ATM_METHOD : PAYUNI_PAYMENT_METHOD,
+    balance_payment_method: input.newPaymentStatus === "paid" ? (atm ? PAYUNI_ATM_PAID_LABEL : PAYUNI_PAID_LABEL) : null,
   };
 }
 
@@ -26,6 +30,10 @@ export interface PaymentSuccessEffects {
   sendFinalPaymentReceived: (orderId: string, paidThisTime: number) => Promise<unknown>;
   kolWebhook: (orderId: string) => Promise<unknown>;
   push: (orderId: string, event: "order_created" | "payment_success") => Promise<unknown>;
+  /** ATM 入帳收據：deposit → auto_atm_deposit；final → auto_atm_final */
+  sendAtmPaymentReceived: (orderId: string, paidThisTime: number, kind: "deposit" | "final") => Promise<unknown>;
+  /** ATM 取號後的訂房確認信（atm_va_created） */
+  sendAtmCreated: (orderId: string) => Promise<unknown>;
 }
 
 export interface OrderForPayment {
@@ -45,20 +53,21 @@ export async function applyOrderPaymentSuccess(
   effects: PaymentSuccessEffects,
   order: OrderForPayment,
   amount: number,
-  ref: { merTradeNo: string; tradeNo: string | null; authCode: string | null },
+  ref: { merTradeNo: string; tradeNo: string | null; authCode: string | null; channel?: PayuniChannel },
   nowIso = new Date().toISOString(),
 ): Promise<string> {
   const prevPaid = Number(order.paid_amount || 0);
   const newPaid = prevPaid + amount;
   const newStatus = newPaid >= Number(order.final_price) ? "paid" : newPaid > 0 ? "deposit_paid" : (order.payment_status ?? "unpaid");
-  const note = `[PAYUNi] ${nowIso} - 付款成功 NT$${amount} (MerTradeNo: ${ref.merTradeNo}${ref.tradeNo ? `, TradeNo: ${ref.tradeNo}` : ""}${ref.authCode ? `, auth_code: ${ref.authCode}` : ""})`;
+  const atm = ref.channel === "atm";
+  const note = `[PAYUNi${atm ? " ATM" : ""}] ${nowIso} - 付款成功 NT$${amount} (MerTradeNo: ${ref.merTradeNo}${ref.tradeNo ? `, TradeNo: ${ref.tradeNo}` : ""}${ref.authCode ? `, auth_code: ${ref.authCode}` : ""})`;
   const patch = buildPayuniSuccessPatch({
     newPaymentStatus: newStatus,
     newPaidAmount: newPaid,
     newNotes: order.notes ? `${order.notes}\n${note}` : note,
     currentOrderStatus: order.order_status,
     confirmedAtIso: nowIso,
-  });
+  }, ref.channel ?? "card");
   const { error } = await admin.rpc("update_order_with_context", {
     p_order_id: order.id,
     p_patch: patch,
@@ -73,7 +82,13 @@ export async function applyOrderPaymentSuccess(
     try { await fn(); } catch (e) { console.error(`[orderPaymentSuccess] ${label} failed: ${e instanceof Error ? e.message : e}`); }
   };
   const firstPayment = prevPaid <= 0;
-  if (firstPayment) {
+  if (atm) {
+    // ATM：確認信已在取號時寄出；入帳只寄收據（同 TapPay ATM），KOL／推播同信用卡
+    if (firstPayment && order.discount_code) await safe("kol-webhook", () => effects.kolWebhook(order.id));
+    if (firstPayment) await safe("push created", () => effects.push(order.id, "order_created"));
+    if (newStatus === "deposit_paid") await safe("atm deposit email", () => effects.sendAtmPaymentReceived(order.id, amount, "deposit"));
+    else if (order.payment_status !== "paid" && newStatus === "paid") await safe("atm final email", () => effects.sendAtmPaymentReceived(order.id, amount, "final"));
+  } else if (firstPayment) {
     if (order.discount_code) await safe("kol-webhook", () => effects.kolWebhook(order.id));
     await safe("booking email", () => effects.sendBookingConfirmation(order.id));
     await safe("push created", () => effects.push(order.id, "order_created"));

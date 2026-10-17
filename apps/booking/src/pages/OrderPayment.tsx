@@ -14,6 +14,7 @@ import { PayuniCardFields } from "@/components/payment/PayuniCardFields";
 import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@lakeze/shared/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { PayuniAtmPanel } from "@/components/payment/PayuniAtmPanel";
 import { getPaymentOriginForAccommodation, isSameOriginIgnoringWww } from "@lakeze/shared/utils/paymentDomain";
 import { buildRedirectWithSessionHandoff } from "@/utils/oauthCallbackHandler";
 import { LINE_CHANNEL_ID, FACEBOOK_APP_ID } from "@/config/oauth";
@@ -890,7 +891,15 @@ export default function OrderPayment() {
             </TabsContent>
 
             <TabsContent value="atm" className="pt-4 space-y-4">
-              {orderInfo && (
+              {orderInfo && isPayuni && (
+                <PayuniAtmPanel
+                  orderNumber={orderNumber}
+                  purpose={paymentStatus === "pending_payment" ? "deposit" : "supplement"}
+                  paid={paymentStatus === "paid"}
+                  onCreated={(info) => setOrderInfo((prev) => prev ? { ...prev, atmInfo: { vaccNo: info.pay_no, bankCode: info.bank_code, expireAt: info.expire_at, amount: info.amount }, atmExpiredInfo: null } : prev)}
+                />
+              )}
+              {orderInfo && !isPayuni && (
                 <>
                   {orderInfo.atmExpiredInfo && (
                     <Alert variant="destructive" className="border-destructive/30 bg-destructive/5">

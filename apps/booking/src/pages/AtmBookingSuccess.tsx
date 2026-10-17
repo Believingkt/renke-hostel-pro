@@ -22,6 +22,7 @@ import {
   Timer,
 } from "lucide-react";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
+import { PayuniAtmPanel } from "@/components/payment/PayuniAtmPanel";
 import { getPaymentOriginForAccommodation, redirectToPaymentOrigin } from "@lakeze/shared/utils/paymentDomain";
 
 
@@ -42,6 +43,7 @@ interface OrderRow {
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
   accommodation_id: string | null;
+  payment_method?: string | null;
   payment_summary?: {
     totalAmount: number;
     paidAmount: number;
@@ -503,6 +505,15 @@ export default function AtmBookingSuccess() {
 
               />
             )}
+            {order.payment_method === "atm_payuni" ? (
+              <PayuniAtmPanel
+                orderNumber={order.order_number}
+                purpose="deposit"
+                paid={orderPaid}
+                amountLabel={`轉帳金額（訂金${depositPercentLabel ? ` ${depositPercentLabel}` : ""}）`}
+                onCreated={(info) => setOrder((prev) => (prev ? { ...prev, atm_vacc_no: info.pay_no, atm_vacc_bank_code: info.bank_code, atm_expire_at: info.expire_at } : prev))}
+              />
+            ) : (
             <AtmPaymentPanel
               orderId={order.id}
               orderNumber={order.order_number}
@@ -542,6 +553,7 @@ export default function AtmBookingSuccess() {
                 );
               }}
             />
+            )}
 
           </CardContent>
         </Card>

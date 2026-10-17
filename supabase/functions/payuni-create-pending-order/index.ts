@@ -1,5 +1,5 @@
 // payuni-create-pending-order
-// PAYUNi 館信用卡「先建待付款訂單」：驗價、建單欄位與 create-paid-order 相同，但不扣款，
+// PAYUNi 館信用卡／ATM（paymentType="atm"，W4）「先建待付款訂單」：驗價、建單欄位與 create-paid-order 相同，但不扣款，
 // payment_status = pending_payment、paid_amount = 0、payment_method = credit_card_payuni。
 // 寄信／KOL／推播改在付款成功（_shared/orderPaymentSuccess.ts）觸發。冪等：相同 idempotency_key 回傳既有訂單。
 // deno-lint-ignore-file no-explicit-any
@@ -10,7 +10,9 @@ import { reportBackendError } from "../_shared/errorReporter.ts";
 import { checkTripProductStock, finalizeTripOrder } from "../_shared/tripOrder.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { resolveMemberId } from "../_shared/resolveMemberId.ts";
-import { PAYUNI_PAYMENT_METHOD } from "../_shared/orderPaymentSuccess.ts";
+import { PAYUNI_ATM_METHOD, PAYUNI_PAYMENT_METHOD } from "../_shared/orderPaymentSuccess.ts";
+import { getDepositBreakdown } from "../_shared/bookingDeposit.ts";
+import { ATM_OVER_LIMIT_MESSAGE, PAYUNI_ATM_MAX_AMOUNT } from "../_shared/payuniAtm.ts";
 
 Deno.serve(async (req) => {
   const cors = buildCorsHeaders(req);
@@ -33,8 +35,10 @@ Deno.serve(async (req) => {
 
     const { data: acc } = await supabase.from("accommodation_info")
       .select("payment_provider_active, payuni_mer_status, payuni_payment_tools").eq("id", body.accommodationId).maybeSingle();
-    if (!acc || acc.payment_provider_active !== "payuni" || acc.payuni_mer_status !== 1 || Number((acc.payuni_payment_tools as any)?.CREDIT) !== 1) {
-      return json({ success: false, message: "此館尚未開通線上刷卡" }, 400);
+    const isAtm = body.paymentType === "atm";
+    const tool = isAtm ? "ATM" : "CREDIT";
+    if (!acc || acc.payment_provider_active !== "payuni" || acc.payuni_mer_status !== 1 || Number((acc.payuni_payment_tools as any)?.[tool]) !== 1) {
+      return json({ success: false, message: isAtm ? "此館尚未開通 ATM" : "此館尚未開通線上刷卡" }, 400);
     }
 
     const { data: existing } = await supabase.from("orders")
@@ -82,7 +86,20 @@ Deno.serve(async (req) => {
       fallbackTemplateId: body.pricingTemplateId ?? null,
     });
 
+    // ATM 訂金制：訂金由後端依 booking_settings 計算（與前端 bookingDeposit.ts 同一算法）
+    let dep: { deposit: number; percentage: number; balance: number } | null = null;
+    if (isAtm) {
+      const { data: settings } = await supabase.from("booking_settings")
+        .select("use_deposit, deposit_percentage").eq("accommodation_id", body.accommodationId).maybeSingle();
+      dep = getDepositBreakdown(body.finalPrice, settings);
+      if (dep.deposit > PAYUNI_ATM_MAX_AMOUNT) return json({ success: false, message: ATM_OVER_LIMIT_MESSAGE }, 400);
+    }
     let orderNotes = "[PAYUNi 待付款]";
+    if (dep) {
+      orderNotes += dep.percentage >= 100
+        ? ` ATM 線上匯款全額 NT$ ${dep.deposit.toLocaleString()}`
+        : ` [訂金制] ATM 線上匯款訂金 NT$ ${dep.deposit.toLocaleString()}（總額 NT$ ${body.finalPrice.toLocaleString()} 的 ${dep.percentage}%），尾款 NT$ ${dep.balance.toLocaleString()} 入住現場付清`;
+    }
     if (body.guestInfo.notes) orderNotes += ` ${body.guestInfo.notes}`;
     const { data: orderData, error: orderError } = await supabase.from("orders").insert([{
       accommodation_id: body.accommodationId,
@@ -106,9 +123,11 @@ Deno.serve(async (req) => {
       discount_amount: body.discountAmount || 0,
       final_price: body.finalPrice,
       deposit_amount: 0,
-      deposit_payment_method: "credit_card",
+      deposit_payment_method: isAtm ? "bank_transfer" : "credit_card",
       balance_payment_method: null,
-      payment_method: PAYUNI_PAYMENT_METHOD,
+      payment_method: isAtm ? PAYUNI_ATM_METHOD : PAYUNI_PAYMENT_METHOD,
+      booking_deposit_amount: dep ? dep.deposit : null,
+      booking_deposit_percentage: dep ? dep.percentage : null,
       room_charge_rec_trade_id: null,
       payment_status: "pending_payment",
       paid_amount: 0,

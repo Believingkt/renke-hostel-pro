@@ -1940,6 +1940,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       credit_card_3ds: "信用卡",
       credit_card_payuni: "信用卡(PAYUNi)",
       atm: "ATM 虛擬帳號",
+      atm_payuni: "ATM 虛擬帳號(PAYUNi)",
       line_pay: "LINE Pay",
       bank_transfer: "轉帳匯款",
       cash: "現金",
@@ -3656,6 +3657,16 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
+              {o.payment_method === "atm_payuni" && (() => {
+                const dep = Number(o.booking_deposit_amount || 0);
+                const paid = Number(o.paid_amount || 0);
+                const balance = Math.max(0, Number(o.final_price || 0) - Math.max(paid, dep));
+                return (
+                  <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" data-testid="payuni-atm-order-summary">
+                    PAYUNi ATM 訂金 {paid > 0 ? "已付" : "未付"}（NT$ {dep.toLocaleString()}）{balance > 0 ? `・尾款現場收 NT$ ${balance.toLocaleString()}` : ""}
+                  </div>
+                );
+              })()}
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm text-muted-foreground flex-shrink-0">銀行代碼</span>
                 <div className="flex items-center gap-2">
