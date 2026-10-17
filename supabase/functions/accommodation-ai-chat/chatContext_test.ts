@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
-import { buildLiveAvailability, chatGenParams, resolveGuests, selectExamples, selectKnowledge, tokenize } from "./chatContext.ts";
+import { buildLiveAvailability, chatGenParams, resolveGuests, selectExamples, selectKnowledge, synonymTargets, tokenize } from "./chatContext.ts";
 import { toClaudeBody } from "../_shared/llm.ts";
 
 // 假 Supabase：from(table) 回傳可串接、可 await 的查詢；rpc 依房型回傳每晚剩餘
@@ -135,4 +135,37 @@ Deno.test("resolveGuests：本輪有人數優先；區間已解析到的不覆�
   assertEquals(resolveGuests(ST, ["那改 2 位", "我們四個人"])?.guests, 2);
   assertEquals(resolveGuests({ ...ST, guests: 3 }, ["", "我們四個人"])?.guests, 3);
   assertEquals(resolveGuests(null, ["4人"]), null);
+});
+
+const KB = [
+  ...K,
+  { title: "入住退房時間", content: "15:00 入住、11:00 退房。", tags: ["入住", "退房"], priority: 0 },
+  { title: "停車資訊", content: "館前可停 3 台車。", tags: ["停車"], priority: 0 },
+  { title: "寵物政策", content: "可攜帶 10 公斤以下犬貓。", tags: ["寵物"], priority: 0 },
+  { title: "早餐", content: "07:30 供應。", tags: ["早餐"], priority: 0 },
+];
+Deno.test("同義詞：狗→寵物、車位→停車、check in→入住", () => {
+  assertEquals(synonymTargets("可以帶狗嗎"), ["寵物"]);
+  assertEquals(synonymTargets("有車位嗎"), ["停車"]);
+  assertEquals(synonymTargets("幾點 Check  In"), ["入住"]);
+  assertEquals(synonymTargets("你好"), []);
+});
+Deno.test("可以帶狗嗎 → 寵物政策排第一", () => {
+  assertEquals(selectKnowledge(KB, "可以帶狗嗎", 8)[0].title, "寵物政策");
+});
+Deno.test("有車位嗎 → 停車資訊排第一", () => {
+  assertEquals(selectKnowledge(KB, "有車位嗎", 8)[0].title, "停車資訊");
+});
+Deno.test("幾點 check in → 入住退房時間排第一", () => {
+  assertEquals(selectKnowledge(KB, "幾點 check in", 8)[0].title, "入住退房時間");
+});
+Deno.test("單字 tag 全文命中也算", () => {
+  const rows = [...K, { title: "毛孩須知", content: "x", tags: ["狗"], priority: 0 }];
+  assertEquals(selectKnowledge(rows, "狗可以進房嗎", 8)[0].title, "毛孩須知");
+});
+Deno.test("無關問題（你好）→ 退回 priority 前 8", () => {
+  assertEquals(selectKnowledge(KB, "你好", 8).map((k) => k.priority), [19, 18, 17, 16, 15, 14, 13, 12]);
+});
+Deno.test("0 分不收：命中時只回有分數的", () => {
+  assertEquals(selectKnowledge(KB, "有車位嗎", 8).map((k) => k.title), ["停車資訊"]);
 });

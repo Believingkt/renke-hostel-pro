@@ -19,21 +19,37 @@ export function tokenize(text: string): string[] {
   return [...out];
 }
 
-/** 依最後一則使用者訊息比對 title／tags／content 前 200 字，取前 limit 筆；完全沒命中退回 priority 排序 */
+const KNOWLEDGE_SYNONYMS: Record<string, string[]> = {
+  寵物: ["寵物", "狗", "貓", "毛小孩"],
+  停車: ["停車", "車位", "停車場"],
+  入住: ["入住", "check in", "入住時間"],
+  退房: ["退房", "check out", "退房時間"],
+  網路: ["網路", "wifi"],
+  兒童: ["兒童", "嬰兒", "小孩"],
+  早餐: ["早餐"],
+};
+
+/** 訊息命中的同義詞目標詞 */
+export function synonymTargets(query: string): string[] {
+  const q = query.toLowerCase().replace(/\s+/g, " ");
+  return Object.entries(KNOWLEDGE_SYNONYMS).filter(([, ws]) => ws.some((w) => q.includes(w))).map(([t]) => t);
+}
+
+/** 計分：tag 全文命中 3、title 含目標詞 2、2-gram 每個 1；取前 limit 筆、0 分不收；全部 0 分退回 priority 排序 */
 export function selectKnowledge(rows: KnowledgeRow[], query: string, limit = 8): KnowledgeRow[] {
   const byPriority = [...rows].sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
+  const targets = synonymTargets(query);
+  const haystack = [query.toLowerCase().replace(/\s+/g, " "), ...targets].join(" ");
   const tokens = tokenize(query);
-  if (!tokens.length) return byPriority.slice(0, limit);
   const scored = byPriority.map((k) => {
     const title = (k.title || "").toLowerCase();
-    const tags = (k.tags || []).join(" ").toLowerCase();
+    const tagList = (k.tags || []).map((t) => String(t).toLowerCase().trim()).filter(Boolean);
+    const tags = tagList.join(" ");
     const body = (k.content || "").slice(0, 200).toLowerCase();
     let s = 0;
-    for (const t of tokens) {
-      if (title.includes(t)) s += 3;
-      if (tags.includes(t)) s += 2;
-      if (body.includes(t)) s += 1;
-    }
+    for (const t of tagList) if (haystack.includes(t)) s += 3;
+    if (title && (targets.some((t) => title.includes(t)) || haystack.includes(title))) s += 2;
+    for (const t of tokens) if (title.includes(t) || tags.includes(t) || body.includes(t)) s += 1;
     return { k, s };
   });
   const hit = scored.filter((x) => x.s > 0);
