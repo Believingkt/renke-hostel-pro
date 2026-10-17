@@ -85,10 +85,12 @@ describe("HQ「PAYUNi 金流」分頁", () => {
     expect((screen.getByTestId("payuni-bind-mer_name") as HTMLInputElement).value).toBe("測試館A");
     expect((screen.getByTestId("payuni-bind-mer_addr_post") as HTMLInputElement).value).toBe("110");
     expect((screen.getByTestId("payuni-bind-goods_rate") as HTMLInputElement).value).toBe("0,100,0,0");
+    expect((screen.getByTestId("payuni-bind-mer_mcc") as HTMLInputElement).value).toBe("93");
+    expect(screen.getByText("必填，93 民宿／94 飯店")).toBeTruthy();
     expect(screen.getByText("僅用於送件，不會保存")).toBeTruthy();
     const fill = (k: string, v: string) => fireEvent.change(screen.getByTestId(`payuni-bind-${k}`), { target: { value: v } });
     fill("legal_name", "某某有限公司"); fill("ubn", "123456789"); fill("member_email", "o@x.tw");
-    fill("contact_name", "王"); fill("mer_eng_name", "測試"); fill("goods_rate", "0,90,0,0"); fill("mer_unit_price", "3000"); fill("mer_mcc", "7011");
+    fill("contact_name", "王"); fill("mer_eng_name", "測試"); fill("goods_rate", "0,90,0,0"); fill("mer_unit_price", "3000"); fill("mer_mcc", "94");
     fireEvent.click(screen.getByTestId("payuni-bind-submit"));
     expect(await screen.findByTestId("payuni-bind-error-ubn")).toBeTruthy();
     expect(screen.getByTestId("payuni-bind-error-mer_eng_name")).toBeTruthy();

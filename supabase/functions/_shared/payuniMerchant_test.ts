@@ -4,7 +4,7 @@ import { encrypt, hashInfo, type PayuniCall, type PayuniConfig, type PayuniResul
 import { handleAgentNotify, handleBind, handleStatus, type MerchantDeps } from "./payuniMerchantHandlers.ts";
 import { FakeDb } from "./payuniTestFakes.ts";
 import {
-  buildBindPayload, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, maskUbnForStorage, memberStatusLabel, nextMerId,
+  buildBindPayload, PAYUNI_DEFAULT_MCC, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, maskUbnForStorage, memberStatusLabel, nextMerId,
   shouldAutoDisablePayuni, validateBindForm,
 } from "./payuniMerchant.ts";
 
@@ -18,7 +18,7 @@ export const FORM = {
   legal_name: "測試民宿有限公司", ubn: "12345678", member_email: "owner@example.com", mcid: "A123456789",
   contact_name: "王小明", contact_tel: "02-9888888#123", contact_mobile: "0912345678",
   mer_email: "cs@example.com", mer_name: "測試館A", mer_eng_name: "Test Villa A", mer_addr: "台北市信義區信義路1號",
-  mer_addr_post: "110", mer_desc: "民宿住宿服務；測試", mer_mcc: "7011", goods_rate: "0,100,0,0",
+  mer_addr_post: "110", mer_desc: "民宿住宿服務；測試", mer_mcc: "93", goods_rate: "0,100,0,0",
   payment: ["CREDIT", "ForeignCard", "ATM"], deliver_time: "1", escrow_type: "0", mer_unit_price: "5000",
 };
 
@@ -273,17 +273,28 @@ Deno.test("notify：非 POST → 405", async () => {
 
 // ---------------- 審查後修正（MCC、會員狀態、查詢時切回 none） ----------------
 
-Deno.test("bind：MCC 為 000／全 0 → 400「MCC 尚未設定」，不呼叫 PAYUNi", async () => {
+Deno.test("bind：MCC 為 0／000／1000／abc → 400「MCC 格式不正確」，不呼叫 PAYUNi", async () => {
   const db = new FakeDb({ accommodation_info: [accRow()] });
   const { d, calls } = deps(db, SUCCESS);
-  for (const mcc of ["000", "0000"]) {
+  for (const mcc of ["0", "000", "1000", "abc", ""]) {
     const r = await handleBind(d, { accommodation_id: ACC, form: { ...FORM, mer_mcc: mcc } });
     assertEquals(r.status, 400);
-    assertEquals(r.body.error, "MCC 尚未設定");
-    assertEquals((r.body.errors as Record<string, string>).mer_mcc, "MCC 尚未設定");
+    assertEquals(r.body.error, "MCC 格式不正確");
+    assertEquals((r.body.errors as Record<string, string>).mer_mcc, "MCC 格式不正確");
   }
   assertEquals(calls.length, 0);
-  assertEquals(validateBindForm({ ...FORM, mer_mcc: "0701" }).mer_mcc, undefined);
+});
+
+Deno.test("規則：MCC 93／94 通過、預設 93；payload MerMCC 為整數", async () => {
+  for (const mcc of ["93", "94", "7", "999"]) assertEquals(validateBindForm({ ...FORM, mer_mcc: mcc }).mer_mcc, undefined);
+  assertEquals(PAYUNI_DEFAULT_MCC, "93");
+  const p = buildBindPayload(FORM, "TEST0001", "https://booking.lakeze.com/testa");
+  assertEquals(p.MerMCC, 93);
+  assertEquals(typeof p.MerMCC, "number");
+  const db = new FakeDb({ accommodation_info: [accRow()] });
+  const { d, calls } = deps(db, SUCCESS);
+  assertEquals((await handleBind(d, { accommodation_id: ACC, form: FORM })).status, 200);
+  assertEquals(calls[0].payload.MerMCC, 93);
 });
 
 Deno.test("規則：會員狀態中文對照", () => {

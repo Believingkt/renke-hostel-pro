@@ -44,7 +44,7 @@ const FIELDS: FieldDef[] = [
   { key: "mer_addr_post", label: "郵遞區號（3 碼）", required: true },
   { key: "mer_tel", label: "商店電話（選填）" },
   { key: "mer_desc", label: "商店簡介", required: true, multiline: true },
-  { key: "mer_mcc", label: "MCC 行業代碼", required: true, hint: "必填，請確認代碼（預設值 000 為暫存）" },
+  { key: "mer_mcc", label: "MCC 行業代碼", required: true, hint: "必填，93 民宿／94 飯店" },
   { key: "goods_rate", label: "商品比例（4 個數字，總和 100）", required: true },
   { key: "deliver_time", label: "出貨天數", required: true },
   { key: "escrow_type", label: "履約保證（0 或 1）", required: true },

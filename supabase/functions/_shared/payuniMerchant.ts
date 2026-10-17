@@ -1,7 +1,7 @@
 // PAYUNi 合作商店（W2）純函式：建店表單驗證、bind_merchant payload、狀態對照、支付工具整理。
 // 不依賴 Deno／網路；前端 apps/booking/src/lib/payuniMerchantRules.ts 為同規則副本，由 Vitest 比對兩邊結果一致。
 
-export const PAYUNI_DEFAULT_MCC = "000";
+export const PAYUNI_DEFAULT_MCC = "93"; // 代碼表 #/9/69：93 民宿／94 飯店
 export const PAYUNI_BOOKING_BASE = "https://booking.lakeze.com";
 export const PAYUNI_CLOSE_APPLY_SWITCH = "SPB2C,SPB2CFrz,SPC2C,SPC2CFrz,HOME";
 
@@ -19,7 +19,7 @@ export const PAYUNI_MEMBER_STATUS_LABELS: Record<number, string> = {
   1: "啟用", 5: "待補資料", 8: "拒絕", 9: "待審核", 92: "審核失敗", 99: "關閉／停權",
 };
 
-export const PAYUNI_MCC_UNSET = "MCC 尚未設定";
+export const PAYUNI_MCC_INVALID = "MCC 格式不正確";
 export const PAYUNI_UBN_MASKED = "請重新輸入完整身分證字號";
 
 export const PAYUNI_SETTING_KEYS = ["ThreeDCREDIT", "ThreeDForeignCard", "ThreeDUnionPay", "MerClose", "ATMSet"] as const;
@@ -109,8 +109,8 @@ export function validateBindForm(raw: Partial<PayuniBindForm> | null | undefined
   if (!desc) e.mer_desc = "商店簡介必填";
   else if (len(desc) > 500) e.mer_desc = "商店簡介最多 500 字";
   const mcc = str(f.mer_mcc);
-  if (!/^\d{3,4}$/.test(mcc)) e.mer_mcc = "MCC 須為 3–4 碼數字";
-  else if (/^0+$/.test(mcc)) e.mer_mcc = PAYUNI_MCC_UNSET;
+  // PAYUNi MerMCC：int、最多 3 碼，不可為 0
+  if (!/^\d{1,3}$/.test(mcc) || Number(mcc) === 0) e.mer_mcc = PAYUNI_MCC_INVALID;
   if (!isValidGoodsRate(f.goods_rate)) e.goods_rate = "商品比例須為 4 個數字，總和 100";
   const pay = normalizePayment(f.payment);
   if (pay.length === 0) e.payment = "至少選一種支付工具";
@@ -169,7 +169,7 @@ export function buildBindPayload(f: PayuniBindForm, merId: string, merUrl: strin
   Object.assign(p, {
     MerDesc: str(f.mer_desc),
     MerType: 1,
-    MerMCC: str(f.mer_mcc),
+    MerMCC: Number(str(f.mer_mcc)),
     GoodsRate: str(f.goods_rate).split(",").map((x) => x.trim()).join(","),
     Payment: normalizePayment(f.payment).join(","),
     DeliverTime: Number(str(f.deliver_time)),

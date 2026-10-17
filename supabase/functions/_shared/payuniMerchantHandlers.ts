@@ -6,7 +6,7 @@ import { parseNotify } from "./payuni.ts";
 import { sendPaymentAlertEmail } from "./paymentAlert.ts";
 import {
   backSettingAlertKeys, buildBindPayload, buildMerUrl, canSwitchToPayuni, extractPaymentTools, isBindable,
-  maskUbnForStorage, merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_UNSET, PAYUNI_SETTING_KEYS, pickKeys,
+  maskUbnForStorage, merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_INVALID, PAYUNI_SETTING_KEYS, pickKeys,
   shouldAutoDisablePayuni, snapshotWithoutMcid, validateBindForm, type PayuniBindForm,
 } from "./payuniMerchant.ts";
 
@@ -103,9 +103,9 @@ export async function handleBind(deps: MerchantDeps, body: any): Promise<Handler
   const form = (body?.form ?? {}) as PayuniBindForm;
   const errors = validateBindForm(form);
   if (Object.keys(errors).length > 0) {
-    // 只有 MCC 未設定時，error 直接回「MCC 尚未設定」
-    const onlyMcc = Object.keys(errors).length === 1 && errors.mer_mcc === PAYUNI_MCC_UNSET;
-    return res(400, { error: onlyMcc ? PAYUNI_MCC_UNSET : "VALIDATION_FAILED", errors });
+    // 只有 MCC 有誤時，error 直接回「MCC 格式不正確」
+    const onlyMcc = Object.keys(errors).length === 1 && errors.mer_mcc === PAYUNI_MCC_INVALID;
+    return res(400, { error: onlyMcc ? PAYUNI_MCC_INVALID : "VALIDATION_FAILED", errors });
   }
 
   let merId: string = acc.payuni_mer_id ?? "";

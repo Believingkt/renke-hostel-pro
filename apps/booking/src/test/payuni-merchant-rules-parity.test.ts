@@ -6,7 +6,7 @@ const FORM = {
   legal_name: "測試民宿有限公司", ubn: "12345678", member_email: "owner@example.com", mcid: "A123456789",
   contact_name: "王小明", contact_tel: "02-9888888#123", contact_mobile: "0912345678",
   mer_email: "cs@example.com", mer_name: "測試館A", mer_eng_name: "Test Villa A", mer_addr: "台北市信義區信義路1號",
-  mer_addr_post: "110", mer_desc: "民宿住宿服務；測試", mer_mcc: "7011", goods_rate: "0,100,0,0",
+  mer_addr_post: "110", mer_desc: "民宿住宿服務；測試", mer_mcc: "93", goods_rate: "0,100,0,0",
   payment: ["CREDIT", "ForeignCard", "ATM"], deliver_time: "1", escrow_type: "0", mer_unit_price: "5000",
 };
 
@@ -16,7 +16,7 @@ const CASES: Array<Record<string, unknown>> = [
   { member_email: "x@" }, { mer_eng_name: "Test 民宿" }, { mer_eng_name: "A".repeat(51) }, { mer_eng_name: "Tom's B&B (No.1)" },
   { mer_name: "一".repeat(21) }, { mer_addr_post: "1100" }, { goods_rate: "0,90,0,0" }, { goods_rate: "25,25,25,25" },
   { contact_tel: "", contact_mobile: "" }, { contact_tel: "029888888" }, { contact_mobile: "0812345678" },
-  { payment: [] }, { payment: "CREDIT,LinePay" }, { mer_unit_price: "0" }, { escrow_type: "2" }, { mer_mcc: "AB12" }, { mer_mcc: "000" }, { mer_mcc: "0000" }, { mer_mcc: "0" }, { mer_mcc: "0701" },
+  { payment: [] }, { payment: "CREDIT,LinePay" }, { mer_unit_price: "0" }, { escrow_type: "2" }, { mer_mcc: "AB12" }, { mer_mcc: "000" }, { mer_mcc: "0000" }, { mer_mcc: "0" }, { mer_mcc: "0701" }, { mer_mcc: "94" }, { mer_mcc: "1000" }, { mer_mcc: "abc" }, { mer_mcc: "7" },
   { ubn: "A12*****89" }, { ubn: "12***78" },
 ];
 
@@ -31,7 +31,12 @@ describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 
       .toEqual(back.buildBindPayload(FORM as any, "TEST0001", "https://booking.lakeze.com/a"));
     for (const v of [null, 1, 2, 8, 9, 91, 92, 99, 5]) expect(front.merStatusLabel(v)).toBe(back.merStatusLabel(v));
     for (const v of [null, 1, 5, 8, 9, 92, 99, 3]) expect(front.memberStatusLabel(v)).toBe(back.memberStatusLabel(v));
-    expect(front.validateBindForm({ ...FORM, mer_mcc: "000" } as any).mer_mcc).toBe("MCC 尚未設定");
+    expect(front.validateBindForm({ ...FORM, mer_mcc: "000" } as any).mer_mcc).toBe("MCC 格式不正確");
+    for (const m of ["93", "94"]) expect(front.validateBindForm({ ...FORM, mer_mcc: m } as any).mer_mcc).toBeUndefined();
+    for (const m of ["0", "000", "1000", "abc"]) expect(front.validateBindForm({ ...FORM, mer_mcc: m } as any).mer_mcc).toBe("MCC 格式不正確");
+    expect(front.PAYUNI_DEFAULT_MCC).toBe("93");
+    expect(back.PAYUNI_DEFAULT_MCC).toBe("93");
+    expect(front.buildBindPayload(FORM as any, "TEST0001", "https://x").MerMCC).toBe(93);
     expect(front.nextMerId("TEST", ["TEST0009"])).toBe(back.nextMerId("TEST", ["TEST0009"]));
     expect(front.canSwitchToPayuni(1, { ATM: 1 })).toEqual(back.canSwitchToPayuni(1, { ATM: 1 }));
     expect(front.canSwitchToPayuni(9, {})).toEqual(back.canSwitchToPayuni(9, {}));
