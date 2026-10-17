@@ -28,3 +28,15 @@ ORDER BY tgname;
 SELECT (SELECT count(*) FROM public.accommodation_info_flags) AS n_flags,
        (SELECT count(*) FROM public.pricing_templates) AS n_tpl,
        (SELECT count(*) FROM public.accommodation_packages) AS n_pkg;
+
+-- 刪除檢查所需的引用欄位與 FK 行為（orders_package_id_fkey 應為 ON DELETE SET NULL）
+SELECT table_name, column_name FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND ((table_name = 'orders' AND column_name IN ('package_id', 'pricing_template_id'))
+    OR (table_name = 'order_rooms' AND column_name = 'template_id')
+    OR (table_name = 'owlting_room_type_group_members' AND column_name = 'rate_plan_template_id'))
+ORDER BY table_name, column_name;
+SELECT conname, pg_get_constraintdef(oid) AS def FROM pg_constraint
+WHERE conname IN ('orders_package_id_fkey', 'orders_pricing_template_id_fkey', 'order_rooms_template_id_fkey',
+                  'owlting_room_type_group_members_rate_plan_template_id_fkey')
+ORDER BY conname;

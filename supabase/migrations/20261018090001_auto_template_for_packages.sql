@@ -6,9 +6,10 @@
 --        房型：room_type_id = primary_room_type_id；room_type_ids = ARRAY[主房型]，沒有主房型寫 '{}'（NOT NULL，不可寫 NULL）
 --        價格：比照 save_package_tier_prices 的 package_original 同步（tier_prices 原價；沒有 tier_prices 用 original_price／sale_price）
 --   2. AFTER UPDATE OF primary_room_type_id：綁定專案 room_type_id 等於舊主房型或為 NULL 時，同步 room_type_id／room_type_ids
---   3. BEFORE DELETE：綁定專案若沒有被 orders.pricing_template_id、order_rooms.template_id、
---        owlting_room_type_group_members.rate_plan_template_id 引用就一併刪除；
---        有被引用的保留，由既有 FK（ON DELETE SET NULL）解除綁定
+--   3. BEFORE DELETE：方案已有訂單（orders.package_id），或綁定專案被 orders.pricing_template_id、
+--        order_rooms.template_id、owlting_room_type_group_members.rate_plan_template_id 引用 → 拒絕刪除
+--        （ERRCODE 23503「此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用」）；
+--        都沒有被引用 → 連同綁定專案一起刪除
 --   default_package_id 不加唯一索引（正式庫為非唯一 idx），一對一由 trigger 判斷
 -- precheck：docs/onboarding-1/precheck_20261018090001.sql
 -- postcheck：docs/onboarding-1/postcheck_20261018090001.sql
@@ -25,6 +26,21 @@ BEGIN
      OR to_regclass('public.order_rooms') IS NULL
      OR to_regclass('public.owlting_room_type_group_members') IS NULL THEN
     RAISE EXCEPTION 'PRECHECK 失敗：必要資料表不完整';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'package_id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'orders' AND column_name = 'pricing_template_id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'order_rooms' AND column_name = 'template_id'
+  ) OR NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'owlting_room_type_group_members' AND column_name = 'rate_plan_template_id'
+  ) THEN
+    RAISE EXCEPTION 'PRECHECK 失敗：刪除檢查所需的引用欄位不完整';
   END IF;
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
@@ -183,12 +199,20 @@ BEGIN
     RETURN OLD;
   END IF;
 
+  IF EXISTS (SELECT 1 FROM public.orders o WHERE o.package_id = OLD.id)
+     OR EXISTS (
+       SELECT 1 FROM public.pricing_templates t
+       WHERE t.default_package_id = OLD.id
+         AND (EXISTS (SELECT 1 FROM public.orders o WHERE o.pricing_template_id = t.id)
+              OR EXISTS (SELECT 1 FROM public.order_rooms r WHERE r.template_id = t.id)
+              OR EXISTS (SELECT 1 FROM public.owlting_room_type_group_members m WHERE m.rate_plan_template_id = t.id))
+     ) THEN
+    RAISE EXCEPTION '此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用' USING ERRCODE = '23503';
+  END IF;
+
   DELETE FROM public.pricing_templates t
   WHERE t.default_package_id = OLD.id
-    AND t.accommodation_id = OLD.accommodation_id
-    AND NOT EXISTS (SELECT 1 FROM public.orders o WHERE o.pricing_template_id = t.id)
-    AND NOT EXISTS (SELECT 1 FROM public.order_rooms r WHERE r.template_id = t.id)
-    AND NOT EXISTS (SELECT 1 FROM public.owlting_room_type_group_members m WHERE m.rate_plan_template_id = t.id);
+    AND t.accommodation_id = OLD.accommodation_id;
   RETURN OLD;
 END;
 $$;
@@ -250,6 +274,10 @@ BEGIN
     AND prosecdef;
   IF v_cnt <> 3 THEN
     RAISE EXCEPTION 'POSTCHECK 失敗：函式不是全部 SECURITY DEFINER（% / 3）', v_cnt;
+  END IF;
+  IF pg_get_functiondef('public.packages_auto_template_on_delete()'::regprocedure) NOT LIKE '%o.package_id = OLD.id%'
+     OR pg_get_functiondef('public.packages_auto_template_on_delete()'::regprocedure) NOT LIKE '%23503%' THEN
+    RAISE EXCEPTION 'POSTCHECK 失敗：刪除檢查函式內容不符（缺 orders.package_id 檢查或 ERRCODE 23503）';
   END IF;
 
   SELECT * INTO v_before FROM _onb1_tpl_before;

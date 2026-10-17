@@ -17,6 +17,10 @@ WHERE proname IN ('packages_auto_template_on_insert', 'packages_auto_template_on
                   'packages_auto_template_on_delete')
 ORDER BY proname;
 
+-- 刪除檢查：兩欄都應為 true
+SELECT pg_get_functiondef('public.packages_auto_template_on_delete()'::regprocedure) LIKE '%o.package_id = OLD.id%' AS checks_order_package,
+       pg_get_functiondef('public.packages_auto_template_on_delete()'::regprocedure) LIKE '%23503%' AS raises_23503;
+
 SELECT count(*) FILTER (WHERE auto_template_enabled) AS n_auto_on, count(*) AS n_flags
 FROM public.accommodation_info_flags;
 

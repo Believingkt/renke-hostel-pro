@@ -1,5 +1,6 @@
 -- rollback：20261018090001_auto_template_for_packages.sql
--- 移除三支 trigger、三個函式與 auto_template_enabled 欄位。
+-- 移除三支 trigger（含刪除方案前的訂單／OTA 引用檢查）、三個函式與 auto_template_enabled 欄位。
+-- rollback 後刪除方案回到原本行為：orders.package_id 由 FK 清成 NULL、專案由 FK 解除綁定。
 -- 已自動建立的專案（pricing_templates）屬於正常資料，不刪除；先列出供人工確認。
 BEGIN;
 

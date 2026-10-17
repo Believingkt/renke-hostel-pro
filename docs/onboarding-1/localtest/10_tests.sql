@@ -28,7 +28,7 @@ BEGIN
     GET DIAGNOSTICS v_n = ROW_COUNT;
     v_res := 'OK rows=' || v_n;
   EXCEPTION WHEN OTHERS THEN
-    v_res := 'ERR ' || SQLERRM;
+    v_res := 'ERR [' || SQLSTATE || '] ' || SQLERRM;
   END;
   RESET ROLE;
   PERFORM set_config('request.jwt.claims', '', true);
@@ -209,7 +209,11 @@ SELECT pg_temp.chk('M3-14 一對一：開關館每個方案剛好 1 筆綁定專
    LEFT JOIN public.pricing_templates t ON t.default_package_id = p.id
    WHERE p.accommodation_id = 'aaaaaaaa-0000-0000-0000-000000000001'));
 
--- 刪除：方案 3 的專案沒被引用 → 一併刪除；方案 1 的專案被奧丁丁群組引用、方案 2 的專案被訂單引用 → 保留並解除綁定
+-- 刪除（新規則，只限開關館）：方案有訂單（package_id）或綁定專案被訂單／order_rooms／奧丁丁群組引用 → 拒絕；都沒有 → 連同專案刪除
+INSERT INTO public.accommodation_packages (id, accommodation_id, name, sale_price, included_guest_count) VALUES
+  ('cccccccc-0000-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001', '有訂單的方案', 3000, 2),
+  ('cccccccc-0000-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000001', '沒有任何引用的方案', 3000, 2);
+
 INSERT INTO public.owlting_room_type_groups (id, accommodation_id, canonical_room_type_id, canonical_name)
 VALUES ('eeeeeeee-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001', '雙人房');
 INSERT INTO public.owlting_room_type_group_members (group_id, room_type_id, rate_plan_template_id, rate_plan_name)
@@ -219,39 +223,72 @@ FROM public.pricing_templates WHERE default_package_id = 'cccccccc-0000-0000-000
 CREATE TEMP TABLE t_tpl AS
 SELECT default_package_id AS pkg, id AS tpl FROM public.pricing_templates
 WHERE default_package_id IN ('cccccccc-0000-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000002',
-                             'cccccccc-0000-0000-0000-000000000003');
+                             'cccccccc-0000-0000-0000-000000000003', 'cccccccc-0000-0000-0000-000000000004',
+                             'cccccccc-0000-0000-0000-000000000005');
 
--- 訂單建在未開賣館會被 validate_order_insert 擋，這裡以既有 import 用的 bypass 旗標建立測試訂單
+-- 測試訂單：未開賣館會被 validate_order_insert 擋，以既有 import 用的 bypass 旗標建立
 SELECT set_config('app.bypass_inventory_check', 'on', true);
-INSERT INTO public.orders (accommodation_id, order_number, check_in_date, check_out_date, guest_name, guest_phone,
-                           total_price, final_price, order_source, pricing_template_id)
-SELECT 'aaaaaaaa-0000-0000-0000-000000000001', 'T-ONB1-1', '2026-12-01', '2026-12-02', '測試', '0912345678',
-       3000, 3000, 'manual', tpl
-FROM t_tpl WHERE pkg = 'cccccccc-0000-0000-0000-000000000002';
+INSERT INTO public.orders (id, accommodation_id, order_number, check_in_date, check_out_date, guest_name, guest_phone,
+                           total_price, final_price, order_source, package_id, pricing_template_id) VALUES
+  ('ffffffff-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'T-ONB1-1', '2026-12-01', '2026-12-02',
+   '刪除測試1', '0911000001', 3000, 3000, 'manual', 'cccccccc-0000-0000-0000-000000000004', NULL),
+  ('ffffffff-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'T-ONB1-2', '2026-12-03', '2026-12-04',
+   '刪除測試2', '0911000002', 3000, 3000, 'manual', NULL,
+   (SELECT tpl FROM t_tpl WHERE pkg = 'cccccccc-0000-0000-0000-000000000002')),
+  ('ffffffff-0000-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', 'T-ONB1-3', '2026-12-05', '2026-12-06',
+   '刪除測試3', '0911000003', 3000, 3000, 'manual', NULL, NULL);
+INSERT INTO public.order_rooms (order_id, room_type_id, template_id)
+SELECT 'ffffffff-0000-0000-0000-000000000003', 'bbbbbbbb-0000-0000-0000-000000000001', tpl
+FROM t_tpl WHERE pkg = 'cccccccc-0000-0000-0000-000000000003';
 SELECT set_config('app.bypass_inventory_check', '', true);
 
-SELECT pg_temp.chk('M3-15 hotel_admin 刪除方案 1、2、3', 'OK rows=3',
-  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated', $$
-    DELETE FROM public.accommodation_packages WHERE id IN ('cccccccc-0000-0000-0000-000000000001',
-      'cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000003')$$));
-SELECT pg_temp.chk('M3-16 未被引用的專案（方案 3）一併刪除', '0',
-  (SELECT count(*)::text FROM public.pricing_templates t JOIN t_tpl ON t_tpl.tpl = t.id
-   WHERE t_tpl.pkg = 'cccccccc-0000-0000-0000-000000000003'));
-SELECT pg_temp.chk('M3-17 被奧丁丁群組引用的專案（方案 1）保留、解除綁定、群組成員仍在', '1|NULL|1',
-  (SELECT count(*) || '|' || coalesce(max(t.default_package_id::text), 'NULL') || '|'
-          || (SELECT count(*) FROM public.owlting_room_type_group_members m
-              JOIN t_tpl x ON x.tpl = m.rate_plan_template_id WHERE x.pkg = 'cccccccc-0000-0000-0000-000000000001')
-   FROM public.pricing_templates t JOIN t_tpl ON t_tpl.tpl = t.id WHERE t_tpl.pkg = 'cccccccc-0000-0000-0000-000000000001'));
-SELECT pg_temp.chk('M3-18 被訂單引用的專案（方案 2）保留、解除綁定、訂單 pricing_template_id 不變', '1|NULL|1',
-  (SELECT count(*) || '|' || coalesce(max(t.default_package_id::text), 'NULL') || '|'
-          || (SELECT count(*) FROM public.orders o
-              JOIN t_tpl x ON x.tpl = o.pricing_template_id WHERE x.pkg = 'cccccccc-0000-0000-0000-000000000002')
-   FROM public.pricing_templates t JOIN t_tpl ON t_tpl.tpl = t.id WHERE t_tpl.pkg = 'cccccccc-0000-0000-0000-000000000002'));
+SELECT pg_temp.chk('M3-15 方案有訂單（orders.package_id）→ 拒絕刪除（23503）', 'ERR [23503] 此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用',
+  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000004'$$));
+SELECT pg_temp.chk('M3-15b 被擋後：方案、專案、訂單 package_id 都還在', '1|1|cccccccc-0000-0000-0000-000000000004',
+  (SELECT (SELECT count(*) FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000004') || '|'
+       || (SELECT count(*) FROM public.pricing_templates WHERE default_package_id = 'cccccccc-0000-0000-0000-000000000004') || '|'
+       || (SELECT package_id::text FROM public.orders WHERE id = 'ffffffff-0000-0000-0000-000000000001')));
 
-DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000009';
-SELECT pg_temp.chk('M3-19 未開開關的館刪除方案：手動專案保留並解除綁定（既有 FK 行為）', '1|NULL',
-  (SELECT count(*) || '|' || coalesce(max(default_package_id::text), 'NULL')
-   FROM public.pricing_templates WHERE id = 'dddddddd-0000-0000-0000-000000000009'));
+SELECT pg_temp.chk('M3-16 綁定專案被訂單 pricing_template_id 引用 → 拒絕刪除', 'ERR [23503] 此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用',
+  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000002'$$));
+
+SELECT pg_temp.chk('M3-17 綁定專案被 order_rooms.template_id 引用 → 拒絕刪除', 'ERR [23503] 此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用',
+  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000003'$$));
+
+SELECT pg_temp.chk('M3-18 綁定專案被奧丁丁群組引用 → 拒絕刪除', 'ERR [23503] 此方案已有訂單或已用於 OTA 對應，無法刪除，請改為停用',
+  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000001'$$));
+SELECT pg_temp.chk('M3-18b 被擋的方案 1～4 與其專案全部還在', '4|4',
+  (SELECT (SELECT count(*) FROM public.accommodation_packages WHERE id IN ('cccccccc-0000-0000-0000-000000000001',
+            'cccccccc-0000-0000-0000-000000000002', 'cccccccc-0000-0000-0000-000000000003', 'cccccccc-0000-0000-0000-000000000004')) || '|'
+       || (SELECT count(*) FROM public.pricing_templates t JOIN t_tpl ON t_tpl.tpl = t.id
+           WHERE t_tpl.pkg <> 'cccccccc-0000-0000-0000-000000000005')));
+
+SELECT pg_temp.chk('M3-19 沒有任何引用的方案 → 可刪除', 'OK rows=1',
+  pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000005'$$));
+SELECT pg_temp.chk('M3-19b 方案與綁定專案一起刪除', '0|0',
+  (SELECT (SELECT count(*) FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000005') || '|'
+       || (SELECT count(*) FROM public.pricing_templates t JOIN t_tpl ON t_tpl.tpl = t.id
+           WHERE t_tpl.pkg = 'cccccccc-0000-0000-0000-000000000005')));
+
+-- 沒開開關的館（B）：方案 9 有訂單、也有手動綁定專案 → 維持原本行為（可刪，FK 清空 package_id、專案解除綁定）
+SELECT set_config('app.bypass_inventory_check', 'on', true);
+INSERT INTO public.orders (id, accommodation_id, order_number, check_in_date, check_out_date, guest_name, guest_phone,
+                           total_price, final_price, order_source, package_id)
+VALUES ('ffffffff-0000-0000-0000-000000000009', 'aaaaaaaa-0000-0000-0000-000000000002', 'T-ONB1-9', '2026-12-07', '2026-12-08',
+        '刪除測試9', '0911000009', 3000, 3000, 'manual', 'cccccccc-0000-0000-0000-000000000009');
+SELECT set_config('app.bypass_inventory_check', '', true);
+SELECT pg_temp.chk('M3-19c 沒開開關的館：有訂單的方案照樣可刪（原本行為）', 'OK rows=1',
+  pg_temp.run_as(NULL, 'owner',
+    $$DELETE FROM public.accommodation_packages WHERE id = 'cccccccc-0000-0000-0000-000000000009'$$));
+SELECT pg_temp.chk('M3-19d 沒開開關的館：訂單 package_id 清成 NULL、手動專案保留並解除綁定（原本 FK 行為）', 'NULL|1|NULL',
+  (SELECT coalesce((SELECT package_id::text FROM public.orders WHERE id = 'ffffffff-0000-0000-0000-000000000009'), 'NULL') || '|'
+       || (SELECT count(*) FROM public.pricing_templates WHERE id = 'dddddddd-0000-0000-0000-000000000009') || '|'
+       || coalesce((SELECT default_package_id::text FROM public.pricing_templates WHERE id = 'dddddddd-0000-0000-0000-000000000009'), 'NULL')));
 
 SELECT pg_temp.chk('M3-20 一般登入者不能直接呼叫 trigger 函式', 'ERR %',
   pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'authenticated',
@@ -310,19 +347,19 @@ SELECT pg_temp.chk('C-06 複製館專案沒有任何 default_package_id', '0',
    WHERE accommodation_id = 'aaaaaaaa-0000-0000-0000-0000000000c9' AND default_package_id IS NOT NULL));
 
 -- ============================= 現況（M1 不施工）：validate_order_insert 既有開賣閘門 =============================
-SELECT pg_temp.chk('O-01 未開賣館：官網匿名 website 單（只驗 trigger）', 'ERR 此民宿不存在或已停用%',
+SELECT pg_temp.chk('O-01 未開賣館：官網匿名 website 單（只驗 trigger）', 'ERR %此民宿不存在或已停用%',
   pg_temp.run_as(NULL, 'owner', $$INSERT INTO public.orders (accommodation_id, order_number, check_in_date, check_out_date,
     guest_name, guest_phone, total_price, final_price, order_source) VALUES ('aaaaaaaa-0000-0000-0000-000000000001', '',
     '2027-01-01', '2027-01-02', '現況測試1', '0900000010', 3000, 3000, 'website')$$));
-SELECT pg_temp.chk('O-02 未開賣館：後台人員 manual 單', 'ERR 此民宿不存在或已停用%',
+SELECT pg_temp.chk('O-02 未開賣館：後台人員 manual 單', 'ERR %此民宿不存在或已停用%',
   pg_temp.run_as('00000000-0000-0000-0000-0000000000a3', 'owner', $$INSERT INTO public.orders (accommodation_id, order_number,
     check_in_date, check_out_date, guest_name, guest_phone, total_price, final_price, order_source)
     VALUES ('aaaaaaaa-0000-0000-0000-000000000001', '', '2027-01-02', '2027-01-03', '現況測試2', '0900000020', 3000, 3000, 'manual')$$));
-SELECT pg_temp.chk('O-03 未開賣館：系統身分 owlting 單（現況同樣被擋，OTA 例外列後續待辦）', 'ERR 此民宿不存在或已停用%',
+SELECT pg_temp.chk('O-03 未開賣館：系統身分 owlting 單（現況同樣被擋，OTA 例外列後續待辦）', 'ERR %此民宿不存在或已停用%',
   pg_temp.run_as(NULL, 'service_role', $$INSERT INTO public.orders (accommodation_id, order_number, check_in_date, check_out_date,
     guest_name, guest_phone, total_price, final_price, order_source) VALUES ('aaaaaaaa-0000-0000-0000-000000000001', '',
     '2027-01-03', '2027-01-04', '現況測試3', '0900000030', 3000, 3000, 'owlting')$$));
-SELECT pg_temp.chk('O-04 accommodation_id 為 NULL（現況被擋）', 'ERR 此民宿不存在或已停用%',
+SELECT pg_temp.chk('O-04 accommodation_id 為 NULL（現況被擋）', 'ERR %此民宿不存在或已停用%',
   pg_temp.run_as(NULL, 'service_role', $$INSERT INTO public.orders (accommodation_id, order_number, check_in_date, check_out_date,
     guest_name, guest_phone, total_price, final_price, order_source) VALUES (NULL, '',
     '2026-12-01', '2026-12-02', '測試', '0912345678', 3000, 3000, 'website')$$));
