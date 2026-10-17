@@ -387,3 +387,9 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.fin-line-callback]
     verify_jwt = false
+  [functions.payuni-merchant-bind]
+    verify_jwt = false
+  [functions.payuni-merchant-status]
+    verify_jwt = false
+  [functions.payuni-agent-notify]
+    verify_jwt = false

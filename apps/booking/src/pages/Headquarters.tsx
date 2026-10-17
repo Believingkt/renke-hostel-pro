@@ -1264,6 +1264,7 @@ const Headquarters = () => {
         case 'api-keys': return '民宿 API Keys';
         case 'owlting': return '奧丁丁服務帳號';
         case 'owlting-config': return '奧丁丁物業設定';
+        case 'payuni': return 'PAYUNi 金流';
         case 'owlting-push': return '奧丁丁推送監控';
         case 'hotelnabe-verify': return '旭海房型驗證';
       }
@@ -1304,6 +1305,7 @@ const Headquarters = () => {
         case 'api-keys': return FileText;
         case 'owlting': return Plug;
         case 'owlting-config': return Plug;
+        case 'payuni': return Plug;
         case 'owlting-push': return Activity;
         case 'hotelnabe-verify': return Plug;
       }
@@ -1344,6 +1346,7 @@ const Headquarters = () => {
         case 'api-keys': return '為各民宿產生 API 金鑰，供其後端系統呼叫';
         case 'owlting': return '管理奧丁丁通路 SOAP API 共用的 WS-Security 服務帳號';
         case 'owlting-config': return '管理各物業的奧丁丁 Hotel Code、訂單即時同步開關，並檢視房型 / 方案代碼與價格範本對應';
+        case 'payuni': return '建立 PAYUNi 合作商店、同步審核狀態與切換各館金流（僅 super_admin）';
         case 'owlting-push': return '監控奧丁丁訂單推送佇列、成功率與失敗紀錄';
         case 'hotelnabe-verify': return '一鍵向旭海正式環境拉房型清單，與我方 numeric_code 比對（唯讀）';
       }

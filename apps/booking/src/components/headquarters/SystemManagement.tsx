@@ -39,6 +39,7 @@ import { LegalDocumentsManagement } from "@/components/headquarters/LegalDocumen
 
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
+import { PayuniMerchantManagement } from "@/components/headquarters/PayuniMerchantManagement";
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { HotelNabePushInventory } from "@/components/headquarters/HotelNabePushInventory";
 import { HotelNabeInboundLog } from "@/components/headquarters/HotelNabeInboundLog";
@@ -997,6 +998,10 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
 
         <TabsContent value="owlting-config" className="space-y-4">
           <OwlTingAccommodationConfig />
+        </TabsContent>
+
+        <TabsContent value="payuni" className="space-y-4">
+          <PayuniMerchantManagement />
         </TabsContent>
 
         <TabsContent value="owlting-push" className="space-y-4">

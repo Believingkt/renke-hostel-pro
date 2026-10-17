@@ -537,6 +537,14 @@ export type Database = {
           longitude: number | null
           meta_keywords: string | null
           name: string
+          payment_provider_active: string
+          payuni_applied_at: string | null
+          payuni_mer_eng_name: string | null
+          payuni_mer_id: string | null
+          payuni_mer_status: number | null
+          payuni_member_status: number | null
+          payuni_payment_tools: Json | null
+          payuni_status_synced_at: string | null
           nearby_station: string | null
           og_description: string | null
           og_image_url: string | null
@@ -646,6 +654,14 @@ export type Database = {
           longitude?: number | null
           meta_keywords?: string | null
           name: string
+          payment_provider_active?: string
+          payuni_applied_at?: string | null
+          payuni_mer_eng_name?: string | null
+          payuni_mer_id?: string | null
+          payuni_mer_status?: number | null
+          payuni_member_status?: number | null
+          payuni_payment_tools?: Json | null
+          payuni_status_synced_at?: string | null
           nearby_station?: string | null
           og_description?: string | null
           og_image_url?: string | null
@@ -755,6 +771,14 @@ export type Database = {
           longitude?: number | null
           meta_keywords?: string | null
           name?: string
+          payment_provider_active?: string
+          payuni_applied_at?: string | null
+          payuni_mer_eng_name?: string | null
+          payuni_mer_id?: string | null
+          payuni_mer_status?: number | null
+          payuni_member_status?: number | null
+          payuni_payment_tools?: Json | null
+          payuni_status_synced_at?: string | null
           nearby_station?: string | null
           og_description?: string | null
           og_image_url?: string | null
@@ -1267,6 +1291,47 @@ export type Database = {
             foreignKeyName: "accommodation_partnership_periods_accommodation_id_fkey"
             columns: ["accommodation_id"]
             isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accommodation_payuni_private: {
+        Row: {
+          accommodation_id: string
+          created_at: string
+          payuni_legal_name: string | null
+          payuni_member_email: string | null
+          payuni_settings: Json
+          payuni_status_reason: string | null
+          payuni_ubn: string | null
+          updated_at: string
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string
+          payuni_legal_name?: string | null
+          payuni_member_email?: string | null
+          payuni_settings?: Json
+          payuni_status_reason?: string | null
+          payuni_ubn?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string
+          payuni_legal_name?: string | null
+          payuni_member_email?: string | null
+          payuni_settings?: Json
+          payuni_status_reason?: string | null
+          payuni_ubn?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accommodation_payuni_private_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: true
             referencedRelation: "accommodation_info"
             referencedColumns: ["id"]
           },
@@ -9670,6 +9735,84 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_transactions: {
+        Row: {
+          accommodation_id: string
+          amount: number
+          auth_code: string | null
+          card_first6: string | null
+          card_last4: string | null
+          created_at: string | null
+          id: string
+          kind: string
+          mer_id: string | null
+          mer_trade_no: string
+          notified_at: string | null
+          order_id: string
+          payment_type: number | null
+          provider: string
+          provider_trade_no: string | null
+          raw_response: Json | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          amount: number
+          auth_code?: string | null
+          card_first6?: string | null
+          card_last4?: string | null
+          created_at?: string | null
+          id?: string
+          kind: string
+          mer_id?: string | null
+          mer_trade_no: string
+          notified_at?: string | null
+          order_id: string
+          payment_type?: number | null
+          provider: string
+          provider_trade_no?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          amount?: number
+          auth_code?: string | null
+          card_first6?: string | null
+          card_last4?: string | null
+          created_at?: string | null
+          id?: string
+          kind?: string
+          mer_id?: string | null
+          mer_trade_no?: string
+          notified_at?: string | null
+          order_id?: string
+          payment_type?: number | null
+          provider?: string
+          provider_trade_no?: string | null
+          raw_response?: Json | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_accommodation_id_fkey"
+            columns: ["accommodation_id"]
+            isOneToOne: false
+            referencedRelation: "accommodation_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_audit_actions: {
         Row: {
           accommodation_id: string | null
@@ -9848,6 +9991,86 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      payuni_merchant_applications: {
+        Row: {
+          accommodation_id: string
+          created_at: string | null
+          id: string
+          mer_id: string
+          request_snapshot: Json
+          response_message: string | null
+          response_status: string | null
+          submitted_by: string | null
+        }
+        Insert: {
+          accommodation_id: string
+          created_at?: string | null
+          id?: string
+          mer_id: string
+          request_snapshot: Json
+          response_message?: string | null
+          response_status?: string | null
+          submitted_by?: string | null
+        }
+        Update: {
+          accommodation_id?: string
+          created_at?: string | null
+          id?: string
+          mer_id?: string
+          request_snapshot?: Json
+          response_message?: string | null
+          response_status?: string | null
+          submitted_by?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      payuni_notify_events: {
+        Row: {
+          created_at: string | null
+          decrypted: Json | null
+          execute_time: string | null
+          hash_valid: boolean
+          id: string
+          mer_id: string | null
+          notify_type: string | null
+          payload_raw: Json
+          process_error: string | null
+          processed: boolean
+          source: string
+          trade_no: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          decrypted?: Json | null
+          execute_time?: string | null
+          hash_valid: boolean
+          id?: string
+          mer_id?: string | null
+          notify_type?: string | null
+          payload_raw: Json
+          process_error?: string | null
+          processed?: boolean
+          source: string
+          trade_no?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          decrypted?: Json | null
+          execute_time?: string | null
+          hash_valid?: boolean
+          id?: string
+          mer_id?: string | null
+          notify_type?: string | null
+          payload_raw?: Json
+          process_error?: string | null
+          processed?: boolean
+          source?: string
+          trade_no?: string | null
+        }
+        Relationships: [
         ]
       }
       pending_paid_order_drafts: {

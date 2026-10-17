@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { PaymentAuditResolveDialog, type ResolveTarget } from "@/components/admin/PaymentAuditResolveDialog";
 import { PaymentAuditActionLog } from "@/components/admin/PaymentAuditActionLog";
+import { PayuniStatusCard } from "@/components/admin/PayuniStatusCard";
 
 
 
@@ -311,6 +312,7 @@ export default function PaymentAudit() {
       }
       spacing="tight"
     >
+      <PayuniStatusCard accommodationId={currentAccommodationId} />
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">

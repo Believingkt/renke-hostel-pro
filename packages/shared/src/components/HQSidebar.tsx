@@ -145,6 +145,7 @@ const menuItems = [
       { title: "PMS API 金鑰", url: "/hq/pms-api-keys", icon: FileText },
       { title: "奧丁丁服務帳號", url: "/hq?tab=system&section=owlting", icon: FileText },
       { title: "奧丁丁物業設定", url: "/hq?tab=system&section=owlting-config", icon: FileText },
+      { title: "PAYUNi 金流", url: "/hq?tab=system&section=payuni", icon: FileText },
       { title: "奧丁丁推送監控", url: "/hq?tab=system&section=owlting-push", icon: Activity },
       { title: "旭海房型驗證", url: "/hq?tab=system&section=hotelnabe-verify", icon: Activity },
       { title: "旭海收訂單記錄", url: "/hq?tab=system&section=hotelnabe-inbound", icon: Inbox },
