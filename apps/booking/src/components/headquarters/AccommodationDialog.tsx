@@ -421,7 +421,7 @@ export function AccommodationDialog({
 
       setDepositPercentage(value);
       savedDepositRef.current = value;
-      toast.success(`訂金比例已更新為 ${value}%`);
+      toast.success(`ATM 訂金比例已更新為 ${value}%`);
     } catch (error: any) {
       console.error("Error updating deposit percentage:", error);
       toast.error("更新失敗", { description: error.message });
@@ -1090,7 +1090,7 @@ export function AccommodationDialog({
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-2">
                                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                  <span className="font-medium text-sm">訂金比例</span>
+                                  <span className="font-medium text-sm">ATM 訂金比例</span>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   線上付款時收取的訂金百分比

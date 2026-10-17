@@ -10,7 +10,7 @@ export const SWEEP_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 /** 與 packages/shared/src/utils/paymentDomain.ts 的 LIVE_DOMAINS 相同（Vitest 比對） */
 export const PAYUNI_LIVE_DOMAINS = ["booking.lakeze.com", "hq.lakeze.com", "renke-hostel-pro.lovable.app"];
-const SANDBOX_HOST_RE = /(^localhost$)|(\.preview\.emergentagent\.com$)|(\.emergentagent\.com$)|(\.lovable\.app$)|(\.lovableproject\.com$)/;
+const SANDBOX_HOST_RE = /(^localhost$)|(\.emergentagent\.com$)/;
 
 /** IFrameDomain：只接受 https 且在允許清單（sandbox 另允許預覽網域；localhost 可 http） */
 export function resolveIframeDomain(origin: string | null | undefined, env: string, accDomains: string[] = []): string | null {
@@ -80,8 +80,9 @@ export interface TxRow {
 
 const nowIso = () => new Date().toISOString();
 
-async function updateTx(admin: any, id: string, values: Record<string, unknown>) {
-  const { error } = await admin.from("payment_transactions").update({ ...values, updated_at: nowIso() }).eq("id", id);
+export async function updateTx(admin: any, id: string, values: Record<string, unknown>) {
+  // 已 paid 的交易不可被改成 failed／cancelled／unknown／expired
+  const { error } = await admin.from("payment_transactions").update({ ...values, updated_at: nowIso() }).eq("id", id).neq("status", "paid");
   if (error) throw new Error(`payment_transactions update failed: ${error.message}`);
 }
 
@@ -92,6 +93,11 @@ export async function applyPayuniTradeResult(deps: TradeDeps, tx: TxRow, data: R
   const raw: Record<string, any> = { ...(tx.raw_response ?? {}), last_status: data.Status ?? null, last_message: data.Message ?? null, trade_status: ts };
   delete raw.sdk_token;
 
+  if (ts === "1" && (data.TradeAmt == null || String(data.TradeAmt).trim() === "")) {
+    // 缺 TradeAmt 不入帳，等 Notify 或 sweep
+    await updateTx(deps.admin, tx.id, { raw_response: { ...raw, awaiting_notify: true } });
+    return { status: tx.status, changed: false };
+  }
   if (ts === "1") {
     const paidAmt = Number(data.TradeAmt);
     const fields = {

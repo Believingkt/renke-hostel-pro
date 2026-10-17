@@ -1,13 +1,14 @@
 // PAYUNi W2 測試用的極簡 Supabase client 假物件（記憶體資料表；只實作 handler 用到的鏈式方法）
 // deno-lint-ignore-file no-explicit-any
 type Row = Record<string, any>;
-type Filter = { op: "eq" | "neq" | "like" | "in" | "gte"; col: string; val: any };
+type Filter = { op: "eq" | "neq" | "like" | "in" | "gte" | "notnull"; col: string; val: any };
 
 const match = (r: Row, fs: Filter[]) =>
   fs.every((f) => f.op === "eq" ? r[f.col] === f.val
     : f.op === "neq" ? r[f.col] !== f.val
     : f.op === "in" ? (f.val as any[]).includes(r[f.col])
     : f.op === "gte" ? String(r[f.col]) >= String(f.val)
+    : f.op === "notnull" ? (() => { const [c, k] = f.col.split("->>"); const v = k ? r[c]?.[k] : r[c]; return v != null; })()
     : typeof r[f.col] === "string" && r[f.col].startsWith(String(f.val).replace(/%$/, "")));
 
 const NOTIFY_KEY = (r: Row) =>
@@ -82,6 +83,7 @@ export class FakeDb {
           like(col: string, val: any) { filters.push({ op: "like", col, val }); return q; },
           neq(col: string, val: any) { filters.push({ op: "neq", col, val }); return q; },
           in(col: string, val: any[]) { filters.push({ op: "in", col, val }); return q; },
+          not(col: string, _op: string, _val: null) { filters.push({ op: "notnull", col, val: null }); return q; },
           gte(col: string, val: any) { filters.push({ op: "gte", col, val }); return q; },
           order() { return q; },
           limit() { return q; },

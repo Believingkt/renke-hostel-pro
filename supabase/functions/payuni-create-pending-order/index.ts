@@ -109,6 +109,7 @@ Deno.serve(async (req) => {
       deposit_payment_method: "credit_card",
       balance_payment_method: null,
       payment_method: PAYUNI_PAYMENT_METHOD,
+      room_charge_rec_trade_id: null,
       payment_status: "pending_payment",
       paid_amount: 0,
       order_status: "pending",

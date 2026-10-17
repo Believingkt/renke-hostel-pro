@@ -198,6 +198,8 @@ import {
 } from "@lakeze/shared/lib/packageDatePrice";
 import FraudPreventionNotice from "@/components/common/FraudPreventionNotice";
 import TermsConsentText from "@/components/common/TermsConsentText";
+import { PayuniCardFields } from "@/components/payment/PayuniCardFields";
+import { Dialog as PayuniDialog, DialogContent as PayuniDialogContent, DialogHeader as PayuniDialogHeader, DialogTitle as PayuniDialogTitle, DialogDescription as PayuniDialogDescription } from "@lakeze/shared/components/ui/dialog";
 
 
 type BookingStep = "dates" | "room" | "addons" | "guest" | "payment" | "confirm";
@@ -307,6 +309,9 @@ const BookingFlow = () => {
   const [accommodationLineId, setAccommodationLineId] = useState<string | null>(null);
   const [allowCreditCard, setAllowCreditCard] = useState(true);
   const [chargeCardImmediately, setChargeCardImmediately] = useState(false);
+  // PAYUNi 館：信用卡一律全額、先建待付款單再刷卡（不提供「先綁卡、入住日扣款」）
+  const [isPayuniCard, setIsPayuniCard] = useState(false);
+  const [payuniPendingOrder, setPayuniPendingOrder] = useState<string | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [roomPricing, setRoomPricing] = useState<Record<string, number>>({});
   
@@ -845,7 +850,7 @@ const BookingFlow = () => {
       try {
         const { data: infoData } = await supabase
           .from("accommodation_info")
-          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately")
+          .select("name, line_id, header_logo_url, child_age_rules, allow_credit_card_payment, charge_card_immediately, payment_provider_active")
           .eq("id", accommodationId)
           .single();
         
@@ -854,7 +859,9 @@ const BookingFlow = () => {
           setAccommodationLineId(infoData.line_id);
           setAccommodationLogo(infoData.header_logo_url);
           setAllowCreditCard((infoData as any).allow_credit_card_payment !== false);
-          setChargeCardImmediately((infoData as any).charge_card_immediately === true);
+          const payuni = (infoData as any).payment_provider_active === "payuni";
+          setIsPayuniCard(payuni);
+          setChargeCardImmediately(payuni || (infoData as any).charge_card_immediately === true);
           setChildRules(parseChildAgeRules((infoData as any).child_age_rules));
           setIsAccommodationLoaded(true);
         }
@@ -2777,7 +2784,7 @@ const BookingFlow = () => {
 
 
     // 如果選擇信用卡，驗證 TapPay 卡片狀態 + 先取得 prime（避免 confirm 步驟欄位卸載）
-    if (currentStep === "payment" && needsCardForm) {
+    if (currentStep === "payment" && needsCardForm && !isPayuniCard) {
       const isDepositCardOnly = false;
       // 標記已嘗試送出，之後欄位下方才會顯示錯誤
       setCardSubmitAttempted(true);
@@ -3337,7 +3344,7 @@ const BookingFlow = () => {
           console.log('Binding credit card (no charge until check-in)...');
 
           const prime = tappayPrime;
-          if (!prime || isPrimeExpired()) {
+          if (!isPayuniCard && (!prime || isPrimeExpired())) {
             toast({
               title: "付款授權已過期",
               description: "TapPay 授權有效期 90 秒已逾時，請回到付款步驟重新輸入信用卡資訊",
@@ -3384,6 +3391,22 @@ const BookingFlow = () => {
             nights,
             attributionSessionId: getAnalyticsSessionId(),
           };
+
+          // PAYUNi 館：後端驗價建待付款單，再於對話框中以 UNi Embed 刷卡
+          if (isPayuniCard) {
+            const { data: pend, error: pendErr } = await supabase.functions.invoke('payuni-create-pending-order', { body: orderPayload });
+            if (pendErr || !pend?.success || !pend?.order?.order_number) {
+              let msg = pend?.message || '建立訂單失敗，請稍後再試';
+              try { const j = await (pendErr as any)?.context?.json?.(); if (j?.message) msg = j.message; } catch { /* ignore */ }
+              toast({ title: '預訂失敗', description: msg, variant: 'destructive' });
+            } else {
+              setPayuniPendingOrder(pend.order.order_number);
+            }
+            setIsProcessingPayment(false);
+            submittingRef.current = false;
+            setIsSubmitting(false);
+            return;
+          }
 
           // 立即請款：走 TapPay 3D 驗證（正式商店代號不接受免 3DS 直接請款，會回 10023）
           if (chargeCardImmediately) {
@@ -4293,6 +4316,22 @@ const BookingFlow = () => {
 
   return (
     <div className={`min-h-screen bg-background ${themeClass}`}>
+      <PayuniDialog open={!!payuniPendingOrder} onOpenChange={() => { /* 付款中不可關閉；逾時由系統取消 */ }}>
+        <PayuniDialogContent data-testid="payuni-pay-dialog" onInteractOutside={(e) => e.preventDefault()}>
+          <PayuniDialogHeader>
+            <PayuniDialogTitle>信用卡付款</PayuniDialogTitle>
+            <PayuniDialogDescription>訂單 {payuniPendingOrder} 已保留，請於 30 分鐘內完成付款。</PayuniDialogDescription>
+          </PayuniDialogHeader>
+          {payuniPendingOrder && (
+            <PayuniCardFields
+              orderNumber={payuniPendingOrder}
+              purpose="booking"
+              onPaid={(tx) => navigate(`/payment-result?order=${encodeURIComponent(payuniPendingOrder)}&tx=${encodeURIComponent(tx)}`)}
+              onPending={(tx) => navigate(`/payment-result?order=${encodeURIComponent(payuniPendingOrder)}&tx=${encodeURIComponent(tx)}`)}
+            />
+          )}
+        </PayuniDialogContent>
+      </PayuniDialog>
       {/* Header */}
       <header data-site-chrome className="sticky top-0 z-50 safe-top bg-white/95 backdrop-blur border-b border-border">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -5412,8 +5451,15 @@ const BookingFlow = () => {
                           );
                         })}
 
+                        {orderPaymentType === "credit_card" && isPayuniCard && (
+                          <div className="mt-4 p-4 border rounded-lg bg-card space-y-1" data-testid="payuni-card-notice">
+                            <p className="text-sm font-medium text-foreground">全額付款 NT$ {calculateFinalTotal().toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">送出訂單後，將於下一步輸入信用卡資料完成付款（PAYUNi 統一金流加密處理）。</p>
+                            <p className="text-xs text-muted-foreground">{FULL_PREPAYMENT_CHARGE_NOTICE}</p>
+                          </div>
+                        )}
                         {/* TapPay 信用卡表單 */}
-                        {orderPaymentType === "credit_card" && (
+                        {orderPaymentType === "credit_card" && !isPayuniCard && (
                           <div className="mt-4 p-4 border rounded-lg bg-card">
                             <div className="mb-3">
                               <p className="text-sm font-medium text-foreground mb-1">請輸入信用卡資訊{chargeCardImmediately ? "" : "（現在不會扣款）"}</p>

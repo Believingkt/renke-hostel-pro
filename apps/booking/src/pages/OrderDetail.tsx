@@ -1938,6 +1938,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     const methodMap: Record<string, string> = {
       credit_card: "信用卡",
       credit_card_3ds: "信用卡",
+      credit_card_payuni: "信用卡(PAYUNi)",
       atm: "ATM 虛擬帳號",
       line_pay: "LINE Pay",
       bank_transfer: "轉帳匯款",

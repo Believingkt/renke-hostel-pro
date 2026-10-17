@@ -2,7 +2,7 @@
 // deno-lint-ignore-file no-explicit-any
 import type { PayuniCall, PayuniResult, ParseNotifyResult } from "./payuni.ts";
 import {
-  applyPayuniTradeResult, inSweepWindow, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
+  applyPayuniTradeResult, inSweepWindow, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
   resolveChargeAmount, resolveIframeDomain, SWEEP_MAX_AGE_MS, TOKEN_TTL_MS, type TradeDeps, type TxRow,
 } from "./payuniTrade.ts";
 import { PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
@@ -82,8 +82,10 @@ export async function handleCardCharge(deps: PayuniTradeDeps, body: any, forward
   const tx = await loadTx(deps.admin, merTradeNo);
   if (!tx || tx.status !== "pending") return res(409, { ok: false, code: "INVALID_STATE" });
   const raw = tx.raw_response ?? {};
+  const cleared = { ...raw };
+  delete cleared.sdk_token;
   if (isTokenExpired(tx.created_at, now) || !raw.sdk_token) {
-    await deps.admin.from("payment_transactions").update({ status: "expired", raw_response: { ...raw, sdk_token: undefined } }).eq("id", tx.id);
+    await updateTx(deps.admin, tx.id, { status: "expired", raw_response: cleared });
     return res(200, { ok: false, code: "TOKEN_EXPIRED" });
   }
   const { data: order } = await deps.admin.from("orders").select(ORDER_COLS).eq("id", tx.order_id).maybeSingle();
@@ -97,10 +99,12 @@ export async function handleCardCharge(deps: PayuniTradeDeps, body: any, forward
   };
   if (order.guest_email) payload.UsrMail = order.guest_email;
   if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) payload.UserIP = ip;
-  // 呼叫前先清 sdk_token（Token 只能用一次）
-  const cleared = { ...raw };
-  delete cleared.sdk_token;
-  await deps.admin.from("payment_transactions").update({ raw_response: cleared }).eq("id", tx.id);
+  // 搶佔：仍為 pending 且 sdk_token 尚在才清掉並繼續；同時送出的另一個請求搶不到 → 409（Token 只能用一次）
+  const { data: claimed, error: claimErr } = await deps.admin.from("payment_transactions")
+    .update({ raw_response: cleared, updated_at: new Date(now).toISOString() })
+    .eq("id", tx.id).eq("status", "pending").not("raw_response->>sdk_token", "is", null).select("id").maybeSingle();
+  if (claimErr) throw new Error(`payment_transactions claim failed: ${claimErr.message}`);
+  if (!claimed) return res(409, { ok: false, code: "INVALID_STATE" });
   const r = await deps.callPayuni({ kind: "merchant", merId: tx.mer_id, path: "/api/iframe/merchant_trade", version: "1.0", payload });
   const d = r.data ?? {};
   if (r.ok && d.URL) return res(200, { ok: true, redirect_url: d.URL });
@@ -109,12 +113,10 @@ export async function handleCardCharge(deps: PayuniTradeDeps, body: any, forward
     return res(200, { ok: true, paid: true });
   }
   if (r.status === "UNKNOWN") {
-    await deps.admin.from("payment_transactions").update({ status: "unknown", raw_response: { ...cleared, last_status: r.status } }).eq("id", tx.id);
+    await updateTx(deps.admin, tx.id, { status: "unknown", raw_response: { ...cleared, last_status: r.status } });
     return res(200, { ok: true, pending: true });
   }
-  await deps.admin.from("payment_transactions").update({
-    status: "failed", raw_response: { ...cleared, last_status: r.status, last_message: r.message ?? null },
-  }).eq("id", tx.id);
+  await updateTx(deps.admin, tx.id, { status: "failed", raw_response: { ...cleared, last_status: r.status, last_message: r.message ?? null } });
   return res(200, { ok: false, message: r.message ?? "付款失敗" });
 }
 
@@ -194,8 +196,29 @@ export async function handleTradeQuery(
     if (!caller.isService) return res(403, { error: "Forbidden" });
     return res(200, await sweep(deps, now));
   }
+  if (body?.action === "list") {
+    // PaymentAudit：該館 PAYUNi 交易（金額異常、pending、unknown，近 30 天）
+    const accId = String(body?.accommodation_id ?? "");
+    if (!accId || (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(accId)))) return res(403, { error: "Forbidden" });
+    const { data } = await deps.admin.from("payment_transactions").select("mer_trade_no, amount, status, raw_response, created_at")
+      .eq("provider", "payuni").eq("accommodation_id", accId).gte("created_at", new Date(now - 30 * 86400000).toISOString());
+    const rows = (data ?? [])
+      .filter((t: any) => t.raw_response?.anomaly || t.status === "pending" || t.status === "unknown")
+      .map((t: any) => ({ mer_trade_no: t.mer_trade_no, amount: t.amount, status: t.status, anomaly: t.raw_response?.anomaly ?? null, created_at: t.created_at }))
+      .sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)));
+    return res(200, { ok: true, rows });
+  }
   const tx = await loadTx(deps.admin, String(body?.mer_trade_no ?? ""));
   if (!tx) return res(404, { error: "找不到交易" });
+  if (body?.action === "status") {
+    // 付款結果頁輪詢：只回狀態，不含個資（權限等級同 embed-token／card-charge）
+    const { data: o } = await deps.admin.from("orders").select("order_number, payment_status, order_status, final_price, paid_amount").eq("id", tx.order_id).maybeSingle();
+    if (!o || o.order_number !== String(body?.order_number ?? "")) return res(404, { error: "找不到交易" });
+    return res(200, {
+      tx_status: tx.status, payment_status: o.payment_status, order_status: o.order_status,
+      amount_due: resolveChargeAmount(o), accommodation_id: tx.accommodation_id,
+    });
+  }
   if (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(tx.accommodation_id))) return res(403, { error: "Forbidden" });
   return res(200, await queryAndApply(deps, tx, now));
 }
@@ -205,9 +228,11 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
   const { data: txs } = await deps.admin.from("payment_transactions").select("*")
     .eq("provider", "payuni").in("status", ["pending", "unknown"]).gte("created_at", since);
   const queryFailed = new Set<string>();
+  const queriedIds = new Set<string>();
   let queried = 0;
   for (const tx of (txs ?? []).filter((t: any) => inSweepWindow(t.created_at, now))) {
     queried++;
+    queriedIds.add(tx.id);
     try {
       const r = await queryAndApply(deps, tx, now);
       if (!r.ok) queryFailed.add(tx.order_id);
@@ -224,20 +249,37 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
   const cancelled: string[] = [];
   for (const o of orders ?? []) {
     if (queryFailed.has(o.id) || Number(o.paid_amount || 0) > 0) continue;
-    const { data: list } = await deps.admin.from("payment_transactions").select("id, status, created_at").eq("order_id", o.id).eq("provider", "payuni");
-    const all = list ?? [];
-    if (all.some((t: any) => t.status === "paid" || t.status === "unknown")) continue;
+    const loadList = async () => (await deps.admin.from("payment_transactions").select("*").eq("order_id", o.id).eq("provider", "payuni")).data ?? [];
+    let all = await loadList();
     const latest = all.map((t: any) => t.created_at).sort().pop() ?? o.created_at;
     if (!isPaymentTimedOut(latest, now)) continue;
+    // 取消前：本輪沒查過的 pending 交易（含 24 小時外）補查一次；查詢失敗就不取消
+    let skip = false;
+    for (const t of all.filter((t: any) => t.status === "pending" && !queriedIds.has(t.id))) {
+      try {
+        if (!(await queryAndApply(deps, t, now)).ok) skip = true;
+      } catch { skip = true; }
+    }
+    if (skip) continue;
+    all = await loadList();
+    if (all.some((t: any) => t.status === "paid" || t.status === "unknown")) continue;
+    const { data: fresh } = await deps.admin.from("orders").select("id, notes, payment_status, order_status, paid_amount").eq("id", o.id).maybeSingle();
+    if (!fresh || fresh.payment_status !== "pending_payment" || fresh.order_status === "cancelled" || Number(fresh.paid_amount || 0) > 0) continue;
     const iso = new Date(now).toISOString();
     const note = `[PAYUNi payment_timeout] ${iso} - 最後一次付款嘗試逾 30 分鐘未完成，系統自動取消`;
-    const { data: upd } = await deps.admin.from("orders")
-      .update({ order_status: "cancelled", cancelled_at: iso, notes: o.notes ? `${o.notes}\n${note}` : note, updated_at: iso })
-      .eq("id", o.id).eq("payment_status", "pending_payment").neq("order_status", "cancelled").select("id").maybeSingle();
-    if (!upd) continue;
-    for (const t of all.filter((t: any) => t.status === "pending")) {
-      await deps.admin.from("payment_transactions").update({ status: "expired" }).eq("id", t.id);
+    const { error: cancelErr } = await deps.admin.rpc("update_order_with_context", {
+      p_order_id: o.id,
+      p_patch: { order_status: "cancelled", cancelled_at: iso, notes: fresh.notes ? `${fresh.notes}\n${note}` : note },
+      p_source: "payuni_payment_timeout",
+      p_reason: "PAYUNi 付款逾時（最後一次付款嘗試逾 30 分鐘）",
+      p_actor_label: "PAYUNi",
+      p_actor_type: "system",
+    });
+    if (cancelErr) {
+      console.error(`[payuni-sweep] cancel ${o.order_number} failed: ${cancelErr.message}`);
+      continue;
     }
+    for (const t of all.filter((t: any) => t.status === "pending")) await updateTx(deps.admin, t.id, { status: "expired" });
     cancelled.push(o.order_number);
     console.log(`[payuni-sweep] payment_timeout cancelled ${o.order_number}`);
   }

@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
     const isService = safeEq(bearer, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "") ||
       safeEq(req.headers.get("x-internal-secret") ?? "", Deno.env.get("PAYUNI_SWEEP_SECRET") ?? "");
     let caller = { isService, isSuperAdmin: false, isAccommodationAdmin: (_id: string) => Promise.resolve(false) };
-    if (!isService) {
+    if (!isService && body?.action !== "status") {
       const c = await resolveCaller(req);
       if (!c.ok) return json(c.status, { error: c.error });
       caller = { isService: false, isSuperAdmin: isSuperAdmin(c.ctx), isAccommodationAdmin: (id) => isAccommodationAdmin(c.ctx, id) };

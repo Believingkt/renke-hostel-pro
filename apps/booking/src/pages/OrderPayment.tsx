@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { getTapPayPrime } from "@/utils/tappayPrime";
 import { useTapPayConfig } from "@/hooks/use-tappay-config";
+import { PayuniCardFields } from "@/components/payment/PayuniCardFields";
 import { Alert, AlertDescription, AlertTitle } from "@lakeze/shared/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@lakeze/shared/components/ui/tabs";
 import { AtmPaymentPanel } from "@/components/payment/AtmPaymentPanel";
@@ -59,6 +60,13 @@ export default function OrderPayment() {
   const [refreshingStatus, setRefreshingStatus] = useState(false);
   const [reapplying, setReapplying] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
+  // PAYUNi 館：信用卡改用 UNi Embed，金額由後端以 final_price − paid_amount 決定（網址 amount 不採用）
+  const [isPayuni, setIsPayuni] = useState(false);
+  useEffect(() => {
+    if (!accommodationId) return;
+    supabase.from("accommodation_info").select("payment_provider_active").eq("id", accommodationId).maybeSingle()
+      .then(({ data }) => setIsPayuni((data as any)?.payment_provider_active === "payuni"));
+  }, [accommodationId]);
 
   // Auth gate state
   const [authChecked, setAuthChecked] = useState(false);
@@ -818,7 +826,17 @@ export default function OrderPayment() {
 
           <Tabs value={orderInfo?.isAtm ? "atm" : "card"} className="w-full">
 
-            <TabsContent value="card" className="space-y-4 pt-4">
+            {isPayuni && (
+              <TabsContent value="card" className="space-y-4 pt-4" data-testid="payuni-order-payment">
+                <PayuniCardFields
+                  orderNumber={orderNumber}
+                  purpose={paymentStatus === "pending_payment" ? "booking" : "supplement"}
+                  onPaid={(tx) => window.location.assign(`/payment-result?order=${encodeURIComponent(orderNumber)}&tx=${encodeURIComponent(tx)}`)}
+                  onPending={(tx) => window.location.assign(`/payment-result?order=${encodeURIComponent(orderNumber)}&tx=${encodeURIComponent(tx)}`)}
+                />
+              </TabsContent>
+            )}
+            <TabsContent value={isPayuni ? "card-tappay-disabled" : "card"} className="space-y-4 pt-4">
               <Label className="flex items-center gap-2 text-base">
                 <CreditCard className="h-5 w-5" />
                 信用卡資訊

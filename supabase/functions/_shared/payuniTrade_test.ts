@@ -232,3 +232,102 @@ Deno.test("同一筆成功：TapPay 與 PAYUNi patch 除 payment_method／balanc
     assertEquals(pm, "credit_card_payuni");
   }
 });
+
+// ---------------- 審查後修正（D3／D6／D8～D11／E1） ----------------
+const SVC = { isService: true, isSuperAdmin: false, isAccommodationAdmin: () => Promise.resolve(false) };
+
+Deno.test("E1：同一 mer_trade_no 併發兩次 card-charge → 只有一次呼叫 PAYUNi，另一個 409", async () => {
+  const { deps, calls } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [tx()] },
+    { ok: true, status: "SUCCESS", data: { URL: "https://sandbox-api.payuni.com.tw/3d" }, raw: {} });
+  const [a, b] = await Promise.all([
+    handleCardCharge(deps, { mer_trade_no: "LL8Y46U8-P1" }, null),
+    handleCardCharge(deps, { mer_trade_no: "LL8Y46U8-P1" }, null),
+  ]);
+  assertEquals(calls.length, 1);
+  assertEquals([a.status, b.status].sort(), [200, 409]);
+  assertEquals([a, b].find((r) => r.status === 409)!.body, { ok: false, code: "INVALID_STATE" });
+});
+
+Deno.test("D9：已 paid 的交易不會被晚到的 TradeStatus 2／8 或 card-charge 失敗改掉", async () => {
+  const { db, deps } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [tx()] });
+  await handleTradeNotify(deps, await parseNotify(await notifyReq(PAID), { config: cfg }));
+  // deno-lint-ignore no-explicit-any
+  const stale: any = { ...db.rows("payment_transactions")[0], status: "pending" };
+  const { applyPayuniTradeResult } = await import("./payuniTrade.ts");
+  await applyPayuniTradeResult(deps, stale, { TradeStatus: "2" });
+  await applyPayuniTradeResult(deps, stale, { TradeStatus: "8" });
+  assertEquals(db.rows("payment_transactions")[0].status, "paid");
+});
+
+Deno.test("D10：TradeStatus=1 但缺 TradeAmt → 不入帳、標 awaiting_notify", async () => {
+  const { db, deps, fx } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [tx()] },
+    { ok: true, status: "SUCCESS", data: { TradeStatus: "1", TradeNo: "PN1" }, raw: {} });
+  await handleCardCharge(deps, { mer_trade_no: "LL8Y46U8-P1" }, null);
+  const t = db.rows("payment_transactions")[0];
+  assertEquals([t.status, t.raw_response.awaiting_notify, db.rows("orders")[0].payment_status, fx.booking], ["pending", true, "pending_payment", 0]);
+});
+
+Deno.test("D8：sandbox 不再允許 lovable.app／lovableproject.com", () => {
+  assertEquals(resolveIframeDomain("https://x.lovable.app", "sandbox"), null);
+  assertEquals(resolveIframeDomain("https://x.lovableproject.com", "sandbox"), null);
+  assertEquals(resolveIframeDomain("http://localhost:5173", "sandbox"), "http://localhost:5173");
+  assertEquals(resolveIframeDomain("http://localhost:5173", "production"), null);
+});
+
+Deno.test("D6：逾時取消走 update_order_with_context（p_source=payuni_payment_timeout），pending 交易改 expired", async () => {
+  const at = (m: number) => new Date(NOW - m * 60_000).toISOString();
+  const { db, deps } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [tx({ status: "failed", created_at: at(40) })] });
+  await handleTradeQuery(deps, { action: "sweep" }, SVC);
+  const call = db.rpcCalls.find((c) => c.name === "update_order_with_context")!;
+  assertEquals([call.args.p_source, call.args.p_patch.order_status], ["payuni_payment_timeout", "cancelled"]);
+});
+
+Deno.test("D11：24 小時外的 pending 交易取消前補查；查詢失敗不取消；查到未付才取消並改 expired", async () => {
+  const old = new Date(NOW - 25 * 60 * 60_000).toISOString();
+  const fail = setup({ accommodation_info: [acc()], orders: [order({ created_at: old })], payment_transactions: [tx({ created_at: old })] }, { ok: false, status: "ERROR", raw: {} });
+  assertEquals((await handleTradeQuery(fail.deps, { action: "sweep" }, SVC)).body.cancelled, []);
+  assertEquals(fail.calls.length, 1);
+  const ok = setup({ accommodation_info: [acc()], orders: [order({ created_at: old })], payment_transactions: [tx({ created_at: old })] },
+    { ok: true, status: "SUCCESS", data: { TradeStatus: "0" }, raw: {} });
+  assertEquals((await handleTradeQuery(ok.deps, { action: "sweep" }, SVC)).body.cancelled, ["LL8Y46U8"]);
+  assertEquals(ok.db.rows("payment_transactions")[0].status, "expired");
+});
+
+// D3：orders insert 欄位與 create-paid-order 只能差允許清單
+function insertKeys(path: string): Set<string> {
+  const src = Deno.readTextFileSync(new URL(path, import.meta.url));
+  const i = src.search(/from\("orders"\)\s*\.insert\(\[\{/);
+  const start = src.indexOf("[{", i) + 2;
+  const end = src.indexOf("}])", start);
+  return new Set([...src.slice(start, end).matchAll(/^\s*([a-z_]+):/gm)].map((m) => m[1]));
+}
+Deno.test("D3：payuni-create-pending-order 與 create-paid-order 的 orders insert 欄位只差允許清單", () => {
+  const ALLOWED = new Set(["payment_method", "payment_status", "paid_amount", "deposit_amount", "deposit_payment_method", "balance_payment_method", "notes", "order_status"]);
+  const a = insertKeys("../create-paid-order/index.ts");
+  const b = insertKeys("../payuni-create-pending-order/index.ts");
+  assert(a.size > 20 && b.size > 20);
+  const diff = [...a].filter((k) => !b.has(k)).concat([...b].filter((k) => !a.has(k))).filter((k) => !ALLOWED.has(k));
+  assertEquals(diff, []);
+});
+
+Deno.test("status 輪詢：需 order_number 與 mer_trade_no 相符，只回狀態", async () => {
+  const { deps } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: [tx()] });
+  const anon = { isService: false, isSuperAdmin: false, isAccommodationAdmin: () => Promise.resolve(false) };
+  const r = await handleTradeQuery(deps, { action: "status", mer_trade_no: "LL8Y46U8-P1", order_number: "LL8Y46U8" }, anon);
+  assertEquals(r.body, { tx_status: "pending", payment_status: "pending_payment", order_status: "pending", amount_due: 12000, accommodation_id: ACC });
+  assertEquals((await handleTradeQuery(deps, { action: "status", mer_trade_no: "LL8Y46U8-P1", order_number: "X" }, anon)).status, 404);
+});
+
+Deno.test("D1 list：只列該館的金額異常／pending／unknown；非該館管理員 403", async () => {
+  const rows = [
+    tx({ id: "a", mer_trade_no: "LL8Y46U8-P1", status: "paid", raw_response: { anomaly: "AMOUNT_MISMATCH expected=12000 got=1" } }),
+    tx({ id: "b", mer_trade_no: "LL8Y46U8-P2", status: "failed" }),
+    tx({ id: "c", mer_trade_no: "LL8Y46U8-P3", status: "unknown" }),
+  ];
+  const { deps } = setup({ accommodation_info: [acc()], orders: [order()], payment_transactions: rows });
+  const admin = { isService: false, isSuperAdmin: false, isAccommodationAdmin: (id: string) => Promise.resolve(id === ACC) };
+  const r = await handleTradeQuery(deps, { action: "list", accommodation_id: ACC }, admin);
+  // deno-lint-ignore no-explicit-any
+  assertEquals((r.body.rows as any[]).map((x) => x.mer_trade_no).sort(), ["LL8Y46U8-P1", "LL8Y46U8-P3"]);
+  assertEquals((await handleTradeQuery(deps, { action: "list", accommodation_id: "other" }, admin)).status, 403);
+});

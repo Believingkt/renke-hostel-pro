@@ -1,3 +1,4 @@
+import { PayuniPaymentResult } from "@/components/payment/PayuniPaymentResult";
 import { useEffect, useMemo, useState } from "react";
 import { hapticSuccess, hapticError } from "@lakeze/shared/lib/native/haptics";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -737,10 +738,18 @@ function PaymentResultInner() {
   );
 }
 
-export default function PaymentResult() {
+function TapPayPaymentResult() {
   return (
     <BookingLocaleProvider>
       <PaymentResultInner />
     </BookingLocaleProvider>
   );
+}
+
+/** PAYUNi 付款結果（網址帶 tx，或 trade-return 導回 error=1）走輪詢；其餘維持 TapPay 原流程 */
+export default function PaymentResult() {
+  const sp = new URLSearchParams(window.location.search);
+  const isPayuni = !!sp.get("tx") || (sp.get("error") === "1" && !sp.get("rec_trade_id"));
+  if (isPayuni) return <PayuniPaymentResult orderNumber={sp.get("order")} tx={sp.get("tx")} error={sp.get("error") === "1"} />;
+  return <TapPayPaymentResult />;
 }
