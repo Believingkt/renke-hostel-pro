@@ -93,6 +93,80 @@ export function addDaysISO(dateISO: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+const CN_DIGIT: Record<string, number> = { 零: 0, 〇: 0, 一: 1, 二: 2, 兩: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+
+/** 中文數字（一～九十九、兩）轉阿拉伯數字；無法轉換的片段原樣保留 */
+export function normalizeCnNumerals(text: string): string {
+  return text.replace(/[零〇一二兩两三四五六七八九十]+/g, (m) => {
+    if (m.includes("十")) {
+      const [a, b, ...more] = m.split("十");
+      if (more.length || a.length > 1 || b.length > 1) return m;
+      return String((a ? CN_DIGIT[a] : 1) * 10 + (b ? CN_DIGIT[b] : 0));
+    }
+    return m.split("").map((c) => CN_DIGIT[c]).join("");
+  });
+}
+
+/** 人數：「4人」「4位」「四個人」「兩大一小」「2大2小」；「四人房」不算 */
+export function extractGuests(text: string): number | null {
+  const t = normalizeCnNumerals(text);
+  const ak = t.match(/(?<![\/月\-\d])(\d{1,2})\s*大(?:人)?(?![床房])\s*(?:(\d{1,2})\s*小(?:孩|朋友)?)?/);
+  if (ak) return Number(ak[1]) + (ak[2] ? Number(ak[2]) : 0);
+  const p = t.match(/(?<![\/月\-\d])(\d{1,2})\s*(?:個人|个人|人|位)(?!房)/);
+  return p && Number(p[1]) > 0 ? Number(p[1]) : null;
+}
+
+function diffDays(a: string, b: string): number {
+  return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+}
+
+function validISO(y: number, m: number, d: number): string | null {
+  const iso = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  const dt = new Date(`${iso}T00:00:00Z`);
+  return !isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === iso ? iso : null;
+}
+
+const STAY_DATE_RE = /(20\d{2})-(\d{1,2})-(\d{1,2})|(\d{1,2})\s*[\/月\-]\s*(\d{1,2})\s*[日號号]?/;
+
+export interface Stay { checkIn: string; checkOut: string; nights: number; guests: number | null }
+
+/** 入住區間＋人數；只有一個日期時住 1 晚；過去日期推到明年（沿用 extractDate） */
+export function extractStay(text: string, today: string): Stay | null {
+  const t = normalizeCnNumerals(text);
+  const first = t.match(STAY_DATE_RE);
+  if (!first || first.index === undefined) return null;
+  const checkIn = extractDate(first[0], today);
+  if (!checkIn) return null;
+  const guests = extractGuests(t);
+  const rest = t.slice(first.index + first[0].length);
+  const [y, m, d] = checkIn.split("-").map(Number);
+  let checkOut: string | null = null;
+
+  const second = rest.match(STAY_DATE_RE);
+  const dayOnly = rest.match(/^\s*(?:入住)?\s*(?:到|至|~|～|-|－|—)\s*(\d{1,2})\s*[日號号]?(?!\s*[\/月晚夜人位大小])/)
+    || rest.match(/(\d{1,2})\s*[日號号]\s*退房/);
+  const nightsM = rest.match(/(\d{1,2})\s*[晚夜]/);
+  if (second) {
+    const mo = Number(second[2] ?? second[4]);
+    const dd = Number(second[3] ?? second[5]);
+    const yr = second[1] ? Number(second[1]) : y;
+    checkOut = validISO(yr, mo, dd);
+    if (checkOut && checkOut <= checkIn && !second[1]) checkOut = validISO(yr + 1, mo, dd);
+  } else if (dayOnly) {
+    const dd = Number(dayOnly[1]);
+    checkOut = dd > d ? validISO(y, m, dd) : (m === 12 ? validISO(y + 1, 1, dd) : validISO(y, m + 1, dd));
+  } else if (nightsM) {
+    checkOut = addDaysISO(checkIn, Number(nightsM[1]));
+  }
+
+  let nights = checkOut ? diffDays(checkIn, checkOut) : 0;
+  if (!checkOut || nights < 1 || nights > 30) {
+    checkOut = addDaysISO(checkIn, 1);
+    nights = 1;
+  }
+  return { checkIn, checkOut, nights, guests };
+}
+
 export const ROOM_CARD_PROMPT_RULE = `
 ## 房型圖文卡片規則
 - 當你在回覆中「查詢房況」或「推薦具體房型」時，請在文字中完整寫出房型名稱（需與房型清單完全一致），系統會自動在回覆後方附上該房型的圖文卡片（照片、價格、剩餘間數、訂房按鈕）。

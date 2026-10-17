@@ -8,9 +8,9 @@ import { loadAccommodationContext } from "../_shared/accommodationContext.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
-import { buildRoomCardsBlock, extractDate, addDaysISO, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload } from "../_shared/roomCards.ts";
+import { buildRoomCardsBlock, extractStay, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload, type Stay } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, detectTripScenario, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
-import { lowestPackagePricesForRooms } from "../_shared/packagePricing.ts";
+import { buildLiveAvailability, selectKnowledge, selectExamples, chatGenParams } from "./chatContext.ts";
 import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
 import { writeMetric } from "../_shared/metric.ts";
 
@@ -162,9 +162,10 @@ serve(async (req) => {
         .order("version", { ascending: false }).limit(1).maybeSingle(),
       supabase.from("ai_knowledge").select("category, title, content, tags, priority")
         .eq("accommodation_id", accommodationId).eq("is_active", true)
-        .order("priority", { ascending: false }).limit(30),
+        .order("priority", { ascending: false }).limit(200),
       supabase.from("ai_examples").select("scenario, user_message, ideal_response")
-        .eq("accommodation_id", accommodationId).eq("is_active", true).limit(10),
+        .eq("accommodation_id", accommodationId).eq("is_active", true)
+        .order("created_at", { ascending: true }).limit(50),
       supabase.from("room_types")
         .select("id, name, description, base_price, capacity, size_sqm, room_count, room_photos(photo_url, display_order)")
         .eq("accommodation_id", accommodationId).order("display_order"),
@@ -199,12 +200,18 @@ serve(async (req) => {
       ? `\n\n## 房型清單\n${rooms.data.map((r: any) => `- ${r.name}（容納 ${r.capacity} 人 / 起價 NT$${r.base_price}）${r.description ? `：${r.description}` : ""}`).join("\n")}`
       : "";
 
-    const knowledgeText = knowledge.data?.length
-      ? `\n\n## 知識庫\n${knowledge.data.map((k: any) => `### ${k.title}（${k.category}）\n${k.content}`).join("\n\n")}`
+    const lastUserMsg = (() => {
+      const m = [...messages].reverse().find((x: any) => x.role === "user");
+      return typeof m?.content === "string" ? m.content : "";
+    })();
+    const pickedKnowledge = selectKnowledge((knowledge.data || []) as any[], lastUserMsg, 8);
+    const pickedExamples = selectExamples((examples.data || []) as any[], 6, 120);
+    const knowledgeText = pickedKnowledge.length
+      ? `\n\n## 知識庫\n${pickedKnowledge.map((k: any) => `### ${k.title}（${k.category}）\n${k.content}`).join("\n\n")}`
       : "";
 
-    const examplesText = examples.data?.length
-      ? `\n\n## 對話範例\n${examples.data.map((e: any) => `**情境：${e.scenario}**\n用戶：${e.user_message}\n理想回應：${e.ideal_response}`).join("\n\n")}`
+    const examplesText = pickedExamples.length
+      ? `\n\n## 對話範例\n${pickedExamples.map((e: any) => `**情境：${e.scenario}**\n用戶：${e.user_message}\n理想回應：${e.ideal_response}`).join("\n\n")}`
       : "";
 
     // ===== 即時房況／價格（唯一真實來源，文字與卡片共用同一份）=====
@@ -213,70 +220,20 @@ serve(async (req) => {
       .filter((m: any) => m.role === "user" || m.role === "assistant")
       .map((m: any) => String(m.content || ""));
 
-    let checkIn: string | null = null;
+    let stay: Stay | null = null;
     for (const t of conversationTexts) {
-      checkIn = extractDate(t, today);
-      if (checkIn) break;
+      stay = extractStay(t, today);
+      if (stay) break;
     }
-    const checkOut = checkIn ? addDaysISO(checkIn, 1) : null;
+    const checkIn = stay?.checkIn ?? null;
+    const checkOut = stay?.checkOut ?? null;
 
     const roomRows = (rooms.data || []) as any[];
-    const priceByRoom = new Map<string, number>();
-    const availByRoom = new Map<string, number>();
-    const pkgByRoom = new Map<string, { packageId: string; packageName: string; saleTotal: number; originalTotal: number | null }>();
-
-    if (checkIn && roomRows.length) {
-      const { data: inv } = await supabase
-        .from("room_inventory_pricing")
-        .select("room_type_id, price, available_rooms, is_available")
-        .in("room_type_id", roomRows.map((r) => r.id))
-        .is("pricing_template_id", null)
-        .eq("date", checkIn);
-      for (const row of inv || []) {
-        if (row.price > 0) priceByRoom.set(row.room_type_id, row.price);
-        if (row.is_available === false) availByRoom.set(row.room_type_id, 0);
-      }
-
-      await Promise.all(
-        roomRows.map(async (r) => {
-          if (availByRoom.get(r.id) === 0) return;
-          try {
-            const { data } = await supabase.rpc("get_adjusted_room_inventory_batch", {
-              p_room_type_id: r.id,
-              p_dates: [checkIn],
-              p_accommodation_id: accommodationId,
-            });
-            const row = Array.isArray(data) ? data[0] : null;
-            if (row) {
-              const n = row.is_blocked ? 0 : Number(row.available_rooms ?? 0);
-              availByRoom.set(r.id, Number.isFinite(n) ? n : 0);
-            }
-          } catch { /* 忽略庫存查詢失敗 */ }
-        }),
-      );
-
-      // 方案售價為主（與官網／LINE 同一套取價）：有啟用方案一律覆蓋房況庫存價
-      const pkgMap = await lowestPackagePricesForRooms(supabase, accommodationId, roomRows.map((r) => r.id), [checkIn]);
-      for (const [rid, pk] of pkgMap.entries()) {
-        pkgByRoom.set(rid, pk);
-        priceByRoom.set(rid, pk.saleTotal);
-      }
-    }
-
-    const liveAvailabilityBlock = checkIn && roomRows.length
-      ? `\n\n## 即時房況與價格（唯一依據，日期 ${checkIn}）\n` +
-        roomRows.map((r) => {
-          const p = priceByRoom.get(r.id);
-          const a = availByRoom.get(r.id);
-          const avail = a === undefined ? "未知" : a > 0 ? `剩 ${a} 間` : "已額滿（0 間）";
-          return `- ${r.name}：當日售價 ${p ? `NT$${p}` : "未設定"} / ${avail}`;
-        }).join("\n") +
-        `\n\n### 強制規則（不可違反）
-- 文字敘述中的價格，只能引用上表「當日售價」，不可使用起價／底價／自己記憶或推算的金額。
-- 若上表顯示「已額滿（0 間）」，文字必須明說該房型當日已額滿，並建議客人更換日期或改看其他有空房的房型；絕對不可說「幫您鎖定」「可直接訂購」「還有空房」。
-- 若「未知」或「未設定」，就不要提出具體數字，改請客人以訂房頁為準。
-- 卡片與文字必須一致，兩者都以上表為準。`
-      : "\n\n## 房況查詢說明\n- 客人尚未提供明確入住日期時，不要說出任何具體當日價格或剩餘間數，請先詢問日期。";
+    const live = await buildLiveAvailability(supabase, accommodationId!, roomRows, stay);
+    const priceByRoom = live.cardPriceByRoom;
+    const availByRoom = live.availByRoom;
+    const pkgByRoom = live.cardPkgByRoom;
+    const liveAvailabilityBlock = live.block;
 
     // 官網小安加購：LLM 前先查該館 addon_settings（strict），把 DB 事實注入 system
     const lastUserForAddon = (() => {
@@ -320,23 +277,35 @@ serve(async (req) => {
     }
     const tripNoneNote = wantTripCards && nearbyTripCards.length === 0 ? TRIP_NONE_NEARBY_NOTE : "";
 
-    const MAX_SYSTEM_PROMPT_CHARS = 16000;
+    const MAX_SYSTEM_PROMPT_CHARS = 10000;
     const promptHead = corePrompt
       .replace(/\{\{今天日期\}\}/g, today)
       .replace(/\{\{民宿地點\}\}/g, acc.data?.address || "")
       .replace(/\{\{房型清單\}\}/g, rooms.data?.map((r: any) => r.name).join("、") || "");
-    // accCtx（館別資料）永不被截；超過上限時只砍平台 ai_knowledge 尾端
-    const assembleSystem = (kt: string) =>
-      promptHead + dateBlock + accInfo + roomList + liveAvailabilityBlock + (accCtx as string) + kt + examplesText + tone + forbidden
+    // accCtx（館別資料）與即時房況永不被截；超過上限時先砍知識庫，再砍範例
+    const assembleSystem = (kt: string, et: string) =>
+      promptHead + dateBlock + accInfo + roomList + liveAvailabilityBlock + (accCtx as string) + kt + et + tone + forbidden
       + ROOM_CARD_PROMPT_RULE + TRIP_CARD_PROMPT_RULE + addonBlock + tripNoneNote;
-    let systemMessage = assembleSystem(knowledgeText);
+    const trimTail = (text: string, overflow: number, note: string) =>
+      text.length > overflow + 20 ? text.slice(0, text.length - overflow - 20) + note : "";
+    let kt = knowledgeText;
+    let et = examplesText;
+    let systemMessage = assembleSystem(kt, et);
     if (systemMessage.length > MAX_SYSTEM_PROMPT_CHARS) {
-      const overflow = systemMessage.length - MAX_SYSTEM_PROMPT_CHARS;
-      const trimmedKnowledge = knowledgeText.length > overflow + 20
-        ? knowledgeText.slice(0, knowledgeText.length - overflow - 20) + "\n…（平台知識庫已截斷）"
-        : "";
-      systemMessage = assembleSystem(trimmedKnowledge);
+      kt = trimTail(kt, systemMessage.length - MAX_SYSTEM_PROMPT_CHARS, "\n…（平台知識庫已截斷）");
+      systemMessage = assembleSystem(kt, et);
     }
+    if (systemMessage.length > MAX_SYSTEM_PROMPT_CHARS) {
+      et = trimTail(et, systemMessage.length - MAX_SYSTEM_PROMPT_CHARS, "\n…（對話範例已截斷）");
+      systemMessage = assembleSystem(kt, et);
+    }
+    console.log("[acc-ai-chat context]", JSON.stringify({
+      knowledge_count: kt ? pickedKnowledge.length : 0,
+      knowledge_truncated: kt !== knowledgeText,
+      examples_count: et ? pickedExamples.length : 0,
+      examples_truncated: et !== examplesText,
+      sys_len: systemMessage.length,
+    }));
     const dbMs = Math.round(performance.now() - tStart);
     console.log("[acc-ai-chat timing]", JSON.stringify({ db_ms: dbMs, source, sys_len: systemMessage.length }));
 
@@ -353,6 +322,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: `google/${defaultModel()}`,
         stream: true,
+        ...chatGenParams(),
         messages: [
           { role: "system", content: systemMessage },
           ...messages.map((m: any) => ({
