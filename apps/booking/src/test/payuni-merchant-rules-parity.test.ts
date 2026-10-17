@@ -17,6 +17,7 @@ const CASES: Array<Record<string, unknown>> = [
   { mer_name: "一".repeat(21) }, { mer_addr_post: "1100" }, { goods_rate: "0,90,0,0" }, { goods_rate: "25,25,25,25" },
   { contact_tel: "", contact_mobile: "" }, { contact_tel: "029888888" }, { contact_mobile: "0812345678" },
   { payment: [] }, { payment: "CREDIT,LinePay" }, { mer_unit_price: "0" }, { escrow_type: "2" }, { mer_mcc: "AB12" }, { mer_mcc: "000" }, { mer_mcc: "0000" }, { mer_mcc: "0" }, { mer_mcc: "0701" },
+  { ubn: "A12*****89" }, { ubn: "12***78" },
 ];
 
 describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 結果一致", () => {
@@ -37,6 +38,10 @@ describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 
     expect(front.buildMerUrl("")).toBe(back.buildMerUrl(""));
     expect(front.defaultMerDesc("a\nb")).toBe(back.defaultMerDesc("a\nb"));
     expect(front.PAYUNI_PAYMENT_TOOL_KEYS).toEqual(back.PAYUNI_PAYMENT_TOOL_KEYS);
+    expect(front.validateBindForm({ ...FORM, ubn: "A12*****89" } as any).ubn).toBe("請重新輸入完整身分證字號");
+    for (const u of ["A123456789", "12345678", "A12*****89", ""]) expect(front.maskUbnForStorage(u)).toBe(back.maskUbnForStorage(u));
+    for (const [s, p] of [[99, "payuni"], [1, "payuni"], [null, "payuni"], [99, "tappay"], [9, "none"]] as const)
+      expect(front.shouldAutoDisablePayuni(s, p)).toBe(back.shouldAutoDisablePayuni(s, p));
   });
 
   it("前端已擋下驗收第 3 項三種錯誤", () => {

@@ -4,7 +4,8 @@ import { encrypt, hashInfo, type PayuniCall, type PayuniConfig, type PayuniResul
 import { handleAgentNotify, handleBind, handleStatus, type MerchantDeps } from "./payuniMerchantHandlers.ts";
 import { FakeDb } from "./payuniTestFakes.ts";
 import {
-  buildBindPayload, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, memberStatusLabel, nextMerId, validateBindForm,
+  buildBindPayload, canSwitchToPayuni, extractPaymentTools, isValidGoodsRate, maskUbnForStorage, memberStatusLabel, nextMerId,
+  shouldAutoDisablePayuni, validateBindForm,
 } from "./payuniMerchant.ts";
 
 const ACC = "11111111-1111-4111-8111-111111111111";
@@ -28,11 +29,13 @@ const accRow = (over: Record<string, unknown> = {}) => ({
 
 function deps(db: FakeDb, reply: PayuniResult, over: Partial<MerchantDeps> = {}) {
   const calls: PayuniCall[] = [];
+  const alerts: Array<{ subject: string; html: string }> = [];
   const d: MerchantDeps = {
     admin: db.client(), userId: "user-1", isSuperAdmin: true, isAccommodationAdmin: () => Promise.resolve(false),
-    agentId: "TEST", callPayuni: (c) => { calls.push(c); return Promise.resolve(reply); }, ...over,
+    agentId: "TEST", callPayuni: (c) => { calls.push(c); return Promise.resolve(reply); },
+    sendAlert: (subject, html) => { alerts.push({ subject, html }); return Promise.resolve(true); }, ...over,
   };
-  return { d, calls };
+  return { d, calls, alerts };
 }
 const SUCCESS: PayuniResult = { ok: true, status: "SUCCESS", message: "成功", raw: {} };
 
@@ -209,14 +212,17 @@ Deno.test("notify MerStatus 9→1：啟用、通知總部（館名＋MerID）；
   assertEquals(alerts.length, 1);
 });
 
-Deno.test("notify MerStatus 1→99 且金流為 payuni → 自動改 none，寫入 Reason", async () => {
+Deno.test("notify MerStatus 1→99 且金流為 payuni → 自動改 none，寫入 Reason、providerLog、通知總部", async () => {
   const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payuni_mer_status: 1, payment_provider_active: "payuni" })] });
   const { d, alerts } = notifyDeps(db);
   await handleAgentNotify(await notifyReq({ NotifyType: "MerStatus", MerID: "TEST0001", Status: "99", Reason: "違規停權", ExecuteTime: "t2" }), d);
   const acc = db.rows("accommodation_info")[0];
   assertEquals([acc.payuni_mer_status, acc.payment_provider_active], [99, "none"]);
-  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_status_reason, "違規停權");
-  assertEquals(alerts.length, 0);
+  const priv = db.rows("accommodation_payuni_private")[0];
+  assertEquals(priv.payuni_status_reason, "違規停權");
+  const log = priv.payuni_settings.providerLog;
+  assertEquals([log.length, log[0].from, log[0].to, log[0].by], [1, "payuni", "none", "system:agent-notify"]);
+  assertEquals(alerts, ["[PAYUNi] 測試館A（TEST0001）商店非啟用，線上收款已暫停"]);
 });
 
 Deno.test("notify MerPayment：只覆蓋有帶的鍵", async () => {
@@ -313,4 +319,84 @@ Deno.test("status query：金流不是 payuni、或狀態仍為 1 → 不切換�
   const r2 = await handleStatus(d2, { accommodation_id: ACC });
   assertEquals([r2.body.provider_changed, db.rows("accommodation_info")[0].payment_provider_active], [false, "payuni"]);
   assertEquals(db.rows("accommodation_payuni_private")[0].payuni_settings, undefined);
+});
+
+// ---------------- 審查後修正第 2 輪（切回 none 規則統一、UBN 遮罩） ----------------
+
+Deno.test("規則：shouldAutoDisablePayuni 只看新狀態 ≠ 1 且金流為 payuni", () => {
+  assert(shouldAutoDisablePayuni(99, "payuni"));
+  assert(shouldAutoDisablePayuni(null, "payuni"));
+  assertFalse(shouldAutoDisablePayuni(1, "payuni"));
+  assertFalse(shouldAutoDisablePayuni(99, "tappay"));
+  assertFalse(shouldAutoDisablePayuni(99, "none"));
+});
+
+Deno.test("notify MerStatus 9→92（前一狀態非 1）且金流為 payuni → 也切回 none、通知總部", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payuni_mer_status: 9, payment_provider_active: "payuni" })] });
+  const { d, alerts } = notifyDeps(db);
+  await handleAgentNotify(await notifyReq({ NotifyType: "MerStatus", MerID: "TEST0001", Status: "92", ExecuteTime: "u1" }), d);
+  assertEquals(db.rows("accommodation_info")[0].payment_provider_active, "none");
+  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_settings.providerLog[0].by, "system:agent-notify");
+  assertEquals(alerts.length, 1);
+});
+
+Deno.test("notify MerStatus 非 1 但金流為 tappay → 不切換、不寫 providerLog、不通知", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payuni_mer_status: 1, payment_provider_active: "tappay" })] });
+  const { d, alerts } = notifyDeps(db);
+  await handleAgentNotify(await notifyReq({ NotifyType: "MerStatus", MerID: "TEST0001", Status: "99", ExecuteTime: "u2" }), d);
+  assertEquals(db.rows("accommodation_info")[0].payment_provider_active, "tappay");
+  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_settings, undefined);
+  assertEquals(alerts.length, 0);
+});
+
+Deno.test("status query 切回 none → 通知總部；內容只有館名、MerID、狀態中文、時間、Reason", async () => {
+  const db = new FakeDb({
+    accommodation_info: [accRow({ payuni_mer_id: "TEST0001", payuni_mer_status: 1, payment_provider_active: "payuni" })],
+    accommodation_payuni_private: [{ accommodation_id: ACC, payuni_ubn: "12345678", payuni_member_email: "owner@example.com" }],
+  });
+  const { d, alerts } = deps(db, { ...STATUS_REPLY, data: { ...STATUS_REPLY.data!, MerStatus: "99", Reason: "停權" } });
+  const r = await handleStatus(d, { accommodation_id: ACC });
+  assertEquals(r.body.provider_changed, true);
+  assertEquals(alerts.length, 1);
+  assertEquals(alerts[0].subject, "[PAYUNi] 測試館A（TEST0001）商店非啟用，線上收款已暫停");
+  for (const s of ["館名：測試館A", "MerID：TEST0001", "商店狀態：停用", "時間：", "原因：停權"]) assert(alerts[0].html.includes(s), s);
+  for (const s of ["12345678", "owner@example.com"]) assertFalse(alerts[0].html.includes(s), s);
+  const { d: d2, alerts: a2 } = deps(db, STATUS_REPLY);
+  await handleStatus(d2, { accommodation_id: ACC });
+  assertEquals(a2.length, 0);
+});
+
+Deno.test("規則：maskUbnForStorage 身分證遮罩、統編原樣；遮罩值送出被擋", () => {
+  assertEquals(maskUbnForStorage("A123456789"), "A12*****89");
+  assertEquals(maskUbnForStorage("12345678"), "12345678");
+  assertEquals(validateBindForm({ ...FORM, ubn: "A12*****89" }).ubn, "請重新輸入完整身分證字號");
+});
+
+Deno.test("bind：身分證 UBN → 私密表與 snapshot 都存遮罩，PAYUNi payload 是原文", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow()] });
+  const { d, calls } = deps(db, SUCCESS);
+  const r = await handleBind(d, { accommodation_id: ACC, form: { ...FORM, ubn: "A123456789", mcid: "" } });
+  assertEquals(r.body.ok, true);
+  assertEquals(calls[0].payload.UBN, "A123456789");
+  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_ubn, "A12*****89");
+  assertEquals(db.rows("payuni_merchant_applications")[0].request_snapshot.UBN, "A12*****89");
+  assertFalse(JSON.stringify(db.tables).includes("A123456789"));
+});
+
+Deno.test("bind：8 碼統編 → 兩個落庫位置都是原文", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow()] });
+  const { d, calls } = deps(db, SUCCESS);
+  await handleBind(d, { accommodation_id: ACC, form: FORM });
+  assertEquals(calls[0].payload.UBN, "12345678");
+  assertEquals(db.rows("accommodation_payuni_private")[0].payuni_ubn, "12345678");
+  assertEquals(db.rows("payuni_merchant_applications")[0].request_snapshot.UBN, "12345678");
+});
+
+Deno.test("bind：92 重建店送遮罩 UBN → 400「請重新輸入完整身分證字號」，不呼叫 PAYUNi", async () => {
+  const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0002", payuni_mer_status: 92 })] });
+  const { d, calls } = deps(db, SUCCESS);
+  const r = await handleBind(d, { accommodation_id: ACC, form: { ...FORM, ubn: "A12*****89" } });
+  assertEquals(r.status, 400);
+  assertEquals((r.body.errors as Record<string, string>).ubn, "請重新輸入完整身分證字號");
+  assertEquals(calls.length, 0);
 });

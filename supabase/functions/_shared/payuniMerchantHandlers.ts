@@ -3,10 +3,11 @@
 // deno-lint-ignore-file no-explicit-any
 import type { PayuniCall, PayuniConfig, PayuniResult } from "./payuni.ts";
 import { parseNotify } from "./payuni.ts";
+import { sendPaymentAlertEmail } from "./paymentAlert.ts";
 import {
   backSettingAlertKeys, buildBindPayload, buildMerUrl, canSwitchToPayuni, extractPaymentTools, isBindable,
-  merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_UNSET, PAYUNI_SETTING_KEYS, pickKeys,
-  snapshotWithoutMcid, validateBindForm, type PayuniBindForm,
+  maskUbnForStorage, merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_UNSET, PAYUNI_SETTING_KEYS, pickKeys,
+  shouldAutoDisablePayuni, snapshotWithoutMcid, validateBindForm, type PayuniBindForm,
 } from "./payuniMerchant.ts";
 
 export type HandlerResult = { status: number; body: Record<string, unknown> };
@@ -19,6 +20,8 @@ export interface MerchantDeps {
   isAccommodationAdmin: (accommodationId: string) => Promise<boolean>;
   agentId: string;
   callPayuni: CallPayuniFn;
+  /** 未注入時用 paymentAlert 寄總部告警 */
+  sendAlert?: (subject: string, html: string) => Promise<unknown>;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -57,6 +60,35 @@ async function updateAccommodation(admin: any, id: string, values: Record<string
   if (error) throw new Error(`accommodation_info update failed: ${error.message}`);
 }
 
+const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+const taipeiNow = () => new Date().toLocaleString("zh-TW", { timeZone: "Asia/Taipei", hour12: false });
+
+/** 商店非啟用且仍用 payuni 收款 → 切回 none、追加 providerLog、通知總部；回傳是否切換 */
+async function autoDisablePayuni(
+  admin: any,
+  acc: { id: string; name: string; payment_provider_active: string | null },
+  merId: string,
+  status: number | null,
+  reason: string | null,
+  by: "system:agent-notify" | "system:status-sync",
+  sendAlert: (subject: string, html: string) => Promise<unknown>,
+): Promise<boolean> {
+  if (!shouldAutoDisablePayuni(status, acc.payment_provider_active)) return false;
+  await updateAccommodation(admin, acc.id, { payment_provider_active: "none" });
+  const settings = await loadPrivateSettings(admin, acc.id);
+  const providerLog = Array.isArray(settings.providerLog) ? settings.providerLog : [];
+  await upsertPrivate(admin, acc.id, {
+    payuni_settings: { ...settings, providerLog: [...providerLog, { from: "payuni", to: "none", by, at: nowIso() }] },
+  });
+  const lines = [`館名：${acc.name}`, `MerID：${merId}`, `商店狀態：${merStatusLabel(status)}`, `時間：${taipeiNow()}`];
+  if (reason) lines.push(`原因：${reason}`);
+  await sendAlert(
+    `[PAYUNi] ${acc.name}（${merId}）商店非啟用，線上收款已暫停`,
+    `<ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>`,
+  ).catch((e) => console.error(`[payuni] auto-disable alert failed: ${e instanceof Error ? e.message : e}`));
+  return true;
+}
+
 // ---------------- payuni-merchant-bind ----------------
 
 export async function handleBind(deps: MerchantDeps, body: any): Promise<HandlerResult> {
@@ -92,7 +124,7 @@ export async function handleBind(deps: MerchantDeps, body: any): Promise<Handler
   const { error: appErr } = await deps.admin.from("payuni_merchant_applications").insert({
     accommodation_id: accommodationId,
     mer_id: merId,
-    request_snapshot: snapshotWithoutMcid(payload),
+    request_snapshot: { ...snapshotWithoutMcid(payload), UBN: maskUbnForStorage(payload.UBN) },
     response_status: result.status,
     response_message: result.message ?? null,
     submitted_by: deps.userId,
@@ -110,7 +142,7 @@ export async function handleBind(deps: MerchantDeps, body: any): Promise<Handler
   });
   await upsertPrivate(deps.admin, accommodationId, {
     payuni_legal_name: String(payload.Name),
-    payuni_ubn: String(payload.UBN),
+    payuni_ubn: maskUbnForStorage(payload.UBN),
     payuni_member_email: String(payload.Email),
   });
   return res(200, { ok: true, mer_id: merId });
@@ -183,19 +215,12 @@ export async function handleStatus(deps: MerchantDeps, body: any): Promise<Handl
     payuni_status_synced_at: nowIso(),
   };
   const reason = r.data.Reason ? String(r.data.Reason) : null;
-  // 比照 Notify：商店已非啟用但仍在用 payuni 收款 → 切回 none 並記入 providerLog
-  const providerChanged = synced.payuni_mer_status !== 1 && acc.payment_provider_active === "payuni";
-  await updateAccommodation(deps.admin, accommodationId, providerChanged ? { ...synced, payment_provider_active: "none" } : synced);
-  const privateValues: Record<string, unknown> = { payuni_status_reason: reason };
-  if (providerChanged) {
-    const settings = await loadPrivateSettings(deps.admin, accommodationId);
-    const providerLog = Array.isArray(settings.providerLog) ? settings.providerLog : [];
-    privateValues.payuni_settings = {
-      ...settings,
-      providerLog: [...providerLog, { from: "payuni", to: "none", by: "system:status-sync", at: nowIso() }],
-    };
-  }
-  await upsertPrivate(deps.admin, accommodationId, privateValues);
+  await updateAccommodation(deps.admin, accommodationId, synced);
+  await upsertPrivate(deps.admin, accommodationId, { payuni_status_reason: reason });
+  const providerChanged = await autoDisablePayuni(
+    deps.admin, acc, acc.payuni_mer_id, synced.payuni_mer_status, reason, "system:status-sync",
+    deps.sendAlert ?? ((s, h) => sendPaymentAlertEmail(deps.admin, s, h)),
+  );
   return res(200, {
     ok: true, payuni_mer_id: acc.payuni_mer_id, ...synced, payuni_status_reason: reason,
     payment_provider_active: providerChanged ? "none" : acc.payment_provider_active, provider_changed: providerChanged,
@@ -228,7 +253,6 @@ export interface NotifyDeps {
 
 const ONLY_LOG_TYPES = new Set(["Close", "CancelClose", "Refund", "CancelRefund", "Cancel"]);
 const okText = () => new Response("OK", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } });
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 export async function handleAgentNotify(req: Request, deps: NotifyDeps): Promise<Response> {
   if (req.method !== "POST") return new Response("Method Not Allowed", { status: 405 });
@@ -299,10 +323,10 @@ async function processAgentNotify(deps: NotifyDeps, data: Record<string, string>
     const next = parseStatus(data.Status);
     if (next === null) return { processed: false, error: "INVALID_STATUS" };
     const prev = acc.payuni_mer_status ?? null;
-    const patch: Record<string, unknown> = { payuni_mer_status: next };
-    if (prev === 1 && next !== 1 && acc.payment_provider_active === "payuni") patch.payment_provider_active = "none";
-    await updateAccommodation(deps.admin, acc.id, patch);
-    await upsertPrivate(deps.admin, acc.id, { payuni_status_reason: data.Reason ? String(data.Reason) : null });
+    const reason = data.Reason ? String(data.Reason) : null;
+    await updateAccommodation(deps.admin, acc.id, { payuni_mer_status: next });
+    await upsertPrivate(deps.admin, acc.id, { payuni_status_reason: reason });
+    await autoDisablePayuni(deps.admin, acc, merId, next, reason, "system:agent-notify", deps.sendAlert);
     if (next === 1 && prev !== 1) await alert("商店已啟用", [`商店狀態：${merStatusLabel(prev)} → 啟用`]);
     return { processed: true, error: null };
   }

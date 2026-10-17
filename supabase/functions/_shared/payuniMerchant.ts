@@ -20,6 +20,7 @@ export const PAYUNI_MEMBER_STATUS_LABELS: Record<number, string> = {
 };
 
 export const PAYUNI_MCC_UNSET = "MCC 尚未設定";
+export const PAYUNI_UBN_MASKED = "請重新輸入完整身分證字號";
 
 export const PAYUNI_SETTING_KEYS = ["ThreeDCREDIT", "ThreeDForeignCard", "ThreeDUnionPay", "MerClose", "ATMSet"] as const;
 export const PAYUNI_BACK_SETTING_KEYS = [
@@ -83,7 +84,8 @@ export function validateBindForm(raw: Partial<PayuniBindForm> | null | undefined
 
   need("legal_name", "登記名稱");
   const ubn = str(f.ubn);
-  if (!UBN_RE.test(ubn) && !NATIONAL_ID_RE.test(ubn)) e.ubn = "統編須為 8 碼數字，或 10 碼身分證字號";
+  if (ubn.includes("*")) e.ubn = PAYUNI_UBN_MASKED;
+  else if (!UBN_RE.test(ubn) && !NATIONAL_ID_RE.test(ubn)) e.ubn = "統編須為 8 碼數字，或 10 碼身分證字號";
   if (!EMAIL_RE.test(str(f.member_email))) e.member_email = "會員 Email 格式不正確";
   if (str(f.mbc_mail) && !EMAIL_RE.test(str(f.mbc_mail))) e.mbc_mail = "Email 格式不正確";
   if (str(f.mbc_tel) && !TEL_RE.test(str(f.mbc_tel)) && !MOBILE_RE.test(str(f.mbc_tel))) e.mbc_tel = "電話格式不正確";
@@ -177,6 +179,17 @@ export function buildBindPayload(f: PayuniBindForm, merId: string, merUrl: strin
     CloseApplySwitch: PAYUNI_CLOSE_APPLY_SWITCH,
   });
   return p;
+}
+
+/** 落庫用：身分證字號遮罩為「前 3 碼 + ***** + 後 2 碼」；8 碼統編原樣 */
+export function maskUbnForStorage(ubn: unknown): string {
+  const s = str(ubn);
+  return NATIONAL_ID_RE.test(s) ? `${s.slice(0, 3)}*****${s.slice(-2)}` : s;
+}
+
+/** 商店非啟用且目前用 payuni 收款 → 需自動切回 none（Notify 與手動查詢共用） */
+export function shouldAutoDisablePayuni(nextStatus: number | null | undefined, provider: string | null | undefined): boolean {
+  return nextStatus !== 1 && provider === "payuni";
 }
 
 export function snapshotWithoutMcid(payload: Record<string, string | number>): Record<string, string | number> {
