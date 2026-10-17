@@ -48,6 +48,7 @@ import { MissingPackagesAlert } from "@/components/packages/MissingPackagesAlert
 import AdminPackagesPreview from "@/pages/AdminPackagesPreview";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
+import { cleanTierPricesForSave } from "@/lib/packageTierPayload";
 import {
   DEFAULT_CHILD_AGE_RULES,
   parseChildAgeRules,
@@ -531,11 +532,7 @@ const AdminPackages = () => {
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
         (r) => r.start && r.end && r.start <= r.end
       ) as any,
-      tier_prices: Object.fromEntries(
-        Object.entries(form.tier_prices || {}).filter(
-          ([, v]) => v && typeof v.sale === "number" && !Number.isNaN(v.sale)
-        )
-      ) as any,
+      tier_prices: cleanTierPricesForSave(form.tier_prices) as any,
       room_type_allocation: (form.room_type_allocation || [])
         .filter((r) => r.room_type_id && Number(r.qty) > 0)
         .map((r) => ({ room_type_id: r.room_type_id, qty: Number(r.qty) })) as any,

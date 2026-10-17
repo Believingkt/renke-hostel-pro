@@ -147,7 +147,7 @@ SELECT pg_temp.chk('M3-03 建立沒有主房型的方案（只有平日價）', 
     VALUES ('cccccccc-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', '無主房型方案', 2500,
             '{"weekday":{"sale":2500,"original":2500}}', 2)$$));
 
-SELECT pg_temp.chk('M3-04 無主房型：專案成功建立、room_type_id NULL、room_type_ids = {}、假日日型關閉', '1|NULL|{}|2500|f|f',
+SELECT pg_temp.chk('M3-04 無主房型：專案成功建立、room_type_id NULL、room_type_ids = {}、三日型開啟（20261018090002 規則）', '1|NULL|{}|2500|t|t',
   (SELECT count(*) || '|' || coalesce(max(room_type_id::text), 'NULL') || '|' || max(room_type_ids::text) || '|' || max(weekday_price)
           || '|' || bool_and(peak_enabled)::text::char || '|' || bool_and(weekend_enabled)::text::char
    FROM public.pricing_templates WHERE default_package_id = 'cccccccc-0000-0000-0000-000000000002'));
