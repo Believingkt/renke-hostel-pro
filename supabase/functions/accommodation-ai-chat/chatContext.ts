@@ -67,7 +67,7 @@ export function chatGenParams(env: (k: string) => string | undefined = (k) => De
   const mt = Number(env("LLM_MAX_TOKENS"));
   const tp = Number(env("LLM_TEMPERATURE"));
   return {
-    max_tokens: env("LLM_MAX_TOKENS") && Number.isFinite(mt) && mt > 0 ? Math.floor(mt) : 400,
+    max_tokens: env("LLM_MAX_TOKENS") && Number.isFinite(mt) && mt > 0 ? Math.floor(mt) : 2048,
     temperature: env("LLM_TEMPERATURE") && Number.isFinite(tp) && tp >= 0 ? tp : 0.3,
   };
 }
@@ -77,6 +77,11 @@ export function resolveGuests(stay: Stay | null, userTexts: string[]): Stay | nu
   if (!stay || stay.guests != null) return stay;
   const g = extractGuests(userTexts[0] ?? "") ?? extractGuests(userTexts[1] ?? "");
   return { ...stay, guests: g };
+}
+
+/** 串流 finish_reason 是否為長度截斷（OpenAI 相容 length／Gemini MAX_TOKENS） */
+export function isLengthFinish(reason: unknown): boolean {
+  return typeof reason === "string" && ["length", "max_tokens"].includes(reason.toLowerCase());
 }
 
 export interface RoomRow { id: string; name: string; capacity?: number | null }

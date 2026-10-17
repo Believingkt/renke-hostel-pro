@@ -10,7 +10,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildDateBlock, taipeiToday } from "../_shared/taipeiDate.ts";
 import { buildRoomCardsBlock, extractStay, ROOM_CARD_PROMPT_RULE, sanitizePhotoUrl, buildFeatureLine, type RoomCardPayload, type Stay } from "../_shared/roomCards.ts";
 import { buildTripCardsBlock, fetchTripCards, detectTripIntent, detectTripScenario, hasPersonalContext, TRIP_CARD_PROMPT_RULE, TRIP_NONE_NEARBY_NOTE } from "../_shared/tripCards.ts";
-import { buildLiveAvailability, selectKnowledge, selectExamples, chatGenParams, resolveGuests } from "./chatContext.ts";
+import { buildLiveAvailability, selectKnowledge, selectExamples, chatGenParams, resolveGuests, isLengthFinish } from "./chatContext.ts";
 import { detectAddonIntent, fetchVenueAddons, type VenueAddon } from "../_shared/venueAddons.ts";
 import { writeMetric } from "../_shared/metric.ts";
 
@@ -414,6 +414,7 @@ serve(async (req) => {
     // Stream-pipe and collect full assistant content for logging
     let fullContent = "";
     let firstTokenLogged = false;
+    let finishReason: unknown = null;
     const reader = aiRes.body.getReader();
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
@@ -437,6 +438,7 @@ serve(async (req) => {
               try {
                 const j = JSON.parse(payload);
                 const delta = j.choices?.[0]?.delta?.content;
+                if (j.choices?.[0]?.finish_reason) finishReason = j.choices[0].finish_reason;
                 if (delta) {
                   if (!firstTokenLogged) {
                     firstTokenLogged = true;
@@ -447,6 +449,10 @@ serve(async (req) => {
               } catch { /* ignore */ }
             }
             controller.enqueue(value);
+          }
+
+          if (isLengthFinish(finishReason)) {
+            console.warn("[acc-ai-chat truncated]", JSON.stringify({ accommodation_id: accommodationId, finish_reason: finishReason, ...chatGenParams() }));
           }
 
           // 串流結束後補上房型卡片區塊

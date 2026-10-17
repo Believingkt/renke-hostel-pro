@@ -1,5 +1,5 @@
 import { assert, assertEquals } from "https://deno.land/std@0.168.0/testing/asserts.ts";
-import { buildLiveAvailability, chatGenParams, resolveGuests, selectExamples, selectKnowledge, synonymTargets, tokenize } from "./chatContext.ts";
+import { buildLiveAvailability, chatGenParams, isLengthFinish, resolveGuests, selectExamples, selectKnowledge, synonymTargets, tokenize } from "./chatContext.ts";
 import { toClaudeBody } from "../_shared/llm.ts";
 
 // 假 Supabase：from(table) 回傳可串接、可 await 的查詢；rpc 依房型回傳每晚剩餘
@@ -111,16 +111,16 @@ Deno.test("selectExamples：ideal_response ≤120 字、最多 6 筆", () => {
   assertEquals(selectExamples([{ scenario: "x", user_message: "u", ideal_response: "長".repeat(120) }]).length, 1);
 });
 
-Deno.test("chatGenParams：預設 400 / 0.3，可用環境變數覆寫", () => {
-  assertEquals(chatGenParams(() => undefined), { max_tokens: 400, temperature: 0.3 });
+Deno.test("chatGenParams：預設 2048 / 0.3，可用環境變數覆寫", () => {
+  assertEquals(chatGenParams(() => undefined), { max_tokens: 2048, temperature: 0.3 });
   const env: Record<string, string> = { LLM_MAX_TOKENS: "600", LLM_TEMPERATURE: "0.7" };
   assertEquals(chatGenParams((k) => env[k]), { max_tokens: 600, temperature: 0.7 });
-  assertEquals(chatGenParams((k) => ({ LLM_MAX_TOKENS: "abc" } as Record<string, string>)[k]).max_tokens, 400);
+  assertEquals(chatGenParams((k) => ({ LLM_MAX_TOKENS: "abc" } as Record<string, string>)[k]).max_tokens, 2048);
 });
 
-Deno.test("Claude 路徑：toClaudeBody 刪 temperature 但保留 max_tokens 400", () => {
+Deno.test("Claude 路徑：toClaudeBody 刪 temperature 但保留 max_tokens 2048", () => {
   const out = toClaudeBody({ model: "google/x", stream: true, messages: [], ...chatGenParams(() => undefined) });
-  assertEquals(out.max_tokens, 400);
+  assertEquals(out.max_tokens, 2048);
   assertEquals("temperature" in out, false);
 });
 
@@ -168,4 +168,11 @@ Deno.test("無關問題（你好）→ 退回 priority 前 8", () => {
 });
 Deno.test("0 分不收：命中時只回有分數的", () => {
   assertEquals(selectKnowledge(KB, "有車位嗎", 8).map((k) => k.title), ["停車資訊"]);
+});
+
+Deno.test("isLengthFinish：length／MAX_TOKENS 視為截斷，stop／null 不算", () => {
+  assertEquals(isLengthFinish("length"), true);
+  assertEquals(isLengthFinish("MAX_TOKENS"), true);
+  assertEquals(isLengthFinish("stop"), false);
+  assertEquals(isLengthFinish(null), false);
 });
