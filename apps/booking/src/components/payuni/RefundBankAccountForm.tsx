@@ -12,9 +12,9 @@ export interface RefundBankAccount {
 
 export const EMPTY_REFUND_BANK_ACCOUNT: RefundBankAccount = { bank_code: "", bank_sub_code: "", account_no: "", holder_name: "", uid: "" };
 
-/** 與後端 validateBankAccount 同規則（後端仍會再驗） */
+/** 與後端 validateBankAccount 同規則（後端仍會再驗）；分行代碼（PAYUNi BankSubCode）必填 */
 export const isRefundBankAccountValid = (a: RefundBankAccount) =>
-  /^\d{3}$/.test(a.bank_code) && (!a.bank_sub_code || /^\d{4}$/.test(a.bank_sub_code)) &&
+  /^\d{3}$/.test(a.bank_code) && /^\d{4}$/.test(a.bank_sub_code) &&
   /^\d{6,16}$/.test(a.account_no.replace(/[\s-]/g, "")) && a.holder_name.trim().length > 0 &&
   (/^[A-Z][12]\d{8}$/.test(a.uid.trim().toUpperCase()) || /^\d{8}$/.test(a.uid.trim()));
 

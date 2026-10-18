@@ -18,14 +18,21 @@ export const REFUND_STALE_DAYS = 7;
 export const ACCOUNT_PURGE_DAYS = 30;
 const DAY = 86_400_000;
 
-// PAYUNi 狀態碼（依 PAYUNi 文件；Sandbox R-01／R-02 再核對）
-export const CLOSE_STATUS = { APPLYING: "1", CLOSED: "2", CANCELLED: "3", PROCESSING: "7", NOT_APPLIED: "9" } as const;
-export const REFUND_STATUS = { APPLYING: "1", DONE: "2", CANCELLED: "3", PROCESSING: "7", NOT_APPLIED: "9" } as const;
+// 交易查詢 v2.0（#/7/164）：信用卡與 ATM 的 RefundStatus 意義不同，分開定義
+export const CARD_CLOSE_STATUS = { APPLYING: "1", CLOSED: "2", CANCELLED: "3", PROCESSING: "7", NOT_APPLIED: "9" } as const;
+export const CARD_REFUND_STATUS = { APPLYING: "1", DONE: "2", CANCELLED: "3", PROCESSING: "8" } as const;
+/** 信用卡 RefundType：2=退款、3=預計退款 */
+export const CARD_REFUND_TYPE_ESTIMATED = "3";
+export const ATM_REFUND_STATUS = { SUCCESS: "1", FAILED: "2", CANCELLED: "3", TRANSFERRING: "9" } as const;
+/** ATM 轉匯結果 Notify（#/7/76）：Status SUCCESS／FAIL；RefundStatus 1=轉匯成功、2=轉匯失敗 */
+export const ATM_NOTIFY_REFUND_STATUS = { SUCCESS: "1", FAILED: "2" } as const;
 
 export interface BankAccountInput {
   bank_code: string;
-  bank_sub_code?: string | null;
+  /** PAYUNi BankSubCode 必填（4 碼） */
+  bank_sub_code: string;
   account_no: string;
+  /** 只留在我方（人工核對用），不送 PAYUNi */
   holder_name: string;
   /** 身分證字號／統編：只送 PAYUNi，不落庫 */
   uid: string;
@@ -36,7 +43,9 @@ export type RefundAction =
   | { type: "close_refund" }
   | { type: "offline_refund" }
   | { type: "pending"; reason: string }
-  | { type: "manual"; reason: string };
+  | { type: "manual"; reason: string }
+  /** 不發動、需人工確認並告警（例：信用卡已取消請款） */
+  | { type: "blocked"; reason: string };
 
 const ts = (now: number) => String(Math.floor(now / 1000));
 const iso = (now: number) => new Date(now).toISOString();
@@ -47,13 +56,13 @@ const esc = (s: unknown) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&
 export function validateBankAccount(a: any): { ok: true; value: BankAccountInput } | { ok: false; error: string } {
   const v = {
     bank_code: String(a?.bank_code ?? "").trim(),
-    bank_sub_code: a?.bank_sub_code ? String(a.bank_sub_code).trim() : null,
+    bank_sub_code: String(a?.bank_sub_code ?? "").trim(),
     account_no: String(a?.account_no ?? "").replace(/[\s-]/g, ""),
     holder_name: String(a?.holder_name ?? "").trim(),
     uid: String(a?.uid ?? "").trim().toUpperCase(),
   };
   if (!/^\d{3}$/.test(v.bank_code)) return { ok: false, error: "銀行代碼須為 3 碼數字" };
-  if (v.bank_sub_code && !/^\d{4}$/.test(v.bank_sub_code)) return { ok: false, error: "分行代碼須為 4 碼數字" };
+  if (!/^\d{4}$/.test(v.bank_sub_code)) return { ok: false, error: "分行代碼須為 4 碼數字" };
   if (!/^\d{6,16}$/.test(v.account_no)) return { ok: false, error: "帳號須為 6～16 碼數字" };
   if (v.holder_name.length < 1 || v.holder_name.length > 50) return { ok: false, error: "請填寫戶名" };
   if (!/^[A-Z][12]\d{8}$/.test(v.uid) && !/^\d{8}$/.test(v.uid)) return { ok: false, error: "身分證字號或統一編號格式不正確" };
@@ -80,15 +89,19 @@ export function decideRefundAction(
 ): RefundAction {
   if (now - Date.parse(paidAt(tx)) > REFUND_MAX_AGE_DAYS * DAY) return { type: "manual", reason: `付款已超過 ${REFUND_MAX_AGE_DAYS} 天，PAYUNi 不受理自動退款，請人工退款` };
   const rs = String(q.RefundStatus ?? "");
-  if (rs === REFUND_STATUS.APPLYING || rs === REFUND_STATUS.PROCESSING) return { type: "pending", reason: "PAYUNi 另有退款處理中" };
   if (Number(tx.payment_type) === 2) {
+    if (rs === ATM_REFUND_STATUS.TRANSFERRING) return { type: "pending", reason: "PAYUNi 轉匯中" };
     return String(backSetUnCreditRefund ?? "") === "1"
       ? { type: "offline_refund" }
       : { type: "manual", reason: "商店未啟用 ATM 自動退款（BackSetUnCreditRefund），請人工退款" };
   }
+  if (rs === CARD_REFUND_STATUS.APPLYING || rs === CARD_REFUND_STATUS.PROCESSING || String(q.RefundType ?? "") === CARD_REFUND_TYPE_ESTIMATED) {
+    return { type: "pending", reason: "PAYUNi 另有退款處理中" };
+  }
   const cs = String(q.CloseStatus ?? "");
-  if (cs === CLOSE_STATUS.CLOSED) return { type: "close_refund" };
-  if (cs === CLOSE_STATUS.APPLYING || cs === CLOSE_STATUS.PROCESSING) return { type: "pending", reason: "請款處理中，請款完成後系統自動送出退款" };
+  if (cs === CARD_CLOSE_STATUS.CLOSED) return { type: "close_refund" };
+  if (cs === CARD_CLOSE_STATUS.APPLYING || cs === CARD_CLOSE_STATUS.PROCESSING) return { type: "pending", reason: "請款處理中，請款完成後系統自動送出退款" };
+  if (cs === CARD_CLOSE_STATUS.CANCELLED) return { type: "blocked", reason: "交易已取消請款，請人工確認" };
   if (amount === remain) return { type: "cancel" };
   return { type: "pending", reason: "尚未請款，部分退款需待請款完成後由系統自動送出" };
 }
@@ -121,16 +134,19 @@ export function refundTotals(charges: any[], refunds: any[]) {
 
 export function buildRefundCall(action: "cancel" | "close_refund" | "offline_refund", tx: any, amount: number, now: number, acct?: BankAccountInput): PayuniCall {
   const base = { MerID: tx.mer_id, TradeNo: tx.provider_trade_no, Timestamp: ts(now) };
+  if (action === "offline_refund" && !/^\d{4}$/.test(String(acct?.bank_sub_code ?? ""))) throw new Error("BankSubCode is required");
   if (action === "cancel") return { kind: "merchant", merId: tx.mer_id, path: "/api/trade/cancel", version: "1.0", payload: base };
   if (action === "close_refund") {
     return { kind: "merchant", merId: tx.mer_id, path: "/api/trade/close", version: "1.0", payload: { ...base, CloseType: 2, TradeAmt: amount } };
   }
-  // ATM 轉匯退款欄位名稱待 Sandbox R-05 核對
-  const payload: Record<string, string | number> = {
-    ...base, TradeAmt: amount, BankCode: acct!.bank_code, BankAccount: acct!.account_no, AccountName: acct!.holder_name, UID: acct!.uid,
+  // offline/refund v1.0（#/7/76）EncryptInfo 只有這 9 個欄位；戶名不送、無 NotifyURL（結果打到原交易的 NotifyURL）
+  return {
+    kind: "merchant", merId: tx.mer_id, path: "/api/trade/offline/refund", version: "1.0",
+    payload: {
+      MerID: tx.mer_id, TradeNo: tx.provider_trade_no, Timestamp: ts(now), PaymentType: 2, RefundAmt: amount,
+      BankCode: acct!.bank_code, BankSubCode: acct!.bank_sub_code, BankAccountNo: acct!.account_no, UID: acct!.uid,
+    },
   };
-  if (acct!.bank_sub_code) payload.BranchCode = acct!.bank_sub_code;
-  return { kind: "merchant", merId: tx.mer_id, path: "/api/trade/offline/refund", version: "1.0", payload };
 }
 
 // ---------------- 讀取 ----------------
@@ -251,8 +267,16 @@ export async function executePayuniRefund(deps: RefundDeps, input: ExecuteInput)
     const q = queried.find((x) => x.tx.id === p.tx.id)!.q;
     return { ...p, action: decideRefundAction(p.tx, q, p.amount, p.remain, backSet, now) };
   });
-  if (plan.some((p) => p.action.type === "offline_refund") && !input.bankAccount) {
-    return { ok: false, status: 400, error: "ATM 付款需填寫退款帳戶", needsBankAccount: true };
+  const blocked = plan.find((p) => p.action.type === "blocked");
+  if (blocked) {
+    await deps.sendAlert(`[PAYUNi] 退款無法發動 ${input.order.order_number}`,
+      `<p>訂單 ${esc(input.order.order_number)} 原交易 ${esc(blocked.tx.mer_trade_no)}：${esc((blocked.action as any).reason)}</p>`)
+      .catch((e) => console.error(`[payuniRefund] alert failed: ${e instanceof Error ? e.message : e}`));
+    return { ok: false, status: 400, error: (blocked.action as any).reason };
+  }
+  if (plan.some((p) => p.action.type === "offline_refund")) {
+    if (!input.bankAccount) return { ok: false, status: 400, error: "ATM 付款需填寫退款帳戶", needsBankAccount: true };
+    if (!/^\d{4}$/.test(String(input.bankAccount.bank_sub_code ?? ""))) return { ok: false, status: 400, error: "分行代碼須為 4 碼數字", needsBankAccount: true };
   }
 
   const batchId = crypto.randomUUID();
@@ -262,17 +286,19 @@ export async function executePayuniRefund(deps: RefundDeps, input: ExecuteInput)
     const merTradeNo = nextRefundMerTradeNo(p.tx.mer_trade_no, existingNos);
     existingNos.push(merTradeNo);
     const reason = p.action.type === "pending" || p.action.type === "manual" ? p.action.reason : null;
+    const q = queried.find((x) => x.tx.id === p.tx.id)!.q;
+    const raw0 = { batch_id: batchId, action: p.action.type, remain_before: q.RemainAmt != null && q.RemainAmt !== "" ? Number(q.RemainAmt) : null };
     const { data: row, error } = await deps.admin.from("payment_transactions").insert({
       order_id: input.order.id, accommodation_id: input.order.accommodation_id, provider: "payuni", mer_id: p.tx.mer_id,
       mer_trade_no: merTradeNo, provider_trade_no: p.tx.provider_trade_no, kind: "refund", payment_type: p.tx.payment_type,
       amount: p.amount, status: "pending", parent_tx_id: p.tx.id, refund_source: input.source, refund_pending_reason: reason,
-      raw_response: { batch_id: batchId, action: p.action.type }, created_at: iso(now), updated_at: iso(now),
+      raw_response: raw0, created_at: iso(now), updated_at: iso(now),
     }).select("id").single();
     if (error) {
       if (error.code === "23505") return { ok: false, status: 409, error: "退款已送出，請勿重複操作" };
       throw new Error(`refund row insert failed: ${error.message}`);
     }
-    const refundRow = { id: row.id, mer_trade_no: merTradeNo, amount: p.amount, raw_response: { batch_id: batchId, action: p.action.type } };
+    const refundRow = { id: row.id, mer_trade_no: merTradeNo, amount: p.amount, raw_response: raw0 };
     results.push(await runRefundPart(deps, refundRow, p.tx, p.action, input.order, now, input.bankAccount ?? null));
   }
 
@@ -292,7 +318,7 @@ export async function executePayuniRefund(deps: RefundDeps, input: ExecuteInput)
 }
 
 export function partLabel(r: PartResult) {
-  const act = { cancel: "取消授權", close_refund: "信用卡退款", offline_refund: "ATM 轉匯退款", pending: "待送出", manual: "人工退款" }[r.action];
+  const act = { cancel: "取消授權", close_refund: "信用卡退款", offline_refund: "ATM 轉匯退款", pending: "待送出", manual: "人工退款", blocked: "無法發動" }[r.action];
   const st = r.status === "paid" ? "完成" : r.status === "failed" ? "失敗" : "處理中";
   return `${act}${st}${r.reason ? `（${r.reason}）` : ""}`;
 }
@@ -303,7 +329,7 @@ export async function runRefundPart(
   tx: any, action: RefundAction, order: { id: string }, now: number, acct: BankAccountInput | null,
 ): Promise<PartResult> {
   const base = { mer_trade_no: row.mer_trade_no, amount: row.amount, action: action.type } as const;
-  if (action.type === "pending" || action.type === "manual") return { ...base, status: "pending", reason: action.reason };
+  if (action.type === "pending" || action.type === "manual" || action.type === "blocked") return { ...base, status: "pending", reason: action.reason };
   if (action.type === "offline_refund") {
     const { error } = await deps.admin.from("refund_bank_accounts").insert({
       order_id: order.id, refund_tx_id: row.id, bank_code: acct!.bank_code, bank_sub_code: acct!.bank_sub_code ?? null,
@@ -320,9 +346,16 @@ export async function runRefundPart(
     return { ...base, status: "failed", reason };
   }
   if (action.type === "offline_refund") {
-    // 轉匯結果由 payuni-trade-notify 回報
-    await updateRefundRow(deps.admin, row.id, { refund_pending_reason: null, raw_response: { ...raw, awaiting_transfer: true } });
+    // 轉匯結果由 payuni-trade-notify（原交易 NotifyURL）或 sweep 回報
+    await updateRefundRow(deps.admin, row.id, {
+      refund_pending_reason: null, raw_response: { ...raw, awaiting_transfer: true, estimated_refund_date: r.data?.EstimatedRefundDate ?? null },
+    });
     return { ...base, status: "pending", reason: "等待 PAYUNi 轉匯結果" };
+  }
+  if (action.type === "close_refund") {
+    // 退款申請已受理：維持處理中，由 sweep（RefundStatus／RemainAmt）或代理商 Notify 判定完成
+    await updateRefundRow(deps.admin, row.id, { refund_pending_reason: null, raw_response: { ...raw, awaiting_refund: true } });
+    return { ...base, status: "pending", reason: "PAYUNi 退款處理中" };
   }
   await updateRefundRow(deps.admin, row.id, { status: "paid", refund_pending_reason: null, notified_at: iso(now), raw_response: raw });
   return { ...base, status: "paid" };
@@ -355,7 +388,7 @@ async function orderOf(admin: any, orderId: string) {
 export async function completeRefundRow(deps: RefundDeps, row: any, via: string) {
   const now = deps.now?.() ?? Date.now();
   const { data: claimed, error } = await deps.admin.from("payment_transactions")
-    .update({ status: "paid", refund_pending_reason: null, notified_at: iso(now), updated_at: iso(now), raw_response: { ...(row.raw_response ?? {}), completed_via: via, awaiting_transfer: false } })
+    .update({ status: "paid", refund_pending_reason: null, notified_at: iso(now), updated_at: iso(now), raw_response: { ...(row.raw_response ?? {}), completed_via: via, awaiting_transfer: false, awaiting_refund: false } })
     .eq("id", row.id).neq("status", "paid").select("id").maybeSingle();
   if (error) throw new Error(`refund row update failed: ${error.message}`);
   if (!claimed) return false;
@@ -376,6 +409,20 @@ export async function failRefundRow(deps: RefundDeps, row: any, reason: string, 
   });
   const order = await orderOf(deps.admin, row.order_id);
   if (order) await notifyRefundIssue(deps, order, [{ mer_trade_no: row.mer_trade_no, amount: Number(row.amount), action: row.raw_response?.action ?? "offline_refund", status: "failed", reason }]);
+  return true;
+}
+
+/** PAYUNi 回報退款取消（信用卡 RefundStatus=3／ATM 轉匯取消）：標 cancelled＋告警 */
+export async function cancelRefundRow(deps: RefundDeps, row: any, reason: string, via: string) {
+  const now = deps.now?.() ?? Date.now();
+  const { data: claimed } = await deps.admin.from("payment_transactions")
+    .update({ status: "cancelled", refund_pending_reason: reason, updated_at: iso(now), raw_response: { ...(row.raw_response ?? {}), cancelled_via: via, awaiting_refund: false, awaiting_transfer: false } })
+    .eq("id", row.id).eq("status", "pending").select("id").maybeSingle();
+  if (!claimed) return false;
+  await syncOrderRefund(deps, row.order_id, { notes: [`PAYUNi 退款已取消 ${row.mer_trade_no} NT$${Number(row.amount).toLocaleString()}：${reason}`], reason: "PAYUNi 退款取消", actorLabel: "PAYUNi" });
+  const order = await orderOf(deps.admin, row.order_id);
+  await deps.sendAlert(`[PAYUNi] 退款已取消 ${order?.order_number ?? ""} ${row.mer_trade_no}`, `<p>${esc(`退款 ${row.mer_trade_no} NT$${row.amount}：${reason}，請人工確認款項`)}</p>`)
+    .catch((e) => console.error(`[payuniRefund] alert failed: ${e instanceof Error ? e.message : e}`));
   return true;
 }
 
@@ -439,19 +486,19 @@ export async function handleRefundTradeNotify(deps: RefundDeps, tx: any, data: R
   const { data: rows } = await deps.admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("kind", "refund")
     .eq(isRefundTx ? "id" : "parent_tx_id", tx.id);
   const amt = data.RefundAmt != null ? Number(data.RefundAmt) : null;
-  const row = (rows ?? []).filter((r: any) => r.status === "pending" && (amt == null || Number(r.amount) === amt))
+  const row = (rows ?? []).filter((r: any) => r.status === "pending" && r.raw_response?.action === "offline_refund" && (amt == null || Number(r.amount) === amt))
     .sort((a: any, b: any) => String(a.created_at).localeCompare(String(b.created_at)))[0];
   if (!row) return { processed: true, error: "NO_PENDING_REFUND" };
   const rs = String(data.RefundStatus ?? "");
-  if (rs === REFUND_STATUS.DONE && String(data.Status ?? "SUCCESS") === "SUCCESS") {
+  if (rs === ATM_NOTIFY_REFUND_STATUS.SUCCESS && String(data.Status ?? "") === "SUCCESS") {
     await completeRefundRow(deps, row, "trade-notify");
     return { processed: true, error: null };
   }
-  if (rs === REFUND_STATUS.CANCELLED || (data.Status != null && data.Status !== "SUCCESS")) {
+  if (rs === ATM_NOTIFY_REFUND_STATUS.FAILED || String(data.Status ?? "") === "FAIL") {
     await failRefundRow(deps, row, `ATM 轉匯失敗${data.Message ? `：${data.Message}` : ""}`, "trade-notify");
     return { processed: true, error: null };
   }
-  return { processed: true, error: null };
+  return { processed: true, error: "UNKNOWN_REFUND_STATUS" };
 }
 
 /** payuni-agent-notify：信用卡退款／取消授權事件（含業主在 PAYUNi 後台自行退款）。不自動取消訂單。 */
@@ -464,8 +511,12 @@ export async function handleRefundAgentNotify(deps: RefundDeps, type: string, da
   if (!parent) return { processed: false, error: "UNKNOWN_TRADE" };
   const { data: rowsRaw } = await deps.admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("kind", "refund").eq("parent_tx_id", parent.id);
   const rows = rowsRaw ?? [];
-  const amt = Number(data.RefundAmt ?? data.CloseAmt ?? data.TradeAmt ?? (type === "Cancel" ? parent.amount : NaN));
-  if (!Number.isFinite(amt) || amt <= 0) return { processed: false, error: "MISSING_AMOUNT" };
+  // #/9/89：本次金額是 ExecuteAmt；TradeAmt 是原交易總額，不可拿來配對
+  const amt = data.ExecuteAmt != null && String(data.ExecuteAmt).trim() !== "" ? Number(data.ExecuteAmt) : NaN;
+  if (!Number.isFinite(amt) || amt <= 0) {
+    await backstageAlert(deps, parent, accName, `PAYUNi ${type} 通知缺少 ExecuteAmt（原交易 ${parent.mer_trade_no}），無法配對退款，請人工確認`);
+    return { processed: false, error: "UNMATCHED" };
+  }
 
   if (type === "CancelRefund") {
     const row = rows.filter((r: any) => r.status === "paid" && Number(r.amount) === amt).sort((a: any, b: any) => String(b.created_at).localeCompare(String(a.created_at)))[0];
@@ -514,12 +565,63 @@ async function backstageAlert(deps: RefundDeps, parent: any, accName: string, ms
 
 // ---------------- sweep ----------------
 
-/** payuni-trade-query sweep：重送暫緩的退款、處理中逾 7 天告警（每筆一次）、帳戶到期遮罩 */
+const sumAmt = (rows: any[]) => rows.reduce((a, r) => a + Number(r.amount || 0), 0);
+
+/**
+ * 已送出、等結果的退款列（信用卡 close 退款、ATM 轉匯）：每筆原交易查一次。
+ * RefundStatus 只代表該交易「最後一筆」退款（信用卡文件限制），只套用到最新一筆 pending 列；
+ * 較早的信用卡 pending 列改看 RemainAmt 是否已扣掉「它自己＋之後已完成的退款」。
+ */
+async function resolveSubmittedRefunds(deps: RefundDeps, rows: any[], now: number) {
+  const done = new Set<string>();
+  const resolved: string[] = [];
+  const byParent = new Map<string, any[]>();
+  for (const r of rows.filter((r) => r.raw_response?.awaiting_refund || r.raw_response?.awaiting_transfer)) {
+    byParent.set(r.parent_tx_id, [...(byParent.get(r.parent_tx_id) ?? []), r]);
+  }
+  for (const [parentId, list] of byParent) {
+    try {
+      const { data: parent } = await deps.admin.from("payment_transactions").select("*").eq("id", parentId).maybeSingle();
+      const q = parent ? await queryTrade(deps, parent, now) : null;
+      if (!parent || !q) continue;
+      const sorted = [...list].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      const latest = sorted[sorted.length - 1];
+      const rs = String(q.RefundStatus ?? "");
+      const isAtm = Number(parent.payment_type) === 2;
+      const outcome = isAtm
+        ? rs === ATM_REFUND_STATUS.SUCCESS ? "paid" : rs === ATM_REFUND_STATUS.FAILED ? "failed" : rs === ATM_REFUND_STATUS.CANCELLED ? "cancelled" : null
+        : rs === CARD_REFUND_STATUS.DONE && String(q.RefundType ?? "") !== CARD_REFUND_TYPE_ESTIMATED ? "paid" : rs === CARD_REFUND_STATUS.CANCELLED ? "cancelled" : null;
+      if (outcome === "paid") await completeRefundRow(deps, latest, "sweep RefundStatus");
+      else if (outcome === "failed") await failRefundRow(deps, latest, "ATM 轉匯失敗（交易查詢）", "sweep");
+      else if (outcome === "cancelled") await cancelRefundRow(deps, latest, isAtm ? "PAYUNi 轉匯取消" : "PAYUNi 退款取消", "sweep");
+      if (outcome) { done.add(latest.id); resolved.push(latest.mer_trade_no); }
+      if (isAtm || q.RemainAmt == null || String(q.RemainAmt).trim() === "") continue;
+      const remote = Number(q.RemainAmt);
+      const { data: sibs } = await deps.admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("kind", "refund").eq("parent_tx_id", parentId);
+      for (const e of sorted.slice(0, -1)) {
+        const before = e.raw_response?.remain_before;
+        if (before == null) continue;
+        const laterPaid = sumAmt((sibs ?? []).filter((x: any) => x.status === "paid" && String(x.created_at) > String(e.created_at)));
+        if (remote <= Number(before) - Number(e.amount) - laterPaid) {
+          await completeRefundRow(deps, e, "sweep RemainAmt");
+          done.add(e.id);
+          resolved.push(e.mer_trade_no);
+        }
+      }
+    } catch (e) {
+      console.error(`[payuni-sweep] refund resolve ${parentId} failed: ${e instanceof Error ? e.message : e}`);
+    }
+  }
+  return { done, resolved };
+}
+
+/** payuni-trade-query sweep：判定已送出的退款、重送暫緩的退款、處理中逾 7 天告警（每筆一次）、帳戶到期遮罩 */
 export async function sweepRefunds(deps: RefundDeps, now: number) {
   const { data: rows } = await deps.admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("kind", "refund").eq("status", "pending");
+  const { done, resolved } = await resolveSubmittedRefunds(deps, rows ?? [], now);
   const retried: string[] = [];
   const staleAlerted: string[] = [];
-  for (const row of rows ?? []) {
+  for (const row of (rows ?? []).filter((r: any) => !done.has(r.id))) {
     const action = row.raw_response?.action;
     if (action === "pending") {
       try {
@@ -532,16 +634,23 @@ export async function sweepRefunds(deps: RefundDeps, now: number) {
           const next = Number(row.amount) > remain
             ? { type: "manual" as const, reason: `PAYUNi 剩餘可退 NT$${remain}，不足退款金額，請人工處理` }
             : decideRefundAction(parent, q, Number(row.amount), remain, await backSetUnCreditRefund(deps.admin, parent.accommodation_id), now);
-          if (next.type === "cancel" || next.type === "close_refund" || next.type === "manual") {
-            const part = await (next.type === "manual"
+          if (next.type === "cancel" || next.type === "close_refund" || next.type === "manual" || next.type === "blocked") {
+            const toManual = next.type === "manual" || next.type === "blocked";
+            const part = await (toManual
               ? deps.admin.from("payment_transactions").update({ refund_pending_reason: next.reason, raw_response: { ...row.raw_response, action: "manual" }, updated_at: iso(now) }).eq("id", row.id).then(() => ({ status: "pending" }))
-              : runRefundPart(deps, row, parent, next, { id: row.order_id }, now, null));
+              : runRefundPart(deps, { ...row, raw_response: { ...row.raw_response, remain_before: q.RemainAmt != null && q.RemainAmt !== "" ? Number(q.RemainAmt) : null } }, parent, next, { id: row.order_id }, now, null));
+            if (next.type === "blocked") {
+              const o = await orderOf(deps.admin, row.order_id);
+              if (o) await notifyRefundIssue(deps, o, [{ mer_trade_no: row.mer_trade_no, amount: Number(row.amount), action: "manual", status: "pending", reason: next.reason }]);
+            }
             if (part.status === "paid") {
               await syncOrderRefund(deps, row.order_id, { notes: [`PAYUNi 暫緩退款已送出 ${row.mer_trade_no} NT$${Number(row.amount).toLocaleString()}`], reason: "PAYUNi 退款（sweep 重送）", actorLabel: "PAYUNi" });
             } else if (part.status === "failed") {
               await failRefundRow(deps, row, (part as PartResult).reason ?? "PAYUNi 退款失敗", "sweep");
-            } else {
+            } else if (toManual) {
               await syncOrderRefund(deps, row.order_id, { reason: "PAYUNi 退款轉人工", actorLabel: "PAYUNi" });
+            } else {
+              await syncOrderRefund(deps, row.order_id, { notes: [`PAYUNi 暫緩退款已送出 ${row.mer_trade_no} NT$${Number(row.amount).toLocaleString()}（處理中）`], reason: "PAYUNi 退款（sweep 重送）", actorLabel: "PAYUNi" });
             }
             retried.push(row.mer_trade_no);
             continue;
@@ -564,5 +673,5 @@ export async function sweepRefunds(deps: RefundDeps, now: number) {
     }
   }
   const masked = await maskAccountsWhere(deps.admin, { purge_before: iso(now) });
-  return { refundRetried: retried, refundStaleAlerted: staleAlerted, accountsMasked: masked };
+  return { refundResolved: resolved, refundRetried: retried, refundStaleAlerted: staleAlerted, accountsMasked: masked };
 }
