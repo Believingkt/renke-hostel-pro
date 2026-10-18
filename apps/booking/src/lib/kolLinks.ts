@@ -137,3 +137,15 @@ export function splitKolLinks(text: string): { primary: string; others: string[]
   }
   return { primary, others: links.filter((l) => l !== primary), split: true };
 }
+
+/** 搜尋框的連結條件：其他平台連結（去掉 https://、www.、結尾斜線再比對），IG 網址另外用帳號比對主欄位 */
+export function kolLinkSearchFilters(esc: string): string[] {
+  const v = esc.trim();
+  const core = v.replace(/^https?:\/\//i, "").replace(/^(?:www\.|m\.)/i, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
+  const parts = [`other_links_text.ilike.%${core || v}%`];
+  if (/(?:instagram\.com|threads\.(?:net|com))\//i.test(v)) {
+    const h = normalizeIgHandle(v);
+    if (h && !h.includes("/")) parts.push(`ig_handle.ilike.%${h}%`);
+  }
+  return parts;
+}

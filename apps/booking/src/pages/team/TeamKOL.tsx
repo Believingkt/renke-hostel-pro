@@ -68,7 +68,7 @@ import { igMatchOrFilter } from "@/hooks/useKolIgRecords";
 import { KolSearchInput } from "@/components/kol/KolSearchInput";
 import { KolIdentityConflictPanel } from "@/components/kol/KolIdentityConflictPanel";
 import { KolOtherLinksBadge, KolOtherLinksField, KolOtherLinksList } from "@/components/kol/KolOtherLinks";
-import { mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
+import { kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 
 // 這兩條規則的成因都是「同 IG、名稱不同」，擋下視窗改列既有紀錄並給選擇
 const IG_IDENTITY_RULES = new Set(["name.same_identity_different_name", "ig.duplicate"]);
@@ -1134,12 +1134,13 @@ function InvitationsTab({
     let matchedParentIds: string[] = [];
     if (s) {
       const esc = s.replace(/[%,()]/g, " ");
+      const linkParts = kolLinkSearchFilters(esc);
       // 搜尋也要命中「附屬記錄（子檔）」→ 先撈出命中的子檔，把它們的主檔一併帶進本頁
       const { data: childHits } = await supabase
         .from("kol_profiles")
         .select("primary_profile_id")
         .not("primary_profile_id", "is", null)
-        .or(`name.ilike.%${esc}%,ig_handle.ilike.%${esc}%,cid_code.ilike.%${esc}%,order_number.ilike.%${esc}%`)
+        .or([`name.ilike.%${esc}%`, `ig_handle.ilike.%${esc}%`, `cid_code.ilike.%${esc}%`, `order_number.ilike.%${esc}%`, ...linkParts].join(","))
         .limit(200);
       matchedParentIds = Array.from(
         new Set(
@@ -1153,6 +1154,7 @@ function InvitationsTab({
         `ig_handle.ilike.%${esc}%`,
         `cid_code.ilike.%${esc}%`,
         `order_number.ilike.%${esc}%`,
+        ...linkParts,
       ];
 
       if (matchedParentIds.length > 0) orParts.push(`id.in.(${matchedParentIds.join(",")})`);
@@ -2378,7 +2380,7 @@ function InvitationsTab({
           {/* 第一排：搜尋 + 館別 + 邀約人 + 新增邀約 */}
           <div className="flex items-center gap-2">
             <KolSearchInput
-              placeholder="搜尋 KOL／IG／折扣碼／訂單編號"
+              placeholder="搜尋 KOL／IG／其他平台連結／折扣碼／訂單編號"
               value={searchInput}
               onValueChange={setSearchInput}
               testId="kol-formal-search-desktop"
@@ -2541,7 +2543,7 @@ function InvitationsTab({
         {/* 手機版（md: 以下）單欄堆疊 */}
         <div className="md:hidden space-y-2">
           <KolSearchInput
-            placeholder="搜尋 KOL／IG／折扣碼／訂單編號"
+            placeholder="搜尋 KOL／IG／其他平台連結／折扣碼／訂單編號"
             value={searchInput}
             onValueChange={setSearchInput}
             testId="kol-formal-search-mobile"

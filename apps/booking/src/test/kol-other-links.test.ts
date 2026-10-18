@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractKolLinks, kolLinkPlatform, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
+import { extractKolLinks, kolLinkPlatform, kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 
 const LEE =
   "https://www.instagram.com/FB: https://www.facebook.com/GIALEEMI Instagram ：https://www.instagram.com/mintangelme YouTube ：https://www.youtube.com/@mintangelme TikTok ：https://www.tiktok.com/@mintangelme/";
@@ -111,5 +111,19 @@ describe("splitKolLinks 邊界", () => {
     expect(
       mergeKolLinks(["https://www.facebook.com/profile.php?id=1"], ["https://facebook.com/profile.php?id=1&ref=x"]),
     ).toHaveLength(1);
+  });
+});
+
+describe("kolLinkSearchFilters", () => {
+  it("網址去掉 https、www、結尾斜線後比對其他平台連結", () => {
+    expect(kolLinkSearchFilters("https://www.youtube.com/@abc/")).toEqual(["other_links_text.ilike.%youtube.com/@abc%"]);
+    expect(kolLinkSearchFilters("小美")).toEqual(["other_links_text.ilike.%小美%"]);
+  });
+
+  it("IG 網址另外用帳號比對主欄位", () => {
+    expect(kolLinkSearchFilters("https://www.instagram.com/kai.stays/?igsh=1")).toEqual([
+      "other_links_text.ilike.%instagram.com/kai.stays%",
+      "ig_handle.ilike.%kai.stays%",
+    ]);
   });
 });

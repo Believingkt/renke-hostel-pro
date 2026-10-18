@@ -5849,6 +5849,7 @@ export type Database = {
           name_original: string | null
           notes: string | null
           other_links: string[]
+          other_links_text: string | null
           order_id: string | null
           order_number: string | null
           primary_link_exception: boolean
@@ -5907,6 +5908,7 @@ export type Database = {
           name_original?: string | null
           notes?: string | null
           other_links?: string[]
+          other_links_text?: never
           order_id?: string | null
           order_number?: string | null
           primary_link_exception?: boolean
@@ -5965,6 +5967,7 @@ export type Database = {
           name_original?: string | null
           notes?: string | null
           other_links?: string[]
+          other_links_text?: never
           order_id?: string | null
           order_number?: string | null
           primary_link_exception?: boolean
