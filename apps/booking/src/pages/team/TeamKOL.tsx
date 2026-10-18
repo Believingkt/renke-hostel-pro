@@ -67,6 +67,8 @@ import { KolIgNameHint } from "@/components/kol/KolIgNameHint";
 import { igMatchOrFilter } from "@/hooks/useKolIgRecords";
 import { KolSearchInput } from "@/components/kol/KolSearchInput";
 import { KolIdentityConflictPanel } from "@/components/kol/KolIdentityConflictPanel";
+import { KolOtherLinksBadge, KolOtherLinksField, KolOtherLinksList } from "@/components/kol/KolOtherLinks";
+import { mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 
 // 這兩條規則的成因都是「同 IG、名稱不同」，擋下視窗改列既有紀錄並給選擇
 const IG_IDENTITY_RULES = new Set(["name.same_identity_different_name", "ig.duplicate"]);
@@ -241,6 +243,7 @@ interface KolRow {
   primary_profile_id?: string | null;
   primary_link_exception?: boolean;
   contract_group_id?: string | null;
+  other_links?: string[] | null;
   // 顯示用
   _accommodation_name?: string;
   _scout_name?: string;
@@ -283,6 +286,9 @@ interface FormState {
   follower_count_original: number | null;
   primary_profile_id: string | null;
   primary_link_exception: boolean;
+  other_links: string[];
+  /** 介面用：剛從主欄位自動移出的連結數 */
+  links_moved: number;
 }
 
 const EMPTY_FORM: FormState = {
@@ -319,7 +325,15 @@ const EMPTY_FORM: FormState = {
   follower_count_original: null,
   primary_profile_id: null,
   primary_link_exception: false,
+  other_links: [],
+  links_moved: 0,
+};
 
+/** 主欄位貼了多個連結時，自動拆成 1 個主連結 + 其他平台連結 */
+const withSplitLinks = (f: FormState): FormState => {
+  const s = splitKolLinks(f.ig_handle);
+  if (!s.split) return f;
+  return { ...f, ig_handle: s.primary, other_links: mergeKolLinks(f.other_links, s.others, s.primary), links_moved: s.others.length };
 };
 
 interface RaritySetting {
@@ -1522,13 +1536,13 @@ function InvitationsTab({
   useEffect(() => {
     if (!prefill) return;
     setEditingId(null);
-    setForm({
+    setForm(withSplitLinks({
       ...EMPTY_FORM,
       name: prefill.name,
       ig_handle: prefill.ig_handle,
       scout_id: prefill.scout_id || currentUserId,
       invited_at: "",
-    });
+    }));
     setProspectLink(prefill.prospect_id);
     setSheetOpen(true);
     onPrefillConsumed?.();
@@ -1540,7 +1554,8 @@ function InvitationsTab({
       return;
     }
     setEditingId(row.id);
-    setForm({
+    const legacyMulti = splitKolLinks(row.ig_handle ?? "").split;
+    setForm(withSplitLinks({
       id: row.id,
       accommodation_select: row.accommodation_id
         ? `acc:${row.accommodation_id}`
@@ -1551,7 +1566,7 @@ function InvitationsTab({
       venue_id: row.venue_id ?? "",
       venue_name: row.venue_name ?? "",
       name: row.name ?? "",
-      ig_handle: row.ig_url || igProfileUrl(row.ig_handle) || row.ig_handle || "",
+      ig_handle: legacyMulti ? row.ig_handle! : row.ig_url || igProfileUrl(row.ig_handle) || row.ig_handle || "",
       rarity: row.rarity ?? "",
       scout_id: row.scout_id ?? "",
       invited_at: row.invited_at ?? "",
@@ -1579,7 +1594,9 @@ function InvitationsTab({
       follower_count_original: row.follower_count ?? null,
       primary_profile_id: row.primary_profile_id ?? null,
       primary_link_exception: !!row.primary_link_exception,
-    });
+      other_links: row.other_links ?? [],
+      links_moved: 0,
+    }));
     setContractGroupId(row.contract_group_id ?? null);
     setSheetOpen(true);
   };
@@ -1888,6 +1905,7 @@ function InvitationsTab({
       name_original: form.name.trim(),
       ig_handle: normIg,
       ig_url: igProfileUrl(form.ig_handle) || null,
+      other_links: mergeKolLinks(form.other_links, [], form.ig_handle),
       rarity: form.rarity || null,
       scout_id: form.scout_id || null,
       invited_at: form.invited_at || null,
@@ -2006,6 +2024,7 @@ function InvitationsTab({
       const savedScoutId = form.scout_id;
       const savedName = form.name.trim();
       const savedIg = form.ig_handle.trim();
+      const savedOtherLinks = form.other_links;
       toast.success("主要記錄已儲存。如需新增附屬館別記錄，請點選下方按鈕", {
         duration: 10000,
         action: {
@@ -2017,6 +2036,7 @@ function InvitationsTab({
               scoutId: savedScoutId,
               name: savedName,
               igHandle: savedIg,
+              otherLinks: savedOtherLinks,
             });
           },
         },
@@ -2032,6 +2052,7 @@ function InvitationsTab({
     scoutId: string;
     name: string;
     igHandle: string;
+    otherLinks?: string[];
   }) => {
     const parentVenue = venues.find(
       (v) => v.accommodation_id === opts.accommodationId && !v.room_type_id,
@@ -2047,6 +2068,7 @@ function InvitationsTab({
       venue_name: "",
       name: opts.name,
       ig_handle: opts.igHandle,
+      other_links: opts.otherLinks ?? [],
       scout_id: opts.scoutId || currentUserId,
       check_in_date: "",
       check_out_date: "",
@@ -2075,6 +2097,7 @@ function InvitationsTab({
       scoutId: parentRow.scout_id ?? "",
       name: parentRow.name ?? "",
       igHandle: parentRow.ig_handle ?? "",
+      otherLinks: parentRow.other_links ?? [],
     });
   };
 
@@ -2851,6 +2874,7 @@ function InvitationsTab({
                               <span className="text-muted-foreground">-</span>
                             );
                           })()}
+                          <KolOtherLinksBadge links={r.other_links} />
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                         <TableCell>
@@ -3208,6 +3232,11 @@ function InvitationsTab({
                       "-"
                     )}
                   </Row>
+                  {!!r.other_links?.length && (
+                    <Row label="其他平台連結">
+                      <KolOtherLinksList links={r.other_links} />
+                    </Row>
+                  )}
                   <Row label="稀有度">
                     {r.rarity ? (
                       <Badge variant="outline" className={RARITY_CLASS[r.rarity as Rarity] ?? ""}>
@@ -3434,7 +3463,7 @@ function InvitationsTab({
                   field="ig_handle"
                   value={form.ig_handle}
                   excludeId={editingId}
-                  onChange={(v) => setForm({ ...form, ig_handle: v })}
+                  onChange={(v) => setForm((prev) => withSplitLinks({ ...prev, ig_handle: v, links_moved: 0 }))}
                   onPick={(s) =>
                     setForm((prev) => ({
                       ...prev,
@@ -3443,6 +3472,14 @@ function InvitationsTab({
                     }))
                   }
                 />
+                <div className="mt-1 text-xs text-muted-foreground" data-testid="kol-ig-primary-hint">
+                  請貼 1 個個人主頁（建議 IG）；其他平台請填在下方「其他平台連結」
+                </div>
+                {form.links_moved > 0 && (
+                  <div className="mt-1 text-xs text-emerald-700" data-testid="kol-links-moved-note">
+                    ✓ 已將其他 {form.links_moved} 個連結移到「其他平台連結」
+                  </div>
+                )}
                 <KolIgNameHint
                   igHandle={form.ig_handle}
                   currentName={form.name}
@@ -3492,6 +3529,13 @@ function InvitationsTab({
                     </div>
                   </div>
                 )}
+              </Field>
+              <Field label="其他平台連結" anchorId="kolf-other-links">
+                <KolOtherLinksField
+                  links={form.other_links}
+                  primary={form.ig_handle}
+                  onChange={(other_links) => setForm((prev) => ({ ...prev, other_links, links_moved: 0 }))}
+                />
               </Field>
             </div>
 

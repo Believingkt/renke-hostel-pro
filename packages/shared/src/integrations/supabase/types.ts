@@ -5848,6 +5848,7 @@ export type Database = {
           name_normalized: string | null
           name_original: string | null
           notes: string | null
+          other_links: string[]
           order_id: string | null
           order_number: string | null
           primary_link_exception: boolean
@@ -5905,6 +5906,7 @@ export type Database = {
           name_normalized?: string | null
           name_original?: string | null
           notes?: string | null
+          other_links?: string[]
           order_id?: string | null
           order_number?: string | null
           primary_link_exception?: boolean
@@ -5962,6 +5964,7 @@ export type Database = {
           name_normalized?: string | null
           name_original?: string | null
           notes?: string | null
+          other_links?: string[]
           order_id?: string | null
           order_number?: string | null
           primary_link_exception?: boolean
