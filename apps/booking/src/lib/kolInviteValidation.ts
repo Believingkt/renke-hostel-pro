@@ -736,7 +736,7 @@ export function validateInvite(
       message: `IG 帳號與既有紀錄「${f.ig_duplicate_name}」重複。`,
       expected: "每個 IG 帳號對應一位 KOL",
       actual: normalizeIgHandle(f.ig_handle),
-      suggestion: "若確為不同人或二次合作，請勾選「確認為不同人／二次合作」後再儲存。",
+      suggestion: "請看下方列出的既有紀錄：是同一人 → 改用既有名稱；不是同一人 → 修改 IG 連結。若確為同一人的二次合作且名稱已一致，即可儲存。",
     });
   }
 

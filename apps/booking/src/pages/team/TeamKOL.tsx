@@ -62,6 +62,11 @@ import {
   type CompanionProfile,
 } from "@/lib/kolInviteValidation";
 import { describeKolSaveError } from "@/lib/kolSaveErrors";
+import { KolIgNameHint } from "@/components/kol/KolIgNameHint";
+import { KolIdentityConflictPanel } from "@/components/kol/KolIdentityConflictPanel";
+
+// 這兩條規則的成因都是「同 IG、名稱不同」，擋下視窗改列既有紀錄並給選擇
+const IG_IDENTITY_RULES = new Set(["name.same_identity_different_name", "ig.duplicate"]);
 import { scoutRateAsOfToday, scoutPayoutPeriodLabel } from "@lakeze/shared/lib/rateEffectivePeriod";
 
 
@@ -3492,6 +3497,12 @@ function InvitationsTab({
                     }))
                   }
                 />
+                <KolIgNameHint
+                  igHandle={form.ig_handle}
+                  currentName={form.name}
+                  excludeId={editingId}
+                  onApply={(name) => setForm((prev) => ({ ...prev, name }))}
+                />
                 {isContentPostUrl(form.ig_handle) && !igContentUrlAck && (
                   <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
                     <div>
@@ -4667,17 +4678,39 @@ function InvitationsTab({
                         前往欄位 <ChevronRight className="ml-0.5 h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="mt-1 text-sm text-foreground whitespace-pre-line">{issue.message}</p>
+                    <p className="mt-1 text-sm text-foreground whitespace-pre-line" data-testid={`kol-block-message-${i}`}>{issue.message}</p>
                     <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
-                      <div>🚫 觸發規則：{issue.rule}</div>
                       {issue.expected && <div>✅ 應該是：{issue.expected}</div>}
                       {issue.actual && <div>❌ 目前填的：{issue.actual}</div>}
-                      {RULE_ACTION_HINTS[issue.rule] ? (
-                        <div className="text-foreground whitespace-pre-line">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                      {issue.suggestion ? (
+                        <div className="text-foreground whitespace-pre-line">👉 我該怎麼做：{issue.suggestion}</div>
                       ) : (
-                        issue.suggestion && <div className="whitespace-pre-line">💡 建議做法：{issue.suggestion}</div>
+                        RULE_ACTION_HINTS[issue.rule] && (
+                          <div className="text-foreground whitespace-pre-line">👉 我該怎麼做：{RULE_ACTION_HINTS[issue.rule]}</div>
+                        )
                       )}
                     </div>
+                    {IG_IDENTITY_RULES.has(issue.rule) && (
+                      <KolIdentityConflictPanel
+                        igHandle={form.ig_handle}
+                        currentName={form.name}
+                        excludeId={editingId}
+                        onUseName={(name) => {
+                          setForm((prev) => ({ ...prev, name }));
+                          setBlockIssues([]);
+                          toast.success(`已改用「${name}」，請再按一次儲存`);
+                        }}
+                        onFixIg={() => {
+                          setBlockIssues([]);
+                          setTimeout(() => {
+                            const el = document.getElementById(FIELD_ANCHORS.ig_handle);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            (el?.querySelector("input, textarea") as HTMLElement | null)?.focus();
+                          }, 120);
+                        }}
+                      />
+                    )}
+                    <div className="mt-2 text-[10px] text-muted-foreground/70">規則代碼：{issue.rule}</div>
                   </div>
                 ))}
               </div>
