@@ -18,6 +18,12 @@ export type KolIgName = { name: string; count: number };
 // ilike 的 % 與 _ 是萬用字元，IG 帳號常含底線，必須跳脫才是「不分大小寫的完全相同」
 export const escapeIlike = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
 
+// 同一 IG 的比對條件：帳號完全相同（不分大小寫），或舊資料存成 instagram.com/帳號/… 整串網址
+export const igMatchOrFilter = (handle: string) => {
+  const esc = escapeIlike(handle);
+  return `ig_handle.ilike.${esc},ig_handle.ilike.*instagram.com/${esc}/*`;
+};
+
 // 依筆數（多→少）整理出此 IG 已使用過的名稱
 export function groupKolNames(records: Pick<KolIgRecord, "name">[]): KolIgName[] {
   const counts = new Map<string, number>();
@@ -47,7 +53,7 @@ export function useKolIgRecords(igRaw: string, excludeId: string | null, enabled
       const { data } = await supabase
         .from("kol_profiles")
         .select("id, name, venue_name, invited_at, cid_code, booking_status, primary_profile_id, team_member_profiles:scout_id(display_name)")
-        .ilike("ig_handle", escapeIlike(ig))
+        .or(igMatchOrFilter(ig))
         .eq("is_error", false)
         .neq("id", excludeId ?? "00000000-0000-0000-0000-000000000000")
         .order("invited_at", { ascending: true, nullsFirst: false })

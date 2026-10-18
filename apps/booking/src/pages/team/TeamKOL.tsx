@@ -48,6 +48,7 @@ import {
   normalizeIgHandle,
   igProfileUrl,
   isContentPostUrl,
+  igHandleCleanupNote,
   normalizeCode,
   normalizeKolName,
   kolNameKey,
@@ -63,6 +64,8 @@ import {
 } from "@/lib/kolInviteValidation";
 import { describeKolSaveError } from "@/lib/kolSaveErrors";
 import { KolIgNameHint } from "@/components/kol/KolIgNameHint";
+import { igMatchOrFilter } from "@/hooks/useKolIgRecords";
+import { KolSearchInput } from "@/components/kol/KolSearchInput";
 import { KolIdentityConflictPanel } from "@/components/kol/KolIdentityConflictPanel";
 
 // 這兩條規則的成因都是「同 IG、名稱不同」，擋下視窗改列既有紀錄並給選擇
@@ -1461,78 +1464,7 @@ function InvitationsTab({
     setIgContentUrlAck(false);
   }, [sheetOpen, editingId]);
 
-  // ig_handle 即時重複檢查：只在目前主檔之前已有同 IG 主檔時提示。
-  // 最早的第一筆主檔（包含日後回頭編輯）不顯示提示；附屬紀錄也不顯示。
-  useEffect(() => {
-    const ig = form.ig_handle.trim();
-    // 既有附屬紀錄已經完成主檔關聯，不需要再次確認「二次合作」。
-    // 名稱／IG 不一致仍由下方 CID 身分規則獨立檢查並阻擋。
-    if ((editingId && form.primary_profile_id) || !ig || isContentPostUrl(ig)) {
-      setDupWarning(null);
-      return;
-    }
-    let cancelled = false;
-    const handle = setTimeout(async () => {
-      const { data } = await supabase
-        .from("kol_profiles")
-        .select("id, name, scout_id, invited_at, created_at, booking_status, accommodation_id, venue_id, primary_profile_id, team_member_profiles:scout_id(display_name)")
-        .eq("ig_handle", normalizeIgHandle(ig))
-        .eq("is_error", false)
-        .is("primary_profile_id", null)
-        .limit(100);
-      if (cancelled) return;
-
-      const currentInvitedAt = form.invited_at || "9999-12-31";
-      const editingRow = editingId ? rows.find((row) => row.id === editingId) : null;
-      const queriedMasters = ((data as any[]) ?? []);
-      const masters = [
-        ...queriedMasters,
-        ...(editingId && !queriedMasters.some((d) => d.id === editingId)
-          ? [{ id: editingId, invited_at: currentInvitedAt, created_at: editingRow?.created_at ?? "" }]
-          : []),
-      ]
-        .map((d) => editingId && d.id === editingId ? { ...d, invited_at: currentInvitedAt } : d)
-        .sort((a, b) => {
-          const dateCompare = (a.invited_at || "9999-12-31").localeCompare(b.invited_at || "9999-12-31");
-          if (dateCompare !== 0) return dateCompare;
-          const createdCompare = (a.created_at || "").localeCompare(b.created_at || "");
-          if (createdCompare !== 0) return createdCompare;
-          return String(a.id).localeCompare(String(b.id));
-        });
-
-      // 新增主檔視為同日既有資料之後；編輯主檔則只找排序在本筆之前的資料。
-      const currentIndex = editingId ? masters.findIndex((d) => d.id === editingId) : -1;
-      const earlierMasters = editingId
-        ? (currentIndex > 0 ? masters.slice(0, currentIndex) : [])
-        : masters.filter((d) => (d.invited_at || "9999-12-31") <= currentInvitedAt);
-
-      if (earlierMasters.length > 0) {
-        const d: any = earlierMasters[0];
-        const sn = d.team_member_profiles?.display_name ?? d.scout_id ?? "未知";
-        const stLabel = d.booking_status ?? "-";
-        const venueLabel =
-          venues.find((v) => v.id === d.venue_id)?.name ??
-          accommodations.find((a) => a.id === d.accommodation_id)?.name ??
-          "未指定";
-        setDupWarning(
-          [
-            `此 KOL 的已有邀約紀錄：`,
-            `${sn} 於 ${d.invited_at ?? "-"} 填寫`,
-            `館別：${venueLabel}`,
-            `狀態：${stLabel}`,
-            ...(d.name ? [`（既有名稱：${d.name}）`] : []),
-          ].join("\n"),
-        );
-
-      } else {
-        setDupWarning(null);
-      }
-    }, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(handle);
-    };
-  }, [form.ig_handle, form.invited_at, editingId, form.primary_profile_id, rows]);
+  // 同 IG 即時提示改由 KolIgNameHint 顯示（與存檔檢查同一套比對）
 
   // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
   // 不阻擋、不改資料，只列出相似紀錄並提供「查看明細」與「設為附屬」捷徑。
@@ -1801,10 +1733,10 @@ function InvitationsTab({
           ? supabase
               .from("kol_profiles")
               .select("id, name, ig_handle, primary_profile_id")
-              .ilike("ig_handle", normIg)
+              .or(igMatchOrFilter(normIg))
               .eq("is_error", false)
               .neq("id", editingId ?? "00000000-0000-0000-0000-000000000000")
-              .limit(5)
+              .limit(50)
           : Promise.resolve({ data: [] } as any),
         nameKey
           ? supabase
@@ -1883,7 +1815,8 @@ function InvitationsTab({
         publish_date: form.publish_date,
         follower_count_original: form.follower_count_original,
         follower_count_next: followerParsed.value,
-        ig_duplicate_confirmed: igDupConfirmed,
+        ig_duplicate_confirmed: false,
+        ig_is_content_post: igIsContentUrl,
         ig_duplicate_name: igDupName,
         collab_confirmed: collabConfirmed,
         self_id: editingId,
@@ -2021,7 +1954,26 @@ function InvitationsTab({
     let err;
     let newId: string | null = null;
     if (editingId) {
-      ({ error: err } = await supabase.from("kol_profiles").update(payload as any).eq("id", editingId));
+      const { data: updated, error } = await supabase
+        .from("kol_profiles")
+        .update(payload as any)
+        .eq("id", editingId)
+        .select("id");
+      err = error;
+      // 資料庫權限不允許時不會報錯、只會更新 0 筆，不能顯示成功
+      if (!error && (updated ?? []).length === 0) {
+        setSaving(false);
+        setBlockIssues([
+          {
+            level: "block",
+            rule: "db.no_rows_updated",
+            field: "name",
+            message: "這筆邀約沒有存進去：你目前沒有修改這筆紀錄的權限。",
+            suggestion: "只有填寫人、被指派的邀約人與星探主管可以修改；請聯絡星探主管協助修改。",
+          },
+        ]);
+        return;
+      }
     } else {
       payload.created_by = currentUserId;
       payload.is_error = false;
@@ -2410,10 +2362,11 @@ function InvitationsTab({
         <div className="hidden md:block space-y-2">
           {/* 第一排：搜尋 + 館別 + 邀約人 + 新增邀約 */}
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID / 訂單編號"
+            <KolSearchInput
+              placeholder="搜尋 KOL／IG／折扣碼／訂單編號"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onValueChange={setSearchInput}
+              testId="kol-formal-search-desktop"
               className="flex-1 max-w-[320px]"
             />
             <KolVenueFilterMenu
@@ -2572,10 +2525,11 @@ function InvitationsTab({
 
         {/* 手機版（md: 以下）單欄堆疊 */}
         <div className="md:hidden space-y-2">
-          <Input
-            placeholder="搜尋 KOL 名稱 / 網紅帳號 / CID / 訂單編號"
+          <KolSearchInput
+            placeholder="搜尋 KOL／IG／折扣碼／訂單編號"
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
+            onValueChange={setSearchInput}
+            testId="kol-formal-search-mobile"
             className="w-full"
           />
 
@@ -2778,8 +2732,11 @@ function InvitationsTab({
 
 
 
-      {/* 結果 */}
-      {loading ? null : filtered.length === 0 ? (
+      {/* 結果（重新查詢時保留舊結果，避免清單閃空、頁面跳動） */}
+      {loading && filtered.length > 0 && (
+        <div className="text-xs text-muted-foreground" data-testid="kol-list-loading">搜尋中…</div>
+      )}
+      {loading && filtered.length === 0 ? null : filtered.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-sm text-muted-foreground">尚無資料</CardContent>
         </Card>
@@ -3503,11 +3460,15 @@ function InvitationsTab({
                   excludeId={editingId}
                   onApply={(name) => setForm((prev) => ({ ...prev, name }))}
                 />
-                {isContentPostUrl(form.ig_handle) && !igContentUrlAck && (
-                  <div className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
+                {igHandleCleanupNote(form.ig_handle) && (
+                  <div className="mt-1 text-xs text-emerald-700" data-testid="kol-ig-cleanup-note">
+                    ✓ 已自動整理為 {igHandleCleanupNote(form.ig_handle)}（儲存與查重都以帳號「{normalizeIgHandle(form.ig_handle)}」為準）
+                  </div>
+                )}
+                {isContentPostUrl(form.ig_handle) && (
+                  <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive space-y-2" data-testid="kol-ig-content-post-block">
                     <div>
-                      ⚠️ 這看起來是貼文／Reels 影片連結，不包含 IG 帳號本身，無法用於查重與自動歸戶。
-                      確認這網址是想填寫在「發布連結」欄位嗎？（不影響儲存）
+                      ⛔ 這是貼文／Reels 影片連結，網址裡沒有 KOL 帳號，不能儲存。請改貼 KOL 個人主頁網址（例如 https://www.instagram.com/帳號/）。
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -3515,25 +3476,29 @@ function InvitationsTab({
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs"
+                        data-testid="kol-ig-open-post"
+                        onClick={() => {
+                          const raw = form.ig_handle.trim();
+                          window.open(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`, "_blank", "noopener");
+                        }}
+                      >
+                        開啟這則貼文找帳號
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        data-testid="kol-ig-move-to-publish"
                         onClick={() => {
                           const url = form.ig_handle.trim();
                           if (form.publish_url.trim() && form.publish_url.trim() !== url) {
                             if (!window.confirm("「發布連結」已有內容，要覆蓋嗎？")) return;
                           }
                           setForm((prev) => ({ ...prev, publish_url: url, ig_handle: "" }));
-                          setIgContentUrlAck(false);
                         }}
                       >
-                        移到發布連結
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 text-xs"
-                        onClick={() => setIgContentUrlAck(true)}
-                      >
-                        我確定就是帳號連結
+                        移到發布連結，重新貼帳號
                       </Button>
                     </div>
                   </div>
@@ -3541,23 +3506,7 @@ function InvitationsTab({
               </Field>
             </div>
 
-            {dupWarning && (
-              <div className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs text-amber-800 space-y-2">
-                <div className="whitespace-pre-line">⚠️ {dupWarning}</div>
-                <label className="flex items-start gap-2">
-                  <Checkbox
-                    className="mt-0.5"
-                    checked={igDupConfirmed}
-                    onCheckedChange={(c) => setIgDupConfirmed(!!c)}
-                  />
-                  <span>請確認是否為同一位 KOL，進行二次以上的合作？是 = 打勾</span>
-                </label>
-                <div className="text-amber-700">
-                  或<br />
-                  請確認目前網紅帳號相同、名稱卻不同。是 key 錯，或 IG 連結貼錯？
-                </div>
-              </div>
-            )}
+
 
 
             {similarMatches.length > 0 && (
@@ -4860,10 +4809,11 @@ function InvitationsTab({
               一般附屬記錄適用於同一位 KOL、同館別且入住日相差 31 天內的資料；跨館別或超過 31 天需另外勾選「特例附屬」。
             </p>
 
-            <Input
-              placeholder="搜尋 KOL 名稱或 IG 帳號"
+            <KolSearchInput
+              placeholder="搜尋 KOL 名稱或 IG"
               value={linkSearchQuery}
-              onChange={(e) => setLinkSearchQuery(e.target.value)}
+              onValueChange={setLinkSearchQuery}
+              testId="kol-link-search"
             />
             <div className="max-h-80 overflow-y-auto border rounded-md divide-y">
               {linkSearching && (
@@ -5553,10 +5503,11 @@ function ProspectsTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Input
-          placeholder="搜尋 KOL 名稱 或 網紅帳號連結"
+        <KolSearchInput
+          placeholder="搜尋 KOL 名稱或 IG 連結"
           value={inviteSearchInput}
-          onChange={(e) => setInviteSearchInput(e.target.value)}
+          onValueChange={setInviteSearchInput}
+          testId="kol-invite-search"
           className="w-64"
         />
         <Select value={filterScout} onValueChange={setFilterScout}>

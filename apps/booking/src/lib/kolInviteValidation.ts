@@ -75,6 +75,11 @@ export function normalizeIgHandle(raw: string): string {
   );
   if (urlMatch) {
     v = urlMatch[1];
+    // instagram.com/stories/{帳號}/… → 帳號在第二段
+    if (v.toLowerCase() === "stories") {
+      const m2 = (raw ?? "").trim().match(/\/stories\/([^/?#]+)/i);
+      v = m2 ? m2[1] : v;
+    }
   } else {
     v = v.replace(/^https?:\/\/(?:www\.)?/i, "");
   }
@@ -87,6 +92,27 @@ export function normalizeIgHandle(raw: string): string {
  * 判斷輸入是否為「貼文／短影音內容連結」而非帳號連結。
  * 例：https://www.instagram.com/reel/DNkq71ChXKC/ 這種網址不含帳號，無法正規化。
  */
+const IG_CONTENT_FIRST_SEGS = new Set(["reel", "reels", "p", "tv", "share", "explore", "s"]);
+
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+};
+
+/** IG 網址帶了分頁或參數（如 /amile77/reels/）時，回傳整理後的「instagram.com/帳號」；不需整理回傳 null */
+export function igHandleCleanupNote(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim();
+  if (!v || isContentPostUrl(v)) return null;
+  if (!/^(?:https?:\/\/)?(?:www\.)?instagram\.com\//i.test(v)) return null;
+  const handle = normalizeIgHandle(v);
+  if (!handle) return null;
+  const tidy = v.replace(/^https?:\/\/(?:www\.)?/i, "").replace(/\/+$/, "");
+  return tidy.toLowerCase() === `instagram.com/${handle}`.toLowerCase() ? null : `instagram.com/${handle}`;
+}
+
 export function isContentPostUrl(raw: string | null | undefined): boolean {
   const v = (raw ?? "").trim();
   if (!v) return false;
@@ -99,6 +125,11 @@ export function isContentPostUrl(raw: string | null | undefined): boolean {
   }
   const segs = path.split("/").filter(Boolean);
   if (segs.length === 0) return false;
+  // IG／Threads：只有第一段是內容路徑（/reel/ID、/p/ID…）才是不含帳號的貼文；
+  // /{帳號}/reels/、/{帳號}/tagged/、/stories/{帳號}/ 都含帳號，可正規化
+  if (/(^|\.)(instagram\.com|threads\.net|threads\.com)$/i.test(hostOf(withScheme))) {
+    return IG_CONTENT_FIRST_SEGS.has(segs[0]);
+  }
   const contentSegs = new Set([
     "reel",
     "reels",
@@ -287,6 +318,8 @@ export type InviteFormSnapshot = {
   follower_count_next: number | null;
   ig_duplicate_confirmed: boolean;
   ig_duplicate_name: string | null;
+  /** 網紅帳號連結是否為不含帳號的貼文／Reels 連結 */
+  ig_is_content_post?: boolean;
   collab_confirmed: boolean;
   /** 本筆的 id（新增時為 null） */
   self_id?: string | null;
@@ -728,14 +761,27 @@ export function validateInvite(
   }
 
   // 10. IG 重複
-  if (f.ig_duplicate_name && !f.ig_duplicate_confirmed) {
+  if (f.ig_is_content_post) {
+    add({
+      level: "block",
+      rule: "ig.content_post_url",
+      field: "ig_handle",
+      message: "「網紅帳號連結」填的是貼文／Reels 影片連結，網址裡沒有 KOL 帳號，無法查重與自動帶名稱。",
+      expected: "KOL 個人主頁網址，例如 https://www.instagram.com/帳號/",
+      actual: f.ig_handle,
+      suggestion: "請開啟這則貼文找到 KOL 帳號，改貼個人主頁網址；這個貼文網址可移到「發布連結」。",
+    });
+  }
+
+  // 同 IG 名稱不同一律要求統一名稱（不再以勾選「二次合作」放行）
+  if (f.ig_duplicate_name) {
     add({
       level: "block",
       rule: "ig.duplicate",
       field: "ig_handle",
-      message: `IG 帳號與既有紀錄「${f.ig_duplicate_name}」重複。`,
-      expected: "每個 IG 帳號對應一位 KOL",
-      actual: normalizeIgHandle(f.ig_handle),
+      message: `這個 IG（${normalizeIgHandle(f.ig_handle)}）已登記為「${f.ig_duplicate_name}」，你填的名稱是「${(f.name ?? "").trim()}」。`,
+      expected: `同一個 IG 使用同一個名稱：「${f.ig_duplicate_name}」`,
+      actual: `目前填的名稱：「${(f.name ?? "").trim()}」`,
       suggestion: "請看下方列出的既有紀錄：是同一人 → 改用既有名稱；不是同一人 → 修改 IG 連結。若確為同一人的二次合作且名稱已一致，即可儲存。",
     });
   }

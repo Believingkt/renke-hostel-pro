@@ -416,9 +416,14 @@ describe("其他規則", () => {
     expect(rules(run({ scout_id: "" }, { isManager: true }))).toContain("scout.missing_manager");
   });
 
-  it("blocks duplicate IG until confirmed", () => {
+  it("blocks duplicate IG with a different name even when 二次合作 was confirmed (checkbox removed)", () => {
     expect(rules(run({ ig_duplicate_name: "阿傑" }))).toContain("ig.duplicate");
-    expect(run({ ig_duplicate_name: "阿傑", ig_duplicate_confirmed: true }).blocks).toHaveLength(0);
+    expect(rules(run({ ig_duplicate_name: "阿傑", ig_duplicate_confirmed: true }))).toContain("ig.duplicate");
+  });
+
+  it("blocks IG content post links that contain no account", () => {
+    expect(rules(run({ ig_is_content_post: true }))).toContain("ig.content_post_url");
+    expect(rules(run({ ig_is_content_post: false }))).not.toContain("ig.content_post_url");
   });
 
   it("returns no issues for a clean submission", () => {
