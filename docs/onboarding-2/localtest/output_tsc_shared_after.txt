@@ -1,0 +1,13 @@
+../../apps/booking/src/pages/admin/AddonRecAnalytics.tsx(10,8): error TS2307: Cannot find module '@/components/headquarters/MetricBreakdownTable' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/AddonRecAnalytics.tsx(14,8): error TS2307: Cannot find module '@/components/headquarters/DemoPresentationPanel' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/AddonRecAnalytics.tsx(17,8): error TS2307: Cannot find module '@/components/headquarters/SharedDemoPanel' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/PmsApiKeys.tsx(12,56): error TS2307: Cannot find module '@/components/headquarters/pms-api-keys/PmsKeyCreateForm' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/PmsApiKeys.tsx(13,30): error TS2307: Cannot find module '@/components/headquarters/pms-api-keys/PmsKeyReveal' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/PmsApiKeys.tsx(14,29): error TS2307: Cannot find module '@/components/headquarters/pms-api-keys/PmsKeyTable' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/PmsApiKeys.tsx(15,37): error TS2307: Cannot find module '@/components/headquarters/pms-api-keys/PmsKeyConfirmDialog' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/RemarketingAnalytics.tsx(10,8): error TS2307: Cannot find module '@/components/headquarters/MetricBreakdownTable' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/RemarketingAnalytics.tsx(14,8): error TS2307: Cannot find module '@/components/headquarters/DemoPresentationPanel' or its corresponding type declarations.
+../../apps/booking/src/pages/admin/RemarketingAnalytics.tsx(17,8): error TS2307: Cannot find module '@/components/headquarters/SharedDemoPanel' or its corresponding type declarations.
+src/test/discount-cheaper-rule.test.ts(83,26): error TS2871: This expression is always nullish.
+src/test/discount-cheaper-rule.test.ts(84,29): error TS2869: Right operand of ?? is unreachable because the left operand is never nullish.
+exit=2

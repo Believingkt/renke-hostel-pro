@@ -11,6 +11,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// 邀請連結白名單：INVITE_LINK_ALLOWED_HOSTS（逗號分隔；「.網域」= 該網域與子網域，否則完整比對），未設定時用預設；官網 PUBLIC_SITE_ORIGIN 一併允許
+const DEFAULT_INVITE_HOSTS = ".lakeze.com,.lakeze.co";
+function isAllowedInviteHost(host: string): boolean {
+  const entries = (Deno.env.get("INVITE_LINK_ALLOWED_HOSTS") || DEFAULT_INVITE_HOSTS)
+    .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  try {
+    const site = Deno.env.get("PUBLIC_SITE_ORIGIN");
+    if (site) entries.push(new URL(site).hostname.toLowerCase());
+  } catch { /* 設定錯誤時略過 */ }
+  return entries.some((e) => e.startsWith(".") ? host === e.slice(1) || host.endsWith(e) : host === e);
+}
 
 const handler = async (req: Request): Promise<Response> => {
   
@@ -61,13 +72,12 @@ const handler = async (req: Request): Promise<Response> => {
     // 呼叫者：super_admin 或目標館的 hotel_admin
     if (!(await isAccommodationAdmin(authRes.ctx, accommodationId))) return reply(403, "只有該館管理員可以發送邀請郵件");
 
-    // 連結只允許本公司網域（https，lakeze.com 與其子網域）
     let linkHost = "";
     try {
       const u = new URL(inviteLink);
-      if (u.protocol === "https:") linkHost = u.hostname.toLowerCase();
+      if (u.protocol === "https:" && !u.username && !u.password) linkHost = u.hostname.toLowerCase();
     } catch { /* 無效網址 */ }
-    if (!(linkHost === "lakeze.com" || linkHost.endsWith(".lakeze.com"))) return reply(400, "邀請連結必須是 https 的 lakeze.com 網域");
+    if (!linkHost || !isAllowedInviteHost(linkHost)) return reply(400, "邀請連結必須是 https 的本公司網域");
 
     // 收件人必須已在該館建立角色（create-user 先建帳號與角色，再寄邀請）
     const target = await findUserByEmail(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", email);

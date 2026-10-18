@@ -39,15 +39,18 @@ vi.mock("@lakeze/shared/integrations/supabase/client", () => {
 
 import { ConditionalLayout } from "@lakeze/shared/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
-import { HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES } from "@/lib/hqAccess";
+import { HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES, HQ_SETTINGS_ROLES, HQ_SETTINGS_PATHS } from "@/lib/hqAccess";
 
 function renderAt(path: string) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route element={<ConditionalLayout hqRoles={HQ_LOGIN_ROLES} />}>
+        <Route element={<ConditionalLayout hqRoles={HQ_LOGIN_ROLES} hqSettings={{ paths: HQ_SETTINGS_PATHS, roles: HQ_SETTINGS_ROLES }} />}>
           <Route path="/hq" element={<div>HQ 首頁</div>} />
-          <Route path="/hq/bonus-settings" element={<div>月結設定頁</div>} />
+          <Route path="/hq/bonus-settings" element={<RequireHQRole allow={HQ_SETTINGS_ROLES}><div>月結設定頁</div></RequireHQRole>} />
+          <Route path="/hq/owner-settlement-settings" element={<RequireHQRole allow={HQ_SETTINGS_ROLES}><div>舊月結設定頁</div></RequireHQRole>} />
+          <Route path="/hq/bonus-settings-x" element={<div>相似網址頁</div>} />
+          <Route path="/hq/cdp" element={<div>一般 HQ 頁</div>} />
           {["line-butler", "kol-overview", "referral"].map((p) => (
             <Route key={p} path={`/hq/${p}`} element={<RequireHQRole allow={HQ_FULL_ACCESS_ROLES}><div>敏感頁 {p}</div></RequireHQRole>} />
           ))}
@@ -61,7 +64,14 @@ function renderAt(path: string) {
 const CASES: [string, string[], string, string][] = [
   ["單館業主", ["hotel_admin", "owner"], "/hq/line-butler", "總部登入頁"],
   ["本館 staff", ["staff"], "/hq/referral", "總部登入頁"],
-  ["單館業主進月結設定頁", ["hotel_admin"], "/hq/bonus-settings", "總部登入頁"],
+  ["hotel_admin 進月結設定頁（維持既有）", ["hotel_admin"], "/hq/bonus-settings", "月結設定頁"],
+  ["hotel_admin 進舊月結設定網址", ["hotel_admin"], "/hq/owner-settlement-settings", "舊月結設定頁"],
+  ["hotel_admin 從 PMS 帶館別參數進月結設定", ["hotel_admin"], "/hq/bonus-settings?tab=owner-settlement&acc=a", "月結設定頁"],
+  ["hotel_admin 進 HQ 首頁", ["hotel_admin"], "/hq", "總部登入頁"],
+  ["hotel_admin 進一般 HQ 頁", ["hotel_admin"], "/hq/cdp", "總部登入頁"],
+  ["hotel_admin 進月結相似網址", ["hotel_admin"], "/hq/bonus-settings-x", "總部登入頁"],
+  ["hotel_admin＋owner 進敏感頁", ["hotel_admin", "owner"], "/hq/kol-overview", "總部登入頁"],
+  ["staff 進月結設定頁", ["staff"], "/hq/bonus-settings", "總部登入頁"],
   ["finance 進敏感頁", ["finance"], "/hq/kol-overview", "HQ 首頁"],
   ["am 進敏感頁", ["am"], "/hq/line-butler", "HQ 首頁"],
   ["finance 進月結設定頁（不變）", ["finance"], "/hq/bonus-settings", "月結設定頁"],

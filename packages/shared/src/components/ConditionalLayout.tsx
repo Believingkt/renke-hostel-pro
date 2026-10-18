@@ -18,8 +18,11 @@ import { isReservedFirstSegment } from "@lakeze/shared/lib/reservedRoutes";
 
 const isDev = import.meta.env.DEV;
 
-/** hqRoles：可進入 /hq/* 的角色（由 app 傳入 hqAccess 的 HQ_LOGIN_ROLES）；只有館別角色的帳號會被導回總部登入頁 */
-export function ConditionalLayout({ hqRoles }: { hqRoles?: readonly string[] } = {}) {
+/** hqRoles：可進入 /hq/* 的角色（由 app 傳入 hqAccess 的 HQ_LOGIN_ROLES）；hqSettings：月結設定類頁面改用其角色（含 hotel_admin）；其餘帳號導回總部登入頁 */
+export function ConditionalLayout({ hqRoles, hqSettings }: {
+  hqRoles?: readonly string[];
+  hqSettings?: { paths: readonly string[]; roles: readonly string[] };
+} = {}) {
   const location = useLocation();
 
   // 將 /:alias/<rest> 視同 /<rest>，以支援 booking.lakeze.com/{alias}/admin 等路徑
@@ -36,6 +39,8 @@ export function ConditionalLayout({ hqRoles }: { hqRoles?: readonly string[] } =
   const isHQPage = normalizedPath.startsWith("/hq") && normalizedPath !== "/hq-auth";
   const isAuthPage = normalizedPath === "/auth";
   const isHQAuthPage = normalizedPath === "/hq-auth";
+  const isHQSettingsPage = !!hqSettings?.paths.includes(normalizedPath.replace(/\/+$/, ""));
+  const hqAllowedRoles = isHQSettingsPage ? hqSettings!.roles : hqRoles;
 
   
   const [session, setSession] = useState<Session | null>(null);
@@ -43,7 +48,13 @@ export function ConditionalLayout({ hqRoles }: { hqRoles?: readonly string[] } =
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
   // 共用 session 無後台角色：只導回登入頁，不 signOut（避免把同網域其他分頁的會員一起登出）
   const [noBackofficeRole, setNoBackofficeRole] = useState(false);
-  const [noHqRole, setNoHqRole] = useState(false);
+  // 角色存起來、在畫面上依當前路徑判斷，切換頁面（月結設定 ↔ 其他 /hq/*）時才不會沿用舊結果
+  const [userRoleList, setUserRoleList] = useState<string[] | null>(null);
+  const noHqRole = !!hqAllowedRoles && userRoleList !== null && !userRoleList.some((r) => hqAllowedRoles.includes(r));
+
+  useEffect(() => {
+    if (noHqRole && isHQPage) toast.error('此帳號沒有總部權限，請改用 PMS 後台或以總部帳號登入', { duration: 5000 });
+  }, [noHqRole, isHQPage]);
 
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
   // 手機背景久放回前景時主動驗一次 session，網路錯誤只重試不登出
@@ -92,15 +103,11 @@ export function ConditionalLayout({ hqRoles }: { hqRoles?: readonly string[] } =
       } else if (!error) {
         setNoBackofficeRole(false);
       }
-      if (!error && hqRoles) {
-        const denied = !(userRoles ?? []).some((r: { role: string }) => hqRoles.includes(r.role));
-        if (denied && isHQPage) toast.error('此帳號沒有總部權限，請改用 PMS 後台或以總部帳號登入', { duration: 5000 });
-        setNoHqRole(denied);
-      }
+      if (!error) setUserRoleList((userRoles ?? []).map((r: { role: string }) => r.role));
     } catch (error) {
       if (isDev) console.error('Error checking user validity:', error);
     }
-  }, [hqRoles, isHQPage]);
+  }, []);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data: { session } }) => {

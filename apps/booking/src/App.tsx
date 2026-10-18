@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@lakeze/shared/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
 import { HQIndexGate } from "@/components/hq/HQIndexGate";
-import { HQ_AI_ROLES, HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES } from "@/lib/hqAccess";
+import { HQ_AI_ROLES, HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES, HQ_SETTINGS_ROLES, HQ_SETTINGS_PATHS } from "@/lib/hqAccess";
 import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@lakeze/shared/contexts/AccommodationContext";
@@ -180,7 +180,6 @@ const HQOwnerSettlementSettings = lazy(() => import("@/pages/hq/HQOwnerSettlemen
 const HQBonusSettings = lazy(() => import("@/pages/hq/HQBonusSettings"));
 const HQBrandPartners = lazy(() => import("@/pages/hq/HQBrandPartners"));
 const HQGoogleBusinessProfileRetired = lazy(() => import("@/pages/hq/HQGoogleBusinessProfileRetired"));
-const HQ_SETTINGS_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "hotel_admin"];
 
 const PaymentAudit = lazy(() => import("@/pages/PaymentAudit"));
 
@@ -725,7 +724,7 @@ function App() {
 
                 return (
                   <Routes>
-                    <Route element={<ConditionalLayout hqRoles={HQ_LOGIN_ROLES} />}>
+                    <Route element={<ConditionalLayout hqRoles={HQ_LOGIN_ROLES} hqSettings={{ paths: HQ_SETTINGS_PATHS, roles: HQ_SETTINGS_ROLES }} />}>
                       {/* 根層路由（向下相容） */}
                       {sharedRoutes}
 

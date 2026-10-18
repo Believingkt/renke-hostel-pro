@@ -1,0 +1,37 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+R1 月結規則 本館 | count=1 | count=1 | PASS
+R10 館別自訂訂單來源名稱 別館（既有：登入者皆可讀） | count=1 | count=1 | PASS
+R11 館別名稱 別館（未上架館，非公開） | count=0 | count=0 | PASS
+R2 月結規則 別館 | count=0 | count=0 | PASS
+R3 月結設定值 本館 | count=1 | count=1 | PASS
+R4 月結設定值 別館 | count=0 | count=0 | PASS
+R5 其他系統設定 | count=0 | count=0 | PASS
+R6 訂單來源（訂單）本館 | count=1 | count=1 | PASS
+R7 訂單來源（訂單）別館 | count=0 | count=0 | PASS
+R8 建立者姓名 本館 | count=1 | count=1 | PASS
+R9 建立者姓名 別館 | count=0 | count=0 | PASS
+W1 新增月結規則 本館（本月起） | OK rows=1 | OK rows=1 | PASS
+W2 新增月結規則 別館 | ERR [42501] | ERR [42501] | PASS
+W3 修改月結規則 別館 | OK rows=0 | OK rows=0 | PASS
+W4 刪除月結規則 別館 | OK rows=0 | OK rows=0 | PASS
+W5 改月結設定值 別館 | OK rows=0 | OK rows=0 | PASS
+W6 新增月結設定值 別館 | ERR [42501] | ERR [42501] | PASS
+W7 改月結設定值 本館（既有：hotel_admin 不可寫，僅 super/AM） | OK rows=0 | OK rows=0 | PASS
+18/18

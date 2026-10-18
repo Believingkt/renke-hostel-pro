@@ -28,8 +28,8 @@ const FNS = ["send-cancellation-email", "send-invite-email", "traveler-tagging",
 for (const f of FNS) { current = f; await import(`${fnDir}/${f}/index.ts`); }
 
 const ALL = ["u-owner", "u-staff", "u-super", "u-admin", "u-finance", "u-am"];
-const LABEL: Record<string, string> = { "u-owner": "單館業主", "u-staff": "本館 staff", "u-super": "super_admin", "u-admin": "全域 admin", "u-finance": "finance", "u-am": "am", "u-scoutmgr": "scout_manager", "u-closer": "closer", "u-hadmin": "館別 admin" };
-type Case = { fn: string; who: string; body: unknown; ok: boolean; note?: string; check?: () => string | null };
+const LABEL: Record<string, string> = { "u-owner": "單館業主", "u-staff": "本館 staff", "u-super": "super_admin", "u-admin": "全域 admin", "u-finance": "finance", "u-am": "am", "u-scoutmgr": "scout_manager", "u-closer": "closer", "u-hadmin": "館別 admin", "service-key-local": "service role" };
+type Case = { fn: string; who: string; body: unknown; ok: boolean; note?: string; check?: () => string | null; before?: () => void; after?: () => void };
 const cases: Case[] = [];
 const allow = (fn: string, body: unknown, allowed: string[], extra: string[] = []) =>
   [...ALL, ...extra].forEach((who) => cases.push({ fn, who, body, ok: allowed.includes(who) }));
@@ -49,6 +49,22 @@ cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ accommodation_
 cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://evil.com/login" }), ok: false, note: "外部網域連結" });
 cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://lakeze.com.evil.com/x" }), ok: false, note: "偽裝網域" });
 cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ email: "attacker@evil.com" }), ok: false, note: "收件人不在該館" });
+// 2-1. 白名單補正：實際使用網域可過；偽裝／非 https／帳密前綴一律擋
+for (const link of ["https://booking.lakeze.com/reset-password?token=t", "https://booking.lakeze.com/auth", "https://sensaninn.lakeze.com/admin", "https://star.lakeze.com/", "https://lakeze.co/"])
+  cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: link }), ok: true, note: `允許 ${link}` });
+for (const link of ["https://lakeze.co.evil.com/x", "https://evil-lakeze.com/x", "https://booking.lakeze.com@evil.com/x", "http://booking.lakeze.com/auth", "javascript:alert(1)//lakeze.com"])
+  cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: link }), ok: false, note: `擋下 ${link}` });
+// 2-2. 環境變數 INVITE_LINK_ALLOWED_HOSTS 設定時，白名單只用它
+const withEnv = (v: string | null) => () => { v === null ? Deno.env.delete("INVITE_LINK_ALLOWED_HOSTS") : Deno.env.set("INVITE_LINK_ALLOWED_HOSTS", v); };
+cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://pms.example-co.tw/auth" }), ok: true, note: "env 指定 example-co.tw 可過", before: withEnv(".example-co.tw") });
+cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://booking.lakeze.com/auth" }), ok: false, note: "env 指定後未列入的 lakeze.com 擋下", before: withEnv(".example-co.tw") });
+cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://example-co.tw.evil.com/x" }), ok: false, note: "env 網域偽裝擋下", before: withEnv(".example-co.tw"), after: withEnv(null) });
+// 2-3. 官網網址來自 PUBLIC_SITE_ORIGIN 時一併加入白名單
+cases.push({ fn: "send-invite-email", who: "u-owner", body: inv({ inviteLink: "https://www.site-origin.test/auth" }), ok: true, note: "PUBLIC_SITE_ORIGIN 網域可過",
+  before: () => Deno.env.set("PUBLIC_SITE_ORIGIN", "https://www.site-origin.test"), after: () => Deno.env.delete("PUBLIC_SITE_ORIGIN") });
+// 2-4. service role：目前無任何伺服器呼叫者；5aae089c3 起就會被 401（函式先用 auth.getUser 驗使用者），維持原狀
+cases.push({ fn: "send-cancellation-email", who: "service-key-local", body: { order_id: "o-a-cancel" }, ok: false, note: "service role，維持原狀 401" });
+cases.push({ fn: "send-invite-email", who: "service-key-local", body: inv(), ok: false, note: "service role，維持原狀 401" });
 // 3～9
 allow("traveler-tagging", { limit: 1 }, ["u-super", "u-admin"]);
 allow("traveler-sync", { mode: "full" }, ["u-super", "u-admin"]);
@@ -67,9 +83,11 @@ let pass = 0;
 for (const c of cases) {
   calls.length = 0;
   const sentBefore = sent.length;
+  c.before?.();
   const res = await handlers[c.fn](new Request(`http://local.test/${c.fn}`, {
     method: "POST", headers: { Authorization: `Bearer ${c.who}`, "Content-Type": "application/json" }, body: JSON.stringify(c.body),
   }));
+  c.after?.();
   const text = (await res.text()).slice(0, 70).replace(/\s+/g, " ");
   const denied = res.status === 401 || res.status === 403 || (c.note !== undefined && res.status >= 400 && res.status < 500);
   const extraErr = c.check?.() ?? null;
