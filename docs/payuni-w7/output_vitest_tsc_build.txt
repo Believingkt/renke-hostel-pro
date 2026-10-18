@@ -1,0 +1,14 @@
+# W7 vitest 全套（repo 根目錄 npx vitest run）
+ Test Files  7 failed | 166 passed | 1 skipped (174)
+      Tests  23 failed | 1866 passed | 8 skipped (1897)
+## 失敗檔案（與 2a-3 基線相同 7 檔，皆非 W7 相關）
+ FAIL   @lakeze/booking  src/components/OwlTingFillupDialog.test.tsx
+ FAIL   @lakeze/booking  src/test/group-buy-card-cancel-ui.test.ts
+ FAIL   @lakeze/booking  src/test/order-rooms-permissions.test.ts
+ FAIL   @lakeze/shared  src/hooks/use-accommodation-logo.test.tsx
+ FAIL   @lakeze/shared  src/hooks/use-order-notifications.test.tsx
+ FAIL   @lakeze/shared  src/test/group-buy-self-cancel.test.ts
+ FAIL   @lakeze/shared  src/test/late-payment-failsafe.test.ts
+## W7 新增：apps/booking/src/test/payuni-refund-ui.test.ts 5/5 通過
+## tsc（apps/booking）：只有既有 2 個錯誤（discount-cheaper-rule.test.ts:83,84），與基線相同
+## vite build：exit=0

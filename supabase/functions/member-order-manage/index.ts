@@ -16,6 +16,8 @@ import {
 } from "../_shared/orderRefund.ts";
 import { quoteGuestCountChange } from "../_shared/guestCountPricing.ts";
 import { createManualReviewTask } from "../_shared/manualReviewTask.ts";
+import { buildPayuniCancelDeps } from "../_shared/payuniCancelDeps.ts";
+import { handlePayuniMemberCancel, isPayuniOrder } from "../_shared/payuniRefundHandlers.ts";
 
 interface Body {
   orderNumber: string;
@@ -32,6 +34,8 @@ interface Body {
   reason?: string;
   /** 客人已於前台確認金額變動（補差／退差）後才允許實際套用 */
   confirmPriceChange?: boolean;
+  /** PAYUNi ATM 退款帳戶（只用於送出轉匯退款） */
+  bankAccount?: Record<string, unknown>;
 }
 
 
@@ -104,6 +108,13 @@ serve(async (req) => {
       .eq("accommodation_id", order.accommodation_id)
       .maybeSingle();
     const freeCancelDays = Number(bs?.free_cancel_days ?? 14);
+
+    // 已收款的 PAYUNi 訂單取消／試算：走 PAYUNi 退款（W7），金額一律由後端依政策計算；以下 TapPay 流程不變
+    if (isPayuniOrder(order) && Number(order.paid_amount || 0) > 0 && (body.action === "cancel" || body.action === "cancel_quote")) {
+      const deps = { ...buildPayuniCancelDeps(), createManualReviewTask: (p: Record<string, unknown>) => createManualReviewTask(supabase, p as any) };
+      const r = await handlePayuniMemberCancel(deps, order, body, { email, today, freeCancelDays });
+      return json(r.body, r.status, corsHeaders);
+    }
 
     const quote = quoteCancellation({
       order: order as any,

@@ -1,0 +1,18 @@
+BEGIN
+SET
+INSERT 0 1
+INSERT 0 1
+SET
+INSERT 0 1
+INSERT 0 5
+refund rows=5
+INSERT 0 1
+bank rows=1
+SAVEPOINT
+psql:docs/payuni-w7/localtest/schema_contract_test.sql:21: ERROR:  new row for relation "payment_transactions" violates check constraint "payment_transactions_refund_source_check"
+DETAIL:  Failing row contains (159276bd-acda-43c7-bc16-3c758466cd79, bbbbbbbb-0000-4000-8000-000000000001, aaaaaaaa-0000-4000-8000-000000000001, payuni, null, W7TEST01-P1-R9, null, refund, null, 1, pending, null, null, null, {}, null, 2026-10-18 13:19:29.46893+00, 2026-10-18 13:19:29.46893+00, null, bogus, null).
+ROLLBACK
+psql:docs/payuni-w7/localtest/schema_contract_test.sql:24: ERROR:  duplicate key value violates unique constraint "payment_transactions_provider_mer_trade_no_key"
+DETAIL:  Key (provider, mer_trade_no)=(payuni, W7TEST01-P1-R1) already exists.
+ROLLBACK
+ROLLBACK

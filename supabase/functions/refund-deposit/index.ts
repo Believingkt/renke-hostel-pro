@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { resolveCaller, canEditModule, unauthorizedResponse, forbiddenResponse } from "../_shared/authz.ts";
+import { isPayuniOrder } from "../_shared/payuniRefundHandlers.ts";
 
 function getRefundEndpoint(): string {
   const env = Deno.env.get("TAPPAY_ENV") === "sandbox" ? "sandbox" : "production";
@@ -53,6 +54,16 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ success: false, message: "無權限執行此操作" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // PAYUNi 訂單沒有押金刷卡紀錄：導向 PAYUNi 退款（W7）；以下 TapPay 流程不變
+    const { data: methods } = await supabase.from("orders")
+      .select("payment_method, deposit_payment_method, balance_payment_method").eq("id", order.id).maybeSingle();
+    if (methods && isPayuniOrder(methods)) {
+      return new Response(
+        JSON.stringify({ success: false, message: "PAYUNi 付款的訂單沒有押金刷卡紀錄，退款請改用「取消訂單」中的 PAYUNi 退款" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 

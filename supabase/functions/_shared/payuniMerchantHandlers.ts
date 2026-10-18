@@ -4,6 +4,7 @@
 import type { PayuniCall, PayuniConfig, PayuniResult } from "./payuni.ts";
 import { parseNotify } from "./payuni.ts";
 import { sendPaymentAlertEmail } from "./paymentAlert.ts";
+import { handleRefundAgentNotify } from "./payuniRefund.ts";
 import {
   backSettingAlertKeys, buildBindPayload, buildMerUrl, canSwitchToPayuni, extractPaymentTools, isBindable,
   maskUbnForStorage, merStatusLabel, nextMerId, parseStatus, PAYUNI_BACK_SETTING_KEYS, PAYUNI_MCC_INVALID, PAYUNI_SETTING_KEYS, pickKeys,
@@ -251,7 +252,8 @@ export interface NotifyDeps {
   sendAlert: (subject: string, html: string) => Promise<unknown>;
 }
 
-const ONLY_LOG_TYPES = new Set(["Close", "CancelClose", "Refund", "CancelRefund", "Cancel"]);
+const ONLY_LOG_TYPES = new Set(["Close", "CancelClose"]);
+const REFUND_TYPES = new Set(["Refund", "CancelRefund", "Cancel"]);
 const okText = () => new Response("OK", { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8" } });
 
 export async function handleAgentNotify(req: Request, deps: NotifyDeps): Promise<Response> {
@@ -349,6 +351,9 @@ async function processAgentNotify(deps: NotifyDeps, data: Record<string, string>
     return { processed: true, error: null };
   }
 
+  if (REFUND_TYPES.has(type)) {
+    return await handleRefundAgentNotify({ admin: deps.admin, sendAlert: deps.sendAlert, callPayuni: () => Promise.reject(new Error("not used")) }, type, data, acc.name);
+  }
   if (ONLY_LOG_TYPES.has(type)) return { processed: true, error: null };
   return { processed: false, error: "UNKNOWN_NOTIFY_TYPE" };
 }

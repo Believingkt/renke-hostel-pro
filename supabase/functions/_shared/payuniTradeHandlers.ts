@@ -2,10 +2,11 @@
 // deno-lint-ignore-file no-explicit-any
 import type { PayuniCall, PayuniResult, ParseNotifyResult } from "./payuni.ts";
 import {
-  applyPayuniTradeResult, inSweepWindow, maskPayNo, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
+  applyPayuniTradeResult, extractQueryResult, inSweepWindow, maskPayNo, updateTx, isPaymentTimedOut, isTokenExpired, nextMerTradeNo, notifyExecuteTime,
   resolveChargeAmount, resolveIframeDomain, SWEEP_MAX_AGE_MS, TOKEN_TTL_MS, type TradeDeps, type TxRow,
 } from "./payuniTrade.ts";
 import { PAYUNI_ATM_METHOD, PAYUNI_PAYMENT_METHOD } from "./orderPaymentSuccess.ts";
+import { handleRefundTradeNotify, sweepRefunds } from "./payuniRefund.ts";
 
 export interface PayuniTradeDeps extends TradeDeps {
   env: "sandbox" | "production";
@@ -141,7 +142,8 @@ export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNoti
   const outer = parsed.ok ? parsed.outer : (parsed.outer ?? {});
   const data = parsed.ok ? parsed.data : null;
   const tsv = String(data?.TradeStatus ?? "");
-  const notifyType = data?.PayNo && tsv === "1" ? "atm_paid" : tsv === "4" ? "expired" : "credit";
+  const isRefund = data?.RefundStatus != null || data?.RefundAmt != null;
+  const notifyType = isRefund ? "refund" : data?.PayNo && tsv === "1" ? "atm_paid" : tsv === "4" ? "expired" : "credit";
   const { data: ev, error: insErr } = await deps.admin.from("payuni_notify_events").insert({
     source: "trade", notify_type: notifyType, mer_id: data?.MerID ?? outer.MerID ?? null, trade_no: data?.TradeNo ?? null,
     execute_time: data ? notifyExecuteTime(data) : null, hash_valid: parsed.ok || parsed.reason === "DECRYPT_FAILED",
@@ -156,8 +158,12 @@ export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNoti
   let processError: string | null = null;
   try {
     const tx = await loadTx(deps.admin, String(data.MerTradeNo ?? ""));
+    const refund = tx ? await handleRefundTradeNotify(deps, tx, data) : null;
     if (!tx) processError = "UNKNOWN_TRADE";
-    else {
+    else if (refund) {
+      processed = refund.processed;
+      processError = refund.error;
+    } else {
       const r = await applyPayuniTradeResult(deps, tx, data);
       processed = true;
       processError = r.error ?? null;
@@ -170,17 +176,7 @@ export async function handleTradeNotify(deps: PayuniTradeDeps, parsed: ParseNoti
 }
 
 // ---------------- payuni-trade-query ----------------
-/** 交易查詢回傳可能是平鋪或 Result[0][...]；取第一筆（待 Sandbox 確認實際格式） */
-export function extractQueryResult(d: Record<string, string> | undefined): Record<string, string> | null {
-  if (!d) return null;
-  if (d.TradeStatus != null) return d;
-  const out: Record<string, string> = {};
-  for (const [k, v] of Object.entries(d)) {
-    const m = /^Result\[0\]\[(\w+)\]$/.exec(k);
-    if (m) out[m[1]] = v;
-  }
-  return Object.keys(out).length ? out : null;
-}
+export { extractQueryResult };
 
 async function queryAndApply(deps: PayuniTradeDeps, tx: any, now: number) {
   const r = await deps.callPayuni({
@@ -206,13 +202,16 @@ export async function handleTradeQuery(
     // PaymentAudit：該館 PAYUNi 交易（異常、pending、unknown、所有 ATM，近 30 天）
     const accId = String(body?.accommodation_id ?? "");
     if (!accId || (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(accId)))) return res(403, { error: "Forbidden" });
-    const { data } = await deps.admin.from("payment_transactions").select("mer_trade_no, amount, status, payment_type, raw_response, notified_at, created_at")
+    const { data } = await deps.admin.from("payment_transactions").select("mer_trade_no, amount, status, payment_type, kind, refund_source, refund_pending_reason, raw_response, notified_at, created_at")
       .eq("provider", "payuni").eq("accommodation_id", accId).gte("created_at", new Date(now - 30 * 86400000).toISOString());
     const rows = (data ?? [])
-      .filter((t: any) => t.raw_response?.anomaly || t.status === "pending" || t.status === "unknown" || Number(t.payment_type) === 2)
+      .filter((t: any) => t.raw_response?.anomaly || t.status === "pending" || t.status === "unknown" || Number(t.payment_type) === 2 || t.kind === "refund")
       .map((t: any) => ({
         mer_trade_no: t.mer_trade_no, amount: t.amount, status: t.status, anomaly: t.raw_response?.anomaly ?? null, created_at: t.created_at,
-        ...(Number(t.payment_type) === 2 ? {
+        ...(t.kind === "refund" ? {
+          refund: { action: t.raw_response?.action ?? null, reason: t.refund_pending_reason ?? null, source: t.refund_source ?? null, stale_alerted: !!t.raw_response?.stale_alerted },
+        } : {}),
+        ...(Number(t.payment_type) === 2 && t.kind !== "refund" ? {
           atm: {
             pay_no: maskPayNo(t.raw_response?.PayNo), bank_type: t.raw_response?.BankType ?? null, expire_at: t.raw_response?.expire_at ?? null,
             paid_at: t.status === "paid" ? (t.notified_at ?? null) : null, account5: t.raw_response?.account5 ?? null,
@@ -234,13 +233,14 @@ export async function handleTradeQuery(
     });
   }
   if (!caller.isSuperAdmin && !(await caller.isAccommodationAdmin(tx.accommodation_id))) return res(403, { error: "Forbidden" });
+  if (tx.kind === "refund") return res(400, { error: "退款列請查詢原付款交易" });
   return res(200, await queryAndApply(deps, tx, now));
 }
 
 async function sweep(deps: PayuniTradeDeps, now: number) {
   const since = new Date(now - SWEEP_MAX_AGE_MS).toISOString();
   const { data: txs } = await deps.admin.from("payment_transactions").select("*")
-    .eq("provider", "payuni").in("status", ["pending", "unknown"]).gte("created_at", since);
+    .eq("provider", "payuni").neq("kind", "refund").in("status", ["pending", "unknown"]).gte("created_at", since);
   const queryFailed = new Set<string>();
   const queriedIds = new Set<string>();
   let queried = 0;
@@ -304,7 +304,7 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
 
   // 超過 24 小時仍 unknown：每筆只告警一次，請總部至稽核頁手動查詢
   const { data: stale } = await deps.admin.from("payment_transactions").select("*")
-    .eq("provider", "payuni").eq("status", "unknown").lt("created_at", since);
+    .eq("provider", "payuni").neq("kind", "refund").eq("status", "unknown").lt("created_at", since);
   const staleAlerted: string[] = [];
   for (const t of (stale ?? []).filter((t: any) => !t.raw_response?.stale_alerted)) {
     try {
@@ -318,5 +318,11 @@ async function sweep(deps: PayuniTradeDeps, now: number) {
     await updateTx(deps.admin, t.id, { raw_response: { ...(t.raw_response ?? {}), stale_alerted: true } });
     staleAlerted.push(t.mer_trade_no);
   }
-  return { ok: true, queried, cancelled, staleAlerted };
+  let refunds: Record<string, unknown> = {};
+  try {
+    refunds = await sweepRefunds(deps, now);
+  } catch (e) {
+    console.error(`[payuni-sweep] refund sweep failed: ${e instanceof Error ? e.message : e}`);
+  }
+  return { ok: true, queried, cancelled, staleAlerted, ...refunds };
 }

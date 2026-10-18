@@ -1,15 +1,36 @@
-== 重跑（IF NOT EXISTS，應成功且不重複）
-psql exit=0（NOTICE: 已存在、略過）
-== rollback
+NOTICE:  database "w7mig" does not exist, skipping
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:5: NOTICE:  index "payment_transactions_parent_tx_id_idx" does not exist, skipping
+== 初始（已 rollback）：新欄位數=0；新表存在=false；索引=無；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=0
+== 套用
 ok
-0
-t
-== 再套用
+新欄位數=3；新表存在=true；索引=payment_transactions_parent_tx_id_idx,refund_bank_accounts_order_id_idx；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=1
+== RLS／權限
+rls=true；policy 數=0
+anon 有 SELECT=false；authenticated 有 SELECT=false；service_role 有 SELECT=true
+== 重跑（IF NOT EXISTS）
+NOTICE 數=6
+exit=0
+新欄位數=3；新表存在=true；索引=payment_transactions_parent_tx_id_idx,refund_bank_accounts_order_id_idx；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=1
+== 交易內持有的高頻表鎖（COMMIT 前，rollback 狀態下量）
+payment_transactions AccessExclusiveLock,AccessShareLock,ShareLock,ShareRowExclusiveLock,ShareUpdateExclusiveLock
+== 另一連線以 ACCESS EXCLUSIVE 鎖住 orders 時從零套用（不應受影響）
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:4: NOTICE:  table "refund_bank_accounts" does not exist, skipping
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:5: NOTICE:  index "payment_transactions_parent_tx_id_idx" does not exist, skipping
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:9: NOTICE:  column "refund_pending_reason" of relation "payment_transactions" does not exist, skipping
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:9: NOTICE:  column "refund_source" of relation "payment_transactions" does not exist, skipping
+psql:/app/docs/payuni-w7/rollback_20261018130000.sql:9: NOTICE:  column "parent_tx_id" of relation "payment_transactions" does not exist, skipping
+orders 被 ACCESS EXCLUSIVE 鎖住時：exit=0 耗時=84 ms；新欄位數=3；新表存在=true；索引=payment_transactions_parent_tx_id_idx,refund_bank_accounts_order_id_idx；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=1
+== 另一連線持有 payment_transactions 讀鎖 15 秒時套用（應約 3 秒失敗、無部分變更）
+psql:/app/supabase/migrations/20261018130000_payuni_refunds.sql:37: ERROR:  canceling statement due to lock timeout
+exit=3 耗時=3032 ms；新欄位數=0；新表存在=false；索引=無；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=0
+== 鎖釋放後再套用
 ok
-3
-== 持鎖時模擬（另一連線讀 payment_transactions 8 秒）
-psql:docs/payuni-w7/draft_20261018130000_payuni_refunds.sql:31: ERROR:  canceling statement due to lock timeout
-耗時 3033 ms；欄位數=0；新表存在=f
-鎖釋放後再套用 ok
-== 遮罩 SQL 試跑
-*********8901
+新欄位數=3；新表存在=true；索引=payment_transactions_parent_tx_id_idx,refund_bank_accounts_order_id_idx；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=1
+== rollback → 再套用
+rollback ok；新欄位數=0；新表存在=false；索引=無；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=0
+再套用 ok；新欄位數=3；新表存在=true；索引=payment_transactions_parent_tx_id_idx,refund_bank_accounts_order_id_idx；refund_bank_accounts 指向 orders 的 FK 數=0；指向 payment_transactions 的 FK 數=1
+== 遮罩 SQL 試跑（帳號留末 4 碼、戶名留第一字＋**）
+700 00012345678 陳大文 purged=false
+812 ************8901 王** purged=true
+== bank_code 格式檢查
+violates check constraint "refund_bank_accounts_bank_code_check"

@@ -48,6 +48,7 @@ import { DualCurrencyInput } from "@/components/ui/dual-currency-input";
 import { OnlinePaymentDialog } from "@/components/orders/OnlinePaymentDialog";
 import { DepositManagementSection } from "@/components/orders/DepositManagementSection";
 import { CancelOrderDialog } from "@/components/orders/CancelOrderDialog";
+import { PayuniRefundStatus } from "@/components/payuni/PayuniRefundStatus";
 import OrderTimelineCard from "@/components/orders/OrderTimelineCard";
 import OrderManualReviewCard from "@/components/orders/OrderManualReviewCard";
 
@@ -4060,6 +4061,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         } : null}
         onPaymentSuccess={fetchOrder}
       />
+
+      {/* PAYUNi 退款進度（ATM 轉匯失敗可由館方／總部代填帳戶） */}
+      {order && ["credit_card_payuni", "atm_payuni"].includes(String((order as any).payment_method)) && (
+        <div className="px-4 pb-4">
+          <PayuniRefundStatus as="admin" orderId={order.id} />
+        </div>
+      )}
 
       {/* 取消訂單對話框（含退款選項） */}
       {order && (

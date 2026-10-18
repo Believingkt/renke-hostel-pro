@@ -15,6 +15,9 @@ import { canEditModule, resolveCaller } from "../_shared/authz.ts";
 import { quoteCancellation, taipeiToday } from "../_shared/cancellationPolicy.ts";
 import { pushOrderEvent } from "../_shared/push.ts";
 import { buildCancelOrderPatch, buildCancelRefundFailurePatch } from "../_shared/patchBuilders.ts";
+import { buildPayuniCancelDeps } from "../_shared/payuniCancelDeps.ts";
+import { handlePayuniAdminCancel, isPayuniOrder } from "../_shared/payuniRefundHandlers.ts";
+import { isAccommodationAdmin } from "../_shared/authz.ts";
 
 
 
@@ -102,6 +105,18 @@ serve(async (req) => {
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
 
+    }
+
+    // 已收款的 PAYUNi 訂單：走 PAYUNi 退款（W7）；自動退款限 super_admin／該館 hotel_admin。以下 TapPay 流程不變
+    if (isPayuniOrder(order) && Number(order.paid_amount || 0) > 0) {
+      if (body.mode !== "quote" && body.refundAction === "auto_refund" && !(await isAccommodationAdmin(authRes.ctx, order.accommodation_id))) {
+        return new Response(
+          JSON.stringify({ success: false, message: "PAYUNi 自動退款限館主或總部操作" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const r = await handlePayuniAdminCancel(buildPayuniCancelDeps(), order, body, userEmail);
+      return new Response(JSON.stringify(r.body), { status: r.status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const paidAmount = order.paid_amount || 0;

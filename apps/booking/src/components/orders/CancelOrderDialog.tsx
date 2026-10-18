@@ -17,6 +17,9 @@ import {
 } from "@lakeze/shared/components/ui/dialog";
 import { useToast } from "@lakeze/shared/hooks/use-toast";
 import { AlertTriangle, CreditCard, Banknote } from "lucide-react";
+import {
+  EMPTY_REFUND_BANK_ACCOUNT, isRefundBankAccountValid, RefundBankAccountForm,
+} from "@/components/payuni/RefundBankAccountForm";
 
 type RefundAction = "auto_refund" | "mark_manual_refund" | "no_refund";
 
@@ -37,6 +40,8 @@ interface Props {
 
 const CARD_METHODS = new Set(["credit_card", "credit_card_3ds"]);
 const ATM_METHODS = new Set(["atm"]);
+const PAYUNI_CARD = "credit_card_payuni";
+const PAYUNI_ATM = "atm_payuni";
 
 export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Props) {
   const { toast } = useToast();
@@ -46,15 +51,16 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const method = order.balance_payment_method || order.payment_method || order.deposit_payment_method || "";
   const isCard = CARD_METHODS.has(method);
   const isAtm = ATM_METHODS.has(method);
+  const isPayuni = method === PAYUNI_CARD || method === PAYUNI_ATM;
   const hasPayment = paidAmount > 0;
 
   // Default action by scenario
   const defaultAction: RefundAction = useMemo(() => {
     if (!hasPayment) return "no_refund";
-    if (isCard) return "auto_refund";
+    if (isCard || method === PAYUNI_CARD) return "auto_refund";
     if (isAtm) return "mark_manual_refund";
     return "mark_manual_refund";
-  }, [hasPayment, isCard, isAtm]);
+  }, [hasPayment, isCard, isAtm, method]);
 
   const [action, setAction] = useState<RefundAction>(defaultAction);
   const [refundAmount, setRefundAmount] = useState<string>(String(paidAmount));
@@ -62,6 +68,12 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const [submitting, setSubmitting] = useState(false);
   const [quote, setQuote] = useState<any>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [bankAccount, setBankAccount] = useState(EMPTY_REFUND_BANK_ACCOUNT);
+  /** PAYUNi ATM 且商店啟用自動轉匯：可自動退款，需填旅客退款帳戶（總部可代填） */
+  const payuniAtmAuto = method === PAYUNI_ATM && !!quote?.payuni?.needsBankAccount;
+  const showAutoRefund = isCard || method === PAYUNI_CARD || payuniAtmAuto;
+  const needsBankAccount = payuniAtmAuto && action === "auto_refund";
+  const maxRefundable = isPayuni && Number.isFinite(quote?.remainingRefundable) ? Number(quote.remainingRefundable) : paidAmount;
 
   const suggestedRefund = Number.isFinite(quote?.suggestedRefund) ? Number(quote.suggestedRefund) : null;
   const actualRefund = action === "no_refund" ? 0 : parseInt(refundAmount || "0", 10) || 0;
@@ -93,6 +105,7 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
     if (o) {
       setAction(defaultAction);
       setOverrideReason("");
+      setBankAccount(EMPTY_REFUND_BANK_ACCOUNT);
     }
     onOpenChange(o);
   };
@@ -106,6 +119,10 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
       });
       return;
     }
+    if (needsBankAccount && !isRefundBankAccountValid(bankAccount)) {
+      toast({ title: "請填寫退款帳戶", description: "ATM 退款需完整填寫銀行代碼、帳號、戶名與身分證字號／統編。", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     try {
       const amt = parseInt(refundAmount || "0", 10);
@@ -115,6 +132,7 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
           refundAction: action,
           refundAmount: amt,
           overrideReason: overrideReason.trim() || undefined,
+          ...(needsBankAccount ? { bankAccount } : {}),
         },
       });
 
@@ -142,6 +160,10 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
   const methodLabel =
     method === "credit_card" || method === "credit_card_3ds"
       ? "線上刷卡"
+      : method === PAYUNI_CARD
+        ? "線上刷卡（PAYUNi）"
+      : method === PAYUNI_ATM
+        ? "ATM 虛擬帳號（PAYUNi）"
       : method === "atm"
         ? "ATM 虛擬帳號"
         : method === "bank_transfer" || method === "轉帳"
@@ -214,18 +236,23 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
             {quoteLoading && <div className="text-xs text-muted-foreground">計算建議退款金額中…</div>}
 
             <RadioGroup value={action} onValueChange={(v) => setAction(v as RefundAction)} className="space-y-2">
-              {isCard && (
+              {showAutoRefund && (
                 <label
+                  data-testid="cancel-order-auto-refund-option"
                   className="flex items-start gap-3 rounded-lg border p-3 cursor-pointer hover:bg-accent/50 has-[:checked]:border-primary has-[:checked]:bg-primary/5"
                 >
                   <RadioGroupItem value="auto_refund" className="mt-1" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 font-medium text-sm">
                       <CreditCard className="h-4 w-4" />
-                      取消並自動退刷
+                      {payuniAtmAuto ? "取消並由 PAYUNi 轉匯退款" : "取消並自動退刷"}
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
-                      系統將即時呼叫 TapPay 退款至原刷卡
+                      {isPayuni
+                        ? payuniAtmAuto
+                          ? "系統將向 PAYUNi 送出 ATM 轉匯退款，需填寫旅客退款帳戶"
+                          : "系統將向 PAYUNi 送出退款（未請款取消授權、已請款退回原卡）"
+                        : "系統將即時呼叫 TapPay 退款至原刷卡"}
                     </div>
                   </div>
                 </label>
@@ -267,12 +294,12 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                   id="refundAmount"
                   type="number"
                   min={0}
-                  max={paidAmount}
+                  max={maxRefundable}
                   value={refundAmount}
                   onChange={(e) => setRefundAmount(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  最高可退 NT${paidAmount.toLocaleString()}
+                  最高可退 NT${maxRefundable.toLocaleString()}
                   {quote?.suggestedRefund !== undefined && (
                     <> ｜法規建議 NT${Number(quote.suggestedRefund || 0).toLocaleString()}</>
                   )}
@@ -283,6 +310,10 @@ export function CancelOrderDialog({ open, onOpenChange, order, onCancelled }: Pr
                   </p>
                 )}
               </div>
+            )}
+
+            {needsBankAccount && (
+              <RefundBankAccountForm value={bankAccount} onChange={setBankAccount} testIdPrefix="cancel-order-refund-bank" />
             )}
 
             {isOverride && (

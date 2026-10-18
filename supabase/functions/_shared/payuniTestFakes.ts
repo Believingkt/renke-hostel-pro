@@ -1,7 +1,7 @@
 // PAYUNi W2 測試用的極簡 Supabase client 假物件（記憶體資料表；只實作 handler 用到的鏈式方法）
 // deno-lint-ignore-file no-explicit-any
 type Row = Record<string, any>;
-type Filter = { op: "eq" | "neq" | "like" | "in" | "gte" | "lt" | "notnull"; col: string; val: any };
+type Filter = { op: "eq" | "neq" | "like" | "in" | "gte" | "lt" | "lte" | "is" | "notnull"; col: string; val: any };
 
 const match = (r: Row, fs: Filter[]) =>
   fs.every((f) => f.op === "eq" ? r[f.col] === f.val
@@ -9,6 +9,8 @@ const match = (r: Row, fs: Filter[]) =>
     : f.op === "in" ? (f.val as any[]).includes(r[f.col])
     : f.op === "gte" ? String(r[f.col]) >= String(f.val)
     : f.op === "lt" ? String(r[f.col]) < String(f.val)
+    : f.op === "lte" ? r[f.col] != null && String(r[f.col]) <= String(f.val)
+    : f.op === "is" ? (r[f.col] ?? null) === f.val
     : f.op === "notnull" ? (() => { const [c, k] = f.col.split("->>"); const v = k ? r[c]?.[k] : r[c]; return v != null; })()
     : typeof r[f.col] === "string" && r[f.col].startsWith(String(f.val).replace(/%$/, "")));
 
@@ -55,6 +57,9 @@ export class FakeDb {
               rows.some((r) => r.hash_valid && NOTIFY_KEY(r) === NOTIFY_KEY(values))) {
               return { data: null, error: { code: "23505", message: "duplicate key" } };
             }
+            if (table === "payment_transactions" && rows.some((r) => r.provider === values.provider && r.mer_trade_no === values.mer_trade_no)) {
+              return { data: null, error: { code: "23505", message: "duplicate key" } };
+            }
             const row = { id: `id-${++db.seq}`, ...structuredClone(values) };
             rows.push(row);
             db.writes.push({ table, op: "insert", values: structuredClone(values) });
@@ -87,6 +92,8 @@ export class FakeDb {
           not(col: string, _op: string, _val: null) { filters.push({ op: "notnull", col, val: null }); return q; },
           gte(col: string, val: any) { filters.push({ op: "gte", col, val }); return q; },
           lt(col: string, val: any) { filters.push({ op: "lt", col, val }); return q; },
+          lte(col: string, val: any) { filters.push({ op: "lte", col, val }); return q; },
+          is(col: string, val: any) { filters.push({ op: "is", col, val }); return q; },
           order() { return q; },
           limit() { return q; },
           insert(v: Row) { mode = "insert"; values = v; return q; },

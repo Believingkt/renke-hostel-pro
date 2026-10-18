@@ -69,6 +69,18 @@ export function notifyExecuteTime(d: Record<string, string>): string | null {
   return d.PayTime ?? null;
 }
 
+/** 交易查詢回傳可能是平鋪或 Result[0][...]；取第一筆（待 Sandbox 確認實際格式） */
+export function extractQueryResult(d: Record<string, string> | undefined): Record<string, string> | null {
+  if (!d) return null;
+  if (d.TradeStatus != null) return d;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(d)) {
+    const m = /^Result\[0\]\[(\w+)\]$/.exec(k);
+    if (m) out[m[1]] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 export interface TradeDeps {
   admin: any;
   effects: PaymentSuccessEffects;

@@ -1,0 +1,25 @@
+Check _shared/payuniRefund_test.ts
+running 20 tests from ./_shared/payuniRefund_test.ts
+試算：PAYUNi 信用卡／ATM 訂單與同條件 TapPay 訂單算出同一個退款額 ... ok (908µs)
+金額：後台上限＝已收−已退、與建議不同須填原因；會員一律等於政策金額（忽略前端金額）；超過上限 400 ... ok (67ms)
+判斷：未請款全退→取消授權；部分→暫緩；已請款→退款；請款處理中→暫緩；ATM 依 BackSet；超過 180 天→人工；另有退款處理中→暫緩 ... ok (8ms)
+分配：最後付款先退、每筆不超過可退餘額；不足回 unallocated ... ok (20ms)
+退款：兩筆交易（新的未請款、舊的已請款）→ 新的先取消授權、舊的退款 CloseType=2；訂單只依完成的退款列更新 ... ok (5ms)
+冪等：有處理中退款 → 409；24 小時內同額已完成 → 409；超過可退 → 400；查詢失敗 → 502 且不建退款列 ... ok (403µs)
+RemainAmt：PAYUNi 剩餘可退比本地少 → 以 RemainAmt 為上限，不足回 400 ... ok (152µs)
+信用卡退款失敗 → 退款列 failed、通知＋告警、訂單 refund_status=failed；refunded_amount 不變 ... ok (589µs)
+ATM：BackSetUnCreditRefund=1 無帳戶 → 400 needsBankAccount；有帳戶 → offline/refund 帶 UID、帳戶落表不含 UID、退款列 pending ... ok (4ms)
+ATM：BackSetUnCreditRefund=2 → 不呼叫 PAYUNi 退款、人工退款列＋通知、訂單 pending_manual ... ok (410µs)
+trade-notify：ATM 轉匯成功 → 退款列 paid、帳戶 30 天後遮罩、訂單 refunded；轉匯失敗 → failed、帳戶保留；補填後舊帳戶立即遮罩並重送 R2 ... ok (9ms)
+trade-notify：一般付款 Notify（無退款欄位）照舊走付款流程 ... ok (911µs)
+agent-notify：PAYUNi 後台退款（無對應處理中退款列）→ 補登 payuni_backstage 退款列、備註、通知、告警，訂單不取消；重送不重複 ... ok (602µs)
+agent-notify：有對應處理中退款列 → 標記完成；CancelRefund → 退款列 cancelled 並重算訂單 ... ok (431µs)
+sweep：暫緩退款在請款完成後自動送出；處理中逾 7 天告警一次；到期帳戶遮罩；退款列不進付款 sweep ... ok (1ms)
+後台取消：quote 回 PAYUNi 上限；auto_refund 先退款（payuni_refund）再取消（admin_cancel_refund）、寄取消信；金額不同未填原因 → 400 ... ok (1ms)
+後台取消：PAYUNi 全部退款失敗 → 訂單不取消 ... ok (483µs)
+會員取消：金額照政策（忽略前端金額）；ATM 需帳戶未填 → 400 且不取消 ... ok (775µs)
+API：會員不能發動 refund／quote；看不到別人的訂單；非 PAYUNi 訂單 400 ... ok (252µs)
+trade-query：手動查詢退款列 → 400（只查原付款交易） ... ok (91µs)
+
+ok | 20 passed | 0 failed (131ms)
+

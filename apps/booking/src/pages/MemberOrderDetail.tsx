@@ -65,6 +65,10 @@ import { buildGuestNotes } from "@/utils/guestNotesWhitelist";
 import { BookingLocaleProvider, useBookingLocale } from "@lakeze/shared/contexts/BookingLocaleContext";
 import BookingLanguageSwitch from "@lakeze/shared/components/booking/BookingLanguageSwitch";
 import { useTranslatedFields, type TranslatableField } from "@lakeze/shared/hooks/use-translated-fields";
+import { PayuniRefundStatus } from "@/components/payuni/PayuniRefundStatus";
+import {
+  EMPTY_REFUND_BANK_ACCOUNT, isRefundBankAccountValid, RefundBankAccountForm, type RefundBankAccount,
+} from "@/components/payuni/RefundBankAccountForm";
 
 const ORANGE = "hsl(24,100%,50%)";
 
@@ -258,6 +262,7 @@ interface DetailData {
   booking_deposit_percentage: number | null;
   notes: string | null;
   atm_vacc_no: string | null;
+  payment_method: string | null;
   atm_vacc_bank_code: string | null;
   atm_expire_at: string | null;
   pet_count: number;
@@ -330,6 +335,8 @@ const MemberOrderDetailInner = () => {
     freeCancel: boolean;
   } | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
+  const [needsRefundAccount, setNeedsRefundAccount] = useState(false);
+  const [refundAccount, setRefundAccount] = useState<RefundBankAccount>(EMPTY_REFUND_BANK_ACCOUNT);
   const [resending, setResending] = useState(false);
 
   const [changeOpen, setChangeOpen] = useState(false);
@@ -360,7 +367,7 @@ const MemberOrderDetailInner = () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
-          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, discount_code, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, display_room_type_name, room_types(name)"
+          "id, order_number, order_status, payment_status, check_in_date, check_out_date, guest_name, guest_phone, guest_email, guest_count, total_price, discount_amount, discount_code, final_price, paid_amount, deposit_required_amount, booking_deposit_amount, booking_deposit_percentage, notes, atm_vacc_no, payment_method, atm_vacc_bank_code, atm_expire_at, pet_count, pet_plan_price, meal_plan_total, meal_plan_details, custom_addon_details, accommodation_id, room_type_id, package_id, display_room_type_name, room_types(name)"
         )
         .eq("order_number", orderNumber)
         .maybeSingle();
@@ -427,6 +434,7 @@ const MemberOrderDetailInner = () => {
         order_number: data.order_number,
         order_status: data.order_status,
         payment_status: data.payment_status,
+        payment_method: data.payment_method ?? null,
         check_in_date: data.check_in_date,
         check_out_date: data.check_out_date,
         guest_name: data.guest_name,
@@ -626,17 +634,23 @@ const MemberOrderDetailInner = () => {
 
 
   const handleCancel = () => runAction({ action: "cancel" }, () => setCancelOpen(false));
+  // PAYUNi ATM：退款需旅客帳戶（金額仍由後端依政策計算）
+  const handleCancelWithRefundAccount = () =>
+    runAction({ action: "cancel", bankAccount: refundAccount }, () => setCancelOpen(false));
 
   const openCancel = async () => {
     setCancelQuote(null);
+    setNeedsRefundAccount(false);
+    setRefundAccount(EMPTY_REFUND_BANK_ACCOUNT);
     setCancelOpen(true);
     setQuoteLoading(true);
     try {
       const { data } = await supabase.functions.invoke("member-order-manage", {
         body: { orderNumber: order.order_number, action: "cancel_quote" },
       });
-      const res = (data || {}) as { success?: boolean; quote?: typeof cancelQuote };
+      const res = (data || {}) as { success?: boolean; quote?: typeof cancelQuote; payuni?: { needsBankAccount?: boolean } };
       if (res.success && res.quote) setCancelQuote(res.quote);
+      setNeedsRefundAccount(!!res.payuni?.needsBankAccount);
     } finally {
       setQuoteLoading(false);
     }
@@ -1394,6 +1408,12 @@ const MemberOrderDetailInner = () => {
         </div>
       </div>
 
+      {["credit_card_payuni", "atm_payuni"].includes(String(order.payment_method)) && (
+        <div className="mx-auto max-w-3xl px-4 pb-4">
+          <PayuniRefundStatus as="member" orderNumber={order.order_number} />
+        </div>
+      )}
+
       {/* 取消訂單確認 */}
       <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
         <AlertDialogContent>
@@ -1426,6 +1446,9 @@ const MemberOrderDetailInner = () => {
                     )}
                   </div>
                 )}
+                {needsRefundAccount && (
+                  <RefundBankAccountForm value={refundAccount} onChange={setRefundAccount} testIdPrefix="member-cancel-refund-bank" />
+                )}
                 <p className="text-sm text-muted-foreground">{t("booking.member.cancel.warning")}</p>
               </div>
             </AlertDialogDescription>
@@ -1433,10 +1456,12 @@ const MemberOrderDetailInner = () => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={acting}>{t("booking.member.cancel.keep")}</AlertDialogCancel>
             <AlertDialogAction
-              disabled={acting}
+              disabled={acting || (needsRefundAccount && !isRefundBankAccountValid(refundAccount))}
+              data-testid="member-cancel-confirm-btn"
               onClick={(e) => {
                 e.preventDefault();
-                handleCancel();
+                if (needsRefundAccount) handleCancelWithRefundAccount();
+                else handleCancel();
               }}
             >
               {acting ? t("booking.member.cancel.processing") : t("booking.member.cancel.confirm")}

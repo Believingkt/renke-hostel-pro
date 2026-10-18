@@ -253,7 +253,7 @@ Deno.test("notify 竄改 HashInfo → 200 OK、hash_valid=false、HASH_MISMATCH�
   assertEquals(db.rows("accommodation_info")[0].payuni_mer_status, 9);
 });
 
-Deno.test("notify：找不到 MerID → UNKNOWN_MER；Refund 只入庫；處理例外仍回 200", async () => {
+Deno.test("notify：找不到 MerID → UNKNOWN_MER；Refund 找不到交易 → UNKNOWN_TRADE（W7 起處理退款）；處理例外仍回 200", async () => {
   const db = new FakeDb({ accommodation_info: [accRow({ payuni_mer_id: "TEST0001" })] });
   const { d } = notifyDeps(db);
   await handleAgentNotify(await notifyReq({ NotifyType: "MerStatus", MerID: "TEST9999", Status: "1", ExecuteTime: "t7" }), d);
@@ -262,7 +262,7 @@ Deno.test("notify：找不到 MerID → UNKNOWN_MER；Refund 只入庫；處理�
   const r = await handleAgentNotify(await notifyReq({ NotifyType: "MerStatus", MerID: "TEST0001", Status: "2", ExecuteTime: "t9" }), d);
   assertEquals(await r.text(), "OK");
   const ev = db.rows("payuni_notify_events");
-  assertEquals(ev.map((e) => [e.processed, e.process_error]), [[false, "UNKNOWN_MER"], [true, null], [false, "accommodation_info update failed: boom"]]);
+  assertEquals(ev.map((e) => [e.processed, e.process_error]), [[false, "UNKNOWN_MER"], [false, "UNKNOWN_TRADE"], [false, "accommodation_info update failed: boom"]]);
   assertEquals(ev[1].trade_no, "T1");
 });
 

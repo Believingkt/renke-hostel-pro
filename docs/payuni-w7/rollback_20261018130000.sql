@@ -2,6 +2,7 @@
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 DROP TABLE IF EXISTS public.refund_bank_accounts;
+DROP INDEX IF EXISTS public.payment_transactions_parent_tx_id_idx;
 ALTER TABLE public.payment_transactions
   DROP COLUMN IF EXISTS refund_pending_reason,
   DROP COLUMN IF EXISTS refund_source,
