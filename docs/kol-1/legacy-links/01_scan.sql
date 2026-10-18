@@ -6,7 +6,7 @@
 SELECT count(*) AS n_candidates
 FROM public.kol_profiles k
 WHERE k.ig_handle ~ '\s'
-   OR k.ig_handle ~* '(https?://|www\.).*(https?://|www\.)'
+   OR regexp_count(k.ig_handle, '(https?://|(^|[^/])www\.)', 1, 'i') >= 2
    OR k.ig_handle ~* '(ig|instagram|fb|facebook|yt|youtube|tiktok|threads|抖音|脆)\s*[:：]'
    OR k.ig_handle ~ '[,，、；;|｜。]';
 
@@ -28,6 +28,6 @@ SELECT coalesce(
 FROM public.kol_profiles k
 LEFT JOIN public.accommodation_info a ON a.id = k.accommodation_id
 WHERE k.ig_handle ~ '\s'
-   OR k.ig_handle ~* '(https?://|www\.).*(https?://|www\.)'
+   OR regexp_count(k.ig_handle, '(https?://|(^|[^/])www\.)', 1, 'i') >= 2
    OR k.ig_handle ~* '(ig|instagram|fb|facebook|yt|youtube|tiktok|threads|抖音|脆)\s*[:：]'
    OR k.ig_handle ~ '[,，、；;|｜。]';

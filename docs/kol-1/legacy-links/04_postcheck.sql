@@ -2,7 +2,7 @@
 -- 預期：n_still_multi 只剩 02_apply 結果中「略過」的筆數；n_backup = 已更新筆數；n_other_in_main = 0
 SELECT count(*) AS n_still_multi
 FROM public.kol_profiles k
-WHERE k.ig_handle ~* '(https?://|www\.).*(https?://|www\.)'
+WHERE regexp_count(k.ig_handle, '(https?://|(^|[^/])www\.)', 1, 'i') >= 2
    OR k.ig_handle ~* '(ig|instagram|fb|facebook|yt|youtube|tiktok|threads|抖音|脆)\s*[:：]';
 
 SELECT count(*) AS n_backup FROM public.kol_links_cleanup_backup_20261018;

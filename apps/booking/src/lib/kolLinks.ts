@@ -17,12 +17,14 @@ const PRIMARY_ORDER: KolLinkPlatform[] = ["instagram", "tiktok", "youtube", "fac
 const LABEL_RE =
   /(^|[\s,，、；;|｜/。.])(?:ig|instagram|fb|facebook|yt|youtube|tiktok|tik tok|抖音|threads|脆|網站|部落格|blog)\s*[:：]/gi;
 
-const CJK = "\u3000-\u303f\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\uff01-\uff0f\uff1a-\uff20";
-const STOP = `\\s，、；;「」<>"'。！？,|｜()（）${CJK}`;
+const CJK_LETTERS = "\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af";
+const CJK = `\u3000-\u303f${CJK_LETTERS}\uff01-\uff0f\uff1a-\uff20`;
+const STOP_BASE = `\\s，、；;「」<>"'。！？,|｜()（）\u3000-\u303f\uff01-\uff0f\uff1a-\uff20`;
+const STOP = `${STOP_BASE}${CJK}`;
 // 「IG：帳號」這種沒貼網址、只寫帳號的寫法
 const IG_LABEL_HANDLE_RE = /(?:^|[^a-z])(?:ig|instagram)\s*[:：]\s*@?([a-z0-9._]+)(?![a-z0-9._/:])/gi;
 const URL_RE = new RegExp(
-  `(?:https?:\\/\\/)?(?:www\\.|m\\.)?(?:[a-z0-9-]+\\.)*(?:instagram\\.com|tiktok\\.com|youtube\\.com|youtu\\.be|facebook\\.com|fb\\.com|threads\\.net|threads\\.com)\\/[^${STOP}]*|https?:\\/\\/[^${STOP}]+`,
+  `(?:https?:\\/\\/)?(?:www\\.|m\\.)?(?:[a-z0-9-]+\\.)*(?:instagram\\.com|tiktok\\.com|youtube\\.com|youtu\\.be|facebook\\.com|fb\\.com|threads\\.net|threads\\.com)\\/(?:[${CJK_LETTERS}][^${STOP_BASE}]*|[^${STOP}]*)|https?:\\/\\/[^${STOP}]+`,
   "gi",
 );
 
@@ -141,9 +143,11 @@ export function splitKolLinks(text: string): { primary: string; others: string[]
 /** 搜尋框的連結條件：其他平台連結（去掉 https://、www.、結尾斜線再比對），IG 網址另外用帳號比對主欄位 */
 export function kolLinkSearchFilters(esc: string): string[] {
   const v = esc.trim();
-  const core = v.replace(/^https?:\/\//i, "").replace(/^(?:www\.|m\.)/i, "").replace(/[?#].*$/, "").replace(/\/+$/, "");
-  const parts = [`other_links_text.ilike.%${core || v}%`];
-  if (/(?:instagram\.com|threads\.(?:net|com))\//i.test(v)) {
+  const stripped = v.replace(/^https?:\/\//i, "").replace(/^(?:www\.|m\.)/i, "");
+  const fbId = stripped.match(/\/profile\.php\?(?:.*&)?id=(\d+)/i);
+  const core = fbId ? `profile.php?id=${fbId[1]}` : stripped.replace(/[?#].*$/, "").replace(/\/+$/, "");
+  const parts = core ? [`other_links_text.ilike.%${core}%`] : [];
+  if (/(?:instagram\.com|threads\.(?:net|com))\//i.test(v) && !isContentPostUrl(v)) {
     const h = normalizeIgHandle(v);
     if (h && !h.includes("/")) parts.push(`ig_handle.ilike.%${h}%`);
   }

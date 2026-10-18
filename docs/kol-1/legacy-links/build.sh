@@ -6,6 +6,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 IN="$(realpath "$1")"
 OUT="$(realpath -m "${2:-$HERE/out}")"
+rm -f "$OUT/02_apply.sql" "$OUT/preview.csv"
 cd "$REPO/apps/booking"
 npx esbuild "$HERE/build.ts" --bundle --platform=node --log-level=warning --alias:@=./src --outfile=/tmp/kol_legacy_build.cjs
 KOL_LEGACY_DIR="$HERE" node /tmp/kol_legacy_build.cjs "$IN" "$OUT"

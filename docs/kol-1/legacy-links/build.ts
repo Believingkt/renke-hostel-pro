@@ -2,7 +2,7 @@
 // 用法：bash docs/kol-1/legacy-links/build.sh <scan.json> [輸出資料夾]
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { KOL_LINK_PLATFORM_LABEL, kolLinkPlatform, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
+import { KOL_LINK_PLATFORM_LABEL, kolLinkKey, kolLinkPlatform, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 import { igProfileUrl, isContentPostUrl, normalizeIgHandle } from "@/lib/kolInviteValidation";
 
 type ScanRow = {
@@ -44,8 +44,11 @@ const plan = (r: ScanRow): PlanRow => {
   if (newIg === r.ig_handle && newUrl === r.ig_url && newOther.join("\n") === oldOther.join("\n")) {
     return { ...base, status: "略過：內容不變" };
   }
-  const noIg = kolLinkPlatform(s.primary) !== "instagram";
-  return { ...r, newIg, newUrl, newOther, status: noIg ? "會更新（沒有 IG，請確認主連結）" : "會更新" };
+  const notes: string[] = [];
+  if (kolLinkPlatform(s.primary) !== "instagram") notes.push("沒有 IG，請確認主連結");
+  const keptKeys = new Set([newUrl, ...newOther].filter(Boolean).map((l) => kolLinkKey(l as string)));
+  if (r.ig_url && !keptKeys.has(kolLinkKey(r.ig_url))) notes.push(`原主連結 ${r.ig_url} 會被取代`);
+  return { ...r, newIg, newUrl, newOther, status: notes.length ? `會更新（${notes.join("；")}）` : "會更新" };
 };
 
 const csvCell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;

@@ -22,7 +22,7 @@ BEGIN
         INSERT INTO _kol_links_rollback_result VALUES (b.id, '略過', '紀錄已不存在');
         CONTINUE;
       END IF;
-      IF k.ig_handle IS DISTINCT FROM b.new_ig OR k.other_links IS DISTINCT FROM b.new_other THEN
+      IF k.ig_handle IS DISTINCT FROM b.new_ig OR k.ig_url IS DISTINCT FROM b.new_url OR k.other_links IS DISTINCT FROM b.new_other THEN
         INSERT INTO _kol_links_rollback_result VALUES (b.id, '略過', '清理後連結已被修改，為避免蓋掉新資料不還原');
         CONTINUE;
       END IF;

@@ -127,3 +127,21 @@ describe("kolLinkSearchFilters", () => {
     ]);
   });
 });
+
+describe("第二輪修正", () => {
+  it("貼文網址不加帳號條件", () => {
+    expect(kolLinkSearchFilters("https://www.instagram.com/p/ABC123/")).toEqual(["other_links_text.ilike.%instagram.com/p/ABC123%"]);
+  });
+
+  it("FB profile.php 搜尋保留 id", () => {
+    expect(kolLinkSearchFilters("https://m.facebook.com/profile.php?id=100012345")).toEqual([
+      "other_links_text.ilike.%profile.php?id=100012345%",
+    ]);
+  });
+
+  it("中文路徑的 FB 連結不會被丟掉，但英文帳號後接中文仍截斷", () => {
+    const s = splitKolLinks("FB：https://facebook.com/小美 IG：https://www.instagram.com/mei粉絲3萬");
+    expect(s.primary).toBe("https://www.instagram.com/mei");
+    expect(s.others).toEqual(["https://facebook.com/小美"]);
+  });
+});
