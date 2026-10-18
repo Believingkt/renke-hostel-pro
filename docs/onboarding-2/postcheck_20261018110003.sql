@@ -1,4 +1,4 @@
--- postcheck（唯讀）：2a M1。每列都要 matches = true；第 2 段要 0 列
+-- postcheck（唯讀；比對前先去掉 \r，Windows 貼上也適用）：2a M1。每列都要 matches = true；第 2 段要 0 列
 SELECT x.t, x.p, (p.policyname IS NOT NULL) AS matches FROM (VALUES
     ('group_buy_campaign_notification_settings', $q$Managers can delete campaign notification settings$q$, $q$(is_super_admin(auth.uid()) OR (EXISTS ( SELECT 1
    FROM group_buy_campaigns c
@@ -34,7 +34,7 @@ SELECT x.t, x.p, (p.policyname IS NOT NULL) AS matches FROM (VALUES
     ('referral_campaigns', $q$Admins manage campaigns$q$, $q$(is_super_admin(auth.uid()) OR ((accommodation_id IS NOT NULL) AND is_hotel_admin_of(accommodation_id)))$q$, $q$(is_super_admin(auth.uid()) OR ((accommodation_id IS NOT NULL) AND is_hotel_admin_of(accommodation_id)))$q$)
 ) AS x(t, p, q, w)
 LEFT JOIN pg_policies p ON p.schemaname = 'public' AND p.tablename = x.t AND p.policyname = x.p
-  AND p.qual IS NOT DISTINCT FROM x.q AND p.with_check IS NOT DISTINCT FROM x.w
+  AND replace(p.qual, E'\r', '') IS NOT DISTINCT FROM replace(x.q, E'\r', '') AND replace(p.with_check, E'\r', '') IS NOT DISTINCT FROM replace(x.w, E'\r', '')
 ORDER BY 3, 1, 2;
 SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public' AND tablename IN ('group_buy_campaign_notification_settings', 'group_buy_campaign_packages', 'group_buy_campaigns', 'group_buy_venue_intros', 'order_manual_review_tasks', 'owlting_email_property_alias', 'owlting_email_room_alias', 'owlting_room_type_rate_plans', 'referral_campaigns')
   AND (coalesce(qual, '') || coalesce(with_check, '')) ~ '(is_admin_or_super\(\)|role = ANY \(ARRAY\[''super_admin'')';

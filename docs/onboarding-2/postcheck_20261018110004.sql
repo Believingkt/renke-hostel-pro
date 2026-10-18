@@ -1,4 +1,4 @@
--- postcheck（唯讀）：每列 matches = true
+-- postcheck（唯讀；比對前先去掉 \r，Windows 貼上也適用）：每列 matches = true
 SELECT x.t, x.p, (p.policyname IS NOT NULL) AS matches FROM (VALUES
     ('accommodation_partnership_periods', $q$partnership_periods_select_scoped$q$, $q$(is_super_admin(auth.uid()) OR (EXISTS ( SELECT 1
    FROM user_roles ur2
@@ -14,4 +14,4 @@ SELECT x.t, x.p, (p.policyname IS NOT NULL) AS matches FROM (VALUES
     ('traveler_profiles', $q$Admins can view traveler profiles$q$, $q$(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))$q$, NULL)
 ) AS x(t, p, q, w)
 LEFT JOIN pg_policies p ON p.schemaname = 'public' AND p.tablename = x.t AND p.policyname = x.p
-  AND p.qual IS NOT DISTINCT FROM x.q AND p.with_check IS NOT DISTINCT FROM x.w ORDER BY 3, 1, 2;
+  AND replace(p.qual, E'\r', '') IS NOT DISTINCT FROM replace(x.q, E'\r', '') AND replace(p.with_check, E'\r', '') IS NOT DISTINCT FROM replace(x.w, E'\r', '') ORDER BY 3, 1, 2;
