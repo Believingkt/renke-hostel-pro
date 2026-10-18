@@ -857,14 +857,11 @@ function InvitationsTab({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
-  const [dupWarning, setDupWarning] = useState<string | null>(null);
-  const [igContentUrlAck, setIgContentUrlAck] = useState(false);
   const [newTagInput, setNewTagInput] = useState("");
   const [followerError, setFollowerError] = useState<string | null>(null);
   // 防呆：阻擋訊息 / 合拍同住確認 / IG 重複確認
   const [blockIssues, setBlockIssues] = useState<ValidationIssue[]>([]);
   const [collabConfirmed, setCollabConfirmed] = useState(false);
-  const [igDupConfirmed, setIgDupConfirmed] = useState(false);
   /** 名稱僅全半形／大小寫不同時，確認為不同人（不套用既有寫法） */
   const [nameVariantConfirmed, setNameVariantConfirmed] = useState(false);
   /** 既有的同名不同寫法（供表單即時提示） */
@@ -1459,11 +1456,6 @@ function InvitationsTab({
     }
   }, [form.order_number]); // eslint-disable-line
 
-  // 換一筆／關閉表單時，重置「確定就是帳號連結」的確認狀態
-  useEffect(() => {
-    setIgContentUrlAck(false);
-  }, [sheetOpen, editingId]);
-
   // 同 IG 即時提示改由 KolIgNameHint 顯示（與存檔檢查同一套比對）
 
   // 建立時即時查重：同館且（同折扣碼 或 同名）的既有邀約
@@ -1522,7 +1514,6 @@ function InvitationsTab({
       // scout 角色：自動帶入登入者
       scout_id: currentUserId,
     });
-    setDupWarning(null);
     setProspectLink(null);
     setSheetOpen(true);
   };
@@ -1539,7 +1530,6 @@ function InvitationsTab({
       invited_at: "",
     });
     setProspectLink(prefill.prospect_id);
-    setDupWarning(null);
     setSheetOpen(true);
     onPrefillConsumed?.();
   }, [prefill, onPrefillConsumed, isManager, currentUserId]);
@@ -1591,7 +1581,6 @@ function InvitationsTab({
       primary_link_exception: !!row.primary_link_exception,
     });
     setContractGroupId(row.contract_group_id ?? null);
-    setDupWarning(null);
     setSheetOpen(true);
   };
 
@@ -1605,7 +1594,6 @@ function InvitationsTab({
       setCidConflicts([]);
       setCidConflictKey(null);
       setCollabConfirmed(false);
-      setIgDupConfirmed(false);
       setNameVariantConfirmed(false);
       setNameVariant(null);
       return;
@@ -1968,8 +1956,8 @@ function InvitationsTab({
             level: "block",
             rule: "db.no_rows_updated",
             field: "name",
-            message: "這筆邀約沒有存進去：你目前沒有修改這筆紀錄的權限。",
-            suggestion: "只有填寫人、被指派的邀約人與星探主管可以修改；請聯絡星探主管協助修改。",
+            message: "這筆邀約沒有存進去：你目前沒有修改這筆紀錄的權限（資料沒有任何變更）。",
+            suggestion: "可以修改的人：這筆的填寫人、星探主管、館主或管理員（資料庫權限更新後，被指派的邀約人也可以）。請聯絡星探主管協助修改。",
           },
         ]);
         return;
@@ -2063,7 +2051,6 @@ function InvitationsTab({
       check_in_date: "",
       check_out_date: "",
     });
-    setDupWarning(null);
     setProspectLink(null);
     setSheetOpen(true);
   };
@@ -2736,7 +2723,9 @@ function InvitationsTab({
       {loading && filtered.length > 0 && (
         <div className="text-xs text-muted-foreground" data-testid="kol-list-loading">搜尋中…</div>
       )}
-      {loading && filtered.length === 0 ? null : filtered.length === 0 ? (
+      {loading && filtered.length === 0 ? (
+        <div className="p-8 text-center text-sm text-muted-foreground" data-testid="kol-list-loading-empty">載入中…</div>
+      ) : filtered.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-sm text-muted-foreground">尚無資料</CardContent>
         </Card>
@@ -3468,7 +3457,7 @@ function InvitationsTab({
                 {isContentPostUrl(form.ig_handle) && (
                   <div className="mt-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive space-y-2" data-testid="kol-ig-content-post-block">
                     <div>
-                      ⛔ 這是貼文／Reels 影片連結，網址裡沒有 KOL 帳號，不能儲存。請改貼 KOL 個人主頁網址（例如 https://www.instagram.com/帳號/）。
+                      ⛔ 這是貼文／影片連結，網址裡沒有 KOL 帳號，不能儲存。請改貼 KOL 個人主頁網址（例如 https://www.instagram.com/帳號/）。
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -4751,9 +4740,10 @@ function InvitationsTab({
             <p className="text-sm text-muted-foreground">
               選擇一筆同屬這份合約的邀約，本筆將併入對方的合約歸戶，資格只計 1 件。
             </p>
-            <Input
+            <KolSearchInput
               value={groupSearch}
-              onChange={(e) => setGroupSearch(e.target.value)}
+              onValueChange={setGroupSearch}
+              testId="kol-group-search"
               placeholder="輸入 KOL 名稱或折扣代碼"
             />
             <div className="max-h-72 overflow-y-auto rounded-md border divide-y">
@@ -5124,6 +5114,12 @@ function CompanionSearch({
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
+        type="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-testid="kol-companion-search"
         placeholder="輸入 KOL 名稱搜尋…"
       />
       {open && query.trim() && (
@@ -7828,10 +7824,11 @@ function VenuesCard({ isManager }: { isManager: boolean }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Input
+          <KolSearchInput
             placeholder="搜尋場域名稱"
             value={filterName}
-            onChange={(e) => setFilterName(e.target.value)}
+            onValueChange={setFilterName}
+            testId="venue-name-search"
             className="w-48"
           />
           <Select value={filterType} onValueChange={setFilterType}>

@@ -21,7 +21,13 @@ export const escapeIlike = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
 // 同一 IG 的比對條件：帳號完全相同（不分大小寫），或舊資料存成 instagram.com/帳號/… 整串網址
 export const igMatchOrFilter = (handle: string) => {
   const esc = escapeIlike(handle);
-  return `ig_handle.ilike.${esc},ig_handle.ilike.*instagram.com/${esc}/*`;
+  return [
+    `ig_handle.ilike.${esc}`,
+    `ig_handle.ilike.@${esc}`,
+    `ig_handle.ilike.*instagram.com/${esc}`,
+    `ig_handle.ilike.*instagram.com/${esc}/*`,
+    `ig_handle.ilike.*instagram.com/${esc}?*`,
+  ].join(",");
 };
 
 // 依筆數（多→少）整理出此 IG 已使用過的名稱
@@ -45,6 +51,7 @@ export function useKolIgRecords(igRaw: string, excludeId: string | null, enabled
   useEffect(() => {
     if (!enabled || !ig || isContentPostUrl(igRaw)) {
       setRecords([]);
+      setLoading(false);
       return;
     }
     let cancelled = false;
@@ -75,6 +82,7 @@ export function useKolIgRecords(igRaw: string, excludeId: string | null, enabled
     }, 400);
     return () => {
       cancelled = true;
+      setLoading(false);
       clearTimeout(t);
     };
   }, [ig, igRaw, excludeId, enabled]);

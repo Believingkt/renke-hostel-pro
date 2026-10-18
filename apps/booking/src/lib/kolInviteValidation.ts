@@ -71,17 +71,20 @@ export function normalizeIgHandle(raw: string): string {
   let v = (raw ?? "").trim();
   if (!v) return "";
   const urlMatch = v.match(
-    /^(?:https?:\/\/)?(?:www\.)?(?:instagram\.com|threads\.net|threads\.com)\/([^/?#]+)/i,
+    /^(?:https?:\/\/)?(?:www\.|m\.)?(?:instagram\.com|threads\.net|threads\.com)\/(?:_u\/)?([^/?#]+)(?:\/([^/?#]+))?/i,
   );
   if (urlMatch) {
     v = urlMatch[1];
-    // instagram.com/stories/{帳號}/… → 帳號在第二段
-    if (v.toLowerCase() === "stories") {
-      const m2 = (raw ?? "").trim().match(/\/stories\/([^/?#]+)/i);
-      v = m2 ? m2[1] : v;
-    }
+    // instagram.com/stories/{帳號}/… → 帳號在第二段（stories/highlights 精選沒有帳號，由 isContentPostUrl 擋下）
+    if (v.toLowerCase() === "stories" && urlMatch[2]) v = urlMatch[2];
+  } else if (/^[^/.\s]+\/[^/]+/.test(v) && !/^https?:/i.test(v)) {
+    // 沒有網域的「帳號/reels」輸入：只取帳號
+    v = v.split("/")[0];
   } else {
     v = v.replace(/^https?:\/\/(?:www\.)?/i, "");
+    // Facebook profile.php?id=… 的 id 才是帳號，不能丟掉
+    const fbId = v.match(/^(?:m\.)?facebook\.com\/profile\.php\?(?:.*&)?id=(\d+)/i);
+    if (fbId) return `facebook.com/profile.php?id=${fbId[1]}`;
   }
   v = v.split("?")[0].split("#")[0];
   v = v.replace(/^@+/, "").replace(/\/+$/, "").trim();
@@ -106,10 +109,10 @@ const hostOf = (url: string) => {
 export function igHandleCleanupNote(raw: string | null | undefined): string | null {
   const v = (raw ?? "").trim();
   if (!v || isContentPostUrl(v)) return null;
-  if (!/^(?:https?:\/\/)?(?:www\.)?instagram\.com\//i.test(v)) return null;
+  if (!/^(?:https?:\/\/)?(?:www\.|m\.)?instagram\.com\//i.test(v)) return null;
   const handle = normalizeIgHandle(v);
   if (!handle) return null;
-  const tidy = v.replace(/^https?:\/\/(?:www\.)?/i, "").replace(/\/+$/, "");
+  const tidy = v.replace(/^(?:https?:\/\/)?(?:www\.|m\.)?/i, "").replace(/\/+$/, "");
   return tidy.toLowerCase() === `instagram.com/${handle}`.toLowerCase() ? null : `instagram.com/${handle}`;
 }
 
@@ -128,8 +131,11 @@ export function isContentPostUrl(raw: string | null | undefined): boolean {
   // IG／Threads：只有第一段是內容路徑（/reel/ID、/p/ID…）才是不含帳號的貼文；
   // /{帳號}/reels/、/{帳號}/tagged/、/stories/{帳號}/ 都含帳號，可正規化
   if (/(^|\.)(instagram\.com|threads\.net|threads\.com)$/i.test(hostOf(withScheme))) {
+    if (segs[0] === "stories") return segs.length < 2 || segs[1] === "highlights";
     return IG_CONTENT_FIRST_SEGS.has(segs[0]);
   }
+  // 其他平台（FB、TikTok、YouTube、X）網址多半含帳號，不擋；只有網域後直接接內容路徑才算
+  if (hostOf(withScheme).indexOf(".") === -1) return false;
   const contentSegs = new Set([
     "reel",
     "reels",
@@ -146,7 +152,7 @@ export function isContentPostUrl(raw: string | null | undefined): boolean {
     "photo",
     "status",
   ]);
-  return segs.some((s) => contentSegs.has(s));
+  return contentSegs.has(segs[0]);
 }
 
 /**
