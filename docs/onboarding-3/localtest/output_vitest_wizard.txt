@@ -1,0 +1,11 @@
+
+ RUN  v4.1.10 /app/apps/booking
+
+ ✓ src/test/onboarding-wizard.test.tsx (8 tests) 269ms
+ ✓ src/test/onboarding-wizard-page.test.tsx (4 tests) 48ms
+
+ Test Files  2 passed (2)
+      Tests  12 passed (12)
+   Start at  11:08:29
+   Duration  1.40s (transform 448ms, setup 110ms, import 1.14s, tests 316ms, environment 903ms)
+

@@ -51,6 +51,8 @@ import { GoogleReviewsSettings } from "@lakeze/shared/components/website-content
 import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@lakeze/shared/constants/themes";
 import { useAuditLog } from "@lakeze/shared/hooks/use-audit-log";
+import { useOnboardingReviews } from "@/hooks/use-onboarding-reviews";
+import { OnboardingReviewPanel } from "./OnboardingReviewPanel";
 import { cloneTemplatesForAccommodation } from "@/lib/onboarding/cloneTemplates";
 import { RESERVED_PATHS, SUBDOMAIN_REGEX } from "@/components/headquarters/AccommodationDialog";
 import {
@@ -215,6 +217,8 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       return true;
     });
   }, [accommodations, searchQuery, statusFilter]);
+  const inactiveIds = useMemo(() => accommodations.filter((a) => !a.is_active).map((a) => a.id), [accommodations]);
+  const { statusById: reviewStatusById, reload: reloadReviews } = useOnboardingReviews(inactiveIds);
 
   // Handle drag end
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
@@ -453,6 +457,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       // 清除前台快取
       invalidateAccommodationCache(togglingAccommodation.id);
       toast.success(newStatus ? "已核准開賣" : "已暫停開賣");
+      void reloadReviews();
       setToggleDialogOpen(false);
       setTogglingAccommodation(null);
       onRefresh();
@@ -979,6 +984,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                           onTogglePortal={handleTogglePortal}
                           onToggleCreditCard={handleToggleCreditCard}
                           isDragDisabled={isDragDisabled}
+                          reviewStatus={reviewStatusById[acc.id]}
                         />
                       ))}
                     </SortableContext>
@@ -1028,6 +1034,13 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                 : `確定要核准「${togglingAccommodation?.name}」開賣嗎？核准後該民宿可以正常接受訂單。`}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {togglingAccommodation && !togglingAccommodation.is_active && reviewStatusById[togglingAccommodation.id] && (
+            <OnboardingReviewPanel
+              accommodationId={togglingAccommodation.id}
+              reviewStatus={reviewStatusById[togglingAccommodation.id]}
+              onReturned={() => { setToggleDialogOpen(false); setTogglingAccommodation(null); void reloadReviews(); }}
+            />
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isToggling}>取消</AlertDialogCancel>
             <AlertDialogAction

@@ -45,9 +45,12 @@ interface DraggableAccommodationRowProps {
   onTogglePortal?: (acc: Accommodation, next: boolean) => void;
   onToggleCreditCard?: (acc: Accommodation, next: boolean) => void;
   isDragDisabled?: boolean;
+  /** 上架精靈送審狀態：submitted＝待核准、returned＝已退回 */
+  reviewStatus?: string;
 }
 
 export function DraggableAccommodationRow({
+  reviewStatus,
   accommodation,
   onEdit,
   onClone,
@@ -169,6 +172,12 @@ export function DraggableAccommodationRow({
         <Badge variant={accommodation.is_active ? "default" : "secondary"}>
           {accommodation.is_active ? "營運中" : "已停用"}
         </Badge>
+        {!accommodation.is_active && reviewStatus === "submitted" && (
+          <Badge variant="outline" className="ml-1 border-amber-500 text-amber-700" data-testid={`review-badge-pending-${accommodation.id}`}>待核准</Badge>
+        )}
+        {!accommodation.is_active && reviewStatus === "returned" && (
+          <Badge variant="outline" className="ml-1" data-testid={`review-badge-returned-${accommodation.id}`}>已退回</Badge>
+        )}
       </TableCell>
 
       {/* Portal visibility */}

@@ -139,6 +139,7 @@ const PackagePriceCalendar = lazy(() => import("@/pages/PackagePriceCalendar"));
 
 const Accounts = lazy(() => import("@/pages/Accounts"));
 const Onboarding = lazy(() => import("@/pages/admin/Onboarding"));
+const OnboardingWizard = lazy(() => import("@/pages/admin/OnboardingWizard"));
 const PermissionTemplates = lazy(() => import("@/pages/PermissionTemplates"));
 const KolDiscount = lazy(() => import("@/pages/KolDiscount"));
 const DiscountCodeOrders = lazy(() => import("@/pages/DiscountCodeOrders"));
@@ -457,6 +458,10 @@ function App() {
                     } />
 
                     {/* 後台管理頁面 */}
+                    {/* 上架精靈：頁面內判斷本館管理員／總部最高管理員，staff 看唯讀說明 */}
+                    <Route path="admin/onboarding-wizard" element={
+                      <Suspense fallback={<FormSkeleton fields={8} />}><OnboardingWizard /></Suspense>
+                    } />
                     <Route path="admin/onboarding" element={
                       <RequireModule module="onboarding">
                         <Suspense fallback={<FormSkeleton fields={8} />}><Onboarding /></Suspense>

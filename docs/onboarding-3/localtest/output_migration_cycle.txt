@@ -1,0 +1,120 @@
+
+===== precheck 20261018120000 =====
+first_activated_at 尚不存在 | t
+return_reason 尚不存在 | t
+status check 為原本 3 種 | t
+現有 status 都在原本 3 種內 | t
+guard trigger 尚不存在 | t
+
+===== 套用 20261018120000_onboarding_wizard_state =====
+套用成功
+
+===== postcheck 20261018120000 =====
+first_activated_at 已新增 | t
+除測試館外沒有 NULL | t
+5 個新欄位 | t
+status check 含 submitted/returned | t
+guard trigger 存在 | t
+guard 函式內容 | t
+
+===== 重跑 20261018120000_onboarding_wizard_state（應被擋） =====
+psql:/app/supabase/migrations/20261018120000_onboarding_wizard_state.sql:38: ERROR:  PRECHECK 失敗：accommodation_info.first_activated_at 已存在，疑似已套用過本 migration
+已被擋（exit=3，整支交易未套用）
+
+===== precheck 20261018120001 =====
+12 支精靈函式尚不存在 | t
+已套用 120000 | t
+auto_template_enabled 存在 | t
+自動建專案 trigger 存在 | t
+save_package_tier_prices 存在（不修改） | t
+
+===== 套用 20261018120001_onboarding_wizard_rpcs =====
+套用成功
+
+===== postcheck 20261018120001 =====
+12 支精靈函式都存在 | t
+全部 SECURITY DEFINER | t
+內部函式 authenticated 不能執行 | t
+對外函式 authenticated 可執行、anon 不可 | t
+assert_access 內容含 42501 與 is_active | t
+save_package_tier_prices 未被修改（不含 wizard） | t
+
+===== 重跑 20261018120001_onboarding_wizard_rpcs（應被擋） =====
+psql:/app/supabase/migrations/20261018120001_onboarding_wizard_rpcs.sql:43: ERROR:  PRECHECK 失敗：public.wizard_assert_access 已存在，疑似已套用過本 migration
+已被擋（exit=3，整支交易未套用）
+
+===== precheck 20261018120002 =====
+guard 函式為 090000 版本（不含 first_activated_at） | t
+guard 函式含 only_super_admin_can_change_is_active | t
+trigger 存在 | t
+已套用 120001 | t
+
+===== 套用 20261018120002_m3_first_activation_guard =====
+套用成功
+
+===== postcheck 20261018120002 =====
+guard 含 first_activated_at 與 wizard_precheck_core | t
+guard 仍含 only_super_admin_can_change_is_active | t
+trigger 仍存在且未變 | t
+會被硬擋的既有館只有測試館 | t
+
+===== 重跑 20261018120002_m3_first_activation_guard（應被擋） =====
+psql:/app/supabase/migrations/20261018120002_m3_first_activation_guard.sql:31: ERROR:  PRECHECK 失敗：accommodation_info_guard_is_active() 已含 first_activated_at，疑似已套用過本 migration
+已被擋（exit=3，整支交易未套用）
+
+===== 既有館 first_activated_at 判斷 =====
+森山寫造 | t | 0 | t
+正式測試館 | f | 0 | f
+測試A館（開賣中） | t | 1 | t
+測試B館（曾開賣後停用） | f | 1 | t
+測試C館（停用、無訂單） | f | 0 | t
+
+===== rollback 20261018120002 =====
+rollback 成功
+
+===== rollback 20261018120001 =====
+rollback 成功
+
+===== rollback 20261018120000 =====
+rollback 成功
+
+===== rollback 後再跑 precheck（應全 true） =====
+first_activated_at 尚不存在 | t
+return_reason 尚不存在 | t
+status check 為原本 3 種 | t
+現有 status 都在原本 3 種內 | t
+guard trigger 尚不存在 | t
+
+===== guard 已還原為 090000 版本 =====
+t
+
+===== 再套用 20261018120000_onboarding_wizard_state =====
+套用成功
+
+===== 再套用 20261018120001_onboarding_wizard_rpcs =====
+套用成功
+
+===== 再套用 20261018120002_m3_first_activation_guard =====
+套用成功
+
+===== 再套用後 postcheck 20261018120000 =====
+first_activated_at 已新增 | t
+除測試館外沒有 NULL | t
+5 個新欄位 | t
+status check 含 submitted/returned | t
+guard trigger 存在 | t
+guard 函式內容 | t
+
+===== 再套用後 postcheck 20261018120001 =====
+12 支精靈函式都存在 | t
+全部 SECURITY DEFINER | t
+內部函式 authenticated 不能執行 | t
+對外函式 authenticated 可執行、anon 不可 | t
+assert_access 內容含 42501 與 is_active | t
+save_package_tier_prices 未被修改（不含 wizard） | t
+
+===== 再套用後 postcheck 20261018120002 =====
+guard 含 first_activated_at 與 wizard_precheck_core | t
+guard 仍含 only_super_admin_can_change_is_active | t
+trigger 仍存在且未變 | t
+會被硬擋的既有館只有測試館 | t

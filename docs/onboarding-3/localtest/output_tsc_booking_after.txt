@@ -1,0 +1,3 @@
+../../packages/shared/src/test/discount-cheaper-rule.test.ts(83,26): error TS2871: This expression is always nullish.
+../../packages/shared/src/test/discount-cheaper-rule.test.ts(84,29): error TS2869: Right operand of ?? is unreachable because the left operand is never nullish.
+exit=2

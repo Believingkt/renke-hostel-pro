@@ -11,6 +11,8 @@ import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { useOnboardingProgress } from "@/hooks/use-onboarding-progress";
 import { canFinalConfirm, type StepResult } from "@/lib/onboarding/steps";
 import { toast } from "sonner";
+import { useWizardData } from "@/hooks/use-wizard-data";
+import { ReviewStatusBanner } from "@/components/onboarding-wizard/ReviewStatusBanner";
 
 function StepIcon({ status }: { status: StepResult["status"] }) {
   if (status === "completed") return <CheckCircle2 className="h-5 w-5 text-primary" />;
@@ -23,6 +25,7 @@ export default function Onboarding() {
   const { withPrefix } = useAliasPrefix();
   const { steps, done, total, loading, confirmStep } = useOnboardingProgress(currentAccommodationId);
   const [saving, setSaving] = useState<string | null>(null);
+  const wizard = useWizardData(currentAccommodationId);
 
   const handleConfirm = async (step: StepResult) => {
     if (step.key === "final_check" && !canFinalConfirm(steps)) return;
@@ -38,6 +41,23 @@ export default function Onboarding() {
   return (
     <div className="space-y-6">
       <AdminPageHeader title="上架引導" description="照著下面的順序完成設定，就能把民宿放上網站開始接單。" />
+
+      {wizard.isActive === false && (
+        <Card data-testid="onboarding-wizard-entry">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <p className="text-base font-medium">上架精靈</p>
+              <p className="text-sm text-muted-foreground">用精靈建立房型、方案、季節價與庫存，完成開賣前檢查後送總部審核。</p>
+            </div>
+            <Button asChild size="sm">
+              <PreloadLink to={withPrefix("/admin/onboarding-wizard")} data-testid="onboarding-wizard-link">
+                開啟上架精靈 <ArrowRight className="ml-1 h-4 w-4" />
+              </PreloadLink>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      <ReviewStatusBanner finalCheck={wizard.finalCheck} />
 
       {!loading && (
         <Card>
@@ -92,7 +112,7 @@ export default function Onboarding() {
                       </PreloadLink>
                     </Button>
                   )}
-                  {isConfirm && step.status !== "completed" && (
+                  {isConfirm && step.status !== "completed" && !(step.key === "final_check" && ["submitted", "returned"].includes(wizard.finalCheck?.status ?? "")) && (
                     <Button size="sm" disabled={finalLocked || saving === step.key} onClick={() => handleConfirm(step)}>
                       {saving === step.key && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
                       {finalLocked ? "尚未符合條件" : "我已確認"}

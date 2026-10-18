@@ -1,0 +1,4 @@
+方案 f77a0d2f-a999-4f70-9851-917fb539f123
+自動建立的專案 02f802c0-8690-4fe1-b659-4424d91b5bc6（房型 8f76f58c-db96-46bc-b3be-1245fb1733b0）
+resolveOrderPricingTemplateId → 02f802c0-8690-4fe1-b659-4424d91b5bc6
+PASS：下單會對到自動建立的專案，且專案房型 = 方案主房型
