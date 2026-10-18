@@ -18,8 +18,8 @@ guard trigger 存在 | t
 guard 函式內容 | t
 
 ===== 重跑 20261018120000_onboarding_wizard_state（應被擋） =====
-psql:/app/supabase/migrations/20261018120000_onboarding_wizard_state.sql:38: ERROR:  PRECHECK 失敗：accommodation_info.first_activated_at 已存在，疑似已套用過本 migration
-已被擋（exit=3，整支交易未套用）
+psql:/app/supabase/migrations/20261018120000_onboarding_wizard_state.sql:46: ERROR:  PRECHECK 失敗：accommodation_info.first_activated_at 已存在，疑似已套用過本 migration
+已被擋（exit=3，整支交易 ROLLBACK、未套用）
 
 ===== precheck 20261018120001 =====
 12 支精靈函式尚不存在 | t
@@ -40,8 +40,8 @@ assert_access 內容含 42501 與 is_active | t
 save_package_tier_prices 未被修改（不含 wizard） | t
 
 ===== 重跑 20261018120001_onboarding_wizard_rpcs（應被擋） =====
-psql:/app/supabase/migrations/20261018120001_onboarding_wizard_rpcs.sql:43: ERROR:  PRECHECK 失敗：public.wizard_assert_access 已存在，疑似已套用過本 migration
-已被擋（exit=3，整支交易未套用）
+psql:/app/supabase/migrations/20261018120001_onboarding_wizard_rpcs.sql:50: ERROR:  PRECHECK 失敗：public.wizard_assert_access 已存在，疑似已套用過本 migration
+已被擋（exit=3，整支交易 ROLLBACK、未套用）
 
 ===== precheck 20261018120002 =====
 guard 函式為 090000 版本（不含 first_activated_at） | t
@@ -59,8 +59,8 @@ trigger 仍存在且未變 | t
 會被硬擋的既有館只有測試館 | t
 
 ===== 重跑 20261018120002_m3_first_activation_guard（應被擋） =====
-psql:/app/supabase/migrations/20261018120002_m3_first_activation_guard.sql:31: ERROR:  PRECHECK 失敗：accommodation_info_guard_is_active() 已含 first_activated_at，疑似已套用過本 migration
-已被擋（exit=3，整支交易未套用）
+psql:/app/supabase/migrations/20261018120002_m3_first_activation_guard.sql:38: ERROR:  PRECHECK 失敗：accommodation_info_guard_is_active() 已含 first_activated_at，疑似已套用過本 migration
+已被擋（exit=3，整支交易 ROLLBACK、未套用）
 
 ===== 既有館 first_activated_at 判斷 =====
 森山寫造 | t | 0 | t

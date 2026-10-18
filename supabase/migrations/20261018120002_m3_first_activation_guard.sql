@@ -10,7 +10,14 @@
 -- precheck：docs/onboarding-3/precheck_20261018120002.sql
 -- postcheck：docs/onboarding-3/postcheck_20261018120002.sql
 -- rollback：docs/onboarding-3/rollback_20261018120002.sql（還原為 20261018090000 版本）
+-- 鎖與逾時：整支包在 BEGIN/COMMIT（CLI 2.117.0 不保證自動包交易，比照 110003～110005 寫法），
+--   SET LOCAL lock_timeout = '3s'：拿不到鎖 3 秒內放棄，整支 ROLLBACK、不套用；SET LOCAL statement_timeout = '120s'
+--   本支只 CREATE OR REPLACE trigger 函式（只改 pg_proc），不改 trigger、不鎖 accommodation_info 等高頻表
 -- ============================================================
+
+BEGIN;
+SET LOCAL lock_timeout = '3s';
+SET LOCAL statement_timeout = '120s';
 
 -- ============================= PRECHECK =============================
 DO $$
@@ -82,3 +89,5 @@ REVOKE ALL ON FUNCTION public.accommodation_info_guard_is_active() FROM PUBLIC, 
 
 COMMENT ON FUNCTION public.accommodation_info_guard_is_active() IS
   '上架引導：is_active 只限 super_admin 變更；從未開賣的館第一次核准須已送審且開賣前檢查紅色全過；auth.uid() 為 NULL 的系統身分不受限';
+
+COMMIT;

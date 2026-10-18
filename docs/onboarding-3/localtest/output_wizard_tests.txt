@@ -74,7 +74,7 @@
 
 
 
-1 | F01 單棟：建立房型（房間數 1） | PASS | OK | OK 8f76f58c-db96-46bc-b3be-1245fb1733b0
+1 | F01 單棟：建立房型（房間數 1） | PASS | OK | OK afec3912-ab02-401a-9e48-aee029f741df
 2 | F02 三日型：平日售價 0 被擋 | PASS | ERR [22023] | ERR [22023] 平日售價與原價都必須是大於 0 的整數
 3 | F03 三日型：假日原價 0 被擋 | PASS | ERR [22023] | ERR [22023] 假日售價與原價都必須是大於 0 的整數
 4 | F04 三日型：缺旺日被擋 | PASS | ERR [22023] | ERR [22023] 旺日（週五／週日）售價與原價都必填
@@ -118,7 +118,7 @@
 42 | M01 多房型：建立 2 個房型 | PASS | OK 2 | OK 2
 43 | M02 方案一（雙人房）專案房型正確 | PASS | OK true|雙人房 | OK true|雙人房
 44 | M03 方案二（四人房）專案房型正確 | PASS | OK true|四人房 | OK true|四人房
-45 | M04a 多房型開庫存 | PASS | OK | OK {"end": "2027-04-17", "start": "2026-10-18", "room_types": [{"name": "四人房", "skipped": 0, "inserted": 182, "room_type_id": "52fc120c-80ee-40c7-b6f0-89d3a20aa
+45 | M04a 多房型開庫存 | PASS | OK | OK {"end": "2027-04-17", "start": "2026-10-18", "room_types": [{"name": "四人房", "skipped": 0, "inserted": 182, "room_type_id": "82a3a7ab-88d1-43f9-951f-78a0a3d9b
 46 | M04b 兩房型間數各自 = 房間數、價格 = base_price | PASS | OK 2:5000,3:3000 | OK 2:5000,3:3000
 47 | M05 館別開了 OwlTing 同步但房型未對應 → 紅色 | PASS | OK false|false | OK false|false
 48 | M06 OTA 紅色時不能送審 | PASS | ERR [P0001] | ERR [P0001] 開賣前檢查有紅色項目未通過，不能送審
@@ -137,7 +137,7 @@
 61 | P10 本館 staff precheck → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
 62 | P11 已開賣館業主 save_room_type → 42501 | PASS | ERR [42501] | ERR [42501] 上架精靈只能用於尚未開賣的館
 63 | P12 已開賣館業主 open_inventory → 42501 | PASS | ERR [42501] | ERR [42501] 上架精靈只能用於尚未開賣的館
-64 | P13 super_admin 可用（新館 N 建房型） | PASS | OK | OK 7009593f-75aa-4b7a-b339-180789e21d70
+64 | P13 super_admin 可用（新館 N 建房型） | PASS | OK | OK cb4a478c-591b-4af6-b51c-01d0b9a1ec52
 65 | P14 super_admin 可跑 precheck | PASS | OK false | OK false
 66 | P15 後端系統呼叫（auth.uid() 為空）不能用精靈 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
 67 | P16 authenticated 不能直接呼叫內部函式 | PASS | ERR [42501] | ERR [42501] permission denied for function wizard_precheck_core

@@ -10,7 +10,15 @@
 -- precheck：docs/onboarding-3/precheck_20261018120000.sql
 -- postcheck：docs/onboarding-3/postcheck_20261018120000.sql
 -- rollback：docs/onboarding-3/rollback_20261018120000.sql
+-- 鎖與逾時：整支包在 BEGIN/COMMIT（CLI 2.117.0 不保證自動包交易，比照 110003～110005 寫法），
+--   SET LOCAL lock_timeout = '3s'：拿不到鎖 3 秒內放棄，整支 ROLLBACK、不套用；SET LOCAL statement_timeout = '120s'
+--   會鎖 accommodation_info（ACCESS EXCLUSIVE）的語句集中在 CHANGE 最前面：ADD COLUMN（可為 NULL、無預設值，只改目錄）、
+--   回填 UPDATE（約 20 列），回填期間暫停 updated_at trigger，避免既有館 updated_at 被改動
 -- ============================================================
+
+BEGIN;
+SET LOCAL lock_timeout = '3s';
+SET LOCAL statement_timeout = '120s';
 
 -- ============================= PRECHECK =============================
 DO $$
@@ -38,18 +46,22 @@ BEGIN
 END $$;
 
 -- ============================= CHANGE =============================
+-- (1) accommodation_info：持鎖語句集中在這裡
 ALTER TABLE public.accommodation_info ADD COLUMN first_activated_at timestamptz;
 
 COMMENT ON COLUMN public.accommodation_info.first_activated_at IS
   '第一次核准開賣時間；NULL = 從未開賣（M3 首次核准硬擋只套用在 NULL 的館）';
 
+ALTER TABLE public.accommodation_info DISABLE TRIGGER update_accommodation_info_updated_at;
 UPDATE public.accommodation_info a
 SET first_activated_at = COALESCE(
   (SELECT min(o.created_at) FROM public.orders o WHERE o.accommodation_id = a.id),
   now()
 )
 WHERE a.id <> 'ea55e271-15f8-4e63-9c4f-69fbd2022bc5'::uuid;
+ALTER TABLE public.accommodation_info ENABLE TRIGGER update_accommodation_info_updated_at;
 
+-- (2) accommodation_onboarding_steps（低頻表）
 ALTER TABLE public.accommodation_onboarding_steps
   DROP CONSTRAINT accommodation_onboarding_steps_status_check,
   ADD CONSTRAINT accommodation_onboarding_steps_status_check
@@ -105,3 +117,5 @@ BEGIN
     RAISE EXCEPTION 'POSTCHECK 失敗：仍有既有館 first_activated_at 為 NULL';
   END IF;
 END $$;
+
+COMMIT;

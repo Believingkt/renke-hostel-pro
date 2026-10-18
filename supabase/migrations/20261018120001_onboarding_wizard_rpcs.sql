@@ -12,7 +12,14 @@
 -- precheck：docs/onboarding-3/precheck_20261018120001.sql
 -- postcheck：docs/onboarding-3/postcheck_20261018120001.sql
 -- rollback：docs/onboarding-3/rollback_20261018120001.sql
+-- 鎖與逾時：整支包在 BEGIN/COMMIT（CLI 2.117.0 不保證自動包交易，比照 110003～110005 寫法），
+--   SET LOCAL lock_timeout = '3s'：拿不到鎖 3 秒內放棄，整支 ROLLBACK、不套用；SET LOCAL statement_timeout = '120s'
+--   本支只建立／授權函式，不鎖 accommodation_info、orders、room_types、accommodation_packages、room_inventory_pricing
 -- ============================================================
+
+BEGIN;
+SET LOCAL lock_timeout = '3s';
+SET LOCAL statement_timeout = '120s';
 
 -- ============================= PRECHECK =============================
 DO $$
@@ -540,3 +547,5 @@ GRANT EXECUTE ON FUNCTION public.wizard_open_inventory(uuid, date, date) TO auth
 GRANT EXECUTE ON FUNCTION public.wizard_precheck(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.wizard_submit(uuid, boolean) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.wizard_return(uuid, text) TO authenticated;
+
+COMMIT;
