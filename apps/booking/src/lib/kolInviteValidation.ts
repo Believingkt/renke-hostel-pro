@@ -77,11 +77,11 @@ export function normalizeIgHandle(raw: string): string {
     v = urlMatch[1];
     // instagram.com/stories/{帳號}/… → 帳號在第二段（stories/highlights 精選沒有帳號，由 isContentPostUrl 擋下）
     if (v.toLowerCase() === "stories" && urlMatch[2]) v = urlMatch[2];
-  } else if (/^[^/.\s]+\/[^/]+/.test(v) && !/^https?:/i.test(v)) {
+  } else if (/^[^/.\s]+\/[^/]+/.test(v) && !/^https?:/i.test(v) && !IG_CONTENT_FIRST_SEGS.has(v.split("/")[0].toLowerCase())) {
     // 沒有網域的「帳號/reels」輸入：只取帳號
     v = v.split("/")[0];
   } else {
-    v = v.replace(/^https?:\/\/(?:www\.)?/i, "");
+    v = v.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "");
     // Facebook profile.php?id=… 的 id 才是帳號，不能丟掉
     const fbId = v.match(/^(?:m\.)?facebook\.com\/profile\.php\?(?:.*&)?id=(\d+)/i);
     if (fbId) return `facebook.com/profile.php?id=${fbId[1]}`;
@@ -135,7 +135,7 @@ export function isContentPostUrl(raw: string | null | undefined): boolean {
     return IG_CONTENT_FIRST_SEGS.has(segs[0]);
   }
   // 其他平台（FB、TikTok、YouTube、X）網址多半含帳號，不擋；只有網域後直接接內容路徑才算
-  if (hostOf(withScheme).indexOf(".") === -1) return false;
+  if (hostOf(withScheme).indexOf(".") === -1) return IG_CONTENT_FIRST_SEGS.has(hostOf(withScheme).toLowerCase());
   const contentSegs = new Set([
     "reel",
     "reels",

@@ -27,6 +27,8 @@ describe("IG 網址整理", () => {
       "instagram.com/tv/xyz",
       "https://www.instagram.com/stories/highlights/17912345678/",
       "https://www.youtube.com/shorts/abc123",
+      "reel/DNkq71ChXKC",
+      "p/ABC",
     ]) {
       expect(isContentPostUrl(url)).toBe(true);
     }
@@ -45,6 +47,8 @@ describe("IG 網址整理", () => {
   it("Facebook profile.php 保留 id，不同人不會被整理成同一個", () => {
     expect(normalizeIgHandle("https://www.facebook.com/profile.php?id=1000123")).toBe("facebook.com/profile.php?id=1000123");
     expect(normalizeIgHandle("https://www.facebook.com/profile.php?id=1000999")).toBe("facebook.com/profile.php?id=1000999");
+    expect(normalizeIgHandle("www.facebook.com/profile.php?id=1000123")).toBe("facebook.com/profile.php?id=1000123");
+    expect(normalizeIgHandle("www.facebook.com/abc")).toBe(normalizeIgHandle("https://www.facebook.com/abc"));
   });
 
   it("整理提示只在網址帶了多餘分頁或參數時出現", () => {
