@@ -4896,7 +4896,7 @@ function InvitationsTab({
                 >
                   <div className="font-medium">{r.name ?? "-"}</div>
                   <div className="text-xs text-muted-foreground break-all">
-                    {r.ig_url || igProfileUrl(r.ig_handle) || r.ig_handle || "-"}
+                    {kolDisplayLinks(r).primary || r.ig_handle || "-"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-0.5">
                      {r._accommodation_name || "-"} · {r.check_in_date ?? "無日期"} · {
@@ -9470,7 +9470,7 @@ function WeeklyReportTab({ canCopy }: { canCopy: boolean }) {
         const fans = r.follower_count != null ? `｜${formatFollowerCount(r.follower_count)}` : "";
         const venue = r.venue_name ?? "";
         lines.push(`${r.name}${fans}｜${venue}`);
-        const link = r.ig_url || r.ig_handle;
+        const link = kolDisplayLinks(r).primary || r.ig_handle;
         if (link) lines.push(link);
       }
       return lines.join("\n");

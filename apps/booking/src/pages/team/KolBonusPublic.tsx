@@ -25,6 +25,7 @@ import lokezeLogo from "@lakeze/shared/assets/lokeze-logo.png";
 
 import { useBonusMultipliers } from "@/hooks/use-bonus-multipliers";
 import BoostedAmount from "@/components/team/BoostedAmount";
+import { kolDisplayLinks } from "@/lib/kolLinks";
 import { boostedAmount } from "@lakeze/shared/lib/bonusMultiplier";
 
 interface KolInfo {
@@ -93,7 +94,8 @@ function buildPayFormUrl(
   if (nickname) params.set(RAGIC_FIELD_NICKNAME, nickname);
 
   // IG 連結：優先帶 publish_url（發布連結），沒有才用 ig_url，兩者皆無則留空
-  const link = (kol?.publish_url ?? "").trim() || (kol?.ig_url ?? "").trim();
+  // 舊資料 ig_url 可能塞了多個連結，只帶主連結
+  const link = (kol?.publish_url ?? "").trim() || (kolDisplayLinks({ ig_url: kol?.ig_url }).primary ?? "").trim();
   if (link) params.set(RAGIC_FIELD_IG_URL, link);
 
   const venue = (kol?.venue_name ?? "").trim();

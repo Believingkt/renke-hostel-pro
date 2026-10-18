@@ -160,7 +160,8 @@ export function kolDisplayLinks(r: {
   ig_url?: string | null;
   other_links?: string[] | null;
 }): { primary: string | null; others: string[] } {
-  const s = splitKolLinks(r.ig_handle ?? "");
+  const fromHandle = splitKolLinks(r.ig_handle ?? "");
+  const s = fromHandle.split ? fromHandle : splitKolLinks(r.ig_url ?? "");
   if (s.split) return { primary: igProfileUrl(s.primary) || s.primary, others: mergeKolLinks(r.other_links ?? [], s.others, s.primary) };
   return { primary: r.ig_url || igProfileUrl(r.ig_handle) || null, others: r.other_links ?? [] };
 }

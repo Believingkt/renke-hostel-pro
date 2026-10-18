@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@lakeze/shared/componen
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lakeze/shared/components/ui/select";
 import { ExternalLink, HelpCircle } from "lucide-react";
 import { useTeam } from "@lakeze/shared/components/team/TeamContext";
+import { kolDisplayLinks } from "@/lib/kolLinks";
 import {
   PUBLISH_DEADLINE_DAYS,
   PUBLISH_STATUS_CLASS,
@@ -626,7 +627,9 @@ export function KolPublishProgressCard() {
                         <TableCell className="font-medium">
                           {r.name || "—"}
                           {hasVal(r.ig_handle) && (
-                            <div className="text-xs text-muted-foreground">{r.ig_handle}</div>
+                            <div className="text-xs text-muted-foreground break-all">
+                              {kolDisplayLinks(r).primary || r.ig_handle}
+                            </div>
                           )}
                         </TableCell>
                         <TableCell>{venueOf(r)}</TableCell>

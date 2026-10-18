@@ -165,3 +165,13 @@ describe("kolDisplayLinks（畫面顯示，不寫回資料庫）", () => {
     });
   });
 });
+
+describe("kolDisplayLinks：只有 ig_url（Ragic 款項表單）", () => {
+  it("ig_url 塞了多個連結時只取主連結；一般 ig_url 原樣", () => {
+    expect(
+      kolDisplayLinks({ ig_url: "Instagram：https://www.instagram.com/mei YouTube：https://www.youtube.com/@mei" }).primary,
+    ).toBe("https://www.instagram.com/mei/");
+    expect(kolDisplayLinks({ ig_url: "https://www.instagram.com/mei/" }).primary).toBe("https://www.instagram.com/mei/");
+    expect(kolDisplayLinks({ ig_url: null }).primary).toBeNull();
+  });
+});
