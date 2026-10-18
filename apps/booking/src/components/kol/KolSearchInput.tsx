@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Input } from "@lakeze/shared/components/ui/input";
 
 type Props = {
@@ -9,17 +9,35 @@ type Props = {
   testId?: string;
 };
 
-// 搜尋框：避免 iOS Safari 誤判為帳號欄（關閉自動填入）；注音／拼音選字完成才送出
+// 搜尋框：避免 iOS Safari 誤判為帳號欄（關閉自動填入）。
+// 注音／拼音選字中不送出、不改寫 input（input 不受 React 控制），compositionend 才用最終文字送出。
 export const KolSearchInput = ({ value, onValueChange, placeholder, className, testId }: Props) => {
-  const [draft, setDraft] = useState(value);
+  const ref = useRef<HTMLInputElement>(null);
   const composing = useRef(false);
+  const lastSent = useRef(value);
 
+  // 只有外部改值（例如清除搜尋）才寫回 input；選字中一律不動
   useEffect(() => {
-    if (!composing.current) setDraft(value);
+    const el = ref.current;
+    if (!el || composing.current) return;
+    if (value !== lastSent.current && el.value !== value) el.value = value;
+    lastSent.current = value;
   }, [value]);
+
+  const send = (v: string) => {
+    if (v === lastSent.current) return;
+    lastSent.current = v;
+    onValueChange(v);
+  };
+
+  const finishComposing = (v: string) => {
+    composing.current = false;
+    send(v);
+  };
 
   return (
     <Input
+      ref={ref}
       type="search"
       name="kol-list-search"
       inputMode="search"
@@ -33,18 +51,18 @@ export const KolSearchInput = ({ value, onValueChange, placeholder, className, t
       placeholder={placeholder}
       className={className}
       data-testid={testId}
-      value={draft}
+      defaultValue={value}
       onCompositionStart={() => {
         composing.current = true;
       }}
-      onCompositionEnd={(e) => {
-        composing.current = false;
-        setDraft(e.currentTarget.value);
-        onValueChange(e.currentTarget.value);
+      onCompositionEnd={(e) => finishComposing(e.currentTarget.value)}
+      onBlur={(e) => {
+        // iOS 偶爾沒送 compositionend 就離開欄位
+        if (composing.current) finishComposing(e.currentTarget.value);
       }}
       onChange={(e) => {
-        setDraft(e.target.value);
-        if (!composing.current) onValueChange(e.target.value);
+        if (composing.current || (e.nativeEvent as InputEvent).isComposing) return;
+        send(e.target.value);
       }}
     />
   );

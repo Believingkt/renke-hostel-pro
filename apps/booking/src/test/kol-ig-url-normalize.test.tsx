@@ -87,4 +87,31 @@ describe("KolSearchInput（iOS Safari 中文輸入）", () => {
     fireEvent.change(input, { target: { value: "謝晴" } });
     expect(onValueChange).toHaveBeenLastCalledWith("謝晴");
   });
+
+  it("選字中外部重新渲染不會改寫 input，選字完成後才送出一次", () => {
+    const onValueChange = vi.fn();
+    const { rerender } = render(<KolSearchInput value="" onValueChange={onValueChange} placeholder="搜尋" testId="s" />);
+    const input = screen.getByTestId("s") as HTMLInputElement;
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "ㄒㄧㄝ" } });
+    rerender(<KolSearchInput value="" onValueChange={onValueChange} placeholder="搜尋" testId="s" />);
+    expect(input.value).toBe("ㄒㄧㄝ");
+    expect(onValueChange).not.toHaveBeenCalled();
+    fireEvent.compositionEnd(input, { target: { value: "謝" } });
+    fireEvent.change(input, { target: { value: "謝" } });
+    expect(onValueChange).toHaveBeenCalledTimes(1);
+    expect(onValueChange).toHaveBeenCalledWith("謝");
+  });
+
+  it("外部清除搜尋會清空 input；選字中離開欄位也會送出", () => {
+    const onValueChange = vi.fn();
+    const { rerender } = render(<KolSearchInput value="abc" onValueChange={onValueChange} placeholder="搜尋" testId="s" />);
+    const input = screen.getByTestId("s") as HTMLInputElement;
+    rerender(<KolSearchInput value="" onValueChange={onValueChange} placeholder="搜尋" testId="s" />);
+    expect(input.value).toBe("");
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "王" } });
+    fireEvent.blur(input);
+    expect(onValueChange).toHaveBeenLastCalledWith("王");
+  });
 });
