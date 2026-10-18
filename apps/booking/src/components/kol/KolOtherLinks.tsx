@@ -12,20 +12,34 @@ const PlatformTag = ({ url }: { url: string }) => (
   </Badge>
 );
 
-/** 唯讀的其他平台連結清單（詳細頁、清單彈出框共用） */
-export const KolOtherLinksList = ({ links }: { links: string[] }) => (
-  <ul className="space-y-1" data-testid="kol-other-links-list">
-    {links.map((l) => (
-      <li key={l} className="flex items-start gap-1.5">
-        <PlatformTag url={l} />
-        <a href={l} target="_blank" rel="noreferrer" className="text-primary hover:underline break-all text-xs inline-flex gap-1">
-          {l}
-          <ExternalLink className="h-3 w-3 shrink-0 mt-0.5" />
-        </a>
-      </li>
-    ))}
-  </ul>
-);
+/** 唯讀的其他平台連結：只顯示平台名，點了另開分頁（詳細頁、清單彈出框共用） */
+export const KolOtherLinksList = ({ links }: { links: string[] }) => {
+  const seen: Record<string, number> = {};
+  return (
+    <div className="flex flex-wrap gap-1.5" data-testid="kol-other-links-list">
+      {links.map((l, i) => {
+        const label = KOL_LINK_PLATFORM_LABEL[kolLinkPlatform(l)];
+        seen[label] = (seen[label] ?? 0) + 1;
+        const dupCount = links.filter((x) => KOL_LINK_PLATFORM_LABEL[kolLinkPlatform(x)] === label).length;
+        return (
+          <a
+            key={l}
+            href={l}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={l}
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-xs text-primary transition-colors hover:bg-accent"
+            data-testid={`kol-other-link-${i}`}
+          >
+            {dupCount > 1 ? `${label} ${seen[label]}` : label}
+            <ExternalLink className="h-3 w-3 shrink-0" />
+          </a>
+        );
+      })}
+    </div>
+  );
+};
 
 /** 清單用：主連結旁的「+N」小標，點開看全部其他平台連結 */
 export const KolOtherLinksBadge = ({ links }: { links: string[] | null | undefined }) => {

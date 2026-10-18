@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractKolLinks, kolLinkPlatform, kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
+import { extractKolLinks, kolDisplayLinks, kolLinkPlatform, kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 
 const LEE =
   "https://www.instagram.com/FB: https://www.facebook.com/GIALEEMI Instagram ：https://www.instagram.com/mintangelme YouTube ：https://www.youtube.com/@mintangelme TikTok ：https://www.tiktok.com/@mintangelme/";
@@ -143,5 +143,25 @@ describe("第二輪修正", () => {
     const s = splitKolLinks("FB：https://facebook.com/小美 IG：https://www.instagram.com/mei粉絲3萬");
     expect(s.primary).toBe("https://www.instagram.com/mei");
     expect(s.others).toEqual(["https://facebook.com/小美"]);
+  });
+});
+
+describe("kolDisplayLinks（畫面顯示，不寫回資料庫）", () => {
+  it("舊資料塞了多個連結：只顯示主連結，其他拆到其他平台", () => {
+    const blob =
+      "https://www.instagram.com/FB: https://www.facebook.com/GIALEEMI Instagram ：https://www.instagram.com/mintangelme YouTube ：https://www.youtube.com/@mintangelme TikTok ：https://www.tiktok.com/@mintangelme/";
+    const d = kolDisplayLinks({ ig_handle: blob, ig_url: blob, other_links: [] });
+    expect(d.primary).toBe("https://www.instagram.com/mintangelme/");
+    expect(d.others.map(kolLinkPlatform)).toEqual(["facebook", "youtube", "tiktok"]);
+  });
+
+  it("一般資料照舊使用 ig_url 與 other_links", () => {
+    expect(
+      kolDisplayLinks({ ig_handle: "kai.stays", ig_url: "https://www.instagram.com/kai.stays/", other_links: ["https://www.youtube.com/@kai"] }),
+    ).toEqual({ primary: "https://www.instagram.com/kai.stays/", others: ["https://www.youtube.com/@kai"] });
+    expect(kolDisplayLinks({ ig_handle: "kai.stays", ig_url: null, other_links: null })).toEqual({
+      primary: "https://www.instagram.com/kai.stays/",
+      others: [],
+    });
   });
 });

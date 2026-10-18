@@ -1,4 +1,4 @@
-import { isContentPostUrl, normalizeIgHandle } from "./kolInviteValidation";
+import { igProfileUrl, isContentPostUrl, normalizeIgHandle } from "./kolInviteValidation";
 
 export type KolLinkPlatform = "instagram" | "tiktok" | "youtube" | "facebook" | "threads" | "other";
 
@@ -152,4 +152,15 @@ export function kolLinkSearchFilters(esc: string): string[] {
     if (h && !h.includes("/")) parts.push(`ig_handle.ilike.%${h}%`);
   }
   return parts;
+}
+
+/** 畫面顯示用：舊資料主欄位塞了多個連結時，先拆好再顯示（不寫回資料庫） */
+export function kolDisplayLinks(r: {
+  ig_handle?: string | null;
+  ig_url?: string | null;
+  other_links?: string[] | null;
+}): { primary: string | null; others: string[] } {
+  const s = splitKolLinks(r.ig_handle ?? "");
+  if (s.split) return { primary: igProfileUrl(s.primary) || s.primary, others: mergeKolLinks(r.other_links ?? [], s.others, s.primary) };
+  return { primary: r.ig_url || igProfileUrl(r.ig_handle) || null, others: r.other_links ?? [] };
 }

@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { igHandleCleanupNote, isContentPostUrl, normalizeIgHandle } from "@/lib/kolInviteValidation";
 import { igMatchOrFilter } from "@/hooks/useKolIgRecords";
 import { KolSearchInput } from "@/components/kol/KolSearchInput";
+import { KolOtherLinksList } from "@/components/kol/KolOtherLinks";
 
 describe("IG 網址整理", () => {
   it("個人頁的分頁網址含帳號，不是貼文", () => {
@@ -113,5 +114,21 @@ describe("KolSearchInput（iOS Safari 中文輸入）", () => {
     fireEvent.change(input, { target: { value: "王" } });
     fireEvent.blur(input);
     expect(onValueChange).toHaveBeenLastCalledWith("王");
+  });
+});
+
+describe("KolOtherLinksList（明細只顯示平台名）", () => {
+  it("顯示平台名、另開分頁，同平台多個會編號", () => {
+    render(
+      <KolOtherLinksList
+        links={["https://www.facebook.com/a", "https://www.youtube.com/@a", "https://www.youtube.com/@b"]}
+      />,
+    );
+    const a0 = screen.getByTestId("kol-other-link-0");
+    expect(a0.textContent).toBe("FB");
+    expect(a0.getAttribute("href")).toBe("https://www.facebook.com/a");
+    expect(a0.getAttribute("target")).toBe("_blank");
+    expect(screen.getByTestId("kol-other-link-1").textContent).toBe("YouTube 1");
+    expect(screen.getByTestId("kol-other-link-2").textContent).toBe("YouTube 2");
   });
 });

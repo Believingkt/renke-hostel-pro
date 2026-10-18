@@ -68,7 +68,7 @@ import { igMatchOrFilter } from "@/hooks/useKolIgRecords";
 import { KolSearchInput } from "@/components/kol/KolSearchInput";
 import { KolIdentityConflictPanel } from "@/components/kol/KolIdentityConflictPanel";
 import { KolOtherLinksBadge, KolOtherLinksField, KolOtherLinksList } from "@/components/kol/KolOtherLinks";
-import { kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
+import { kolDisplayLinks, kolLinkSearchFilters, mergeKolLinks, splitKolLinks } from "@/lib/kolLinks";
 
 // 這兩條規則的成因都是「同 IG、名稱不同」，擋下視窗改列既有紀錄並給選擇
 const IG_IDENTITY_RULES = new Set(["name.same_identity_different_name", "ig.duplicate"]);
@@ -2789,7 +2789,8 @@ function InvitationsTab({
               <TableBody>
                 {(() => {
                   const renderMainRow = (r: KolRow, opts: { isOrphan?: boolean; isSub?: boolean } = {}) => {
-                    const igUrl = r.ig_url || igProfileUrl(r.ig_handle) || null;
+                    const displayLinks = kolDisplayLinks(r);
+                    const igUrl = displayLinks.primary;
                     const contractStatus = computeContractProgress(r.publish_url, r.publish_date, r.contract_file_url);
                     const codeOrCidValue = r.cid_code ?? r.short_url ?? null;
                     const codeOrCid = codeOrCidValue ?? "-";
@@ -2865,7 +2866,7 @@ function InvitationsTab({
                         <TableCell className="tabular-nums">{formatFollowerCount(r.follower_count)}</TableCell>
                         <TableCell className="min-w-[240px] max-w-[280px] align-top">
                           {(() => {
-                            const link = r.ig_url || igProfileUrl(r.ig_handle);
+                            const link = igUrl;
                             return link ? (
                               <a
                                 href={link}
@@ -2881,7 +2882,7 @@ function InvitationsTab({
                               <span className="text-muted-foreground">-</span>
                             );
                           })()}
-                          <KolOtherLinksBadge links={r.other_links} />
+                          <KolOtherLinksBadge links={displayLinks.others} />
                         </TableCell>
                         <TableCell className={codeOrCidClass}>{codeOrCid}</TableCell>
                         <TableCell>
@@ -3190,7 +3191,8 @@ function InvitationsTab({
           {viewingRow &&
             (() => {
               const r = viewingRow;
-              const igUrl = r.ig_url || igProfileUrl(r.ig_handle) || null;
+              const displayLinks = kolDisplayLinks(r);
+              const igUrl = displayLinks.primary;
               const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
                 <div className="grid grid-cols-3 gap-2 py-1.5 border-b border-border/50 last:border-0">
                   <div className="text-xs text-muted-foreground">{label}</div>
@@ -3239,9 +3241,9 @@ function InvitationsTab({
                       "-"
                     )}
                   </Row>
-                  {!!r.other_links?.length && (
+                  {displayLinks.others.length > 0 && (
                     <Row label="其他平台連結">
-                      <KolOtherLinksList links={r.other_links} />
+                      <KolOtherLinksList links={displayLinks.others} />
                     </Row>
                   )}
                   <Row label="稀有度">
