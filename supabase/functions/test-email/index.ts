@@ -50,10 +50,10 @@ const handler = async (req: Request): Promise<Response> => {
       .select("role")
       .eq("user_id", user.id);
 
-    const isAdmin = roles?.some(r => r.role === "super_admin" || r.role === "hotel_admin");
+    const isAdmin = roles?.some(r => r.role === "super_admin"); // 測試信只限 super_admin
     if (!isAdmin) {
       return new Response(
-        JSON.stringify({ error: "只有管理員可以發送測試郵件" }),
+        JSON.stringify({ error: "只有 super_admin 可以發送測試郵件" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

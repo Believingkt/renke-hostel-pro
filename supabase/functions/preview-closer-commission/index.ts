@@ -14,7 +14,7 @@
 // 查詢一律使用 service role client（繞過 RLS），但輸出範圍由上述權限決定。
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { resolveCaller } from "../_shared/authz.ts";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 import { buildExemptResolver } from "../_shared/ownerPricingRule.ts";
 import { commissionBaseFromOrder } from "../_shared/addonTotal.ts";
 import { buildCommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
@@ -74,9 +74,8 @@ serve(async (req) => {
       return json({ success: false, error: "year / month 參數不正確" }, 400);
     }
 
-    const roles = ctx.globalRoles ?? [];
-    const isPrivileged = ctx.isServiceRole ||
-      roles.some((r) => ["super_admin", "hotel_admin", "closer", "closer_manager"].includes(r));
+    // 只限全域團隊角色（呼叫端：TeamCommissionStatsTab／TeamBonusDistributionTab／TeamHome，皆為團隊後台）
+    const isPrivileged = await hasGlobalTeamRole(ctx, ["admin", "closer", "closer_manager"]);
     if (scope === "team" && !isPrivileged) {
       return json({ success: false, error: "Forbidden" }, 403);
     }
@@ -88,8 +87,7 @@ serve(async (req) => {
     const targetUserId = typeof body?.target_user_id === "string" && body.target_user_id
       ? body.target_user_id
       : null;
-    const isAdminViewer = ctx.isServiceRole ||
-      roles.includes("super_admin") || roles.includes("admin");
+    const isAdminViewer = await hasGlobalTeamRole(ctx, ["admin"]);
     if (targetUserId && targetUserId !== ctx.userId && !isAdminViewer) {
       return json({ success: false, error: "Forbidden" }, 403);
     }

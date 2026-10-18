@@ -1,0 +1,85 @@
+PASS | send-cancellation-email | 單館業主 | 預期 可用 | 實際 200 | {"success":true,"messageId":"m1"}
+PASS | send-cancellation-email | 本館 staff | 預期 可用 | 實際 200 | {"success":true,"messageId":"m1"}
+PASS | send-cancellation-email | super_admin | 預期 可用 | 實際 200 | {"success":true,"messageId":"m1"}
+PASS | send-cancellation-email | 全域 admin | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限發送取消郵件"}
+PASS | send-cancellation-email | finance | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限發送取消郵件"}
+PASS | send-cancellation-email | am | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限發送取消郵件"}
+FAIL | send-cancellation-email | 單館業主（別館訂單） | 預期 擋下 | 實際 200 | {"success":true,"messageId":"m1"}
+FAIL | send-cancellation-email | 單館業主（夾帶別人信箱） | 預期 可用 | 實際 200 寄到 attacker@evil.com | {"success":true,"messageId":"m1"}
+FAIL | send-cancellation-email | 單館業主（沒有 order_id（舊格式）） | 預期 擋下 | 實際 200 | {"success":true,"messageId":"m1"}
+FAIL | send-cancellation-email | 單館業主（訂單未取消） | 預期 擋下 | 實際 200 | {"success":true,"messageId":"m1"}
+PASS | send-invite-email | 單館業主 | 預期 可用 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+PASS | send-invite-email | 本館 staff | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送邀請郵件"}
+PASS | send-invite-email | super_admin | 預期 可用 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+PASS | send-invite-email | 全域 admin | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送邀請郵件"}
+PASS | send-invite-email | finance | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送邀請郵件"}
+PASS | send-invite-email | am | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送邀請郵件"}
+FAIL | send-invite-email | 單館業主（別館） | 預期 擋下 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+FAIL | send-invite-email | 單館業主（外部網域連結） | 預期 擋下 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+FAIL | send-invite-email | 單館業主（偽裝網域） | 預期 擋下 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+FAIL | send-invite-email | 單館業主（收件人不在該館） | 預期 擋下 | 實際 200 | {"data":{"id":"mail-1"},"error":null}
+FAIL | traveler-tagging | 單館業主 | 預期 擋下 | 實際 200 | {"success":true,"processed":0,"total":0,"done":true,"note":"尚無旅客檔案，請先執
+PASS | traveler-tagging | 本館 staff | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | traveler-tagging | super_admin | 預期 可用 | 實際 200 | {"success":true,"processed":0,"total":0,"done":true,"note":"尚無旅客檔案，請先執
+PASS | traveler-tagging | 全域 admin | 預期 可用 | 實際 200 | {"success":true,"processed":0,"total":0,"done":true,"note":"尚無旅客檔案，請先執
+PASS | traveler-tagging | finance | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | traveler-tagging | am | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+FAIL | traveler-sync | 單館業主 | 預期 擋下 | 實際 200 | {"success":true,"mode":"full","upserted":3,"scanned":{"members":0,"cus
+PASS | traveler-sync | 本館 staff | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | traveler-sync | super_admin | 預期 可用 | 實際 200 | {"success":true,"mode":"full","upserted":3,"scanned":{"members":0,"cus
+PASS | traveler-sync | 全域 admin | 預期 可用 | 實際 200 | {"success":true,"mode":"full","upserted":3,"scanned":{"members":0,"cus
+PASS | traveler-sync | finance | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | traveler-sync | am | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+FAIL | kol-bonus-public | 單館業主 | 預期 擋下 | 實際 200 | {"mode":"internal","orders":[{"id":"o-a-cancel","order_number":"A001",
+PASS | kol-bonus-public | 本館 staff | 預期 擋下 | 實際 403 | {"error":"forbidden"}
+PASS | kol-bonus-public | super_admin | 預期 可用 | 實際 200 | {"mode":"internal","orders":[{"id":"o-a-cancel","order_number":"A001",
+FAIL | kol-bonus-public | 全域 admin | 預期 可用 | 實際 403 | {"error":"forbidden"}
+PASS | kol-bonus-public | finance | 預期 擋下 | 實際 403 | {"error":"forbidden"}
+PASS | kol-bonus-public | am | 預期 可用 | 實際 200 | {"mode":"internal","orders":[{"id":"o-a-cancel","order_number":"A001",
+PASS | kol-bonus-public | scout_manager | 預期 可用 | 實際 200 | {"mode":"internal","orders":[{"id":"o-a-cancel","order_number":"A001",
+FAIL | fetch-ragic-kol-payforms | 單館業主 | 預期 擋下 | 實際 200 | {"period":null,"window_months":null,"periods_in_scope":null,"total_fet
+PASS | fetch-ragic-kol-payforms | 本館 staff | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | fetch-ragic-kol-payforms | super_admin | 預期 可用 | 實際 200 | {"period":null,"window_months":null,"periods_in_scope":null,"total_fet
+PASS | fetch-ragic-kol-payforms | 全域 admin | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | fetch-ragic-kol-payforms | finance | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | fetch-ragic-kol-payforms | am | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | fetch-ragic-kol-payforms | scout_manager | 預期 可用 | 實際 200 | {"period":null,"window_months":null,"periods_in_scope":null,"total_fet
+PASS | ai-ops-insights | 單館業主 | 預期 可用 | 實際 200 | {"metrics":{}}
+PASS | ai-ops-insights | 本館 staff | 預期 擋下 | 實際 403 | {"error":"沒有權限存取營運洞察"}
+PASS | ai-ops-insights | super_admin | 預期 可用 | 實際 200 | {"metrics":{}}
+PASS | ai-ops-insights | 全域 admin | 預期 擋下 | 實際 403 | {"error":"沒有權限存取營運洞察"}
+PASS | ai-ops-insights | finance | 預期 擋下 | 實際 403 | {"error":"沒有權限存取營運洞察"}
+PASS | ai-ops-insights | am | 預期 擋下 | 實際 403 | {"error":"沒有權限存取營運洞察"}
+FAIL | ai-ops-insights | 單館業主（別館） | 預期 擋下 | 實際 200 | {"metrics":{}}
+FAIL | ai-ops-insights | 單館業主（全平台） | 預期 擋下 | 實際 200 | {"metrics":{}}
+PASS | ai-ops-insights | super_admin（全平台） | 預期 可用 | 實際 200 | {"metrics":{}}
+FAIL | preview-closer-commission | 單館業主 | 預期 擋下 | 實際 200 | {"success":true,"scope":"team","year":2026,"month":10,"self":{"closer_
+PASS | preview-closer-commission | 本館 staff | 預期 擋下 | 實際 403 | {"success":false,"error":"Forbidden"}
+PASS | preview-closer-commission | super_admin | 預期 可用 | 實際 200 | {"success":true,"scope":"team","year":2026,"month":10,"self":{"closer_
+FAIL | preview-closer-commission | 全域 admin | 預期 可用 | 實際 403 | {"success":false,"error":"Forbidden"}
+PASS | preview-closer-commission | finance | 預期 擋下 | 實際 403 | {"success":false,"error":"Forbidden"}
+PASS | preview-closer-commission | am | 預期 擋下 | 實際 403 | {"success":false,"error":"Forbidden"}
+PASS | preview-closer-commission | closer | 預期 可用 | 實際 200 | {"success":true,"scope":"team","year":2026,"month":10,"self":{"closer_
+FAIL | closer-team-pool | 單館業主 | 預期 擋下 | 實際 200 | {"success":true,"payout_month":"2026-10","bonus_rate":0,"gross_total":
+PASS | closer-team-pool | 本館 staff | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限查詢團獎池"}
+PASS | closer-team-pool | super_admin | 預期 可用 | 實際 200 | {"success":true,"payout_month":"2026-10","bonus_rate":0,"gross_total":
+FAIL | closer-team-pool | 全域 admin | 預期 可用 | 實際 403 | {"success":false,"error":"沒有權限查詢團獎池"}
+PASS | closer-team-pool | finance | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限查詢團獎池"}
+PASS | closer-team-pool | am | 預期 擋下 | 實際 403 | {"success":false,"error":"沒有權限查詢團獎池"}
+PASS | closer-team-pool | closer | 預期 可用 | 實際 200 | {"success":true,"payout_month":"2026-10","bonus_rate":0,"gross_total":
+測試郵件發送結果: { data: { id: "mail-1" }, error: null }
+FAIL | test-email | 單館業主 | 預期 擋下 | 實際 200 | {"success":true,"message":"測試郵件已發送","emailId":"mail-1"}
+PASS | test-email | 本館 staff | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送測試郵件"}
+測試郵件發送結果: { data: { id: "mail-1" }, error: null }
+PASS | test-email | super_admin | 預期 可用 | 實際 200 | {"success":true,"message":"測試郵件已發送","emailId":"mail-1"}
+PASS | test-email | 全域 admin | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送測試郵件"}
+PASS | test-email | finance | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送測試郵件"}
+PASS | test-email | am | 預期 擋下 | 實際 403 | {"error":"只有管理員可以發送測試郵件"}
+PASS | team-view-query | 單館業主 | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | team-view-query | 本館 staff | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | team-view-query | super_admin | 預期 可用 | 實際 200 | {"data":null,"error":{"message":"Table not allowed: "},"results":[{"da
+PASS | team-view-query | 全域 admin | 預期 可用 | 實際 200 | {"data":null,"error":{"message":"Table not allowed: "},"results":[{"da
+PASS | team-view-query | finance | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+PASS | team-view-query | am | 預期 擋下 | 實際 403 | {"error":"Forbidden"}
+FAIL | team-view-query | 館別 admin | 預期 擋下 | 實際 200 | {"data":null,"error":{"message":"Table not allowed: "},"results":[{"da
+結果：61/82 通過；假 Resend 實際送出 15 封（都是假的，沒有真的寄信）

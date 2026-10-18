@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "npm:@supabase/supabase-js@2/cors": "./fake_cors.ts",
+    "npm:@supabase/supabase-js@2": "./fake_supabase.ts",
+    "https://esm.sh/@supabase/supabase-js@2.76.1": "./fake_supabase.ts",
+    "https://esm.sh/@supabase/supabase-js@2.39.3": "./fake_supabase.ts",
+    "https://esm.sh/resend@4.0.0": "./fake_resend.ts",
+    "https://deno.land/std@0.168.0/http/server.ts": "./fake_std_server.ts",
+    "https://deno.land/std@0.190.0/http/server.ts": "./fake_std_server.ts"
+  }
+}

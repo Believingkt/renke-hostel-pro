@@ -7,6 +7,7 @@
 import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 import { buildCustomerKey } from "../_shared/travelerKey.ts";
 import {
   INTEREST_WHITELIST,
@@ -45,23 +46,12 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-    const authHeader = req.headers.get("Authorization") ?? "";
-    const bearer = authHeader.replace(/^Bearer\s+/i, "").trim();
-    if (bearer !== serviceKey) {
-      if (!authHeader) return json({ error: "Unauthorized" }, 401);
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-        auth: { persistSession: false },
-      });
-      const { data: userData } = await userClient.auth.getUser();
-      if (!userData?.user) return json({ error: "Unauthorized" }, 401);
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userData.user.id);
-      const allowed = (roles ?? []).some((r: any) => ["super_admin", "admin", "hotel_admin"].includes(r.role));
-      if (!allowed) return json({ error: "Forbidden" }, 403);
-    }
+    // 只限 super_admin 與全域 admin（系統排程用 service role 照常）
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) return json({ error: authRes.error }, authRes.status);
+    if (!(await hasGlobalTeamRole(authRes.ctx, ["admin"]))) return json({ error: "Forbidden" }, 403);
 
     const LOVABLE_API_KEY = llmKey();
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);

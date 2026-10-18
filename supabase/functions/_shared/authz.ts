@@ -195,6 +195,23 @@ export async function canEditModule(
  * Utility that returns a Response with the given error / status and standard
  * JSON headers. Convenience for the "if (!allowed) return ..." pattern.
  */
+/**
+ * 全域團隊角色（accommodation_id 為空）；任一列 super_admin 視同符合，與 DB 的 user_has_team_role 一致。
+ * 館別角色（例如某館的 admin、hotel_admin）不算。
+ */
+export async function hasGlobalTeamRole(ctx: AuthContext, roles: string[]): Promise<boolean> {
+  if (ctx.isServiceRole) return true;
+  if (!ctx.userId) return false;
+  if (ctx.globalRoles.includes("super_admin")) return true;
+  const { data, error } = await ctx.admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", ctx.userId)
+    .is("accommodation_id", null)
+    .in("role", roles);
+  return !error && (data ?? []).length > 0;
+}
+
 export function forbiddenResponse(
   corsHeaders: Record<string, string>,
   message = "Forbidden",

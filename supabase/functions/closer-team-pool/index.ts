@@ -14,7 +14,7 @@
 // 權限：需帶使用者 JWT，且為 super_admin / hotel_admin / closer / closer_manager。
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { resolveCaller } from "../_shared/authz.ts";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,9 +62,8 @@ serve(async (req) => {
     const ctx = authRes.ctx;
     const supabase = ctx.admin;
 
-    const roles = ctx.globalRoles ?? [];
-    const isPrivileged = ctx.isServiceRole ||
-      roles.some((r) => ["super_admin", "hotel_admin", "closer", "closer_manager"].includes(r));
+    // 只限全域團隊角色（呼叫端：TeamCommissionStatsTab／TeamBonusDistributionTab／TeamHome，皆為團隊後台）
+    const isPrivileged = await hasGlobalTeamRole(ctx, ["admin", "closer", "closer_manager"]);
     if (!isPrivileged) {
       return json({ success: false, error: "沒有權限查詢團獎池" }, 403);
     }

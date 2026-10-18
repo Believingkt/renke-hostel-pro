@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 import { commissionBaseFromOrder, extractAddonTotal } from "../_shared/addonTotal.ts";
 import { buildCommissionExclusionResolver, type CommissionExclusionResolver } from "../_shared/commissionExclusionRule.ts";
 
@@ -8,7 +9,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const INTERNAL_ROLES = ["super_admin", "hotel_admin", "scout_manager", "scout", "am", "am_manager"];
+const INTERNAL_ROLES = ["admin", "scout_manager", "scout", "am", "am_manager"];
 
 /** 唯一真相：單筆訂單的分潤基準金額
  *  1) order_meta.team_commission_price 有值 → 優先採用（人工覆蓋）
@@ -147,28 +148,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // ---------- 內部模式：登入後台人員，取回所有折扣碼訂單（同一套計算） ----------
     if (mode === "internal") {
-      const authHeader = req.headers.get("Authorization") ?? "";
-      const jwt = authHeader.replace(/^Bearer\s+/i, "");
-      if (!jwt) {
+      // 只限實際使用的全域團隊角色：KolBonus（super_admin、scout_manager、scout、am、am_manager）、/hq/kol-overview（admin）
+      const authRes = await resolveCaller(req);
+      if (!authRes.ok) {
         return new Response(JSON.stringify({ error: "unauthorized" }), {
-          status: 401,
+          status: authRes.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const { data: userData, error: userErr } = await admin.auth.getUser(jwt);
-      if (userErr || !userData?.user) {
-        return new Response(JSON.stringify({ error: "unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const { data: roleRows, error: roleErr } = await admin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userData.user.id);
-      if (roleErr) throw roleErr;
-      const roles = (roleRows ?? []).map((r: any) => r.role);
-      if (!roles.some((r: string) => INTERNAL_ROLES.includes(r))) {
+      if (!(await hasGlobalTeamRole(authRes.ctx, INTERNAL_ROLES))) {
         return new Response(JSON.stringify({ error: "forbidden" }), {
           status: 403,
           headers: { ...corsHeaders, "Content-Type": "application/json" },

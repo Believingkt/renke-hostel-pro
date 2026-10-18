@@ -3,7 +3,7 @@
 // - 只做 GET，不寫回 Ragic、不動任何獎金數字
 // Body: { period?: "YYYYMM" }  // 有帶時只回該期別（依對帳編號尾碼）
 // deno-lint-ignore-file no-explicit-any
-import { resolveCaller } from "../_shared/authz.ts";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 import { ragicAuthHeader } from "../_shared/ragic.ts";
 
 const corsHeaders = {
@@ -35,7 +35,8 @@ function shiftPeriod(period: string, delta: number): string {
   return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-const ALLOWED_ROLES = ["super_admin", "hotel_admin", "scout_manager"];
+// 呼叫端：KolBonus 勞報單對帳（canReconcile：super_admin、scout_manager，皆為全域角色）
+const ALLOWED_ROLES = ["scout_manager"];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
     const auth = await resolveCaller(req);
     if (!auth.ok) return json({ error: auth.error }, auth.status);
     const ctx = auth.ctx;
-    if (!ctx.isServiceRole && !ctx.globalRoles.some((r) => ALLOWED_ROLES.includes(r))) {
+    if (!(await hasGlobalTeamRole(ctx, ALLOWED_ROLES))) {
       return json({ error: "Forbidden" }, 403);
     }
 

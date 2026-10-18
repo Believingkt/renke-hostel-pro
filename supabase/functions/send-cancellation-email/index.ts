@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
+import { resolveCaller, canEditModule } from "../_shared/authz.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,19 +8,6 @@ const corsHeaders = {
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY");
 
-interface CancellationEmailRequest {
-  orderNumber: string;
-  guestName: string;
-  guestEmail: string;
-  roomTypeName: string;
-  checkInDate: string;
-  checkOutDate: string;
-  mealPlan?: string;
-  mealPlanDisplayName?: string;
-  accommodationName: string;
-  accommodationPhone?: string;
-  accommodationEmail?: string;
-}
 
 Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -52,35 +40,48 @@ Deno.serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check if user has staff or admin role
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    // 只接受 order_id：收件人與信件內容一律由後端依訂單組成，不接受呼叫者指定
+    const reply = (status: number, error: string) =>
+      new Response(JSON.stringify({ success: false, error }), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) return reply(authRes.status, authRes.error);
+    const body = await req.json().catch(() => ({}));
+    const orderId = typeof body?.order_id === "string" ? body.order_id : "";
+    if (!orderId) return reply(400, "缺少 order_id");
 
-    const hasRole = roles?.some(r => ["super_admin", "hotel_admin", "staff"].includes(r.role));
-    if (!hasRole) {
-      return new Response(
-        JSON.stringify({ success: false, error: "沒有權限發送取消郵件" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { data: order } = await supabaseAdmin
+      .from("orders")
+      .select("order_number, guest_name, guest_email, check_in_date, check_out_date, meal_plan, order_status, accommodation_id, room_type_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!order) return reply(404, "找不到訂單");
+    // super_admin、該館 hotel_admin、該館有 orders 編輯權的 staff
+    if (!(await canEditModule(authRes.ctx, order.accommodation_id, "orders"))) return reply(403, "沒有權限發送取消郵件");
+    if (order.order_status !== "cancelled") return reply(409, "訂單尚未取消，不能寄取消通知");
+    if (!order.guest_email) return reply(400, "訂單沒有旅客 Email");
+
+    const [{ data: acc }, { data: rt }] = await Promise.all([
+      supabaseAdmin.from("accommodation_info").select("name, phone, email").eq("id", order.accommodation_id).maybeSingle(),
+      order.room_type_id
+        ? supabaseAdmin.from("room_types").select("name").eq("id", order.room_type_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
 
     console.log(`[Cancellation Email] User ${user.email} sending cancellation email`);
 
-    const {
-      orderNumber,
-      guestName,
-      guestEmail,
-      roomTypeName,
-      checkInDate,
-      checkOutDate,
-      mealPlan,
-      mealPlanDisplayName,
-      accommodationName,
-      accommodationPhone,
-      accommodationEmail,
-    }: CancellationEmailRequest = await req.json();
+    const orderNumber: string = order.order_number;
+    const guestName: string = order.guest_name ?? "";
+    const guestEmail: string = order.guest_email;
+    const roomTypeName: string = (rt as any)?.name ?? "";
+    const checkInDate: string = order.check_in_date;
+    const checkOutDate: string = order.check_out_date;
+    const mealPlan: string | undefined = order.meal_plan ?? undefined;
+    const mealPlanDisplayName: string | undefined = undefined;
+    const accommodationName: string = (acc as any)?.name ?? "";
+    const accommodationPhone: string | undefined = (acc as any)?.phone ?? undefined;
+    const accommodationEmail: string | undefined = (acc as any)?.email ?? undefined;
 
     console.log("Sending cancellation email to:", guestEmail, "for order:", orderNumber);
 

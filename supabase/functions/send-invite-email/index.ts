@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.76.1";
 import { Resend } from "https://esm.sh/resend@4.0.0";
+import { resolveCaller, isAccommodationAdmin } from "../_shared/authz.ts";
+import { findUserByEmail } from "../_shared/findUserByEmail.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY_LAKEZE") ?? Deno.env.get("RESEND_API_KEY"));
 
@@ -9,12 +11,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface InviteEmailRequest {
-  email: string;
-  inviteLink: string;
-  senderName?: string;
-  recipientName?: string;
-}
 
 const handler = async (req: Request): Promise<Response> => {
   
@@ -48,23 +44,37 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Check if user is admin
-    const { data: roles } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    const reply = (status: number, error: string) =>
+      new Response(JSON.stringify({ error }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) return reply(authRes.status, authRes.error);
 
-    const isAdmin = roles?.some(r => r.role === "super_admin" || r.role === "hotel_admin");
-    if (!isAdmin) {
-      return new Response(
-        JSON.stringify({ error: "只有管理員可以發送邀請郵件" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const body = await req.json().catch(() => ({}));
+    const email = String(body?.email ?? "").trim().toLowerCase();
+    const inviteLink = String(body?.inviteLink ?? "");
+    const accommodationId = typeof body?.accommodation_id === "string" ? body.accommodation_id : "";
+    const esc = (v: string) => v.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const senderName = esc(String(body?.senderName ?? "系統管理員").slice(0, 50));
+    const recipientName = esc(String(body?.recipientName ?? "使用者").slice(0, 50));
+    if (!email || !inviteLink || !accommodationId) return reply(400, "缺少 email、inviteLink 或 accommodation_id");
 
-    console.log(`[Send Invite] Admin ${user.email} sending invite`);
+    // 呼叫者：super_admin 或目標館的 hotel_admin
+    if (!(await isAccommodationAdmin(authRes.ctx, accommodationId))) return reply(403, "只有該館管理員可以發送邀請郵件");
 
-    const { email, inviteLink, senderName = "系統管理員", recipientName = "使用者" }: InviteEmailRequest = await req.json();
+    // 連結只允許本公司網域（https，lakeze.com 與其子網域）
+    let linkHost = "";
+    try {
+      const u = new URL(inviteLink);
+      if (u.protocol === "https:") linkHost = u.hostname.toLowerCase();
+    } catch { /* 無效網址 */ }
+    if (!(linkHost === "lakeze.com" || linkHost.endsWith(".lakeze.com"))) return reply(400, "邀請連結必須是 https 的 lakeze.com 網域");
+
+    // 收件人必須已在該館建立角色（create-user 先建帳號與角色，再寄邀請）
+    const target = await findUserByEmail(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", email);
+    const { data: targetRoles } = target
+      ? await supabaseAdmin.from("user_roles").select("role").eq("user_id", target.id).eq("accommodation_id", accommodationId)
+      : { data: [] };
+    if (!target || (targetRoles ?? []).length === 0) return reply(400, "收件人尚未加入此館，請先建立帳號與角色");
 
     const emailResponse = await resend.emails.send({
       from: "森山寫照 <noreply@lakeze.com>",

@@ -11,7 +11,7 @@
 // 這裡原樣重放，確保與前端既有計算邏輯完全一致（不重寫任何獎金公式）。
 
 // deno-lint-ignore-file no-explicit-any
-import { resolveCaller } from "../_shared/authz.ts";
+import { resolveCaller, hasGlobalTeamRole } from "../_shared/authz.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -157,8 +157,7 @@ Deno.serve(async (req) => {
     const ctx = authRes.ctx;
 
     const roles = ctx.globalRoles ?? [];
-    const isAdminViewer =
-      ctx.isServiceRole || roles.includes("super_admin") || roles.includes("admin");
+    const isAdminViewer = await hasGlobalTeamRole(ctx, ["admin"]);
     const managerScope = Array.from(
       new Set(roles.flatMap((r) => MANAGER_SCOPES[r] ?? [])),
     );

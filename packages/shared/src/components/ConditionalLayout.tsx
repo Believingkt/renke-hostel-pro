@@ -18,7 +18,8 @@ import { isReservedFirstSegment } from "@lakeze/shared/lib/reservedRoutes";
 
 const isDev = import.meta.env.DEV;
 
-export function ConditionalLayout() {
+/** hqRoles：可進入 /hq/* 的角色（由 app 傳入 hqAccess 的 HQ_LOGIN_ROLES）；只有館別角色的帳號會被導回總部登入頁 */
+export function ConditionalLayout({ hqRoles }: { hqRoles?: readonly string[] } = {}) {
   const location = useLocation();
 
   // 將 /:alias/<rest> 視同 /<rest>，以支援 booking.lakeze.com/{alias}/admin 等路徑
@@ -42,6 +43,7 @@ export function ConditionalLayout() {
   const [needsPasswordChange, setNeedsPasswordChange] = useState<boolean | null>(null);
   // 共用 session 無後台角色：只導回登入頁，不 signOut（避免把同網域其他分頁的會員一起登出）
   const [noBackofficeRole, setNoBackofficeRole] = useState(false);
+  const [noHqRole, setNoHqRole] = useState(false);
 
   useOrderNotifications((isAdminPage || isHQPage) && !!session);
   // 手機背景久放回前景時主動驗一次 session，網路錯誤只重試不登出
@@ -80,9 +82,8 @@ export function ConditionalLayout() {
     try {
       const { data: userRoles, error } = await supabase
         .from('user_roles')
-        .select('id')
-        .eq('user_id', userId)
-        .limit(1);
+        .select('role')
+        .eq('user_id', userId);
 
       if (!error && (!userRoles || userRoles.length === 0)) {
         if (isDev) console.warn('Session has no backoffice role, redirecting to login (no signOut)');
@@ -91,10 +92,15 @@ export function ConditionalLayout() {
       } else if (!error) {
         setNoBackofficeRole(false);
       }
+      if (!error && hqRoles) {
+        const denied = !(userRoles ?? []).some((r: { role: string }) => hqRoles.includes(r.role));
+        if (denied && isHQPage) toast.error('此帳號沒有總部權限，請改用 PMS 後台或以總部帳號登入', { duration: 5000 });
+        setNoHqRole(denied);
+      }
     } catch (error) {
       if (isDev) console.error('Error checking user validity:', error);
     }
-  }, []);
+  }, [hqRoles, isHQPage]);
 
   useEffect(() => {
     void supabase.auth.getSession().then(({ data: { session } }) => {
@@ -182,7 +188,7 @@ export function ConditionalLayout() {
     return <Navigate to={`${aliasPrefix}/auth?next=${encodeURIComponent(next)}`} replace />;
   }
 
-  if (noBackofficeRole && isHQPage) {
+  if ((noBackofficeRole || noHqRole) && isHQPage) {
     return <Navigate to="/hq-auth" replace />;
   }
 

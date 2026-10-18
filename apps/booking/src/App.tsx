@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ConditionalLayout } from "@lakeze/shared/components/ConditionalLayout";
 import { RequireHQRole } from "@/components/hq/RequireHQRole";
 import { HQIndexGate } from "@/components/hq/HQIndexGate";
-import { HQ_AI_ROLES } from "@/lib/hqAccess";
+import { HQ_AI_ROLES, HQ_FULL_ACCESS_ROLES, HQ_LOGIN_ROLES } from "@/lib/hqAccess";
 import { MovedToHQCard } from "@/components/MovedToHQCard";
 
 import { AccommodationProvider } from "@lakeze/shared/contexts/AccommodationContext";
@@ -725,7 +725,7 @@ function App() {
 
                 return (
                   <Routes>
-                    <Route element={<ConditionalLayout />}>
+                    <Route element={<ConditionalLayout hqRoles={HQ_LOGIN_ROLES} />}>
                       {/* 根層路由（向下相容） */}
                       {sharedRoutes}
 
@@ -807,7 +807,9 @@ function App() {
 
                       {/* AI 管家／行程引擎（總部全平台視角） */}
                       <Route path="/hq/line-butler" element={
-                        <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                        <RequireHQRole allow={HQ_FULL_ACCESS_ROLES}>
+                          <Suspense fallback={<TableSkeleton rows={8} columns={4} />}><LineButler /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/knowledge/index" element={
                         <RequireHQRole allow={HQ_AI_ROLES}>
@@ -856,10 +858,14 @@ function App() {
                         <Suspense fallback={<TableSkeleton rows={8} columns={6} />}><RemarketingAdmin /></Suspense>
                       } />
                       <Route path="/hq/kol-overview" element={
-                        <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                        <RequireHQRole allow={HQ_FULL_ACCESS_ROLES}>
+                          <Suspense fallback={<TableSkeleton rows={8} columns={7} />}><AdminKolOverview /></Suspense>
+                        </RequireHQRole>
                       } />
                       <Route path="/hq/referral" element={
-                        <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
+                        <RequireHQRole allow={HQ_FULL_ACCESS_ROLES}>
+                          <Suspense fallback={<TableSkeleton rows={8} columns={5} />}><ReferralAdmin /></Suspense>
+                        </RequireHQRole>
                       } />
 
                       <Route path="/hq/owner-settlement-settings" element={

@@ -9,6 +9,7 @@
  * 效能約束：本函式沒有任何排程，只在使用者「進頁面讀快取／按重新生成」時執行。
  */
 import { llmFetch, llmKey, defaultModel } from "../_shared/llm.ts";
+import { resolveCaller, isSuperAdmin, isAccommodationAdmin } from "../_shared/authz.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
@@ -63,13 +64,15 @@ serve(async (req) => {
     const user = userData?.user;
     if (!user) return jsonRes({ error: "未授權的請求" }, 401);
 
-    const { data: isAdmin, error: adminErr } = await userClient.rpc("is_admin_or_super");
-    if (adminErr) console.error("is_admin_or_super failed:", adminErr.message);
-    if (!isAdmin) return jsonRes({ error: "沒有權限存取營運洞察" }, 403);
+    const authRes = await resolveCaller(req);
+    if (!authRes.ok) return jsonRes({ error: authRes.error }, authRes.status);
 
     const body = await req.json().catch(() => ({}));
     const action: string = body.action ?? "metrics";
     const accommodationId: string | null = body.accommodation_id ?? null;
+    // super_admin 可看全平台；其他人只能看自己是 hotel_admin 的館（等同 is_hotel_admin_of）
+    const canView = isSuperAdmin(authRes.ctx) || (!!accommodationId && (await isAccommodationAdmin(authRes.ctx, accommodationId)));
+    if (!canView) return jsonRes({ error: "沒有權限存取營運洞察" }, 403);
     const periodDays: number = [7, 14, 30].includes(Number(body.period_days)) ? Number(body.period_days) : 30;
 
     const admin = createClient(supabaseUrl, serviceKey);
