@@ -1,0 +1,41 @@
+===== 第 1 步唯讀檢查 =====
+測試館存在且未開賣 | t
+測試館訂單數 = 0 | t
+未開 OwlTing 同步 | t
+未開 Hotelnabe 同步 | t
+沒有 OwlTing 房型對應群組 | t
+first_activated_at 為 NULL（從未開賣） | t
+館別開關已開（new_price_ui / auto_template / package_original） | t
+room_types | 1
+accommodation_packages | 0
+pricing_templates | 0
+package_date_prices | 0
+room_inventory_pricing | 0
+final_check | 1
+2026-10-18 11:29:38.512846+00 | {"id": "11e76573-bc93-4590-a0cc-dc1d411ce6c9", "note": "測試前備註", "status": "pending", "step_key": "final_check", "created_at": "2026-10-18T11:29:38.479371+00:00", "updated_at": "2026-10-16T11:29:38.479371+00:00", "returned_at": null, "returned_by": null, "confirmed_at": null, "confirmed_by": null, "submitted_at": null, "submitted_by": null, "return_reason": null, "accommodation_id": "ea55e271-15f8-4e63-9c4f-69fbd2022bc5"}
+
+===== super_admin 走精靈（不核准）=====
+房型 58a887ac-63b5-4091-91d2-162479c6b117
+方案 37721427-52b5-4d88-bf5b-c42340a32d27
+季節價 {"overwrites": [], "insert_count": 5, "overwrite_count": 0}
+庫存 {"end": "2027-04-17", "start": "2026-10-18", "room_types": [{"name": "測試前既有房型", "skipped": 0, "inserted": 
+送審 red_ok=true
+退回：returned|演練退回
+再送審 red_ok=true
+測試館 is_active=f（未核准）
+
+===== 清理 =====
+room_types | 1
+accommodation_packages | 0
+pricing_templates | 0
+package_date_prices | 0
+room_inventory_pricing | 0
+final_check | pending
+is_active（必須 false） | false
+orders（必須 0） | 0
+
+===== 比對 =====
+筆數 測試前=1,0,0,0,0 清理後=1,0,0,0,0 → PASS
+送審狀態（除 updated_at 外）與測試前完全相同 → PASS
+測試前既有房型仍在 → PASS
+is_active=false → PASS

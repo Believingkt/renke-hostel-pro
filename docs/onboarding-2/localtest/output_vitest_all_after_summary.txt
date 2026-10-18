@@ -1,0 +1,41 @@
+# 2a-3 補件 vitest 全套（修正後）
+# 指令：npx vitest run（repo 根目錄，全部 workspace）
+
+## 總計
+Test Files  7 failed | 164 passed | 1 skipped (172)
+Tests  23 failed | 1852 passed | 8 skipped (1883)
+exit=1
+
+## 失敗檔案
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx
+@lakeze/booking  src/test/group-buy-card-cancel-ui.test.ts
+@lakeze/booking  src/test/order-rooms-permissions.test.ts
+@lakeze/shared  src/hooks/use-accommodation-logo.test.tsx
+@lakeze/shared  src/hooks/use-order-notifications.test.tsx
+@lakeze/shared  src/test/group-buy-self-cancel.test.ts
+@lakeze/shared  src/test/late-payment-failsafe.test.ts
+
+## 失敗題目（23 題）
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 住客人數驗證與送出狀態 > 人數 = 0（<1）顯示錯誤訊息且送出按鈕禁用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 住客人數驗證與送出狀態 > 人數 = 1（下邊界）有效，送出按鈕可用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 住客人數驗證與送出狀態 > 人數 = 50（上邊界）有效，送出按鈕可用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 住客人數驗證與送出狀態 > 人數 = 51（>50）顯示錯誤訊息且送出按鈕禁用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 住客人數驗證與送出狀態 > 人數 空字串 → 送出按鈕禁用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 必填欄位整合 > 姓名或電話空白 → 送出按鈕禁用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 必填欄位整合 > 未選房型 → 送出按鈕禁用，選後即可用
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 金額警示與送出狀態 > 金額 = 100000（上邊界）不顯示警示
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 金額警示與送出狀態 > 金額 = 100001（>100000）顯示警示
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 金額警示與送出狀態 > 金額 = 100（下邊界）不顯示警示
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 金額警示與送出狀態 > 金額 = 1（<100）顯示警示，按鈕仍可用（警示為提醒非阻擋）
+@lakeze/booking  src/components/OwlTingFillupDialog.test.tsx > OwlTingFillupDialog — 金額警示與送出狀態 > 預填 3800 → 不顯示警示，且其他必填齊全時送出按鈕可用
+@lakeze/booking  src/test/group-buy-card-cancel-ui.test.ts > server：信用卡不得走人工銀行退款 > refund-first：TapPay 失敗即回傳錯誤，不更新 orders
+@lakeze/booking  src/test/order-rooms-permissions.test.ts > Phase 3C-3B：order_rooms 寫入權限對齊（原始碼契約） > OrderDetail remove-all 刪除後驗證殘留列，且不要求刪除筆數 > 0
+@lakeze/shared  src/hooks/use-accommodation-logo.test.tsx > useAccommodationLogo > Fetch Logo > 應該 fetch header logo（預設 variant）
+@lakeze/shared  src/hooks/use-accommodation-logo.test.tsx > useAccommodationLogo > Realtime 訂閱 > 應該建立正確的 channel 名稱（footer）
+@lakeze/shared  src/hooks/use-accommodation-logo.test.tsx > useAccommodationLogo > Realtime 訂閱 > 應該建立正確的 channel 名稱（header）
+@lakeze/shared  src/hooks/use-order-notifications.test.tsx > useOrderNotifications - 跨民宿隔離 > postgres_changes filter 必須綁定當前 accommodationId
+@lakeze/shared  src/test/group-buy-self-cancel.test.ts > server 流程保護 > 信用卡採 refund-first：退款成功後才 update orders
+@lakeze/shared  src/test/group-buy-self-cancel.test.ts > server 流程保護 > 取消寫入帶併發保護（付款狀態變動即中止）
+@lakeze/shared  src/test/late-payment-failsafe.test.ts > CASE 2：已取消訂單收到付款 > 保留金流事實、建立例外、發出高辨識通知，且不改狀態
+@lakeze/shared  src/test/late-payment-failsafe.test.ts > CASE 3：同一 late webhook retry ×3 > 金額不重複、例外只有 1 筆、通知只有 1 筆
+@lakeze/shared  src/test/late-payment-failsafe.test.ts > CASE 4：庫存不得被重新占用 > orders 更新不含任何庫存／狀態欄位

@@ -57,7 +57,7 @@ export const ONBOARDING_STEPS: StepDef[] = [
   { no: 12, key: "security_deposit", title: "入住押金", kind: "hq", hint: "由總部設定，需要調整請聯絡總部。" },
   { no: 13, key: "notification_emails", title: "訂房通知信箱", kind: "auto", optional: true, link: "/admin/website-content?tab=email-notification", hint: "選填。填了之後，客人訂房成功時民宿端也會收到一份副本。" },
   { no: 14, key: "cancellation_policy", title: "取消政策與注意事項", kind: "confirm", link: "/admin/website-content?tab=booking-info", hint: "請確認取消政策與注意事項內容正確，確認後按下按鈕。" },
-  { no: 15, key: "final_check", title: "上架前最終確認", kind: "confirm", hint: "前面必要項目都完成後，按下最終確認。" },
+  { no: 15, key: "final_check", title: "上架精靈送審", kind: "confirm", link: "/admin/onboarding-wizard", hint: "前面必要項目都完成後，到上架精靈做開賣前檢查並送總部審核；送審後這一步顯示完成。" },
 ];
 
 /** 判定所需的原始資料（由 hook 取得後餵進來） */
@@ -261,7 +261,10 @@ export function evaluateSteps(src: OnboardingSource): StepResult[] {
   return ONBOARDING_STEPS.map((def) => {
     if (def.kind === "hq") return { ...def, status: "hq" as StepStatus, hqValue: hqValue[def.key] };
     if (def.kind === "confirm") {
-      return { ...def, status: src.confirmations[def.key] === "confirmed" ? "completed" : "pending" };
+      // final_check 改由上架精靈送審取代（submitted＝完成）；舊資料的 confirmed 仍視為完成
+      const c = src.confirmations[def.key];
+      const done = c === "confirmed" || (def.key === "final_check" && c === "submitted");
+      return { ...def, status: done ? "completed" : "pending" };
     }
     const status: StepStatus = auto[def.key] ? "completed" : "pending";
     if (def.key === "basic_info" && status === "pending") {

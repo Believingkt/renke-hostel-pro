@@ -9,7 +9,7 @@ import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { useAliasPrefix } from "@lakeze/shared/hooks/use-alias-prefix";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { useOnboardingProgress } from "@/hooks/use-onboarding-progress";
-import { canFinalConfirm, type StepResult } from "@/lib/onboarding/steps";
+import { type StepResult } from "@/lib/onboarding/steps";
 import { toast } from "sonner";
 import { useWizardData } from "@/hooks/use-wizard-data";
 import { ReviewStatusBanner } from "@/components/onboarding-wizard/ReviewStatusBanner";
@@ -28,7 +28,7 @@ export default function Onboarding() {
   const wizard = useWizardData(currentAccommodationId);
 
   const handleConfirm = async (step: StepResult) => {
-    if (step.key === "final_check" && !canFinalConfirm(steps)) return;
+    if (step.key === "final_check") return;
     setSaving(step.key);
     const { error } = await confirmStep(step.key);
     setSaving(null);
@@ -77,7 +77,6 @@ export default function Onboarding() {
       <div className="space-y-3">
         {steps.map((step) => {
           const isConfirm = step.kind === "confirm";
-          const finalLocked = step.key === "final_check" && !canFinalConfirm(steps);
           return (
             <Card key={step.key} className={step.status === "completed" ? "border-primary/40" : undefined}>
               <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -112,10 +111,10 @@ export default function Onboarding() {
                       </PreloadLink>
                     </Button>
                   )}
-                  {isConfirm && step.status !== "completed" && !(step.key === "final_check" && ["submitted", "returned"].includes(wizard.finalCheck?.status ?? "")) && (
-                    <Button size="sm" disabled={finalLocked || saving === step.key} onClick={() => handleConfirm(step)}>
+                  {isConfirm && step.status !== "completed" && step.key !== "final_check" && (
+                    <Button size="sm" disabled={saving === step.key} onClick={() => handleConfirm(step)}>
                       {saving === step.key && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
-                      {finalLocked ? "尚未符合條件" : "我已確認"}
+                      我已確認
                     </Button>
                   )}
                 </div>

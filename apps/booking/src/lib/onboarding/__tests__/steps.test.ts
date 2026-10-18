@@ -246,3 +246,15 @@ describe("第 4 步：房型照片與方案綁定照片", () => {
     expect(statusOf(base({ roomTypes, packages: [pkg], roomPhotoRoomTypeIds: ["rt2"] }), "room_types")).toBe("completed");
   });
 });
+
+describe("第 15 步：上架精靈送審取代舊的最後確認", () => {
+  it("送審（submitted）視為完成；退回、未送審為待辦；舊資料 confirmed 仍為完成", () => {
+    expect(statusOf(base({ confirmations: { final_check: "submitted" } }), "final_check")).toBe("completed");
+    expect(statusOf(base({ confirmations: { final_check: "returned" } }), "final_check")).toBe("pending");
+    expect(statusOf(base(), "final_check")).toBe("pending");
+    expect(statusOf(base({ confirmations: { final_check: "confirmed" } }), "final_check")).toBe("completed");
+  });
+  it("連結到上架精靈", () => {
+    expect(evaluateSteps(base()).find((s) => s.key === "final_check")?.link).toBe("/admin/onboarding-wizard");
+  });
+});
