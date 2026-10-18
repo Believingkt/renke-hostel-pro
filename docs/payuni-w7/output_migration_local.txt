@@ -1,0 +1,15 @@
+== 重跑（IF NOT EXISTS，應成功且不重複）
+psql exit=0（NOTICE: 已存在、略過）
+== rollback
+ok
+0
+t
+== 再套用
+ok
+3
+== 持鎖時模擬（另一連線讀 payment_transactions 8 秒）
+psql:docs/payuni-w7/draft_20261018130000_payuni_refunds.sql:31: ERROR:  canceling statement due to lock timeout
+耗時 3033 ms；欄位數=0；新表存在=f
+鎖釋放後再套用 ok
+== 遮罩 SQL 試跑
+*********8901
