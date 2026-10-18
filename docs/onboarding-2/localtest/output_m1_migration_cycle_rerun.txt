@@ -1,0 +1,31 @@
+### 0 rollback 到原狀
+### 1 precheck
+     18 t
+### 2 apply
+exit=0
+### 3 postcheck
+group_buy_campaign_notification_settings|Managers can delete campaign notification settings|t
+group_buy_campaign_notification_settings|Managers can insert campaign notification settings|t
+group_buy_campaign_notification_settings|Managers can update campaign notification settings|t
+group_buy_campaign_notification_settings|Managers can view campaign notification settings|t
+group_buy_campaign_packages|Managers can manage campaign packages|t
+group_buy_campaigns|Managers can delete campaigns|t
+group_buy_campaigns|Managers can insert campaigns|t
+group_buy_campaigns|Managers can update campaigns|t
+group_buy_campaigns|Managers can view own campaigns|t
+group_buy_venue_intros|Admins can manage group buy venue intros|t
+order_manual_review_tasks|Admins can delete review tasks|t
+order_manual_review_tasks|Admins can insert review tasks|t
+order_manual_review_tasks|Staff can update review tasks|t
+order_manual_review_tasks|Staff can view review tasks|t
+owlting_email_property_alias|owlting_property_alias_admin_all|t
+owlting_email_room_alias|owlting_room_alias_admin_all|t
+owlting_room_type_rate_plans|Admins manage owlting room type rate plans|t
+referral_campaigns|Admins manage campaigns|t
+### 4 重跑（應被擋）
+PRECHECK 失敗：group_buy_campaign_notification_settings.Managers can delete campaign notification settings 的條件和預期不一致（或 policy 不存在），全部不修改
+### 5 rollback
+exit=0
+     18 t
+### 6 再套用
+exit=0

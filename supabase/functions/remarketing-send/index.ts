@@ -12,7 +12,6 @@ import { sanitizePhotoUrl, buildFeatureLine } from "../_shared/roomCards.ts";
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const ADMIN_ROLES = ["super_admin", "admin", "hotel_admin", "owner"];
 const RESEND_API_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "人客多 Lakeze <noreply@lakeze.com>";
 const BRAND = { primary: "#d07218", foreground: "#2d3344", muted: "#6b7280" };
@@ -86,8 +85,13 @@ Deno.serve(async (req) => {
       const { data: userData } = await userClient.auth.getUser();
       if (!userData?.user) return json({ error: "Unauthorized" }, 401);
       callerEmail = String(userData.user.email ?? "").trim().toLowerCase();
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userData.user.id);
-      if (!(roles ?? []).some((r: any) => ADMIN_ROLES.includes(r.role))) return json({ error: "Forbidden" }, 403);
+      // 只限總部：is_super_admin 或 user_has_team_role(uid,'admin')（全域 admin，accommodation_id 為空）
+      const { data: roles, error: rolesErr } = await admin.from("user_roles").select("role, accommodation_id").eq("user_id", userData.user.id);
+      if (rolesErr) return json({ error: "Forbidden" }, 403);
+      const allowed = (roles ?? []).some(
+        (r: any) => r.role === "super_admin" || (r.role === "admin" && r.accommodation_id === null),
+      );
+      if (!allowed) return json({ error: "Forbidden" }, 403);
     }
 
     const body = await req.json().catch(() => ({}));

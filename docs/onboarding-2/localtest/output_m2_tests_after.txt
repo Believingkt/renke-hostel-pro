@@ -1,4 +1,3 @@
-case_no|expect|actual|pass
 partnership 10 hotel_admin 讀本館|count=1|count=1|t
 partnership 11 hotel_admin 讀別館|count=0|count=0|t
 partnership 12 owner 讀本館|count=1|count=1|t
@@ -29,7 +28,4 @@ traveler_profiles 05 super_admin 讀|count=1|count=1|t
 traveler_profiles 06 全域 admin 讀|count=1|count=1|t
 traveler_profiles 07 全域 admin 改|OK rows=1|OK rows=1|t
 traveler_profiles 08 hotel_admin 新增|ERR [42501]|ERR [42501]|t
-(30 rows)
-passed|failed
 30|0
-(1 row)

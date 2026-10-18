@@ -8,8 +8,6 @@ import { matchSegment, summarizeSegment, type TravelerRow } from "../_shared/rem
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const ADMIN_ROLES = ["super_admin", "admin", "hotel_admin", "owner"];
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -30,8 +28,13 @@ Deno.serve(async (req) => {
       });
       const { data: userData } = await userClient.auth.getUser();
       if (!userData?.user) return json({ error: "Unauthorized" }, 401);
-      const { data: roles } = await admin.from("user_roles").select("role").eq("user_id", userData.user.id);
-      if (!(roles ?? []).some((r: any) => ADMIN_ROLES.includes(r.role))) return json({ error: "Forbidden" }, 403);
+      // 只限總部：is_super_admin 或 user_has_team_role(uid,'admin')（全域 admin，accommodation_id 為空）
+      const { data: roles, error: rolesErr } = await admin.from("user_roles").select("role, accommodation_id").eq("user_id", userData.user.id);
+      if (rolesErr) return json({ error: "Forbidden" }, 403);
+      const allowed = (roles ?? []).some(
+        (r: any) => r.role === "super_admin" || (r.role === "admin" && r.accommodation_id === null),
+      );
+      if (!allowed) return json({ error: "Forbidden" }, 403);
     }
 
     const body = await req.json().catch(() => ({}));

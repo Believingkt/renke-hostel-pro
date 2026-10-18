@@ -1,5 +1,5 @@
 -- ============================================================
--- 2a 第三部分（待核准，尚未套用）：全平台旅客／再行銷／合作期間 跨館修正
+-- 2a 第三部分（已核准）：全平台旅客／再行銷／合作期間 跨館修正
 --   traveler_profiles、remarketing_campaigns、remarketing_sends 沒有館別欄位 → 只限總部：
 --     is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin')（全域 admin，accommodation_id IS NULL）
 --   accommodation_partnership_periods：寫入只限 super_admin；讀取把 is_admin_or_super() 換成 is_super_admin()，

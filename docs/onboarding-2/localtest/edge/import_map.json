@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "npm:@supabase/supabase-js@2/cors": "./fake_cors.ts",
+    "npm:@supabase/supabase-js@2": "./fake_supabase.ts"
+  }
+}

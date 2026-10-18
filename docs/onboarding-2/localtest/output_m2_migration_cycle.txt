@@ -1,0 +1,46 @@
+### 0 先 rollback 到原狀（本機 DB 先前已套過方案）
+### 1 precheck
+accommodation_partnership_periods|partnership_periods_select_scoped|t
+accommodation_partnership_periods|partnership_periods_write_admin|t
+remarketing_campaigns|Admins manage remarketing campaigns|t
+remarketing_sends|Admins manage remarketing sends|t
+traveler_profiles|Admins can delete traveler profiles|t
+traveler_profiles|Admins can insert traveler profiles|t
+traveler_profiles|Admins can update traveler profiles|t
+traveler_profiles|Admins can view traveler profiles|t
+### 2 apply（supabase/migrations/20261020090001_hq_only_traveler_remarketing_partnership.sql）
+exit=0
+### 3 postcheck
+accommodation_partnership_periods|partnership_periods_select_scoped|t
+accommodation_partnership_periods|partnership_periods_write_admin|t
+remarketing_campaigns|Admins manage remarketing campaigns|t
+remarketing_sends|Admins manage remarketing sends|t
+traveler_profiles|Admins can delete traveler profiles|t
+traveler_profiles|Admins can insert traveler profiles|t
+traveler_profiles|Admins can update traveler profiles|t
+traveler_profiles|Admins can view traveler profiles|t
+### 4 重跑 migration（應被 precheck 擋）
+psql:/tmp/20261020090001_hq_only_traveler_remarketing_partnership.sql:45: ERROR:  PRECHECK 失敗：accommodation_partnership_periods.partnership_periods_select_scoped 的條件和預期不一致（或 policy 不存在），全部不修改
+CONTEXT:  PL/pgSQL function inline_code_block line 32 at RAISE
+exit=3
+### 5 rollback
+--- rollback 後 precheck
+accommodation_partnership_periods|partnership_periods_select_scoped|t
+accommodation_partnership_periods|partnership_periods_write_admin|t
+remarketing_campaigns|Admins manage remarketing campaigns|t
+remarketing_sends|Admins manage remarketing sends|t
+traveler_profiles|Admins can delete traveler profiles|t
+traveler_profiles|Admins can insert traveler profiles|t
+traveler_profiles|Admins can update traveler profiles|t
+traveler_profiles|Admins can view traveler profiles|t
+### 6 再套用
+exit=0
+--- postcheck
+accommodation_partnership_periods|partnership_periods_select_scoped|t
+accommodation_partnership_periods|partnership_periods_write_admin|t
+remarketing_campaigns|Admins manage remarketing campaigns|t
+remarketing_sends|Admins manage remarketing sends|t
+traveler_profiles|Admins can delete traveler profiles|t
+traveler_profiles|Admins can insert traveler profiles|t
+traveler_profiles|Admins can update traveler profiles|t
+traveler_profiles|Admins can view traveler profiles|t
