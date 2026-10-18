@@ -1,0 +1,123 @@
+[
+ {
+  "t": "kol_referrals",
+  "p": "Admins can delete kol referrals",
+  "cmd": "DELETE",
+  "q": "is_admin_or_super()",
+  "w": null,
+  "dq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))",
+  "dw": null,
+  "nq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))",
+  "nw": null
+ },
+ {
+  "t": "kol_referrals",
+  "p": "Admins can update kol referrals",
+  "cmd": "UPDATE",
+  "q": "is_admin_or_super()",
+  "w": "is_admin_or_super()",
+  "dq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))",
+  "dw": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))",
+  "nq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))",
+  "nw": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role))"
+ },
+ {
+  "t": "kol_referrals",
+  "p": "Internal staff can insert kol referrals",
+  "cmd": "INSERT",
+  "q": null,
+  "w": "(is_admin_or_super() OR is_sales_role(auth.uid()))",
+  "dq": null,
+  "dw": "((is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role)) OR is_sales_role(auth.uid()))",
+  "nq": null,
+  "nw": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR is_sales_role(auth.uid()))"
+ },
+ {
+  "t": "kol_referrals",
+  "p": "Internal staff can view kol referrals",
+  "cmd": "SELECT",
+  "q": "(is_admin_or_super() OR is_sales_role(auth.uid()))",
+  "w": null,
+  "dq": "((is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role)) OR is_sales_role(auth.uid()))",
+  "dw": null,
+  "nq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR is_sales_role(auth.uid()))",
+  "nw": null
+ },
+ {
+  "t": "line_binding_tokens",
+  "p": "admins manage line_binding_tokens",
+  "cmd": "ALL",
+  "q": "is_admin_or_super()",
+  "w": "is_admin_or_super()",
+  "dq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR ((user_has_team_role(auth.uid(), 'am'::app_role) OR user_has_team_role(auth.uid(), 'am_manager'::app_role)) AND (EXISTS (SELECT 1 FROM team_member_profiles tmp WHERE tmp.id = line_binding_tokens.team_member_id AND tmp.user_id = auth.uid()))))",
+  "dw": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR ((user_has_team_role(auth.uid(), 'am'::app_role) OR user_has_team_role(auth.uid(), 'am_manager'::app_role)) AND (EXISTS (SELECT 1 FROM team_member_profiles tmp WHERE tmp.id = line_binding_tokens.team_member_id AND tmp.user_id = auth.uid()))))",
+  "nq": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR ((user_has_team_role(auth.uid(), 'am'::app_role) OR user_has_team_role(auth.uid(), 'am_manager'::app_role)) AND (EXISTS ( SELECT 1\n   FROM team_member_profiles tmp\n  WHERE ((tmp.id = line_binding_tokens.team_member_id) AND (tmp.user_id = auth.uid()))))))",
+  "nw": "(is_super_admin(auth.uid()) OR user_has_team_role(auth.uid(), 'admin'::app_role) OR ((user_has_team_role(auth.uid(), 'am'::app_role) OR user_has_team_role(auth.uid(), 'am_manager'::app_role)) AND (EXISTS ( SELECT 1\n   FROM team_member_profiles tmp\n  WHERE ((tmp.id = line_binding_tokens.team_member_id) AND (tmp.user_id = auth.uid()))))))"
+ },
+ {
+  "t": "line_sessions",
+  "p": "Admins can view line sessions",
+  "cmd": "SELECT",
+  "q": "is_admin_or_super()",
+  "w": null,
+  "dq": "is_super_admin(auth.uid())",
+  "dw": null,
+  "nq": "is_super_admin(auth.uid())",
+  "nw": null
+ },
+ {
+  "t": "order_attributions",
+  "p": "order_attributions_select_admin",
+  "cmd": "SELECT",
+  "q": "is_admin_or_super()",
+  "w": null,
+  "dq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "dw": null,
+  "nq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "nw": null
+ },
+ {
+  "t": "order_attributions",
+  "p": "order_attributions_update_admin",
+  "cmd": "UPDATE",
+  "q": "is_admin_or_super()",
+  "w": "is_admin_or_super()",
+  "dq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "dw": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "nq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "nw": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))"
+ },
+ {
+  "t": "owlting_fillup_tokens",
+  "p": "Admins manage fillup tokens",
+  "cmd": "ALL",
+  "q": "is_admin_or_super()",
+  "w": "is_admin_or_super()",
+  "dq": "is_super_admin(auth.uid())",
+  "dw": "is_super_admin(auth.uid())",
+  "nq": "is_super_admin(auth.uid())",
+  "nw": "is_super_admin(auth.uid())"
+ },
+ {
+  "t": "referral_records",
+  "p": "Admins manage referral records",
+  "cmd": "ALL",
+  "q": "is_admin_or_super()",
+  "w": "is_admin_or_super()",
+  "dq": "is_super_admin(auth.uid())",
+  "dw": "is_super_admin(auth.uid())",
+  "nq": "is_super_admin(auth.uid())",
+  "nw": "is_super_admin(auth.uid())"
+ },
+ {
+  "t": "trip_products",
+  "p": "Admins and owners can manage trip products",
+  "cmd": "ALL",
+  "q": "(is_admin_or_super() OR is_super_admin(auth.uid()))",
+  "w": "(is_admin_or_super() OR is_super_admin(auth.uid()))",
+  "dq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "dw": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "nq": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))",
+  "nw": "(is_super_admin(auth.uid()) OR is_hotel_admin_of(accommodation_id))"
+ }
+]

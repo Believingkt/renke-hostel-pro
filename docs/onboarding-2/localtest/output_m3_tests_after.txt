@@ -1,0 +1,44 @@
+attr 11 業主讀別館|count=0|count=0|t
+attr 12 業主改別館|OK rows=0|OK rows=0|t
+attr 13 業主讀本館|count=1|count=1|t
+attr 14 業主改本館|OK rows=1|OK rows=1|t
+attr 15 super_admin 讀全部|count=2|count=2|t
+attr 16 公開新增（不動）|OK rows=1|OK rows=1|t
+fillup 17 業主讀|count=0|count=0|t
+fillup 18 業主改|OK rows=0|OK rows=0|t
+fillup 19 業主新增|ERR [42501]|ERR [42501]|t
+fillup 20 super_admin 讀|count=1|count=1|t
+kolref 27 業主讀|count=0|count=0|t
+kolref 28 業主改|OK rows=0|OK rows=0|t
+kolref 29 業主刪|OK rows=0|OK rows=0|t
+kolref 30 業主新增|ERR [42501]|ERR [42501]|t
+kolref 31 團隊 admin 讀|count=1|count=1|t
+kolref 32 團隊 admin 改|OK rows=1|OK rows=1|t
+kolref 33 sales 讀|count=1|count=1|t
+kolref 34 sales 新增|OK rows=1|OK rows=1|t
+kolref 35 super_admin 改|OK rows=1|OK rows=1|t
+lbt 36 業主讀|count=0|count=0|t
+lbt 37 業主新增|ERR [42501]|ERR [42501]|t
+lbt 38 團隊 admin 讀|count=2|count=2|t
+lbt 39 團隊 admin 新增|OK rows=1|OK rows=1|t
+lbt 40 super_admin 讀|count=2|count=2|t
+lbt 41 am 讀（只看到自己的）|count=1|count=1|t
+lbt 42 am 為自己產生綁定連結|OK rows=1|OK rows=1|t
+lbt 43 am 為別人產生綁定連結|ERR [42501]|ERR [42501]|t
+referral 23 業主讀|count=0|count=0|t
+referral 24 業主改|OK rows=0|OK rows=0|t
+referral 25 super_admin 讀|count=1|count=1|t
+referral 26 會員讀自己的（不動）|count=1|count=1|t
+session 21 業主讀|count=0|count=0|t
+session 22 super_admin 讀|count=1|count=1|t
+trip 01 業主讀別館（未上架）|count=0|count=0|t
+trip 02 業主改別館|OK rows=0|OK rows=0|t
+trip 03 業主刪別館|OK rows=0|OK rows=0|t
+trip 04 業主新增別館|ERR [42501]|ERR [42501]|t
+trip 05 業主改平台商品（無館別）|OK rows=0|OK rows=0|t
+trip 06 業主讀本館（未上架）|count=1|count=1|t
+trip 07 業主改本館|OK rows=1|OK rows=1|t
+trip 08 業主新增本館|OK rows=1|OK rows=1|t
+trip 09 super_admin 改全部|OK rows=4|OK rows=4|t
+trip 10 公開讀取上架商品（不動）|count=1|count=1|t
+43|0

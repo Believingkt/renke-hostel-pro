@@ -1,0 +1,63 @@
+### 1 precheck
+kol_referrals|Admins can delete kol referrals|t
+kol_referrals|Admins can update kol referrals|t
+kol_referrals|Internal staff can insert kol referrals|t
+kol_referrals|Internal staff can view kol referrals|t
+line_binding_tokens|admins manage line_binding_tokens|t
+line_sessions|Admins can view line sessions|t
+order_attributions|order_attributions_select_admin|t
+order_attributions|order_attributions_update_admin|t
+owlting_fillup_tokens|Admins manage fillup tokens|t
+referral_records|Admins manage referral records|t
+trip_products|Admins and owners can manage trip products|t
+### 2 apply（supabase/migrations/20261018110005_p0_tenant_isolation_2a2.sql）
+exit=0
+### 3 postcheck（第 2 段應為 0 列）
+kol_referrals|Admins can delete kol referrals|t
+kol_referrals|Admins can update kol referrals|t
+kol_referrals|Internal staff can insert kol referrals|t
+kol_referrals|Internal staff can view kol referrals|t
+line_binding_tokens|admins manage line_binding_tokens|t
+line_sessions|Admins can view line sessions|t
+order_attributions|order_attributions_select_admin|t
+order_attributions|order_attributions_update_admin|t
+owlting_fillup_tokens|Admins manage fillup tokens|t
+referral_records|Admins manage referral records|t
+trip_products|Admins and owners can manage trip products|t
+### 4 重跑 migration（應被 precheck 擋）
+psql:/tmp/20261018110005_p0_tenant_isolation_2a2.sql:36: ERROR:  PRECHECK 失敗：kol_referrals.Admins can delete kol referrals 的條件和預期不一致（或 policy 不存在），全部不修改
+CONTEXT:  PL/pgSQL function inline_code_block line 21 at RAISE
+exit=3
+### 5 rollback
+exit=0
+--- rollback 後 precheck
+kol_referrals|Admins can delete kol referrals|t
+kol_referrals|Admins can update kol referrals|t
+kol_referrals|Internal staff can insert kol referrals|t
+kol_referrals|Internal staff can view kol referrals|t
+line_binding_tokens|admins manage line_binding_tokens|t
+line_sessions|Admins can view line sessions|t
+order_attributions|order_attributions_select_admin|t
+order_attributions|order_attributions_update_admin|t
+owlting_fillup_tokens|Admins manage fillup tokens|t
+referral_records|Admins manage referral records|t
+trip_products|Admins and owners can manage trip products|t
+### 6 再套用
+exit=0
+--- postcheck
+kol_referrals|Admins can delete kol referrals|t
+kol_referrals|Admins can update kol referrals|t
+kol_referrals|Internal staff can insert kol referrals|t
+kol_referrals|Internal staff can view kol referrals|t
+line_binding_tokens|admins manage line_binding_tokens|t
+line_sessions|Admins can view line sessions|t
+order_attributions|order_attributions_select_admin|t
+order_attributions|order_attributions_update_admin|t
+owlting_fillup_tokens|Admins manage fillup tokens|t
+referral_records|Admins manage referral records|t
+trip_products|Admins and owners can manage trip products|t
+### 7 Windows \r\n 貼上模擬：postcheck（套用狀態）
+     11 t
+### 8 Windows \r\n 貼上模擬：precheck（暫時 rollback 後測，再重新套用）
+     11 t
+重新套用 exit=0
