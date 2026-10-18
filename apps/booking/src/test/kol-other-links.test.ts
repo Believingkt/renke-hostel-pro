@@ -64,3 +64,52 @@ describe("extractKolLinks / mergeKolLinks", () => {
     expect(kolLinkPlatform("https://blog.example.com/x")).toBe("other");
   });
 });
+
+describe("splitKolLinks 邊界", () => {
+  it("全形句號與中文緊接網址", () => {
+    const s = splitKolLinks("IG：https://www.instagram.com/abc。YT：https://www.youtube.com/@abc。");
+    expect(s.primary).toBe("https://www.instagram.com/abc");
+    expect(s.others).toEqual(["https://www.youtube.com/@abc"]);
+    expect(splitKolLinks("https://www.instagram.com/abc粉絲10萬 https://www.youtube.com/@abc").primary).toBe(
+      "https://www.instagram.com/abc",
+    );
+  });
+
+  it("半形逗號與｜分隔", () => {
+    expect(splitKolLinks("https://www.instagram.com/abc,https://www.youtube.com/@abc").others).toEqual([
+      "https://www.youtube.com/@abc",
+    ]);
+    expect(splitKolLinks("https://www.instagram.com/abc｜https://www.tiktok.com/@abc").others).toEqual([
+      "https://www.tiktok.com/@abc",
+    ]);
+  });
+
+  it("同帳號貼兩次清成 1 個", () => {
+    expect(splitKolLinks("https://www.youtube.com/@ABC https://youtube.com/@abc")).toEqual({
+      primary: "https://www.youtube.com/@ABC",
+      others: [],
+      split: true,
+    });
+  });
+
+  it("IG：純帳號不會被丟掉", () => {
+    const s = splitKolLinks("IG：abc YT：https://www.youtube.com/@abc");
+    expect(s.primary).toBe("https://www.instagram.com/abc");
+    expect(s.others).toEqual(["https://www.youtube.com/@abc"]);
+  });
+
+  it("TikTok 影片不當主連結", () => {
+    const s = splitKolLinks("https://www.tiktok.com/@abc/video/1 https://www.facebook.com/abc");
+    expect(s.primary).toBe("https://www.facebook.com/abc");
+  });
+
+  it("純帳號主欄位會排除同一個 IG 網址", () => {
+    expect(mergeKolLinks([], ["https://www.instagram.com/amile77"], "amile77")).toEqual([]);
+  });
+
+  it("FB profile.php 只看 id 去重", () => {
+    expect(
+      mergeKolLinks(["https://www.facebook.com/profile.php?id=1"], ["https://facebook.com/profile.php?id=1&ref=x"]),
+    ).toHaveLength(1);
+  });
+});

@@ -1675,6 +1675,11 @@ function InvitationsTab({
       toast.error("請輸入 IG 帳號");
       return;
     }
+    if (splitKolLinks(form.ig_handle).split) {
+      setForm((prev) => withSplitLinks(prev));
+      toast.info("網紅帳號連結有多個連結，已自動拆到「其他平台連結」，請確認後再儲存");
+      return;
+    }
     if (!form.invited_at) {
       const ok = window.confirm("填寫日期尚未填寫，此 KOL 將不會列入邀約目標統計，確定要繼續儲存嗎？");
       if (!ok) return;
@@ -2058,7 +2063,7 @@ function InvitationsTab({
       (v) => v.accommodation_id === opts.accommodationId && !v.room_type_id,
     );
     setEditingId(null);
-    setForm({
+    setForm(withSplitLinks({
       ...EMPTY_FORM,
       primary_profile_id: opts.primaryId,
       primary_link_exception: false,
@@ -2072,7 +2077,7 @@ function InvitationsTab({
       scout_id: opts.scoutId || currentUserId,
       check_in_date: "",
       check_out_date: "",
-    });
+    }));
     setProspectLink(null);
     setSheetOpen(true);
   };
@@ -3414,7 +3419,7 @@ function InvitationsTab({
                   excludeId={editingId}
                   onChange={(v) => setForm({ ...form, name: v })}
                   onPick={(s) =>
-                    setForm((prev) => ({
+                    setForm((prev) => withSplitLinks({
                       ...prev,
                       name: s.name ?? prev.name,
                       ig_handle: prev.ig_handle || s.ig_handle || "",
@@ -3459,19 +3464,27 @@ function InvitationsTab({
                   )}
               </Field>
               <Field label="網紅帳號連結 *" anchorId="kolf-ig">
+                <div onBlur={() => setForm((prev) => withSplitLinks(prev))}>
                 <KolSuggestInput
                   field="ig_handle"
                   value={form.ig_handle}
                   excludeId={editingId}
-                  onChange={(v) => setForm((prev) => withSplitLinks({ ...prev, ig_handle: v, links_moved: 0 }))}
+                  onChange={(v) =>
+                    setForm((prev) => {
+                      const next = { ...prev, ig_handle: v, links_moved: 0 };
+                      // 只在一次貼上多個字時自動拆，手打途中不拆（離開欄位時再拆）
+                      return v.length - prev.ig_handle.length > 1 ? withSplitLinks(next) : next;
+                    })
+                  }
                   onPick={(s) =>
-                    setForm((prev) => ({
+                    setForm((prev) => withSplitLinks({
                       ...prev,
                       ig_handle: s.ig_handle ?? prev.ig_handle,
                       name: prev.name || s.name || "",
                     }))
                   }
                 />
+                </div>
                 <div className="mt-1 text-xs text-muted-foreground" data-testid="kol-ig-primary-hint">
                   請貼 1 個個人主頁（建議 IG）；其他平台請填在下方「其他平台連結」
                 </div>
