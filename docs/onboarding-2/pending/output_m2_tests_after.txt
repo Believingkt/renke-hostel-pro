@@ -1,0 +1,35 @@
+case_no|expect|actual|pass
+partnership 10 hotel_admin 讀本館|count=1|count=1|t
+partnership 11 hotel_admin 讀別館|count=0|count=0|t
+partnership 12 owner 讀本館|count=1|count=1|t
+partnership 13 hotel_admin 改本館|OK rows=0|OK rows=0|t
+partnership 14 hotel_admin 新增|ERR [42501]|ERR [42501]|t
+partnership 15 finance 讀全部|count=2|count=2|t
+partnership 16 super_admin 改|OK rows=2|OK rows=2|t
+remarketing_campaigns 01 hotel_admin 讀|count=0|count=0|t
+remarketing_campaigns 02 owner 讀|count=0|count=0|t
+remarketing_campaigns 03 hotel_admin 改|OK rows=0|OK rows=0|t
+remarketing_campaigns 04 hotel_admin 刪|OK rows=0|OK rows=0|t
+remarketing_campaigns 05 super_admin 讀|count=1|count=1|t
+remarketing_campaigns 06 全域 admin 讀|count=1|count=1|t
+remarketing_campaigns 07 全域 admin 改|OK rows=1|OK rows=1|t
+remarketing_campaigns 09 hotel_admin 新增|ERR [42501]|ERR [42501]|t
+remarketing_sends 01 hotel_admin 讀|count=0|count=0|t
+remarketing_sends 02 owner 讀|count=0|count=0|t
+remarketing_sends 03 hotel_admin 改|OK rows=0|OK rows=0|t
+remarketing_sends 04 hotel_admin 刪|OK rows=0|OK rows=0|t
+remarketing_sends 05 super_admin 讀|count=1|count=1|t
+remarketing_sends 06 全域 admin 讀|count=1|count=1|t
+remarketing_sends 07 全域 admin 改|OK rows=1|OK rows=1|t
+traveler_profiles 01 hotel_admin 讀|count=0|count=0|t
+traveler_profiles 02 owner 讀|count=0|count=0|t
+traveler_profiles 03 hotel_admin 改|OK rows=0|OK rows=0|t
+traveler_profiles 04 hotel_admin 刪|OK rows=0|OK rows=0|t
+traveler_profiles 05 super_admin 讀|count=1|count=1|t
+traveler_profiles 06 全域 admin 讀|count=1|count=1|t
+traveler_profiles 07 全域 admin 改|OK rows=1|OK rows=1|t
+traveler_profiles 08 hotel_admin 新增|ERR [42501]|ERR [42501]|t
+(30 rows)
+passed|failed
+30|0
+(1 row)

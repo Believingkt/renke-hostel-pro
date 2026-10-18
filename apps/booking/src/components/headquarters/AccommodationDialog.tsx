@@ -61,10 +61,10 @@ interface AccommodationDialogProps {
 }
 
 // URL path validation regex: lowercase letters, numbers, hyphens, 3-30 chars
-const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$/;
+export const SUBDOMAIN_REGEX = /^[a-z0-9]([a-z0-9-]{1,28}[a-z0-9])?$/;
 
 // Reserved paths used by the booking portal routing — cannot be used as alias
-const RESERVED_PATHS = new Set([
+export const RESERVED_PATHS = new Set([
   "admin", "auth", "hq", "hq-auth", "headquarters", "booking", "book",
   "member", "ai-booking", "order-search", "order-payment", "payment",
   "payment-result", "linepay", "public-payment", "pay", "profile",
@@ -680,6 +680,14 @@ export function AccommodationDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // 新館必填：業者登入 PMS 時用這個代號選館（PmsLogin 會略過沒有代號的館）
+    if (!isEditing && !formData.short_url_alias) {
+      toast.error("請填寫網址路徑（PMS 代號）", {
+        description: "新館必填，業者登入 PMS 時要用這個代號選館",
+      });
+      return;
+    }
+
     // Validate path if provided
     if (formData.short_url_alias) {
       if (!SUBDOMAIN_REGEX.test(formData.short_url_alias)) {
@@ -858,6 +866,7 @@ export function AccommodationDialog({
                     <Label htmlFor="short_url_alias" className="flex items-center gap-2 text-sm font-medium">
                       <Globe className="h-4 w-4 text-muted-foreground" />
                       自訂網址路徑
+                      {!isEditing && <span className="text-destructive" data-testid="alias-required-mark">*</span>}
                     </Label>
                     <div className="flex items-stretch rounded-md border border-input bg-background overflow-hidden focus-within:ring-2 focus-within:ring-ring">
                       <span className="flex items-center px-3 text-sm text-muted-foreground bg-muted/50 whitespace-nowrap font-medium border-r border-input">

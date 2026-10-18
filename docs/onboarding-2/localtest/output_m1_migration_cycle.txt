@@ -1,0 +1,30 @@
+### 1 precheck
+owlting_email_room_alias|owlting_room_alias_admin_all|t
+owlting_room_type_rate_plans|Admins manage owlting room type rate plans|t
+referral_campaigns|Admins manage campaigns|t
+(18 rows)
+### 2 apply
+SELECT 688
+DO
+DO
+DO
+COMMIT
+exit=0
+### 3 postcheck
+t|p|matches
+group_buy_campaign_notification_settings|Managers can delete campaign notification settings|t
+(18 rows)
+(0 rows)
+### 4 重跑 migration（應被 precheck 擋）
+PRECHECK 失敗：group_buy_campaign_notification_settings.Managers can delete campaign notification settings 的條件和預期不一致（或 policy 不存在），全部不修改
+### 5 rollback
+DO
+DO
+COMMIT
+### 6 rollback 後 precheck
+18
+### 7 再套用
+DO
+DO
+COMMIT
+18

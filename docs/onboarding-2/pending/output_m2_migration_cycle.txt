@@ -1,0 +1,19 @@
+### 1 precheck
+traveler_profiles|Admins can update traveler profiles|t
+traveler_profiles|Admins can view traveler profiles|t
+(8 rows)
+### 2 apply
+DO
+DO
+DO
+COMMIT
+### 3 postcheck
+8
+### 4 重跑（應被擋）
+PRECHECK 失敗：accommodation_partnership_periods.partnership_periods_select_scoped 的條件和預期不一致（或 policy 不存在）
+### 5 rollback
+COMMIT
+8
+### 6 再套用
+COMMIT
+8

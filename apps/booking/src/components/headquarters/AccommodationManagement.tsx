@@ -52,6 +52,7 @@ import { AccommodationHoverCard } from "./AccommodationHoverCard";
 import { THEME_COLORS } from "@lakeze/shared/constants/themes";
 import { useAuditLog } from "@lakeze/shared/hooks/use-audit-log";
 import { cloneTemplatesForAccommodation } from "@/lib/onboarding/cloneTemplates";
+import { RESERVED_PATHS, SUBDOMAIN_REGEX } from "@/components/headquarters/AccommodationDialog";
 import {
   DndContext,
   closestCenter,
@@ -136,6 +137,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const [cloneDialogOpen, setCloneDialogOpen] = useState(false);
   const [cloningAccommodation, setCloningAccommodation] = useState<Accommodation | null>(null);
   const [cloneName, setCloneName] = useState("");
+  const [cloneAlias, setCloneAlias] = useState("");
   const [isCloning, setIsCloning] = useState(false);
   const [cloneProgress, setCloneProgress] = useState(0);
   const [cloneStep, setCloneStep] = useState("");
@@ -529,6 +531,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
   const openCloneDialog = (accommodation: Accommodation) => {
     setCloningAccommodation(accommodation);
     setCloneName(`${accommodation.name} (複製)`);
+    setCloneAlias("");
     setCloneDialogOpen(true);
   };
 
@@ -583,6 +586,32 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
 
   const handleClone = async () => {
     if (!cloningAccommodation || !cloneName.trim()) return;
+    const alias = cloneAlias.trim();
+    if (!alias) {
+      toast.error("請填寫網址路徑（PMS 代號）", { description: "新館必填，業者登入 PMS 時要用這個代號選館" });
+      return;
+    }
+    if (!SUBDOMAIN_REGEX.test(alias)) {
+      toast.error("網址路徑格式錯誤", { description: "請使用小寫英文、數字和連字號，長度 3-30 字元" });
+      return;
+    }
+    if (RESERVED_PATHS.has(alias)) {
+      toast.error("此路徑為系統保留字", { description: "請使用其他名稱（避免使用 admin、auth、booking 等）" });
+      return;
+    }
+    const { data: taken, error: aliasErr } = await supabase
+      .from("accommodation_info")
+      .select("id")
+      .ilike("short_url_alias", alias)
+      .limit(1);
+    if (aliasErr) {
+      toast.error("無法檢查網址路徑，請稍後再試", { description: aliasErr.message });
+      return;
+    }
+    if (taken && taken.length > 0) {
+      toast.error("此網址路徑已被使用", { description: `booking.lakeze.com/${alias} 已被其他民宿使用，請更換` });
+      return;
+    }
 
     setIsCloning(true);
     setCloneProgress(0);
@@ -621,12 +650,16 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
           email: cloningAccommodation.email,
           description: cloningAccommodation.description,
           theme_preset: "default", // 一律使用人客多橘色
+          short_url_alias: alias,
           is_active: false,
         })
         .select("id")
         .single();
 
-      if (createError) throw createError;
+      if (createError) {
+        if (createError.code === "23505") throw new Error(`booking.lakeze.com/${alias} 已被其他民宿使用，請更換`);
+        throw createError;
+      }
       const newId = newAccommodation.id;
       await insertNewAccommodationFlags(newId);
       setCloneProgress(5);
@@ -818,6 +851,7 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
       setCloneDialogOpen(false);
       setCloningAccommodation(null);
       setCloneName("");
+      setCloneAlias("");
       setCloneProgress(0);
       setCloneStep("");
       onRefresh();
@@ -1037,6 +1071,24 @@ export const AccommodationManagement = forwardRef<AccommodationManagementRef, Ac
                 placeholder="請輸入新民宿名稱"
                 disabled={isCloning}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cloneAlias">
+                網址路徑（PMS 代號）<span className="text-destructive">*</span>
+              </Label>
+              <div className="flex items-stretch rounded-md border border-input overflow-hidden">
+                <span className="flex items-center px-3 text-sm text-muted-foreground bg-muted/50 border-r border-input">booking.lakeze.com/</span>
+                <Input
+                  id="cloneAlias"
+                  value={cloneAlias}
+                  onChange={(e) => setCloneAlias(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                  placeholder="例如 my-villa"
+                  className="border-0 rounded-none focus-visible:ring-0"
+                  disabled={isCloning}
+                  data-testid="clone-alias-input"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">小寫英文、數字和連字號，3-30 字元；業者登入 PMS 時用這個代號選館</p>
             </div>
             
             {isCloning ? (
