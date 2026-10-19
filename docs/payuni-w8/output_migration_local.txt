@@ -1,0 +1,47 @@
+== 初始：table=false；policy=0；index=0
+== 套用
+ok
+table=true；policy=1；index=5
+== 欄位／唯一鍵
+id:uuid!, accommodation_id:uuid!, mer_id:text!, query_date:date!, row_seq:integer!, trade_date:date, mer_trade_no:text, trade_no:text, payment_type:text, bank_channel:text, payment_date:text, payment_info:text, execute_amt:integer, fee:integer, action:text, funds_amt:integer, type:text, match_status:text!, payment_tx_id:uuid, order_id:uuid, raw:jsonb!, synced_at:timestamp with time zone!
+payuni_grant_records_dedupe_key UNIQUE (mer_id, query_date, row_seq)
+== 權限
+SELECT anon=false authenticated=true service_role=true
+INSERT anon=false authenticated=false service_role=true
+UPDATE anon=false authenticated=false service_role=true
+DELETE anon=false authenticated=false service_role=true
+rls=true
+== 重跑（IF NOT EXISTS）
+exit=0
+table=true；policy=1；index=5
+== 去重鍵：同鍵 upsert 覆蓋；同額兩筆不同 row_seq 都保留；row_seq 負數被擋
+同額提領費 2 筆 + B 館 1 筆 = 3
+ERROR:  duplicate key value violates unique constraint "payuni_grant_records_dedupe_key"
+DETAIL:  Key (mer_id, query_date, row_seq)=(M1, 2026-11-01, 0) already exists.
+ERROR:  new row for relation "payuni_grant_records" violates check constraint "payuni_grant_records_row_seq_check"
+DETAIL:  Failing row contains (4134922c-537f-4a4a-b8a7-67336b96dbc1, aaaaaaaa-0000-4000-8000-000000000001, M1, 2026-11-02, -1, null, null, null, null, null, null, null, null, null, null, null, null, matched, null, null, {}, 2026-10-19 13:45:44.517899+00).
+ERROR:  new row for relation "payuni_grant_records" violates check constraint "payuni_grant_records_match_status_check"
+DETAIL:  Failing row contains (3a13e223-1d4c-40b9-96e4-c34e33c67775, aaaaaaaa-0000-4000-8000-000000000001, M1, 2026-11-02, 0, null, null, null, null, null, null, null, null, null, null, null, null, bogus, null, null, {}, 2026-10-19 13:45:44.517899+00).
+== RLS（authenticated + request.jwt.claim.sub）
+A館 hotel_admin（應 2 筆、M1） 可讀筆數=2 館=M1
+A館 staff（應 0） 可讀筆數=0 館=-
+super_admin（應 3 筆） 可讀筆數=3 館=M1,M2
+無角色（應 0） 可讀筆數=0 館=-
+anon：permission denied for table payuni_grant_records
+super_admin 寫入：permission denied for table payuni_grant_records
+service_role 寫入 ok
+== rollback
+ok
+table=false；policy=0；index=0
+== 再套用
+ok
+table=true；policy=1；index=5
+== accommodation_info／payment_transactions 被 ACCESS EXCLUSIVE 鎖住時從零套用（不應受影響）
+exit=0 耗時=99 ms；table=true；policy=1；index=5
+== 重跑時 payuni_grant_records 正被讀取 15 秒（RLS 已開不再 ALTER，其餘語句不需強鎖，應立即成功）
+exit=0 耗時=48 ms
+== 從零套用時 pg_policy 被持 ACCESS EXCLUSIVE（模擬拿不到鎖：應約 3 秒失敗、無部分變更）
+exit=3 耗時=3101 ms；錯誤=canceling statement due to lock timeout；table=false；policy=0；index=0
+== 結束後再套用一次
+ok
+table=true；policy=1；index=5

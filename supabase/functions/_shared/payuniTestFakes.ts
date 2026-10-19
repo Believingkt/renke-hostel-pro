@@ -7,7 +7,7 @@ const match = (r: Row, fs: Filter[]) =>
   fs.every((f) => f.op === "eq" ? r[f.col] === f.val
     : f.op === "neq" ? r[f.col] !== f.val
     : f.op === "in" ? (f.val as any[]).includes(r[f.col])
-    : f.op === "gte" ? String(r[f.col]) >= String(f.val)
+    : f.op === "gte" ? (typeof r[f.col] === "number" && typeof f.val === "number" ? r[f.col] >= f.val : String(r[f.col]) >= String(f.val))
     : f.op === "lt" ? String(r[f.col]) < String(f.val)
     : f.op === "lte" ? r[f.col] != null && String(r[f.col]) <= String(f.val)
     : f.op === "is" ? (r[f.col] ?? null) === f.val
@@ -72,10 +72,13 @@ export class FakeDb {
             return { data: wantSingle ? (hit[0] ? { id: hit[0].id } : null) : null, error: null };
           }
           if (mode === "upsert") {
-            const existing = rows.find((r) => r[onConflict] === values[onConflict]);
-            if (existing) Object.assign(existing, structuredClone(values));
-            else rows.push(structuredClone(values));
-            db.writes.push({ table, op: "upsert", values: structuredClone(values) });
+            const keys = onConflict.split(",").map((k) => k.trim());
+            for (const v of Array.isArray(values) ? values : [values]) {
+              const existing = rows.find((r) => keys.every((k) => r[k] === v[k]));
+              if (existing) Object.assign(existing, structuredClone(v));
+              else rows.push(structuredClone(v));
+              db.writes.push({ table, op: "upsert", values: structuredClone(v) });
+            }
             return { data: null, error: null };
           }
           const hit = rows.filter((r) => match(r, filters)).map((r) => structuredClone(r));

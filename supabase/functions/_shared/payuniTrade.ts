@@ -81,6 +81,37 @@ export function extractQueryResult(d: Record<string, string> | undefined): Recor
   return Object.keys(out).length ? out : null;
 }
 
+const parseJson = (v: unknown) => { try { return typeof v === "string" ? JSON.parse(v) : null; } catch { return null; } };
+const strRecord = (o: Record<string, unknown>) =>
+  Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v == null ? "" : String(v)])) as Record<string, string>;
+
+/** 取全部筆數（W8 撥款查詢）：Result[n][欄位] 平鋪、Result 為 JSON 陣列字串，或只有單筆平鋪；依 n 排序 */
+export function extractQueryResults(d: Record<string, string> | undefined): Record<string, string>[] {
+  if (!d) return [];
+  const nested = parseJson(d.Result);
+  if (Array.isArray(nested)) return nested.filter((r) => r && typeof r === "object").map(strRecord);
+  if (nested && typeof nested === "object") return Object.keys(nested).sort((a, b) => Number(a) - Number(b)).map((k) => strRecord(nested[k]));
+  const byIdx = new Map<number, Record<string, string>>();
+  for (const [k, v] of Object.entries(d)) {
+    const m = /^Result\[(\d+)\]\[(\w+)\]$/.exec(k);
+    if (!m) continue;
+    const i = Number(m[1]);
+    if (!byIdx.has(i)) byIdx.set(i, {});
+    byIdx.get(i)![m[2]] = v;
+  }
+  if (byIdx.size) return [...byIdx.keys()].sort((a, b) => a - b).map((i) => byIdx.get(i)!);
+  return d.TradeNo != null || d.MerTradeNo != null ? [d] : [];
+}
+
+/** PageInfo[Current]／PageInfo[Total]，或 PageInfo 為 JSON 字串 */
+export function extractPageInfo(d: Record<string, string> | undefined): { current: number | null; total: number | null } {
+  const n = (v: unknown) => (v == null || String(v).trim() === "" || !Number.isFinite(Number(v)) ? null : Number(v));
+  if (!d) return { current: null, total: null };
+  const j = parseJson(d.PageInfo);
+  if (j && typeof j === "object") return { current: n(j.Current), total: n(j.Total) };
+  return { current: n(d["PageInfo[Current]"]), total: n(d["PageInfo[Total]"]) };
+}
+
 export interface TradeDeps {
   admin: any;
   effects: PaymentSuccessEffects;

@@ -25,6 +25,7 @@ import { PaymentAuditResolveDialog, type ResolveTarget } from "@/components/admi
 import { PaymentAuditActionLog } from "@/components/admin/PaymentAuditActionLog";
 import { PayuniStatusCard } from "@/components/admin/PayuniStatusCard";
 import { PayuniTxAuditCard } from "@/components/admin/PayuniTxAuditCard";
+import { PayuniGrantRecordsCard } from "@/components/admin/PayuniGrantRecordsCard";
 
 
 
@@ -315,6 +316,7 @@ export default function PaymentAudit() {
     >
       <PayuniStatusCard accommodationId={currentAccommodationId} />
       <PayuniTxAuditCard accommodationId={currentAccommodationId} />
+      <PayuniGrantRecordsCard accommodationId={currentAccommodationId} />
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">

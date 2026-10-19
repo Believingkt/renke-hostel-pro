@@ -1,0 +1,9 @@
+# W8 本機測試摘要
+Deno payuniGrant_test.ts：8 passed
+Deno _shared 全部：ok | 263 passed | 0 failed | 12 ignored (11s)（W6 時 255，+8 為本批）
+deno check payuni-grant-sync/index.ts：ok
+ Test Files  7 failed | 172 passed | 1 skipped (180)
+      Tests  23 failed | 1910 passed | 8 skipped (1941)
+失敗檔案與失敗題目和 docs/onboarding-4/localtest/output_vitest_tsc_build.txt 逐行相同（diff 無差異）
+tsc（apps/booking）：2 個既有錯誤（discount-cheaper-rule.test.ts），未增加
+vite build：成功
