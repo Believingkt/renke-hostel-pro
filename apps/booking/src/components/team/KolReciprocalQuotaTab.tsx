@@ -583,14 +583,14 @@ export function KolReciprocalQuotaTab({
               <div>
                 <div className="font-medium">你可編輯的館別範圍</div>
                 <div className="text-xs text-muted-foreground">
-                  依你的 AM 負責館別設定（am_managed_accommodation_ids）自動帶入，僅以下館別可檢視與編輯互惠額度。
+                  依你的權限自動帶入，僅以下館別可檢視與編輯互惠額度。
                 </div>
               </div>
             </div>
             {accListLoading ? (
               <div className="text-xs text-muted-foreground">載入中…</div>
             ) : accList.length === 0 ? (
-              <div className="text-xs text-amber-600">尚未指派任何負責館別，請聯繫主管設定。</div>
+              <div className="text-xs text-amber-600">目前沒有可編輯的館別，請聯繫主管。</div>
             ) : (
               <div className="flex flex-wrap gap-1">
                 {accList.map((a) => (

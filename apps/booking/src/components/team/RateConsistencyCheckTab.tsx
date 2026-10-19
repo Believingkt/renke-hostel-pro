@@ -124,6 +124,10 @@ export default function RateConsistencyCheckTab() {
 
   return (
     <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm" data-testid="rate-check-onboarding-banner">
+      <span>新館的負責 AM、KOL 場域、互惠額度、金流與本頁缺口，已整合到團隊後台「館別設定總覽」，可逐館直接設定。</span>
+      <a href="/team/onboarding" className="font-medium underline" data-testid="rate-check-onboarding-link">前往館別設定總覽</a>
+    </div>
     <Card>
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-2">

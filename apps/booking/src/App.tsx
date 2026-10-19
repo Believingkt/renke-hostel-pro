@@ -157,6 +157,8 @@ const TeamOrders = lazy(() => import("@/pages/team/TeamOrders"));
 const TeamMembers = lazy(() => import("@/pages/team/TeamMembers"));
 const TeamKOL = lazy(() => import("@/pages/team/TeamKOL"));
 const TeamKolVenueConfirm = lazy(() => import("@/pages/team/TeamKolVenueConfirm"));
+const TeamOnboarding = lazy(() => import("@/pages/team/TeamOnboarding"));
+const TeamOnboardingVenue = lazy(() => import("@/pages/team/TeamOnboardingVenue"));
 const TeamCommission = lazy(() => import("@/pages/team/TeamCommission"));
 const KolBonus = lazy(() => import("@/pages/team/KolBonus"));
 const KolBonusPublic = lazy(() => import("@/pages/team/KolBonusPublic"));
@@ -908,6 +910,12 @@ function App() {
                         } />
                         <Route path="members" element={
                           <Suspense fallback={null}><TeamMembers /></Suspense>
+                        } />
+                        <Route path="onboarding" element={
+                          <Suspense fallback={null}><TeamOnboarding /></Suspense>
+                        } />
+                        <Route path="onboarding/:accId" element={
+                          <Suspense fallback={null}><TeamOnboardingVenue /></Suspense>
                         } />
                         <Route path="kol" element={
                           <Suspense fallback={null}><TeamKOL /></Suspense>

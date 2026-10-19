@@ -483,31 +483,12 @@ function calcDayOfWeek(dateStr: string): string {
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
   const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
-  // AM／AM 主管可編輯互惠額度，但僅限其負責館別
+  // AM／AM 總管皆為職代協作，可編輯所有館別的互惠額度
   const isAmTeam = roles.includes("am") || roles.includes("am_manager");
   // scout 可唯讀檢視互惠額度（含切換館別），但不可編輯
   const canViewReciprocalQuota = isManager || isAmTeam || roles.includes("scout");
-  const [amManagedAccIds, setAmManagedAccIds] = useState<string[] | null>(null);
   const { currentAccommodationId } = useAccommodation();
 
-  useEffect(() => {
-    if (!isAmTeam || isManager || !userId) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("team_member_profiles")
-        .select("am_managed_accommodation_ids")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      const ids = (data as { am_managed_accommodation_ids?: string[] | null } | null)
-        ?.am_managed_accommodation_ids;
-      setAmManagedAccIds(Array.isArray(ids) ? ids.filter(Boolean) : []);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAmTeam, isManager, userId]);
 
   // 分頁狀態可由網址 ?tab= 帶入（小鈴鐺通知等外部連結會用到）
   const [searchParams] = useSearchParams();
@@ -681,9 +662,9 @@ export default function TeamKOL() {
         {canViewReciprocalQuota && (
           <TabsContent value="reciprocal_quota" className="mt-4">
             <KolReciprocalQuotaTab
-              isManager={isManager || (isAmTeam && (amManagedAccIds?.length ?? 0) > 0)}
+              isManager={isManager || isAmTeam}
               defaultAccommodationId={currentAccommodationId}
-              allowedAccommodationIds={isManager || !isAmTeam ? null : amManagedAccIds}
+              allowedAccommodationIds={null}
             />
           </TabsContent>
         )}

@@ -1903,7 +1903,7 @@ function AmVenueOverviewSection() {
       <CardHeader>
         <CardTitle className="flex items-center gap-1.5 text-base">AM 場域總覽<SettingImpactHint settingKey="am_venue_scope" /></CardTitle>
         <p className="text-sm text-muted-foreground">
-          逐館顯示目前負責的 AM（唯讀），如需調整請至成員管理設定
+          逐館顯示目前負責的 AM（唯讀），如需調整請至團隊「館別設定總覽」指定負責 AM
         </p>
       </CardHeader>
       <CardContent>
@@ -1943,12 +1943,12 @@ function AmVenueOverviewSection() {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" asChild title="前往成員管理設定">
+                      <Button variant="ghost" size="icon" asChild title="前往館別設定總覽">
                         <a
-                          href="/team/members"
+                          href={`/team/onboarding/${a.id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          aria-label="前往成員管理設定"
+                          aria-label="前往館別設定總覽"
                         >
                           <ExternalLink className="h-4 w-4" />
                         </a>

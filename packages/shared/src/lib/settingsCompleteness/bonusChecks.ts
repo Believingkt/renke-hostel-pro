@@ -48,6 +48,8 @@ export interface BonusVenueInput {
   }>;
   /** 在職成員的 AM 所轄館別 */
   amManagedIds: string[];
+  /** 標記「不需要負責 AM」的館別 */
+  amNotRequiredIds?: string[];
   venueClosingAccIds: string[];
   tierRuleAccIds: string[];
   /** 本月已設定互惠額度（quota > 0）的館別 */
@@ -74,8 +76,10 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
     venueClosingAccIds,
     tierRuleAccIds,
     kolQuotaAccIds,
+    amNotRequiredIds = [],
   } = input;
   const amSet = new Set(amManagedIds);
+  const amNotRequiredSet = new Set(amNotRequiredIds);
   const closingSet = new Set(venueClosingAccIds);
   const tierSet = new Set(tierRuleAccIds);
   const quotaSet = new Set(kolQuotaAccIds);
@@ -180,11 +184,14 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
 
     const amScope: CheckResult = amSet.has(a.id)
       ? { level: "ok", label: "已指派" }
-      : {
+      : amNotRequiredSet.has(a.id)
+        ? { level: "ok", label: "不需要負責 AM" }
+        : {
           level: "warn",
           label: "無 AM 負責",
-          target: "團隊成員管理 →「AM 所轄館別」",
-          fields: ["把此館加入某位在職 AM 的所轄館別"],
+          href: `/team/onboarding/${a.id}`,
+          target: "團隊後台 →「館別設定總覽」→ AM 區塊",
+          fields: ["指定一位負責 AM，或勾選「不需要負責 AM」"],
           hint: "沒有任何在職 AM 負責此館，AM 績效與 AM 場域獎金不會採計此館營收。",
         };
 

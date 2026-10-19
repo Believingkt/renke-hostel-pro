@@ -58,7 +58,7 @@ export const GAP_TARGETS: Record<GapKey, GapTarget> = {
   payoutBasis: { tab: "bonus" },
   closerRate: { tab: "bonus" },
   videoRate: { tab: "bonus" },
-  // AM 所轄館別在團隊成員管理頁，HQ 設定頁沒有對應卡片
+  // 負責 AM 在團隊「館別設定總覽」指定，HQ 設定頁沒有對應卡片
   amScope: { tab: null },
   venueClosing: { tab: "bonus" },
   tierRule: { tab: "venue-tiers", noAcc: true },
@@ -95,8 +95,8 @@ export function parseOwnerSettlementFocus(raw: string | null): OwnerSettlementFo
 export const HQ_ROLES = ["super_admin", "admin", "finance"];
 
 /** 團隊路徑的設定頁（不需 HQ 權限） */
-const TEAM_MEMBERS = "/team/members";
-const TEAM_KOL_QUOTA = "/team/kol?tab=reciprocal";
+export const TEAM_ONBOARDING = "/team/onboarding";
+const TEAM_KOL_QUOTA = "/team/kol?tab=reciprocal_quota";
 const TEAM_KOL_SETTINGS = "/team/kol?tab=settings";
 
 export interface GapAudienceRule {
@@ -118,7 +118,7 @@ export const GAP_AUDIENCE: Record<GapKey, GapAudienceRule> = {
   payoutBasis: { roles: ["am_manager", "finance"] },
   closerRate: { roles: ["closer_manager"] },
   videoRate: { roles: ["closer_manager"] },
-  amScope: { roles: ["am_manager"], teamHref: TEAM_MEMBERS },
+  amScope: { roles: ["am_manager"], teamHref: TEAM_ONBOARDING },
   venueClosing: { roles: ["closer_manager"] },
   tierRule: { roles: ["am_manager", "finance"] },
   kolQuota: { roles: ["scout_manager", "scout", "am_manager"], teamHref: TEAM_KOL_QUOTA },

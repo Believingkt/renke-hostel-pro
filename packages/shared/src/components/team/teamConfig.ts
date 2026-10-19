@@ -10,6 +10,7 @@ import {
   Users,
   Tag,
   MessageCircle,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -141,6 +142,12 @@ export const TEAM_MENU: TeamMenuItem[] = [
     ],
   },
   {
+    title: "館別設定總覽",
+    url: "/team/onboarding",
+    icon: Building2,
+    allowedRoles: ["super_admin", "admin", "finance", "am", "am_manager", "scout_manager", "closer_manager"],
+  },
+  {
     title: "成員管理",
     url: "/team/members",
     icon: Users,
@@ -164,6 +171,7 @@ export const TEAM_MENU: TeamMenuItem[] = [
 export const PAGE_TITLES: Record<string, string> = {
   "/team": "個人業績總覽",
   "/team/members": "成員管理",
+  "/team/onboarding": "館別設定總覽",
   "/team/kol/venue-confirm": "外部導購連結",
   "/team/kol": "KOL 星探管理",
   "/team/orders": "訂單補充資料",

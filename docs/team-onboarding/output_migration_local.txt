@@ -1,0 +1,118 @@
+== 套用前：resp=-；grants=-；hotel_admin=111
+Elaine 郭天妍(天天)=櫻家小築、淞湘卉館、雲岫海景渡假會館
+Synn 関詠心(心心)=哈庫納馬塔塔、四季山宿、旅行日-DAIDODO、旅行日-The Nomad Inn Osaka、旅行日-光、旅行日-十一鳴、旅行日-心齋之翼、旅行日-艾屋吉屋、森山寫照、良辰暖居
+== 套用
+NOTICE: 回填略過（館別已停用或成員不符合負責 AM 資格）：Synn 関詠心(心心)→旅行日-十一鳴、Synn 関詠心(心心)→旅行日-心齋之翼
+NOTICE: POSTCHECK 通過：負責 AM 11 筆、系統補開 hotel_admin 18 筆
+resp=11；grants=18；hotel_admin=129
+== 套用後 am_managed_accommodation_ids（只剩開賣中的負責館別）
+Elaine 郭天妍(天天)=櫻家小築、淞湘卉館、雲岫海景渡假會館
+Synn 関詠心(心心)=哈庫納馬塔塔、四季山宿、旅行日-DAIDODO、旅行日-The Nomad Inn Osaka、旅行日-光、旅行日-艾屋吉屋、森山寫照、良辰暖居
+== 系統補開的 hotel_admin
+Bella 王苑婷 → 奧莉薇雅生活小酒店、沐恩國際溫泉度假飯店、沐恩遠東溫泉度假飯店、淞湘卉館、測試館-上架引導、艾玹爾溫泉會館
+Elaine 郭天妍(天天) → 沐恩國際溫泉度假飯店、沐恩遠東溫泉度假飯店、測試館-上架引導、艾玹爾溫泉會館
+Ken 郭天銳 → 沐恩國際溫泉度假飯店、沐恩遠東溫泉度假飯店、測試館-上架引導、艾玹爾溫泉會館
+Synn 関詠心(心心) → 沐恩國際溫泉度假飯店、沐恩遠東溫泉度假飯店、測試館-上架引導、艾玹爾溫泉會館
+非系統開的 hotel_admin 筆數 = 套用前：111
+== 權限／RLS
+accommodation_am_settings rls=true policy=1 authenticated_select=true authenticated_insert=false
+accommodation_responsible_am rls=true policy=1 authenticated_select=true authenticated_insert=false
+am_hotel_admin_grants rls=true policy=0 authenticated_select=false authenticated_insert=false
+am_onboarding_migration_backup rls=true policy=0 authenticated_select=false authenticated_insert=false
+_am_can_be_responsible authenticated=false anon=false
+_am_collab_accommodation_ids authenticated=false anon=false
+_am_collab_user_ids authenticated=false anon=false
+_am_end_responsible authenticated=false anon=false
+_am_refresh_user authenticated=false anon=false
+_am_sync_profile_arrays authenticated=false anon=false
+_am_trg_accommodation authenticated=false anon=false
+_am_trg_profiles authenticated=false anon=false
+_am_trg_user_roles authenticated=false anon=false
+sync_am_hotel_admin authenticated=false anon=false
+team_onboarding_am_members authenticated=true anon=false
+team_onboarding_can_assign_am authenticated=true anon=false
+team_onboarding_can_view authenticated=true anon=false
+team_onboarding_overview authenticated=true anon=false
+team_set_am_not_required authenticated=true anon=false
+team_set_responsible_am authenticated=true anon=false
+== RPC／同步行為（每項獨立交易、測完 ROLLBACK）
+-- AM 總管 Ken 指定 天送幸福和苑 → Bella
+{"ok": true, "changed": true, "member_id": "2443f62f-95c5-5fb5-b2aa-3caabba9d450", "previous_member_id": null}
+Bella 陣列：天送幸福和苑
+audit=1
+-- Ken 把 哈庫納馬塔塔 從 Synn 換成 Bella（舊的結束為 replaced，Synn 少一館）
+{"ok": true, "changed": true, "member_id": "2443f62f-95c5-5fb5-b2aa-3caabba9d450", "previous_member_id": "c386a672-09ab-51f1-9c85-ed785435aefe"}
+Synn 館數=7
+history=replaced,current
+-- 一般 AM Synn 指定負責 AM → 應拒絕
+ERROR:  只有 AM 總管或總部管理員可以指定負責 AM
+CONTEXT:  PL/pgSQL function team_set_responsible_am(uuid,uuid) line 12 at RAISE
+-- 指定 AM 總管 Ken 為負責 AM → 應拒絕
+ERROR:  只能指定在職、具 AM 角色的成員（AM 總管只領 AM 總管獎金，不能擔任負責 AM）
+CONTEXT:  PL/pgSQL function team_set_responsible_am(uuid,uuid) line 35 at RAISE
+-- 指定到已停用館別（十一鳴）→ 應拒絕
+ERROR:  已停用的館別不能指定負責 AM（停用時系統會自動取消負責人）
+CONTEXT:  PL/pgSQL function team_set_responsible_am(uuid,uuid) line 32 at RAISE
+-- 上架中的新館（測試館-上架引導）可以指定；未開賣前不算進陣列
+{"ok": true, "changed": true, "member_id": "2443f62f-95c5-5fb5-b2aa-3caabba9d450", "previous_member_id": null}
+Bella 陣列=∅
+-- 直接寫 am_managed_accommodation_ids（super_admin）→ 應拒絕
+ERROR:  負責館別改由「館別設定總覽」指定負責 AM，系統會自動同步（am_managed_accommodation_ids 不能直接修改）
+CONTEXT:  PL/pgSQL function enforce_am_managed_accommodations() line 16 at RAISE
+-- 直接 INSERT 負責 AM 表（super_admin）→ 應拒絕
+ERROR:  permission denied for table accommodation_responsible_am
+-- 一館兩位負責 AM（唯一索引）→ 應拒絕
+ERROR:  duplicate key value violates unique constraint "accommodation_responsible_am_current_key"
+DETAIL:  Key (accommodation_id)=(dab37a11-b6c5-5a0b-85d0-745ed364fa3f) already exists.
+-- 不需要負責 AM：有負責人時拒絕；沒有時可標記，之後指定負責人會自動取消標記
+{"ok": true, "am_not_required": true}
+{"ok": true, "changed": true, "member_id": "2443f62f-95c5-5fb5-b2aa-3caabba9d450", "previous_member_id": null}
+not_required=false
+ERROR:  此館已有負責 AM，請先取消負責人再標記「不需要負責 AM」
+CONTEXT:  PL/pgSQL function team_set_am_not_required(uuid,boolean) line 18 at RAISE
+-- 館別停用（森山寫照）→ 負責 AM 自動結束、Synn 陣列少一館、hotel_admin 不收回
+end_reason=accommodation_inactive
+Synn 館數=7
+hotel_admin 仍在=9
+-- AM 總管 Ken 移除 Bella 的 am 角色 → 只收回系統開的 hotel_admin
+Bella 套用前 hotel_admin=17
+Bella 之後 hotel_admin=11（應 = 手動開的筆數）|grants=0
+-- Synn 失去 am 角色 → 負責 AM 全部結束（member_not_eligible）
+Synn 仍負責=0
+Synn 陣列=NULL
+-- Ken 幫新成員加 am 角色 → 自動開全部可協作館別的 hotel_admin；同交易內 Ken 加 hotel_admin 仍被擋（旗標已還原）
+新AM hotel_admin=17／可協作館別=17
+ERROR:  主管僅能操作 am 角色（全域）的記錄
+CONTEXT:  PL/pgSQL function enforce_manager_scoped_user_roles() line 53 at RAISE
+-- 成員檔停用 Elaine → 負責結束、系統開的收回
+Elaine 仍負責=0
+-- 新增館別（上架中）→ 全體 AM 自動取得 hotel_admin
+新館 hotel_admin=4／職代人數=4
+-- HQ 手動刪掉系統開的 hotel_admin → grants 同步刪除
+grants=0
+-- am_manages_accommodation：Bella（職代）可管哈庫納、Joyce（非 AM）不行
+Bella=true Joyce=false
+-- 總覽 RPC（Synn 可看）
+哈庫納馬塔塔｜負責=Synn 関詠心(心心)｜AM權限 4/4｜其他=Berry 廖士均、Dodo 許翊潔、Joyce 陳香吟+2｜KOL=true｜額度=4
+沐恩國際溫泉度假飯店｜負責=—｜AM權限 4/4｜其他=—+0｜KOL=—｜額度=0
+旅行日-十一鳴｜負責=—｜AM權限 0/4｜其他=Joyce 陳香吟+0｜KOL=—｜額度=0
+am_members=Bella 王苑婷(可負責)、Elaine 郭天妍(天天)(可負責)、Ken 郭天銳、Synn 関詠心(心心)(可負責)
+-- 總覽 RPC（Joyce 非 onboarding 角色）→ 應拒絕
+ERROR:  Forbidden
+CONTEXT:  PL/pgSQL function team_onboarding_overview() line 7 at RAISE
+-- 負責 AM 表 RLS：Synn 可讀、Joyce 讀不到
+Synn 可讀=11
+Joyce 可讀=0
+== 重跑（應被 precheck 擋下）
+PRECHECK 失敗：accommodation_responsible_am 已存在，疑似已套用過本 migration
+== rollback
+rollback ok；resp=-；grants=-；hotel_admin=111
+hotel_admin 與套用前相同：是
+am_managed_accommodation_ids 與套用前相同：是
+== 只有讀取 user_roles 的長交易時套用（讀取不會被擋、應立即成功）
+exit=0 耗時=123 ms；resp=11；grants=18；hotel_admin=129
+== user_roles 有未提交的寫入 15 秒時套用（應約 3 秒失敗、無部分變更）
+ERROR:  canceling statement due to lock timeout
+exit=3 耗時=3093 ms；resp=-；grants=-；hotel_admin=111
+== 鎖釋放後再套用
+ok；resp=11；grants=18；hotel_admin=129

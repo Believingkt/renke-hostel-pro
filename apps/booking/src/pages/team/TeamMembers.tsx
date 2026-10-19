@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { useTeam } from "@lakeze/shared/components/team/TeamContext";
 import { TEAM_ROLES, type TeamRole } from "@lakeze/shared/components/team/teamConfig";
@@ -611,8 +612,6 @@ export default function TeamMembers() {
             is_active: editActive,
             resigned_at: editResignedAt || null,
             managed_venue: wantsVenueManager && editVenues.length > 0 ? editVenues : null,
-            am_managed_accommodation_ids:
-              editRoles.includes("am" as TeamRole) && editAmAccommodations.length > 0 ? editAmAccommodations : null,
             is_scout_team_member: isScoutLike ? editScoutTeam : false,
             employment_type: editRoles.includes("scout") && editFulltime ? "fulltime" : "parttime",
             fulltime_start_yearmonth: nextFulltimeYM,
@@ -975,8 +974,8 @@ export default function TeamMembers() {
                         {displayRoles(m).includes("am" as TeamRole) &&
                           m.am_managed_accommodation_ids &&
                           m.am_managed_accommodation_ids.length > 0 && (
-                            <span className="text-xs text-muted-foreground ml-1">
-                              {m.am_managed_accommodation_ids
+                            <span className="text-xs text-muted-foreground ml-1" data-testid={`member-responsible-accs-${m.id}`}>
+                              負責：{m.am_managed_accommodation_ids
                                 .map((id) => accommodations.find((a) => a.id === id)?.name)
                                 .filter(Boolean)
                                 .join(", ")}
@@ -1091,63 +1090,24 @@ export default function TeamMembers() {
                       )}
                     </div>
                   )}
-                  {wantsAM && canEditAll && (
-                    <div className="space-y-2 pt-2">
-                      <Label>管理場域（可多選）</Label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto border rounded-md p-2">
-                        {(() => {
-                          const travelIds = accommodations
-                            .filter((a) => a.name.startsWith("旅行日"))
-                            .map((a) => a.id);
-                          const allTravelChecked =
-                            travelIds.length > 0 &&
-                            travelIds.every((id) => editAmAccommodations.includes(id));
-                          if (travelIds.length === 0) return null;
-                          return (
-                            <label className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer bg-muted/30 hover:bg-muted/50 sm:col-span-2">
-                              <Checkbox
-                                checked={allTravelChecked}
-                                onCheckedChange={() =>
-                                  setEditAmAccommodations((prev) =>
-                                    allTravelChecked
-                                      ? prev.filter((id) => !travelIds.includes(id))
-                                      : Array.from(new Set([...prev, ...travelIds])),
-                                  )
-                                }
-                              />
-                              <span className="text-sm font-medium">旅行日（全系列）</span>
-                            </label>
-                          );
-                        })()}
-                        {accommodations.map((acc) => (
-                          <label
-                            key={acc.id}
-                            className="flex items-center gap-2 border rounded-md px-2 py-1.5 cursor-pointer hover:bg-muted/50"
-                          >
-                            <Checkbox
-                              checked={editAmAccommodations.includes(acc.id)}
-                              onCheckedChange={() =>
-                                setEditAmAccommodations((prev) =>
-                                  prev.includes(acc.id)
-                                    ? prev.filter((id) => id !== acc.id)
-                                    : [...prev, acc.id],
-                                )
-                              }
-                            />
-                            <span className="text-sm">
-                              {acc.name}
-                              {acc.name.startsWith("旅行日") && (
-                                <span className="ml-1 text-xs text-muted-foreground">
-                                  （不列入 AM績效獎金與AM場域獎金計算）
-                                </span>
-                              )}
-                            </span>
-                          </label>
-                        ))}
+                  {wantsAM && (
+                    <div className="space-y-2 pt-2" data-testid="member-am-responsible-readonly">
+                      <Label>負責館別（由館別設定總覽管理）</Label>
+                      <div className="rounded-md border bg-muted/30 p-2 text-sm">
+                        {editAmAccommodations.length > 0
+                          ? editAmAccommodations
+                              .map((id) => accommodations.find((a) => a.id === id)?.name)
+                              .filter(Boolean)
+                              .join("、")
+                          : "目前沒有負責館別"}
                       </div>
-                      {editAmAccommodations.length === 0 && (
-                        <p className="text-xs text-muted-foreground">尚未選擇，儲存後將清空管理場域</p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        負責 AM 改在「館別設定總覽」逐館指定（一館一位，只有負責 AM 計算 AM 績效與場域獎金）。
+                        所有 AM 與 AM 總管皆為職代協作，系統會自動開啟各館權限。
+                      </p>
+                      <Button variant="outline" size="sm" asChild data-testid="member-go-onboarding-btn">
+                        <Link to="/team/onboarding">前往館別設定總覽</Link>
+                      </Button>
                     </div>
                   )}
                   {(editRoles.includes("scout") || editRoles.includes("scout_manager")) && (

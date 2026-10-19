@@ -61,6 +61,7 @@ import { RAGIC_COLUMNS } from "@lakeze/shared/lib/settingsCompleteness/ragicChec
 import { BONUS_VENUE_COLUMNS } from "@lakeze/shared/lib/settingsCompleteness/bonusChecks";
 import { shouldNotify, type GapKey } from "@lakeze/shared/lib/settingsGapLinks";
 import { GAP_DETAILS, validateGapLink } from "@lakeze/shared/lib/settingsGapDetails";
+import { canViewOnboarding } from "@/lib/teamOnboarding";
 import {
   CATEGORY_LABEL,
   type NotificationCategory,
@@ -547,6 +548,19 @@ export function TeamSettingsBell() {
                 ? `未讀 ${badge}／共 ${count} 項（嚴重 ${errorCount}）`
                 : "目前沒有待處理項目"}
             </p>
+            {canViewOnboarding(roles) && (
+              <button
+                type="button"
+                className="text-xs text-primary underline"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/team/onboarding");
+                }}
+                data-testid="bell-onboarding-link"
+              >
+                到館別設定總覽逐館處理
+              </button>
+            )}
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <Button

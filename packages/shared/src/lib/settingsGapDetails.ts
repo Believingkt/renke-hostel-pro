@@ -130,11 +130,11 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
   },
   amScope: {
     label: "AM 負責人",
-    table: "team_member_profiles",
-    columns: "am_managed_accommodation_ids",
+    table: "accommodation_responsible_am",
+    columns: "負責 AM（一館一位）或「不需要負責 AM」",
     writeRoles: "super_admin、admin、am_manager",
-    permissionNote: "在團隊成員管理頁維護，RLS 允許 am_manager 調整所轄成員。",
-    howTo: "團隊後台 →「成員管理」→ 該 AM →「AM 場域總覽」勾選負責館別。",
+    permissionNote: "只能在館別設定總覽指定；am_managed_accommodation_ids 由系統同步，不能直接修改。",
+    howTo: "團隊後台 →「館別設定總覽」→ 該館 → AM 區塊指定負責 AM。",
   },
   venueClosing: {
     label: "場域簽約人",

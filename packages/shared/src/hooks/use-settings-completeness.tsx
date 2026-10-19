@@ -59,6 +59,7 @@ export function useSettingsCompleteness() {
       quotaRes,
       scoutTierRes,
       scoutSalaryRes,
+      amSettingsRes,
     ] = await Promise.all([
       supabase
         .from("accommodation_info")
@@ -131,6 +132,10 @@ export function useSettingsCompleteness() {
         .eq("year_month", month),
       supabase.from("scout_tier_settings").select("id").lte("effective_from", today).limit(1),
       supabase.from("scout_salary_settings").select("id").lte("effective_from", today).limit(1),
+      supabase
+        .from("accommodation_am_settings" as any)
+        .select("accommodation_id")
+        .eq("am_not_required", true),
     ]);
 
     const accs = ((accRes.data ?? []) as AccRow[]).filter((a) => a.id && a.name);
@@ -155,6 +160,7 @@ export function useSettingsCompleteness() {
       periods,
       commissionSettings: (commissionRes.data ?? []) as any[],
       amManagedIds,
+      amNotRequiredIds: ((amSettingsRes.data ?? []) as any[]).map((r) => r.accommodation_id),
       venueClosingAccIds: ((closingRes.data ?? []) as any[]).map((r) => r.accommodation_id),
       tierRuleAccIds: ((tierRes.data ?? []) as any[]).map((r) => r.accommodation_id),
       kolQuotaAccIds: ((quotaRes.data ?? []) as any[])
