@@ -1,13 +1,14 @@
 // PAYUNi W2 測試用的極簡 Supabase client 假物件（記憶體資料表；只實作 handler 用到的鏈式方法）
 // deno-lint-ignore-file no-explicit-any
 type Row = Record<string, any>;
-type Filter = { op: "eq" | "neq" | "like" | "in" | "gte" | "lt" | "lte" | "is" | "notnull"; col: string; val: any };
+type Filter = { op: "eq" | "neq" | "like" | "in" | "gte" | "gt" | "lt" | "lte" | "is" | "notnull"; col: string; val: any };
 
 const match = (r: Row, fs: Filter[]) =>
   fs.every((f) => f.op === "eq" ? r[f.col] === f.val
     : f.op === "neq" ? r[f.col] !== f.val
     : f.op === "in" ? (f.val as any[]).includes(r[f.col])
     : f.op === "gte" ? (typeof r[f.col] === "number" && typeof f.val === "number" ? r[f.col] >= f.val : String(r[f.col]) >= String(f.val))
+    : f.op === "gt" ? String(r[f.col]) > String(f.val)
     : f.op === "lt" ? String(r[f.col]) < String(f.val)
     : f.op === "lte" ? r[f.col] != null && String(r[f.col]) <= String(f.val)
     : f.op === "is" ? (r[f.col] ?? null) === f.val
@@ -52,7 +53,16 @@ export class FakeDb {
           const fail = db.failOn[`${table}.${mode}`];
           if (fail) return { data: null, error: { message: fail } };
           const rows = db.rows(table);
+          if (mode === "insert" && Array.isArray(values)) {
+            for (const v of values) rows.push({ id: `id-${++db.seq}`, ...structuredClone(v) });
+            db.writes.push({ table, op: "insert", values: structuredClone(values) as any });
+            return { data: null, error: null };
+          }
           if (mode === "insert") {
+            if (table === "payuni_platform_fee_items" &&
+              rows.some((r) => r.batch_id === values.batch_id && r.accommodation_id === values.accommodation_id && r.bal_type === values.bal_type)) {
+              return { data: null, error: { code: "23505", message: "duplicate key" } };
+            }
             if (table === "payuni_notify_events" && values.hash_valid &&
               rows.some((r) => r.hash_valid && NOTIFY_KEY(r) === NOTIFY_KEY(values))) {
               return { data: null, error: { code: "23505", message: "duplicate key" } };
@@ -94,6 +104,7 @@ export class FakeDb {
           in(col: string, val: any[]) { filters.push({ op: "in", col, val }); return q; },
           not(col: string, _op: string, _val: null) { filters.push({ op: "notnull", col, val: null }); return q; },
           gte(col: string, val: any) { filters.push({ op: "gte", col, val }); return q; },
+          gt(col: string, val: any) { filters.push({ op: "gt", col, val }); return q; },
           lt(col: string, val: any) { filters.push({ op: "lt", col, val }); return q; },
           lte(col: string, val: any) { filters.push({ op: "lte", col, val }); return q; },
           is(col: string, val: any) { filters.push({ op: "is", col, val }); return q; },

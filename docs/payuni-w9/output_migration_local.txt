@@ -1,0 +1,44 @@
+== 初始：tables=0；policy=0；index=0
+== 套用
+ok
+tables=2；policy=2；index=6
+== 欄位
+payuni_platform_fee_batches: id:uuid!, period:text!, status:text!, created_by:uuid, confirmed_by:uuid, confirmed_at:timestamp with time zone, submitted_at:timestamp with time zone, note:text, created_at:timestamp with time zone!
+payuni_platform_fee_items: id:uuid!, batch_id:uuid!, accommodation_id:uuid!, mer_id:text!, base_amount:numeric!, rate:numeric!, amount:integer!, fee_type:smallint!, bal_type:smallint!, trade_no:text!, detail:jsonb!, api_status:text, api_message:text, fund_date:date, payuni_fee:integer, status:text!, created_at:timestamp with time zone!, updated_at:timestamp with time zone!
+payuni_platform_fee_items payuni_platform_fee_items_batch_acc_bal_key UNIQUE (batch_id, accommodation_id, bal_type)
+payuni_platform_fee_items payuni_platform_fee_items_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES payuni_platform_fee_batches(id)
+payuni_platform_fee_batches_period_active_key CREATE UNIQUE INDEX payuni_platform_fee_batches_period_active_key ON public.payuni_platform_fee_batches USING btree (period) WHERE (status <> 'cancelled'::text)
+== 重跑
+exit=0
+tables=2；policy=2；index=6
+== 限制條件
+同 period 第二個非 cancelled 批次：被擋（duplicate key value violates unique constraint "payuni_platform_fee_batches_period_active_key"）
+原批次 cancelled 後再建同 period：成功
+period 格式 2026-13：被擋（violates check constraint "payuni_platform_fee_batches_period_check"）
+batch status 不在清單：被擋（violates check constraint "payuni_platform_fee_batches_status_check"）
+正向明細：成功
+同批同館同 bal_type 第二筆：被擋（duplicate key value violates unique constraint "payuni_platform_fee_items_batch_acc_bal_key"）
+同批同館負向修正：成功
+amount 超過 9,999,999：被擋（violates check constraint "payuni_platform_fee_items_amount_check"）
+trade_no 21 字：被擋（violates check constraint "payuni_platform_fee_items_trade_no_check"）
+bal_type=3：被擋（violates check constraint "payuni_platform_fee_items_bal_type_check"）
+batch_id 不存在：被擋（violates foreign key constraint "payuni_platform_fee_items_batch_id_fkey"）
+== RLS
+super_admin（應 2／2） batches=2 items=2
+A館 hotel_admin（應 0／0，改經 my_items） batches=0 items=0
+anon：permission denied for table payuni_platform_fee_items
+super_admin 直接更新：permission denied for table payuni_platform_fee_items
+service_role 更新 ok
+== rollback
+ok
+tables=0；policy=0；index=0
+== 再套用
+ok
+tables=2；policy=2；index=6
+== 重跑時兩張表正被讀取 15 秒（RLS 已開不再 ALTER，應立即成功）
+exit=0 耗時=45 ms
+== 從零套用時 pg_policy 被持 ACCESS EXCLUSIVE（應約 3 秒失敗、無部分變更）
+exit=3 耗時=3099 ms；錯誤=canceling statement due to lock timeout；tables=0；policy=0；index=0
+== 結束後再套用一次
+ok
+tables=2；policy=2；index=6
