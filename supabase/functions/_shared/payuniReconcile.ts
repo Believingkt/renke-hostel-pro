@@ -10,6 +10,9 @@ export const RECONCILE_TIME_BUDGET_MS = 100_000;
 export const RECONCILE_STALE_PENDING_MS = 60 * 60 * 1000;
 /** 第 3 次排程（04:00）仍未查完也寄彙總，避免永遠不告警 */
 export const RECONCILE_ALERT_AT_INVOCATION = 3;
+/** 同一筆交易連續幾個台北日查詢失敗就改記 not_found */
+export const RECONCILE_FAIL_DAYS_TO_NOT_FOUND = 3;
+const FAIL_KEY = "reconcile_query_failures";
 export type DiffType = "amount_mismatch" | "not_found" | "local_paid_remote_unpaid" | "refund_mismatch" | "status_fixed";
 export const DIFF_LABEL: Record<DiffType, string> = {
   amount_mismatch: "金額不符", not_found: "PAYUNi 查無", local_paid_remote_unpaid: "本地已付、PAYUNi 未付",
@@ -123,6 +126,28 @@ async function getOrCreateRun(admin: any, runDate: string, now: number) {
   return data;
 }
 
+const prevDate = (d: string) => new Date(Date.parse(`${d}T00:00:00Z`) - DAY).toISOString().slice(0, 10);
+
+/** 連續失敗日（以 run_date 計；同日只算一次；中斷就重算），最多留 3 天 */
+export function nextFailureDates(prev: string[] | undefined, runDate: string) {
+  const dates = prev ?? [];
+  const last = dates[dates.length - 1];
+  const next = last === runDate ? dates : last === prevDate(runDate) ? [...dates, runDate] : [runDate];
+  return next.slice(-RECONCILE_FAIL_DAYS_TO_NOT_FOUND);
+}
+
+/** 合併更新 raw_response（重新讀取後只改 reconcile_query_failures，不覆蓋 W7 的 refunds[]、close_events[] 等鍵） */
+async function mergeFailures(admin: any, txId: string, value: Record<string, unknown> | null, now: number) {
+  const { data } = await admin.from("payment_transactions").select("raw_response").eq("id", txId).maybeSingle();
+  const raw = { ...(data?.raw_response ?? {}) };
+  if (value == null) {
+    if (!(FAIL_KEY in raw)) return;
+    delete raw[FAIL_KEY];
+  } else raw[FAIL_KEY] = value;
+  // 寫入 updated_at：讓下一個台北日的對帳區間再次涵蓋這筆，才能累計連續失敗日
+  await admin.from("payment_transactions").update({ raw_response: raw, ...(value ? { updated_at: iso(now) } : {}) }).eq("id", txId);
+}
+
 export interface RunOpts { maxQueries?: number; budgetMs?: number; clock?: () => number }
 
 export async function runReconcile(deps: PayuniTradeDeps, opts: RunOpts = {}) {
@@ -156,6 +181,7 @@ export async function runReconcile(deps: PayuniTradeDeps, opts: RunOpts = {}) {
 
   const c = { queried: 0, matched: 0, processing: 0, status_fixed: 0, query_errors: 0 };
   const diffCounts: Record<string, number> = { ...(run.diff_counts ?? {}) };
+  const failing: Array<{ mer_trade_no: string; message: string }> = [];
   let stopped: string | null = null;
   let remaining = 0;
   const persist = async (extra: Record<string, unknown> = {}) => {
@@ -189,11 +215,19 @@ export async function runReconcile(deps: PayuniTradeDeps, opts: RunOpts = {}) {
           diffCounts.not_found = (diffCounts.not_found ?? 0) + 1;
           markDone();
         } else {
-          c.query_errors++;
-          remaining++;
+          const message = `${r.status}${r.message ? `：${r.message}` : ""}`.slice(0, 50);
+          if (await recordQueryFailure(deps.admin, run.id, tx, range.runDate, message, now)) {
+            diffCounts.not_found = (diffCounts.not_found ?? 0) + 1;
+            markDone();
+          } else {
+            c.query_errors++;
+            remaining++;
+            failing.push({ mer_trade_no: tx.mer_trade_no, message });
+          }
         }
         continue;
       }
+      if (tx.raw_response?.[FAIL_KEY]) await mergeFailures(deps.admin, tx.id, null, now);
       if (String(q.DataSource ?? "") === "B") { c.processing++; markDone(); continue; }
       const { data: refunds } = await deps.admin.from("payment_transactions").select("*").eq("provider", "payuni").eq("kind", "refund").eq("parent_tx_id", tx.id);
       const res = classifyTrade(tx, q, refunds ?? []);
@@ -216,6 +250,7 @@ export async function runReconcile(deps: PayuniTradeDeps, opts: RunOpts = {}) {
       console.error(`[payuni-reconcile] ${tx.mer_trade_no} failed: ${e instanceof Error ? e.message : e}`);
       c.query_errors++;
       remaining++;
+      failing.push({ mer_trade_no: tx.mer_trade_no, message: "系統處理例外" });
     }
     if (c.queried % 25 === 0) await persist();
   }
@@ -227,26 +262,45 @@ export async function runReconcile(deps: PayuniTradeDeps, opts: RunOpts = {}) {
 
   let alerted = false;
   if (!run.alert_sent_at && (completed || invocations >= RECONCILE_ALERT_AT_INVOCATION)) {
-    alerted = await sendSummary(deps, run.id, range.runDate, prev("status_fixed") + c.status_fixed, note);
+    alerted = await sendSummary(deps, run.id, range.runDate, prev("status_fixed") + c.status_fixed, note, failing);
   }
-  return { ok: true, runDate: range.runDate, completed, remaining, ...c, diffCounts, alerted };
+  return { ok: true, runDate: range.runDate, completed, remaining, ...c, diffCounts, alerted, failing };
 }
 
-async function sendSummary(deps: PayuniTradeDeps, runId: string, runDate: string, statusFixed: number, note: string | null) {
+/** 記錄查詢失敗；連續 3 個台北日都失敗 → 改記 not_found 差異並回 true */
+async function recordQueryFailure(admin: any, runId: string, tx: any, runDate: string, message: string, now: number) {
+  const dates = nextFailureDates(tx.raw_response?.[FAIL_KEY]?.dates, runDate);
+  await mergeFailures(admin, tx.id, { dates, last_message: message }, now);
+  if (dates.length < RECONCILE_FAIL_DAYS_TO_NOT_FOUND) return false;
+  await upsertDiff(admin, runId, tx, {
+    type: "not_found", local: { status: tx.status, amount: Number(tx.amount), failed_dates: dates },
+    payuni: { Message: message, reason: `連續 ${RECONCILE_FAIL_DAYS_TO_NOT_FOUND} 天查詢失敗` },
+  }, now);
+  return true;
+}
+
+async function sendSummary(
+  deps: PayuniTradeDeps, runId: string, runDate: string, statusFixed: number, note: string | null,
+  failing: Array<{ mer_trade_no: string; message: string }>,
+) {
   const { data: diffs } = await deps.admin.from("payuni_reconcile_diffs").select("mer_trade_no, order_id, accommodation_id, diff_type")
     .eq("run_id", runId).is("resolved_at", null);
-  if (!diffs?.length) return false;
-  const accIds = [...new Set(diffs.map((d: any) => d.accommodation_id).filter(Boolean))];
-  const orderIds = [...new Set(diffs.map((d: any) => d.order_id).filter(Boolean))];
+  if (!diffs?.length && !failing.length) return false;
+  const list: any[] = diffs ?? [];
+  const failLines = failing.length
+    ? `<p>查詢失敗 ${failing.length} 筆（下次排程重試；連續 ${RECONCILE_FAIL_DAYS_TO_NOT_FOUND} 天失敗改記 PAYUNi 查無）：</p><ul>${failing.map((f) => `<li>${esc(f.mer_trade_no)}：${esc(f.message.slice(0, 50))}</li>`).join("")}</ul>`
+    : "";
+  const accIds = [...new Set(list.map((d: any) => d.accommodation_id).filter(Boolean))];
+  const orderIds = [...new Set(list.map((d: any) => d.order_id).filter(Boolean))];
   const { data: accs } = accIds.length ? await deps.admin.from("accommodation_info").select("id, name").in("id", accIds) : { data: [] };
   const { data: orders } = orderIds.length ? await deps.admin.from("orders").select("id, order_number").in("id", orderIds) : { data: [] };
   const name = (id: string) => (accs ?? []).find((a: any) => a.id === id)?.name ?? "";
   const ono = (id: string) => (orders ?? []).find((o: any) => o.id === id)?.order_number ?? "";
-  const rows = diffs.map((d: any) => `<tr><td>${esc(name(d.accommodation_id))}</td><td>${esc(ono(d.order_id))}</td><td>${esc(d.mer_trade_no)}</td><td>${esc(DIFF_LABEL[d.diff_type as DiffType] ?? d.diff_type)}</td></tr>`).join("");
-  const html = `<p>PAYUNi ${esc(runDate)} 對帳有 ${diffs.length} 筆未解決差異，請至 HQ「PAYUNi 金流 → 對帳」處理。</p>` +
+  const rows = list.map((d: any) => `<tr><td>${esc(name(d.accommodation_id))}</td><td>${esc(ono(d.order_id))}</td><td>${esc(d.mer_trade_no)}</td><td>${esc(DIFF_LABEL[d.diff_type as DiffType] ?? d.diff_type)}</td></tr>`).join("");
+  const html = `<p>PAYUNi ${esc(runDate)} 對帳有 ${list.length} 筆未解決差異，請至 HQ「PAYUNi 金流 → 對帳」處理。</p>` +
     `<table border="1" cellpadding="4" cellspacing="0"><tr><th>館名</th><th>訂單號</th><th>商店訂單編號</th><th>類型</th></tr>${rows}</table>` +
-    (note ? `<p>${esc(note)}</p>` : "") + (statusFixed > 0 ? `<p>自動補入帳 ${statusFixed} 筆（代表有 Notify 漏接，請追查）</p>` : "");
-  const sent = await deps.sendAlert(`[PAYUNi] ${runDate} 對帳差異 ${diffs.length} 筆`, html).catch(() => false);
+    (note ? `<p>${esc(note)}</p>` : "") + (statusFixed > 0 ? `<p>自動補入帳 ${statusFixed} 筆（代表有 Notify 漏接，請追查）</p>` : "") + failLines;
+  const sent = await deps.sendAlert(`[PAYUNi] ${runDate} 對帳差異 ${list.length} 筆${failing.length ? `、查詢失敗 ${failing.length} 筆` : ""}`, html).catch(() => false);
   if (sent !== false) await deps.admin.from("payuni_reconcile_runs").update({ alert_sent_at: new Date(deps.now?.() ?? Date.now()).toISOString() }).eq("id", runId);
   return sent !== false;
 }

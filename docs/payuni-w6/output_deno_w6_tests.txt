@@ -1,14 +1,17 @@
 Check _shared/payuniReconcile_test.ts
-running 9 tests from ./_shared/payuniReconcile_test.ts
-日期：台北 11/02 03:30 對帳 → run_date 2026-11-01、區間為台北 11/01 整天 ... ok (670µs)
+running 12 tests from ./_shared/payuniReconcile_test.ts
+日期：台北 11/02 03:30 對帳 → run_date 2026-11-01、區間為台北 11/01 整天 ... ok (711µs)
 一致 → 回填 TradeFee（DataSource=A 才回填）；DataSource=B → 記處理中不判定、不回填 ... ok (2ms)
 PAYUNi 已付、本地未付 → applyPayuniTradeResult 自動補入帳一次＋status_fixed（已處理）；彙總信附「自動補入帳 N 筆」 ... ok (8ms)
-金額不符、查無、本地已付 PAYUNi 未付 → 進差異清單、不改訂單與交易 ... ok (566µs)
-重跑：同一 mer_trade_no＋類型未解決時只更新不新增；標記已處理後再出現才新增 ... ok (731µs)
-接續：單次上限停下 → run 記未查完；下一次排程沿用同一筆 run、跳過已查過的交易；查完後不再重跑 ... ok (565µs)
-權限：run 非 service role → 403；list／resolve 非 super_admin → 403；fees 只回自己館 ... ok (443µs)
-退款：兩筆部分退款用 TradeAmt − RemainAmt 對已完成加總，不誤報；不一致與狀態不符（本地處理中、PAYUNi 退款取消）→ refund_mismatch ... ok (688µs)
-退款比對純規則：PAYUNi 已退但本地仍處理中（W7 sweep 尚未判定）不報；ATM 2=轉匯失敗 / 3=轉匯取消且本地處理中 → 報 ... ok (436µs)
+金額不符、查無、本地已付 PAYUNi 未付 → 進差異清單、不改訂單與交易 ... ok (558µs)
+重跑：同一 mer_trade_no＋類型未解決時只更新不新增；標記已處理後再出現才新增 ... ok (699µs)
+接續：單次上限停下 → run 記未查完；下一次排程沿用同一筆 run、跳過已查過的交易；查完後不再重跑 ... ok (506µs)
+權限：run 非 service role → 403；list／resolve 非 super_admin → 403；fees 只回自己館 ... ok (429µs)
+退款：兩筆部分退款用 TradeAmt − RemainAmt 對已完成加總，不誤報；不一致與狀態不符（本地處理中、PAYUNi 退款取消）→ refund_mismatch ... ok (687µs)
+退款比對純規則：PAYUNi 已退但本地仍處理中（W7 sweep 尚未判定）不報；ATM 2=轉匯失敗 / 3=轉匯取消且本地處理中 → 報 ... ok (409µs)
+連續失敗日：以 run_date 計、同日只算一次、中斷重算、最多留 3 天 ... ok (117µs)
+查詢失敗：彙總信附「查詢失敗 N 筆」（商店訂單編號＋訊息前 50 字）；raw_response 合併更新不覆蓋 W7 鍵；成功即清除 ... ok (777µs)
+同一筆交易連續 3 個台北日查詢失敗 → 改記 not_found 差異、該日 run 可完成；中間成功一天就重算 ... ok (780µs)
 
-ok | 9 passed | 0 failed (22ms)
+ok | 12 passed | 0 failed (21ms)
 

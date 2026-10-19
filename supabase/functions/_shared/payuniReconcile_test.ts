@@ -4,7 +4,7 @@ import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.224.0
 import type { PayuniCall, PayuniResult } from "./payuni.ts";
 import { FakeDb } from "./payuniTestFakes.ts";
 import type { PayuniTradeDeps } from "./payuniTradeHandlers.ts";
-import { classifyTrade, compareRefunds, handleReconcile, previousTaipeiDay, type ReconcileCaller } from "./payuniReconcile.ts";
+import { classifyTrade, compareRefunds, handleReconcile, nextFailureDates, previousTaipeiDay, type ReconcileCaller } from "./payuniReconcile.ts";
 
 // 台北 2026-11-02 03:30
 const NOW = Date.parse("2026-11-01T19:30:00Z");
@@ -194,4 +194,65 @@ Deno.test("退款比對純規則：PAYUNi 已退但本地仍處理中（W7 sweep
   assert(compareRefunds(atm, { TradeAmt: "6000", RemainAmt: "6000", RefundStatus: "3" }, pend));
   assertEquals(compareRefunds(atm, { TradeAmt: "6000", RemainAmt: "6000", RefundStatus: "9" }, pend), null);
   assertEquals(classifyTrade(tx({ status: "pending" }), { TradeStatus: "0" }, []).kind, "matched");
+});
+
+Deno.test("連續失敗日：以 run_date 計、同日只算一次、中斷重算、最多留 3 天", () => {
+  assertEquals(nextFailureDates(undefined, "2026-11-01"), ["2026-11-01"]);
+  assertEquals(nextFailureDates(["2026-11-01"], "2026-11-01"), ["2026-11-01"]);
+  assertEquals(nextFailureDates(["2026-11-01"], "2026-11-02"), ["2026-11-01", "2026-11-02"]);
+  assertEquals(nextFailureDates(["2026-11-01"], "2026-11-03"), ["2026-11-03"]);
+  assertEquals(nextFailureDates(["2026-10-31", "2026-11-01", "2026-11-02"], "2026-11-03"), ["2026-11-01", "2026-11-02", "2026-11-03"]);
+});
+
+Deno.test("查詢失敗：彙總信附「查詢失敗 N 筆」（商店訂單編號＋訊息前 50 字）；raw_response 合併更新不覆蓋 W7 鍵；成功即清除", async () => {
+  const long = "E".repeat(80);
+  const raw = { refunds: [{ a: 1 }], close_events: [{ b: 2 }] };
+  const s = setup({ payment_transactions: [tx({ raw_response: raw })] }, {});
+  s.deps.callPayuni = (c) => { s.calls.push(c); return Promise.resolve({ ok: false, status: "ERROR", message: long, raw: null }); };
+  for (let i = 0; i < 3; i++) await s.run();
+  const alert = s.fx.alerts[0];
+  assertEquals(s.fx.alerts.length, 1);
+  assert(alert.s.includes("查詢失敗 1 筆"));
+  assert(alert.h.includes("查詢失敗 1 筆") && alert.h.includes("LL8Y46U8-P1"));
+  assert(alert.h.includes(`ERROR：${"E".repeat(44)}`));
+  assertFalse(alert.h.includes("E".repeat(50)));
+  const r = s.db.rows("payment_transactions")[0].raw_response;
+  assertEquals([r.refunds, r.close_events], [raw.refunds, raw.close_events]);
+  assertEquals(r.reconcile_query_failures.dates, ["2026-11-01"]);
+  assertEquals(runRow(s.db).completed, false);
+  assertEquals(diffs(s.db).length, 0);
+  // 隔天查詢成功 → 清除失敗紀錄，其他鍵保留
+  s.deps.now = () => NOW + 86_400_000;
+  s.deps.callPayuni = (c) => { s.calls.push(c); return Promise.resolve({ ok: true, status: "SUCCESS", data: { TradeStatus: "1", DataSource: "A", TradeAmt: "6000" }, raw: {} }); };
+  await s.run();
+  const r2 = s.db.rows("payment_transactions")[0].raw_response;
+  assertFalse("reconcile_query_failures" in r2);
+  assertEquals(r2.refunds, raw.refunds);
+});
+
+Deno.test("同一筆交易連續 3 個台北日查詢失敗 → 改記 not_found 差異、該日 run 可完成；中間成功一天就重算", async () => {
+  const fail = (s: any) => { s.deps.callPayuni = (c: PayuniCall) => { s.calls.push(c); return Promise.resolve({ ok: false, status: "TIMEOUT", raw: null }); }; };
+  const s = setup({ payment_transactions: [tx()] }, {});
+  fail(s);
+  for (let d = 0; d < 3; d++) {
+    s.deps.now = () => NOW + d * 86_400_000;
+    const r = await s.run();
+    assertEquals(r.body.completed, d === 2);
+  }
+  const d = diffs(s.db);
+  assertEquals(d.map((x) => x.diff_type), ["not_found"]);
+  assertEquals(d[0].local_value.failed_dates, ["2026-11-01", "2026-11-02", "2026-11-03"]);
+  assertEquals(d[0].payuni_value.reason, "連續 3 天查詢失敗");
+  // 第 1、3 天失敗、第 2 天成功 → 不轉 not_found
+  const t = setup({ payment_transactions: [tx()] }, {});
+  for (let day = 0; day < 3; day++) {
+    t.deps.now = () => NOW + day * 86_400_000;
+    if (day === 1) t.deps.callPayuni = (c) => { t.calls.push(c); return Promise.resolve({ ok: true, status: "SUCCESS", data: { TradeStatus: "1", DataSource: "A", TradeAmt: "6000" }, raw: {} }); };
+    else fail(t);
+    // 第 2 天成功後已清除失敗紀錄、不再自動帶入；第 3 天模擬交易又有異動（進入當日對帳區間）
+    if (day === 2) t.db.rows("payment_transactions")[0].updated_at = "2026-11-03T02:00:00Z";
+    await t.run();
+  }
+  assertEquals(diffs(t.db).length, 0);
+  assertEquals(t.db.rows("payment_transactions")[0].raw_response.reconcile_query_failures.dates, ["2026-11-03"]);
 });
