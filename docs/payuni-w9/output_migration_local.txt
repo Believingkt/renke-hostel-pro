@@ -36,9 +36,9 @@ tables=0；policy=0；index=0
 ok
 tables=2；policy=2；index=6
 == 重跑時兩張表正被讀取 15 秒（RLS 已開不再 ALTER，應立即成功）
-exit=0 耗時=45 ms
+exit=0 耗時=44 ms
 == 從零套用時 pg_policy 被持 ACCESS EXCLUSIVE（應約 3 秒失敗、無部分變更）
-exit=3 耗時=3099 ms；錯誤=canceling statement due to lock timeout；tables=0；policy=0；index=0
+exit=3 耗時=3101 ms；錯誤=canceling statement due to lock timeout；tables=0；policy=0；index=0
 == 結束後再套用一次
 ok
 tables=2；policy=2；index=6

@@ -1,4 +1,4 @@
-// PAYUNi W9 平台費計算：直接引用業主月結頁的同一組函式（packages/shared/src/lib/ownerSettlement.ts），
+// PAYUNi W9 平台費計算：引用業主月結頁的同一組函式（./vendor/ 由 scripts/sync-shared-vendor.mjs 逐字同步），
 // 採月結頁預設（依入住夜數分攤、團購不併入）；整月訂單一起算（門檻係數與月結頁相同），只加總 PAYUNi 收款訂單。
 // 另附 Ragic 算法（同 push-ragic-revenue 的公式）供核對，只做參考。
 // deno-lint-ignore-file no-explicit-any
@@ -8,8 +8,8 @@ import {
   getRevenueBreakdownType,
   type OwnerPricingRule,
   type OwnerSettlementConfig,
-} from "../../../packages/shared/src/lib/ownerSettlement.ts";
-import { filterByGroupBuyMode } from "../../../packages/shared/src/lib/groupBuyCaliber.ts";
+} from "./vendor/ownerSettlement.ts";
+import { filterByGroupBuyMode } from "./vendor/groupBuyCaliber.ts";
 
 export const ORDER_COLS =
   "id, order_number, check_in_date, check_out_date, total_price, discount_amount, final_price, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking, order_date, paid_amount, accommodation_id";

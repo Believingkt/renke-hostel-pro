@@ -41,11 +41,16 @@ const item = (o: Partial<FeeItem>): FeeItem => ({
 describe("PAYUNi 平台費（W9）", () => {
   beforeEach(() => { h.tables = {}; h.invoke.mockReset(); });
 
-  it("中途安全：掛載點、config.toml、migrations 尚未接上 W9", () => {
-    expect(read("apps/booking/src/components/headquarters/SystemManagement.tsx")).not.toMatch(/PayuniPlatformFeePanel|payuni-subtab-fee/);
-    expect(read("apps/booking/src/pages/PaymentAudit.tsx")).not.toMatch(/PayuniPlatformFeeCard/);
-    expect(read("supabase/config.toml")).not.toMatch(/payuni-platform-fee-run/);
-    expect(readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => /platform_fee/.test(f))).toEqual([]);
+  it("已接上：HQ 平台費子分頁、PaymentAudit 卡片、config.toml verify_jwt=false、migration 20261024090000、function 只 import supabase/ 內檔案", () => {
+    const sm = read("apps/booking/src/components/headquarters/SystemManagement.tsx");
+    expect(sm).toMatch(/<TabsTrigger value="fee" data-testid="payuni-subtab-fee">平台費<\/TabsTrigger>/);
+    expect(sm).toMatch(/<TabsContent value="fee"[^>]*>\s*<PayuniPlatformFeePanel \/>/);
+    expect(read("apps/booking/src/pages/PaymentAudit.tsx")).toMatch(/<PayuniPlatformFeeCard accommodationId=\{currentAccommodationId\} \/>/);
+    expect(read("supabase/config.toml")).toMatch(/\[functions\.payuni-platform-fee-run\]\s*verify_jwt = false/);
+    expect(readdirSync(resolve(ROOT, "supabase/migrations")).filter((f) => /platform_fee/.test(f))).toEqual(["20261024090000_payuni_platform_fee.sql"]);
+    for (const f of ["supabase/functions/payuni-platform-fee-run/index.ts", "supabase/functions/_shared/payuniPlatformFee.ts", "supabase/functions/_shared/payuniPlatformFeeCalc.ts"]) {
+      expect(read(f)).not.toMatch(/from "(\.\.\/){3,}|packages\/shared/);
+    }
   });
 
   it("CSV：每館每月金額、Ragic 參考與差額、混合付款數", () => {

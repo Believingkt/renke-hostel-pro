@@ -42,6 +42,7 @@ import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAcc
 import { PayuniMerchantManagement } from "@/components/headquarters/PayuniMerchantManagement";
 import { PayuniReconcilePanel } from "@/components/headquarters/PayuniReconcilePanel";
 import { PayuniGrantPanel } from "@/components/headquarters/PayuniGrantPanel";
+import { PayuniPlatformFeePanel } from "@/components/headquarters/PayuniPlatformFeePanel";
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { HotelNabePushInventory } from "@/components/headquarters/HotelNabePushInventory";
 import { HotelNabeInboundLog } from "@/components/headquarters/HotelNabeInboundLog";
@@ -1008,6 +1009,7 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
               <TabsTrigger value="merchants" data-testid="payuni-subtab-merchants">合作商店</TabsTrigger>
               <TabsTrigger value="reconcile" data-testid="payuni-subtab-reconcile">對帳</TabsTrigger>
               <TabsTrigger value="grant" data-testid="payuni-subtab-grant">撥款</TabsTrigger>
+              <TabsTrigger value="fee" data-testid="payuni-subtab-fee">平台費</TabsTrigger>
             </TabsList>
             <TabsContent value="merchants" className="space-y-4">
               <PayuniMerchantManagement />
@@ -1017,6 +1019,9 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
             </TabsContent>
             <TabsContent value="grant" className="space-y-4">
               <PayuniGrantPanel />
+            </TabsContent>
+            <TabsContent value="fee" className="space-y-4">
+              <PayuniPlatformFeePanel />
             </TabsContent>
           </Tabs>
         </TabsContent>

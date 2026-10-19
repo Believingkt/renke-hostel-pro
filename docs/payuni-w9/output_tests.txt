@@ -1,9 +1,9 @@
-# W9 本機測試摘要
-Deno payuniPlatformFee_test.ts：9 passed
-Deno _shared 全部：ok | 272 passed | 0 failed | 12 ignored (23s)（W8 後 263，+9 為本批）
-deno check --config payuni-platform-fee-run/deno.json payuni-platform-fee-run/index.ts：ok（date-fns 經 npm:date-fns@3.6.0 解析）
- Test Files  7 failed | 173 passed | 1 skipped (181)
-      Tests  23 failed | 1914 passed | 8 skipped (1945)
+# W9 最終本機測試摘要（vendor 化＋最後一步完成後）
+Deno _shared 全部：ok | 272 passed | 0 failed | 12 ignored (22s)（含 W9 9 題、W8 8 題）
+deno check payuni-platform-fee-run/index.ts：ok；deno info：本地模組全在 supabase/functions/ 內（date-fns 為 npm: 套件）
+ Test Files  7 failed | 174 passed | 1 skipped (182)
+      Tests  23 failed | 1917 passed | 8 skipped (1948)
 失敗題目與 docs/onboarding-4/localtest/output_vitest_tsc_build.txt 逐行相同（diff 無差異）
 tsc（apps/booking）：2 個既有錯誤（discount-cheaper-rule.test.ts），未增加
 vite build：成功
+migration 本機測試：docs/payuni-w9/output_migration_local.txt

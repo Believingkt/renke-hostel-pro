@@ -413,3 +413,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.payuni-grant-sync]
     verify_jwt = false
+  [functions.payuni-platform-fee-run]
+    verify_jwt = false

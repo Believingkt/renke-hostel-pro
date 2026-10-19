@@ -3,8 +3,8 @@
 import { assert, assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   computeGuestCountRows, computeGuestCountTotals, computeOwnerSettlementRows, pricingRuleFromRow,
-} from "../../../packages/shared/src/lib/ownerSettlement.ts";
-import { filterByGroupBuyMode } from "../../../packages/shared/src/lib/groupBuyCaliber.ts";
+} from "./vendor/ownerSettlement.ts";
+import { filterByGroupBuyMode } from "./vendor/groupBuyCaliber.ts";
 import type { PayuniCall, PayuniResult } from "./payuni.ts";
 import { FakeDb } from "./payuniTestFakes.ts";
 import { computeMonthlyPlatformFee, configFromSetting, monthOf } from "./payuniPlatformFeeCalc.ts";

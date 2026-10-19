@@ -2,7 +2,7 @@
 // 每月一批：draft（依月結頁算法，只計 PAYUNi 收款訂單）→ 財務核對／調整 → confirm → submit（逐館 agent_fee，冪等）
 // → poll（agent_fee_query，FundDate 有值 → funded；全部 funded → settled）。失敗可轉 receivable；settled 後可做負向修正。
 // deno-lint-ignore-file no-explicit-any
-import { resolvePricingRule } from "../../../packages/shared/src/lib/ownerSettlement.ts";
+import { resolvePricingRule } from "./vendor/ownerSettlement.ts";
 import { buildExemptResolver } from "./ownerPricingRule.ts";
 import { extractQueryResult } from "./payuniTrade.ts";
 import type { PayuniTradeDeps } from "./payuniTradeHandlers.ts";

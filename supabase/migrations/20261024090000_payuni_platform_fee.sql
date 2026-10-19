@@ -1,6 +1,5 @@
 -- ============================================================
--- 【草稿】PAYUNi W9：人客多平台費（多功能收付 agent_fee）— 只新增兩張表，不改既有表／資料
---   ※ 本檔在 docs/payuni-w9/，審過、整包測試通過後才搬到 supabase/migrations/20261024090000_payuni_platform_fee.sql
+-- PAYUNi W9：人客多平台費（多功能收付 agent_fee）— 只新增兩張表，不改既有表／資料
 --   payuni_platform_fee_batches：每月一批（period = YYYY-MM），同一 period 只允許一個非 cancelled 的批次
 --     status：draft → confirmed → submitting → submitted／partial_failed → settled；draft／confirmed 可 cancelled
 --   payuni_platform_fee_items：每館一列（bal_type 1＝正向扣款；bal_type 2＝負向修正，同批每館各一筆）

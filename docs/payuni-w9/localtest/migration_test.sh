@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# W9 草稿 migration 本機測試：套用、重跑、限制條件、RLS、rollback、再套用、鎖測試
+# W9 migration 20261024090000 本機測試：套用、重跑、限制條件、RLS、rollback、再套用、鎖測試
 # 最小 schema 同 W8：app_role、user_roles、auth.uid()、is_super_admin 取自 repo migration 原文
 set -uo pipefail
 REPO=/app
 DB=w9mig
-M=$REPO/docs/payuni-w9/draft_20261024090000_payuni_platform_fee.sql
+M=$REPO/supabase/migrations/20261024090000_payuni_platform_fee.sql
 RB=$REPO/docs/payuni-w9/rollback_20261024090000.sql
 P() { sudo -u postgres psql -X -q "$@"; }
 q() { P -d "$DB" -v ON_ERROR_STOP=1 "$@"; }
