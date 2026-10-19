@@ -62,6 +62,7 @@ import { toast } from "sonner";
 import { TableSkeleton } from "@lakeze/shared/components/skeletons/TableSkeleton";
 import { MonthPicker } from "@lakeze/shared/components/ui/month-picker";
 import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions";
+import { isPayuniMethod, payuniNet, usePayuniFees } from "@/components/payuni/usePayuniFees";
 
 interface SplitRecord {
   id: string;
@@ -95,6 +96,9 @@ interface SplitRule {
   is_active: boolean;
   transaction_fee_percentage: number;
 }
+
+const payuniOrderIdsOf = (records: SplitRecord[]) =>
+  records.filter((r) => isPayuniMethod(r.orders?.payment_method, r.orders?.deposit_payment_method)).map((r) => r.order_id);
 
 export default function Settlement() {
   const { currentAccommodationId } = useAccommodation();
@@ -244,40 +248,46 @@ export default function Settlement() {
     }
   };
 
-  // Calculate summary with transaction fee
+  const payuniFees = usePayuniFees(payuniOrderIdsOf(splitRecords));
+
+  // Calculate summary with transaction fee（TapPay 維持 % 估算；PAYUNi 扣對帳回填的實際手續費，未回填先不扣）
   const summary = useMemo(() => {
     const feeRate = splitRule?.transaction_fee_percentage ?? 0;
+    const payuniIds = new Set(payuniOrderIdsOf(splitRecords));
     
-    const calculateNetAmount = (amount: number) => {
+    const calculateNetAmount = (amount: number, orderId?: string) => {
+      if (orderId && payuniIds.has(orderId)) return amount - (payuniFees[orderId]?.fee ?? 0);
       const fee = Math.round(amount * feeRate / 100);
       return amount - fee;
     };
+    const net = (r: SplitRecord) => calculateNetAmount(r.accommodation_amount, r.order_id);
+    const payuniPendingFee = [...payuniIds].filter((id) => payuniFees[id]?.fee == null).length;
     
     const total = splitRecords.reduce((sum, r) => sum + r.accommodation_amount, 0);
-    const totalNet = splitRecords.reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
+    const totalNet = splitRecords.reduce((sum, r) => sum + net(r), 0);
     const pending = splitRecords
       .filter(r => r.settlement_status === "pending")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
     const pendingNet = splitRecords
       .filter(r => r.settlement_status === "pending")
-      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
+      .reduce((sum, r) => sum + net(r), 0);
     const requested = splitRecords
       .filter(r => r.settlement_status === "requested")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
     const requestedNet = splitRecords
       .filter(r => r.settlement_status === "requested")
-      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
+      .reduce((sum, r) => sum + net(r), 0);
     const paid = splitRecords
       .filter(r => r.settlement_status === "paid")
       .reduce((sum, r) => sum + r.accommodation_amount, 0);
     const paidNet = splitRecords
       .filter(r => r.settlement_status === "paid")
-      .reduce((sum, r) => sum + calculateNetAmount(r.accommodation_amount), 0);
+      .reduce((sum, r) => sum + net(r), 0);
     
     const totalFee = total - totalNet;
     
-    return { total, totalNet, pending, pendingNet, requested, requestedNet, paid, paidNet, totalFee, feeRate };
-  }, [splitRecords, splitRule]);
+    return { total, totalNet, pending, pendingNet, requested, requestedNet, paid, paidNet, totalFee, feeRate, payuniPendingFee };
+  }, [splitRecords, splitRule, payuniFees]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -359,7 +369,7 @@ export default function Settlement() {
                   <CreditCard className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">手續費 ({summary.feeRate}%)</p>
+                  <p className="text-sm text-muted-foreground">手續費 ({summary.feeRate}%{summary.payuniPendingFee > 0 ? `；PAYUNi ${summary.payuniPendingFee} 筆待對帳` : ""})</p>
                   <p className="text-xl font-bold text-red-600">-NT$ {summary.totalFee.toLocaleString()}</p>
                 </div>
               </div>
@@ -507,6 +517,7 @@ export default function Settlement() {
                           <TableHead className="text-right">訂單金額</TableHead>
                           <TableHead className="text-right">手續費</TableHead>
                           <TableHead className="text-right">撥款金額</TableHead>
+                          <TableHead className="text-right">金流手續費／實收</TableHead>
                           <TableHead>付款狀態</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -536,6 +547,16 @@ export default function Settlement() {
                             </TableCell>
                             <TableCell className="text-right text-primary font-medium">
                               NT$ {record.accommodation_amount.toLocaleString()}
+                            </TableCell>
+                            <TableCell className="text-right text-sm" data-testid={`settlement-payuni-fee-${record.order_id}`}>
+                              {isPayuniMethod(record.orders?.payment_method, record.orders?.deposit_payment_method)
+                                ? payuniFees[record.order_id]?.fee != null
+                                  ? <>
+                                      <div className="text-red-600">-NT$ {payuniFees[record.order_id].fee!.toLocaleString()}</div>
+                                      <div className="text-xs text-muted-foreground">實收 NT$ {payuniNet(payuniFees[record.order_id])!.toLocaleString()}</div>
+                                    </>
+                                  : <span className="text-muted-foreground">待對帳</span>
+                                : <span className="text-muted-foreground">—</span>}
                             </TableCell>
                             <TableCell>
                               {(() => {

@@ -1,0 +1,7 @@
+# W6 vitest／tsc／build
+ Test Files  7 failed | 168 passed | 1 skipped (176)
+      Tests  23 failed | 1874 passed | 8 skipped (1905)
+失敗檔案為基線同 7 檔；第一次全套跑時 admin-order-commission-exception 因負載逾時失敗 1 題，單獨重跑 11/11、全套重跑恢復 7 檔
+tsc（apps/booking）：既有 2 個錯誤，未增加
+Deno _shared：252 passed（W7 後 243 + W6 9）
+vite build：exit=0

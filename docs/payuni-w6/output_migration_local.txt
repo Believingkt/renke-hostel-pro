@@ -1,0 +1,33 @@
+NOTICE:  database "w6mig" does not exist, skipping
+== 初始：provider_fee=0；runs=false；diffs=false
+== 套用
+ok
+provider_fee=1；runs=true；diffs=true
+== RLS／權限
+payuni_reconcile_diffs rls=true policy=0
+payuni_reconcile_runs rls=true policy=0
+public.payuni_reconcile_runs anon=false authenticated=false service_role=true
+public.payuni_reconcile_diffs anon=false authenticated=false service_role=true
+FK 指向 orders/payment_transactions 數=0
+== 重跑（IF NOT EXISTS）
+NOTICE 數=6
+provider_fee=1；runs=true；diffs=true
+== 未解決差異去重（同 mer_trade_no＋類型）／已處理可重複
+ERROR:  duplicate key value violates unique constraint "payuni_reconcile_diffs_open_key"
+DETAIL:  Key (mer_trade_no, diff_type)=(X-P1, amount_mismatch) already exists.
+ERROR:  duplicate key value violates unique constraint "payuni_reconcile_runs_run_date_key"
+DETAIL:  Key (run_date)=(2026-11-01) already exists.
+ERROR:  new row for relation "payuni_reconcile_diffs" violates check constraint "payuni_reconcile_diffs_diff_type_check"
+DETAIL:  Failing row contains (83e81bca-6434-4559-a144-9110f22c76a0, f3176a4a-0f36-4d65-b806-24d48c7a93d3, X-P1, null, null, bogus, {}, {}, 2026-10-19 02:59:05.864944+00, 2026-10-19 02:59:05.864944+00, null, null, null).
+差異列數=3（已處理 1＋未處理 1＋status_fixed 1）
+== orders 被 ACCESS EXCLUSIVE 鎖住時從零套用（不應受影響）
+exit=0 耗時=105 ms；provider_fee=1；runs=true；diffs=true
+== payment_transactions 被讀鎖 15 秒時套用（應約 3 秒失敗、無部分變更）
+psql:/app/supabase/migrations/20261020090000_payuni_reconcile.sql:20: ERROR:  canceling statement due to lock timeout
+exit=3 耗時=3046 ms；provider_fee=0；runs=false；diffs=false
+== 鎖釋放後再套用
+ok
+provider_fee=1；runs=true；diffs=true
+== rollback → 再套用
+rollback ok；provider_fee=0；runs=false；diffs=false
+再套用 ok；provider_fee=1；runs=true；diffs=true

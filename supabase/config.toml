@@ -409,3 +409,5 @@ project_id = "opaphdargymfyrrzvozs"
     verify_jwt = false
   [functions.payuni-refund]
     verify_jwt = false
+  [functions.payuni-reconcile]
+    verify_jwt = false

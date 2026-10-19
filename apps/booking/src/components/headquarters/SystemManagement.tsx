@@ -40,6 +40,7 @@ import { LegalDocumentsManagement } from "@/components/headquarters/LegalDocumen
 import { OwlTingPushMonitor } from "@/components/headquarters/OwlTingPushMonitor";
 import { OwlTingAccommodationConfig } from "@/components/headquarters/OwlTingAccommodationConfig";
 import { PayuniMerchantManagement } from "@/components/headquarters/PayuniMerchantManagement";
+import { PayuniReconcilePanel } from "@/components/headquarters/PayuniReconcilePanel";
 import { HotelNabeRoomVerify } from "@/components/headquarters/HotelNabeRoomVerify";
 import { HotelNabePushInventory } from "@/components/headquarters/HotelNabePushInventory";
 import { HotelNabeInboundLog } from "@/components/headquarters/HotelNabeInboundLog";
@@ -1001,7 +1002,18 @@ export function SystemManagement({ accommodations }: SystemManagementProps) {
         </TabsContent>
 
         <TabsContent value="payuni" className="space-y-4">
-          <PayuniMerchantManagement />
+          <Tabs defaultValue="merchants" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="merchants" data-testid="payuni-subtab-merchants">合作商店</TabsTrigger>
+              <TabsTrigger value="reconcile" data-testid="payuni-subtab-reconcile">對帳</TabsTrigger>
+            </TabsList>
+            <TabsContent value="merchants" className="space-y-4">
+              <PayuniMerchantManagement />
+            </TabsContent>
+            <TabsContent value="reconcile" className="space-y-4">
+              <PayuniReconcilePanel />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
         <TabsContent value="owlting-push" className="space-y-4">
