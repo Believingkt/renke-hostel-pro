@@ -1,0 +1,8 @@
+-- 20261022090000 套用前唯讀檢查：每列都應為 true（只讀，不寫入）
+SELECT '2d 新函式尚不存在' AS item, NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname IN ('wizard_save_basic_info', 'wizard_precheck_redact', 'wizard_basic_info_errors')) AS ok
+UNION ALL SELECT '已套用 120001（4 支要取代／呼叫的函式存在）', to_regprocedure('public.wizard_precheck_core(uuid)') IS NOT NULL AND to_regprocedure('public.wizard_precheck(uuid)') IS NOT NULL AND to_regprocedure('public.wizard_submit(uuid, boolean)') IS NOT NULL AND to_regprocedure('public.wizard_assert_access(uuid, boolean)') IS NOT NULL
+UNION ALL SELECT '已套用 120002（開賣守門呼叫 wizard_precheck_core）', position('wizard_precheck_core' IN replace(pg_get_functiondef('public.accommodation_info_guard_is_active()'::regprocedure), E'\r', '')) > 0
+UNION ALL SELECT 'wizard_precheck_core 目前為 120001 版本（含 OTA 檢查）', position('needs_ack' IN replace(pg_get_functiondef('public.wizard_precheck_core(uuid)'::regprocedure), E'\r', '')) > 0 AND position('ota_mapping' IN replace(pg_get_functiondef('public.wizard_precheck_core(uuid)'::regprocedure), E'\r', '')) > 0
+UNION ALL SELECT 'wizard_submit 目前為 120001 版本（檢查 OTA 勾選）', position('p_ota_ack IS NOT TRUE' IN replace(pg_get_functiondef('public.wizard_submit(uuid, boolean)'::regprocedure), E'\r', '')) > 0
+UNION ALL SELECT 'accommodation_info 有 name／address／phone／description／short_url_alias', (SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'accommodation_info' AND column_name IN ('name', 'address', 'phone', 'description', 'short_url_alias')) = 5
+UNION ALL SELECT 'is_super_admin(uuid) 存在', to_regprocedure('public.is_super_admin(uuid)') IS NOT NULL;

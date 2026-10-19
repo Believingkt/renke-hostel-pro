@@ -1,0 +1,153 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1 | F01 單棟：建立房型（房間數 1） | PASS | OK | OK cf81ceb1-a03d-461a-89a1-746875299d2d
+2 | F02 三日型：平日售價 0 被擋 | PASS | ERR [22023] | ERR [22023] 平日售價與原價都必須是大於 0 的整數
+3 | F03 三日型：假日原價 0 被擋 | PASS | ERR [22023] | ERR [22023] 假日售價與原價都必須是大於 0 的整數
+4 | F04 三日型：缺旺日被擋 | PASS | ERR [22023] | ERR [22023] 旺日（週五／週日）售價與原價都必填
+5 | F05 原價低於售價被擋 | PASS | ERR [22023] | ERR [22023] 平日原價不得低於售價
+6 | F06 失敗時沒有建立任何方案／專案 | PASS | OK 0 | OK 0
+7 | F07 儲存方案：自動建立專案且專案房型 = 方案主房型 | PASS | OK true|包棟森林包棟|森林包棟 | OK true|包棟森林包棟|森林包棟
+8 | F08 專案價格 = 三日型原價（package_original） | PASS | OK 9000/10000/12000 | OK 9000/10000/12000
+9 | F09 未建立庫存與基本資料：precheck 紅色未過 | PASS | OK false | OK false
+10 | F10 紅色未通過不能送審 | PASS | ERR [P0001] | ERR [P0001] 開賣前檢查有紅色項目未通過，不能送審
+11 | F11 開庫存：預設 6 個月，既有 1 天略過 | PASS | OK skipped=1 inserted=181 | OK skipped=1 inserted=181
+12 | F12 既有庫存未被覆蓋（5555 元、0 間） | PASS | OK 5555/0 | OK 5555/0
+13 | F13 新庫存：間數 = 房間數 1、價格 = base_price 12000 | PASS | OK 1/12000 | OK 1/12000
+14 | F14 再開一次庫存：全部略過、不新增 | PASS | OK 0 | OK 0
+15 | F15 季節價預覽：新增 8、覆蓋 2，列出日期與舊價 | PASS | OK 8/2/2026-10-31/7000/7500 | OK 8/2/2026-10-31/7000/7500
+16 | F16 預覽不寫入 | PASS | OK 2 | OK 2
+17 | F17 季節價 0 被擋 | PASS | ERR [22023] | ERR [22023] 售價與原價都必須是大於 0 的整數
+18 | F18 套用回傳筆數 = 預覽筆數 | PASS | OK 8/2 | OK 8/2
+19 | F19 實際寫入：共 10 天、全部 9900/11000 | PASS | OK 10|9900/11000 | OK 10|9900/11000
+20 | F20 資料齊全後 precheck 紅色全過 | PASS | OK true | OK true
+21 | F21 未勾選 OTA 確認不能送審 | FAIL | ERR [22023] | OK {"red": [{"ok": true, "key": "room_types", "label": "至少 1 個房型（人數、房價 > 0）", "detail": "1 個房型"}, {"ok": true, "key": "packages", "label": "至少 1 個啟用方案，三日型價格 > 0
+22 | F22 直接改 final_check 為 submitted 被擋 | PASS | ERR [42501] | ERR [42501] 送審與退回只能透過上架精靈（wizard_submit / wizard_return）
+23 | F23 M3：未送審時總部核准被擋 | FAIL | ERR [42501] | OK ea55e271-15f8-4e63-9c4f-69fbd2022bc5
+24 | F24 送審成功 | FAIL | OK | ERR [42501] 上架精靈只能用於尚未開賣的館
+25 | F25 送審後精靈唯讀 | FAIL | ERR [P0001] | ERR [42501] 上架精靈只能用於尚未開賣的館
+26 | F26 送審後一般 PMS 仍可改房型 | PASS | OK 1 | OK 1
+27 | F27 送審後業主不能把狀態改回 | PASS | ERR [42501] | ERR [42501] 送審與退回只能透過上架精靈（wizard_submit / wizard_return）
+28 | F28 業主不能退回 | PASS | ERR [42501] | ERR [42501] 只有總部最高管理員可以退回
+29 | F29 退回原因必填 | FAIL | ERR [22023] | ERR [42501] 上架精靈只能用於尚未開賣的館
+30 | F30 總部退回 | FAIL | OK | ERR [42501] 上架精靈只能用於尚未開賣的館
+31 | F31 PMS 端看得到退回原因 | FAIL | OK returned|照片不足，請補上 | OK 
+32 | F32 退回後可再編輯 | FAIL | OK true | ERR [42501] 上架精靈只能用於尚未開賣的館
+33 | F33 修改後專案平日價同步為 9500 | FAIL | OK 9500 | OK 9000
+34 | F34 M3：退回狀態時核准被擋 | FAIL | ERR [42501] | OK ea55e271-15f8-4e63-9c4f-69fbd2022bc5
+35 | F35 再次送審成功 | FAIL | OK true | ERR [42501] 上架精靈只能用於尚未開賣的館
+36 | F35b 退回原因已清空 | PASS | OK submitted|- | OK submitted|-
+37 | F36 M3：送審且紅色全過，總部核准成功 | PASS | OK | OK ea55e271-15f8-4e63-9c4f-69fbd2022bc5
+38 | F37 核准後寫入 first_activated_at | PASS | OK true | OK true
+39 | F38 已開賣館不能用精靈 | PASS | ERR [42501] | ERR [42501] 上架精靈只能用於尚未開賣的館
+40 | F39 已開賣過的館：暫停開賣 | PASS | OK | OK ea55e271-15f8-4e63-9c4f-69fbd2022bc5
+41 | F40 已開賣過的館：重新開賣不被擋 | PASS | OK | OK ea55e271-15f8-4e63-9c4f-69fbd2022bc5
+42 | M01 多房型：建立 2 個房型 | PASS | OK 2 | OK 2
+43 | M02 方案一（雙人房）專案房型正確 | PASS | OK true|雙人房 | OK true|雙人房
+44 | M03 方案二（四人房）專案房型正確 | PASS | OK true|四人房 | OK true|四人房
+45 | M04a 多房型開庫存 | PASS | OK | OK {"end": "2027-04-18", "start": "2026-10-19", "room_types": [{"name": "四人房", "skipped": 0, "inserted": 182, "room_type_id": "889b080e-5731-485e-a281-2c53f584e
+46 | M04b 兩房型間數各自 = 房間數、價格 = base_price | PASS | OK 2:5000,3:3000 | OK 2:5000,3:3000
+47 | M05 館別開了 OwlTing 同步但房型未對應 → 紅色 | FAIL | OK false|false | OK 
+48 | M06 OTA 紅色時不能送審 | FAIL | ERR [P0001] | OK {"red": [{"ok": true, "key": "room_types", "label": "至少 1 個房型（人數、房價 > 0）", "detail": "2 個房型"}, {"ok": true, "key": "packages", "label": "至少 1 個啟用方案，三日型價格 > 0
+49 | M07 Hotelnabe 已開同步列在黃色 | FAIL | OK true | OK 
+50 | M08 多房型送審成功 | FAIL | OK true | ERR [P0001] 已送審，精靈為唯讀；如需修改請等總部退回
+51 | M09 多房型總部核准成功 | PASS | OK | OK d0000000-0000-0000-0000-00000000000d
+52 | P01 他館業主 save_room_type → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+53 | P02 他館業主 save_package → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+54 | P03 他館業主 preview_season_prices → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+55 | P04 他館業主 apply_season_prices → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+56 | P05 他館業主 open_inventory → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+57 | P06 他館業主 precheck → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+58 | P07 他館業主 submit → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+59 | P08 他館業主 return → 42501 | PASS | ERR [42501] | ERR [42501] 只有總部最高管理員可以退回
+60 | P09 本館 staff save_room_type → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+61 | P10 本館 staff precheck → 42501 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+62 | P11 已開賣館業主 save_room_type → 42501 | PASS | ERR [42501] | ERR [42501] 上架精靈只能用於尚未開賣的館
+63 | P12 已開賣館業主 open_inventory → 42501 | PASS | ERR [42501] | ERR [42501] 上架精靈只能用於尚未開賣的館
+64 | P13 super_admin 可用（新館 N 建房型） | PASS | OK | OK 0bd721c8-9e81-4418-824b-4400cc614ded
+65 | P14 super_admin 可跑 precheck | PASS | OK false | OK false
+66 | P15 後端系統呼叫（auth.uid() 為空）不能用精靈 | PASS | ERR [42501] | ERR [42501] 只有本館管理員或總部最高管理員可以使用上架精靈
+67 | P16 authenticated 不能直接呼叫內部函式 | PASS | ERR [42501] | ERR [42501] permission denied for function wizard_precheck_core
+68 | X01 新館 N 未送審，總部核准被擋 | PASS | ERR [42501] | ERR [42501] 新館第一次開賣須先由業主在上架精靈送審（first_activation_requires_submission）
+69 | X02 停用、無訂單的既有館 C：重新開賣不被擋 | PASS | OK | OK c0000000-0000-0000-0000-00000000000c
+70 | X03 曾開賣後停用的 B：重新開賣不被擋 | PASS | OK | OK b0000000-0000-0000-0000-00000000000b
+71 | X04 開賣中的 A：暫停開賣 | PASS | OK | OK a0000000-0000-0000-0000-00000000000a
+72 | X05 A：重新開賣 | PASS | OK | OK a0000000-0000-0000-0000-00000000000a
+73 | X06 業主改 is_active 照舊被擋 | PASS | ERR [42501] | ERR [42501] 只有總部最高管理員可以核准或暫停開賣（only_super_admin_can_change_is_active）
+74 | X07 後端系統呼叫開賣新館 N 照舊放行 | PASS | OK | OK f0000000-0000-0000-0000-00000000000f
+75 | X08 系統開賣後也寫入 first_activated_at | PASS | OK true | OK true
+76 | X09 super_admin 直接新增 is_active=true 的新館被擋 | PASS | ERR [42501] | ERR [42501] 新館第一次開賣須先由業主在上架精靈送審（first_activation_requires_submission）
+61/76

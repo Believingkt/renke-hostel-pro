@@ -1,0 +1,81 @@
+campaign_packages 18 hA 讀 A | count=1 | count=1 | t
+campaign_packages 19 hA 讀 B | count=0 | count=0 | t
+campaign_packages 20 hA 新增 B | ERR [42501] | ERR [42501] | t
+campaign_packages 23 su 讀 B | count=1 | count=1 | t
+group_buy_campaigns 01 hA 讀 A | count=1 | count=1 | t
+group_buy_campaigns 02 hA 讀 B | count=0 | count=0 | t
+group_buy_campaigns 03 hA 改 A | OK rows=1 | OK rows=1 | t
+group_buy_campaigns 04 hA 改 B | OK rows=0 | OK rows=0 | t
+group_buy_campaigns 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+group_buy_campaigns 06 multi 讀 A | count=1 | count=1 | t
+group_buy_campaigns 07 multi 讀 B（未指派） | count=0 | count=0 | t
+group_buy_campaigns 08 su 讀 B | count=1 | count=1 | t
+group_buy_campaigns 09 su 改 B | OK rows=1 | OK rows=1 | t
+group_buy_campaigns 10 hA 新增 B | ERR [42501] | ERR [42501] | t
+group_buy_campaigns 11 hA 新增 A | OK rows=1 | OK rows=1 | t
+group_buy_campaigns 12 multi 讀 C（已指派） | count=1 | count=1 | t
+group_buy_venue_intros 01 hA 讀 A | count=1 | count=1 | t
+group_buy_venue_intros 02 hA 讀 B | count=1 | count=1 | t
+group_buy_venue_intros 03 hA 改 A | OK rows=1 | OK rows=1 | t
+group_buy_venue_intros 04 hA 改 B | OK rows=0 | OK rows=0 | t
+group_buy_venue_intros 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+group_buy_venue_intros 06 multi 讀 A | count=1 | count=1 | t
+group_buy_venue_intros 07 multi 讀 B（未指派） | count=1 | count=1 | t
+group_buy_venue_intros 08 su 讀 B | count=1 | count=1 | t
+group_buy_venue_intros 09 su 改 B | OK rows=1 | OK rows=1 | t
+manual_review 24 staff 讀 A | count=1 | count=1 | t
+manual_review 25 staff 改 A | OK rows=1 | OK rows=1 | t
+manual_review 26 staff 讀 B | count=0 | count=0 | t
+notif_settings 21 hA 讀 A | count=1 | count=1 | t
+notif_settings 22 hA 讀 B | count=0 | count=0 | t
+order_manual_review_tasks 01 hA 讀 A | count=1 | count=1 | t
+order_manual_review_tasks 02 hA 讀 B | count=0 | count=0 | t
+order_manual_review_tasks 03 hA 改 A | OK rows=1 | OK rows=1 | t
+order_manual_review_tasks 04 hA 改 B | OK rows=0 | OK rows=0 | t
+order_manual_review_tasks 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+order_manual_review_tasks 06 multi 讀 A | count=1 | count=1 | t
+order_manual_review_tasks 07 multi 讀 B（未指派） | count=0 | count=0 | t
+order_manual_review_tasks 08 su 讀 B | count=1 | count=1 | t
+order_manual_review_tasks 09 su 改 B | OK rows=1 | OK rows=1 | t
+owlting_email_property_alias 01 hA 讀 A | count=1 | count=1 | t
+owlting_email_property_alias 02 hA 讀 B | count=0 | count=0 | t
+owlting_email_property_alias 03 hA 改 A | OK rows=1 | OK rows=1 | t
+owlting_email_property_alias 04 hA 改 B | OK rows=0 | OK rows=0 | t
+owlting_email_property_alias 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+owlting_email_property_alias 06 multi 讀 A | count=1 | count=1 | t
+owlting_email_property_alias 07 multi 讀 B（未指派） | count=0 | count=0 | t
+owlting_email_property_alias 08 su 讀 B | count=1 | count=1 | t
+owlting_email_property_alias 09 su 改 B | OK rows=1 | OK rows=1 | t
+owlting_email_room_alias 01 hA 讀 A | count=1 | count=1 | t
+owlting_email_room_alias 02 hA 讀 B | count=0 | count=0 | t
+owlting_email_room_alias 03 hA 改 A | OK rows=1 | OK rows=1 | t
+owlting_email_room_alias 04 hA 改 B | OK rows=0 | OK rows=0 | t
+owlting_email_room_alias 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+owlting_email_room_alias 06 multi 讀 A | count=1 | count=1 | t
+owlting_email_room_alias 07 multi 讀 B（未指派） | count=0 | count=0 | t
+owlting_email_room_alias 08 su 讀 B | count=1 | count=1 | t
+owlting_email_room_alias 09 su 改 B | OK rows=1 | OK rows=1 | t
+owlting_room_type_rate_plans 01 hA 讀 A | count=1 | count=1 | t
+owlting_room_type_rate_plans 02 hA 讀 B | count=0 | count=0 | t
+owlting_room_type_rate_plans 03 hA 改 A | OK rows=1 | OK rows=1 | t
+owlting_room_type_rate_plans 04 hA 改 B | OK rows=0 | OK rows=0 | t
+owlting_room_type_rate_plans 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+owlting_room_type_rate_plans 06 multi 讀 A | count=1 | count=1 | t
+owlting_room_type_rate_plans 07 multi 讀 B（未指派） | count=0 | count=0 | t
+owlting_room_type_rate_plans 08 su 讀 B | count=1 | count=1 | t
+owlting_room_type_rate_plans 09 su 改 B | OK rows=1 | OK rows=1 | t
+property_alias 14 hA 讀未對應館 | count=0 | count=0 | t
+property_alias 15 su 讀未對應館 | count=1 | count=1 | t
+rate_plans 13 hA 新增 B | ERR [42501] | ERR [42501] | t
+referral_campaigns 01 hA 讀 A | count=1 | count=1 | t
+referral_campaigns 02 hA 讀 B | count=0 | count=0 | t
+referral_campaigns 03 hA 改 A | OK rows=1 | OK rows=1 | t
+referral_campaigns 04 hA 改 B | OK rows=0 | OK rows=0 | t
+referral_campaigns 05 hA 刪 B | OK rows=0 | OK rows=0 | t
+referral_campaigns 06 multi 讀 A | count=1 | count=1 | t
+referral_campaigns 07 multi 讀 B（未指派） | count=0 | count=0 | t
+referral_campaigns 08 su 讀 B | count=1 | count=1 | t
+referral_campaigns 09 su 改 B | OK rows=1 | OK rows=1 | t
+referral_campaigns 17 hA 新增 B | ERR [42501] | ERR [42501] | t
+room_alias 16 hA 新增 B | ERR [42501] | ERR [42501] | t
+80 | 0

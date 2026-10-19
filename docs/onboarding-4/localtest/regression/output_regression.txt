@@ -1,0 +1,26 @@
+== 2d precheck（套用前，每列應為 t）
+2d 新函式尚不存在 | t
+已套用 120001（4 支要取代／呼叫的函式存在） | t
+已套用 120002（開賣守門呼叫 wizard_precheck_core） | t
+wizard_precheck_core 目前為 120001 版本（含 OTA 檢查） | t
+wizard_submit 目前為 120001 版本（檢查 OTA 勾選） | t
+accommodation_info 有 name／address／phone／description／short_url_alias | t
+is_super_admin(uuid) 存在 | t
+== 2d postcheck（套用後，每列應為 t）
+3 支新函式都存在 | t
+save_basic_info、precheck_redact 為 SECURITY DEFINER | t
+save_basic_info：authenticated 可、anon 不可 | t
+precheck_redact：authenticated 不可 | t
+wizard_precheck_core：已移除 OTA 紅黃檢查、改回 ota_status、flags 有 hq_detail | t
+wizard_precheck_core：basic_info 改用 wizard_basic_info_errors | t
+wizard_submit 簽名不變、不再檢查 OTA 勾選、回傳經 redact | t
+wizard_precheck 回傳經 redact | t
+開賣守門仍呼叫 wizard_precheck_core（M3 未變） | t
+規則抽查：合法資料 0 個錯誤、全空 4 個錯誤 | t
+wizard_tests：A=76/76  B=59/76
+m1：A=80 | 0  B=80 | 0
+m2：A=30 | 0  B=30 | 0
+m3：A=43 | 0  B=43 | 0
+wizard_tests（B'，介紹改 30 字以上）：61/76
+NOTICE:  database "wzd" does not exist, skipping
+wizard_tests（B''，介紹 30 字＋4 題換成 2d 規則）：76/76

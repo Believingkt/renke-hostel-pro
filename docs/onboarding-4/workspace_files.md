@@ -1,30 +1,65 @@
-# 工作區變更檔案核對（2d 交付時）
+# 工作區變更檔案核對（2d 補件交付時，HEAD b01ad6df0）
 
-## 本批（2d）變更檔案：尚未 commit（git status，相對 HEAD b8f102bd7）
--  M apps/booking/src/components/headquarters/OnboardingReviewPanel.tsx
--  M apps/booking/src/components/onboarding-wizard/InventoryStep.tsx
--  M apps/booking/src/components/onboarding-wizard/PackageForm.tsx
--  M apps/booking/src/components/onboarding-wizard/PrecheckList.tsx
--  M apps/booking/src/components/onboarding-wizard/RoomTypeForm.tsx
--  M apps/booking/src/components/onboarding-wizard/SeasonStep.tsx
--  M apps/booking/src/components/onboarding-wizard/SubmitStep.tsx
--  M apps/booking/src/hooks/use-wizard-data.ts
--  M apps/booking/src/lib/onboarding/wizardApi.ts
--  M apps/booking/src/pages/admin/OnboardingWizard.tsx
--  M apps/booking/src/test/onboarding-wizard-page.test.tsx
--  M apps/booking/src/test/onboarding-wizard.test.tsx
-- ?? apps/booking/src/components/onboarding-wizard/BasicInfoStep.tsx
-- ?? apps/booking/src/components/onboarding-wizard/FlowChooser.tsx
-- ?? apps/booking/src/components/onboarding-wizard/WizardBody.tsx
-- ?? apps/booking/src/components/onboarding-wizard/WizardField.tsx
-- ?? apps/booking/src/components/onboarding-wizard/WizardStepper.tsx
-- ?? apps/booking/src/lib/onboarding/basicInfo.ts
-- ?? apps/booking/src/lib/onboarding/wizardSteps.ts
-- ?? apps/booking/src/test/onboarding-wizard-2d.test.tsx
-- ?? docs/onboarding-4/
-- ?? supabase/migrations/20261022090000_onboarding_wizard_2d.sql
+## 本批（2d）：平台 checkpoint b01ad6df0 內的檔案
+- M	apps/booking/src/components/headquarters/OnboardingReviewPanel.tsx
+- A	apps/booking/src/components/onboarding-wizard/BasicInfoStep.tsx
+- A	apps/booking/src/components/onboarding-wizard/FlowChooser.tsx
+- M	apps/booking/src/components/onboarding-wizard/InventoryStep.tsx
+- M	apps/booking/src/components/onboarding-wizard/PackageForm.tsx
+- M	apps/booking/src/components/onboarding-wizard/PrecheckList.tsx
+- M	apps/booking/src/components/onboarding-wizard/RoomTypeForm.tsx
+- M	apps/booking/src/components/onboarding-wizard/SeasonStep.tsx
+- M	apps/booking/src/components/onboarding-wizard/SubmitStep.tsx
+- A	apps/booking/src/components/onboarding-wizard/WizardBody.tsx
+- A	apps/booking/src/components/onboarding-wizard/WizardField.tsx
+- A	apps/booking/src/components/onboarding-wizard/WizardStepper.tsx
+- M	apps/booking/src/hooks/use-wizard-data.ts
+- A	apps/booking/src/lib/onboarding/basicInfo.ts
+- M	apps/booking/src/lib/onboarding/wizardApi.ts
+- A	apps/booking/src/lib/onboarding/wizardSteps.ts
+- M	apps/booking/src/pages/admin/OnboardingWizard.tsx
+- A	apps/booking/src/test/onboarding-wizard-2d.test.tsx
+- M	apps/booking/src/test/onboarding-wizard-page.test.tsx
+- M	apps/booking/src/test/onboarding-wizard.test.tsx
+- A	docs/onboarding-4/localtest/before.sql
+- A	docs/onboarding-4/localtest/output_run.txt
+- A	docs/onboarding-4/localtest/output_vitest_tsc_build.txt
+- A	docs/onboarding-4/localtest/run.sh
+- A	docs/onboarding-4/localtest/schema.sql
+- A	docs/onboarding-4/localtest/seed.sql
+- A	docs/onboarding-4/localtest/tests.sql
+- A	docs/onboarding-4/preview/index.html
+- A	docs/onboarding-4/preview/main.tsx
+- A	docs/onboarding-4/preview/mockSupabase.ts
+- A	docs/onboarding-4/preview/vite.config.ts
+- A	docs/onboarding-4/rollback_20261022090000.sql
+- A	docs/onboarding-4/screenshots/basic-desktop.png
+- A	docs/onboarding-4/screenshots/basic-mobile.png
+- A	docs/onboarding-4/screenshots/flow-desktop.png
+- A	docs/onboarding-4/screenshots/flow-mobile.png
+- A	docs/onboarding-4/screenshots/hq-desktop.png
+- A	docs/onboarding-4/screenshots/hq-mobile.png
+- A	docs/onboarding-4/screenshots/inventory-desktop.png
+- A	docs/onboarding-4/screenshots/inventory-mobile.png
+- A	docs/onboarding-4/screenshots/packages-desktop.png
+- A	docs/onboarding-4/screenshots/packages-mobile.png
+- A	docs/onboarding-4/screenshots/rooms-desktop.png
+- A	docs/onboarding-4/screenshots/rooms-mobile.png
+- A	docs/onboarding-4/screenshots/season-desktop.png
+- A	docs/onboarding-4/screenshots/season-mobile.png
+- A	docs/onboarding-4/screenshots/submit-desktop.png
+- A	docs/onboarding-4/screenshots/submit-mobile.png
+- A	docs/onboarding-4/workspace_files.md
+- A	supabase/migrations/20261022090000_onboarding_wizard_2d.sql
 
-## 工作區中非本批的變更檔案（4d8de6703 之後的 commit；PAYUNi W7／W6 施工與團隊館別設定總覽，未確認是否已 Save）
+## 本批（2d 補件）：尚未 commit
+- ?? docs/onboarding-4/localtest/rebuild_hq3.sh
+- ?? docs/onboarding-4/localtest/regression.sh
+- ?? docs/onboarding-4/localtest/regression/
+- ?? docs/onboarding-4/postcheck_20261022090000.sql
+- ?? docs/onboarding-4/precheck_20261022090000.sql
+
+## 非本批（同事等）：4d8de6703..b8f102bd7
 - M	apps/booking/src/App.tsx
 - M	apps/booking/src/components/admin/PayuniTxAuditCard.tsx
 - A	apps/booking/src/components/headquarters/PayuniReconcilePanel.tsx
@@ -105,3 +140,5 @@
 - A	supabase/migrations/20261018130000_payuni_refunds.sql
 - A	supabase/migrations/20261020090000_payuni_reconcile.sql
 - A	supabase/migrations/20261021090000_team_am_onboarding.sql
+
+重疊：只有 memory/PRD.md（agent 工作紀錄），程式／migration 無重疊
