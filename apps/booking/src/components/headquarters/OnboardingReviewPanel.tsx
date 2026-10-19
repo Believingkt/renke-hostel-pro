@@ -40,7 +40,7 @@ export function OnboardingReviewPanel({ accommodationId, reviewStatus, onReturne
         開賣前檢查{reviewStatus === "submitted" ? "（業主已送審）" : "（已退回，待業主再次送審）"}
       </p>
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {result ? <PrecheckList result={result} /> : !error && <p className="text-sm text-muted-foreground">檢查中…</p>}
+      {result ? <PrecheckList result={result} audience="hq" /> : !error && <p className="text-sm text-muted-foreground">檢查中…</p>}
       {reviewStatus === "submitted" && !returning && (
         <Button variant="outline" size="sm" onClick={() => setReturning(true)} data-testid="hq-return-btn">退回</Button>
       )}

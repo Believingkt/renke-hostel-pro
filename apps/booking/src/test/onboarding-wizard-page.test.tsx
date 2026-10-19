@@ -9,10 +9,11 @@ vi.mock("@lakeze/shared/hooks/use-staff-permissions", () => ({ useStaffPermissio
 vi.mock("@lakeze/shared/hooks/use-alias-prefix", () => ({ useAliasPrefix: () => ({ withPrefix: (p: string) => p }) }));
 vi.mock("@lakeze/shared/components/AdminPageHeader", () => ({ AdminPageHeader: ({ title }: { title: string }) => <h1>{title}</h1> }));
 vi.mock("@/hooks/use-wizard-data", () => ({ useWizardData: () => wizard }));
+vi.mock("@lakeze/shared/integrations/supabase/client", () => ({ supabase: { rpc: vi.fn(async () => ({ data: null, error: { message: "mock" } })) } }));
 
 import OnboardingWizard from "@/pages/admin/OnboardingWizard";
 
-const base = { loading: false, isActive: false, roomTypes: [], packages: [], templates: [], finalCheck: null, locked: false, reload: vi.fn() };
+const base = { loading: false, isActive: false, basicInfo: { name: "測試館", address: null, phone: null, description: null, short_url_alias: "t" }, roomTypes: [], packages: [], templates: [], finalCheck: null, locked: false, reload: vi.fn() };
 const renderPage = () => render(<MemoryRouter><OnboardingWizard /></MemoryRouter>);
 
 describe("上架精靈頁面門禁", () => {

@@ -19,7 +19,7 @@ import { OnboardingReviewPanel } from "@/components/headquarters/OnboardingRevie
 const ok = { sale: 8000, original: 9000 };
 const result = (redOk: boolean) => ({
   red: [{ key: "inventory", label: "每個房型有庫存", ok: redOk, detail: redOk ? "全部有庫存" : "沒有可訂庫存：雙人房" }],
-  yellow: [{ key: "ota", label: "OTA 串接狀態（請確認）", needs_ack: true, detail: "OwlTing：未串接" }],
+  yellow: [],
   red_ok: redOk, window_start: "2026-10-18", window_end: "2027-04-17",
 });
 
@@ -44,16 +44,16 @@ describe("上架精靈：送審", () => {
     await waitFor(() => expect(screen.getByTestId("precheck-summary").textContent).toContain("還有紅色項目未通過"));
     expect((screen.getByTestId("wizard-submit-btn") as HTMLButtonElement).disabled).toBe(true);
   });
-  it("紅色全過但未勾 OTA：停用；勾選後可送審", async () => {
+  it("紅色全過：不需勾 OTA 就能送審（已無 OTA 勾選）", async () => {
     precheck.mockResolvedValue(result(true));
     submit.mockResolvedValue(result(true));
     const onSubmitted = vi.fn();
     render(<SubmitStep accommodationId="t" locked={false} onSubmitted={onSubmitted} />);
     await waitFor(() => expect(screen.getByTestId("wizard-submit-btn")).toBeTruthy());
-    expect((screen.getByTestId("wizard-submit-btn") as HTMLButtonElement).disabled).toBe(true);
-    fireEvent.click(screen.getByTestId("ota-ack-checkbox"));
+    expect(screen.queryByTestId("ota-ack-checkbox")).toBeNull();
+    expect((screen.getByTestId("wizard-submit-btn") as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(screen.getByTestId("wizard-submit-btn"));
-    await waitFor(() => expect(submit).toHaveBeenCalledWith("t", true));
+    await waitFor(() => expect(submit).toHaveBeenCalledWith("t"));
     expect(onSubmitted).toHaveBeenCalled();
   });
   it("已送審（唯讀）：不顯示送審按鈕", async () => {

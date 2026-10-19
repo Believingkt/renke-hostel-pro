@@ -3,9 +3,17 @@ import { supabase } from "@lakeze/shared/integrations/supabase/client";
 export type TierKey = "weekday" | "friday_sunday" | "weekend";
 export type TierPrices = Record<TierKey, { sale: number; original: number }>;
 export const TIER_LABELS: Record<TierKey, string> = { weekday: "平日", friday_sunday: "旺日（週五／週日）", weekend: "假日" };
+/** 依入住當晚日期判斷（packagePricing.ts classifyPkgTier、use-accommodation-packages.tsx detectTierByDate） */
+export const TIER_HINTS: Record<TierKey, string> = {
+  weekday: "週一到週四入住的晚上。",
+  friday_sunday: "週五、週日入住的晚上。",
+  weekend: "週六，以及總部設定的國定假日、補假日當晚（連假逐晚判斷）。",
+};
 
-export interface PrecheckItem { key: string; label: string; ok?: boolean; detail: string; needs_ack?: boolean }
-export interface PrecheckResult { red: PrecheckItem[]; yellow: PrecheckItem[]; red_ok: boolean; window_start: string; window_end: string }
+export interface PrecheckItem { key: string; label: string; ok?: boolean; detail: string; needs_ack?: boolean; hq_detail?: string }
+/** OTA 串接狀態：只回給 super_admin，僅顯示、不擋送審與核准 */
+export interface OtaStatus { owlting: boolean; hotelnabe: boolean; detail: string }
+export interface PrecheckResult { red: PrecheckItem[]; yellow: PrecheckItem[]; red_ok: boolean; window_start: string; window_end: string; ota_status?: OtaStatus }
 export interface SavePackageResult {
   package_id: string; template_id: string | null; template_name: string | null;
   template_room_type_id: string | null; room_type_name: string | null;
@@ -36,8 +44,13 @@ export const wizardApi = {
   openInventory: (accommodationId: string, start: string, end: string) =>
     call<InventoryResult>("wizard_open_inventory", { p_accommodation_id: accommodationId, p_start: start, p_end: end }),
   precheck: (accommodationId: string) => call<PrecheckResult>("wizard_precheck", { p_accommodation_id: accommodationId }),
-  submit: (accommodationId: string, otaAck: boolean) =>
-    call<PrecheckResult>("wizard_submit", { p_accommodation_id: accommodationId, p_ota_ack: otaAck }),
+  saveBasicInfo: (a: { accommodationId: string; name: string; address: string; phone: string; description: string }) =>
+    call<Record<string, string | null>>("wizard_save_basic_info", {
+      p_accommodation_id: a.accommodationId, p_name: a.name, p_address: a.address, p_phone: a.phone, p_description: a.description,
+    }),
+  // p_ota_ack 自 20261022090000 起後端忽略；仍送 true，讓 migration 套用前的舊後端也能送審
+  submit: (accommodationId: string) =>
+    call<PrecheckResult>("wizard_submit", { p_accommodation_id: accommodationId, p_ota_ack: true }),
   returnToOwner: (accommodationId: string, reason: string) =>
     call<null>("wizard_return", { p_accommodation_id: accommodationId, p_reason: reason }),
 };

@@ -1,0 +1,51 @@
+基準：套用 20261018120001_onboarding_wizard_rpcs
+基準：套用 20261018120002_m3_first_activation_guard
+== 套用前（120001 版本）：OwlTing 未對應時 red_ok
+red_ok=false；未通過=ota_mapping；送審不勾 OTA → （見下一行）
+psql:/app/docs/onboarding-4/localtest/before.sql:12: ERROR:  開賣前檢查有紅色項目未通過，不能送審
+DETAIL:  OwlTing 已開同步：開啟同步的房型都必須完成對應
+CONTEXT:  PL/pgSQL function wizard_submit(uuid,boolean) line 8 at RAISE
+== 套用 2d
+POSTCHECK 通過
+== 行為測試
+PASS  業主：館別開關顯示「系統設定（總部）」，不含技術名稱 → ok:系統設定（總部）|已完成|false|
+PASS  總部：館別開關附技術名稱 → ok:系統設定（總部）|已完成|true|新版價格頁、自動建立專案已開啟；價格同步方式 = package_original
+PASS  業主：沒有 ota_status、黃色項目 0、紅色無 OTA → ok:false|0|0
+PASS  總部：ota_status 只顯示（OwlTing 已開同步、房型未對應） → ok:OwlTing：已開同步（未完成對應：整棟包棟）；Hotelnabe：未串接
+PASS  OTA 未對應不影響 red_ok → ok:true
+PASS  開關未開：業主只看到「請聯絡總部」 → ok:系統設定（總部）|系統設定尚未完成，請聯絡總部|false|
+PASS  開關未開：總部看到完整技術名稱 → ok:系統設定（總部）|系統設定尚未完成，請聯絡總部|true|新版價格頁（new_price_ui_enabled）未開；價格同步方式（price_sync_mode）應為 package_original，目前為 room_type
+PASS  存基本資料：去頭尾空白、PMS 代號不變 → ok:{"name": "新名稱民宿", "phone": "03-987-6543", "address": "宜蘭縣礁溪鄉溫泉路 2 號", "description": "好好好好好好好好好好好好好好好好好好好好好好好好好好好好好好", "short_url_alias": "testa"}
+PASS  名稱 1 字 → err:22023:基本資料有誤｜名稱需 2～50 字
+PASS  名稱 51 字 → err:22023:基本資料有誤｜名稱需 2～50 字
+PASS  地址 4 字 → err:22023:基本資料有誤｜地址需 5～200 字
+PASS  電話含英文字 → err:22023:基本資料有誤｜電話格式不正確（例：02-2345-6789、0912-345-678、+886-2-2345-6789）
+PASS  電話只有 7 位數字 → err:22023:基本資料有誤｜電話格式不正確（例：02-2345-6789、0912-345-678、+886-2-2345-6789）
+PASS  電話 16 位數字 → err:22023:基本資料有誤｜電話格式不正確（例：02-2345-6789、0912-345-678、+886-2-2345-6789）
+PASS  電話分機 #123 可以 → ok:02-2345-6789#123
+PASS  電話 +886 國碼可以 → ok:+886 912 345 678
+PASS  電話 (02) 括號可以 → ok:(02)2345-6789
+PASS  介紹 29 字 → err:22023:基本資料有誤｜介紹至少 30 字（目前 29 字）
+PASS  介紹 3001 字 → err:22023:基本資料有誤｜介紹最多 3000 字
+PASS  多個錯誤一次列出 → err:22023:基本資料有誤｜名稱必填；地址必填；電話必填；介紹必填
+PASS  其他館管理員 → 42501 → err:42501:只有本館管理員或總部最高管理員可以使用上架精靈
+PASS  super_admin 可以 → ok:測試館A
+PASS  已開賣的館 → 42501 → err:42501:上架精靈只能用於尚未開賣的館
+PASS  未登入 → 42501 → err:42501:只有本館管理員或總部最高管理員可以使用上架精靈
+PASS  anon 不能執行、authenticated 可以
+PASS  開賣前檢查與存檔同規則：介紹太短 → basic_info 不通過 → ok:false|介紹至少 30 字（目前 5 字）
+PASS  紅色未過 → 不能送審 → err:P0001:開賣前檢查有紅色項目未通過，不能送審｜基本資料（名稱、地址、電話、介紹、PMS 代號）
+PASS  PMS 代號空白 → basic_info 不通過 → ok:PMS 代號未設定（請聯絡總部）
+PASS  送審：不勾 OTA（false）也能送審，回傳不含 ota_status → ok:false
+PASS  已送審 → 存基本資料 P0001 → err:P0001:已送審，精靈為唯讀；如需修改請等總部退回
+PASS  M3：開關未開時總部核准被擋 → err:42501:開賣前檢查有紅色項目未通過，不能核准（first_activation_precheck_failed）｜系統設定（總部）
+PASS  M3：OTA 未對應不擋總部核准 → ok:true
+== 重跑 2d（應被 precheck 擋）
+PRECHECK 失敗：wizard_save_basic_info 已存在，疑似已套用過本 migration
+== rollback
+rollback 成功
+rollback 後：needs_ack 回來=true；ota 勾選檢查回來=true；新函式剩下=0
+== 與 120001 原定義比對（rollback 後 3 個函式 md5）
+完全相同
+== 再套用
+POSTCHECK 通過
