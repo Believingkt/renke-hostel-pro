@@ -24,7 +24,7 @@ BEGIN
   IF p_order_id IS NULL THEN RAISE EXCEPTION 'update_order_fields_v1: p_order_id 不可為 NULL'; END IF;
   IF auth.uid() IS NULL THEN RAISE EXCEPTION 'update_order_fields_v1: 需要登入'; END IF;
 
-  -- 取消防護：團購與信用卡訂單不得由通用欄位更新直接改成 cancelled
+  -- 取消防護：團購、信用卡與 ATM 已付款訂單不得由通用欄位更新直接改成 cancelled
   IF (p_patch ? 'order_status') AND p_patch->>'order_status' = 'cancelled' THEN
     SELECT * INTO v_old FROM public.orders WHERE id = p_order_id;
     IF FOUND AND v_old.order_status IS DISTINCT FROM 'cancelled' THEN
@@ -37,7 +37,10 @@ BEGIN
                 or coalesce(v_old.deposit_payment_method in ('credit_card','credit_card_3ds','card','信用卡'), false)
                 or v_old.room_charge_rec_trade_id is not null;
 
-      IF v_old.order_source = 'group_buy' OR (NOT v_is_atm AND v_is_card) THEN
+      IF v_old.order_source = 'group_buy'
+         OR (NOT v_is_atm AND v_is_card)
+         OR (v_is_atm AND coalesce(v_old.paid_amount,0) > 0
+             AND coalesce(v_old.refund_status,'none') <> 'refunded') THEN
         RAISE EXCEPTION 'ORDER_CANCEL_BLOCKED: 此訂單必須使用專屬取消流程';
       END IF;
     END IF;

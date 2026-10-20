@@ -1,5 +1,5 @@
---- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 10:53:38.377619051 +0000
-+++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 10:53:38.490619052 +0000
+--- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 11:15:26.037638627 +0000
++++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 11:15:26.152638629 +0000
 @@ -6,7 +6,7 @@
    c_allowed CONSTANT text[] := ARRAY[
      'order_status','payment_status','order_source',
@@ -9,7 +9,7 @@
      'display_room_type_name','room_quantity','lock_whole_building',
      'guest_name','guest_phone','guest_email','guest_count',
      'adult_count','child_count','toddler_count','infant_count',
-@@ -43,6 +43,13 @@
+@@ -46,6 +46,13 @@
      END IF;
    END IF;
  

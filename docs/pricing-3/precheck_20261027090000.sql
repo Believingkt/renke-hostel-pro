@@ -4,7 +4,8 @@ UNION ALL SELECT '3. 白名單錨點剛好出現 1 次', (SELECT (length(replace
 UNION ALL SELECT '4. set_order_change_context 呼叫剛好出現 1 次', (SELECT (length(replace(p.prosrc, E'\r', '')) - length(replace(replace(p.prosrc, E'\r', ''), '  PERFORM public.set_order_change_context(p_source, p_reason, NULL, ''user'');', ''))) / length('  PERFORM public.set_order_change_context(p_source, p_reason, NULL, ''user'');') = 1 FROM pg_proc p WHERE p.oid = to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'))
 UNION ALL SELECT '5. orders.pricing_template_id 欄位存在且為 uuid', EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = 'public.orders'::regclass AND a.attname = 'pricing_template_id' AND NOT a.attisdropped AND a.atttypid = 'uuid'::regtype)
 UNION ALL SELECT '6. 函式為 SECURITY INVOKER', (SELECT NOT p.prosecdef FROM pg_proc p WHERE p.oid = to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'))
-UNION ALL SELECT '7. authenticated 可執行、anon 不可', has_function_privilege('authenticated', to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'), 'EXECUTE') AND NOT has_function_privilege('anon', to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'), 'EXECUTE');
+UNION ALL SELECT '7. authenticated 可執行', has_function_privilege('authenticated', to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'), 'EXECUTE')
+UNION ALL SELECT '8. anon 目前可執行（參考，預期 t）', has_function_privilege('anon', to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)'), 'EXECUTE');
 
 SELECT md5(replace(p.prosrc, E'\r', '')) AS 套用前函式內容指紋, COALESCE(array_to_string(p.proacl, ','), '（預設）') AS 套用前權限, COALESCE(array_to_string(p.proconfig, ','), '（無）') AS 套用前設定, p.prosecdef AS 套用前_security_definer
 FROM pg_proc p WHERE p.oid = to_regprocedure('public.update_order_fields_v1(uuid, jsonb, text, text)');

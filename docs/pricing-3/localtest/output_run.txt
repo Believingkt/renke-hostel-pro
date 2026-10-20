@@ -1,4 +1,6 @@
 NOTICE:  database "pt3" does not exist, skipping
+== 0. 對齊正式庫版本
+對齊後指紋＝正式庫：true；權限＝正式庫：true（postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres）
 == 1. precheck
 1. update_order_fields_v1 存在 | t
 2. 尚未套用：函式內容不含 pricing_template_id | t
@@ -6,21 +8,23 @@ NOTICE:  database "pt3" does not exist, skipping
 4. set_order_change_context 呼叫剛好出現 1 次 | t
 5. orders.pricing_template_id 欄位存在且為 uuid | t
 6. 函式為 SECURITY INVOKER | t
-7. authenticated 可執行、anon 不可 | t
-a0c7c028d64f573c9626ef7375f4775f | postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres | （無） | f
+7. authenticated 可執行 | t
+8. anon 目前可執行（參考，預期 t） | t
+b14b83bd8b814638184cc15d6ef084d9 | postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres | （無） | f
 == 2. 套用
 套用成功
 == 3. postcheck
 1. 白名單已含 pricing_template_id（剛好 1 次） | t
 2. 館別檢查剛好 1 處 | t
 3. 仍為 SECURITY INVOKER | t
-4. authenticated 可執行、anon 不可 | t
+4. authenticated 可執行 | t
 5. 異動紀錄來源設定呼叫仍在（剛好 1 次） | t
-a0c7c028d64f573c9626ef7375f4775f | postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres | （無） | f
-去掉兩處後指紋等於套用前：t
+6. 權限與套用前完全相同 | t
+t | postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres | （無） | f
+去掉兩處後指紋等於正式庫套用前 b14b83bd…：t
 == 4. 套用前後函式 diff
---- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 10:53:38.377619051 +0000
-+++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 10:53:38.490619052 +0000
+--- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 11:15:26.037638627 +0000
++++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 11:15:26.152638629 +0000
 @@ -6,7 +6,7 @@
    c_allowed CONSTANT text[] := ARRAY[
      'order_status','payment_status','order_source',
@@ -30,7 +34,7 @@ a0c7c028d64f573c9626ef7375f4775f | postgres=X/postgres,authenticated=X/postgres,
      'display_room_type_name','room_quantity','lock_whole_building',
      'guest_name','guest_phone','guest_email','guest_count',
      'adult_count','child_count','toddler_count','infant_count',
-@@ -43,6 +43,13 @@
+@@ -46,6 +46,13 @@
      END IF;
    END IF;
  
@@ -59,7 +63,9 @@ PASS | T6 異動紀錄來源仍為 admin_order_inline_edit 且記到專案變更
 PASS | T7 既有欄位照舊可改（只改備註） | 預期 OK 1 | 實際 OK 1
 PASS | T8 白名單外欄位照舊拒絕 | 預期 ERR [P0001] update_order_fields_v1: 欄位不在白名單內 | 實際 ERR [P0001] update_order_fields_v1: 欄位不在白名單內 (accommodation_id)
 PASS | T9 他館管理者照舊不能改本館訂單 | 預期 ERR | 實際 ERR [P0001] update_order_fields_v1: 無權限或訂單不存在
-PASS 12 / FAIL 0
+PASS | T10 取消防護不變：信用卡已付款訂單改 cancelled 仍被擋 | 預期 ERR [P0001] ORDER_CANCEL_BLOCKED | 實際 ERR [P0001] ORDER_CANCEL_BLOCKED: 此訂單必須使用專屬取消流程
+PASS | T10b 被擋後訂單狀態未變 | 預期 OK confirmed | 實際 OK confirmed
+PASS 14 / FAIL 0
 == 7. rollback
 rollback 成功
 rollback 後函式定義與套用前完全相同：t
@@ -71,7 +77,8 @@ rollback 後 precheck：
 4. set_order_change_context 呼叫剛好出現 1 次 | t
 5. orders.pricing_template_id 欄位存在且為 uuid | t
 6. 函式為 SECURITY INVOKER | t
-7. authenticated 可執行、anon 不可 | t
+7. authenticated 可執行 | t
+8. anon 目前可執行（參考，預期 t） | t
 == 8. 再套用＋功能測試
 再套用成功
-PASS 12 / FAIL 0
+PASS 14 / FAIL 0

@@ -22,6 +22,8 @@ CREATE FUNCTION pg_temp.chk(p_case text, p_expect text, p_actual text) RETURNS v
 SET session_replication_role = replica;
 INSERT INTO public.orders (id, accommodation_id, order_number, guest_name, guest_phone, check_in_date, check_out_date, room_type_id, guest_count, total_price, final_price, order_status, payment_status, order_source, package_id, pricing_template_id)
 VALUES ('0a000000-0000-0000-0000-000000000001', 'f1000000-0000-0000-0000-000000000001', 'PT3TEST1', '測試', '0900000000', CURRENT_DATE + 30, CURRENT_DATE + 31, 'b1000000-0000-0000-0000-000000000001', 4, 10000, 10000, 'confirmed', 'unpaid', 'manual', 'c1000000-0000-0000-0000-000000000001', 'd1000000-0000-0000-0000-000000000001');
+INSERT INTO public.orders (id, accommodation_id, order_number, guest_name, guest_phone, check_in_date, check_out_date, room_type_id, guest_count, total_price, final_price, paid_amount, order_status, payment_status, order_source, balance_payment_method)
+VALUES ('0a000000-0000-0000-0000-000000000002', 'f1000000-0000-0000-0000-000000000001', 'PT3TEST2', '刷卡客', '0900000001', CURRENT_DATE + 40, CURRENT_DATE + 41, 'b1000000-0000-0000-0000-000000000001', 4, 10000, 10000, 10000, 'confirmed', 'paid', 'website', 'credit_card');
 SET session_replication_role = origin;
 
 \set HA '''a2000000-0000-0000-0000-000000000002'''
@@ -39,6 +41,8 @@ SELECT pg_temp.chk('T6 異動紀錄來源仍為 admin_order_inline_edit 且記�
 SELECT pg_temp.chk('T7 既有欄位照舊可改（只改備註）', 'OK 1', pg_temp.try(:HA, format($f$SELECT public.update_order_fields_v1(%L, '{"notes":"只改備註"}'::jsonb, 'admin_order_inline_edit', NULL)::text$f$, :OID)));
 SELECT pg_temp.chk('T8 白名單外欄位照舊拒絕', 'ERR [P0001] update_order_fields_v1: 欄位不在白名單內', pg_temp.try(:HA, format($f$SELECT public.update_order_fields_v1(%L, '{"accommodation_id":"f2000000-0000-0000-0000-000000000002"}'::jsonb, 'admin_order_inline_edit', NULL)::text$f$, :OID)));
 SELECT pg_temp.chk('T9 他館管理者照舊不能改本館訂單', 'ERR', pg_temp.try('a7000000-0000-0000-0000-000000000007', format($f$SELECT public.update_order_fields_v1(%L, '{"notes":"x"}'::jsonb, 'admin_order_inline_edit', NULL)::text$f$, :OID)));
+SELECT pg_temp.chk('T10 取消防護不變：信用卡已付款訂單改 cancelled 仍被擋', 'ERR [P0001] ORDER_CANCEL_BLOCKED', pg_temp.try(:HA, $f$SELECT public.update_order_fields_v1('0a000000-0000-0000-0000-000000000002', '{"order_status":"cancelled"}'::jsonb, 'admin_order_inline_edit', NULL)::text$f$));
+SELECT pg_temp.chk('T10b 被擋後訂單狀態未變', 'OK confirmed', 'OK ' || (SELECT order_status FROM public.orders WHERE id = '0a000000-0000-0000-0000-000000000002'));
 
 SELECT CASE WHEN pass THEN 'PASS' ELSE 'FAIL' END || ' | ' || case_no || ' | 預期 ' || expect || ' | 實際 ' || actual FROM t_result ORDER BY no;
 SELECT 'PASS ' || count(*) FILTER (WHERE pass) || ' / FAIL ' || count(*) FILTER (WHERE NOT pass) FROM t_result;
