@@ -8,6 +8,9 @@
 Edge Function (動態 IP) → VPS Relay (固定 IP) → 外部 API (IP 白名單)
 ```
 
+> **目前正式環境（實際部署方式）**：VPS 由 cPanel Passenger 執行，啟動檔為 `app.js`（不是 pm2，下方 pm2／nginx 步驟僅供自建 VPS 參考）。
+> 路徑：`/home/omtadmin/public_html/relay.onemoretheme.com`。更新檔案後執行 `touch tmp/restart.txt` 重啟。
+
 ## 安裝步驟
 
 ### 1. SSH 登入 GoDaddy VPS

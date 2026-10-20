@@ -104,6 +104,7 @@ async function handleRelay(req, res) {
   const allowedDomains = [
     'booking.taiwantravelmap.com',
     'booking.travelmap.com.tw',
+    'api.owlting.com',
     'sandbox-api.payuni.com.tw',
     'api.payuni.com.tw',
     ...(process.env.EXTRA_ALLOWED_DOMAINS || '')
