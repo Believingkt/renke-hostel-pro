@@ -3,15 +3,15 @@ import { toast } from "sonner";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Button } from "@lakeze/shared/components/ui/button";
-import { Checkbox } from "@lakeze/shared/components/ui/checkbox";
-import { Label } from "@lakeze/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@lakeze/shared/components/ui/select";
 import { OnbStatusBadge } from "./OnbStatusBadge";
 import { AmAccessList } from "./AmAccessList";
 import { ResponsibleAmHistory } from "./ResponsibleAmHistory";
-import { amStatus, venueStage, type OnboardingAmMember, type OnboardingRow } from "@/lib/teamOnboarding";
+import {
+  AM_PICK_NOT_REQUIRED as NOT_REQUIRED, AM_PICK_PENDING as PENDING, amSaveSteps, amStatus, currentAmPick as currentPick, venueStage,
+  type OnboardingAmMember, type OnboardingRow,
+} from "@/lib/teamOnboarding";
 
-const NONE = "__none__";
 
 interface Props {
   row: OnboardingRow;
@@ -22,27 +22,32 @@ interface Props {
 }
 
 export function AmSection({ row, members, canEdit, isSuperAdmin, onChanged }: Props) {
-  const [pick, setPick] = useState<string>(row.responsible_member_id ?? NONE);
+  const [pick, setPick] = useState<string>(currentPick(row));
   const [saving, setSaving] = useState(false);
   const [historyKey, setHistoryKey] = useState(0);
   const inactive = venueStage(row) === "inactive";
   const candidates = members.filter((m) => m.can_be_responsible);
 
-  useEffect(() => setPick(row.responsible_member_id ?? NONE), [row.responsible_member_id]);
+  const saved = currentPick(row);
+  useEffect(() => setPick(saved), [saved]);
 
-  const call = async (fn: string, args: Record<string, unknown>, ok: string) => {
+  const save = async () => {
+    const steps = amSaveSteps(row, pick);
     setSaving(true);
-    const { error } = await supabase.rpc(fn as any, args as any);
+    for (const [fn, args] of steps) {
+      const { error } = await supabase.rpc(fn as any, args as any);
+      if (error) {
+        setSaving(false);
+        toast.error(error.message);
+        onChanged();
+        return;
+      }
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success(ok);
+    toast.success(pick === PENDING ? "已改為尚未指定" : pick === NOT_REQUIRED ? "已設為不需要負責 AM" : "已指定負責 AM");
     setHistoryKey((k) => k + 1);
     onChanged();
   };
-
-  const saveResponsible = () =>
-    call("team_set_responsible_am", { _accommodation_id: row.accommodation_id, _member_id: pick === NONE ? null : pick },
-      pick === NONE ? "已取消負責 AM" : "已指定負責 AM");
 
   return (
     <Card data-testid="onboarding-am-section">
@@ -59,29 +64,18 @@ export function AmSection({ row, members, canEdit, isSuperAdmin, onChanged }: Pr
           {canEdit && !inactive && (
             <div className="flex flex-wrap items-center gap-2">
               <Select value={pick} onValueChange={setPick}>
-                <SelectTrigger className="w-64" data-testid="onboarding-responsible-select"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-80" data-testid="onboarding-responsible-select"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NONE}>（不指定負責 AM）</SelectItem>
+                  <SelectItem value={PENDING}>尚未指定（總覽與小鈴鐺會提醒）</SelectItem>
+                  <SelectItem value={NOT_REQUIRED}>不需要負責 AM（不提醒）</SelectItem>
                   {candidates.map((m) => (
                     <SelectItem key={m.member_id} value={m.member_id}>{m.display_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button size="sm" onClick={saveResponsible} disabled={saving || pick === (row.responsible_member_id ?? NONE)} data-testid="onboarding-responsible-save-btn">
+              <Button size="sm" onClick={save} disabled={saving || pick === saved} data-testid="onboarding-responsible-save-btn">
                 儲存負責 AM
               </Button>
-            </div>
-          )}
-          {canEdit && !inactive && (
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="am-not-required"
-                checked={row.am_not_required}
-                disabled={saving || !!row.responsible_member_id}
-                onCheckedChange={(v) => call("team_set_am_not_required", { _accommodation_id: row.accommodation_id, _value: v === true }, "已更新")}
-                data-testid="onboarding-am-not-required-checkbox"
-              />
-              <Label htmlFor="am-not-required" className="cursor-pointer text-sm">不需要負責 AM（總覽與小鈴鐺不再提醒）</Label>
             </div>
           )}
           {inactive && <p className="text-xs text-muted-foreground">館別已停用，系統已自動取消負責 AM；重新開賣後可再指定。</p>}

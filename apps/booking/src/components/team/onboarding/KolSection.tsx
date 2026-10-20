@@ -51,6 +51,7 @@ export function KolSection({ row, roles, onChanged }: { row: OnboardingRow; role
           isManager={canEditKolQuota(roles)}
           defaultAccommodationId={row.accommodation_id}
           allowedAccommodationIds={[row.accommodation_id]}
+          lockedAccommodation
         />
       </CardContent>
     </Card>

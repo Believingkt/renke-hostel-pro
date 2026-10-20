@@ -58,6 +58,8 @@ interface Props {
   defaultAccommodationId?: string | null;
   /** 若提供，館別下拉僅顯示這些館別（AM 只能操作負責館別） */
   allowedAccommodationIds?: string[] | null;
+  /** 嵌入單館頁（如館別設定總覽）時館別已固定：只剩一館可選就不顯示館別下拉與範圍說明 */
+  lockedAccommodation?: boolean;
 }
 
 interface AccommodationOption {
@@ -69,6 +71,7 @@ export function KolReciprocalQuotaTab({
   isManager,
   defaultAccommodationId,
   allowedAccommodationIds,
+  lockedAccommodation = false,
 }: Props) {
   const editable = isManager;
 
@@ -617,10 +620,12 @@ export function KolReciprocalQuotaTab({
   );
 
 
+  const showSelector = !lockedAccommodation || accList.length !== 1;
+
   if (!currentAccommodationId) {
     return (
       <div className="space-y-4">
-        {accSelector}
+        {showSelector && accSelector}
         <div className="p-6 text-center text-muted-foreground text-sm">
           {accListLoading ? "載入館別中…" : "請先選擇館別"}
         </div>
@@ -630,7 +635,7 @@ export function KolReciprocalQuotaTab({
 
   return (
     <div className="space-y-4">
-      {accSelector}
+      {showSelector && accSelector}
       <div className="flex items-center justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => setCalOpen(true)}>
           <CalendarDays className="h-4 w-4 mr-2" />

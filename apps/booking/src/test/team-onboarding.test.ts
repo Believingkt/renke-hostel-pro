@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  AM_PICK_NOT_REQUIRED,
+  AM_PICK_PENDING,
   accessStatus,
+  amSaveSteps,
+  currentAmPick,
   amStatus,
   canAssignAm,
   canEditKolQuota,
@@ -132,5 +136,33 @@ describe("缺口連結", () => {
     expect(rows[0].checks.amScope.level).toBe("warn");
     expect(rows[0].checks.amScope.href).toBe("/team/onboarding/a1");
     expect(rows[1].checks.amScope).toEqual({ level: "ok", label: "不需要負責 AM" });
+  });
+});
+
+describe("負責 AM 下拉（三種狀態）儲存步驟", () => {
+  const base = { accommodation_id: "a1", responsible_member_id: null as string | null, am_not_required: false };
+  it("目前值：有負責人→member_id；標不需要→不需要；其餘→尚未指定", () => {
+    expect(currentAmPick({ ...base, responsible_member_id: "m1" })).toBe("m1");
+    expect(currentAmPick({ ...base, am_not_required: true })).toBe(AM_PICK_NOT_REQUIRED);
+    expect(currentAmPick(base)).toBe(AM_PICK_PENDING);
+  });
+  it("指定 AM：只呼叫 team_set_responsible_am（後端會自動清掉不需要）", () => {
+    expect(amSaveSteps({ ...base, am_not_required: true }, "m1")).toEqual([
+      ["team_set_responsible_am", { _accommodation_id: "a1", _member_id: "m1" }],
+    ]);
+  });
+  it("有負責人改成不需要：先取消負責人，再標記不需要", () => {
+    expect(amSaveSteps({ ...base, responsible_member_id: "m1" }, AM_PICK_NOT_REQUIRED)).toEqual([
+      ["team_set_responsible_am", { _accommodation_id: "a1", _member_id: null }],
+      ["team_set_am_not_required", { _accommodation_id: "a1", _value: true }],
+    ]);
+  });
+  it("不需要改回尚未指定：只取消不需要；有負責人改成尚未指定：只取消負責人", () => {
+    expect(amSaveSteps({ ...base, am_not_required: true }, AM_PICK_PENDING)).toEqual([
+      ["team_set_am_not_required", { _accommodation_id: "a1", _value: false }],
+    ]);
+    expect(amSaveSteps({ ...base, responsible_member_id: "m1" }, AM_PICK_PENDING)).toEqual([
+      ["team_set_responsible_am", { _accommodation_id: "a1", _member_id: null }],
+    ]);
   });
 });

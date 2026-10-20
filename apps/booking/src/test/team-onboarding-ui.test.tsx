@@ -16,7 +16,7 @@ vi.mock("@lakeze/shared/hooks/use-settings-completeness", () => ({
   }),
 }));
 vi.mock("@/components/team/KolReciprocalQuotaTab", () => ({
-  KolReciprocalQuotaTab: (p: any) => <div data-testid="quota-tab-mock">{`${p.isManager}|${p.allowedAccommodationIds?.join(",")}`}</div>,
+  KolReciprocalQuotaTab: (p: any) => <div data-testid="quota-tab-mock">{`${p.isManager}|${p.allowedAccommodationIds?.join(",")}|${p.lockedAccommodation === true}`}</div>,
 }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => {
   const chain: any = { select: () => chain, eq: () => chain, order: () => chain, limit: () => Promise.resolve({ data: [], error: null }), insert: (...a: any[]) => h.insert(...a) };
@@ -95,24 +95,29 @@ describe("館別設定總覽頁", () => {
     expect(screen.getByTestId("onboarding-no-access")).toBeTruthy();
   });
 
-  it("單館（AM 總管）：可指定負責 AM；有負責人時「不需要負責 AM」不能勾；列出職代與 HQ 設定的其他人", async () => {
+  it("單館（AM 總管）：負責 AM 只有一個下拉（無勾選框）、目前值為負責人；列出職代與 HQ 設定的其他人", async () => {
     renderAt("/team/onboarding/a1");
     expect((await screen.findByTestId("onboarding-venue-name")).textContent).toBe("哈庫納馬塔塔");
-    expect(screen.getByTestId("onboarding-responsible-select")).toBeTruthy();
-    expect((screen.getByTestId("onboarding-am-not-required-checkbox") as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByTestId("onboarding-responsible-select").textContent).toBe("Synn");
+    expect(screen.queryByTestId("onboarding-am-not-required-checkbox")).toBeNull();
     const access = screen.getByTestId("onboarding-am-access-list").textContent ?? "";
     expect(access).toContain("Synn負責・已開");
     expect(access).toContain("KenAM 總管・已開");
     expect(screen.getByTestId("onboarding-other-hotel-admins").textContent).toContain("Joyce 陳香吟");
     expect(screen.getByTestId("onboarding-gaps-list").textContent).toContain("合作期間");
-    expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a1");
+    expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a1|true");
   });
 
-  it("單館（AM 總管）：沒有負責人時勾「不需要負責 AM」會呼叫 RPC", async () => {
+  it("單館（AM 總管）：沒有負責人時下拉預設「尚未指定」；已標不需要的館顯示「不需要負責 AM」", async () => {
     renderAt("/team/onboarding/a2");
-    const cb = await screen.findByTestId("onboarding-am-not-required-checkbox");
-    fireEvent.click(cb);
-    await waitFor(() => expect(h.rpc).toHaveBeenCalledWith("team_set_am_not_required", { _accommodation_id: "a2", _value: true }));
+    expect((await screen.findByTestId("onboarding-responsible-select")).textContent).toContain("尚未指定");
+    expect((screen.getByTestId("onboarding-responsible-save-btn") as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("單館：已標不需要負責 AM 的館，下拉顯示「不需要負責 AM（不提醒）」", async () => {
+    h.rows = [row({ accommodation_id: "a4", accommodation_name: "雲岫", am_not_required: true })];
+    renderAt("/team/onboarding/a4");
+    expect((await screen.findByTestId("onboarding-responsible-select")).textContent).toContain("不需要負責 AM");
   });
 
   it("單館（一般 AM）：不能指定負責 AM、不能建 KOL 場域，但可編輯互惠額度", async () => {
@@ -121,7 +126,7 @@ describe("館別設定總覽頁", () => {
     await screen.findByTestId("onboarding-venue-name");
     expect(screen.queryByTestId("onboarding-responsible-select")).toBeNull();
     expect(screen.queryByTestId("onboarding-create-kol-venue-btn")).toBeNull();
-    expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a2");
+    expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a2|true");
   });
 
   it("單館（星探主管）：可建立 KOL 場域（帶 accommodation_id）", async () => {

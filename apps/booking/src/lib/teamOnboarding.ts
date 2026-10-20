@@ -65,6 +65,27 @@ export function amStatus(r: OnboardingRow): OnbStatus {
   return { level: "warn", label: "未指定負責 AM" };
 }
 
+/** 負責 AM 下拉三種狀態：尚未指定（預設，會提醒）／不需要負責 AM（不提醒）／指定某位 AM（member_id） */
+export const AM_PICK_PENDING = "__pending__";
+export const AM_PICK_NOT_REQUIRED = "__not_required__";
+export const currentAmPick = (r: Pick<OnboardingRow, "responsible_member_id" | "am_not_required">) =>
+  r.responsible_member_id ?? (r.am_not_required ? AM_PICK_NOT_REQUIRED : AM_PICK_PENDING);
+
+/** 儲存下拉選擇要依序呼叫的既有 RPC：指定 AM 會自動清掉「不需要」；改成尚未指定／不需要時先取消負責人 */
+export function amSaveSteps(
+  r: Pick<OnboardingRow, "accommodation_id" | "responsible_member_id" | "am_not_required">, pick: string,
+): Array<[string, Record<string, unknown>]> {
+  const acc = r.accommodation_id;
+  if (pick !== AM_PICK_PENDING && pick !== AM_PICK_NOT_REQUIRED) {
+    return [["team_set_responsible_am", { _accommodation_id: acc, _member_id: pick }]];
+  }
+  const steps: Array<[string, Record<string, unknown>]> = [];
+  if (r.responsible_member_id) steps.push(["team_set_responsible_am", { _accommodation_id: acc, _member_id: null }]);
+  const want = pick === AM_PICK_NOT_REQUIRED;
+  if (r.am_not_required !== want) steps.push(["team_set_am_not_required", { _accommodation_id: acc, _value: want }]);
+  return steps;
+}
+
 export function accessStatus(r: OnboardingRow): OnbStatus {
   if (venueStage(r) === "inactive") return { level: "muted", label: "停用館別不同步" };
   if (r.am_total === 0) return { level: "muted", label: "目前沒有 AM" };
