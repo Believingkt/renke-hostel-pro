@@ -1,0 +1,371 @@
+NOTICE:  database "da1" does not exist, skipping
+== 0. 對齊正式庫授權（附件 28 列）
+20 支 anon 可執行、28 支 authenticated 可執行（附件：20／28）
+== 1. 套用前測試（漏洞重現）
+PASS false H01 他館 hotel_admin（f2）更新房價列 available_rooms → OK
+PASS false H02 房價列更新後 hotelnabe 佇列有該日 1 筆 → 1
+PASS false H03 f2 hotel_admin 更新訂單備註 → OK
+PASS false H04 訂單更新後 hotelnabe 佇列有入住 2 晚 → 2
+PASS false H05 f2 hotel_admin 新增 order_rooms（觸發 fn_hotelnabe_enqueue_from_order_rooms） → OK
+PASS false H06 anon 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H07 會員（authenticated）直接呼叫 _hotelnabe_enqueue_days（本批保留，列 B 類） → OK
+PASS false O01 service_role bulk_upsert_room_inventory_pricing(jsonb,text) owlting_rate → OK
+PASS false O02 房價落地 4321、來源 owlting_rate → 4321 owlting_rate
+PASS false O03 service_role bulk_upsert owlting_inbound 只改庫存 → OK
+PASS false O04 庫存 3、價格仍 4321 → 3 4321
+PASS false O05 anon bulk_upsert 把房價改 1 元 → OK
+PASS false O06 會員 bulk_upsert 把房價改 1 元 → OK
+PASS false O07 單參數多載 bulk_upsert(jsonb)：anon／authenticated 可執行＝t → true true true
+PASS false J01 排程身分 postgres 執行 scan_stuck_group_buy_paid_drafts(15) → 0
+PASS false J02 排程身分 postgres 執行 cleanup_old_error_logs() → 
+PASS false J03 排程身分 postgres 執行 cleanup_old_monitoring_logs() → 
+PASS false J04 super_admin 新增課程盈餘月份（DEFINER 觸發器內呼叫 recalc_course_profit_payouts） → OK
+PASS false J05 anon scan_stuck_group_buy_paid_drafts → OK
+PASS false J06 會員 cleanup_old_error_logs → OK
+PASS false J07 anon cleanup_old_monitoring_logs → OK
+PASS false J08 anon recalc_course_profit_payouts → OK
+PASS false G01 service_role consume_trip_product_stock 扣 2 張 → OK
+PASS false G02 行程商品庫存 5→3 → 3
+PASS false G03 service_role acquire_group_buy_payment_hold（資料不完整→業務回應） → OK
+PASS false G04 service_role convert_group_buy_payment_draft（不存在的 draft→業務錯誤） → OK
+PASS false G05 service_role delete_group_buy_campaign（不存在→CAMPAIGN_NOT_FOUND） → RAN CAMPAIGN_NOT_FOUND
+PASS false G06 anon consume_trip_product_stock → OK
+PASS false G07 會員 consume_trip_product_stock → OK
+PASS false G08 anon acquire_group_buy_payment_hold → OK
+PASS false G09 anon convert_group_buy_payment_draft → OK
+PASS false G10 會員 convert_group_buy_payment_draft → OK
+PASS false G11 anon delete_group_buy_campaign → RAN CAMPAIGN_NOT_FOUND
+PASS false G12 會員 delete_group_buy_campaign → RAN CAMPAIGN_NOT_FOUND
+PASS false V01 anon gbp_vault_delete → OK
+PASS false V02 會員 gbp_vault_delete → OK
+PASS false V03 service_role gbp_vault_delete → OK
+PASS false V04 anon gbp_save_accommodation_oauth_client_secret → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V05 會員 gbp_save_accommodation_oauth_client_secret → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V06 service_role gbp_save_accommodation_oauth_client_secret（無設定列→業務錯誤） → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V07 anon import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V08 會員 import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V09 service_role import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V10 anon seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V11 會員 seed_app_review_account（替自己發 500 點） → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V12 service_role seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V13 anon increment_member_push_badge → OK
+PASS false V14 service_role increment_member_push_badge（send-push） → OK
+PASS false V15 anon verify_accommodation_api_key → OK
+PASS false V16 service_role verify_accommodation_api_key → OK
+PASS false V17 會員 verify_accommodation_ai_api_key → OK
+PASS false V18 service_role verify_accommodation_ai_api_key → OK
+PASS false V19 anon verify_owlting_service_account → OK
+PASS false V20 service_role verify_owlting_service_account（owlting-cm） → OK
+PASS false M01 A 類 18 支 anon 可執行數 → 18
+PASS false M02 A 類 18 支 authenticated 可執行數 → 18
+PASS false M03 A 類 19 支（含 hotelnabe）service_role 全可執行 → 19
+PASS false B01 anon ensure_trip_share_slug（B 類，本批不動） → OK
+PASS false C01 anon wizard_save_room_type（原本就不可執行） → DENIED permission denied for function wizard_save_room_type
+PASS false C02 會員 wizard_save_room_type → wizard_assert_access 擋 → DENIED 只有本館管理員或總部最高管理員可以使用上架精靈
+PASS false C03 唯讀 staff set_pricing_template_group_members（不存在的群組；函式照常執行、未被授權擋） → RAN 群組不存在
+PASS false C04 anon delete_package_season（原本就不可執行） → DENIED permission denied for function delete_package_season
+PASS 62 / FAIL 0
+== 2. precheck
+1. 28 支函式全部存在（含 bulk_upsert 兩個多載） | t
+2. 28 支全部是 SECURITY DEFINER | t
+3. 沒有 SECURITY INVOKER 函式呼叫要收回 authenticated 的 17 個函式名 | t
+4. 沒有 RLS policy 引用 A 類函式 | t
+5. 課程分潤觸發器函式 fn_course_profit_months_sync／fn_course_profit_rates_sync 是 SECURITY DEFINER | t
+6. hotelnabe 觸發器函式 fn_hotelnabe_enqueue_from_order／order_rooms／rip 是否 SECURITY DEFINER（僅記錄，本批保留 authenticated 不受影響） | t
+7. 20261031090000 已上線：change_order_dates 含 ORDER_MODULE_GUARD_V1 | t
+_hotelnabe_enqueue_days(uuid,uuid,date,date,hotelnabe_ari_push_reason) | A-partial | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 8e9c59faaf944996252177d8a0071ab6
+acquire_group_buy_payment_hold(jsonb) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | d27c35a1f401f9b394c812f4d2450dbb
+bulk_upsert_room_inventory_pricing(jsonb) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | b6dec224261227dc655db86482864157
+bulk_upsert_room_inventory_pricing(jsonb,text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | d914034553573ffb94118a09ed249f20
+cleanup_old_error_logs() | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 698fe38858d9bfed2a6658efd76dbf87
+cleanup_old_monitoring_logs() | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 07105fec6b147186cdb3f72ab073f8d9
+consume_trip_product_stock(jsonb) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | e353bac0ddced679da1eca7013c2b589
+convert_group_buy_payment_draft(uuid,jsonb,jsonb,jsonb) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | a2af54cb51a86248c1ebde89cbda3c77
+delete_group_buy_campaign(uuid) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 259730e188277a34919f798f61b85127
+delete_package_season(uuid) | C | postgres | t | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | f | t | t | 989e348f3ae78a6b8ecba9816c683099
+delete_pricing_template_group(uuid) | C | postgres | t | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | f | t | t | eeb1aa31f6fa32b29443abb9bf1605aa
+ensure_trip_share_slug(uuid) | B | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 6743b0826daf26406875603a277a41d4
+gbp_save_accommodation_oauth_client_secret(uuid,text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 770527ff21871007a0c00d9e32d8699c
+gbp_vault_delete(text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | f6b9a9713c23d36604012af147c7b5e2
+import_ryoan_order_bypass(jsonb,jsonb,jsonb) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 4936cbe0a3bedea29d679242f7967116
+increment_member_push_badge(uuid,integer) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | ceea4df9fcb467fc51669dd644cb4d63
+recalc_course_profit_payouts(date) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 2e0edc2a62fb8cd2ccbcfabc61a8b305
+scan_stuck_group_buy_paid_drafts(integer) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | b6d0db5541cafc26bb4d759e6e9e4af2
+seed_app_review_account(uuid,text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | bcd5cd725f5095c88cd55ca875ac98cc
+set_discount_code_template_groups(uuid,uuid[]) | C | postgres | t | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | f | t | t | 112abcb0f135ff6c8b25efaad1490686
+set_pricing_template_group_members(uuid,uuid[]) | C | postgres | t | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | f | t | t | bb98535b979f43a928316b79962a042f
+verify_accommodation_ai_api_key(text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | 675189e0737bb4b887bfefc57f56b4d8
+verify_accommodation_api_key(text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | c42b549e98aa7d6bffd9574aa5db401d
+verify_owlting_service_account(text,text) | A | postgres | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | t | d2e98369d9efbc3a2a72488a08cc6c2b
+wizard_open_inventory(uuid,date,date) | C | postgres | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | f | t | t | 6bec493ecf3fd35f314331ed43411083
+wizard_save_basic_info(uuid,text,text,text,text) | C | postgres | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | f | t | t | 000e74411cdbff652bf72279d6691c43
+wizard_save_package(uuid,uuid,text,uuid,integer,jsonb) | C | postgres | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | f | t | t | f9e4fc937600a175f3c48b48af5d5d1f
+wizard_save_room_type(uuid,uuid,text,integer,integer,integer) | C | postgres | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | f | t | t | 996bf859a27393b3db0503039cf92cd0
+FP_ALL（貼入 postcheck 的 __PASTE_PRECHECK_FP_ALL__） | e742965859e010925269cf8e142fd43e
+GRANT EXECUTE ON FUNCTION public._hotelnabe_enqueue_days(uuid, uuid, date, date, hotelnabe_ari_push_reason) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.acquire_group_buy_payment_hold(jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.bulk_upsert_room_inventory_pricing(jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.bulk_upsert_room_inventory_pricing(jsonb, text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_error_logs() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_monitoring_logs() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.consume_trip_product_stock(jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.convert_group_buy_payment_draft(uuid, jsonb, jsonb, jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.delete_group_buy_campaign(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.gbp_save_accommodation_oauth_client_secret(uuid, text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.gbp_vault_delete(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.import_ryoan_order_bypass(jsonb, jsonb, jsonb) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.increment_member_push_badge(uuid, integer) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.recalc_course_profit_payouts(date) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.scan_stuck_group_buy_paid_drafts(integer) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.seed_app_review_account(uuid, text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.verify_accommodation_ai_api_key(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.verify_accommodation_api_key(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.verify_owlting_service_account(text, text) TO anon, authenticated, service_role;
+== 3. 套用
+套用成功
+== 4. postcheck（FP_ALL=e742965859e010925269cf8e142fd43e）
+1. A 類 18 支：anon、authenticated 不可執行；service_role 可執行；授權清單無 PUBLIC | t
+2. _hotelnabe_enqueue_days：anon 不可、authenticated／service_role 可、授權清單無 PUBLIC | t
+3. B 類 ensure_trip_share_slug 維持現狀：anon、authenticated 可執行 | t
+4. C 類 8 支維持現狀：anon 不可、authenticated 可執行 | t
+5. 呼叫 A 類函式的 SECURITY DEFINER 函式（觸發器等），其擁有者仍可執行目標 | t
+6. 28 支函式內容指紋與 precheck 相同（本行最後的常數請換成 precheck 第 3 段 FP_ALL 的值） | t
+7. 28 支仍全部是 SECURITY DEFINER | t
+_hotelnabe_enqueue_days(uuid,uuid,date,date,hotelnabe_ari_push_reason) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | 8e9c59faaf944996252177d8a0071ab6
+acquire_group_buy_payment_hold(jsonb) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | d27c35a1f401f9b394c812f4d2450dbb
+bulk_upsert_room_inventory_pricing(jsonb) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | b6dec224261227dc655db86482864157
+bulk_upsert_room_inventory_pricing(jsonb,text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | d914034553573ffb94118a09ed249f20
+cleanup_old_error_logs() | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 698fe38858d9bfed2a6658efd76dbf87
+cleanup_old_monitoring_logs() | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 07105fec6b147186cdb3f72ab073f8d9
+consume_trip_product_stock(jsonb) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | e353bac0ddced679da1eca7013c2b589
+convert_group_buy_payment_draft(uuid,jsonb,jsonb,jsonb) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | a2af54cb51a86248c1ebde89cbda3c77
+delete_group_buy_campaign(uuid) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 259730e188277a34919f798f61b85127
+delete_package_season(uuid) | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | t | t | 989e348f3ae78a6b8ecba9816c683099
+delete_pricing_template_group(uuid) | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | t | t | eeb1aa31f6fa32b29443abb9bf1605aa
+ensure_trip_share_slug(uuid) | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | t | t | t | 6743b0826daf26406875603a277a41d4
+gbp_save_accommodation_oauth_client_secret(uuid,text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 770527ff21871007a0c00d9e32d8699c
+gbp_vault_delete(text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | f6b9a9713c23d36604012af147c7b5e2
+import_ryoan_order_bypass(jsonb,jsonb,jsonb) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 4936cbe0a3bedea29d679242f7967116
+increment_member_push_badge(uuid,integer) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | ceea4df9fcb467fc51669dd644cb4d63
+recalc_course_profit_payouts(date) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 2e0edc2a62fb8cd2ccbcfabc61a8b305
+scan_stuck_group_buy_paid_drafts(integer) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | b6d0db5541cafc26bb4d759e6e9e4af2
+seed_app_review_account(uuid,text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | bcd5cd725f5095c88cd55ca875ac98cc
+set_discount_code_template_groups(uuid,uuid[]) | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | t | t | 112abcb0f135ff6c8b25efaad1490686
+set_pricing_template_group_members(uuid,uuid[]) | {postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres} | f | t | t | bb98535b979f43a928316b79962a042f
+verify_accommodation_ai_api_key(text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | 675189e0737bb4b887bfefc57f56b4d8
+verify_accommodation_api_key(text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | c42b549e98aa7d6bffd9574aa5db401d
+verify_owlting_service_account(text,text) | {postgres=X/postgres,service_role=X/postgres} | f | f | t | d2e98369d9efbc3a2a72488a08cc6c2b
+wizard_open_inventory(uuid,date,date) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | 6bec493ecf3fd35f314331ed43411083
+wizard_save_basic_info(uuid,text,text,text,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | 000e74411cdbff652bf72279d6691c43
+wizard_save_package(uuid,uuid,text,uuid,integer,jsonb) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | f9e4fc937600a175f3c48b48af5d5d1f
+wizard_save_room_type(uuid,uuid,text,integer,integer,integer) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | 996bf859a27393b3db0503039cf92cd0
+public 全部函式（內容＋DEFINER）指紋與套用前相同：t
+== 5. 重複套用（純授權、可重入）
+重複套用成功；授權與第一次相同：t
+== 6. 套用後測試
+PASS true H01 他館 hotel_admin（f2）更新房價列 available_rooms → OK
+PASS true H02 房價列更新後 hotelnabe 佇列有該日 1 筆 → 1
+PASS true H03 f2 hotel_admin 更新訂單備註 → OK
+PASS true H04 訂單更新後 hotelnabe 佇列有入住 2 晚 → 2
+PASS true H05 f2 hotel_admin 新增 order_rooms（觸發 fn_hotelnabe_enqueue_from_order_rooms） → OK
+PASS true H06 anon 直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H07 會員（authenticated）直接呼叫 _hotelnabe_enqueue_days（本批保留，列 B 類） → OK
+PASS true O01 service_role bulk_upsert_room_inventory_pricing(jsonb,text) owlting_rate → OK
+PASS true O02 房價落地 4321、來源 owlting_rate → 4321 owlting_rate
+PASS true O03 service_role bulk_upsert owlting_inbound 只改庫存 → OK
+PASS true O04 庫存 3、價格仍 4321 → 3 4321
+PASS true O05 anon bulk_upsert 把房價改 1 元 → DENIED permission denied for function bulk_upsert_room_inventory_pricing
+PASS true O06 會員 bulk_upsert 把房價改 1 元 → DENIED permission denied for function bulk_upsert_room_inventory_pricing
+PASS true O07 單參數多載 bulk_upsert(jsonb)：anon／authenticated 可執行＝f → false false true
+PASS true J01 排程身分 postgres 執行 scan_stuck_group_buy_paid_drafts(15) → 0
+PASS true J02 排程身分 postgres 執行 cleanup_old_error_logs() → 
+PASS true J03 排程身分 postgres 執行 cleanup_old_monitoring_logs() → 
+PASS true J04 super_admin 新增課程盈餘月份（DEFINER 觸發器內呼叫 recalc_course_profit_payouts） → OK
+PASS true J05 anon scan_stuck_group_buy_paid_drafts → DENIED permission denied for function scan_stuck_group_buy_paid_drafts
+PASS true J06 會員 cleanup_old_error_logs → DENIED permission denied for function cleanup_old_error_logs
+PASS true J07 anon cleanup_old_monitoring_logs → DENIED permission denied for function cleanup_old_monitoring_logs
+PASS true J08 anon recalc_course_profit_payouts → DENIED permission denied for function recalc_course_profit_payouts
+PASS true G01 service_role consume_trip_product_stock 扣 2 張 → OK
+PASS true G02 行程商品庫存 5→3 → 3
+PASS true G03 service_role acquire_group_buy_payment_hold（資料不完整→業務回應） → OK
+PASS true G04 service_role convert_group_buy_payment_draft（不存在的 draft→業務錯誤） → OK
+PASS true G05 service_role delete_group_buy_campaign（不存在→CAMPAIGN_NOT_FOUND） → RAN CAMPAIGN_NOT_FOUND
+PASS true G06 anon consume_trip_product_stock → DENIED permission denied for function consume_trip_product_stock
+PASS true G07 會員 consume_trip_product_stock → DENIED permission denied for function consume_trip_product_stock
+PASS true G08 anon acquire_group_buy_payment_hold → DENIED permission denied for function acquire_group_buy_payment_hold
+PASS true G09 anon convert_group_buy_payment_draft → DENIED permission denied for function convert_group_buy_payment_draft
+PASS true G10 會員 convert_group_buy_payment_draft → DENIED permission denied for function convert_group_buy_payment_draft
+PASS true G11 anon delete_group_buy_campaign → DENIED permission denied for function delete_group_buy_campaign
+PASS true G12 會員 delete_group_buy_campaign → DENIED permission denied for function delete_group_buy_campaign
+PASS true V01 anon gbp_vault_delete → DENIED permission denied for function gbp_vault_delete
+PASS true V02 會員 gbp_vault_delete → DENIED permission denied for function gbp_vault_delete
+PASS true V03 service_role gbp_vault_delete → OK
+PASS true V04 anon gbp_save_accommodation_oauth_client_secret → DENIED permission denied for function gbp_save_accommodation_oauth_client_secret
+PASS true V05 會員 gbp_save_accommodation_oauth_client_secret → DENIED permission denied for function gbp_save_accommodation_oauth_client_secret
+PASS true V06 service_role gbp_save_accommodation_oauth_client_secret（無設定列→業務錯誤） → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS true V07 anon import_ryoan_order_bypass → DENIED permission denied for function import_ryoan_order_bypass
+PASS true V08 會員 import_ryoan_order_bypass → DENIED permission denied for function import_ryoan_order_bypass
+PASS true V09 service_role import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS true V10 anon seed_app_review_account → DENIED permission denied for function seed_app_review_account
+PASS true V11 會員 seed_app_review_account（替自己發 500 點） → DENIED permission denied for function seed_app_review_account
+PASS true V12 service_role seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS true V13 anon increment_member_push_badge → DENIED permission denied for function increment_member_push_badge
+PASS true V14 service_role increment_member_push_badge（send-push） → OK
+PASS true V15 anon verify_accommodation_api_key → DENIED permission denied for function verify_accommodation_api_key
+PASS true V16 service_role verify_accommodation_api_key → OK
+PASS true V17 會員 verify_accommodation_ai_api_key → DENIED permission denied for function verify_accommodation_ai_api_key
+PASS true V18 service_role verify_accommodation_ai_api_key → OK
+PASS true V19 anon verify_owlting_service_account → DENIED permission denied for function verify_owlting_service_account
+PASS true V20 service_role verify_owlting_service_account（owlting-cm） → OK
+PASS true M01 A 類 18 支 anon 可執行數 → 0
+PASS true M02 A 類 18 支 authenticated 可執行數 → 0
+PASS true M03 A 類 19 支（含 hotelnabe）service_role 全可執行 → 19
+PASS true B01 anon ensure_trip_share_slug（B 類，本批不動） → OK
+PASS true C01 anon wizard_save_room_type（原本就不可執行） → DENIED permission denied for function wizard_save_room_type
+PASS true C02 會員 wizard_save_room_type → wizard_assert_access 擋 → DENIED 只有本館管理員或總部最高管理員可以使用上架精靈
+PASS true C03 唯讀 staff set_pricing_template_group_members（不存在的群組；函式照常執行、未被授權擋） → RAN 群組不存在
+PASS true C04 anon delete_package_season（原本就不可執行） → DENIED permission denied for function delete_package_season
+PASS 62 / FAIL 0
+== 7. rollback（repo 預填版本）
+rollback 成功
+rollback 後 28 支授權與套用前完全相同：t
+rollback 後 public 全部函式指紋與套用前相同：t
+== 8. rollback 後測試（回到套用前行為）
+PASS false H01 他館 hotel_admin（f2）更新房價列 available_rooms → OK
+PASS false H02 房價列更新後 hotelnabe 佇列有該日 1 筆 → 1
+PASS false H03 f2 hotel_admin 更新訂單備註 → OK
+PASS false H04 訂單更新後 hotelnabe 佇列有入住 2 晚 → 2
+PASS false H05 f2 hotel_admin 新增 order_rooms（觸發 fn_hotelnabe_enqueue_from_order_rooms） → OK
+PASS false H06 anon 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H07 會員（authenticated）直接呼叫 _hotelnabe_enqueue_days（本批保留，列 B 類） → OK
+PASS false O01 service_role bulk_upsert_room_inventory_pricing(jsonb,text) owlting_rate → OK
+PASS false O02 房價落地 4321、來源 owlting_rate → 4321 owlting_rate
+PASS false O03 service_role bulk_upsert owlting_inbound 只改庫存 → OK
+PASS false O04 庫存 3、價格仍 4321 → 3 4321
+PASS false O05 anon bulk_upsert 把房價改 1 元 → OK
+PASS false O06 會員 bulk_upsert 把房價改 1 元 → OK
+PASS false O07 單參數多載 bulk_upsert(jsonb)：anon／authenticated 可執行＝t → true true true
+PASS false J01 排程身分 postgres 執行 scan_stuck_group_buy_paid_drafts(15) → 0
+PASS false J02 排程身分 postgres 執行 cleanup_old_error_logs() → 
+PASS false J03 排程身分 postgres 執行 cleanup_old_monitoring_logs() → 
+PASS false J04 super_admin 新增課程盈餘月份（DEFINER 觸發器內呼叫 recalc_course_profit_payouts） → OK
+PASS false J05 anon scan_stuck_group_buy_paid_drafts → OK
+PASS false J06 會員 cleanup_old_error_logs → OK
+PASS false J07 anon cleanup_old_monitoring_logs → OK
+PASS false J08 anon recalc_course_profit_payouts → OK
+PASS false G01 service_role consume_trip_product_stock 扣 2 張 → OK
+PASS false G02 行程商品庫存 5→3 → 3
+PASS false G03 service_role acquire_group_buy_payment_hold（資料不完整→業務回應） → OK
+PASS false G04 service_role convert_group_buy_payment_draft（不存在的 draft→業務錯誤） → OK
+PASS false G05 service_role delete_group_buy_campaign（不存在→CAMPAIGN_NOT_FOUND） → RAN CAMPAIGN_NOT_FOUND
+PASS false G06 anon consume_trip_product_stock → OK
+PASS false G07 會員 consume_trip_product_stock → OK
+PASS false G08 anon acquire_group_buy_payment_hold → OK
+PASS false G09 anon convert_group_buy_payment_draft → OK
+PASS false G10 會員 convert_group_buy_payment_draft → OK
+PASS false G11 anon delete_group_buy_campaign → RAN CAMPAIGN_NOT_FOUND
+PASS false G12 會員 delete_group_buy_campaign → RAN CAMPAIGN_NOT_FOUND
+PASS false V01 anon gbp_vault_delete → OK
+PASS false V02 會員 gbp_vault_delete → OK
+PASS false V03 service_role gbp_vault_delete → OK
+PASS false V04 anon gbp_save_accommodation_oauth_client_secret → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V05 會員 gbp_save_accommodation_oauth_client_secret → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V06 service_role gbp_save_accommodation_oauth_client_secret（無設定列→業務錯誤） → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS false V07 anon import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V08 會員 import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V09 service_role import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS false V10 anon seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V11 會員 seed_app_review_account（替自己發 500 點） → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V12 service_role seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS false V13 anon increment_member_push_badge → OK
+PASS false V14 service_role increment_member_push_badge（send-push） → OK
+PASS false V15 anon verify_accommodation_api_key → OK
+PASS false V16 service_role verify_accommodation_api_key → OK
+PASS false V17 會員 verify_accommodation_ai_api_key → OK
+PASS false V18 service_role verify_accommodation_ai_api_key → OK
+PASS false V19 anon verify_owlting_service_account → OK
+PASS false V20 service_role verify_owlting_service_account（owlting-cm） → OK
+PASS false M01 A 類 18 支 anon 可執行數 → 18
+PASS false M02 A 類 18 支 authenticated 可執行數 → 18
+PASS false M03 A 類 19 支（含 hotelnabe）service_role 全可執行 → 19
+PASS false B01 anon ensure_trip_share_slug（B 類，本批不動） → OK
+PASS false C01 anon wizard_save_room_type（原本就不可執行） → DENIED permission denied for function wizard_save_room_type
+PASS false C02 會員 wizard_save_room_type → wizard_assert_access 擋 → DENIED 只有本館管理員或總部最高管理員可以使用上架精靈
+PASS false C03 唯讀 staff set_pricing_template_group_members（不存在的群組；函式照常執行、未被授權擋） → RAN 群組不存在
+PASS false C04 anon delete_package_season（原本就不可執行） → DENIED permission denied for function delete_package_season
+PASS 62 / FAIL 0
+== 9. 再套用＋postcheck＋測試
+再套用成功
+再套用後 postcheck 7 項全部 t
+PASS true H01 他館 hotel_admin（f2）更新房價列 available_rooms → OK
+PASS true H02 房價列更新後 hotelnabe 佇列有該日 1 筆 → 1
+PASS true H03 f2 hotel_admin 更新訂單備註 → OK
+PASS true H04 訂單更新後 hotelnabe 佇列有入住 2 晚 → 2
+PASS true H05 f2 hotel_admin 新增 order_rooms（觸發 fn_hotelnabe_enqueue_from_order_rooms） → OK
+PASS true H06 anon 直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H07 會員（authenticated）直接呼叫 _hotelnabe_enqueue_days（本批保留，列 B 類） → OK
+PASS true O01 service_role bulk_upsert_room_inventory_pricing(jsonb,text) owlting_rate → OK
+PASS true O02 房價落地 4321、來源 owlting_rate → 4321 owlting_rate
+PASS true O03 service_role bulk_upsert owlting_inbound 只改庫存 → OK
+PASS true O04 庫存 3、價格仍 4321 → 3 4321
+PASS true O05 anon bulk_upsert 把房價改 1 元 → DENIED permission denied for function bulk_upsert_room_inventory_pricing
+PASS true O06 會員 bulk_upsert 把房價改 1 元 → DENIED permission denied for function bulk_upsert_room_inventory_pricing
+PASS true O07 單參數多載 bulk_upsert(jsonb)：anon／authenticated 可執行＝f → false false true
+PASS true J01 排程身分 postgres 執行 scan_stuck_group_buy_paid_drafts(15) → 0
+PASS true J02 排程身分 postgres 執行 cleanup_old_error_logs() → 
+PASS true J03 排程身分 postgres 執行 cleanup_old_monitoring_logs() → 
+PASS true J04 super_admin 新增課程盈餘月份（DEFINER 觸發器內呼叫 recalc_course_profit_payouts） → OK
+PASS true J05 anon scan_stuck_group_buy_paid_drafts → DENIED permission denied for function scan_stuck_group_buy_paid_drafts
+PASS true J06 會員 cleanup_old_error_logs → DENIED permission denied for function cleanup_old_error_logs
+PASS true J07 anon cleanup_old_monitoring_logs → DENIED permission denied for function cleanup_old_monitoring_logs
+PASS true J08 anon recalc_course_profit_payouts → DENIED permission denied for function recalc_course_profit_payouts
+PASS true G01 service_role consume_trip_product_stock 扣 2 張 → OK
+PASS true G02 行程商品庫存 5→3 → 3
+PASS true G03 service_role acquire_group_buy_payment_hold（資料不完整→業務回應） → OK
+PASS true G04 service_role convert_group_buy_payment_draft（不存在的 draft→業務錯誤） → OK
+PASS true G05 service_role delete_group_buy_campaign（不存在→CAMPAIGN_NOT_FOUND） → RAN CAMPAIGN_NOT_FOUND
+PASS true G06 anon consume_trip_product_stock → DENIED permission denied for function consume_trip_product_stock
+PASS true G07 會員 consume_trip_product_stock → DENIED permission denied for function consume_trip_product_stock
+PASS true G08 anon acquire_group_buy_payment_hold → DENIED permission denied for function acquire_group_buy_payment_hold
+PASS true G09 anon convert_group_buy_payment_draft → DENIED permission denied for function convert_group_buy_payment_draft
+PASS true G10 會員 convert_group_buy_payment_draft → DENIED permission denied for function convert_group_buy_payment_draft
+PASS true G11 anon delete_group_buy_campaign → DENIED permission denied for function delete_group_buy_campaign
+PASS true G12 會員 delete_group_buy_campaign → DENIED permission denied for function delete_group_buy_campaign
+PASS true V01 anon gbp_vault_delete → DENIED permission denied for function gbp_vault_delete
+PASS true V02 會員 gbp_vault_delete → DENIED permission denied for function gbp_vault_delete
+PASS true V03 service_role gbp_vault_delete → OK
+PASS true V04 anon gbp_save_accommodation_oauth_client_secret → DENIED permission denied for function gbp_save_accommodation_oauth_client_secret
+PASS true V05 會員 gbp_save_accommodation_oauth_client_secret → DENIED permission denied for function gbp_save_accommodation_oauth_client_secret
+PASS true V06 service_role gbp_save_accommodation_oauth_client_secret（無設定列→業務錯誤） → RAN GBP_SETTINGS_ROW_NOT_FOUND
+PASS true V07 anon import_ryoan_order_bypass → DENIED permission denied for function import_ryoan_order_bypass
+PASS true V08 會員 import_ryoan_order_bypass → DENIED permission denied for function import_ryoan_order_bypass
+PASS true V09 service_role import_ryoan_order_bypass → RAN null value in column "accommodation_id" of relation "orders" violates not-null constraint
+PASS true V10 anon seed_app_review_account → DENIED permission denied for function seed_app_review_account
+PASS true V11 會員 seed_app_review_account（替自己發 500 點） → DENIED permission denied for function seed_app_review_account
+PASS true V12 service_role seed_app_review_account → RAN 此民宿不存在或已停用，無法建立訂單
+PASS true V13 anon increment_member_push_badge → DENIED permission denied for function increment_member_push_badge
+PASS true V14 service_role increment_member_push_badge（send-push） → OK
+PASS true V15 anon verify_accommodation_api_key → DENIED permission denied for function verify_accommodation_api_key
+PASS true V16 service_role verify_accommodation_api_key → OK
+PASS true V17 會員 verify_accommodation_ai_api_key → DENIED permission denied for function verify_accommodation_ai_api_key
+PASS true V18 service_role verify_accommodation_ai_api_key → OK
+PASS true V19 anon verify_owlting_service_account → DENIED permission denied for function verify_owlting_service_account
+PASS true V20 service_role verify_owlting_service_account（owlting-cm） → OK
+PASS true M01 A 類 18 支 anon 可執行數 → 0
+PASS true M02 A 類 18 支 authenticated 可執行數 → 0
+PASS true M03 A 類 19 支（含 hotelnabe）service_role 全可執行 → 19
+PASS true B01 anon ensure_trip_share_slug（B 類，本批不動） → OK
+PASS true C01 anon wizard_save_room_type（原本就不可執行） → DENIED permission denied for function wizard_save_room_type
+PASS true C02 會員 wizard_save_room_type → wizard_assert_access 擋 → DENIED 只有本館管理員或總部最高管理員可以使用上架精靈
+PASS true C03 唯讀 staff set_pricing_template_group_members（不存在的群組；函式照常執行、未被授權擋） → RAN 群組不存在
+PASS true C04 anon delete_package_season（原本就不可執行） → DENIED permission denied for function delete_package_season
+PASS 62 / FAIL 0
+== 10. PUBLIC 變體：部分函式原本含 PUBLIC，rollback 以 precheck 第 4 段產生的行還原
+NOTICE:  database "da2" does not exist, skipping
+precheck 第 4 段產生 19 行，其中含 PUBLIC：2 行
+GRANT EXECUTE ON FUNCTION public._hotelnabe_enqueue_days(uuid, uuid, date, date, hotelnabe_ari_push_reason) TO PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.cleanup_old_error_logs() TO PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.verify_owlting_service_account(text, text) TO service_role;
+套用成功
+rollback（貼入 precheck 輸出）成功
+rollback 後授權與原狀（含 PUBLIC 兩支、owlting 無 anon/authenticated）完全相同：t
