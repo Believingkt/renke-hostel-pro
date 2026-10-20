@@ -1,0 +1,158 @@
+NOTICE:  database "da3" does not exist, skipping
+== 0. 對齊正式庫授權（含 sandbox_exec_dmafqwfynatdvnaeovhz）
+_hotelnabe_enqueue_days {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} 8e9c59faaf944996252177d8a0071ab6
+ensure_trip_share_slug {postgres=X/postgres,=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} 6743b0826daf26406875603a277a41d4
+== 1. 套用前測試（漏洞重現）
+PASS false S01 anon 對他人草稿產生 slug → OK
+PASS false S02 其他會員對他人草稿產生 slug（套用前漏洞：成功） → OK
+PASS false S03 草稿 slug 已被他人產生（套用前漏洞） → set
+PASS false S04 anon 讀得到他人草稿（1 筆，私人行程外洩） → OK
+PASS false S05 館員對會員草稿（套用前：成功） → OK
+PASS false S06 service_role（套用前：成功） → OK
+PASS false S07 擁有者對自己的草稿產生 slug → OK
+PASS false S08 擁有者草稿現在有 10 碼 slug → 10
+PASS false S09 擁有者對已有 slug 的行程 → 回傳原 slug、不變 → keepslug01
+PASS false S10 擁有者呼叫（已有 slug） → OK
+PASS false S11 其他會員對已發布他人行程（套用前：成功） → OK
+PASS false S12 前端備援：anon 以行程 id 讀已發布行程（TripShare 頁 UUID 查詢） → OK
+PASS false S13 擁有者產生 slug 後，anon 以 slug 讀得到（分享連結有效） → OK
+PASS false S14 擁有者對不存在的行程（套用前：回 null） → OK
+PASS false H01 館員（f2 hotel_admin）更新房價列 → OK
+PASS false H02 房價更新後佇列有該日 1 筆 → 1
+PASS false H03 館員更新訂單備註 → OK
+PASS false H04 訂單更新後佇列有入住 2 晚 → 2
+PASS false H05 館員新增 order_rooms → OK
+PASS false H06 order_rooms 新增後佇列有入住 2 晚（fn_hotelnabe_enqueue_from_order_rooms） → 2
+PASS false H07 會員直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H08 館員直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H09 anon 直接呼叫 _hotelnabe_enqueue_days（上一批已收回） → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS false H10 service_role 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H11 postgres（排程／擁有者）直接呼叫 _hotelnabe_enqueue_days → 
+PASS false M01 ensure_trip_share_slug anon／authenticated／service_role／sandbox 可執行 → true true true true
+PASS false M02 _hotelnabe_enqueue_days anon／authenticated／service_role／sandbox 可執行 → false true true true
+PASS 27 / FAIL 0
+== 2. precheck
+1. ensure_trip_share_slug(uuid) 存在且指紋＝6743b0826daf26406875603a277a41d4（正式庫套用前） | t
+2. ensure_trip_share_slug 的 BEGIN 錨點（換行＋BEGIN＋換行）剛好出現 1 次 | t
+3. ensure_trip_share_slug 尚未含 TRIP_OWNER_GUARD_V1 | t
+4. ensure_trip_share_slug 屬性：SECURITY DEFINER、plpgsql、RETURNS text、search_path=public | t
+5. trips 擁有者欄位 owner_id 為 uuid | t
+6. ensure_trip_share_slug 授權：PUBLIC、anon、authenticated、service_role 皆可執行（正式庫原狀） | t
+7. _hotelnabe_enqueue_days 指紋＝8e9c59faaf944996252177d8a0071ab6 | t
+8. _hotelnabe_enqueue_days 授權：authenticated、service_role 可；anon 不可；無 PUBLIC（正式庫原狀） | t
+9. 呼叫 _hotelnabe_enqueue_days 的函式只有 3 支觸發器函式，且全部 SECURITY DEFINER | t
+10. 沒有 RLS policy 引用 ensure_trip_share_slug／_hotelnabe_enqueue_days | t
+_hotelnabe_enqueue_days(uuid,uuid,date,date,hotelnabe_ari_push_reason) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 8e9c59faaf944996252177d8a0071ab6 | t | {search_path=public}
+ensure_trip_share_slug(uuid) | {postgres=X/postgres,=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 6743b0826daf26406875603a277a41d4 | t | {search_path=public}
+== 3. 套用
+套用成功
+== 4. postcheck
+1. ensure_trip_share_slug 含 TRIP_OWNER_GUARD_V1 且只出現一組 | t
+2. ensure_trip_share_slug 去掉檢查段後指紋＝6743b0826daf26406875603a277a41d4 | t
+3. 檢查段內容：auth.uid() 為 null 或非 owner_id 即 42501 | t
+4. ensure_trip_share_slug 屬性不變：SECURITY DEFINER、plpgsql、RETURNS text、search_path=public | t
+5. ensure_trip_share_slug 授權：anon 不可、無 PUBLIC；authenticated、service_role 可 | t
+6. _hotelnabe_enqueue_days 指紋不變＝8e9c59faaf944996252177d8a0071ab6 | t
+7. _hotelnabe_enqueue_days 授權：anon、authenticated 不可、無 PUBLIC；service_role、postgres 可 | t
+8. 3 支 hotelnabe 觸發器函式仍為 SECURITY DEFINER，且其擁有者可執行 _hotelnabe_enqueue_days | t
+9. 其他授權對象未被變動：兩支函式仍保有 sandbox_exec_* 的執行權（正式庫原有） | t
+_hotelnabe_enqueue_days(uuid,uuid,date,date,hotelnabe_ari_push_reason) | {postgres=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 8e9c59faaf944996252177d8a0071ab6 | f | f | t
+ensure_trip_share_slug(uuid) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 211181a2a9707616d97273242a1f42f0 | f | t | t
+ensure_trip_share_slug 以外的 public 函式指紋與套用前相同：t
+== 5. 重複套用必須被擋
+PRECHECK 失敗：ensure_trip_share_slug 指紋
+== 6. 套用後測試
+PASS true S01 anon 對他人草稿產生 slug → DENIED permission denied for function ensure_trip_share_slug
+PASS true S02 其他會員對他人草稿產生 slug → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S03 草稿 slug 仍為空（未被他人公開） → null
+PASS true S04 anon 讀不到他人草稿（0 筆） → OK
+PASS true S05 館員（f2 hotel_admin）對會員草稿 → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S06 service_role（auth.uid() 為 null）→ 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S07 擁有者對自己的草稿產生 slug → OK
+PASS true S08 擁有者草稿現在有 10 碼 slug → 10
+PASS true S09 擁有者對已有 slug 的行程 → 回傳原 slug、不變 → keepslug01
+PASS true S10 擁有者呼叫（已有 slug） → OK
+PASS true S11 其他會員對已發布他人行程 → 42501（前端改用行程 id 連結） → DENIED 只有行程擁有者可以產生分享連結
+PASS true S12 前端備援：anon 以行程 id 讀已發布行程（TripShare 頁 UUID 查詢） → OK
+PASS true S13 擁有者產生 slug 後，anon 以 slug 讀得到（分享連結有效） → OK
+PASS true S14 擁有者對不存在的行程 → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true H01 館員（f2 hotel_admin）更新房價列 → OK
+PASS true H02 房價更新後佇列有該日 1 筆 → 1
+PASS true H03 館員更新訂單備註 → OK
+PASS true H04 訂單更新後佇列有入住 2 晚 → 2
+PASS true H05 館員新增 order_rooms → OK
+PASS true H06 order_rooms 新增後佇列有入住 2 晚（fn_hotelnabe_enqueue_from_order_rooms） → 2
+PASS true H07 會員直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H08 館員直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H09 anon 直接呼叫 _hotelnabe_enqueue_days（上一批已收回） → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H10 service_role 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS true H11 postgres（排程／擁有者）直接呼叫 _hotelnabe_enqueue_days → 
+PASS true M01 ensure_trip_share_slug anon／authenticated／service_role／sandbox 可執行 → false true true true
+PASS true M02 _hotelnabe_enqueue_days anon／authenticated／service_role／sandbox 可執行 → false false true true
+PASS 27 / FAIL 0
+== 7. rollback
+rollback 成功
+rollback 後兩支授權與套用前（正式庫原狀）完全相同：t
+rollback 後 public 全部函式（內容＋DEFINER＋search_path）與套用前相同：t
+rollback 後 precheck 第 1 段：
+10 / 10 項為 t
+== 8. rollback 後測試（回到套用前行為）
+PASS false S01 anon 對他人草稿產生 slug → OK
+PASS false S02 其他會員對他人草稿產生 slug（套用前漏洞：成功） → OK
+PASS false S03 草稿 slug 已被他人產生（套用前漏洞） → set
+PASS false S04 anon 讀得到他人草稿（1 筆，私人行程外洩） → OK
+PASS false S05 館員對會員草稿（套用前：成功） → OK
+PASS false S06 service_role（套用前：成功） → OK
+PASS false S07 擁有者對自己的草稿產生 slug → OK
+PASS false S08 擁有者草稿現在有 10 碼 slug → 10
+PASS false S09 擁有者對已有 slug 的行程 → 回傳原 slug、不變 → keepslug01
+PASS false S10 擁有者呼叫（已有 slug） → OK
+PASS false S11 其他會員對已發布他人行程（套用前：成功） → OK
+PASS false S12 前端備援：anon 以行程 id 讀已發布行程（TripShare 頁 UUID 查詢） → OK
+PASS false S13 擁有者產生 slug 後，anon 以 slug 讀得到（分享連結有效） → OK
+PASS false S14 擁有者對不存在的行程（套用前：回 null） → OK
+PASS false H01 館員（f2 hotel_admin）更新房價列 → OK
+PASS false H02 房價更新後佇列有該日 1 筆 → 1
+PASS false H03 館員更新訂單備註 → OK
+PASS false H04 訂單更新後佇列有入住 2 晚 → 2
+PASS false H05 館員新增 order_rooms → OK
+PASS false H06 order_rooms 新增後佇列有入住 2 晚（fn_hotelnabe_enqueue_from_order_rooms） → 2
+PASS false H07 會員直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H08 館員直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H09 anon 直接呼叫 _hotelnabe_enqueue_days（上一批已收回） → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS false H10 service_role 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS false H11 postgres（排程／擁有者）直接呼叫 _hotelnabe_enqueue_days → 
+PASS false M01 ensure_trip_share_slug anon／authenticated／service_role／sandbox 可執行 → true true true true
+PASS false M02 _hotelnabe_enqueue_days anon／authenticated／service_role／sandbox 可執行 → false true true true
+PASS 27 / FAIL 0
+== 9. 再套用＋postcheck＋測試
+再套用成功
+9 / 9 項為 t
+PASS true S01 anon 對他人草稿產生 slug → DENIED permission denied for function ensure_trip_share_slug
+PASS true S02 其他會員對他人草稿產生 slug → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S03 草稿 slug 仍為空（未被他人公開） → null
+PASS true S04 anon 讀不到他人草稿（0 筆） → OK
+PASS true S05 館員（f2 hotel_admin）對會員草稿 → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S06 service_role（auth.uid() 為 null）→ 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true S07 擁有者對自己的草稿產生 slug → OK
+PASS true S08 擁有者草稿現在有 10 碼 slug → 10
+PASS true S09 擁有者對已有 slug 的行程 → 回傳原 slug、不變 → keepslug01
+PASS true S10 擁有者呼叫（已有 slug） → OK
+PASS true S11 其他會員對已發布他人行程 → 42501（前端改用行程 id 連結） → DENIED 只有行程擁有者可以產生分享連結
+PASS true S12 前端備援：anon 以行程 id 讀已發布行程（TripShare 頁 UUID 查詢） → OK
+PASS true S13 擁有者產生 slug 後，anon 以 slug 讀得到（分享連結有效） → OK
+PASS true S14 擁有者對不存在的行程 → 42501 → DENIED 只有行程擁有者可以產生分享連結
+PASS true H01 館員（f2 hotel_admin）更新房價列 → OK
+PASS true H02 房價更新後佇列有該日 1 筆 → 1
+PASS true H03 館員更新訂單備註 → OK
+PASS true H04 訂單更新後佇列有入住 2 晚 → 2
+PASS true H05 館員新增 order_rooms → OK
+PASS true H06 order_rooms 新增後佇列有入住 2 晚（fn_hotelnabe_enqueue_from_order_rooms） → 2
+PASS true H07 會員直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H08 館員直接呼叫 _hotelnabe_enqueue_days → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H09 anon 直接呼叫 _hotelnabe_enqueue_days（上一批已收回） → DENIED permission denied for function _hotelnabe_enqueue_days
+PASS true H10 service_role 直接呼叫 _hotelnabe_enqueue_days → OK
+PASS true H11 postgres（排程／擁有者）直接呼叫 _hotelnabe_enqueue_days → 
+PASS true M01 ensure_trip_share_slug anon／authenticated／service_role／sandbox 可執行 → false true true true
+PASS true M02 _hotelnabe_enqueue_days anon／authenticated／service_role／sandbox 可執行 → false false true true
+PASS 27 / FAIL 0
