@@ -1,0 +1,25 @@
+== 補件 2：舊寫法操作前後指紋（R0＝未套用本批、R1＝已套用）
+-- R1 操作後指紋：
+accommodation_hotelnabe_config | 1 | 2aa5afad6a87ae88e9c19cc6de0ff3dd
+accommodation_owlting_config | 1 | 7f889b7ce6d9a77e1ac534013680e3f2
+accommodation_packages | 3 | 3a43ccb5720aec29fdf8e8f08048b9b5
+discount_codes | 3 | a7970761957de2477fbb525fde46059f
+package_date_price_logs | 10 | 6934041c182d48f26f3881e8a5b923e7
+package_date_prices | 7 | ac272ddf30f2e1672f8e13ca7be90d87
+pricing_templates | 4 | 613f37d583ba1954d9976381797ba562
+public_holidays | 8 | a3c42af70b4af79b1cec8eb096b6e255
+room_inventory_pricing | 0 | d41d8cd98f00b204e9800998ecf8427e
+操作前 R0＝R1：t
+操作後 R0＝R1：t
+R1 新表全部 0 筆、方案單日價全部 manual：true
+== 補件 3：20 館 × 一年份假日批次寫入
+R0 每館 365 天、第一次匯入：40 個語句總計 182 ms，單一語句最長 9.099 ms
+R0 每館 365 天、重跑同一年（全部 upsert 更新）：40 個語句總計 261 ms，單一語句最長 18.348 ms
+R0 每館 30 天、第一次匯入：40 個語句總計 126 ms，單一語句最長 21.305 ms
+R0 每館 30 天、重跑同一年（全部 upsert 更新）：40 個語句總計 100 ms，單一語句最長 6.719 ms
+R1 展開後方案單日價：58400（20 館 × 8 方案 × 365 天）
+R1 每館 365 天、第一次匯入：40 個語句總計 7403 ms，單一語句最長 590.082 ms
+R1 每館 365 天、重跑同一年（全部 upsert 更新）：40 個語句總計 3624 ms，單一語句最長 214.261 ms
+R1 每館 30 天、第一次匯入：40 個語句總計 3544 ms，單一語句最長 253.057 ms
+R1 每館 30 天、重跑同一年（全部 upsert 更新）：40 個語句總計 3479 ms，單一語句最長 212.651 ms
+R1 展開列沒有被誤標 manual

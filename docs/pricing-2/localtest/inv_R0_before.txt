@@ -1,0 +1,9 @@
+accommodation_hotelnabe_config | 1 | 2aa5afad6a87ae88e9c19cc6de0ff3dd
+accommodation_owlting_config | 1 | 7f889b7ce6d9a77e1ac534013680e3f2
+accommodation_packages | 3 | fd56d828ba7e31919c76d11f79fe9dc1
+discount_codes | 3 | a7970761957de2477fbb525fde46059f
+package_date_price_logs | 0 | d41d8cd98f00b204e9800998ecf8427e
+package_date_prices | 1 | c658d94323515179541bccb2e1145cbc
+pricing_templates | 4 | 397ae4b1cdc47a346eec5563be81ffbf
+public_holidays | 0 | d41d8cd98f00b204e9800998ecf8427e
+room_inventory_pricing | 0 | d41d8cd98f00b204e9800998ecf8427e

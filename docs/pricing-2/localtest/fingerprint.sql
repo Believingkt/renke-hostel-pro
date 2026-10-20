@@ -1,0 +1,11 @@
+-- 補件 2：資料指紋（只取兩邊都有的欄位；排除 id、時間戳等每次不同的值）
+SELECT 'package_date_prices' AS 表, count(*) AS 筆數, md5(COALESCE(string_agg(concat_ws(':', accommodation_id, package_id, date, sale_price, original_price, is_available, note, created_by), ',' ORDER BY package_id, date), '')) AS 指紋 FROM public.package_date_prices
+UNION ALL SELECT 'package_date_price_logs', count(*), md5(COALESCE(string_agg(concat_ws(':', accommodation_id, package_id, date, action, old_sale_price, new_sale_price, old_original_price, new_original_price, note, changed_by), ',' ORDER BY package_id, date, action, new_sale_price, old_sale_price), '')) FROM public.package_date_price_logs
+UNION ALL SELECT 'accommodation_packages', count(*), md5(COALESCE(string_agg(concat_ws(':', id, tier_prices, sale_price, original_price, applicable_tiers, enabled), ',' ORDER BY id), '')) FROM public.accommodation_packages
+UNION ALL SELECT 'pricing_templates', count(*), md5(COALESCE(string_agg(concat_ws(':', id, default_package_id, price, weekday_price, peak_price, weekend_price, season_segments, room_overrides), ',' ORDER BY id), '')) FROM public.pricing_templates
+UNION ALL SELECT 'public_holidays', count(*), md5(COALESCE(string_agg(concat_ws(':', accommodation_id, holiday_date, holiday_name, holiday_type, is_custom), ',' ORDER BY accommodation_id, holiday_date), '')) FROM public.public_holidays
+UNION ALL SELECT 'discount_codes', count(*), md5(COALESCE(string_agg(concat_ws(':', id, applicable_pricing_template_ids, discount_value, is_active), ',' ORDER BY id), '')) FROM public.discount_codes
+UNION ALL SELECT 'room_inventory_pricing', count(*), md5(COALESCE(string_agg(concat_ws(':', room_type_id, date, pricing_template_id, price, available_rooms, is_available), ',' ORDER BY room_type_id, date, pricing_template_id), '')) FROM public.room_inventory_pricing
+UNION ALL SELECT 'accommodation_owlting_config', count(*), md5(COALESCE(string_agg(concat_ws(':', accommodation_id, sync_enabled), ',' ORDER BY accommodation_id), '')) FROM public.accommodation_owlting_config
+UNION ALL SELECT 'accommodation_hotelnabe_config', count(*), md5(COALESCE(string_agg(concat_ws(':', accommodation_id, sync_enabled), ',' ORDER BY accommodation_id), '')) FROM public.accommodation_hotelnabe_config
+ORDER BY 1;
