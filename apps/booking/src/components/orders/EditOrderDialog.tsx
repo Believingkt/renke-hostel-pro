@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@lakeze/shared/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerFooter } from "@/components/ui/drawer";
 import { useIsMobile } from "@lakeze/shared/hooks/use-mobile";
@@ -27,6 +27,8 @@ import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { Badge } from "@lakeze/shared/components/ui/badge";
 import { Alert, AlertDescription } from "@lakeze/shared/components/ui/alert";
 import { resolveTemplatePricesForDates } from "@lakeze/shared/utils/templatePriceResolver";
+import { selectTemplatesForRoomType, resolveOrderPackage, finalPackageId, roomTemplateKey, type TemplateListSource } from "@/lib/orderPackageResolution";
+import { OrderPackageField, TemplateFallbackWarning, useResetOnRoomTemplateChange } from "@/components/orders/OrderPackageField";
 
 interface RoomType {
   id: string;
@@ -153,8 +155,24 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
   });
 
   const [accommodationPackages, setAccommodationPackages] = useState<
-    Array<{ id: string; name: string; guest_count: number; enabled: boolean }>
+    Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; room_type_ids: string[] | null; enabled: boolean }>
   >([]);
+  const [templateSource, setTemplateSource] = useState<TemplateListSource>("empty");
+  const [fallbackConfirmed, setFallbackConfirmed] = useState(false);
+
+  // 對應方案：由所選專案的 default_package_id 帶入；未綁方案時通路館限選涵蓋房型的方案
+  const roomPicks = useMemo(
+    () => [{ room_type_id: editForm.room_type_id, template_id: selectedTemplateId }],
+    [editForm.room_type_id, selectedTemplateId],
+  );
+  const packageResolution = useMemo(
+    () => resolveOrderPackage({ rooms: roomPicks, templates: pricingTemplates, packages: accommodationPackages, hasChannel: packageChannel.showPackageField }),
+    [roomPicks, pricingTemplates, accommodationPackages, packageChannel.showPackageField],
+  );
+  const roomTplKey = roomTemplateKey(roomPicks);
+  useResetOnRoomTemplateChange(roomTplKey.key, roomTplKey.complete, () => setEditForm(f => ({ ...f, package_id: "" })));
+  const isTemplateFallback = templateSource === "fallback_all";
+  useEffect(() => { setFallbackConfirmed(false); }, [editForm.room_type_id, isTemplateFallback, open]);
 
   // Fetch room types, public holidays, templates, and addons
   useEffect(() => {
@@ -188,7 +206,7 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       // accommodation_packages → 對應方案下拉
       const { data: pkgData } = await supabase
         .from("accommodation_packages")
-        .select("id, name, guest_count, enabled")
+        .select("id, name, guest_count, primary_room_type_id, room_type_ids, enabled")
         .eq("accommodation_id", currentAccommodationId)
         .eq("enabled", true)
         .order("display_order", { ascending: true })
@@ -227,15 +245,10 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
 
   // Filter templates by room_type_id
   useEffect(() => {
-    if (!editForm.room_type_id) {
+    if (!editForm.room_type_id || pricingTemplates.length === 0) {
       setFilteredTemplates([]);
       setSelectedTemplateId("");
-      return;
-    }
-
-    if (pricingTemplates.length === 0) {
-      setFilteredTemplates([]);
-      setSelectedTemplateId("");
+      setTemplateSource("empty");
       return;
     }
 
@@ -251,29 +264,8 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
         dateStrs.push(d.toISOString().slice(0, 10));
       }
     }
-    const inValidRange = (t: any) => {
-      const vf = t?.valid_from || null;
-      const vu = t?.valid_until || null;
-      if (!vf && !vu) return true;
-      if (dateStrs.length === 0) return true;
-      return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
-    };
-
-    const filtered = pricingTemplates.filter(t => {
-      const ids = (t as any).room_type_ids;
-      const matches = Array.isArray(ids) && ids.length > 0
-        ? ids.includes(editForm.room_type_id)
-        : t.room_type_id === editForm.room_type_id;
-      return matches && inValidRange(t);
-    });
-    const result = filtered.length > 0
-      ? filtered
-      : pricingTemplates.filter(t => {
-          const ids = (t as any).room_type_ids;
-          const hasIds = Array.isArray(ids) && ids.length > 0;
-          return !hasIds && !t.room_type_id && inValidRange(t);
-        });
-    const finalList = result.length > 0 ? result : pricingTemplates.filter(inValidRange);
+    const { list: finalList, source } = selectTemplatesForRoomType(pricingTemplates, editForm.room_type_id, dateStrs);
+    setTemplateSource(source);
 
     setFilteredTemplates(finalList);
     
@@ -664,27 +656,23 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
       return;
     }
 
-    // 若房型會同步到奧丁丁，「對應方案」必填（讀 editForm.package_id 或所選 template.default_package_id）
-    let effectivePackageId: string | null = editForm.package_id || null;
-    if (currentAccommodationId) {
-      try {
-        const req = await checkOwltingPackageRequirement(
-          currentAccommodationId,
-          [editForm.room_type_id],
-        );
-        if (req.required) {
-          const tpl = pricingTemplates.find((t) => t.id === selectedTemplateId);
-          const fallback = tpl?.default_package_id || null;
-          if (req.blocking && !editForm.package_id && !fallback) {
-            toast({
-              title: "建議選擇對應方案",
-              description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案，否則此單不會自動推送`,
-            });
-            // 只提醒不擋
-          }
-          if (!effectivePackageId) effectivePackageId = fallback;
-        }
+    if (isTemplateFallback && !fallbackConfirmed) {
+      toast({ title: "請確認專案", description: "此房型在入住日沒有對應專案，請勾選確認所選專案正確後再儲存", variant: "destructive" });
+      return;
+    }
 
+    // 對應方案一律依所選專案帶入（通路館專案未綁方案時才用人員所選、且須涵蓋房型）
+    const effectivePackageId: string | null = finalPackageId(packageResolution, editForm.package_id);
+    if (currentAccommodationId && !effectivePackageId) {
+      try {
+        const req = await checkOwltingPackageRequirement(currentAccommodationId, [editForm.room_type_id]);
+        if (req.required && req.blocking) {
+          toast({
+            title: "建議選擇對應方案",
+            description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案，否則此單不會自動推送`,
+          });
+          // 只提醒不擋
+        }
       } catch (e) {
         console.error("checkOwltingPackageRequirement failed", e);
       }
@@ -843,43 +831,6 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
             <Input value={order.order_number} disabled className="h-12 text-base sm:h-10 sm:text-sm" />
           </div>
 
-          {packageChannel.showPackageField && accommodationPackages.length > 0 && (
-            <div className="space-y-2">
-              <Label>
-                對應方案
-                {packageChannel.isRequired ? (
-                  <span className="text-destructive"> *</span>
-                ) : (
-                  <span className="text-muted-foreground text-xs">（選填）</span>
-                )}
-              </Label>
-              <Select
-                value={editForm.package_id || "none"}
-                onValueChange={(value) =>
-                  setEditForm({ ...editForm, package_id: value === "none" ? "" : value })
-                }
-              >
-                <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-                  <SelectValue
-                    placeholder={
-                      packageChannel.isRequired
-                        ? "請選擇對應包區/包棟方案"
-                        : "（選填）對應實際包區/包棟方案"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">（未指定）</SelectItem>
-                  {accommodationPackages.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}（{p.guest_count} 人）
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
-            </div>
-          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -1064,6 +1015,23 @@ export function EditOrderDialog({ open, order, onOpenChange, onSave, onCancel, o
               </SelectContent>
             </Select>
           </div>
+
+          <TemplateFallbackWarning
+            roomTypeNames={isTemplateFallback ? [roomTypes.find(r => r.id === editForm.room_type_id)?.name || ""] : []}
+            confirmed={fallbackConfirmed}
+            onConfirmedChange={setFallbackConfirmed}
+          />
+
+          {editForm.room_type_id && (
+            <OrderPackageField
+              resolution={packageResolution}
+              manualPick={editForm.package_id}
+              onManualPick={(id) => setEditForm(f => ({ ...f, package_id: id }))}
+              isRequired={packageChannel.isRequired}
+              channelLabel={packageChannel.channelLabel}
+              roomTypeName={(id) => roomTypes.find(r => r.id === id)?.name || ""}
+            />
+          )}
 
           {/* 加購方案選擇 */}
           {addonSettings.length > 0 && (

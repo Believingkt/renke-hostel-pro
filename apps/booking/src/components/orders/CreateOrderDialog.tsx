@@ -21,6 +21,8 @@ import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@lakeze/shared/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { selectTemplatesForRoomType, resolveOrderPackage, finalPackageId, roomTemplateKey } from "@/lib/orderPackageResolution";
+import { OrderPackageField, TemplateFallbackWarning, useResetOnRoomTemplateChange } from "@/components/orders/OrderPackageField";
 
 import { useToast } from "@lakeze/shared/hooks/use-toast";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
@@ -359,7 +361,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
   // 對應的方案清單（accommodation_packages），下單時寫入 orders.package_id
   const [accommodationPackages, setAccommodationPackages] = useState<
-    Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; enabled: boolean }>
+    Array<{ id: string; name: string; guest_count: number; primary_room_type_id: string | null; room_type_ids: string[] | null; enabled: boolean }>
   >([]);
 
   // Reset form when dialog opens
@@ -470,7 +472,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       // Accommodation packages（給「對應方案」下拉用 → 寫入 orders.package_id）
       const { data: pkgData } = await supabase
         .from("accommodation_packages")
-        .select("id, name, guest_count, primary_room_type_id, enabled")
+        .select("id, name, guest_count, primary_room_type_id, room_type_ids, enabled")
         .eq("accommodation_id", currentAccommodationId)
         .eq("enabled", true)
         .order("display_order", { ascending: true })
@@ -589,46 +591,24 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   }, [currentAccommodationId, form.check_in_date, form.check_out_date]);
 
 
-  // Helper: get templates for a room_type_id（含期限硬性限制）
-  const getTemplatesForRoomType = useCallback((roomTypeId: string) => {
-    if (!roomTypeId || pricingTemplates.length === 0) return [];
-    // 計算當下訂單入住期間
-    const nights = (() => {
-      if (!form.check_in_date || !form.check_out_date) return 0;
-      const ci = new Date(form.check_in_date);
-      const co = new Date(form.check_out_date);
-      return Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
-    })();
-    const dateStrs: string[] = [];
-    if (nights > 0 && form.check_in_date) {
-      const start = new Date(form.check_in_date);
-      for (let i = 0; i < nights; i++) {
-        const d = new Date(start);
-        d.setDate(start.getDate() + i);
-        dateStrs.push(format(d, "yyyy-MM-dd"));
-      }
-    }
-    const inValidRange = (t: any) => {
-      const vf = t?.valid_from || null;
-      const vu = t?.valid_until || null;
-      if (!vf && !vu) return true;
-      if (dateStrs.length === 0) return true;
-      return dateStrs.every(d => (!vf || d >= vf) && (!vu || d <= vu));
-    };
-    const filtered = pricingTemplates.filter(t => {
-      const ids = (t as any).room_type_ids;
-      const hasBinding = (Array.isArray(ids) && ids.length > 0) || !!(t as any).room_type_id;
-      return hasBinding && templateMatchesRoomType(t as any, roomTypeId) && inValidRange(t);
+  // 入住期間每晚日期（專案期限硬性限制用）
+  const stayDates = useMemo(() => {
+    if (!form.check_in_date || !form.check_out_date) return [] as string[];
+    const ci = new Date(form.check_in_date);
+    const co = new Date(form.check_out_date);
+    const nights = Math.max(0, Math.ceil((co.getTime() - ci.getTime()) / 86400000));
+    return Array.from({ length: nights }, (_, i) => {
+      const d = new Date(ci);
+      d.setDate(ci.getDate() + i);
+      return format(d, "yyyy-MM-dd");
     });
-    const result = filtered.length > 0
-      ? filtered
-      : pricingTemplates.filter(t => {
-          const ids = (t as any).room_type_ids;
-          const hasIds = Array.isArray(ids) && ids.length > 0;
-          return !hasIds && !(t as any).room_type_id && inValidRange(t);
-        });
-    return result.length > 0 ? result : pricingTemplates.filter(inValidRange);
-  }, [pricingTemplates, form.check_in_date, form.check_out_date]);
+  }, [form.check_in_date, form.check_out_date]);
+
+  // Helper: get templates for a room_type_id（含期限硬性限制；找不到對應專案時退回全館專案並標記 fallback_all）
+  const getTemplatesForRoomType = useCallback(
+    (roomTypeId: string) => selectTemplatesForRoomType(pricingTemplates, roomTypeId, stayDates).list,
+    [pricingTemplates, stayDates],
+  );
 
   // Keep legacy form.room_type_id in sync (old template filter useEffect kept for compat)
   useEffect(() => {
@@ -657,6 +637,28 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const getEffectiveQuantity = useCallback((sel: RoomSelection) => sel.quantity, []);
   const totalRoomCount = roomSelections.reduce((sum, s) => sum + getEffectiveQuantity(s), 0);
   const hasExclusivePackage = roomSelections.some(s => roomTypes.find(r => r.id === s.room_type_id)?.is_exclusive_package);
+
+  // 對應方案：由第一間房專案的 default_package_id 帶入；未綁方案時通路館限選涵蓋房型的方案
+  const roomPicks = useMemo(
+    () => roomSelections.map(s => ({ room_type_id: s.room_type_id, template_id: s.template_id })),
+    [roomSelections],
+  );
+  const packageResolution = useMemo(
+    () => resolveOrderPackage({ rooms: roomPicks, templates: pricingTemplates, packages: accommodationPackages, hasChannel: packageChannel.showPackageField }),
+    [roomPicks, pricingTemplates, accommodationPackages, packageChannel.showPackageField],
+  );
+  const roomTplKey = roomTemplateKey(roomPicks);
+  useResetOnRoomTemplateChange(roomTplKey.key, roomTplKey.complete, () => setForm(f => ({ ...f, package_id: "" })));
+
+  // 專案清單退回「全館專案」的房型：需勾選確認才能儲存
+  const fallbackRoomTypeIds = useMemo(
+    () => Array.from(new Set(roomSelections.map(s => s.room_type_id)))
+      .filter(id => !!id && selectTemplatesForRoomType(pricingTemplates, id, stayDates).source === "fallback_all"),
+    [roomSelections, pricingTemplates, stayDates],
+  );
+  const [fallbackConfirmed, setFallbackConfirmed] = useState(false);
+  const fallbackKey = fallbackRoomTypeIds.join(",");
+  useEffect(() => { setFallbackConfirmed(false); }, [fallbackKey, open]);
 
   const addRoomSelection = useCallback((preferExclusive = false) => {
     const id = crypto.randomUUID();
@@ -1257,46 +1259,31 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
       return;
     }
 
+    if (fallbackRoomTypeIds.length > 0 && !fallbackConfirmed) {
+      toast({ title: "請確認專案", description: "此房型在入住日沒有對應專案，請勾選確認所選專案正確後再儲存", variant: "destructive" });
+      return;
+    }
+
     if (savingRef.current) return;
     savingRef.current = true;
 
-    // 若訂單房型會同步到奧丁丁，「對應方案」必填（讀 form.package_id 或該房 template.default_package_id）
-    let effectivePackageId: string | null = form.package_id || null;
+    // 對應方案一律依第一間房專案帶入（通路館專案未綁方案時才用人員所選、且須涵蓋房型）
+    const effectivePackageId: string | null = finalPackageId(packageResolution, form.package_id);
     try {
       const req = await checkOwltingPackageRequirement(
         currentAccommodationId,
         roomSelections.map((s) => s.room_type_id),
       );
-      if (req.required) {
-        const requiredSet = new Set(req.requiredRoomTypeIds);
-        const missing: string[] = [];
-        const derivedPkgIds = new Set<string>();
-        for (const sel of roomSelections) {
-          if (!requiredSet.has(sel.room_type_id)) continue;
-          const tpl = pricingTemplates.find((t) => t.id === sel.template_id);
-          const pkgId = form.package_id || tpl?.default_package_id || null;
-          if (!pkgId) {
-            missing.push(sel.room_type_id);
-          } else {
-            derivedPkgIds.add(pkgId);
-          }
-        }
-        if (req.blocking && missing.length > 0) {
-          const names = Array.from(new Set(missing))
-            .map((id) => roomTypes.find((r) => r.id === id)?.name)
-            .filter(Boolean)
-            .join("、");
-          toast({
-            title: "建議選擇對應方案",
-            description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
-          });
-          // 只提醒不擋
-        }
-
-        // 若使用者未手動選 form.package_id，且所有會同步的房型都指到同一個 default_package_id，就自動採用
-        if (!effectivePackageId && derivedPkgIds.size === 1) {
-          effectivePackageId = Array.from(derivedPkgIds)[0];
-        }
+      if (req.required && req.blocking && !effectivePackageId) {
+        const names = Array.from(new Set(req.requiredRoomTypeIds))
+          .map((id) => roomTypes.find((r) => r.id === id)?.name)
+          .filter(Boolean)
+          .join("、");
+        toast({
+          title: "建議選擇對應方案",
+          description: `此房型會同步到 ${req.channelLabel}，建議選擇對應方案${names ? `（${names}）` : ""}，否則此單不會自動推送`,
+        });
+        // 只提醒不擋
       }
     } catch (e) {
       console.error("checkOwltingPackageRequirement failed", e);
@@ -2935,40 +2922,21 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         </Alert>
       )}
 
-      {packageChannel.showPackageField && accommodationPackages.length > 0 && (
-        <div className="space-y-2">
-          <Label>
-            對應方案
-            {packageChannel.isRequired ? (
-              <span className="text-destructive"> *</span>
-            ) : (
-              <span className="text-muted-foreground text-xs">（選填）</span>
-            )}
-          </Label>
-          <Select
-            value={form.package_id || "none"}
-            onValueChange={(value) => setForm({ ...form, package_id: value === "none" ? "" : value })}
-          >
-            <SelectTrigger className="h-12 text-base sm:h-10 sm:text-sm">
-              <SelectValue
-                placeholder={
-                  packageChannel.isRequired
-                    ? "請選擇對應包區/包棟方案"
-                    : "（選填）對應實際包區/包棟方案"
-                }
-              />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">（未指定，留空）</SelectItem>
-              {accommodationPackages.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.name}（{p.guest_count} 人）
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">{packageChannel.helperText}</p>
-        </div>
+      <TemplateFallbackWarning
+        roomTypeNames={fallbackRoomTypeIds.map(id => roomTypes.find(r => r.id === id)?.name || "")}
+        confirmed={fallbackConfirmed}
+        onConfirmedChange={setFallbackConfirmed}
+      />
+
+      {roomSelections.length > 0 && (
+        <OrderPackageField
+          resolution={packageResolution}
+          manualPick={form.package_id}
+          onManualPick={(id) => setForm(f => ({ ...f, package_id: id }))}
+          isRequired={packageChannel.isRequired}
+          channelLabel={packageChannel.channelLabel}
+          roomTypeName={(id) => roomTypes.find(r => r.id === id)?.name || ""}
+        />
       )}
 
 
