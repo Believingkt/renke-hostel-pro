@@ -1,0 +1,142 @@
+NOTICE:  database "da4" does not exist, skipping
+== 0. 對齊正式庫授權（含建立 sandbox_exec_dmafqwfynatdvnaeovhz）
+5 / 5 支 proacl 文字與正式庫原狀完全相同
+== 1. 套用前測試
+PASS false V01 anon gbp_vault_get → OK
+PASS false V02 一般會員 gbp_vault_get → OK
+PASS false V03 館員／super_admin gbp_vault_get → OK
+PASS false V04 service_role gbp_vault_get → OK
+PASS false V05 anon gbp_vault_set → OK
+PASS false V06 一般會員 gbp_vault_set → RAN function vault.update_secret(uuid, text, text, unknown) does not exist
+PASS false V07 館員／super_admin gbp_vault_set → RAN function vault.update_secret(uuid, text, text, unknown) does not exist
+PASS false V08 service_role gbp_vault_set → OK
+PASS false V09 anon get_rpc_contract → OK
+PASS false V10 一般會員 get_rpc_contract → OK
+PASS false V11 館員／super_admin get_rpc_contract → OK
+PASS false V12 service_role get_rpc_contract → OK
+PASS false V13 anon claim_hotelnabe_ari_push_batch → OK
+PASS false V14 一般會員 claim_hotelnabe_ari_push_batch → OK
+PASS false V15 館員／super_admin claim_hotelnabe_ari_push_batch → OK
+PASS false V16 service_role claim_hotelnabe_ari_push_batch → OK
+PASS false V17 service_role 寫入後讀回 vault（edge function 正常路徑） → OK
+PASS false O01 anon get_ai_ops_metrics（套用前：DEFINER 下 current_user 恆為 postgres，anon 可讀營運數據） → OK
+PASS false O02 super_admin（後台登入）get_ai_ops_metrics → OK
+PASS false O03 一般會員 get_ai_ops_metrics → 函式內 not authorized → RAN not authorized
+PASS false O04 service_role get_ai_ops_metrics（ai-ops-insights） → OK
+PASS false M01 前 4 支 anon／authenticated／service_role 可執行數 → 4 4 4
+PASS false M02 get_ai_ops_metrics anon／authenticated／service_role → true true true
+PASS 23 / FAIL 0
+== 2. precheck
+1. 5 支函式存在、SECURITY DEFINER、指紋與正式庫相同 | t
+2. 沒有 SECURITY INVOKER 函式呼叫前 4 支 | t
+3. 沒有任何其他函式（含 DEFINER）呼叫前 4 支 | t
+4. 沒有 RLS policy 引用這 5 支 | t
+5. 5 支授權清單皆無 PUBLIC | t
+claim_hotelnabe_ari_push_batch(integer) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 57f53b0ba67d5f99f17a45640c11436d | t | t | t
+gbp_vault_get(text) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | c1faaca8da4aac41a2f9792be509c8bf | t | t | t
+gbp_vault_set(text,text) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | f574dbcf36712fb298fe180fc984d792 | t | t | t
+get_ai_ops_metrics(uuid,integer) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 670f67a22d8e7140fbb14365625acb51 | t | t | t
+get_rpc_contract(text[]) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 442016e1eba30d3bcbb21d3608f4a3e4 | t | t | t
+== 3. 套用
+套用成功
+== 4. postcheck
+1. 5 支指紋不變、仍為 SECURITY DEFINER | t
+2. 前 4 支 anon、authenticated 不可執行，service_role、postgres 可執行 | t
+3. get_ai_ops_metrics anon 不可；authenticated、service_role 可 | t
+4. 5 支授權清單皆無 PUBLIC | t
+5. 5 支仍保有 sandbox_exec_* 執行權（未被變動） | t
+claim_hotelnabe_ari_push_batch(integer) | {postgres=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 57f53b0ba67d5f99f17a45640c11436d | f | f | t
+gbp_vault_get(text) | {postgres=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | c1faaca8da4aac41a2f9792be509c8bf | f | f | t
+gbp_vault_set(text,text) | {postgres=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | f574dbcf36712fb298fe180fc984d792 | f | f | t
+get_ai_ops_metrics(uuid,integer) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 670f67a22d8e7140fbb14365625acb51 | f | t | t
+get_rpc_contract(text[]) | {postgres=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres} | 442016e1eba30d3bcbb21d3608f4a3e4 | f | f | t
+public 全部函式指紋與套用前相同：t
+== 5. 重複套用（權限已收回）
+重複套用成功
+== 5b. 模擬同事已在後台手動收回其中 2 支後再套用
+部分手動變更後套用成功；postcheck t 數：5 / 5
+== 6. 套用後測試
+PASS true V01 anon gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V02 一般會員 gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V03 館員／super_admin gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V04 service_role gbp_vault_get → OK
+PASS true V05 anon gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V06 一般會員 gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V07 館員／super_admin gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V08 service_role gbp_vault_set → OK
+PASS true V09 anon get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V10 一般會員 get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V11 館員／super_admin get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V12 service_role get_rpc_contract → OK
+PASS true V13 anon claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V14 一般會員 claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V15 館員／super_admin claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V16 service_role claim_hotelnabe_ari_push_batch → OK
+PASS true V17 service_role 寫入後讀回 vault（edge function 正常路徑） → OK
+PASS true O01 anon get_ai_ops_metrics（套用前：DEFINER 下 current_user 恆為 postgres，anon 可讀營運數據） → DENIED permission denied for function get_ai_ops_metrics
+PASS true O02 super_admin（後台登入）get_ai_ops_metrics → OK
+PASS true O03 一般會員 get_ai_ops_metrics → 函式內 not authorized → RAN not authorized
+PASS true O04 service_role get_ai_ops_metrics（ai-ops-insights） → OK
+PASS true M01 前 4 支 anon／authenticated／service_role 可執行數 → 0 0 4
+PASS true M02 get_ai_ops_metrics anon／authenticated／service_role → false true true
+PASS 23 / FAIL 0
+== 7. rollback
+rollback 成功
+5 / 5 支 proacl 文字與正式庫原狀完全相同
+claim_hotelnabe_ari_push_batch {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres}
+gbp_vault_get {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres}
+gbp_vault_set {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres}
+get_ai_ops_metrics {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres}
+get_rpc_contract {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,sandbox_exec_dmafqwfynatdvnaeovhz=X/postgres}
+== 8. rollback 後測試
+PASS false V01 anon gbp_vault_get → OK
+PASS false V02 一般會員 gbp_vault_get → OK
+PASS false V03 館員／super_admin gbp_vault_get → OK
+PASS false V04 service_role gbp_vault_get → OK
+PASS false V05 anon gbp_vault_set → OK
+PASS false V06 一般會員 gbp_vault_set → RAN function vault.update_secret(uuid, text, text, unknown) does not exist
+PASS false V07 館員／super_admin gbp_vault_set → RAN function vault.update_secret(uuid, text, text, unknown) does not exist
+PASS false V08 service_role gbp_vault_set → OK
+PASS false V09 anon get_rpc_contract → OK
+PASS false V10 一般會員 get_rpc_contract → OK
+PASS false V11 館員／super_admin get_rpc_contract → OK
+PASS false V12 service_role get_rpc_contract → OK
+PASS false V13 anon claim_hotelnabe_ari_push_batch → OK
+PASS false V14 一般會員 claim_hotelnabe_ari_push_batch → OK
+PASS false V15 館員／super_admin claim_hotelnabe_ari_push_batch → OK
+PASS false V16 service_role claim_hotelnabe_ari_push_batch → OK
+PASS false V17 service_role 寫入後讀回 vault（edge function 正常路徑） → OK
+PASS false O01 anon get_ai_ops_metrics（套用前：DEFINER 下 current_user 恆為 postgres，anon 可讀營運數據） → OK
+PASS false O02 super_admin（後台登入）get_ai_ops_metrics → OK
+PASS false O03 一般會員 get_ai_ops_metrics → 函式內 not authorized → RAN not authorized
+PASS false O04 service_role get_ai_ops_metrics（ai-ops-insights） → OK
+PASS false M01 前 4 支 anon／authenticated／service_role 可執行數 → 4 4 4
+PASS false M02 get_ai_ops_metrics anon／authenticated／service_role → true true true
+PASS 23 / FAIL 0
+== 9. 再套用＋postcheck＋測試
+再套用成功
+postcheck t 數：5 / 5
+PASS true V01 anon gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V02 一般會員 gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V03 館員／super_admin gbp_vault_get → DENIED permission denied for function gbp_vault_get
+PASS true V04 service_role gbp_vault_get → OK
+PASS true V05 anon gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V06 一般會員 gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V07 館員／super_admin gbp_vault_set → DENIED permission denied for function gbp_vault_set
+PASS true V08 service_role gbp_vault_set → OK
+PASS true V09 anon get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V10 一般會員 get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V11 館員／super_admin get_rpc_contract → DENIED permission denied for function get_rpc_contract
+PASS true V12 service_role get_rpc_contract → OK
+PASS true V13 anon claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V14 一般會員 claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V15 館員／super_admin claim_hotelnabe_ari_push_batch → DENIED permission denied for function claim_hotelnabe_ari_push_batch
+PASS true V16 service_role claim_hotelnabe_ari_push_batch → OK
+PASS true V17 service_role 寫入後讀回 vault（edge function 正常路徑） → OK
+PASS true O01 anon get_ai_ops_metrics（套用前：DEFINER 下 current_user 恆為 postgres，anon 可讀營運數據） → DENIED permission denied for function get_ai_ops_metrics
+PASS true O02 super_admin（後台登入）get_ai_ops_metrics → OK
+PASS true O03 一般會員 get_ai_ops_metrics → 函式內 not authorized → RAN not authorized
+PASS true O04 service_role get_ai_ops_metrics（ai-ops-insights） → OK
+PASS true M01 前 4 支 anon／authenticated／service_role 可執行數 → 0 0 4
+PASS true M02 get_ai_ops_metrics anon／authenticated／service_role → false true true
+PASS 23 / FAIL 0
