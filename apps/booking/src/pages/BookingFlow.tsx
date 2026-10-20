@@ -117,6 +117,7 @@ import roomSuite from "@lakeze/shared/assets/room-suite.jpg";
 import roomStandard from "@lakeze/shared/assets/room-standard.jpg";
 import { createSanitizedHtml } from "@lakeze/shared/utils/sanitizeHtml";
 import { computeDiscountedRoomCharge } from "@lakeze/shared/utils/discountPricing";
+import { evaluateDiscountCode, notApplicableMessage } from "@lakeze/shared/utils/discountEvaluation";
 import { resolveOrderPricingTemplateId } from "@lakeze/shared/utils/orderPricingTemplate";
 import { getActualDiscountPercent as computeActualDiscountPercent } from "@lakeze/shared/utils/discountDisplay";
 import { getTapPayPrime } from "@/utils/tappayPrime";
@@ -617,6 +618,9 @@ const BookingFlow = () => {
     code: string;
     type: "percentage" | "amount";
     value: number;
+    /** 碼有效但此方案不適用：記錄推薦碼、折扣 0、房費用售價 */
+    notApplicable?: boolean;
+    note?: string;
   } | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
   const [autoAppliedRef, setAutoAppliedRef] = useState(false);
@@ -2321,10 +2325,10 @@ const BookingFlow = () => {
     computeDiscountedRoomCharge({
       saleTotal: calculateTotal(),
       originalTotal: getDiscountBase(),
-      discountKind: appliedDiscount
+      discountKind: appliedDiscount && !appliedDiscount.notApplicable
         ? (appliedDiscount.type === "percentage" ? "percentage" : "fixed")
         : null,
-      discountValue: appliedDiscount?.value ?? null,
+      discountValue: appliedDiscount && !appliedDiscount.notApplicable ? appliedDiscount.value : null,
     });
 
   /**
@@ -2333,25 +2337,25 @@ const BookingFlow = () => {
    */
   const getRoomChargeTotal = () => {
     const sale = calculateTotal();
-    if (!appliedDiscount) return sale;
+    if (!appliedDiscount || appliedDiscount.notApplicable) return sale;
     return getDiscountCharge().billedRoomTotal;
   };
 
   /** 帳列折扣 = 帳列房費 − min(售價總額, 原價總額 − 毛折扣) */
   const calculateDiscount = () => {
-    if (!appliedDiscount) return 0;
+    if (!appliedDiscount || appliedDiscount.notApplicable) return 0;
     return getDiscountCharge().discountAmount;
   };
 
   /** 售價已低於「原價打折後」→ 折扣碼不會讓客人更便宜，改以官網優惠價計算 */
   const isSaleCheaperThanCode = () => {
-    if (!appliedDiscount) return false;
+    if (!appliedDiscount || appliedDiscount.notApplicable) return false;
     return getDiscountCharge().chargedRoomTotal >= calculateTotal();
   };
 
   /** 顯示用：實際折扣率 = 帳列折扣 ÷ 帳列房費（例：原價30900／售價17000／35% → 45%） */
   const getActualDiscountPercent = () => {
-    if (!appliedDiscount) return null;
+    if (!appliedDiscount || appliedDiscount.notApplicable) return null;
     const charge = getDiscountCharge();
     return computeActualDiscountPercent({
       billedRoomTotal: charge.billedRoomTotal,
@@ -2453,7 +2457,7 @@ const BookingFlow = () => {
   }, [payuniAtmHidden, orderPaymentType]);
 
 
-  const handleApplyDiscount = async (code?: string) => {
+  const handleApplyDiscount = async (code?: string, opts?: { reevaluate?: boolean }) => {
     const codeToApply = code || discountCode;
     if (!codeToApply.trim() || !accommodationId) {
       toast({
@@ -2470,51 +2474,48 @@ const BookingFlow = () => {
       const roomId = selectedRoom?.id || null;
       const checkInDateStr = checkInDate ? format(checkInDate, "yyyy-MM-dd") : null;
       
-      // 使用資料庫函數驗證折扣碼，傳遞訂單金額、房型和入住日期
-      const { data, error } = await supabase.rpc('validate_discount_code', {
-        p_code: codeToApply.trim().toUpperCase(),
-        p_accommodation_id: accommodationId,
-        p_order_amount: orderAmount,
-        p_room_type_id: roomId,
-        p_check_in_date: checkInDateStr,
-        p_pricing_template_id: orderPricingTemplateId
+      // 折扣碼三態判斷（applied／not_applicable／invalid），傳遞訂單金額、房型、入住日期與方案
+      const result = await evaluateDiscountCode((fn, args) => supabase.rpc(fn as any, args as any) as any, {
+        code: codeToApply.trim().toUpperCase(),
+        accommodationId,
+        orderAmount,
+        roomTypeId: roomId,
+        checkInDate: checkInDateStr,
+        pricingTemplateId: orderPricingTemplateId,
       });
 
-      if (error) throw error;
+      if (!result) throw new Error("evaluate_discount_code failed");
 
-      const result = data[0];
-      
-      if (result.is_valid) {
+      if (result.status === "not_applicable") {
+        setAppliedDiscount({ code: codeToApply.trim().toUpperCase(), type: "amount", value: 0, notApplicable: true, note: notApplicableMessage(result) });
+        toast({ title: "已記錄推薦碼", description: notApplicableMessage(result) });
+      } else if (result.status === "applied") {
+        const discountKind = result.discountType === "percentage" ? "percentage" : "fixed";
         setAppliedDiscount({
           code: codeToApply.trim().toUpperCase(),
-          type: result.discount_type as "percentage" | "amount",
-          value: result.discount_value
+          type: result.discountType as "percentage" | "amount",
+          value: result.discountValue ?? 0
         });
         const quote = computeDiscountedRoomCharge({
           saleTotal: calculateTotal(),
           originalTotal: getDiscountBase(),
-          discountKind: result.discount_type === "percentage" ? "percentage" : "fixed",
-          discountValue: result.discount_value,
+          discountKind,
+          discountValue: result.discountValue,
         });
         const saleCheaper = quote.chargedRoomTotal >= calculateTotal();
         toast({
           title: "折扣代碼已套用",
           description: `已套用 ${
-            result.discount_type === "percentage"
-              ? `${result.discount_value}% 折扣`
-              : `NT$ ${result.discount_value} 折扣`
+            result.discountType === "percentage"
+              ? `${result.discountValue}% 折扣`
+              : `NT$ ${result.discountValue} 折扣`
           }${saleCheaper ? "；目前官網優惠價已低於折扣碼價，將以官網優惠價計算" : ""}`,
         });
       } else {
-        // 如果是房型限制問題，顯示可使用的房型
-        let errorMessage = result.message;
-        if (result.applicable_room_names && result.applicable_room_names.length > 0) {
-          errorMessage += `\n\n此折扣碼僅適用於：${result.applicable_room_names.join('、')}`;
-        }
-        
+        if (opts?.reevaluate) setAppliedDiscount(null);
         toast({
           title: "折扣代碼無效",
-          description: errorMessage,
+          description: result.message,
           variant: "destructive",
         });
       }
@@ -2554,9 +2555,8 @@ const BookingFlow = () => {
   };
 
   /**
-   * 前台一次結帳只會有「一個房型 + 一個房價方案」，折扣碼僅在該方案有被勾選時才成立。
-   * 客人若改選房型或房價方案（例如從包棟改成單間），已套用的折扣必須失效，
-   * 避免折扣被帶到未勾選的方案上；需要折扣就必須重新套用一次。
+   * 客人改選房型或房價方案時，已輸入（或推薦連結帶入）的碼自動重新判斷：
+   * 新方案適用就打折、不適用就記錄推薦碼折扣 0，碼不會被清掉。
    */
   const prevDiscountScopeRef = useRef<string | null>(null);
   useEffect(() => {
@@ -2565,11 +2565,7 @@ const BookingFlow = () => {
     prevDiscountScopeRef.current = key;
     if (prev === null || prev === key) return;
     if (!appliedDiscount) return;
-    setAppliedDiscount(null);
-    toast({
-      title: "折扣代碼已取消",
-      description: "已變更房型／房價方案，此折扣碼僅適用於指定方案，請重新輸入套用",
-    });
+    handleApplyDiscount(appliedDiscount.code, { reevaluate: true });
   }, [selectedRoom?.id, selectedTemplate?.id]);
 
 
@@ -4602,7 +4598,7 @@ const BookingFlow = () => {
                   roomTypes={roomTypes}
                   roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
+                  roomOriginalSubtotal={appliedDiscount && !appliedDiscount.notApplicable ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}
@@ -5376,9 +5372,11 @@ const BookingFlow = () => {
                                   <CheckCircle className="h-5 w-5 text-primary" />
                                 </div>
                                 <div>
-                                  <p className="font-semibold text-base">已套用折扣代碼：{appliedDiscount.code}</p>
+                                  <p className="font-semibold text-base">{appliedDiscount.notApplicable ? "已記錄推薦碼" : "已套用折扣代碼"}：{appliedDiscount.code}</p>
                                   <p className="text-sm text-muted-foreground mt-0.5" data-testid="discount-actual-percent">
-                                    {getActualDiscountPercent() != null
+                                    {appliedDiscount.notApplicable
+                                      ? appliedDiscount.note
+                                      : getActualDiscountPercent() != null
                                       ? `原價 -${getActualDiscountPercent()}%`
                                       : appliedDiscount.type === "percentage"
                                         ? `原價折扣 ${appliedDiscount.value}%`
@@ -5689,7 +5687,7 @@ const BookingFlow = () => {
                           roomTypes={roomTypes}
                           roomsCount={roomQuantity}
                           roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
+                  roomOriginalSubtotal={appliedDiscount && !appliedDiscount.notApplicable ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                           addonLines={addonLines}
                           calculateFinalTotal={calculateFinalTotal}
                           appliedDiscount={appliedDiscount}
@@ -5817,7 +5815,7 @@ const BookingFlow = () => {
                             <div className="flex items-center gap-2">
                               <Badge className="h-4 w-4 text-primary" />
                               <div>
-                                <p className="text-xs text-muted-foreground">已套用折扣代碼</p>
+                                <p className="text-xs text-muted-foreground">{appliedDiscount.notApplicable ? "已記錄推薦碼" : "已套用折扣代碼"}</p>
                                 <p className="font-medium text-sm text-destructive" data-testid="discount-confirm-line">
 
                                   {appliedDiscount.code}
@@ -5997,7 +5995,7 @@ const BookingFlow = () => {
                   roomTypes={roomTypes}
                   roomsCount={roomQuantity}
                   roomSubtotal={getRoomChargeTotal()}
-                  roomOriginalSubtotal={appliedDiscount ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
+                  roomOriginalSubtotal={appliedDiscount && !appliedDiscount.notApplicable ? null : (calculatePackageOriginalTotal() != null ? calculatePackageOriginalTotal()! * roomQuantity : null)}
                   addonLines={addonLines}
                   calculateFinalTotal={calculateFinalTotal}
                   appliedDiscount={appliedDiscount}

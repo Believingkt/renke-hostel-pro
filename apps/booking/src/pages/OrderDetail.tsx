@@ -39,6 +39,7 @@ import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@lakeze
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
 import { resolveTemplateId } from "@/lib/resolveTemplateId";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { evaluateDiscountCode, notApplicableMessage } from "@lakeze/shared/utils/discountEvaluation";
 import { selectTemplatesForRoomType, resolveOrderPackage, roomTemplateKey, roomsChangedSinceOpen, buildInlinePackageSync, type PackageLite, type RoomSnapshotRow } from "@/lib/orderPackageResolution";
 import { OrderPackageField, TemplateFallbackWarning, useResetOnRoomTemplateChange } from "@/components/orders/OrderPackageField";
 import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
@@ -711,6 +712,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     clearEditAmountsRef.current = () => setEditForm(f => ({ ...f, total_price: 0, discount_amount: 0, addon_total: 0, paid_amount: 0 }));
   }, [editForm.total_price, editForm.discount_amount, editForm.addon_total, editForm.paid_amount, isEditing]);
   const [discountCodeError, setDiscountCodeError] = useState("");
+  const [discountCodeNote, setDiscountCodeNote] = useState("");
   // 已結清訂單的折扣一律改由「修改金額」對話框處理（權限：/admin 同館訂單模組 editable），
   // inline 編輯不再提供已付款折扣修改入口，避免與房型重建流程耦合。
   const INLINE_PAID_DISCOUNT_EDITABLE = false;
@@ -948,7 +950,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     const originalCode = (originalDiscountCode.current || "").trim();
 
     if (!code) {
-      setDiscountCodeError("");
+      setDiscountCodeError(""); setDiscountCodeNote("");
       // Only clear discount if the user explicitly removed an existing code.
       // If the order never had a code (manual discount), preserve the amount.
       if (originalCode) {
@@ -959,12 +961,13 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
 
     // If the discount code hasn't changed from the original, preserve the saved discount_amount
     if (code === originalCode) {
-      setDiscountCodeError("");
+      setDiscountCodeError(""); setDiscountCodeNote("");
       return;
     }
 
     const timer = setTimeout(async () => {
       setDiscountCodeError("");
+      setDiscountCodeNote("");
       const base = editForm.total_price + editForm.addon_total;
       // Use the primary room_type_id for validation
       const roomTypeId = editForm.room_type_id || (editOrderRooms.length > 0 ? editOrderRooms[0].room_type_id : null) || order.room_type_id || null;
@@ -972,36 +975,37 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       const pricingTemplateId = await getOrderPricingTemplateId(order.id);
 
       try {
-        const { data, error } = await supabase.rpc('validate_discount_code', {
-          p_code: code.toUpperCase(),
-          p_accommodation_id: order.accommodation_id,
-          p_order_amount: base,
-          p_room_type_id: roomTypeId,
-          p_check_in_date: checkInDate,
-          p_pricing_template_id: pricingTemplateId
+        const result = await evaluateDiscountCode((fn, args) => supabase.rpc(fn as any, args as any) as any, {
+          code: code.toUpperCase(),
+          accommodationId: order.accommodation_id,
+          orderAmount: base,
+          roomTypeId,
+          checkInDate,
+          pricingTemplateId,
         });
 
-        if (error) {
+        if (!result) {
           setDiscountCodeError("驗證折扣碼失敗");
           return;
         }
 
-        const result = data?.[0];
-        if (!result || !result.is_valid) {
-          let errorMsg = result?.message || "此折扣碼不存在";
-          if (result?.applicable_room_names && result.applicable_room_names.length > 0) {
-            errorMsg += `（僅適用：${result.applicable_room_names.join('、')}）`;
-          }
-          setDiscountCodeError(errorMsg);
+        if (result.status === "not_applicable") {
+          // 碼有效但此方案不適用：記錄推薦碼、折扣 0（可存檔）
+          setDiscountCodeNote(notApplicableMessage(result));
+          setEditForm(f => ({ ...f, discount_amount: 0 }));
+          return;
+        }
+        if (result.status === "invalid") {
+          setDiscountCodeError(result.message || "此折扣碼不存在");
           setEditForm(f => ({ ...f, discount_amount: 0 }));
           return;
         }
 
         let newDiscount = 0;
-        if (result.discount_type === "percentage") {
-          newDiscount = Math.round(base * result.discount_value / 100);
+        if (result.discountType === "percentage") {
+          newDiscount = Math.round(base * (result.discountValue ?? 0) / 100);
         } else {
-          newDiscount = Math.min(result.discount_value, base);
+          newDiscount = Math.min(result.discountValue ?? 0, base);
         }
         setEditForm(f => ({ ...f, discount_amount: newDiscount }));
       } catch (err) {
@@ -1143,6 +1147,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         setPaidSyncPrompt({ expected: expectedFinal, current: Number(editForm.paid_amount) });
         return;
       }
+    }
+    if (discountCodeError && editForm.discount_code.trim() && editForm.discount_code.trim() !== (originalDiscountCode.current || "").trim()) {
+      toast({ title: "折扣碼無效", description: discountCodeError, variant: "destructive" });
+      return;
     }
     if (roomsAction.kind === "sync" && editFallbackRoomTypeIds.length > 0 && !fallbackConfirmed) {
       toast({ title: "請確認專案", description: "此房型在入住日沒有對應專案，請勾選確認所選專案正確後再儲存", variant: "destructive" });
@@ -3481,7 +3489,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); setDiscountCodeNote(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
@@ -3490,6 +3498,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   )
                 )}
               </div>
+              {isEditing && discountCodeNote && !discountCodeError && (
+                <p className="text-xs text-muted-foreground text-right" data-testid="discount-code-note">{discountCodeNote}</p>
+              )}
               {isEditing && discountCodeError && (
                 <p className="text-xs text-destructive text-right">{discountCodeError}</p>
               )}

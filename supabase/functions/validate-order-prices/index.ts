@@ -6,6 +6,7 @@ import { evaluateIncludedCapacityPricing, resolveIncludedGuestCount } from "../_
 import { parseChildAgeRules as parseSharedChildAgeRules } from "../_shared/groupBuyChildRules.ts";
 import { computeDiscountedRoomCharge } from "../_shared/discountPricing.ts";
 import { resolveOrderPricingTemplateId } from "../_shared/orderPricingTemplate.ts";
+import { evaluateDiscountCode, discountChargeParams, type DiscountEvaluation } from "../_shared/vendor/discountEvaluation.ts";
 
 interface CustomAddonInput {
   addon_type: string;
@@ -574,16 +575,12 @@ serve(async (req) => {
       }
     }
 
-    // 折扣碼與「人客多優惠」不疊加：套用折扣碼時房費以原價計價
+    // 折扣碼與「人客多優惠」不疊加：折扣碼「實際套用」時房費以原價計價
     const hasOriginalBase = discountBaseTotal > 0 && discountBaseTotal > calculatedRoomTotal;
-    const chargedRoomTotal = discountCode && hasOriginalBase ? discountBaseTotal : calculatedRoomTotal;
 
-    // Calculate server-side total price
-    const calculatedTotalPrice = chargedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
-
-    // Validate discount code if provided
+    // 折扣碼三態判斷：applied 打折；not_applicable 接受碼、折扣 0、房費用售價；invalid 拒絕
     // Discount applies only to room total, NOT addons
-    let calculatedDiscount = 0;
+    let discountEval: DiscountEvaluation | null = null;
     if (discountCode) {
       // v5.8 折扣碼適用範圍以「訂單對應的專案」判斷（規則與 DB trigger、前台一致）：
       //   (1) 同館 default_package_id = packageId 的專案（display_order NULLS LAST, created_at 第一筆）
@@ -599,34 +596,37 @@ serve(async (req) => {
         packageId: packageId ?? null,
         fallbackTemplateId: pricingTemplateId ?? null,
       });
-      const { data: discountResult, error: discountError } = await supabase
-        .rpc("validate_discount_code", {
-          p_accommodation_id: accommodationId,
-          p_code: discountCode,
-          p_order_amount: chargedRoomTotal,
-          p_room_type_id: roomTypeId,
-          p_check_in_date: checkInDate,
-          p_pricing_template_id: resolvedPricingTemplateId
-        });
-
-      if (discountError) {
-        console.error("Discount validation error:", discountError);
+      discountEval = await evaluateDiscountCode((fn, args) => supabase.rpc(fn, args), {
+        code: discountCode,
+        accommodationId,
+        orderAmount: hasOriginalBase ? discountBaseTotal : calculatedRoomTotal,
+        roomTypeId,
+        checkInDate,
+        pricingTemplateId: resolvedPricingTemplateId,
+      });
+      if (!discountEval) {
         errors.push("Failed to validate discount code");
-      } else if (discountResult && discountResult[0]?.is_valid) {
-        const discountInfo = discountResult[0];
-        // 百分比／固定金額折扣皆以「方案原價（劃掉價）」為基準；
-        // 房費一律取較便宜者 min(售價總額, 原價總額 − 毛折扣)（與前端 discountPricing.ts 同一公式）
-        const discountBase = discountBaseTotal > 0 ? discountBaseTotal : calculatedRoomTotal;
-        const charge = computeDiscountedRoomCharge({
-          saleTotal: calculatedRoomTotal,
-          originalTotal: discountBase,
-          discountKind: discountInfo.discount_type === "percentage" ? "percentage" : "fixed",
-          discountValue: discountInfo.discount_value,
-        });
-        calculatedDiscount = Math.max(0, Math.min(chargedRoomTotal, chargedRoomTotal - charge.chargedRoomTotal));
-      } else if (discountResult && discountResult[0] && !discountResult[0].is_valid) {
-        errors.push(`Discount code invalid: ${discountResult[0].message || "Unknown error"}`);
+      } else if (discountEval.status === "invalid") {
+        errors.push(`Discount code invalid: ${discountEval.message || "Unknown error"}`);
       }
+    }
+    const discountApplied = discountEval?.status === "applied";
+    const chargedRoomTotal = discountApplied && hasOriginalBase ? discountBaseTotal : calculatedRoomTotal;
+
+    // Calculate server-side total price
+    const calculatedTotalPrice = chargedRoomTotal + calculatedPetPrice + calculatedMealPlanTotal + calculatedCustomAddonTotal + calculatedChildExtraTotal;
+
+    let calculatedDiscount = 0;
+    if (discountApplied) {
+      // 百分比／固定金額折扣皆以「方案原價（劃掉價）」為基準；
+      // 房費一律取較便宜者 min(售價總額, 原價總額 − 毛折扣)（與前端 discountPricing.ts 同一公式）
+      const discountBase = discountBaseTotal > 0 ? discountBaseTotal : calculatedRoomTotal;
+      const charge = computeDiscountedRoomCharge({
+        saleTotal: calculatedRoomTotal,
+        originalTotal: discountBase,
+        ...discountChargeParams(discountEval),
+      });
+      calculatedDiscount = Math.max(0, Math.min(chargedRoomTotal, chargedRoomTotal - charge.chargedRoomTotal));
     }
 
     // Calculate final price

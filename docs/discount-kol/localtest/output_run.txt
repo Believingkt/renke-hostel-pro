@@ -1,0 +1,87 @@
+NOTICE:  database "dk1" does not exist, skipping
+== 1. precheck
+1. validate_discount_code 存在 | t
+2. 尚未套用：evaluate_discount_code 不存在 | t
+3. sync_discount_code_used_count 存在 | t
+4. 使用次數觸發器掛在 orders 上 | t
+5. 尚未套用：使用次數函式還沒有折扣金額條件 | t
+6. 依賴欄位齊全（6 個） | t
+3 | 3d887c41ba258b99bbfd2e0552033694 | 30c2bde9ab95f1834f8efd9860c27249
+== 2. 套用
+套用成功
+== 3. postcheck
+1. evaluate_discount_code 存在、SECURITY DEFINER、固定 search_path | t
+2. anon、authenticated、service_role 都可執行 | t
+3. 使用次數只計折扣 > 0 | t
+4. 使用次數更新限定館別 | t
+5. 使用次數觸發器仍掛在 orders 上 | t
+6. validate_discount_code 仍存在 | t
+7. 無效碼對外只有單一訊息（不分不存在／停用／過期／未生效） | t
+3 | 3d887c41ba258b99bbfd2e0552033694 | 30c2bde9ab95f1834f8efd9860c27249
+價測雲岫 | PV2KOL1 | 7 | 0
+使用次數指紋與 validate_discount_code 指紋與套用前相同：t
+== 4. 重複套用必須被擋
+PRECHECK 失敗：evaluate_discount_code 已存在（是否重複套用？）
+== 5. 功能測試
+ROLE anon | KA | {"status":"applied","discount_type":"percentage","discount_value":10,"message":"折扣碼有效","applicable_names":null,"scope_empty":false}
+ROLE anon | KA | {"status":"not_applicable","discount_type":null,"discount_value":null,"message":null,"applicable_names":["專案一"],"scope_empty":false}
+ROLE anon | PV2KOL2 | {"status":"not_applicable","discount_type":null,"discount_value":null,"message":null,"applicable_names":null,"scope_empty":true}
+ROLE anon | KEXP | {"status":"invalid","discount_type":null,"discount_value":null,"message":"折扣碼無效","applicable_names":null,"scope_empty":false}
+ROLE anon | NOPE | {"status":"invalid","discount_type":null,"discount_value":null,"message":"折扣碼無效","applicable_names":null,"scope_empty":false}
+ROLE anon | 對照現行 validate_discount_code KA | {"is_valid":false,"discount_type":null,"discount_value":null,"message":"此折扣碼不適用於所選房價方案","applicable_room_names":["專案一"]}
+ROLE anon | 對照現行 validate_discount_code KEXP | {"is_valid":false,"discount_type":null,"discount_value":null,"message":"折扣碼已過期","applicable_room_names":null}
+ROLE anon | 對照現行 validate_discount_code NOPE | {"is_valid":false,"discount_type":null,"discount_value":null,"message":"折扣碼不存在或已停用","applicable_room_names":null}
+ROLE authenticated | KA | {"status":"applied","discount_type":"percentage","discount_value":10,"message":"折扣碼有效","applicable_names":null,"scope_empty":false}
+ROLE authenticated | KA | {"status":"not_applicable","discount_type":null,"discount_value":null,"message":null,"applicable_names":["專案一"],"scope_empty":false}
+ROLE authenticated | NOPE | {"status":"invalid","discount_type":null,"discount_value":null,"message":"折扣碼無效","applicable_names":null,"scope_empty":false}
+ROLE service_role | KA | {"status":"applied","discount_type":"percentage","discount_value":10,"message":"折扣碼有效","applicable_names":null,"scope_empty":false}
+ROLE service_role | KA | {"status":"not_applicable","discount_type":null,"discount_value":null,"message":null,"applicable_names":["專案一"],"scope_empty":false}
+ROLE service_role | NOPE | {"status":"invalid","discount_type":null,"discount_value":null,"message":"折扣碼無效","applicable_names":null,"scope_empty":false}
+PASS | E1 碼不存在 → invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E2 停用 → invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E3 非本館（只在他館）→ invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E4 過期 → invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E5 尚未生效 → invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E6 空字串 → invalid | 預期 invalid|-|-|false|折扣碼無效§ | 實際 invalid|-|-|false|折扣碼無效§
+PASS | E7 適用專案 → applied | 預期 applied|10|-|false| | 實際 applied|10|-|false|折扣碼有效§
+PASS | E8 小寫與空白也能比對 → applied | 預期 applied|10| | 實際 applied|10|-|false|折扣碼有效§
+PASS | E9 專案不符 → not_applicable＋適用名稱 | 預期 not_applicable|-|專案一|false|§ | 實際 not_applicable|-|專案一|false|§
+PASS | E10 沒設定任何適用專案 → not_applicable、scope_empty | 預期 not_applicable|-|-|true|§ | 實際 not_applicable|-|-|true|§
+PASS | E11 次數已達上限 → not_applicable | 預期 not_applicable|-|專案一|false|§ | 實際 not_applicable|-|專案一|false|§
+PASS | E12 未達最低消費 → not_applicable | 預期 not_applicable|-|專案一|false|§ | 實際 not_applicable|-|專案一|false|§
+PASS | E13 入住日不在範圍 → not_applicable | 預期 not_applicable|-|專案一|false|§ | 實際 not_applicable|-|專案一|false|§
+PASS | E14 未選方案 → not_applicable | 預期 not_applicable|-|專案一|false|§ | 實際 not_applicable|-|專案一|false|§
+PASS | E15 群組成員專案 → applied | 預期 applied|500| | 實際 applied|500|-|false|折扣碼有效§
+PASS | E16 群組外專案 → not_applicable＋群組專案名稱 | 預期 not_applicable|-|專案二|false|§ | 實際 not_applicable|-|專案二|false|§
+PASS | E17 房型模式、房型不符 → not_applicable | 預期 not_applicable|-|-|false|§ | 實際 not_applicable|-|-|false|§
+PASS | E18 anon（未登入訪客）可執行 | 預期 applied|500 | 實際 applied|500
+PASS | E19 validate_discount_code 行為不變（不適用仍回 false） | 預期 false|此折扣碼不適用於所選房價方案 | 實際 false|此折扣碼不適用於所選房價方案
+PASS | U1 折扣 > 0 的訂單 → 次數 1 | 預期 1 | 實際 1
+PASS | U2 折扣 0 的訂單不計次數 → 仍 1 | 預期 1 | 實際 1
+PASS | U3 折扣由 0 改為 500 → 2 | 預期 2 | 實際 2
+PASS | U4 取消 → 1 | 預期 1 | 實際 1
+PASS | U5 他館同碼不受影響 → 0 | 預期 0 | 實際 0
+PASS | U6 他館同碼下單 → 他館 1 | 預期 1 | 實際 1
+PASS | U7 他館下單不改本館 → 本館仍 1 | 預期 1 | 實際 1
+PASS | U8 換碼：舊碼 −1 → 0 | 預期 0 | 實際 0
+PASS | U9 換碼：新碼 +1 → 1 | 預期 1 | 實際 1
+PASS | U10 無關欄位更新不變 → 1 | 預期 1 | 實際 1
+PASS | U11 刪除 → 0 | 預期 0 | 實際 0
+PASS | T1 適用碼寫入 → 保留碼、折扣 2000（原價 12000 打 9 折與售價 10000 取低） | 預期 KA|2000|12000 | 實際 KA|2000|12000
+PASS | T2 不適用碼寫入 → 保留碼、折扣 0、房費＝售價 10000（不用原價） | 預期 KGRP|0|10000 | 實際 KGRP|0|10000
+PASS | T3 無效碼直寫（現行行為；前台與驗價已先擋）→ 折扣 0 | 預期 NOPE|0|10000 | 實際 NOPE|0|10000
+PASS | E20 回傳欄位只有 6 個且不含佣金／網紅／次數 | 預期 status,discount_type,discount_value,message,applicable_names,scope_empty | 實際 status,discount_type,discount_value,message,applicable_names,scope_empty
+PASS 34 / FAIL 0
+== 6. rollback
+rollback 成功
+rollback 後 sync 函式與套用前相同：t
+rollback 後 precheck：
+1. validate_discount_code 存在 | t
+2. 尚未套用：evaluate_discount_code 不存在 | t
+3. sync_discount_code_used_count 存在 | t
+4. 使用次數觸發器掛在 orders 上 | t
+5. 尚未套用：使用次數函式還沒有折扣金額條件 | t
+6. 依賴欄位齊全（6 個） | t
+== 7. 再套用＋功能測試
+再套用成功
+PASS 34 / FAIL 0

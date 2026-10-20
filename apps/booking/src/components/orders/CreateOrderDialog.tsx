@@ -21,6 +21,7 @@ import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { addonNightsMultiplier, addonPricingSuffix, addonStepUp, addonStepDown } from "@lakeze/shared/lib/addonLabels";
 import { checkOwltingPackageRequirement } from "@/lib/owltingPackageRequirement";
 import { usePackageChannel } from "@/hooks/use-package-channel";
+import { evaluateDiscountCode, notApplicableMessage, type DiscountEvaluation } from "@lakeze/shared/utils/discountEvaluation";
 import { selectTemplatesForRoomType, resolveOrderPackage, finalPackageId, roomTemplateKey } from "@/lib/orderPackageResolution";
 import { OrderPackageField, TemplateFallbackWarning, useResetOnRoomTemplateChange } from "@/components/orders/OrderPackageField";
 
@@ -238,7 +239,7 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
   const [inventoryWarnings, setInventoryWarnings] = useState<InventoryWarning[]>([]);
   const [isCheckingInventory, setIsCheckingInventory] = useState(false);
   const [discountCode, setDiscountCode] = useState("");
-  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number } | null>(null);
+  const [appliedDiscount, setAppliedDiscount] = useState<{ code: string; type: "percentage" | "amount"; value: number; notApplicable?: boolean; note?: string } | null>(null);
   /** 折扣碼適用的房型／房價方案組合（null = 全部適用）。後台允許部分適用。 */
   const [discountEligibleKeys, setDiscountEligibleKeys] = useState<Set<string> | null>(null);
   const [isValidatingCode, setIsValidatingCode] = useState(false);
@@ -1108,21 +1109,23 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
 
       const eligible = new Set<string>();
       let validResult: any = null;
-      let lastInvalid: any = null;
+      let lastInvalid: DiscountEvaluation | null = null;
+      let notApplicable: DiscountEvaluation | null = null;
       for (const combo of uniqueCombos) {
-        const { data, error } = await supabase.rpc('validate_discount_code', {
-          p_code: discountCode.trim().toUpperCase(),
-          p_accommodation_id: currentAccommodationId,
-          p_order_amount: roomPrice,
-          p_room_type_id: combo.roomTypeId,
-          p_check_in_date: form.check_in_date || null,
-          p_pricing_template_id: combo.templateId
+        const result = await evaluateDiscountCode((fn, args) => supabase.rpc(fn as any, args as any) as any, {
+          code: discountCode.trim().toUpperCase(),
+          accommodationId: currentAccommodationId,
+          orderAmount: roomPrice,
+          roomTypeId: combo.roomTypeId,
+          checkInDate: form.check_in_date || null,
+          pricingTemplateId: combo.templateId,
         });
-        if (error) throw error;
-        const result = data?.[0];
-        if (result?.is_valid) {
+        if (!result) throw new Error("evaluate_discount_code failed");
+        if (result.status === "applied") {
           eligible.add(discountScopeKeyOf(combo.roomTypeId, combo.templateId));
-          validResult = result;
+          validResult = { discount_type: result.discountType, discount_value: result.discountValue };
+        } else if (result.status === "not_applicable") {
+          notApplicable = result;
         } else {
           lastInvalid = result;
         }
@@ -1140,6 +1143,11 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
           title: "折扣代碼已套用",
           description: `${validResult.discount_type === "percentage" ? `已套用 ${validResult.discount_value}% 折扣` : `已套用 NT$ ${validResult.discount_value} 折扣`}${partial ? "（僅計算適用的房價方案，其餘照原價）" : ""}`,
         });
+      } else if (notApplicable && !lastInvalid) {
+        // 碼有效但所選方案都不適用：記錄推薦碼、折扣 0
+        setAppliedDiscount({ code: discountCode.trim().toUpperCase(), type: "amount", value: 0, notApplicable: true, note: notApplicableMessage(notApplicable) });
+        setDiscountEligibleKeys(new Set());
+        toast({ title: "已記錄推薦碼", description: notApplicableMessage(notApplicable) });
       } else {
         setDiscountEligibleKeys(null);
         toast({ title: "折扣代碼無效", description: lastInvalid?.message || "此折扣碼不適用於所選房價方案", variant: "destructive" });
@@ -2789,8 +2797,10 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
             <Badge variant="secondary" className="text-sm">
               {appliedDiscount.code}
             </Badge>
-            <span className="text-sm text-muted-foreground">
-              {appliedDiscount.type === "percentage"
+            <span className="text-sm text-muted-foreground" data-testid="create-order-discount-status">
+              {appliedDiscount.notApplicable
+                ? appliedDiscount.note
+                : appliedDiscount.type === "percentage"
                 ? `${appliedDiscount.value}% 折扣`
                 : `NT$ ${appliedDiscount.value.toLocaleString()} 折扣`}
             </span>

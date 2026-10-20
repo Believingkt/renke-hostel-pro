@@ -12,6 +12,7 @@ export const VENDOR_DIR = "supabase/functions/_shared/vendor";
 export const FILES = [
   ["packages/shared/src/lib/ownerSettlement.ts", "ownerSettlement.ts"],
   ["packages/shared/src/lib/groupBuyCaliber.ts", "groupBuyCaliber.ts"],
+  ["packages/shared/src/utils/discountEvaluation.ts", "discountEvaluation.ts"],
 ];
 /** import 改寫規則（寫死）：bare npm 套件加 npm: 前綴與版本（版本同 packages/shared/package.json） */
 export const REWRITES = [
