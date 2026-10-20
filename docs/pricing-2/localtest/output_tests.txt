@@ -1,0 +1,163 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1 | A01 既有單日價套用後是 manual | PASS | manual|-|9000|12000 | manual|-|9000|12000
+2 | P01 anon 不能呼叫 | PASS | ERR [42501] | ERR [42501] permission denied for function save_package_season
+3 | P02 本館 staff 房價唯讀 → 拒絕 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+4 | P03 總部 admin（不綁館）→ 拒絕 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+5 | P04 總部 admin（綁本館）→ 拒絕 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+6 | P05 他館 hotel_admin → 拒絕 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+7 | P06 未開新版的館（本館 hotel_admin）→ 拒絕 | PASS | ERR [42501] 此館尚未啟用新價格頁 | ERR [42501] 此館尚未啟用新價格頁
+8 | P07 總部 admin 不能設日型例外 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+9 | P08 總部 admin 不能重新展開 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+10 | P09 新表不能直接寫入（hotel_admin） | PASS | ERR [42501] | ERR [42501] permission denied for table package_seasons
+11 | P10 本館 staff 房價可編輯 → 可存（另一區段） | PASS | OK { | OK {"deleted": 0, "written": 2, "season_id": "266da5e5-1de0-47f2-b1c6-343fbeeb3c58", "kept_manual": 0, "dropped_missing_price": 0}
+12 | P11 super_admin 可刪除剛才的區段 | PASS | OK { | OK {"deleted": 2, "written": 0, "kept_manual": 0, "dropped_missing_price": 0}
+13 | P12 hotel_admin 可讀季節區段 | PASS | OK 0 | OK 0
+14 | P13 他館 hotel_admin 讀不到本館季節區段 | PASS | OK 0 | OK 0
+15 | V01 日型和方案不同（少假日）→ 拒絕 | PASS | ERR [22023] 季節價的日型必須與方案相同 | ERR [22023] 季節價的日型必須與方案相同：friday_sunday、weekday、weekend
+16 | V02 原價沒填 → 拒絕 | PASS | ERR [22023] 售價與原價都必須 | ERR [22023] 售價與原價都必須是大於 0 的整數
+17 | V03 原價低於售價 → 拒絕 | PASS | ERR [22023] 原價不得低於售價 | ERR [22023] 原價不得低於售價
+18 | V04 區段全部在過去 → 拒絕 | PASS | ERR [22023] 區段已全部過去 | ERR [22023] 區段已全部過去，不能設定
+19 | E01 寒假 7 天：寫 6 天、手動 1 天保留 | PASS | OK {"deleted": 0, "written": 6, "season_id": "%", "kept_manual": 1, "dropped_missing_price": 0} | OK {"deleted": 0, "written": 6, "season_id": "69ba55ba-2464-40d5-b6dd-9d94a4001702", "kept_manual": 1, "dropped_missing_price": 0}
+20 | E02 週一＝季節平日，售價原價都寫 | PASS | season|weekday|20000|24000 | season|weekday|20000|24000
+21 | E03 週五＝季節旺日 | PASS | season|friday_sunday|21000|25000 | season|friday_sunday|21000|25000
+22 | E04 週六＝季節假日 | PASS | season|weekend|22000|26000 | season|weekend|22000|26000
+23 | E05 週日＝季節旺日 | PASS | season|friday_sunday|21000|25000 | season|friday_sunday|21000|25000
+24 | E06 週三手動價不被覆蓋 | PASS | manual|-|9000|12000 | manual|-|9000|12000
+25 | E07 區段重疊 → 拒絕 | PASS | ERR [22023] 與同方案其他季節區段的日期重疊 | ERR [22023] 與同方案其他季節區段的日期重疊
+26 | E08 改寒假價格後重新展開（只更新平日 4 天） | PASS | OK {"deleted": 0, "written": 3, "season_id": "%", "kept_manual": 1, "dropped_missing_price": 0} | OK {"deleted": 0, "written": 3, "season_id": "69ba55ba-2464-40d5-b6dd-9d94a4001702", "kept_manual": 1, "dropped_missing_price": 0}
+27 | E09 週一改為 20500 | PASS | season|weekday|20500|24000 | season|weekday|20500|24000
+28 | E10 舊頁直接改季節列（RLS 允許的寫法） | PASS | OK 1 | OK 1
+29 | E11 被手動改過的列變成 manual | PASS | manual|-|19999|24000 | manual|-|19999|24000
+30 | E12 重新展開不覆蓋手動列 | PASS | OK {"deleted": 0, "written": 0, "kept_manual": 2 | OK {"deleted": 0, "written": 0, "kept_manual": 2, "dropped_missing_price": 0}
+31 | E13 週一仍是手動 19999 | PASS | manual|-|19999|24000 | manual|-|19999|24000
+32 | E14 整欄套用假日：4人平日方案沒有假日價 → 拒絕 | PASS | ERR [22023] 方案「4人平日」 | ERR [22023] 方案「4人平日」2026-11-10 的假日價格缺少售價或原價，請先補齊
+33 | E15 只對 8人包棟 週二套用假日（在寒假內 → 寒假假日價） | PASS | OK {"deleted": 0, "written": 1 | OK {"deleted": 0, "written": 1, "kept_manual": 0, "dropped_missing_price": 0}
+34 | E16 週二＝日型例外、寒假假日價 | PASS | day_tier|weekend|22000|26000 | day_tier|weekend|22000|26000
+35 | E17 下週二（區段外）套用假日 → 方案假日價 | PASS | OK {"deleted": 0, "written": 1 | OK {"deleted": 0, "written": 1, "kept_manual": 0, "dropped_missing_price": 0}
+36 | E18 下週二＝方案假日價 | PASS | day_tier|weekend|14000|16000 | day_tier|weekend|14000|16000
+37 | E19 4人平日套平日：原價缺 → 拒絕（原價必填） | PASS | ERR [22023] 方案「4人平日」 | ERR [22023] 方案「4人平日」2026-11-18 的平日價格缺少售價或原價，請先補齊
+38 | E20 今天以前的日期 → 拒絕 | PASS | ERR [22023] 不能設定今天以前 | ERR [22023] 不能設定今天以前的日期
+39 | E21 方案假日價改 15000 → 下週二自動更新 | PASS | day_tier|weekend|15000|16000 | day_tier|weekend|15000|16000
+40 | E22 寒假內的週二不受方案改價影響 | PASS | day_tier|weekend|22000|26000 | day_tier|weekend|22000|26000
+41 | E23 新增國定假日 → 寒假週四改為季節假日價 | PASS | season|weekend|22000|26000 | season|weekend|22000|26000
+42 | E24 刪除國定假日 → 寒假週四改回季節平日價 | PASS | season|weekday|20500|24000 | season|weekday|20500|24000
+43 | E25 清除週二日型例外 → 改回寒假平日價 | PASS | OK {"deleted": 0, "written": 1 | OK {"deleted": 0, "written": 1, "kept_manual": 0, "dropped_missing_price": 0}
+44 | E26 週二＝寒假平日 | PASS | season|weekday|20500|24000 | season|weekday|20500|24000
+45 | E27 刪除寒假：季節列 5 筆刪除、手動列保留 | PASS | OK {"deleted": 5, "written": 0, "kept_manual": 0 | OK {"deleted": 5, "written": 0, "kept_manual": 0, "dropped_missing_price": 0}
+46 | E28 刪除後週一仍是手動 19999 | PASS | manual|-|19999|24000 | manual|-|19999|24000
+47 | E29 刪除後週四沒有單日價（回到一般價格） | PASS | none | none
+48 | E30 區段外日型例外仍在 | PASS | day_tier|weekend|15000|16000 | day_tier|weekend|15000|16000
+49 | E31 過去日期的資料不被展開碰到 | PASS | OK 0 | OK 0
+50 | G01 總部 admin 不能建群組 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+51 | G02 hotel_admin 建群組 | PASS | OK  | OK b52d666d-33c4-4cbe-93f0-101cd69d510c
+52 | G03 名稱重複 → 拒絕 | PASS | ERR [23505] | ERR [23505] 群組名稱重複
+53 | G04 成員設為 專案一、專案二 | PASS | OK 2 | OK 2
+54 | G05 折扣碼一還沒連群組 → 不變 | PASS | 專案三 | 專案三
+55 | G06 折扣碼權限唯讀的 staff 不能連群組 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+56 | G07 總部 admin 不能連群組 | PASS | ERR [42501] | ERR [42501] 沒有編輯權限
+57 | G08 折扣碼可編輯的 staff 連群組 | PASS | OK [ | OK ["d3000000-0000-0000-0000-000000000003", "d1000000-0000-0000-0000-000000000001", "d2000000-0000-0000-0000-000000000002"]
+58 | G09 連群組後：手動的專案三＋群組成員 | PASS | 專案三,專案一,專案二 | 專案三,專案一,專案二
+59 | G10 專案三加入群組（本來就手動勾） | PASS | OK 3 | OK 3
+60 | G11 不重複加入 | PASS | 專案三,專案一,專案二 | 專案三,專案一,專案二
+61 | G12 專案一移出群組 → 折扣碼自動移除 | PASS | OK 2 | OK 2
+62 | G13 折扣碼＝專案三、專案二 | PASS | 專案三,專案二 | 專案三,專案二
+63 | G14 專案三移出群組 → 手動勾選保留 | PASS | OK 1 | OK 1
+64 | G15 折扣碼仍有專案三 | PASS | 專案三,專案二 | 專案三,專案二
+65 | G16 他館專案不能加入 | PASS | ERR [22023] 專案不存在或不屬於本館 | ERR [22023] 專案不存在或不屬於本館
+66 | G17 第二個群組 | PASS | OK  | OK bd67674c-2985-49de-a321-bed27a2aef9e
+67 | G18 已在其他群組的專案不能加入 | PASS | ERR [22023] 專案已屬於其他群組 | ERR [22023] 專案已屬於其他群組，請先從原群組移除
+68 | G19 他館折扣碼不能連本館群組（他館 hotel_admin） | PASS | ERR [22023] 群組不存在或不屬於本館 | ERR [22023] 群組不存在或不屬於本館
+69 | G20 群組二加專案一，折扣碼二連群組一＋群組二 | PASS | OK 1 | OK 1
+70 | G21 折扣碼二連兩個群組 | PASS | OK [ | OK ["d1000000-0000-0000-0000-000000000001", "d2000000-0000-0000-0000-000000000002"]
+71 | G22 折扣碼二＝專案一、專案二 | PASS | 專案一,專案二 | 專案一,專案二
+72 | G23 刪除群組二 → 折扣碼二剩專案二 | PASS | OK  | OK 
+73 | G24 折扣碼二＝專案二 | PASS | 專案二 | 專案二
+74 | G25 刪除專案二 → 兩個折扣碼都移除、同步紀錄清掉 | PASS | 專案三| | 專案三|
+75 | G26 取消折扣碼一的群組連結 → 只剩手動的專案三 | PASS | OK ["d3000000-0000-0000-0000-000000000003"] | OK ["d3000000-0000-0000-0000-000000000003"]
+76 | X01 已開奧丁丁的館開旭海 → 擋 | PASS | ERR [23514] 此館已開啟奧丁丁同步 | ERR [23514] 此館已開啟奧丁丁同步，不能同時開啟旭海同步
+77 | X02 已開旭海的館開奧丁丁 → 擋 | PASS | ERR [23514] 此館已開啟旭海同步 | ERR [23514] 此館已開啟旭海同步，不能同時開啟奧丁丁同步
+78 | X03 不開同步可以建設定 | PASS | OK x | OK x
+79 | X04 之後再打開 → 擋 | PASS | ERR [23514] | ERR [23514] 此館已開啟旭海同步，不能同時開啟奧丁丁同步
+80 | X05 關掉奧丁丁後可以開旭海 | PASS | OK x | OK x
+81 | X06 改其他欄位不受影響 | PASS | OK x | OK x
+PASS 81 / FAIL 0

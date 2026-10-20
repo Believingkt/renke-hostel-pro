@@ -1,0 +1,58 @@
+== 建 pbase（hq3 ＋ 20261018120000～20261025090000）
+  ok 20261018120000_onboarding_wizard_state.sql
+  ok 20261018120001_onboarding_wizard_rpcs.sql
+  ok 20261018120002_m3_first_activation_guard.sql
+  ok 20261018130000_payuni_refunds.sql
+  ok 20261020090000_payuni_reconcile.sql
+  ok 20261021090000_team_am_onboarding.sql
+  ok 20261022090000_onboarding_wizard_2d.sql
+  ok 20261023090000_payuni_grant_records.sql
+  ok 20261024090000_payuni_platform_fee.sql
+  ok 20261025090000_drop_owner_direct.sql
+== 1. 套用前 precheck
+尚未套用：沒有 package_seasons | t
+尚未套用：沒有 pricing_template_groups | t
+尚未套用：package_date_prices 沒有 source 欄 | t
+依賴函式 staff_can_edit_module／staff_can_view_module／classify_day_tier／user_has_role 存在 | t
+依賴欄位齊全（5 個） | t
+沒有館同時開奧丁丁與旭海同步 | t
+方案單日價 (package_id, date) 唯一鍵存在 | t
+折扣碼適用專案欄位全部是陣列 | t
+目前方案單日價筆數（參考值，postcheck 比對） | t
+1 | 72ff7833a0be37ca17540825ef422948
+== 2. 套用 migration
+套用成功
+== 3. 套用後 postcheck
+20 個函式都存在 | t
+8 個 RPC：authenticated 可執行、anon 不可 | t
+內部函式：authenticated、anon 都不可執行 | t
+RPC 都是 SECURITY DEFINER 且固定 search_path | t
+6 張新表存在且開啟 RLS | t
+新表 authenticated 不能直接寫入 | t
+package_date_prices 新欄位 3 個 | t
+既有方案單日價全部是 manual | t
+觸發器 9 個都存在 | t
+奧丁丁、旭海兩張表都有互斥觸發器 | t
+沒有館同時開奧丁丁與旭海同步 | t
+新 RPC 內容含權限與開關檢查（去除 \r 後比對） | t
+1 | 72ff7833a0be37ca17540825ef422948
+方案單日價指紋 套用前=1 72ff7833a0be37ca17540825ef422948 套用後=1 72ff7833a0be37ca17540825ef422948 相同=t
+== 4. 重複套用必須被 precheck 擋下
+PRECHECK 失敗：疑似已套用過 20261026090000
+== 5. 功能測試（交易內，最後 ROLLBACK）
+PASS 81 / FAIL 0
+== 6. rollback
+rollback 成功
+rollback 後新物件全部移除|t
+1 | 72ff7833a0be37ca17540825ef422948
+rollback 後方案單日價指紋與套用前相同=t
+== 7. 再套用＋postcheck＋功能測試
+再套用成功
+再套用後 postcheck 全部 t
+PASS 81 / FAIL 0
+== 8. 回歸（R0＝pbase、R1＝pbase＋本批；同一批測試）
+wizard_2d：R0=76/76  R1=76/76  逐題相同
+m1：R0=80 | 0  R1=80 | 0  逐題相同
+m2：R0=30 | 0  R1=30 | 0  逐題相同
+m3：R0=43 | 0  R1=43 | 0  逐題相同
+DONE
