@@ -1,0 +1,144 @@
+NOTICE:  database "gd1" does not exist, skipping
+== 0a. 已套用 20261030090000（正式庫已上線）
+== 0b. 對齊正式庫授權：7 支函式 anon 可執行
+== 1. 套用前測試
+PASS false C01 anon → DENIED permission denied for function change_order_dates
+PASS false C02 會員（無館別角色） → OK
+PASS false C03 kol（該館 kol 角色） → OK
+PASS false C04 staff 訂單 editable（未設定＝預設） → OK
+PASS false C05 staff 訂單 readonly → OK
+PASS false C06 staff 訂單 hidden → OK
+PASS false C07 他館 staff → OK
+PASS false C08 他館 hotel_admin → OK
+PASS false C09 該館 hotel_admin → OK
+PASS false C10 super_admin → OK
+PASS false C11 service role（auth.uid() 為 null） → OK
+PASS false C12 不存在的訂單＋已登入 staff → 權限不足（不洩漏是否存在） → RAN 訂單不存在
+PASS false C13 改期確實落地（最後一次 service role） → 1
+PASS false A01 anon sync_order_rooms_v1 → RAN NOT_AUTHORIZED
+PASS false A02 anon clear_order_room_pricing_template → DENIED not authorized
+PASS false A03 anon update_order_fields_v1（函式內第 22 行擋） → RAN update_order_fields_v1: 需要登入
+PASS false A04 anon admin_delete_order（函式內第 6 行擋） → RAN 請先登入
+PASS false A05 anon attach_trip_products_to_recent_order（函式內擋） → RAN AUTH_REQUIRED
+PASS false A06 anon update_paid_order_discount_v2（函式內擋） → DENIED authentication required
+PASS false A07 anon update_paid_order_addons_v3（函式內擋） → DENIED authentication required
+PASS false A08 已登入 hotel_admin 仍可呼叫 sync_order_rooms_v1（不被授權擋） → OK
+PASS false A09 已登入 hotel_admin 可呼叫 clear_order_room_pricing_template → OK
+PASS 22 / FAIL 0
+== 2. precheck
+1. change_order_dates（6 參數）存在且尚未含檢查段 | t
+2. 錨點（換行 BEGIN 換行）在 change_order_dates 只出現 1 次 | t
+3. staff_can_edit_module(uuid, text) 存在 | t
+4. 20261030090000 已上線：update_order_with_context 只剩 service_role | t
+5. sync_order_rooms_v1、clear_order_room_pricing_template 簽章存在 | t
+6. 相關函式沒有同名多載（共 10 支） | t
+admin_delete_order(uuid,text) | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | t | t | t | c475f3c838693c49de1c884c68f59e2e | t
+attach_trip_products_to_recent_order(jsonb,uuid) | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | t | t | t | 22f24eea56e8a00a55bcb0f034691222 | t
+change_order_dates(uuid,date,date,text,text,text) | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | f | t | t | c929d74bdf8f6fa763c1e29f76eeb70f | t
+clear_order_room_pricing_template(uuid) | t | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | t | t | t | 3e2a820ae3b78d49f689f270bbc68cd2 | t
+get_staff_module_permission(uuid,uuid,text) | t | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | t | t | t | aea42e17d7f8d452d1d241286e70dcb8 | t
+staff_can_edit_module(uuid,text) | t | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | t | t | t | 2bc9cdfb8f98b1ea26c361f9dca1c095 | t
+sync_order_rooms_v1(uuid,timestamp with time zone,jsonb) | t | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres} | t | t | t | 957646923f7e28e9fe7c75b50ed26643 | t
+update_order_fields_v1(uuid,jsonb,text,text) | f | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | t | t | t | 281dd4b043ecf7204d331c1419be446b | t
+update_paid_order_addons_v3(uuid,timestamp with time zone,text,text,boolean,jsonb,integer,text,integer,boolean,boolean,boolean) | f | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres} | t | t | t | 6f33325215f67094a7e5992c02ef9943 | t
+update_paid_order_discount_v2(uuid,timestamp with time zone,text,text,integer,text,boolean,text,integer,boolean) | f | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres} | t | t | t | 072ae35e8cbadaf141d3ee5cc5ff0d3f | t
+== 3. 套用
+套用成功
+== 4. postcheck
+1. change_order_dates 含檢查段 | t
+2. change_order_dates 去掉檢查段後指紋等於套用前 | t
+3. change_order_dates 檢查段緊接在第一個 BEGIN 之後 | t
+4. change_order_dates 仍為 SECURITY DEFINER；anon 不可、authenticated／service_role 可執行 | t
+5. sync_order_rooms_v1：anon 不可、authenticated／service_role 可、授權清單無 PUBLIC | t
+6. clear_order_room_pricing_template：anon 不可、authenticated／service_role 可、授權清單無 PUBLIC | t
+7. 除 change_order_dates 外 9 支函式指紋未變 | t
+admin_delete_order(uuid,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | c475f3c838693c49de1c884c68f59e2e
+attach_trip_products_to_recent_order(jsonb,uuid) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | 22f24eea56e8a00a55bcb0f034691222
+change_order_dates(uuid,date,date,text,text,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | d27352295727c8eba92f2cbae6ffe03a
+clear_order_room_pricing_template(uuid) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | 3e2a820ae3b78d49f689f270bbc68cd2
+get_staff_module_permission(uuid,uuid,text) | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | aea42e17d7f8d452d1d241286e70dcb8
+staff_can_edit_module(uuid,text) | {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres} | 2bc9cdfb8f98b1ea26c361f9dca1c095
+sync_order_rooms_v1(uuid,timestamp with time zone,jsonb) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | 957646923f7e28e9fe7c75b50ed26643
+update_order_fields_v1(uuid,jsonb,text,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | 281dd4b043ecf7204d331c1419be446b
+update_paid_order_addons_v3(uuid,timestamp with time zone,text,text,boolean,jsonb,integer,text,integer,boolean,boolean,boolean) | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres} | 6f33325215f67094a7e5992c02ef9943
+update_paid_order_discount_v2(uuid,timestamp with time zone,text,text,integer,text,boolean,text,integer,boolean) | {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres} | 072ae35e8cbadaf141d3ee5cc5ff0d3f
+其他所有 public 函式指紋與套用前相同：t
+== 5. 重複套用必須被擋
+PRECHECK 失敗：change_order_dates 已含 ORDER_MODULE_GUARD_V1（是否重複套用？）
+== 6. 套用後測試
+PASS true C01 anon → DENIED permission denied for function change_order_dates
+PASS true C02 會員（無館別角色） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C03 kol（該館 kol 角色） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C04 staff 訂單 editable（未設定＝預設） → OK
+PASS true C05 staff 訂單 readonly → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C06 staff 訂單 hidden → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C07 他館 staff → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C08 他館 hotel_admin → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C09 該館 hotel_admin → OK
+PASS true C10 super_admin → OK
+PASS true C11 service role（auth.uid() 為 null） → OK
+PASS true C12 不存在的訂單＋已登入 staff → 權限不足（不洩漏是否存在） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C13 改期確實落地（最後一次 service role） → 1
+PASS true A01 anon sync_order_rooms_v1 → DENIED permission denied for function sync_order_rooms_v1
+PASS true A02 anon clear_order_room_pricing_template → DENIED permission denied for function clear_order_room_pricing_template
+PASS true A03 anon update_order_fields_v1（函式內第 22 行擋） → RAN update_order_fields_v1: 需要登入
+PASS true A04 anon admin_delete_order（函式內第 6 行擋） → RAN 請先登入
+PASS true A05 anon attach_trip_products_to_recent_order（函式內擋） → RAN AUTH_REQUIRED
+PASS true A06 anon update_paid_order_discount_v2（函式內擋） → DENIED authentication required
+PASS true A07 anon update_paid_order_addons_v3（函式內擋） → DENIED authentication required
+PASS true A08 已登入 hotel_admin 仍可呼叫 sync_order_rooms_v1（不被授權擋） → OK
+PASS true A09 已登入 hotel_admin 可呼叫 clear_order_room_pricing_template → OK
+PASS 22 / FAIL 0
+== 7. rollback
+rollback 成功
+rollback 後 change_order_dates 指紋等於套用前：t
+rollback 後其他函式指紋與套用前相同：t
+== 8. rollback 後測試（回到套用前行為）
+PASS false C01 anon → DENIED permission denied for function change_order_dates
+PASS false C02 會員（無館別角色） → OK
+PASS false C03 kol（該館 kol 角色） → OK
+PASS false C04 staff 訂單 editable（未設定＝預設） → OK
+PASS false C05 staff 訂單 readonly → OK
+PASS false C06 staff 訂單 hidden → OK
+PASS false C07 他館 staff → OK
+PASS false C08 他館 hotel_admin → OK
+PASS false C09 該館 hotel_admin → OK
+PASS false C10 super_admin → OK
+PASS false C11 service role（auth.uid() 為 null） → OK
+PASS false C12 不存在的訂單＋已登入 staff → 權限不足（不洩漏是否存在） → RAN 訂單不存在
+PASS false C13 改期確實落地（最後一次 service role） → 1
+PASS false A01 anon sync_order_rooms_v1 → RAN NOT_AUTHORIZED
+PASS false A02 anon clear_order_room_pricing_template → DENIED not authorized
+PASS false A03 anon update_order_fields_v1（函式內第 22 行擋） → RAN update_order_fields_v1: 需要登入
+PASS false A04 anon admin_delete_order（函式內第 6 行擋） → RAN 請先登入
+PASS false A05 anon attach_trip_products_to_recent_order（函式內擋） → RAN AUTH_REQUIRED
+PASS false A06 anon update_paid_order_discount_v2（函式內擋） → DENIED authentication required
+PASS false A07 anon update_paid_order_addons_v3（函式內擋） → DENIED authentication required
+PASS false A08 已登入 hotel_admin 仍可呼叫 sync_order_rooms_v1（不被授權擋） → OK
+PASS false A09 已登入 hotel_admin 可呼叫 clear_order_room_pricing_template → OK
+PASS 22 / FAIL 0
+== 9. 再套用＋測試
+再套用成功
+PASS true C01 anon → DENIED permission denied for function change_order_dates
+PASS true C02 會員（無館別角色） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C03 kol（該館 kol 角色） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C04 staff 訂單 editable（未設定＝預設） → OK
+PASS true C05 staff 訂單 readonly → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C06 staff 訂單 hidden → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C07 他館 staff → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C08 他館 hotel_admin → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C09 該館 hotel_admin → OK
+PASS true C10 super_admin → OK
+PASS true C11 service role（auth.uid() 為 null） → OK
+PASS true C12 不存在的訂單＋已登入 staff → 權限不足（不洩漏是否存在） → DENIED 權限不足：您對此訂單館別的「訂單」模組沒有編輯權限
+PASS true C13 改期確實落地（最後一次 service role） → 1
+PASS true A01 anon sync_order_rooms_v1 → DENIED permission denied for function sync_order_rooms_v1
+PASS true A02 anon clear_order_room_pricing_template → DENIED permission denied for function clear_order_room_pricing_template
+PASS true A03 anon update_order_fields_v1（函式內第 22 行擋） → RAN update_order_fields_v1: 需要登入
+PASS true A04 anon admin_delete_order（函式內第 6 行擋） → RAN 請先登入
+PASS true A05 anon attach_trip_products_to_recent_order（函式內擋） → RAN AUTH_REQUIRED
+PASS true A06 anon update_paid_order_discount_v2（函式內擋） → DENIED authentication required
+PASS true A07 anon update_paid_order_addons_v3（函式內擋） → DENIED authentication required
+PASS true A08 已登入 hotel_admin 仍可呼叫 sync_order_rooms_v1（不被授權擋） → OK
+PASS true A09 已登入 hotel_admin 可呼叫 clear_order_room_pricing_template → OK
+PASS 22 / FAIL 0
