@@ -1,0 +1,81 @@
+NOTICE:  database "lk1" does not exist, skipping
+== 0. 對齊正式庫授權（anon、authenticated 可執行兩支函式）
+change_order_dates(uuid,date,date,text,text,text) {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres}
+update_order_with_context(uuid,jsonb,text,text,text,text,jsonb,jsonb) {postgres=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres,authenticated=X/postgres}
+== 1. 套用前測試（對齊正式庫：anon、authenticated 都能呼叫＝漏洞重現）
+PASS 套用前 U1 anon 呼叫 update_order_with_context → OK
+PASS 套用前 U2 authenticated 呼叫 update_order_with_context → OK
+PASS 套用前 U3 service_role 呼叫 update_order_with_context → OK
+PASS 套用前 U3a service_role 寫入確實落地 → x
+PASS 套用前 U4 authenticated 經 SECURITY DEFINER 函式內部呼叫 → OK
+PASS 套用前 U4a 內部呼叫寫入確實落地 → definer
+PASS 套用前 C1 anon 呼叫 change_order_dates → OK
+PASS 套用前 C2 authenticated 呼叫 change_order_dates（不被權限擋） → OK
+PASS 套用前 C3 service_role 呼叫 change_order_dates → OK
+PASS 9 / FAIL 0
+== 2. precheck
+1. update_order_with_context（8 參數）存在 | t
+2. change_order_dates（6 參數）存在 | t
+3. 兩支函式都沒有其他同名多載 | t
+4. service_role 目前可執行 update_order_with_context | t
+5. 資料庫內呼叫 update_order_with_context 的函式全部是 SECURITY DEFINER | t
+6. 沒有觸發器函式呼叫 update_order_with_context | t
+7. 這些內部呼叫函式的擁有者都能執行 update_order_with_context | t
+change_order_dates(uuid,date,date,text,text,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres} | t | postgres | t | t | t | c929d74bdf8f6fa763c1e29f76eeb70f
+update_order_with_context(uuid,jsonb,text,text,text,text,jsonb,jsonb) | {postgres=X/postgres,service_role=X/postgres,=X/postgres,anon=X/postgres,authenticated=X/postgres} | t | postgres | t | t | t | 892e4b288fa45361989c8b7494093bc6
+apply_ota_modification_v1 | t | postgres | {postgres=X/postgres,service_role=X/postgres}
+== 3. 套用
+套用成功
+== 4. postcheck
+1. update_order_with_context：anon 不可執行 | t
+2. update_order_with_context：authenticated 不可執行 | t
+3. update_order_with_context：service_role 可執行 | t
+4. update_order_with_context：授權清單沒有 PUBLIC、anon、authenticated | t
+5. change_order_dates：anon 不可執行 | t
+6. change_order_dates：授權清單沒有 PUBLIC、anon | t
+7. change_order_dates：authenticated 可執行 | t
+8. change_order_dates：service_role 可執行 | t
+9. update_order_with_context 指紋未變 | t
+10. change_order_dates 指紋未變 | t
+11. 內部呼叫者（SECURITY DEFINER）的擁有者仍可執行 update_order_with_context | t
+change_order_dates(uuid,date,date,text,text,text) | {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres} | c929d74bdf8f6fa763c1e29f76eeb70f
+update_order_with_context(uuid,jsonb,text,text,text,text,jsonb,jsonb) | {postgres=X/postgres,service_role=X/postgres} | 892e4b288fa45361989c8b7494093bc6
+public 所有函式內容指紋與套用前相同：t
+== 5. 套用後測試
+PASS 套用後 U1 anon 呼叫 update_order_with_context → DENIED permission denied for function update_order_with_context
+PASS 套用後 U2 authenticated 呼叫 update_order_with_context → DENIED permission denied for function update_order_with_context
+PASS 套用後 U3 service_role 呼叫 update_order_with_context → OK
+PASS 套用後 U3a service_role 寫入確實落地 → x
+PASS 套用後 U4 authenticated 經 SECURITY DEFINER 函式內部呼叫 → OK
+PASS 套用後 U4a 內部呼叫寫入確實落地 → definer
+PASS 套用後 C1 anon 呼叫 change_order_dates → DENIED permission denied for function change_order_dates
+PASS 套用後 C2 authenticated 呼叫 change_order_dates（不被權限擋） → OK
+PASS 套用後 C3 service_role 呼叫 change_order_dates → OK
+PASS 9 / FAIL 0
+== 6. rollback
+rollback 成功
+change_order_dates(uuid,date,date,text,text,text) {postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres,anon=X/postgres,=X/postgres}
+update_order_with_context(uuid,jsonb,text,text,text,text,jsonb,jsonb) {postgres=X/postgres,service_role=X/postgres,anon=X/postgres,authenticated=X/postgres,=X/postgres}
+== 7. rollback 後測試（回到套用前行為）
+PASS rollback後 U1 anon 呼叫 update_order_with_context → OK
+PASS rollback後 U2 authenticated 呼叫 update_order_with_context → OK
+PASS rollback後 U3 service_role 呼叫 update_order_with_context → OK
+PASS rollback後 U3a service_role 寫入確實落地 → x
+PASS rollback後 U4 authenticated 經 SECURITY DEFINER 函式內部呼叫 → OK
+PASS rollback後 U4a 內部呼叫寫入確實落地 → definer
+PASS rollback後 C1 anon 呼叫 change_order_dates → OK
+PASS rollback後 C2 authenticated 呼叫 change_order_dates（不被權限擋） → OK
+PASS rollback後 C3 service_role 呼叫 change_order_dates → OK
+PASS 9 / FAIL 0
+== 8. 再套用
+再套用成功
+PASS 再套用後 U1 anon 呼叫 update_order_with_context → DENIED permission denied for function update_order_with_context
+PASS 再套用後 U2 authenticated 呼叫 update_order_with_context → DENIED permission denied for function update_order_with_context
+PASS 再套用後 U3 service_role 呼叫 update_order_with_context → OK
+PASS 再套用後 U3a service_role 寫入確實落地 → x
+PASS 再套用後 U4 authenticated 經 SECURITY DEFINER 函式內部呼叫 → OK
+PASS 再套用後 U4a 內部呼叫寫入確實落地 → definer
+PASS 再套用後 C1 anon 呼叫 change_order_dates → DENIED permission denied for function change_order_dates
+PASS 再套用後 C2 authenticated 呼叫 change_order_dates（不被權限擋） → OK
+PASS 再套用後 C3 service_role 呼叫 change_order_dates → OK
+PASS 9 / FAIL 0
