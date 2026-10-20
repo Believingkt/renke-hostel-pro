@@ -81,7 +81,6 @@ interface Order {
   meal_plan_details: any;
   order_status: string;
   order_source: string;
-  owner_direct: boolean;
   room_type_id: string | null;
   guest_count: number | null;
   custom_addon_details: unknown;
@@ -188,7 +187,7 @@ export default function OwnerSettlement() {
         supabase
           .from("orders")
           .select(
-            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking"
+            "id, order_number, guest_name, check_in_date, check_out_date, total_price, discount_amount, final_price, meal_plan_total, meal_plan, meal_plan_details, order_status, order_source, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking"
           )
           .eq("accommodation_id", currentAccommodationId)
           .neq("order_status", "cancelled")
@@ -1196,9 +1195,7 @@ export default function OwnerSettlement() {
                         <TableCell className="text-right tabular-nums">
                           {r.exempt ? (
                             <Badge variant="secondary">
-                              {r.order.owner_direct
-                                ? "業主自帶"
-                                : `不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
+                              {`不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
                             </Badge>
                           ) : (
                             <span className="text-destructive">-{fmt(r.commission)}</span>
@@ -1406,9 +1403,7 @@ export default function OwnerSettlement() {
                     <div className="tabular-nums">
                       {r.exempt ? (
                         <span className="text-xs text-muted-foreground">
-                          {r.order.owner_direct
-                            ? "業主自帶"
-                            : `不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
+                          {`不抽成・${getOrderSourceConfig(r.order.order_source).label}`}
                         </span>
                       ) : (
                         <span className="text-destructive">-{fmt(r.commission)}</span>

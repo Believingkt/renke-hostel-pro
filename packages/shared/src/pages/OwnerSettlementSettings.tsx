@@ -715,7 +715,7 @@ export default function OwnerSettlementSettings({
         <CardHeader>
           <CardTitle>服務費</CardTitle>
           <CardDescription>
-            套用至所有訂單（除 <code>owner_direct = true</code> 或訂單來源被勾選為不抽成）。計算方式：本月分攤後金額 × 服務費率。
+            套用至所有訂單（訂單來源被勾選為不抽成者除外）。計算方式：本月分攤後金額 × 服務費率。
           </CardDescription>
           <details className="mt-2 rounded-md border bg-muted/40 p-3 text-sm">
             <summary className="cursor-pointer font-medium">常見方案填法對照</summary>

@@ -8109,7 +8109,6 @@ export type Database = {
           owlting_reservation_id: string | null
           owlting_sync_state: Json | null
           owlting_unique_id: string | null
-          owner_direct: boolean
           package_id: string | null
           paid_amount: number | null
           payment_link_created_at: string | null
@@ -8211,7 +8210,6 @@ export type Database = {
           owlting_reservation_id?: string | null
           owlting_sync_state?: Json | null
           owlting_unique_id?: string | null
-          owner_direct?: boolean
           package_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null
@@ -8313,7 +8311,6 @@ export type Database = {
           owlting_reservation_id?: string | null
           owlting_sync_state?: Json | null
           owlting_unique_id?: string | null
-          owner_direct?: boolean
           package_id?: string | null
           paid_amount?: number | null
           payment_link_created_at?: string | null

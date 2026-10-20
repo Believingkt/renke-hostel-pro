@@ -575,7 +575,6 @@ Deno.serve(async (req) => {
         order_date,
         accommodation_id,
         order_source,
-        owner_direct,
         currency_at_booking,
         internal_email_sent,
         internal_email_sent_at,
@@ -695,7 +694,7 @@ Deno.serve(async (req) => {
     // 非台幣訂單不計入分潤（currency_at_booking 為 null 視為台幣）
     const orderCurrency = (order as { currency_at_booking?: string | null }).currency_at_booking;
     const isNonTwdOrder = !!orderCurrency && orderCurrency !== "TWD";
-    // 業主月結免抽成來源（owner_direct / exempt_order_sources）不計入分潤
+    // 業主月結免抽成來源（exempt_order_sources）不計入分潤
     const isExemptOrder = await (async () => {
       try {
         const resolver = await buildExemptResolver(supabase, [order.accommodation_id as string]);

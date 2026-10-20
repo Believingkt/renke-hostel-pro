@@ -14,7 +14,7 @@ const INTERNAL_ROLES = ["admin", "scout_manager", "scout", "am", "am_manager"];
 /** 唯一真相：單筆訂單的分潤基準金額
  *  1) order_meta.team_commission_price 有值 → 優先採用（人工覆蓋）
  *  2) 否則 commissionBaseFromOrder()：final_price − 加購項目總額
- *  註：本函式「不」套用 owner_direct / exempt_order_sources 排除，
+ *  註：本函式「不」套用 exempt_order_sources 排除，
  *      KOL 分潤只看訂單是否使用該 KOL 的折扣碼。
  */
 function resolveCommissionBase(

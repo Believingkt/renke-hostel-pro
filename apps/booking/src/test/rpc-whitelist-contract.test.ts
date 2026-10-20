@@ -163,7 +163,7 @@ const FIELDS_V1 = new Set(snapshot.functions.update_order_fields_v1.fields);
 const inlineForm = {
   guest_name: "王小明", guest_phone: "0912345678", guest_email: "a@b.c",
   guest_address: "台北市", guest_gender: "male", guest_nationality: "台灣",
-  guest_count: 4, order_source: "website", owner_direct: false,
+  guest_count: 4, order_source: "website",
   lock_whole_building: false, order_status: "confirmed",
   deposit_payment_method: "none", balance_payment_method: "cash",
   meal_plan: "none", room_type_id: "rt-1", discount_code: "168168",

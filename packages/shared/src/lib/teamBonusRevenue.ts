@@ -333,7 +333,7 @@ export async function getAccommodationRevenueDualByAcc(
       const { data } = await client
         .from("orders")
         .select(
-          "id, accommodation_id, owner_direct, order_meta(team_commission_price, is_excluded)",
+          "id, accommodation_id, order_source, order_meta(team_commission_price, is_excluded)",
         )
         .eq("accommodation_id", accId)
         .gte("order_date", range.start)
@@ -350,7 +350,7 @@ export async function getAccommodationRevenueDualByAcc(
         if (!amt) continue;
         const cur = out[accId] ?? { incl: 0, excl: 0 };
         cur.incl += amt;
-        if (row?.owner_direct !== true) cur.excl += amt;
+        if (row?.order_source !== "owner_provided") cur.excl += amt;
         out[accId] = cur;
       }
     }

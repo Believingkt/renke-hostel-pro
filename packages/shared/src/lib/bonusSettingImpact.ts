@@ -61,7 +61,7 @@ export const BONUS_SETTING_IMPACTS: Record<BonusSettingKey, BonusSettingImpact> 
   payout_basis: {
     key: "payout_basis",
     label: "業主自帶口徑（payout_basis）",
-    role: "決定館別營收要「含」或「排除」業主自帶（owner_direct）訂單，是實付真值的依據。",
+    role: "決定館別營收要「含」或「排除」業主自帶（訂單來源）訂單，是實付真值的依據。",
     affects: TEAM_REVENUE_BONUSES,
   },
   shared_sources: {

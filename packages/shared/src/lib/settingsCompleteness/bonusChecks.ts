@@ -134,7 +134,7 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
             href,
             target: STEP1,
             fields: ["業主自帶口徑（payout_basis）"],
-            hint: "未指定業主自帶（owner_direct）訂單要含或排除，系統會採預設值；建議明確指定避免結算爭議。",
+            hint: "未指定業主自帶訂單要含或排除，系統會採預設值；建議明確指定避免結算爭議。",
           }
         : { level: "ok", label: active.payout_basis === "exclude_owner_direct" ? "排除自帶" : "含自帶" };
 

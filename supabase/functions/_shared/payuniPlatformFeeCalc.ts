@@ -12,7 +12,7 @@ import {
 import { filterByGroupBuyMode } from "./vendor/groupBuyCaliber.ts";
 
 export const ORDER_COLS =
-  "id, order_number, check_in_date, check_out_date, total_price, discount_amount, final_price, order_status, order_source, owner_direct, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking, order_date, paid_amount, accommodation_id";
+  "id, order_number, check_in_date, check_out_date, total_price, discount_amount, final_price, order_status, order_source, room_type_id, guest_count, custom_addon_details, exchange_rate_snapshot, currency_at_booking, order_date, paid_amount, accommodation_id";
 
 /** period YYYY-MM → 該月月初（本地時間，同月結頁 startOfMonth(parseISO(...))） */
 export const monthOf = (period: string) => { const [y, m] = period.split("-").map(Number); return new Date(y, m - 1, 1); };

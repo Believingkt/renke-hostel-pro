@@ -1,0 +1,38 @@
+NOTICE:  database "oddrop" does not exist, skipping
+psql:/app/supabase/migrations/20260731164448_a5b17bb7-1424-47b1-b2b5-55e3a94d9fb2.sql:125: NOTICE:  trigger "create_commission_on_order_updated" for relation "public.orders" does not exist, skipping
+update_order_fields_v1 套用前 md5=761c28e7e763a3a143c476f07426c2b5
+PASS 套用前：開關打開的 T1 沒有分潤
+== 套用 migration
+ok
+PASS orders.owner_direct 已刪除
+PASS 備份表筆數
+PASS 備份表已啟用 RLS
+PASS create_commission_record 不再引用 owner_direct
+PASS log_order_change 不再引用 owner_direct
+PASS 套用後：T1（kol 來源）改價會產生分潤
+PASS 套用後：T3（業主自帶且在免抽成清單）仍無分潤
+PASS 改來源為業主自帶會觸發刪除分潤
+PASS 訂單稽核觸發器仍正常
+PASS update_order_fields_v1 拒絕 owner_direct
+PASS update_order_fields_v1 其他欄位仍可更新
+update_order_fields_v1 新 md5=28100619db1efa4debacea6d86e11667 len=3430
+PASS 授權保留（authenticated 可執行）
+== 預檢：有其他函式引用 owner_direct 時要中止
+NOTICE:  database "oddrop_pre" does not exist, skipping
+PASS 預檢擋下未知函式
+== rollback
+ok
+PASS rollback 後欄位恢復
+PASS rollback 後開關值依備份還原
+PASS rollback 後 update_order_fields_v1 與套用前完全相同
+PASS rollback 後 create_commission_record 恢復開關判斷
+== 再套用
+psql:/app/supabase/migrations/20261025090000_drop_owner_direct.sql:22: NOTICE:  relation "owner_direct_backup_20260601" already exists, skipping
+ok
+PASS 再套用後欄位已刪除
+== 結果：PASS=19 FAIL=0
+--- vitest：23 failed | 1924 passed（失敗清單與既有基準相同：OwlTingFillupDialog 12、use-accommodation-logo 3、late-payment-failsafe 3、group-buy-self-cancel 2、group-buy-card-cancel-ui 1、order-rooms-permissions 1、use-order-notifications 1）
+--- tsc：只有既有的 discount-cheaper-rule.test.ts 2 個錯誤
+--- vite build：ok
+--- deno test payuniPlatformFee_test.ts：9 passed
+--- deno check：preview-closer-commission、kol-webhook、push-ragic-revenue、create-team-bonus-snapshots、kol-bonus-public、payuni-platform-fee-run ok；create-commission-adjustments、create-commission-snapshots、calculate-scout-payout 的 TS7006 錯誤與修改前完全相同（既有）

@@ -67,7 +67,7 @@ export default function BonusOrderInspector() {
       const { data: order, error: oErr } = await (supabase as any)
         .from("orders")
         .select(
-          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded, closer_id, closer_assisted)",
+          "id, order_number, accommodation_id, order_date, check_in_date, check_out_date, final_price, order_source, order_status, currency_at_booking, exchange_rate_snapshot, custom_addon_details, order_meta(team_commission_price, is_excluded, closer_id, closer_assisted)",
         )
         .eq("order_number", kw)
         .maybeSingle();
@@ -224,7 +224,7 @@ export default function BonusOrderInspector() {
       const closerGate = statusOk && inPeriod(orderDate, "counts_closer_commission");
       const inShared = shared.includes(source);
       const inKol = kolWl.includes(source);
-      const ownerDirect = order.owner_direct === true;
+      const ownerDirect = source === "owner_provided";
       const exemptSource = (rule?.exempt_order_sources ?? []).includes(source);
 
       const result: StepResult[] = [
@@ -270,7 +270,7 @@ export default function BonusOrderInspector() {
               field: inKol ? undefined : "kol_sources",
             },
             {
-              label: "業主自帶（owner_direct）",
+              label: "訂單來源是業主自帶",
               value: ownerDirect ? "是" : "否",
             },
             { label: "訂單總額（台幣）", value: money(gross) },

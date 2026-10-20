@@ -345,7 +345,7 @@ async function getStayRevenueDualByAcc(
     const { data } = await client
       .from("orders")
       .select(
-        "id, accommodation_id, check_in_date, check_out_date, final_price, order_source, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details",
+        "id, accommodation_id, check_in_date, check_out_date, final_price, order_source, currency_at_booking, exchange_rate_snapshot, custom_addon_details",
       )
       .in("accommodation_id", ids.slice(i, i + CHUNK))
       .gt("check_out_date", monthStartDate)
@@ -358,7 +358,7 @@ async function getStayRevenueDualByAcc(
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
       // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
-      // 業主自帶（owner_direct）不直接排除，而是分別累計到 incl / excl 兩軌。
+      // 業主自帶（order_source = owner_provided）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const rule = rules[accId];
 
@@ -398,7 +398,7 @@ async function getStayRevenueDualByAcc(
       if (!amount) continue;
       const cur = out[accId] ?? { incl: 0, excl: 0 };
       cur.incl += amount;
-      if (o?.owner_direct !== true) cur.excl += amount;
+      if (o?.order_source !== "owner_provided") cur.excl += amount;
       out[accId] = cur;
     }
   }
@@ -445,7 +445,7 @@ async function getAccommodationRevenue(
       for (const range of rangesByAcc[accId] ?? []) {
         const { data } = await client
           .from("orders")
-          .select("id, owner_direct, order_meta(team_commission_price, is_excluded)")
+          .select("id, order_source, order_meta(team_commission_price, is_excluded)")
           .eq("accommodation_id", accId)
           .gte("order_date", range.start)
           .lt("order_date", range.end)
@@ -461,7 +461,7 @@ async function getAccommodationRevenue(
           if (!amt) continue;
           const cur = byAcc[accId] ?? { incl: 0, excl: 0 };
           cur.incl += amt;
-          if (row?.owner_direct !== true) cur.excl += amt;
+          if (row?.order_source !== "owner_provided") cur.excl += amt;
           byAcc[accId] = cur;
         }
       }

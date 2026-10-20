@@ -12,7 +12,7 @@
  * 月份基準：團隊佣金路徑統一使用「order_date 的月初」，
  * 不強求與業主月結（入住月份基準）一致。
  *
- * exempt 判斷：owner_direct === true，或 order_source 屬於該館別當時生效版本的
+ * exempt 判斷：order_source 屬於該館別當時生效版本的
  * exempt_order_sources 清單，兩者符合其一即視為 exempt。
  */
 
@@ -23,7 +23,6 @@ export interface MinimalSupabaseClient {
 export interface ExemptOrderInput {
   accommodation_id?: string | null;
   order_date?: string | null;
-  owner_direct?: boolean | null;
   order_source?: string | null;
 }
 
@@ -139,7 +138,6 @@ export async function buildExemptResolver(
   }
 
   return function isExempt(order: ExemptOrderInput): boolean {
-    if (order?.owner_direct === true) return true;
     const accId = order?.accommodation_id ?? "";
     const source = order?.order_source ?? "";
     if (!accId || !source) return false;

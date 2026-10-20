@@ -244,7 +244,6 @@ export interface OwnerSettlementOrderInput {
   final_price: number | string | null;
   discount_amount?: number | string | null;
   order_source?: string | null;
-  owner_direct?: boolean | null;
   /** 建單當下幣別快照（null = 舊訂單，fallback 館別現值） */
   currency_at_booking?: string | null;
   /** 建單當下匯率快照（外幣 per TWD，例：JPY 5.02） */
@@ -396,7 +395,6 @@ export function computeOwnerSettlementRows<T extends OwnerSettlementOrderInput>(
     const monthCommissionable = monthFinal - monthAddonTotal;
     const hasUnexcludedAddon = hasAnyAddonItem(o.custom_addon_details) && monthAddonTotal <= 0;
     const exempt =
-      !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
       resolved.isForeign;
 
@@ -540,7 +538,6 @@ export function computeGuestCountRows<T extends GuestCountOrderInput>(
     const commissionBase = finalPrice - addonTotal;
     const hasUnexcludedAddon = hasAnyAddonItem(o.custom_addon_details) && addonTotal <= 0;
     const exempt =
-      !!o.owner_direct ||
       (o.order_source ? exemptSet.has(o.order_source) : false) ||
       resolved.isForeign;
 

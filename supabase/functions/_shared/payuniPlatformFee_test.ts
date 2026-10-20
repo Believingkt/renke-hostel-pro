@@ -21,7 +21,7 @@ const service: FeeCaller = { isService: true, isSuperAdmin: false, userId: null,
 
 const ord = (id: string, acc: string, ci: string, co: string, final: number, o: Record<string, unknown> = {}) => ({
   id, accommodation_id: acc, order_number: id.toUpperCase(), check_in_date: ci, check_out_date: co, total_price: final, discount_amount: 0,
-  final_price: final, order_status: "confirmed", order_source: "direct", owner_direct: false, room_type_id: null, guest_count: 2,
+  final_price: final, order_status: "confirmed", order_source: "direct", room_type_id: null, guest_count: 2,
   custom_addon_details: [], exchange_rate_snapshot: null, currency_at_booking: null, order_date: "2026-10-01", paid_amount: final, ...o,
 });
 const ORDERS = [

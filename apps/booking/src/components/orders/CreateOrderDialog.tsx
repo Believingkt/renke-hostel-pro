@@ -1591,7 +1591,6 @@ export function CreateOrderDialog({ open, onOpenChange, onSuccess, initialData }
         // v5.7：把「專案」帶到 orders header，讓 validate_order_before_insert 能重算房價。
         // 多房型時以主房（第一筆）為準，與 room_type_id / room_quantity 同一層級的既有做法一致。
         pricing_template_id: pricedRoomSelections[0]?.template_id || null,
-        owner_direct: form.order_source === "owner_provided",
 
         deposit_required_amount: form.security_deposit_amount,
         deposit_method: form.security_deposit_method,

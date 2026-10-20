@@ -48,7 +48,7 @@ function accruedInMonth(
   if (o.order_status === "cancelled") return 0;
   // 保留單：以 order_status = "hold" 判斷（轉正後即視為一般成交單）
   if (String(o.order_status ?? "") === "hold") return 0;
-  // 排除來源一律以 owner_settlement_pricing_rules.exempt_order_sources（DB 驅動）＋ owner_direct 判斷
+  // 排除來源一律以 owner_settlement_pricing_rules.exempt_order_sources（DB 驅動）判斷
   if (!ignoreExempt && isExempt(o)) return 0;
   // 註：kol 已包含在除「天送幸福和苑」外所有館別的 DB 清單中；天送的清單目前未含 kol，
   // 若日後天送需要排除 kol，請由 AM 在後台勾選，不在此硬寫。
@@ -191,7 +191,7 @@ Deno.serve(async (req) => {
         supabase
           .from("orders")
           .select(
-            "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, owner_direct, accommodation_id",
+            "id, order_number, guest_name, check_in_date, check_out_date, final_price, order_status, order_source, order_date, accommodation_id",
           )
           .in("accommodation_id", activeAccIds)
           .lt("check_in_date", monthEndStr)

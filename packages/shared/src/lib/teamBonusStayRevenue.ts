@@ -103,7 +103,7 @@ export interface DualRevenue {
  * rangesByAcc：各館可採計的日期區間（含合作期間／白名單／行銷費裁切）。
  *
  * 回傳雙軌：
- *  - incl：含業主自帶（owner_direct = true）的訂單
+ *  - incl：含業主自帶（order_source = owner_provided）的訂單
  *  - excl：排除業主自帶的訂單
  */
 export async function getStayRevenueDualByAcc(
@@ -128,7 +128,7 @@ export async function getStayRevenueDualByAcc(
     const { data } = await client
       .from("orders")
       .select(
-        "id, accommodation_id, check_in_date, check_out_date, final_price, order_source, owner_direct, currency_at_booking, exchange_rate_snapshot, custom_addon_details",
+        "id, accommodation_id, check_in_date, check_out_date, final_price, order_source, currency_at_booking, exchange_rate_snapshot, custom_addon_details",
       )
       .in("accommodation_id", slice)
       .gt("check_out_date", monthStartDate)
@@ -143,7 +143,7 @@ export async function getStayRevenueDualByAcc(
       const rule = rules[accId];
       // 一、團隊獎金（AM 共用／成交共用／網紅營銷專利獨立）：
       // 完全以各自的共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
-      // 業主自帶（owner_direct）不直接排除，而是分別累計到 incl / excl 兩軌。
+      // 業主自帶（order_source = owner_provided）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const ci = String(o?.check_in_date ?? "").slice(0, 10);
       const co = String(o?.check_out_date ?? "").slice(0, 10);
@@ -181,7 +181,7 @@ export async function getStayRevenueDualByAcc(
 
       const cur = out[accId] ?? { incl: 0, excl: 0 };
       cur.incl += amount;
-      if (o?.owner_direct !== true) cur.excl += amount;
+      if (o?.order_source !== "owner_provided") cur.excl += amount;
       out[accId] = cur;
     }
   }

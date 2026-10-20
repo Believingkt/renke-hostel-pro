@@ -7,7 +7,7 @@ import {
   type OwnerSettlementOrderInput,
 } from "./ownerSettlement";
 
-// 模擬 2026-06 月的一組訂單，涵蓋：一般訂單、exempt 來源、owner_direct、跨月分攤
+// 模擬 2026-06 月的一組訂單，涵蓋：一般訂單、exempt 來源、業主自帶、跨月分攤
 const month = new Date("2026-06-15T00:00:00Z");
 
 const orders: OwnerSettlementOrderInput[] = [
@@ -17,7 +17,6 @@ const orders: OwnerSettlementOrderInput[] = [
     check_out_date: "2026-06-07",
     final_price: 10000,
     order_source: "owlting",
-    owner_direct: false,
   },
   // 完全落在 6 月，來源 direct（不 exempt）
   {
@@ -25,15 +24,13 @@ const orders: OwnerSettlementOrderInput[] = [
     check_out_date: "2026-06-12",
     final_price: 20000,
     order_source: "direct",
-    owner_direct: false,
   },
-  // owner_direct = true，永遠不抽成
+  // 業主自帶：來源在免抽成清單內才不抽成
   {
     check_in_date: "2026-06-20",
     check_out_date: "2026-06-22",
     final_price: 15000,
-    order_source: "direct",
-    owner_direct: true,
+    order_source: "owner_provided",
   },
   // 跨月：5/30 - 6/2，共 3 晚，2 晚落在 6 月
   {
@@ -41,7 +38,6 @@ const orders: OwnerSettlementOrderInput[] = [
     check_out_date: "2026-06-02",
     final_price: 9000,
     order_source: "direct",
-    owner_direct: false,
   },
 ];
 
@@ -49,7 +45,7 @@ const savedConfig: OwnerSettlementConfig = {
   commission_rate: 15,
   marketing_fee_base: 53000,
   marketing_fee_per_extra_property: 3000,
-  exempt_order_sources: ["owlting"],
+  exempt_order_sources: ["owlting", "owner_provided"],
 };
 
 describe("OwnerSettlement 權限回歸：角色不影響計算結果", () => {
@@ -72,14 +68,14 @@ describe("OwnerSettlement 權限回歸：角色不影響計算結果", () => {
     }
   });
 
-  it("exempt 來源（owlting）與 owner_direct 訂單不計抽成", () => {
+  it("exempt 來源（owlting、業主自帶）不計抽成", () => {
     const rows = computeOwnerSettlementRows(orders, savedConfig, month);
     const byCheckIn = Object.fromEntries(rows.map((r) => [r.order.check_in_date, r]));
 
     expect(byCheckIn["2026-06-05"].exempt).toBe(true); // owlting exempt
     expect(byCheckIn["2026-06-05"].commission).toBe(0);
 
-    expect(byCheckIn["2026-06-20"].exempt).toBe(true); // owner_direct
+    expect(byCheckIn["2026-06-20"].exempt).toBe(true); // owner_provided exempt
     expect(byCheckIn["2026-06-20"].commission).toBe(0);
 
     expect(byCheckIn["2026-06-10"].exempt).toBe(false);
@@ -111,8 +107,8 @@ describe("OwnerSettlement 權限回歸：角色不影響計算結果", () => {
       1,
     ).totalCommission;
 
-    // 有 exempt 的 owlting 訂單 10000 元 → fallback 會多抽 1500
-    expect(commissionFallback - commissionWithConfig).toBeCloseTo(10000 * 0.15, 6);
+    // exempt 的 owlting 10000 元＋業主自帶 15000 元 → fallback 會多抽 3750
+    expect(commissionFallback - commissionWithConfig).toBeCloseTo(25000 * 0.15, 6);
   });
 
   it("行銷費依民宿棟數計算，且不受 exempt 來源影響", () => {

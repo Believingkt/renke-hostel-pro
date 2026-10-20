@@ -24,7 +24,6 @@ export interface InlineEditFormValues {
   guest_nationality: string;
   guest_count: number;
   order_source: string;
-  owner_direct: boolean;
   lock_whole_building: boolean;
   order_status: string;
   deposit_payment_method: string;
@@ -74,7 +73,6 @@ export function buildInlineEditPatch(input: InlineEditPatchInput): OrderFieldsPa
     guest_nationality: form.guest_nationality.trim() || null,
     guest_count: form.guest_count,
     order_source: form.order_source,
-    owner_direct: form.owner_direct,
     lock_whole_building: input.isOlivia ? form.lock_whole_building : false,
     order_status: form.order_status,
     payment_status: input.effPaymentStatus,
@@ -211,9 +209,6 @@ export function buildOrderSourceDialogPatch(input: {
     order_source: input.orderSource,
     notes: input.notes,
   };
-  if (input.orderSource === "owner_provided") {
-    payload.owner_direct = true;
-  }
   return payload;
 }
 

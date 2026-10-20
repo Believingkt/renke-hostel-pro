@@ -137,7 +137,6 @@ interface OrderDetail {
   meal_plan_total: number;
   custom_addon_details: CustomAddonDetail[] | null;
   order_source: string;
-  owner_direct?: boolean;
   lock_whole_building?: boolean;
   checked_in_at?: string | null;
   checked_out_at?: string | null;
@@ -224,7 +223,6 @@ interface EditFormState {
   guest_nationality: string;
   guest_count: number;
   order_source: string;
-  owner_direct: boolean;
   lock_whole_building: boolean;
   order_status: string;
   payment_status: string;
@@ -567,7 +565,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     guest_nationality: "",
     guest_count: 1,
     order_source: "",
-    owner_direct: false,
     lock_whole_building: false,
     order_status: "",
     payment_status: "",
@@ -746,7 +743,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       guest_nationality: order.guest_nationality || "",
       guest_count: order.guest_count || 1,
       order_source: order.order_source || "website",
-      owner_direct: !!order.owner_direct,
       lock_whole_building: !!order.lock_whole_building,
       order_status: order.order_status || "pending",
       payment_status: order.payment_status || "unpaid",
@@ -2441,7 +2437,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">訂單來源</span>
               {isEditing ? (
-                <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v, owner_direct: v === "owner_provided" ? true : f.owner_direct }))}>
+                <Select value={editForm.order_source} onValueChange={(v) => setEditForm(f => ({ ...f, order_source: v, }))}>
                   <SelectTrigger className="w-[160px] h-10 text-sm md:w-[140px] md:h-8 md:text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -2452,20 +2448,6 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   </SelectContent>
                 </Select>
               ) : getOrderSourceBadge(order.order_source)}
-            </div>
-            <Separator />
-            <div className="flex justify-between items-center gap-2">
-              <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">業主自帶客</span>
-              {isEditing ? (
-                <Switch
-                  checked={editForm.owner_direct}
-                  onCheckedChange={(v) => setEditForm(f => ({ ...f, owner_direct: v }))}
-                />
-              ) : (
-                <Badge variant={order.owner_direct ? "default" : "outline"}>
-                  {order.owner_direct ? "是 (不抽成)" : "否"}
-                </Badge>
-              )}
             </div>
             {isOlivia && (
               <>

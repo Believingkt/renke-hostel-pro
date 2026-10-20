@@ -121,13 +121,13 @@ serve(async (req) => {
 
       const { data: orders, error: ordersErr } = await supabase
         .from("orders")
-        .select("id, order_status, final_price, custom_addon_details, notes, currency_at_booking, accommodation_id, order_date, owner_direct, order_source")
+        .select("id, order_status, final_price, custom_addon_details, notes, currency_at_booking, accommodation_id, order_date, order_source")
         .in("id", orderIds);
       if (ordersErr) throw ordersErr;
       const ordersMap = new Map<string, any>();
       for (const o of orders ?? []) ordersMap.set(o.id as string, o);
 
-      // 業主月結免抽成來源判斷（owner_direct / exempt_order_sources）
+      // 業主月結免抽成來源判斷（exempt_order_sources）
       const isExemptA = await buildExemptResolver(
         supabase,
         (orders ?? []).map((o) => o.accommodation_id as string),
@@ -204,7 +204,7 @@ serve(async (req) => {
     // ===== Scenario B: cancellation — orders cancelled in target month with existing snapshot =====
     const { data: cancelledOrders, error: cancErr } = await supabase
       .from("orders")
-      .select("id, accommodation_id, order_date, owner_direct, order_source")
+      .select("id, accommodation_id, order_date, order_source")
       .eq("order_status", "cancelled")
       .gte("cancelled_at", startUtc)
       .lt("cancelled_at", endUtc);
@@ -293,7 +293,7 @@ serve(async (req) => {
 
       const { data: cOrders, error: cOrdErr } = await supabase
         .from("orders")
-        .select("id, order_status, accommodation_id, order_date, owner_direct, order_source")
+        .select("id, order_status, accommodation_id, order_date, order_source")
         .in("id", cIds);
       if (cOrdErr) throw cOrdErr;
       const statusMap = new Map<string, string>();
