@@ -74,6 +74,7 @@
         "check_out_date",
         "room_type_id",
         "package_id",
+        "pricing_template_id",
         "display_room_type_name",
         "room_quantity",
         "lock_whole_building",

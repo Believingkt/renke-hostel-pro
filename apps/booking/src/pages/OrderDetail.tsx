@@ -38,6 +38,9 @@ import { format, eachDayOfInterval, addDays } from "date-fns";
 import { resolveTemplatePricesForDates, type PricingTemplateLite } from "@lakeze/shared/utils/templatePriceResolver";
 import { templateMatchesRoomType } from "@/utils/templateRoomMatch";
 import { resolveTemplateId } from "@/lib/resolveTemplateId";
+import { usePackageChannel } from "@/hooks/use-package-channel";
+import { selectTemplatesForRoomType, resolveOrderPackage, roomTemplateKey, roomsChangedSinceOpen, buildInlinePackageSync, type PackageLite, type RoomSnapshotRow } from "@/lib/orderPackageResolution";
+import { OrderPackageField, TemplateFallbackWarning, useResetOnRoomTemplateChange } from "@/components/orders/OrderPackageField";
 import { resolveOrderProjectDisplayName } from "@lakeze/shared/utils/orderProjectLabel";
 import { getOrderPricingTemplateId } from "@/lib/discountScope";
 import { useToast } from "@lakeze/shared/hooks/use-toast";
@@ -588,6 +591,53 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     extra_addon_amount: 0,
   });
 
+  // 對應方案同步：改了房型／專案才依第一間房專案重算 package_id 與 pricing_template_id
+  const packageChannel = usePackageChannel(order?.accommodation_id);
+  const [accommodationPackages, setAccommodationPackages] = useState<PackageLite[]>([]);
+  const [editPackagePick, setEditPackagePick] = useState("");
+  const [fallbackConfirmed, setFallbackConfirmed] = useState(false);
+  const openedRoomsRef = useRef<RoomSnapshotRow[]>([]);
+  useEffect(() => {
+    if (!order?.accommodation_id) return;
+    supabase
+      .from("accommodation_packages")
+      .select("id, name, guest_count, primary_room_type_id, room_type_ids")
+      .eq("accommodation_id", order.accommodation_id)
+      .eq("enabled", true)
+      .order("display_order", { ascending: true })
+      .then(({ data }) => setAccommodationPackages((data as PackageLite[]) || []));
+  }, [order?.accommodation_id]);
+  const editRoomPicks = useMemo(
+    () => editOrderRooms.map(r => ({
+      room_type_id: r.room_type_id,
+      template_id: resolveTemplateId(allTemplates as any, r.room_type_id, r.template_name, r.template_id) || "",
+    })),
+    [editOrderRooms, allTemplates],
+  );
+  const editRoomsChanged = isEditing && roomsChangedSinceOpen(openedRoomsRef.current, editOrderRooms);
+  const editPackageResolution = useMemo(
+    () => resolveOrderPackage({ rooms: editRoomPicks, templates: allTemplates as any, packages: accommodationPackages, hasChannel: packageChannel.showPackageField }),
+    [editRoomPicks, allTemplates, accommodationPackages, packageChannel.showPackageField],
+  );
+  const editRoomTplKey = roomTemplateKey(editRoomPicks);
+  useResetOnRoomTemplateChange(editRoomTplKey.key, editRoomTplKey.complete, () => { if (editRoomsChanged) setEditPackagePick(""); });
+  const editStayDates = useMemo(() => {
+    if (!order?.check_in_date || !order?.check_out_date) return [] as string[];
+    const start = new Date(order.check_in_date);
+    const end = new Date(order.check_out_date);
+    if (!(start < end)) return [];
+    return eachDayOfInterval({ start, end: addDays(end, -1) }).map(d => format(d, "yyyy-MM-dd"));
+  }, [order?.check_in_date, order?.check_out_date]);
+  const editFallbackRoomTypeIds = useMemo(() => {
+    if (!editRoomsChanged) return [] as string[];
+    return Array.from(new Set(editOrderRooms.map(r => r.room_type_id))).filter(id => {
+      const src = selectTemplatesForRoomType(allTemplates as any, id, editStayDates).source;
+      return !!id && (src === "fallback_all" || src === "empty");
+    });
+  }, [editRoomsChanged, editOrderRooms, allTemplates, editStayDates]);
+  const editFallbackKey = editFallbackRoomTypeIds.join(",");
+  useEffect(() => { setFallbackConfirmed(false); }, [editFallbackKey]);
+
   // Load 包棟方案的內含房間清單（room_types.package_contents）
   // 每一筆編輯中的包棟房間各自查自己的房型；另含訂單原本／編輯中的 room_type_id（單房型畫面用）。
   const breakdownRoomTypeIds = useMemo(() => {
@@ -808,6 +858,10 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       addon_note: extractAddonNote(order.notes),
       extra_addon_amount: extractExtraAddonAmount(order.notes),
     });
+    // 進入編輯時的房間快照：之後只有房型／專案／房間數真的改變才同步對應方案
+    openedRoomsRef.current = orderRooms.map(or => ({ room_type_id: or.room_type_id, template_id: or.template_id ?? null, template_name: or.template_name }));
+    setEditPackagePick((order as any).package_id || "");
+    setFallbackConfirmed(false);
     // Initialize edit order rooms
     if (orderRooms.length > 0) {
       const savedRoomsTotal = orderRooms.reduce((sum, r) => sum + r.room_price, 0);
@@ -1090,6 +1144,20 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         return;
       }
     }
+    if (roomsAction.kind === "sync" && editFallbackRoomTypeIds.length > 0 && !fallbackConfirmed) {
+      toast({ title: "請確認專案", description: "此房型在入住日沒有對應專案，請勾選確認所選專案正確後再儲存", variant: "destructive" });
+      return;
+    }
+    // 房型／專案沒變 → null，存檔完全不碰 package_id／pricing_template_id
+    const packageSync = roomsAction.kind === "sync"
+      ? buildInlinePackageSync({
+          opened: openedRoomsRef.current,
+          current: editOrderRooms,
+          firstRoomTemplateId: editRoomPicks[0]?.template_id || null,
+          resolution: editPackageResolution,
+          manualPick: editPackagePick,
+        })
+      : null;
     savingEditRef.current = true;
     try {
 
@@ -1099,9 +1167,9 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
       accommodationId: order.accommodation_id,
       orderSource: editForm.order_source,
       checkInDate: order.check_in_date,
-      packageId: (editForm as any).package_id ?? (order as any).package_id ?? null,
+      packageId: packageSync ? packageSync.package_id : (order as any).package_id ?? null,
       packageIds: [
-        (editForm as any).package_id ?? (order as any).package_id ?? null,
+        packageSync ? packageSync.package_id : (order as any).package_id ?? null,
         order?.room_type_id ?? null,
         ...editOrderRooms
           .filter((r) => roomTypes.find((t) => t.id === r.room_type_id)?.is_exclusive_package)
@@ -1383,6 +1451,23 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         });
         if (syncError) throw syncError;
         roomsSynced = true;
+
+        // 房間明細存好後才同步訂單的對應方案與專案（房間存檔失敗就不動）
+        if (packageSync) {
+          const { error: pkgError } = await supabase.rpc("update_order_fields_v1", {
+            p_order_id: order.id,
+            p_patch: packageSync as any,
+            p_source: "admin_order_inline_edit",
+            p_reason: null,
+          });
+          if (pkgError) {
+            toast({
+              title: "對應方案未更新",
+              description: `房間明細已儲存，但訂單的對應方案／專案未更新：${pkgError.message}`,
+              variant: "destructive",
+            });
+          }
+        }
 
         const conflicts = ((syncResult as any)?.conflicts ?? []) as any[];
         if (conflicts.length > 0) {
@@ -1722,7 +1807,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           accId
             ? supabase
                 .from("pricing_templates")
-                .select("id, template_name, meal_plans, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, display_order")
+                .select("id, template_name, meal_plans, room_type_id, room_type_ids, price, weekday_price, peak_price, weekend_price, display_order, default_package_id, valid_from, valid_until")
                 .eq("accommodation_id", accId)
                 .order("display_order", { ascending: true, nullsFirst: false })
                 .order("template_name", { ascending: true })
@@ -2698,6 +2783,29 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             {orderRoomsLoadError && (
               <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" data-testid="order-rooms-load-error">
                 房間明細讀取失敗（{orderRoomsLoadError}）。為避免覆蓋既有資料，已暫停編輯與儲存房間明細，其他欄位仍可儲存。請重新整理頁面。
+              </div>
+            )}
+            {isEditing && editRoomsChanged && editOrderRooms.length > 0 && (
+              <div className="space-y-2" data-testid="inline-edit-package-section">
+                <TemplateFallbackWarning
+                  roomTypeNames={editFallbackRoomTypeIds.map(id => roomTypes.find(r => r.id === id)?.name || "")}
+                  confirmed={fallbackConfirmed}
+                  onConfirmedChange={setFallbackConfirmed}
+                />
+                {editRoomPicks[0]?.template_id ? (
+                  <OrderPackageField
+                    resolution={editPackageResolution}
+                    manualPick={editPackagePick}
+                    onManualPick={setEditPackagePick}
+                    isRequired={packageChannel.isRequired}
+                    channelLabel={packageChannel.channelLabel}
+                    roomTypeName={(id) => roomTypes.find(r => r.id === id)?.name || ""}
+                  />
+                ) : (
+                  <div className="text-xs text-muted-foreground" data-testid="inline-edit-package-keep">
+                    第一間房沒有選專案，訂單的對應方案與專案維持原值
+                  </div>
+                )}
               </div>
             )}
             {/* Multi-room details */}

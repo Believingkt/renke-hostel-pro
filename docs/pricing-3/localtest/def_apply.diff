@@ -1,0 +1,25 @@
+--- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 10:53:38.377619051 +0000
++++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 10:53:38.490619052 +0000
+@@ -6,7 +6,7 @@
+   c_allowed CONSTANT text[] := ARRAY[
+     'order_status','payment_status','order_source',
+     'order_date','confirmed_at','checked_in_at','checked_out_at','cancelled_at',
+-    'check_in_date','check_out_date','room_type_id','package_id',
++    'check_in_date','check_out_date','room_type_id','package_id','pricing_template_id',
+     'display_room_type_name','room_quantity','lock_whole_building',
+     'guest_name','guest_phone','guest_email','guest_count',
+     'adult_count','child_count','toddler_count','infant_count',
+@@ -43,6 +43,13 @@
+     END IF;
+   END IF;
+ 
++  IF nullif(p_patch->>'pricing_template_id', '') IS NOT NULL AND NOT EXISTS (
++    SELECT 1 FROM public.pricing_templates t JOIN public.orders o ON o.accommodation_id = t.accommodation_id
++    WHERE o.id = p_order_id AND t.id = (p_patch->>'pricing_template_id')::uuid
++  ) THEN
++    RAISE EXCEPTION 'PRICING_TEMPLATE_ACCOMMODATION_MISMATCH: 專案不屬於此訂單的館別 (%)', p_patch->>'pricing_template_id';
++  END IF;
++
+   PERFORM public.set_order_change_context(p_source, p_reason, NULL, 'user');
+ 
+   FOR v_key IN SELECT jsonb_object_keys(p_patch) LOOP

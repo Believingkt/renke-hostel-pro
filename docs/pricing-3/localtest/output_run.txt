@@ -1,0 +1,77 @@
+NOTICE:  database "pt3" does not exist, skipping
+== 1. precheck
+1. update_order_fields_v1 存在 | t
+2. 尚未套用：函式內容不含 pricing_template_id | t
+3. 白名單錨點剛好出現 1 次 | t
+4. set_order_change_context 呼叫剛好出現 1 次 | t
+5. orders.pricing_template_id 欄位存在且為 uuid | t
+6. 函式為 SECURITY INVOKER | t
+7. authenticated 可執行、anon 不可 | t
+a0c7c028d64f573c9626ef7375f4775f | postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres | （無） | f
+== 2. 套用
+套用成功
+== 3. postcheck
+1. 白名單已含 pricing_template_id（剛好 1 次） | t
+2. 館別檢查剛好 1 處 | t
+3. 仍為 SECURITY INVOKER | t
+4. authenticated 可執行、anon 不可 | t
+5. 異動紀錄來源設定呼叫仍在（剛好 1 次） | t
+a0c7c028d64f573c9626ef7375f4775f | postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres | （無） | f
+去掉兩處後指紋等於套用前：t
+== 4. 套用前後函式 diff
+--- /app/docs/pricing-3/localtest/def_before.sql	2026-10-20 10:53:38.377619051 +0000
++++ /app/docs/pricing-3/localtest/def_after.sql	2026-10-20 10:53:38.490619052 +0000
+@@ -6,7 +6,7 @@
+   c_allowed CONSTANT text[] := ARRAY[
+     'order_status','payment_status','order_source',
+     'order_date','confirmed_at','checked_in_at','checked_out_at','cancelled_at',
+-    'check_in_date','check_out_date','room_type_id','package_id',
++    'check_in_date','check_out_date','room_type_id','package_id','pricing_template_id',
+     'display_room_type_name','room_quantity','lock_whole_building',
+     'guest_name','guest_phone','guest_email','guest_count',
+     'adult_count','child_count','toddler_count','infant_count',
+@@ -43,6 +43,13 @@
+     END IF;
+   END IF;
+ 
++  IF nullif(p_patch->>'pricing_template_id', '') IS NOT NULL AND NOT EXISTS (
++    SELECT 1 FROM public.pricing_templates t JOIN public.orders o ON o.accommodation_id = t.accommodation_id
++    WHERE o.id = p_order_id AND t.id = (p_patch->>'pricing_template_id')::uuid
++  ) THEN
++    RAISE EXCEPTION 'PRICING_TEMPLATE_ACCOMMODATION_MISMATCH: 專案不屬於此訂單的館別 (%)', p_patch->>'pricing_template_id';
++  END IF;
++
+   PERFORM public.set_order_change_context(p_source, p_reason, NULL, 'user');
+ 
+   FOR v_key IN SELECT jsonb_object_keys(p_patch) LOOP
+== 5. 重複套用必須被擋
+PRECHECK 失敗：update_order_fields_v1 已含 pricing_template_id（是否重複套用？）
+== 6. 功能測試
+PASS | T1 本館專案＋方案一起改 | 預期 OK 1 | 實際 OK 1
+PASS | T1b 訂單欄位確實寫入 | 預期 OK c2000000-0000-0000-0000-000000000002|d2000000-0000-0000-0000-000000000002 | 實際 OK c2000000-0000-0000-0000-000000000002|d2000000-0000-0000-0000-000000000002
+PASS | T2 他館專案被拒 | 預期 ERR [P0001] PRICING_TEMPLATE_ACCOMMODATION_MISMATCH | 實際 ERR [P0001] PRICING_TEMPLATE_ACCOMMODATION_MISMATCH: 專案不屬於此訂單的館別 (d9000000-0000-0000-0000-000000000009)
+PASS | T2b 被拒後專案未變 | 預期 OK d2000000-0000-0000-0000-000000000002 | 實際 OK d2000000-0000-0000-0000-000000000002
+PASS | T3 不存在的專案被拒 | 預期 ERR [P0001] PRICING_TEMPLATE_ACCOMMODATION_MISMATCH | 實際 ERR [P0001] PRICING_TEMPLATE_ACCOMMODATION_MISMATCH: 專案不屬於此訂單的館別 (dddddddd-0000-0000-0000-000000000000)
+PASS | T4 傳 JSON null → 清空專案（不檢查） | 預期 OK 1 | 實際 OK 1
+PASS | T4b 專案已清空 | 預期 OK (null) | 實際 OK (null)
+PASS | T5 空字串被型別轉換拒絕 | 預期 ERR [22P02] | 實際 ERR [22P02] invalid input syntax for type uuid: ""
+PASS | T6 異動紀錄來源仍為 admin_order_inline_edit 且記到專案變更 | 預期 OK t | 實際 OK true
+PASS | T7 既有欄位照舊可改（只改備註） | 預期 OK 1 | 實際 OK 1
+PASS | T8 白名單外欄位照舊拒絕 | 預期 ERR [P0001] update_order_fields_v1: 欄位不在白名單內 | 實際 ERR [P0001] update_order_fields_v1: 欄位不在白名單內 (accommodation_id)
+PASS | T9 他館管理者照舊不能改本館訂單 | 預期 ERR | 實際 ERR [P0001] update_order_fields_v1: 無權限或訂單不存在
+PASS 12 / FAIL 0
+== 7. rollback
+rollback 成功
+rollback 後函式定義與套用前完全相同：t
+rollback 後內容指紋／權限／SECURITY 與套用前相同：t
+rollback 後 precheck：
+1. update_order_fields_v1 存在 | t
+2. 尚未套用：函式內容不含 pricing_template_id | t
+3. 白名單錨點剛好出現 1 次 | t
+4. set_order_change_context 呼叫剛好出現 1 次 | t
+5. orders.pricing_template_id 欄位存在且為 uuid | t
+6. 函式為 SECURITY INVOKER | t
+7. authenticated 可執行、anon 不可 | t
+== 8. 再套用＋功能測試
+再套用成功
+PASS 12 / FAIL 0

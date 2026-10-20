@@ -108,3 +108,35 @@ export function roomTemplateKey(rooms: RoomPick[]): { key: string; complete: boo
     complete: rooms.length > 0 && rooms.every((r) => !!r.room_type_id && !!r.template_id),
   };
 }
+
+export interface RoomSnapshotRow {
+  room_type_id: string;
+  template_id: string | null;
+  template_name: string | null;
+}
+
+/** 與進入編輯時的房間快照相比：房間數、任一房房型或專案有變（含原本沒有房間明細、這次新增） */
+export function roomsChangedSinceOpen(opened: RoomSnapshotRow[], current: RoomSnapshotRow[]): boolean {
+  if (opened.length !== current.length) return true;
+  const k = (r: RoomSnapshotRow) => `${r.room_type_id}|${r.template_id ?? ""}|${(r.template_name ?? "").trim()}`;
+  return opened.some((r, i) => k(r) !== k(current[i]));
+}
+
+/**
+ * 訂單詳情內嵌編輯：要不要同步 orders.package_id／pricing_template_id。
+ * 房間沒變 → null（存檔內容不含這兩個欄位）；第一間房沒有專案 → null（保留原值）。
+ */
+export function buildInlinePackageSync(params: {
+  opened: RoomSnapshotRow[];
+  current: RoomSnapshotRow[];
+  firstRoomTemplateId: string | null;
+  resolution: PackageResolution;
+  manualPick: string | null | undefined;
+}): { package_id: string | null; pricing_template_id: string } | null {
+  if (!roomsChangedSinceOpen(params.opened, params.current)) return null;
+  if (!params.firstRoomTemplateId) return null;
+  return {
+    package_id: finalPackageId(params.resolution, params.manualPick),
+    pricing_template_id: params.firstRoomTemplateId,
+  };
+}
