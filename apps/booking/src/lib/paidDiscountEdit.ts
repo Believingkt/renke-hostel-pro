@@ -231,3 +231,67 @@ export async function callUpdatePaidOrderDiscountV2(
   return data as unknown as PaidAmountRpcResult;
 }
 
+
+/* ------------------------------------------------------------------
+ * 只補記推薦碼（不改金額）：public.update_order_referral_code_v1
+ * 只送碼與原因；不帶任何金額欄位，差額處理固定「純資料校正」。
+ * ------------------------------------------------------------------ */
+
+export const REFERRAL_CODE_RPC = "update_order_referral_code_v1";
+export const REFERRAL_SETTLEMENT: SettlementHandling = "data_only";
+/** 只補記推薦碼可用的付款狀態（含已付訂金） */
+export const REFERRAL_PAYMENT_STATUSES = ["deposit_paid", "paid", "fully_paid"] as const;
+
+export function canShowReferralCodeEntry(input: PaidDiscountPermissionInput): boolean {
+  const { order, ordersLevel, currentAccommodationId } = input;
+  if (!order || ordersLevel !== "editable") return false;
+  if (!REFERRAL_PAYMENT_STATUSES.includes((order.payment_status || "").toLowerCase() as never)) return false;
+  return !!currentAccommodationId && order.accommodation_id === currentAccommodationId;
+}
+
+export interface ReferralCodeRpcInput {
+  orderId: string;
+  expectedUpdatedAt: string;
+  reason: string;
+  /** null／空字串＝移除推薦碼 */
+  discountCode: string | null;
+  confirmed: boolean;
+  riskAcknowledged?: boolean;
+}
+
+export function buildReferralCodeRpcArgs(input: ReferralCodeRpcInput): Record<string, unknown> {
+  if (!input.orderId) throw new Error("缺少訂單編號，未做任何修改");
+  if (!input.expectedUpdatedAt) throw new Error("訂單版本資訊尚未載入，請重新整理後再試");
+  if ((input.reason || "").trim().length < 2) throw new Error("請填寫修改原因");
+  if (input.confirmed !== true) throw new Error("尚未完成二次確認，未做任何修改");
+  return {
+    p_order_id: input.orderId,
+    p_expected_updated_at: input.expectedUpdatedAt,
+    p_reason: input.reason.trim(),
+    p_discount_code: (input.discountCode || "").trim().toUpperCase() || null,
+    p_confirmed: true,
+    p_risk_acknowledged: input.riskAcknowledged === true,
+  };
+}
+
+export async function callUpdateOrderReferralCode(
+  client: PaidDiscountRpcClient,
+  input: ReferralCodeRpcInput,
+): Promise<PaidAmountRpcResult & { previous_discount_code?: string | null; discount_code?: string | null }> {
+  const args = buildReferralCodeRpcArgs(input);
+  const { data, error } = await client.rpc(REFERRAL_CODE_RPC, args);
+  if (error) throw new Error(error.message || "推薦碼修改失敗");
+  return data as never;
+}
+
+/** 訂單詳情編輯中開啟金額對話框的守門：有未儲存修改就先擋 */
+export const UNSAVED_EDIT_MESSAGE = "請先儲存或取消編輯";
+
+export function paidDialogBlockReason(input: { isEditing: boolean; hasUnsavedEdits: boolean }): string | null {
+  return input.isEditing && input.hasUnsavedEdits ? UNSAVED_EDIT_MESSAGE : null;
+}
+
+/** 表單與進入編輯時的快照不同 → 有未儲存修改（快照尚未建立時視為未修改） */
+export function isEditFormDirty(baselineJson: string | null, form: unknown): boolean {
+  return baselineJson !== null && JSON.stringify(form) !== baselineJson;
+}

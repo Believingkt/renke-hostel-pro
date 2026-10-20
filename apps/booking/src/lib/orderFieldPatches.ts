@@ -61,6 +61,12 @@ export interface InlineEditPatchInput {
   originalOrderStatus: string;
 }
 
+/** 已結清訂單內嵌編輯不得送出的欄位 */
+export const SETTLED_LOCKED_FIELDS = [
+  "total_price", "discount_amount", "discount_code", "final_price", "deposit_amount", "paid_amount",
+  "pet_count", "pet_plan_price", "meal_plan_details", "meal_plan_total", "custom_addon_details",
+] as const;
+
 export function buildInlineEditPatch(input: InlineEditPatchInput): OrderFieldsPatch {
   const { order, form } = input;
 
@@ -118,6 +124,11 @@ export function buildInlineEditPatch(input: InlineEditPatchInput): OrderFieldsPa
       ? `${input.finalNotes}\n${input.auditNoteLine}`
       : input.auditNoteLine;
     updateData.notes = merged;
+  }
+
+  // 已結清（paid／fully_paid）訂單：金額、折扣、加購、訂金、尾款、已付一律不送（改走專用對話框）
+  if (isPaidOrDeposit) {
+    for (const k of SETTLED_LOCKED_FIELDS) delete updateData[k];
   }
 
   if (form.order_status !== input.originalOrderStatus) {

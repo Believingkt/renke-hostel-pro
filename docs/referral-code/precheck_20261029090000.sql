@@ -1,0 +1,16 @@
+SELECT '1. 尚未套用：update_order_referral_code_v1 不存在' AS 項目, to_regprocedure('public.update_order_referral_code_v1(uuid, timestamp with time zone, text, text, boolean, boolean)') IS NULL AS 結果
+UNION ALL SELECT '2. evaluate_discount_code 存在（20261028090000 已上線）', to_regprocedure('public.evaluate_discount_code(text, uuid, integer, uuid, date, uuid)') IS NOT NULL
+UNION ALL SELECT '3. set_order_change_context 存在', to_regprocedure('public.set_order_change_context(text, text, text, text)') IS NOT NULL
+UNION ALL SELECT '4. get_staff_module_permission 存在', to_regprocedure('public.get_staff_module_permission(uuid, uuid, text)') IS NOT NULL
+UNION ALL SELECT '5. calc_order_addon_total 存在', EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace WHERE n.nspname = 'public' AND p.proname = 'calc_order_addon_total')
+UNION ALL SELECT '6. 已結清守門觸發器 trg_prevent_immutable_order_fields 掛在 orders 上', EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgname = 'trg_prevent_immutable_order_fields' AND t.tgrelid = 'public.orders'::regclass AND NOT t.tgisinternal)
+UNION ALL SELECT '7. 佣金觸發器 create_commission_on_order_updated 掛在 orders 上', EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgname = 'create_commission_on_order_updated' AND t.tgrelid = 'public.orders'::regclass AND NOT t.tgisinternal)
+UNION ALL SELECT '8. orders.pricing_template_id 欄位存在', EXISTS (SELECT 1 FROM information_schema.columns c WHERE c.table_schema = 'public' AND c.table_name = 'orders' AND c.column_name = 'pricing_template_id')
+UNION ALL SELECT '9. 金額比對用的 21 個 orders 欄位齊全', (SELECT count(*) FROM information_schema.columns c WHERE c.table_schema = 'public' AND c.table_name = 'orders' AND c.column_name IN ('total_price', 'discount_amount', 'final_price', 'paid_amount', 'deposit_amount', 'booking_deposit_amount', 'booking_deposit_percentage', 'deposit_required_amount', 'deposit_charged_amount', 'deposit_refunded_amount', 'refunded_amount', 'refund_fee_amount', 'cancellation_fee_amount', 'pet_plan_price', 'meal_plan_total', 'meal_plan_details', 'custom_addon_details', 'notes', 'payment_status', 'deposit_status', 'order_status')) = 21
+UNION ALL SELECT '10. commission_records.settlement_status 欄位存在', EXISTS (SELECT 1 FROM information_schema.columns c WHERE c.table_schema = 'public' AND c.table_name = 'commission_records' AND c.column_name = 'settlement_status');
+
+SELECT p.proname AS 函式, md5(replace(p.prosrc, E'\r', '')) AS 指紋,
+       md5(replace(p.prosrc, E'\r', '')) = CASE p.proname WHEN 'update_paid_order_discount_v2' THEN '072ae35e8cbadaf141d3ee5cc5ff0d3f' WHEN 'prevent_immutable_order_fields_change' THEN '7ae4c310175709cc09642d3a1fe7a986' WHEN 'create_commission_record' THEN '4d20a51ca97a4e75692b363efd2d29be' WHEN 'sync_discount_code_used_count' THEN '8fa7ab81b5192361f05c941b11270f3c' WHEN 'evaluate_discount_code' THEN '2cb75f8d30f523323057e8901cec7731' WHEN 'update_order_fields_v1' THEN '281dd4b043ecf7204d331c1419be446b' WHEN 'validate_discount_code' THEN '30c2bde9ab95f1834f8efd9860c27249' END AS 與本機基準相同
+FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+WHERE n.nspname = 'public' AND p.proname IN ('update_paid_order_discount_v2', 'prevent_immutable_order_fields_change', 'create_commission_record', 'sync_discount_code_used_count', 'evaluate_discount_code', 'update_order_fields_v1', 'validate_discount_code')
+ORDER BY p.proname;

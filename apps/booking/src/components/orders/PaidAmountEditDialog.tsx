@@ -6,7 +6,8 @@
  *   加購 → public.update_paid_order_addons_v3
  * 本元件不得直接 orders.update()、不得寫 order_rooms、不得自行補寫變更紀錄，
  * 也不得送出單價／小計／倍數／pricing_mode 等任何金額欄位。
- * 折扣碼驗證只呼叫唯讀的 public.validate_discount_code。
+ * 折扣碼驗證只呼叫唯讀的 public.validate_discount_code／evaluate_discount_code。
+ * 只補記推薦碼 → public.update_order_referral_code_v1（只改碼，不送任何金額）。
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -39,6 +40,8 @@ import {
 } from "@/lib/paidAmountSettlement";
 import {
   callUpdatePaidOrderDiscountV2,
+  callUpdateOrderReferralCode,
+  REFERRAL_SETTLEMENT,
   type PaidDiscountMode,
 } from "@/lib/paidDiscountEdit";
 import {
@@ -65,7 +68,10 @@ import {
 } from "@/lib/paidAddonPlans";
 import {
   validatePaidDiscountCode,
+  checkReferralCode,
+  CODE_NOT_APPLICABLE_MESSAGE,
   type DiscountValidationState,
+  type ReferralCodeState,
 } from "@/lib/paidDiscountCodeValidation";
 
 export type PaidAmountEditMode = "discount" | "addon";
@@ -76,7 +82,11 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  /** 已付訂金訂單：只提供「只補記推薦碼（不改金額）」 */
+  referralOnly?: boolean;
 }
+
+type DialogDiscountMode = PaidDiscountMode | "referral";
 
 interface Snapshot {
   id: string;
@@ -124,7 +134,7 @@ const nightsOf = (snap: Snapshot | null): number => {
   return Math.max(1, Math.round(diff) || 1);
 };
 
-export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSuccess }: Props) {
+export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSuccess, referralOnly = false }: Props) {
   const { toast } = useToast();
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [loading, setLoading] = useState(false);
@@ -138,7 +148,11 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const [settlement, setSettlement] = useState<SettlementHandling | "">("");
 
   // 折扣欄位
-  const [discountMode, setDiscountMode] = useState<PaidDiscountMode>("manual");
+  const [discountMode, setDiscountMode] = useState<DialogDiscountMode>("manual");
+  // 只補記推薦碼
+  const [referralCode, setReferralCode] = useState("");
+  const [referralRemove, setReferralRemove] = useState(false);
+  const [referralCheck, setReferralCheck] = useState<ReferralCodeState>({ status: "idle" });
   const [discountAmountStr, setDiscountAmountStr] = useState("0");
   const [discountCode, setDiscountCode] = useState("");
   const [appliedDiscountStr, setAppliedDiscountStr] = useState("");
@@ -165,13 +179,15 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     setStep("form");
     setErrorMsg("");
     setReason("");
-    setSettlement("");
+    setSettlement(referralOnly && mode === "discount" ? REFERRAL_SETTLEMENT : "");
     setReduceAck(false);
     setRiskAck(false);
     setPriceAck(false);
     setPriceAckRequiredByServer(false);
     setPaidAmountStr("");
     setValidation({ status: "idle" });
+    setReferralCheck({ status: "idle" });
+    setReferralRemove(false);
     setScopeError("");
     setPlanRows([]);
     setQuantities({});
@@ -195,7 +211,8 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
       setDiscountAmountStr(String(Number(s.discount_amount ?? 0)));
       setDiscountCode(s.discount_code || "");
       setAppliedDiscountStr(String(Number(s.discount_amount ?? 0)));
-      setDiscountMode(s.discount_code ? "code" : "manual");
+      setDiscountMode(referralOnly ? "referral" : s.discount_code ? "code" : "manual");
+      setReferralCode(s.discount_code || "");
       setOnsiteAmountStr(String(extraOnSiteAddonFromNotes(s.notes)));
       setOnsiteNote(onsiteNoteFromNotes(s.notes));
 
@@ -220,7 +237,7 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     return () => {
       cancelled = true;
     };
-  }, [open, orderId]);
+  }, [open, orderId, referralOnly]);
 
   const oldDiscount = Number(snap?.discount_amount ?? 0);
   const oldCode = (snap?.discount_code || "").toUpperCase() || null;
@@ -245,6 +262,17 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [discountCode, discountMode]);
 
+  const isReferral = mode === "discount" && discountMode === "referral";
+  // 推薦碼輸入改變 → 檢查結果失效
+  useEffect(() => {
+    setReferralCheck((v) => (v.status === "validating" ? v : { status: "idle" }));
+  }, [referralCode, referralRemove]);
+  // 只補記推薦碼：差額處理固定「純資料校正」並鎖定；切回其他方式時清空
+  useEffect(() => {
+    if (mode !== "discount") return;
+    setSettlement(isReferral ? REFERRAL_SETTLEMENT : "");
+  }, [isReferral, mode]);
+
   const validatedStandard = validation.status === "valid" ? validation.standardAmount : null;
   const usesCode = discountMode === "code" || discountMode === "code_override";
   // V5.5C5 code_keep：與訂單現有折扣碼相同 → 沿用原碼、不重新驗證，只調整金額
@@ -256,10 +284,12 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     ? keepExistingCode || codeOverridden
       ? "code_override"
       : "code"
-    : discountMode;
+    : (discountMode as PaidDiscountMode);
 
-  const previewDiscount =
-    discountMode === "none"
+  const referralNewCode = referralRemove ? null : (referralCode || "").trim().toUpperCase() || null;
+  const previewDiscount = isReferral
+    ? oldDiscount
+    : discountMode === "none"
       ? 0
       : discountMode === "manual"
         ? newDiscountInput
@@ -270,7 +300,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
               ? appliedDiscountInput
               : validatedStandard
             : oldDiscount;
-  const previewCode = usesCode ? (discountCode || "").trim().toUpperCase() || null : null;
+  const previewCode = isReferral
+    ? referralNewCode
+    : usesCode ? (discountCode || "").trim().toUpperCase() || null : null;
 
   // 加購預估（顯示用；實際金額由後端計算）
   const estimatedDetails = useMemo(
@@ -314,14 +346,19 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
   const isNoop =
     mode === "addon"
       ? !notesChanged && !planChanged && newPaidInput == null
+      : isReferral
+        ? previewCode === oldCode
       : usesCode
         ? previewCode === oldCode && previewDiscount === oldDiscount
         : previewDiscount === oldDiscount && oldCode === null;
 
   const reasonOk = reason.trim().length >= 2;
   const settlementOk = settlement !== "";
-  const codeReady =
-    mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
+  const codeReady = isReferral
+    ? referralRemove
+      ? !!oldCode
+      : referralCheck.status === "ok" && referralCheck.code === referralNewCode
+    : mode !== "discount" || !usesCode || keepExistingCode || validation.status === "valid";
   const canProceed = !!snap && reasonOk && settlementOk && !isNoop && codeReady;
   const canConfirm =
     canProceed &&
@@ -330,7 +367,23 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     (!showPriceAck || priceAck) &&
     !saving;
 
-  const title = mode === "discount" ? "修改已結清折扣" : "修改額外加購";
+  const title = mode === "discount" ? (referralOnly ? "補記推薦碼" : "修改已結清折扣") : "修改額外加購";
+
+  const handleCheckReferral = async () => {
+    if (!snap?.accommodation_id || !referralNewCode) return;
+    setReferralCheck({ status: "validating" });
+    const scope = await getOrderDiscountScope(snap.id, snap.room_type_id);
+    setReferralCheck(
+      await checkReferralCode(supabase as any, {
+        code: referralNewCode,
+        accommodationId: snap.accommodation_id,
+        roomFee,
+        roomTypeId: scope.roomTypeId,
+        checkInDate: snap.check_in_date,
+        pricingTemplateId: scope.templateId,
+      }),
+    );
+  };
 
   const handleValidateCode = async () => {
     if (!snap?.accommodation_id) return;
@@ -389,7 +442,26 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
     setErrorMsg("");
     try {
       let result: PaidAmountRpcResult;
-      if (mode === "discount") {
+      if (isReferral) {
+        result = await callUpdateOrderReferralCode(supabase as any, {
+          orderId: snap.id,
+          expectedUpdatedAt: snap.updated_at,
+          reason,
+          discountCode: referralNewCode,
+          confirmed: true,
+          riskAcknowledged: riskAck,
+        });
+        if (result?.changed) {
+          // 比照訂單詳情一般編輯：通知 kol-webhook（帶舊碼）
+          try {
+            await supabase.functions.invoke("kol-webhook", {
+              body: { order_id: snap.id, trigger_type: "update", previous_discount_code: oldCode },
+            });
+          } catch (e) {
+            console.error("kol-webhook invoke (referral) error:", e);
+          }
+        }
+      } else if (mode === "discount") {
         result = await callUpdatePaidOrderDiscountV2(supabase as any, {
           orderId: snap.id,
           expectedUpdatedAt: snap.updated_at,
@@ -428,7 +500,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
         toast({
           title: "已儲存",
           description:
-            mode === "discount"
+            isReferral
+              ? `推薦碼已更新（金額未變更），應收金額 ${NT(result.final_price)}`
+              : mode === "discount"
               ? `折扣已更新，應收金額 ${NT(result.final_price)}`
               : `加購已更新，應收金額 ${NT(result.final_price)}`,
         });
@@ -494,16 +568,20 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                 <Label className="text-sm">折扣方式</Label>
                 <RadioGroup
                   value={usesCode ? "code" : discountMode}
-                  onValueChange={(v) => setDiscountMode(v as PaidDiscountMode)}
+                  onValueChange={(v) => setDiscountMode(v as DialogDiscountMode)}
                   className="grid gap-2"
                 >
-                  {[
-                    { v: "manual", l: "手動折扣金額" },
-                    { v: "code", l: "使用折扣碼" },
-                    { v: "none", l: "取消折扣" },
-                  ].map((o) => (
+                  {(referralOnly
+                    ? [{ v: "referral", l: "只補記推薦碼（不改金額）" }]
+                    : [
+                        { v: "manual", l: "手動折扣金額" },
+                        { v: "code", l: "使用折扣碼" },
+                        { v: "none", l: "取消折扣" },
+                        { v: "referral", l: "只補記推薦碼（不改金額）" },
+                      ]
+                  ).map((o) => (
                     <div key={o.v} className="flex items-center gap-2">
-                      <RadioGroupItem value={o.v} id={`dmode-${o.v}`} />
+                      <RadioGroupItem value={o.v} id={`dmode-${o.v}`} data-testid={`paid-discount-mode-${o.v}`} />
                       <Label htmlFor={`dmode-${o.v}`} className="text-sm font-normal">{o.l}</Label>
                     </div>
                   ))}
@@ -522,6 +600,57 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                       ⚠️ 送出後會清空此訂單的折扣碼，並連帶刪除這筆訂單既有的分潤／業績歸屬記錄。
                       若此訂單靠網紅／通路折扣碼歸戶業績，請先確認可接受再送出。
                     </p>
+                  </div>
+                )}
+                {isReferral && (
+                  <div className="space-y-2" data-testid="referral-code-section">
+                    <p className="text-xs text-muted-foreground">
+                      只寫入推薦碼供網紅業績／佣金計算；折扣金額、應收、已付、訂金、尾款、加購全部不變。
+                    </p>
+                    {oldCode && (
+                      <label className="flex items-center gap-2">
+                        <Checkbox
+                          checked={referralRemove}
+                          onCheckedChange={(v) => setReferralRemove(v === true)}
+                          data-testid="referral-code-remove"
+                        />
+                        <span className="text-sm">移除推薦碼（目前：{oldCode}）</span>
+                      </label>
+                    )}
+                    {!referralRemove && (
+                      <>
+                        <Label className="text-sm" htmlFor="referral-code-input">推薦碼</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="referral-code-input"
+                            data-testid="referral-code-input"
+                            className="h-11 text-base md:h-9 md:text-sm uppercase"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="h-11 md:h-9 flex-shrink-0"
+                            data-testid="referral-code-check-btn"
+                            disabled={referralCheck.status === "validating" || !referralNewCode || referralNewCode === oldCode}
+                            onClick={handleCheckReferral}
+                          >
+                            {referralCheck.status === "validating" ? "檢查中..." : "檢查推薦碼"}
+                          </Button>
+                        </div>
+                        {referralCheck.status === "ok" && (
+                          <p className="text-xs text-emerald-600" data-testid="referral-code-ok">
+                            {referralCheck.evaluation === "applied"
+                              ? "推薦碼有效，將只記錄推薦碼，折扣金額不變。"
+                              : "此碼不適用此方案的折扣，將只記錄推薦碼供業績計算，折扣金額不變。"}
+                          </p>
+                        )}
+                        {referralCheck.status === "invalid" && (
+                          <p className="text-xs text-destructive" data-testid="referral-code-error">{referralCheck.message}</p>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
                 {discountMode === "none" && (
@@ -576,7 +705,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                           <p className="text-xs text-muted-foreground">尚未驗證，請先驗證折扣碼。</p>
                         )}
                         {validation.status === "invalid" && (
-                          <p className="text-xs text-destructive">折扣碼無效：{validation.message}</p>
+                          <p className="text-xs text-destructive" data-testid="paid-discount-code-error">
+                            {validation.message === CODE_NOT_APPLICABLE_MESSAGE ? validation.message : `折扣碼無效：${validation.message}`}
+                          </p>
                         )}
                         {validation.status === "valid" && (
                           <>
@@ -727,6 +858,8 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                 value={settlement}
                 onValueChange={(v) => setSettlement(v as SettlementHandling)}
                 className="grid gap-2"
+                disabled={isReferral}
+                data-testid="paid-settlement-group"
               >
                 {SETTLEMENT_OPTIONS.map((o) => (
                   <div key={o.value} className="flex items-center gap-2">
@@ -760,6 +893,9 @@ export function PaidAmountEditDialog({ orderId, mode, open, onOpenChange, onSucc
                     </div>
                   )}
                   <Row label="實際套用折扣" before={NT(oldDiscount)} after={NT(previewDiscount)} />
+                  {isReferral && (
+                    <p className="text-xs text-amber-600" data-testid="referral-confirm-note">只補記推薦碼：所有金額維持不變（純資料校正）</p>
+                  )}
                   {keepExistingCode ? (
                     <p className="text-xs text-amber-600">已沿用原折扣碼並人工指定折扣金額（模式：code_keep）</p>
                   ) : codeOverridden ? (

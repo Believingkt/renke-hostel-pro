@@ -13,6 +13,11 @@
  */
 export const DISCOUNT_CODE_OVERRIDE_RPC_SUPPORTED = true;
 
+import { evaluateDiscountCode, type DiscountEvalStatus } from "@lakeze/shared/utils/discountEvaluation";
+
+/** 「使用折扣碼」遇到有效但不適用此方案的碼 */
+export const CODE_NOT_APPLICABLE_MESSAGE = "此碼不適用此方案的折扣，如需記錄網紅業績請改用『只補記推薦碼』";
+
 
 export type DiscountValidationState =
   | { status: "idle" }
@@ -63,6 +68,15 @@ export async function validatePaidDiscountCode(
   if (error) return { status: "invalid", code, message: error.message || "折扣碼驗證失敗" };
   const row = Array.isArray(data) ? (data[0] as any) : (data as any);
   if (!row || row.is_valid !== true) {
+    const ev = await evaluateDiscountCode((fn, args) => client.rpc(fn, args), {
+      code,
+      accommodationId: input.accommodationId,
+      orderAmount: Math.max(0, Math.trunc(input.roomFee)),
+      roomTypeId: input.roomTypeId,
+      checkInDate: input.checkInDate,
+      pricingTemplateId: input.pricingTemplateId,
+    });
+    if (ev?.status === "not_applicable") return { status: "invalid", code, message: CODE_NOT_APPLICABLE_MESSAGE };
     return { status: "invalid", code, message: row?.message || "折扣碼無效" };
   }
   return {
@@ -72,4 +86,27 @@ export async function validatePaidDiscountCode(
     standardAmount: standardDiscountAmount(row.discount_type, row.discount_value, input.roomFee),
     message: String(row.message ?? "折扣碼有效"),
   };
+}
+
+export type ReferralCodeState =
+  | { status: "idle" }
+  | { status: "validating" }
+  | { status: "ok"; code: string; evaluation: Exclude<DiscountEvalStatus, "invalid"> }
+  | { status: "invalid"; code: string; message: string };
+
+/** 只補記推薦碼：applied／not_applicable 都可補記，invalid 一律「折扣碼無效」（唯讀） */
+export async function checkReferralCode(client: RpcClient, input: ValidateInput): Promise<ReferralCodeState> {
+  const code = (input.code || "").trim().toUpperCase();
+  if (!code) return { status: "invalid", code, message: "請輸入折扣碼" };
+  const ev = await evaluateDiscountCode((fn, args) => client.rpc(fn, args), {
+    code,
+    accommodationId: input.accommodationId,
+    orderAmount: Math.max(0, Math.trunc(input.roomFee)),
+    roomTypeId: input.roomTypeId,
+    checkInDate: input.checkInDate,
+    pricingTemplateId: input.pricingTemplateId,
+  });
+  if (!ev) return { status: "invalid", code, message: "折扣碼驗證失敗，請稍後再試" };
+  if (ev.status === "invalid") return { status: "invalid", code, message: "折扣碼無效" };
+  return { status: "ok", code, evaluation: ev.status };
 }

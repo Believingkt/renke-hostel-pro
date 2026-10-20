@@ -69,7 +69,7 @@ import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions"
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
 import { PaidAmountEditDialog, type PaidAmountEditMode } from "@/components/orders/PaidAmountEditDialog";
 import { canEditPaidAddon, isPaidAddonFlowOrder } from "@/lib/paidAddonEdit";
-import { canShowPaidDiscountEntry } from "@/lib/paidDiscountEdit";
+import { canShowPaidDiscountEntry, canShowReferralCodeEntry, paidDialogBlockReason, isEditFormDirty, isSettledPaymentStatus } from "@/lib/paidDiscountEdit";
 import { getAtmTransferAmount, getAtmDepositPercent, isAtmExpired } from "@lakeze/shared/lib/atmPayment";
 import { resolveAddonSetting } from "@/lib/addonAliases";
 import {
@@ -616,6 +616,15 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     [editOrderRooms, allTemplates],
   );
   const editRoomsChanged = isEditing && roomsChangedSinceOpen(openedRoomsRef.current, editOrderRooms);
+  // 進入編輯、初始同步完成後的表單快照，用來判斷是否有未儲存修改
+  const editBaselineRef = useRef<string | null>(null);
+  const editFormLatestRef = useRef(editForm);
+  editFormLatestRef.current = editForm;
+  useEffect(() => {
+    if (!isEditing) { editBaselineRef.current = null; return; }
+    const t = setTimeout(() => { editBaselineRef.current = JSON.stringify(editFormLatestRef.current); }, 400);
+    return () => clearTimeout(t);
+  }, [isEditing]);
   const editPackageResolution = useMemo(
     () => resolveOrderPackage({ rooms: editRoomPicks, templates: allTemplates as any, packages: accommodationPackages, hasChannel: packageChannel.showPackageField }),
     [editRoomPicks, allTemplates, accommodationPackages, packageChannel.showPackageField],
@@ -2259,6 +2268,27 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
     currentAccommodationId,
     order: order as any,
   });
+  // 已付訂金訂單：只開放「只補記推薦碼（不改金額）」
+  const showReferralOnlyEntry = !showPaidDiscountEntry && canShowReferralCodeEntry({
+    ordersLevel: getModuleLevel("orders"),
+    currentAccommodationId,
+    order: order as any,
+  });
+  // 已結清（paid／fully_paid）訂單在編輯模式下所有金額欄位唯讀；存檔 payload 亦不帶金額欄位
+  const settledAmountLocked = isSettledPaymentStatus(order.payment_status);
+  const hasUnsavedEdits = isEditing && (
+    editRoomsChanged ||
+    editPackagePick !== ((order as any).package_id || "") ||
+    isEditFormDirty(editBaselineRef.current, editForm)
+  );
+  const openPaidAmountDialog = (m: PaidAmountEditMode) => {
+    const blocked = paidDialogBlockReason({ isEditing, hasUnsavedEdits });
+    if (blocked) {
+      toast({ title: blocked, description: "編輯中有尚未儲存的修改，請先儲存或取消編輯後再開啟。", variant: "destructive" });
+      return;
+    }
+    setPaidAmountDialogMode(m);
+  };
   const showPaidAddonEntry =
     canUsePaidAmountDialogs && canEditPaidAddon({
       ordersLevel: getModuleLevel("orders"),
@@ -3388,22 +3418,34 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           <CardHeader className="pb-3">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="text-lg md:text-lg">價格明細</CardTitle>
-              {(showPaidDiscountEntry || showPaidAddonEntry) && !isEditing && (
+              {(showPaidDiscountEntry || showPaidAddonEntry || showReferralOnlyEntry) && (
                 <div className="flex flex-col gap-2 w-full sm:w-auto sm:flex-row">
                   {showPaidDiscountEntry && (
                     <Button
                       variant="outline"
                       className="h-11 w-full sm:h-9 sm:w-auto text-sm"
-                      onClick={() => setPaidAmountDialogMode("discount")}
+                      data-testid="paid-discount-entry-btn"
+                      onClick={() => openPaidAmountDialog("discount")}
                     >
                       修改已結清折扣
+                    </Button>
+                  )}
+                  {showReferralOnlyEntry && (
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full sm:h-9 sm:w-auto text-sm"
+                      data-testid="referral-code-entry-btn"
+                      onClick={() => openPaidAmountDialog("discount")}
+                    >
+                      補記推薦碼
                     </Button>
                   )}
                   {showPaidAddonEntry && (
                     <Button
                       variant="outline"
                       className="h-11 w-full sm:h-9 sm:w-auto text-sm"
-                      onClick={() => setPaidAmountDialogMode("addon")}
+                      data-testid="paid-addon-entry-btn"
+                      onClick={() => openPaidAmountDialog("addon")}
                     >
                       修改額外加購
                     </Button>
@@ -3463,7 +3505,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">原始金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={!isSuperAdmin && ["paid", "fully_paid"].includes(order.payment_status)} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={settledAmountLocked} value={editForm.total_price} onChange={(v) => setEditForm(f => ({ ...f, total_price: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base">{orderCurrencyPrefix} {displayTotal.toLocaleString()}</span>
                     )}
@@ -3476,7 +3518,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
             <div className="flex justify-between items-center gap-2">
               <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣金額</span>
               {isEditing ? (
-                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
+                <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={settledAmountLocked} value={editForm.discount_amount} onChange={(v) => setEditForm(f => ({ ...f, discount_amount: v }))} />
               ) : (
                 order.discount_amount > 0 ? (
                   <span className="font-medium text-base md:text-base text-destructive">- {orderCurrencyPrefix} {order.discount_amount.toLocaleString()}</span>
@@ -3489,7 +3531,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
               <div className="flex justify-between items-center gap-2">
                 <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">折扣碼</span>
                 {isEditing ? (
-                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={["paid", "fully_paid"].includes(order.payment_status) && !INLINE_PAID_DISCOUNT_EDITABLE} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); setDiscountCodeNote(""); }} />
+                  <Input className="w-[140px] h-10 text-base md:h-8 md:text-sm text-right uppercase" type="text" placeholder="選填" disabled={settledAmountLocked} value={editForm.discount_code} onChange={(e) => { setEditForm(f => ({ ...f, discount_code: e.target.value.toUpperCase() })); setDiscountCodeError(""); setDiscountCodeNote(""); }} />
                 ) : (
                   order.discount_code ? (
                     <Badge variant="outline" className="text-xs">{order.discount_code}</Badge>
@@ -3634,7 +3676,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                     const paid = isEditing ? editForm.paid_amount : (order.paid_amount ?? 0);
                     const depositPaid = order.payment_status === 'deposit_paid' || order.payment_status === 'paid' || (paid >= dep && dep > 0);
                     const balancePaid = order.payment_status === 'paid' || paid >= finalDisplay;
-                    const canEditSplit = isEditing;
+                    const canEditSplit = isEditing && !settledAmountLocked;
                     const balance = Math.max(0, finalDisplay - dep);
                     return (
                       <>
@@ -3703,7 +3745,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm md:text-sm text-muted-foreground flex-shrink-0">已付金額</span>
                     {isEditing ? (
-                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
+                      <DualCurrencyInput config={secondaryCurrencyConfig} rawMode={!!secondaryCurrencyConfig} storageKey={order.accommodation_id} forcedMode={currencyForcedMode} onModeChange={handleCurrencyModeChange} hideToggle={!!secondaryCurrencyConfig} className="w-[150px]" inputClassName="h-10 text-base md:h-8 md:text-sm" disabled={settledAmountLocked} value={editForm.paid_amount} onChange={(v) => setEditForm(f => ({ ...f, paid_amount: v }))} />
                     ) : (
                       <span className="font-medium text-base md:text-base text-primary">{orderCurrencyPrefix} {order.paid_amount.toLocaleString()}</span>
                     )}
@@ -3827,7 +3869,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
         </CardHeader>
         <CardContent className="space-y-3">
           {isEditing ? (
-            <>
+            <fieldset disabled={settledAmountLocked} className="contents" data-testid="order-edit-addon-fieldset">
               {/* 寵物方案 - 編輯模式 */}
               {(() => {
                 const petAddon = addonSettings.find(a => a.addon_type === 'pet');
@@ -3970,7 +4012,7 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
                   <p className="text-sm md:text-sm text-muted-foreground">無可用的加購方案</p>
                 </div>
               )}
-            </>
+            </fieldset>
           ) : (
             <>
               {(() => {
@@ -4136,7 +4178,8 @@ const OrderDetailPage = ({ orderId: orderIdProp, embedded = false, onClose }: Or
           mode={paidAmountDialogMode ?? "discount"}
           open={paidAmountDialogMode !== null}
           onOpenChange={(v) => { if (!v) setPaidAmountDialogMode(null); }}
-          onSuccess={() => { fetchOrder(); }}
+          referralOnly={!showPaidDiscountEntry && showReferralOnlyEntry}
+          onSuccess={() => { if (isEditing) setIsEditing(false); fetchOrder(); }}
         />
       )}
 

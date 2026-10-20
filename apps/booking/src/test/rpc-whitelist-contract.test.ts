@@ -236,10 +236,10 @@ describe("update_order_fields_v1 呼叫端欄位契約", () => {
 });
 
 describe("抽取後條件邏輯未改變", () => {
-  it("已結清訂單不得帶入 discount_amount，且 discount_code 沿用原值", () => {
+  it("已結清訂單不得帶入 discount_amount／discount_code（改走專用對話框）", () => {
     const p = buildInlineEditPatch({ ...inlineBase, order: { ...inlineOrder, payment_status: "paid", discount_code: "OLD" } });
     expect("discount_amount" in p).toBe(false);
-    expect(p.discount_code).toBe("OLD");
+    expect("discount_code" in p).toBe(false);
   });
   it("金額完全未動時不帶 final_price", () => {
     const p = buildInlineEditPatch({ ...inlineBase, savedTotalPrice: 10000, editFinalPriceCalc: 10000 });

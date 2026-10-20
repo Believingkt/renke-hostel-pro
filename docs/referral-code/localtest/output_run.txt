@@ -1,0 +1,90 @@
+== 0. 對齊正式庫：已套用 20261028090000
+== 1. precheck
+1. 尚未套用：update_order_referral_code_v1 不存在 | t
+2. evaluate_discount_code 存在（20261028090000 已上線） | t
+3. set_order_change_context 存在 | t
+4. get_staff_module_permission 存在 | t
+5. calc_order_addon_total 存在 | t
+6. 已結清守門觸發器 trg_prevent_immutable_order_fields 掛在 orders 上 | t
+7. 佣金觸發器 create_commission_on_order_updated 掛在 orders 上 | t
+8. orders.pricing_template_id 欄位存在 | t
+9. 金額比對用的 21 個 orders 欄位齊全 | t
+10. commission_records.settlement_status 欄位存在 | t
+create_commission_record | 4d20a51ca97a4e75692b363efd2d29be | t
+evaluate_discount_code | 2cb75f8d30f523323057e8901cec7731 | t
+prevent_immutable_order_fields_change | 7ae4c310175709cc09642d3a1fe7a986 | t
+sync_discount_code_used_count | 8fa7ab81b5192361f05c941b11270f3c | t
+update_order_fields_v1 | 281dd4b043ecf7204d331c1419be446b | t
+update_paid_order_discount_v2 | 072ae35e8cbadaf141d3ee5cc5ff0d3f | t
+validate_discount_code | 30c2bde9ab95f1834f8efd9860c27249 | t
+== 2. 套用
+套用成功
+== 3. postcheck
+1. update_order_referral_code_v1 存在、SECURITY DEFINER、固定 search_path | t
+2. authenticated、service_role 可執行 | t
+3. anon、PUBLIC 不在授權清單 | t
+4. 函式只寫 discount_code（UPDATE 段沒有其他欄位） | t
+5. 內含金額欄位前後比對與回滾 | t
+6. 用 evaluate_discount_code 判斷、佣金已撥付防護 | t
+7. 已結清守門觸發器仍掛在 orders 上 | t
+8. 佣金觸發器仍掛在 orders 上 | t
+create_commission_record | 4d20a51ca97a4e75692b363efd2d29be | t
+evaluate_discount_code | 2cb75f8d30f523323057e8901cec7731 | t
+prevent_immutable_order_fields_change | 7ae4c310175709cc09642d3a1fe7a986 | t
+sync_discount_code_used_count | 8fa7ab81b5192361f05c941b11270f3c | t
+update_order_fields_v1 | 281dd4b043ecf7204d331c1419be446b | t
+update_paid_order_discount_v2 | 072ae35e8cbadaf141d3ee5cc5ff0d3f | t
+validate_discount_code | 30c2bde9ab95f1834f8efd9860c27249 | t
+be51aab51dfb6ea9dba23c24e74cf886
+public 所有既有函式（排除新函式）指紋與套用前相同：t
+orders 觸發器定義與套用前相同：t
+== 4. 重複套用必須被擋
+PRECHECK 失敗：update_order_referral_code_v1 已存在（是否重複套用？）
+== 5. 功能測試
+PASS R1 已付全額＋手動折扣：補記適用碼 RA
+PASS R1a 只寫碼，金額全不變
+PASS R1b 佣金紀錄建立（pending，10%×實收 10000）
+PASS R1c 使用次數：手動折扣 2000＋補記碼 → 計入
+PASS R1d 異動紀錄：舊碼、新碼、原因、操作者、data_only
+PASS R2 替換成不適用碼 RNA（not_applicable 也可）
+PASS R2a 金額全不變
+PASS R2b 佣金紀錄改掛新碼（5%）
+PASS R2c 使用次數：舊碼 RA 歸 0、新碼 RNA 計 1
+PASS R2d 異動紀錄舊碼→新碼
+PASS R3 過期碼 → 折扣碼無效
+PASS R3a 停用碼 → 折扣碼無效
+PASS R3b 不存在 → 折扣碼無效
+PASS R3c 無效時資料不變
+PASS R4 移除推薦碼
+PASS R4a 金額全不變
+PASS R4b 佣金紀錄刪除
+PASS R4c RNA 使用次數歸 0
+PASS R5 已付訂金也可補記（not_applicable）
+PASS R5a 金額全不變
+PASS R5b 佣金紀錄建立
+PASS R5c 折扣 0 → 使用次數不計
+PASS R6 未付款訂單 → 拒絕
+PASS R7 已取消：未勾高風險 → 拒絕
+PASS R7a 已取消：勾高風險仍不可替換
+PASS R7b 已取消：可移除
+PASS R8 佣金已撥付 → 不可替換
+PASS R8a 佣金已撥付 → 不可移除
+PASS R8b 已撥付佣金紀錄不變
+PASS R9 無訂單編輯權限 → 拒絕
+PASS R10 版本過期 → 拒絕
+PASS R11 原因空白 → 拒絕
+PASS R12 同一碼 → 不變更
+PASS R13 anon 無執行權限
+PASS R14 同次更新被改金額 → 拒絕
+PASS R14a 回滾後碼與金額都沒變
+PASS R15 已結清直接 UPDATE discount_code → 拒絕
+PASS 37 / FAIL 0
+== 6. rollback
+rollback 成功
+rollback 後新函式不存在：t
+rollback 後 public 函式指紋與套用前相同：t
+rollback 後 precheck：
+1. 尚未套用：update_order_referral_code_v1 不存在 | t
+== 7. 再套用＋功能測試
+再套用成功
+PASS 37 / FAIL 0
