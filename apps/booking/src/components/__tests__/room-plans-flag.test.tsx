@@ -47,7 +47,13 @@ vi.mock("@/lib/owltingPackageRequirement", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => ({
   supabase: {
-    from: (table: string) => ({
+    from: (table: string) => (["package_seasons", "pricing_template_groups", "pricing_template_group_members"].includes(table)) ? (() => {
+      // 第 2 批新卡片（季節區段、專案群組）讀的表：回空
+      const b: any = {};
+      for (const m of ["select", "eq", "order"]) b[m] = () => b;
+      b.then = (res: any) => Promise.resolve({ data: [], error: null }).then(res);
+      return b;
+    })() : ({
       select: () => ({
         eq: () => {
           const p: any = Promise.resolve({ data: TPLS, error: null });

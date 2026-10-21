@@ -8,6 +8,8 @@ import { AdminPageHeader } from "@lakeze/shared/components/AdminPageHeader";
 import { BedDouble } from "lucide-react";
 import { getAccommodationChannel } from "@/lib/owltingPackageRequirement";
 import { PackageTierCard, type RoomPlanPackage } from "@/components/room-plans/PackageTierCard";
+import { PackageSeasonsCard } from "@/components/pricing/PackageSeasonsCard";
+import { PricingTemplateGroupsCard } from "@/components/pricing/PricingTemplateGroupsCard";
 
 export default function RoomPlans() {
   const { currentAccommodationId } = useAccommodation();
@@ -67,16 +69,19 @@ export default function RoomPlans() {
       )}
       <p className="text-sm text-muted-foreground" data-testid="room-plans-ota-notice">OTA 售價請到 OwlNest／旭海後台調整</p>
       {packages.map((pkg) => (
-        <PackageTierCard
-          key={pkg.id}
-          pkg={pkg}
-          syncEnabled={flags.priceSyncMode === "package_original"}
-          syncTemplateNames={templates.filter((t) => t.default_package_id === pkg.id).map((t) => t.template_name)}
-          canEdit={canSavePrices}
-          packagesLink={withPrefix("/admin/packages")}
-          onSaved={load}
-        />
+        <div key={pkg.id} className="space-y-2">
+          <PackageTierCard
+            pkg={pkg}
+            syncEnabled={flags.priceSyncMode === "package_original"}
+            syncTemplateNames={templates.filter((t) => t.default_package_id === pkg.id).map((t) => t.template_name)}
+            canEdit={canSavePrices}
+            packagesLink={withPrefix("/admin/packages")}
+            onSaved={load}
+          />
+          <PackageSeasonsCard pkg={pkg} canEdit={canSavePrices} onChanged={load} />
+        </div>
       ))}
+      {currentAccommodationId && <PricingTemplateGroupsCard accommodationId={currentAccommodationId} canEdit={canSavePrices} />}
     </div>
   );
 }

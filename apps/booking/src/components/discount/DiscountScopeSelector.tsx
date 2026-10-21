@@ -18,6 +18,8 @@ interface Props {
   onChangeTemplates: (next: string[]) => void;
   idPrefix: string;
   scrollable?: boolean;
+  /** 綁定專案群組時唯讀：適用專案由群組自動同步 */
+  readOnly?: boolean;
 }
 
 /**
@@ -35,6 +37,7 @@ export function DiscountScopeSelector({
   onChangeTemplates,
   idPrefix,
   scrollable = false,
+  readOnly = false,
 }: Props) {
   const isTemplate = mode === "pricing_template";
   const options = isTemplate ? pricingTemplates : roomTypes;
@@ -71,7 +74,9 @@ export function DiscountScopeSelector({
             <Checkbox
               id={`${idPrefix}-${opt.id}`}
               checked={selected.includes(opt.id)}
+              disabled={readOnly}
               onCheckedChange={(checked) => toggle(opt.id, !!checked)}
+              data-testid={`${idPrefix}-scope-${opt.id}`}
               className="h-5 w-5 touch-manipulation"
             />
             <Label htmlFor={`${idPrefix}-${opt.id}`} className="text-sm font-normal cursor-pointer">
@@ -80,6 +85,9 @@ export function DiscountScopeSelector({
           </div>
         ))}
       </div>
+      {readOnly && (
+        <p className="text-xs text-amber-700" data-testid={`${idPrefix}-scope-readonly`}>由專案群組自動同步</p>
+      )}
       {isTemplate && (
         <p className="text-xs text-muted-foreground">
           此館別以「房價價格設定（房價方案）」判斷折扣碼適用範圍。

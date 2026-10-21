@@ -50,6 +50,7 @@ import { PortalFeatureTagsSection } from "@/components/website-content/PortalFea
 import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
 import { cleanTierPricesForSave } from "@/lib/packageTierPayload";
 import { splitRoomTypeIds, needsAllRoomsConfirm } from "@/lib/roomTypeBinding";
+import { checkRequiredOriginals } from "@/lib/packageOriginalRequired";
 import { DeletedRoomTypeChips, AllRoomTypesConfirmDialog } from "@/components/RoomTypeBindingGuard";
 import {
   DEFAULT_CHILD_AGE_RULES,
@@ -146,6 +147,7 @@ const AdminPackages = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [allRoomsConfirmOpen, setAllRoomsConfirmOpen] = useState(false);
+  const [originalCheck, setOriginalCheck] = useState<{ badTiers: string[]; packageOriginalBad: boolean }>({ badTiers: [], packageOriginalBad: false });
 
   // 搜尋結果圖卡顯示設定
   const [cardSettings, setCardSettings] = useState({
@@ -394,6 +396,7 @@ const AdminPackages = () => {
 
   const openCreate = useCallback(() => {
     setEditing(null);
+    setOriginalCheck({ badTiers: [], packageOriginalBad: false });
     setForm({
       ...emptyForm(),
       display_order: (packages[packages.length - 1]?.display_order ?? 0) + 1,
@@ -403,6 +406,7 @@ const AdminPackages = () => {
 
   const openEdit = (pkg: AccommodationPackage) => {
     setEditing(pkg);
+    setOriginalCheck({ badTiers: [], packageOriginalBad: false });
     setForm({
       name: pkg.name,
       subtitle: pkg.subtitle ?? "",
@@ -502,6 +506,15 @@ const AdminPackages = () => {
     if (!Number.isInteger(form.included_guest_count) || form.included_guest_count <= 0) {
       toast({ title: "請輸入正確的「方案價格包含人數」", variant: "destructive" });
       return;
+    }
+    // 新價格頁館別：可編輯價格時，已啟用層級與方案原價必填、> 0、不得低於售價
+    if (priceFlags.newPriceUiEnabled && !lockPrices) {
+      const chk = checkRequiredOriginals(form);
+      setOriginalCheck({ badTiers: chk.badTiers, packageOriginalBad: chk.packageOriginalBad });
+      if (chk.errors.length > 0) {
+        toast({ title: "請補齊原價", description: chk.errors.join("；"), variant: "destructive" });
+        return;
+      }
     }
     // 存檔前過濾掉不屬於本館現有房型的 id（已刪除房型）
     const isYx = currentAccommodationId === YUNXIU_ACCOMMODATION_ID;
@@ -1018,11 +1031,14 @@ const AdminPackages = () => {
             )}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>原價（選填，劃掉用）</Label>
+                <Label>{priceFlags.newPriceUiEnabled && !lockPrices ? "原價 *" : "原價（選填，劃掉用）"}</Label>
                 <Input
                   type="number"
                   min={0}
                   disabled={lockPrices}
+                  aria-invalid={originalCheck.packageOriginalBad || undefined}
+                  className={originalCheck.packageOriginalBad ? "border-destructive" : undefined}
+                  data-testid="package-original-price"
                   value={form.original_price ?? ""}
                   onChange={(e) =>
                     setForm({
@@ -1099,8 +1115,11 @@ const AdminPackages = () => {
                           <Input
                             type="number"
                             min={0}
-                            placeholder="原價（選填）"
+                            placeholder={priceFlags.newPriceUiEnabled ? "原價（必填）" : "原價（選填）"}
                             disabled={lockPrices}
+                            aria-invalid={originalCheck.badTiers.includes(opt.value) || undefined}
+                            className={originalCheck.badTiers.includes(opt.value) ? "border-destructive" : undefined}
+                            data-testid={`package-tier-original-${opt.value}`}
                             value={entry.original ?? ""}
                             onChange={(e) =>
                               setForm((f) => ({
@@ -1124,6 +1143,7 @@ const AdminPackages = () => {
                             min={0}
                             placeholder="售價"
                             disabled={lockPrices}
+                            data-testid={`package-tier-sale-${opt.value}`}
                             value={entry.sale}
                             onChange={(e) =>
                               setForm((f) => ({

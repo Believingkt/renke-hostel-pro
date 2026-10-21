@@ -99,6 +99,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { DiscountScopeSelector, type DiscountScopeMode } from "@/components/discount/DiscountScopeSelector";
+import { DiscountCodeGroupBinding } from "@/components/pricing/DiscountCodeGroupBinding";
 
 
 interface DiscountCode {
@@ -154,6 +155,7 @@ const KolDiscount = () => {
   const [pricingTemplates, setPricingTemplates] = useState<Array<{ id: string; name: string }>>([]);
   const [scopeMode, setScopeMode] = useState<DiscountScopeMode>("room_type");
   const [selectedTemplates, setSelectedTemplates] = useState<string[]>([]);
+  const [groupBound, setGroupBound] = useState(false);
   const [applicableTemplates, setApplicableTemplates] = useState<string[]>([]);
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -598,7 +600,8 @@ const KolDiscount = () => {
           valid_until: validUntilIso,
           min_order_amount: editingCode.min_order_amount ? Number(editingCode.min_order_amount) : 0,
           applicable_room_types: selectedRoomTypes,
-          applicable_pricing_template_ids: selectedTemplates,
+          // 綁定專案群組時，適用專案由群組同步（資料庫端），這裡不覆寫
+          ...(groupBound ? {} : { applicable_pricing_template_ids: selectedTemplates }),
           applicable_date_from: editingCode.applicable_date_from || null,
           applicable_date_to: editingCode.applicable_date_to || null,
           commission_rate: isNaN(commissionRateNum) ? 0 : commissionRateNum,
@@ -1784,8 +1787,18 @@ const KolDiscount = () => {
                 selectedTemplateIds={selectedTemplates}
                 onChangeTemplates={setSelectedTemplates}
                 idPrefix="edit-room"
+                readOnly={groupBound && scopeMode === "pricing_template"}
                 scrollable={true}
               />
+              {editingCode && (
+                <DiscountCodeGroupBinding
+                  discountCodeId={editingCode.id}
+                  accommodationId={editingCode.accommodation_id}
+                  scopeMode={scopeMode}
+                  onBoundChange={setGroupBound}
+                  onSynced={setSelectedTemplates}
+                />
+              )}
             
             <div className="grid gap-2">
               <Label>適用入住日期範圍（選填）</Label>
@@ -2180,8 +2193,18 @@ const KolDiscount = () => {
                 selectedTemplateIds={selectedTemplates}
                 onChangeTemplates={setSelectedTemplates}
                 idPrefix="edit-room"
+                readOnly={groupBound && scopeMode === "pricing_template"}
                 scrollable={false}
               />
+              {editingCode && (
+                <DiscountCodeGroupBinding
+                  discountCodeId={editingCode.id}
+                  accommodationId={editingCode.accommodation_id}
+                  scopeMode={scopeMode}
+                  onBoundChange={setGroupBound}
+                  onSynced={setSelectedTemplates}
+                />
+              )}
               
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
