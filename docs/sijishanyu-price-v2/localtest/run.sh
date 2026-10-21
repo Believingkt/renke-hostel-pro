@@ -28,15 +28,23 @@ P -d sjtest -f "$NEW" 2>&1 | grep -m1 -o "PRECHECK[^\"]*"
 fresh
 
 echo "== 套用前：precheck 文件輸出"
-P -d sjtest -At -F '|' -f "$D/precheck_20261107090000.sql"
+P -d sjtest -At -F '|' -f "$D/precheck_20261107090000.sql" | tee /tmp/sj_pre.txt
 BEFORE=$(P -d sjtest -At -c "$SNAP"); echo "套用前快照 $BEFORE"
 P -d sjtest -v ON_ERROR_STOP=1 -f "$NEW" > /dev/null && echo "套用成功"
 echo "== 重複套用（預期擋）"; P -d sjtest -f "$NEW" 2>&1 | grep -m1 -o "PRECHECK[^\"]*"
 echo "== 套用後：postcheck 文件輸出"
-P -d sjtest -At -F '|' -f "$D/postcheck_20261107090000.sql"
+P -d sjtest -At -F '|' -f "$D/postcheck_20261107090000.sql" | tee /tmp/sj_post.txt
+echo "== 單間專案指紋：precheck P11 vs postcheck Q7"
+diff <(tail -4 /tmp/sj_pre.txt) <(tail -4 /tmp/sj_post.txt) && echo "PASS 單間專案 4 個與套用前完全相同"
 echo "== rollback"; P -d sjtest -At -F '|' -v ON_ERROR_STOP=1 -f "$D/rollback_20261107090000.sql" && echo "rollback 成功"
 AFTER_RB=$(P -d sjtest -At -c "$SNAP"); echo "rollback 後快照 $AFTER_RB"; [ "$BEFORE" = "$AFTER_RB" ] && echo "PASS 還原後與套用前完全相同" || echo "FAIL 還原後不同"
 P -d sjtest -v ON_ERROR_STOP=1 -f "$NEW" > /dev/null && echo "再套用成功"
+echo "== 上線後有人改單間專案 → rollback 不得蓋掉"
+P -d sjtest -c "UPDATE public.pricing_templates SET weekday_price = 4999 WHERE id = 'a247bcaf-74df-49e6-a1e1-d12b1d681263'" > /dev/null
+P -d sjtest -At -v ON_ERROR_STOP=1 -f "$D/rollback_20261107090000.sql" > /dev/null && echo "rollback 成功"
+P -d sjtest -At -c "SELECT CASE WHEN weekday_price = 4999 THEN 'PASS rollback 沒碰單間專案（仍是 4999）' ELSE 'FAIL 單間專案被 rollback 改成 ' || weekday_price END FROM public.pricing_templates WHERE id = 'a247bcaf-74df-49e6-a1e1-d12b1d681263'"
+P -d sjtest -c "UPDATE public.pricing_templates SET weekday_price = 4800 WHERE id = 'a247bcaf-74df-49e6-a1e1-d12b1d681263'" > /dev/null
+P -d sjtest -v ON_ERROR_STOP=1 -f "$NEW" > /dev/null && echo "第三次套用成功"
 P -d sjtest -At -c "SELECT '再套用後 啟用 ' || count(*) FILTER (WHERE enabled) || '／停用 ' || count(*) FILTER (WHERE NOT enabled) || '／停用名單 ' || string_agg(name, ',' ORDER BY display_order) FILTER (WHERE NOT enabled) FROM public.accommodation_packages"
 
 echo "== 建單觸發器（正式函式原文：classify_day_tier、resolve_template_night_price、validate_order_before_insert）"

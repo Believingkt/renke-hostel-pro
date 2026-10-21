@@ -3,7 +3,8 @@
 --      new_order_dialog_enabled = false、auto_template_enabled = false
 --   2) 方案：24人包棟沿用 90df31ce 改新價；新增 15 個方案（包棟 8～22、26～30 人；單間 4 個）
 --      包棟 12 個 enabled = true；單間 4 個 enabled = false（先建好不開賣：四季包棟與單間同晚可能重複售出）
---   3) 專案：13 個既有專案接上各自方案；複製 24人包棟專案新增 26、28、30人包棟專案
+--   3) 專案：9 個既有包棟專案接上各自方案；複製 24人包棟專案新增 26、28、30人包棟專案
+--      4 個單間專案（a247bcaf、7a6e0125、a32485b3、7195c9b1）完全不動，也不備份、rollback 不碰
 --   4) 專案價格依 package_original 規則同步成方案原價（與 save_package_tier_prices 相同）
 --   5) 網紅碼 AMILE77、KWYTMIO、MIE20 的適用專案加入 26、28、30人包棟新專案
 -- 備份：public.sijishanyu_price_v2_backup_20261107（rollback 用）
@@ -120,11 +121,15 @@ REVOKE ALL ON TABLE public.sijishanyu_price_v2_backup_20261107 FROM PUBLIC, anon
 INSERT INTO public.sijishanyu_price_v2_backup_20261107 (kind, ref_id, data)
 SELECT 'package', p.id, to_jsonb(p) FROM public.accommodation_packages p WHERE p.id = '90df31ce-c89a-4f73-b5e1-62db8276f2f2'
 UNION ALL
-SELECT 'template', t.id, to_jsonb(t) FROM public.pricing_templates t WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822'
+SELECT 'template', t.id, to_jsonb(t) FROM public.pricing_templates t JOIN sj_plan s ON s.template_id = t.id AND s.is_whole WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822'
 UNION ALL
 SELECT 'discount_code', d.id, jsonb_build_object('code', d.code, 'applicable_pricing_template_ids', d.applicable_pricing_template_ids) FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20')
 UNION ALL
 SELECT 'kol_order', o.id, to_jsonb(o) FROM public.orders o WHERE o.order_number IN ('DM3A89R8', 'QW9M94K4', 'NE6Y99A5');
+
+-- 單間專案套用前快照（只在本交易內比對，不存備份表）
+CREATE TEMP TABLE sj_single_tpl ON COMMIT DROP AS
+SELECT t.id, to_jsonb(t) AS data FROM public.pricing_templates t JOIN sj_plan s ON s.template_id = t.id AND NOT s.is_whole;
 
 -- ============================= 1) flags =============================
 INSERT INTO public.accommodation_info_flags (accommodation_id, new_price_ui_enabled, new_order_dialog_enabled, price_sync_mode, auto_template_enabled)
@@ -187,7 +192,7 @@ SELECT 'new_package', s.package_id, NULL::jsonb FROM sj_plan s WHERE s.package_i
 UNION ALL
 SELECT 'new_template', s.template_id, NULL::jsonb FROM sj_plan s WHERE s.max_guests IN (26, 28, 30);
 
--- 一個專案對一個方案；專案價格比照 package_original 同步成方案原價
+-- 一個包棟專案對一個方案；專案價格比照 package_original 同步成方案原價（單間專案不動）
 UPDATE public.pricing_templates t
 SET default_package_id = s.package_id,
     weekday_price = s.wk_o, weekday_enabled = true,
@@ -196,7 +201,7 @@ SET default_package_id = s.package_id,
     price = s.wk_o,
     updated_at = now()
 FROM sj_plan s
-WHERE t.id = s.template_id;
+WHERE t.id = s.template_id AND s.is_whole;
 
 -- ============================= 4) 網紅碼 =============================
 UPDATE public.discount_codes d
@@ -228,12 +233,19 @@ BEGIN
   IF v_n <> 16 THEN RAISE EXCEPTION 'POSTCHECK 失敗：價格／房型／人數相符的方案只有 %', v_n; END IF;
 
   SELECT count(*) INTO v_n FROM public.pricing_templates t JOIN sj_plan s ON s.template_id = t.id
-  WHERE t.default_package_id = s.package_id AND t.numeric_code IS NOT NULL AND t.weekday_price = s.wk_o AND t.peak_price = s.fs_o AND t.weekend_price = s.we_o;
-  IF v_n <> 16 THEN RAISE EXCEPTION 'POSTCHECK 失敗：專案對應方案相符的只有 %', v_n; END IF;
+  WHERE s.is_whole AND t.default_package_id = s.package_id AND t.numeric_code IS NOT NULL AND t.weekday_price = s.wk_o AND t.peak_price = s.fs_o AND t.weekend_price = s.we_o;
+  IF v_n <> 12 THEN RAISE EXCEPTION 'POSTCHECK 失敗：包棟專案對應方案相符的只有 %（應 12）', v_n; END IF;
+  SELECT count(*) INTO v_n FROM public.pricing_templates t JOIN sj_single_tpl b ON b.id = t.id
+  WHERE t.default_package_id IS NULL AND to_jsonb(t) = b.data;
+  IF v_n <> 4 THEN RAISE EXCEPTION 'POSTCHECK 失敗：單間專案有變動（未變動 % 個，應 4）', v_n; END IF;
+  IF EXISTS (SELECT 1 FROM public.pricing_templates t JOIN sj_plan s ON s.package_id = t.default_package_id WHERE NOT s.is_whole) THEN
+    RAISE EXCEPTION 'POSTCHECK 失敗：有專案接到單間方案';
+  END IF;
   IF (SELECT count(*) FROM public.pricing_templates t WHERE t.accommodation_id = c_acc) <> 16 THEN
     RAISE EXCEPTION 'POSTCHECK 失敗：四季專案數不是 16（可能有觸發器自動多建專案）';
   END IF;
-  IF (SELECT count(DISTINCT t.default_package_id) FROM public.pricing_templates t WHERE t.accommodation_id = c_acc) <> 16 THEN
+  IF (SELECT count(DISTINCT t.default_package_id) FROM public.pricing_templates t WHERE t.accommodation_id = c_acc) <> 12
+     OR (SELECT count(*) FROM public.pricing_templates t WHERE t.accommodation_id = c_acc AND t.default_package_id IS NOT NULL) <> 12 THEN
     RAISE EXCEPTION 'POSTCHECK 失敗：有專案共用同一方案';
   END IF;
 

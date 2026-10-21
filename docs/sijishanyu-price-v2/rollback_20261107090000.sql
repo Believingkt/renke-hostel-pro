@@ -1,4 +1,5 @@
--- 20261107090000 rollback：四季還原成移轉前（刪新方案 15 個（含停用中的單間 4 個）／新專案 3 個／flags；24人包棟方案、13 專案、3 網紅碼還原）
+-- 20261107090000 rollback：四季還原成移轉前（刪新方案 15 個（含停用中的單間 4 個）／新專案 3 個／flags；24人包棟方案、9 個包棟專案、3 網紅碼還原）
+-- 4 個單間專案（a247bcaf、7a6e0125、a32485b3、7195c9b1）migration 沒動、沒備份，rollback 也完全不碰
 -- 正常＝COMMIT 成功、無 ROLLBACK 中止訊息；若出現「已有訂單使用新方案或新專案」代表有人已用新方案下單，整段不會執行，需人工處理
 BEGIN;
 SET LOCAL lock_timeout = '3s';
@@ -52,3 +53,5 @@ SELECT (SELECT count(*) FROM public.accommodation_info_flags f WHERE f.accommoda
 SELECT d.code, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') ORDER BY 1;
 -- 驗證（唯讀）：正常＝1 列 24人包棟 enabled true、sale_price 46300、original_price 61800
 SELECT p.name, p.enabled, p.sale_price, p.original_price, p.tier_prices FROM public.accommodation_packages p WHERE p.id = '90df31ce-c89a-4f73-b5e1-62db8276f2f2';
+-- 驗證（唯讀）：正常＝4 列、default_package_id 全 NULL、row_md5 與 precheck P11 逐列完全相同（若上線後有人在後台改過單間專案，md5 會不同，那是保留了該修改，屬正常）
+SELECT t.id, t.template_name, t.default_package_id, t.weekday_price, t.peak_price, t.weekend_price, t.price, md5(to_jsonb(t)::text) AS row_md5 FROM public.pricing_templates t WHERE t.id IN ('a247bcaf-74df-49e6-a1e1-d12b1d681263', '7a6e0125-8fd4-4f03-aa6c-37cf75b94bc0', 'a32485b3-57a4-4c24-9c7e-12576ab508ce', '7195c9b1-0a11-4148-a510-467af8fdecbf') ORDER BY t.id;

@@ -19,3 +19,5 @@ SELECT f.new_price_ui_enabled, f.new_order_dialog_enabled, f.price_sync_mode, f.
 SELECT r.id, r.name FROM public.room_types r WHERE r.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY r.id;
 -- P10 備份表與同名方案：正常＝backup_exists false、same_name 0
 SELECT to_regclass('public.sijishanyu_price_v2_backup_20261107') IS NOT NULL AS backup_exists, (SELECT count(*) FROM public.accommodation_packages p WHERE p.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' AND p.name IN ('雙人房(山景)', '雙人房(樹景)', '四人房(山景)', '四人房(樹景)', '8人包棟', '10人包棟', '12人包棟', '14人包棟', '16人包棟', '18人包棟', '20人包棟', '22人包棟', '26人包棟', '28人包棟', '30人包棟')) AS same_name;
+-- P11 單間專案指紋：正常＝4 列、default_package_id 全 NULL；請保留 row_md5，套用後 postcheck Q7 必須逐列完全相同
+SELECT t.id, t.template_name, t.default_package_id, t.weekday_price, t.peak_price, t.weekend_price, t.price, md5(to_jsonb(t)::text) AS row_md5 FROM public.pricing_templates t WHERE t.id IN ('a247bcaf-74df-49e6-a1e1-d12b1d681263', '7a6e0125-8fd4-4f03-aa6c-37cf75b94bc0', 'a32485b3-57a4-4c24-9c7e-12576ab508ce', '7195c9b1-0a11-4148-a510-467af8fdecbf') ORDER BY t.id;

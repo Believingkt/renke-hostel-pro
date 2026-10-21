@@ -20,7 +20,7 @@ SELECT pg_temp.try_order('O2 單間方案 四人房(樹景) enabled=false（帶 
   (SELECT id FROM public.accommodation_packages WHERE name = '四人房(樹景)'), NULL, :'tday');
 SELECT pg_temp.try_order('O3 對照：8人包棟 enabled=true', '69e8fa0f-27b4-4259-b3dd-8525d61e014c',
   (SELECT id FROM public.accommodation_packages WHERE name = '8人包棟'), NULL, :'tday');
-SELECT pg_temp.try_order('O4 專案路徑：雙人房(山景)專案、不帶 package_id', '6c72fc3e-9183-4788-a03d-bc043a2823e8',
+SELECT pg_temp.try_order('O4 專案路徑：雙人房(山景)專案（單間專案未動）、不帶 package_id', '6c72fc3e-9183-4788-a03d-bc043a2823e8',
   NULL, 'a247bcaf-74df-49e6-a1e1-d12b1d681263', :'tday');
 SELECT 'O5 對照：直接停用方案改 enabled=false 後的 8人包棟' AS note;
 UPDATE public.accommodation_packages SET enabled = false WHERE name = '8人包棟';
