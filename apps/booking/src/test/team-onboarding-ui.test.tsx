@@ -97,26 +97,27 @@ describe("館別設定總覽頁", () => {
     expect(screen.getByTestId("onboarding-quota-a2")).toBeTruthy();
   });
 
-  it("總覽（管理員 super_admin）：看得到所有 Tab，預設總部 Tab 只算總部項目", async () => {
+  it("總覽（管理員 super_admin）：看得到所有角色 Tab、沒有「總部」Tab，預設「全部」算所有項目", async () => {
     h.roles = ["super_admin"];
     renderAt("/team/onboarding");
     expect((await screen.findByTestId("onboarding-pending-a1")).textContent).toBe("1 項");
-    expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("1 項");
-    for (const k of ["am_manager", "am", "scout_manager", "hq", "all"]) expect(screen.getByTestId(`onboarding-tab-${k}`)).toBeTruthy();
+    expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("4 項");
+    for (const k of ["am_manager", "am", "scout_manager", "all"]) expect(screen.getByTestId(`onboarding-tab-${k}`)).toBeTruthy();
+    expect(screen.queryByTestId("onboarding-tab-hq")).toBeNull();
     expect(screen.getByTestId("onboarding-access-a2").textContent).toBe("缺 1 位");
-    expect(screen.queryByTestId("onboarding-am-a2")).toBeNull();
+    expect(screen.getByTestId("onboarding-am-a2").textContent).toBe("未指定負責 AM");
     expect(screen.getByTestId("onboarding-tab-count-all").textContent).toBe("2 館");
     expect(screen.getByTestId("onboarding-tab-count-scout_manager").textContent).toBe("1 館");
   });
 
-  it("總覽（super_admin）：切到「全部」Tab 會改算所有項目並顯示全部欄位", async () => {
+  it("總覽（super_admin）：切到「AM 總管」Tab 只算 AM 總管的項目、欄位跟著換", async () => {
     h.roles = ["super_admin"];
     renderAt("/team/onboarding");
     await screen.findByTestId("onboarding-row-a2");
-    fireEvent.mouseDown(screen.getByTestId("onboarding-tab-all"), { button: 0 });
-    await waitFor(() => expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("4 項"));
-    expect(screen.getByTestId("onboarding-am-a2").textContent).toBe("未指定負責 AM");
-    expect(screen.getByTestId("onboarding-venue-link-a2").getAttribute("href")).toBe("/team/onboarding/a2?tab=all");
+    fireEvent.mouseDown(screen.getByTestId("onboarding-tab-am_manager"), { button: 0 });
+    await waitFor(() => expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("2 項"));
+    expect(screen.queryByTestId("onboarding-access-a2")).toBeNull();
+    expect(screen.getByTestId("onboarding-venue-link-a2").getAttribute("href")).toBe("/team/onboarding/a2?tab=am_manager");
   });
 
   it("總覽（管理員 admin）：一樣看得到所有 Tab", async () => {
@@ -177,15 +178,16 @@ describe("館別設定總覽頁", () => {
     expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a1|true");
   });
 
-  it("單館（super_admin）：預設總部 Tab 有金流、協作權限與合作期間缺口", async () => {
+  it("單館（super_admin）：預設「全部」Tab，獎金計算設定、金流、協作權限與合作期間缺口都看得到", async () => {
     h.roles = ["super_admin"];
     renderAt("/team/onboarding/a1");
-    const panel = await screen.findByTestId("onboarding-venue-tabpanel-hq");
+    const panel = await screen.findByTestId("onboarding-venue-tabpanel-all");
     expect(within(panel).getByTestId("onboarding-gaps-list-mine").textContent).toContain("合作期間");
     expect(within(panel).getByTestId("onboarding-payuni-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-am-section")).toBeTruthy();
-    expect(screen.getByTestId("onboarding-venue-tab-count-hq").textContent).toBe("1 項");
-    expect(within(panel).queryByTestId("onboarding-bonus-section")).toBeNull();
+    expect(within(panel).getByTestId("onboarding-bonus-section")).toBeTruthy();
+    expect(screen.getByTestId("onboarding-venue-tab-count-all").textContent).toBe("1 項");
+    expect(screen.queryByTestId("onboarding-venue-tab-hq")).toBeNull();
   });
 
   it("單館（super_admin）：?tab=am_manager 直接開 AM 總管 Tab", async () => {
