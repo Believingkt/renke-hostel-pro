@@ -50,7 +50,7 @@ export default function TeamOnboardingVenue() {
         { mine: mineAm, node: <AmSection key="am" row={row} members={members} canEdit={mineAm} isSuperAdmin={isSuperAdmin} onChanged={reload} /> },
         { mine: mineKol, node: <KolSection key="kol" row={row} roles={roles} onChanged={reload} /> },
         { mine: minePayuni, node: <PayuniSection key="payuni" row={row} isSuperAdmin={isSuperAdmin} /> },
-        { mine: mineBonus, node: <BonusVenueSection key="bonus" accId={row.accommodation_id} canEdit={mineBonus} /> },
+        { mine: mineBonus, node: <BonusVenueSection key="bonus" accId={row.accommodation_id} accName={row.accommodation_name} canEdit={mineBonus} /> },
       ]
     : [];
   const mineSections = sections.filter((s) => s.mine);

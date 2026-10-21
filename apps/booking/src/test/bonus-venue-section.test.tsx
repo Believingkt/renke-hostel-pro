@@ -2,15 +2,22 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 
-const h = vi.hoisted(() => ({ rows: [] as any[], upsert: vi.fn(), del: vi.fn() }));
+const h = vi.hoisted(() => ({ rows: [] as any[], flags: [] as any[], upsert: vi.fn(), del: vi.fn() }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => {
   const make = (table: string) => {
     const data = table === "teamcommission_venue_revenue_source_overrides" ? h.rows
+      : table === "teamcommission_venue_bonus_flags" ? h.flags
+      : table === "accommodation_info" ? [{ id: "t1", name: "旅行日 台北館" }, { id: "t2", name: "旅行日 台中館" }]
+      : table === "teamcommission_bonus_rate_settings" ? [
+        { bonus_type: "am_performance", rate: 0.02, fixed_amount: null, effective_from: "2020-01-01" },
+        { bonus_type: "am_venue_bonus", rate: null, fixed_amount: 1500, effective_from: "2020-01-01" },
+        { bonus_type: "venue_closing", rate: null, fixed_amount: 3000, effective_from: "2020-01-01" },
+      ]
       : table.endsWith("whitelist") ? [{ included_order_sources: ["website", "booking"], effective_from: "2020-01-01", created_at: "" }] : [];
     const chain: any = {
-      select: () => chain, eq: () => chain, lte: () => chain,
+      select: () => chain, eq: () => chain, lte: () => chain, in: () => chain, order: () => chain,
       upsert: (...a: any[]) => h.upsert(table, ...a),
       delete: () => ({ eq: (...a: any[]) => h.del(table, ...a) }),
       then: (r: any, j: any) => Promise.resolve({ data, error: null }).then(r, j),
@@ -29,6 +36,10 @@ const [thisMonth, nextMonth] = selectableMonths(taipeiToday(), 2);
 describe("館別頁獎金計算設定卡", () => {
   beforeEach(() => {
     h.rows = [];
+    h.flags = [
+      { accommodation_id: "t1", exclude_from_commission: true, fixed_merge_group: "旅行日系列" },
+      { accommodation_id: "t2", exclude_from_commission: true, fixed_merge_group: "旅行日系列" },
+    ];
     h.upsert.mockReset().mockResolvedValue({ error: null });
     h.del.mockReset().mockResolvedValue({ error: null });
   });
@@ -90,5 +101,37 @@ describe("館別頁獎金計算設定卡", () => {
     expect(screen.queryByTestId("bonus-flags-save-btn")).toBeNull();
     fireEvent.click(screen.getByTestId("bonus-sources-help-btn"));
     expect(screen.getByTestId("bonus-sources-help-dialog").textContent).toContain("1 日");
+  });
+
+  it("特殊館別：例子帶入目前費率；加入現有群組顯示成員並預覽合併結果，確認後寫入", async () => {
+    render(<BonusVenueSection accId="a1" accName="哈庫納馬塔塔" canEdit />);
+    await waitFor(() => expect(screen.getByTestId("bonus-exclude-example").textContent).toContain("2%"));
+    expect(screen.getByTestId("bonus-exclude-example").textContent).toContain("2,000 元");
+    expect(screen.getByTestId("bonus-exclude-state").textContent).toBe("列入（一般）");
+    expect(screen.getByTestId("bonus-group-preview").textContent).toContain("自己算 1 館");
+    expect((screen.getByTestId("bonus-flags-save-btn") as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByTestId("bonus-group-mode-existing"));
+    expect(screen.getByTestId("bonus-flags-incomplete")).toBeTruthy();
+    const card = screen.getByTestId("bonus-group-existing-旅行日系列");
+    expect(card.textContent).toContain("旅行日 台北館、旅行日 台中館");
+    fireEvent.click(card);
+    const preview = screen.getByTestId("bonus-group-preview").textContent ?? "";
+    expect(preview).toContain("和 旅行日 台北館、旅行日 台中館合計算 1 館");
+    expect(preview).toContain("不合併的話是 3 份 4,500 元");
+    fireEvent.click(screen.getByTestId("bonus-flags-save-btn"));
+    expect(screen.getByTestId("bonus-flags-confirm-dialog").textContent).toContain("不合併 → 旅行日系列");
+    fireEvent.click(screen.getByTestId("bonus-flags-confirm-ok"));
+    await waitFor(() => expect(h.upsert).toHaveBeenCalled());
+    expect(h.upsert.mock.calls[0][1]).toMatchObject({ accommodation_id: "a1", exclude_from_commission: false, fixed_merge_group: "旅行日系列" });
+  });
+
+  it("特殊館別：已在群組的館別預設選中該群組；建立新群組時名稱重複會提示", async () => {
+    render(<BonusVenueSection accId="t1" accName="旅行日 台北館" canEdit />);
+    await waitFor(() => expect(screen.getByTestId("bonus-exclude-state").textContent).toBe("不列入"));
+    expect(screen.getByTestId("bonus-group-preview").textContent).toContain("和 旅行日 台中館合計算 1 館");
+    fireEvent.click(screen.getByTestId("bonus-group-mode-new"));
+    fireEvent.change(screen.getByTestId("bonus-group-new-input"), { target: { value: "旅行日系列" } });
+    expect(screen.getByTestId("bonus-group-new-dup")).toBeTruthy();
+    expect((screen.getByTestId("bonus-flags-save-btn") as HTMLButtonElement).disabled).toBe(true);
   });
 });

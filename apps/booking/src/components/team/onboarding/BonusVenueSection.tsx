@@ -20,7 +20,7 @@ const TRACKS: Array<{ track: Track; title: string; table: string }> = [
 const OVERRIDES = "teamcommission_venue_revenue_source_overrides";
 
 /** 館別獎金設定：特殊館別兩設定＋單館訂單來源覆蓋（super_admin、AM 總管可改） */
-export function BonusVenueSection({ accId, canEdit }: { accId: string; canEdit: boolean }) {
+export function BonusVenueSection({ accId, accName = "本館", canEdit }: { accId: string; accName?: string; canEdit: boolean }) {
   const today = taipeiToday();
   const monthStart = monthStartOf(today);
   const [globalSources, setGlobalSources] = useState<Record<Track, string[]>>({ shared: [], kol: [] });
@@ -72,7 +72,7 @@ export function BonusVenueSection({ accId, canEdit }: { accId: string; canEdit: 
         <CardDescription>訂單來源沒有自訂時，沿用全站設定。{canEdit ? "" : "（唯讀：由總部最高管理員、AM 總管設定）"}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <VenueFlagsBlock accId={accId} canEdit={canEdit} />
+        <VenueFlagsBlock accId={accId} accName={accName} canEdit={canEdit} />
         {TRACKS.map(({ track, title }) => (
           <SourceTrackBlock key={track} track={track} title={title} rows={rows.filter((r) => r.track === track)}
             globalSources={globalSources[track]} options={options} months={selectableMonths(today)} monthStart={monthStart}

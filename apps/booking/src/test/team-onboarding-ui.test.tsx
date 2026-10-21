@@ -20,7 +20,7 @@ vi.mock("@/components/team/KolReciprocalQuotaTab", () => ({
 }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => {
   const chain: any = {
-    select: () => chain, eq: () => chain, lte: () => chain, not: () => chain, order: () => chain,
+    select: () => chain, eq: () => chain, lte: () => chain, not: () => chain, order: () => chain, in: () => chain,
     limit: () => Promise.resolve({ data: [], error: null }), insert: (...a: any[]) => h.insert(...a),
     upsert: () => Promise.resolve({ error: null }),
     then: (r: any, j: any) => Promise.resolve({ data: [], error: null }).then(r, j),
