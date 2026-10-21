@@ -2,6 +2,7 @@
 --   1) accommodation_info_flags：new_price_ui_enabled = true、price_sync_mode = 'package_original'（比照雲岫）、
 --      new_order_dialog_enabled = false、auto_template_enabled = false
 --   2) 方案：24人包棟沿用 90df31ce 改新價；新增 15 個方案（包棟 8～22、26～30 人；單間 4 個）
+--      包棟 12 個 enabled = true；單間 4 個 enabled = false（先建好不開賣：四季包棟與單間同晚可能重複售出）
 --   3) 專案：13 個既有專案接上各自方案；複製 24人包棟專案新增 26、28、30人包棟專案
 --   4) 專案價格依 package_original 規則同步成方案原價（與 save_package_tier_prices 相同）
 --   5) 網紅碼 AMILE77、KWYTMIO、MIE20 的適用專案加入 26、28、30人包棟新專案
@@ -98,6 +99,10 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.accommodation_packages p WHERE p.accommodation_id = c_acc AND p.name IN (SELECT s.name FROM sj_plan s WHERE s.package_id IS NULL)) THEN
     RAISE EXCEPTION 'PRECHECK 失敗：已有同名方案';
   END IF;
+  IF EXISTS (SELECT 1 FROM public.accommodation_owlting_config c WHERE c.accommodation_id = c_acc)
+     OR EXISTS (SELECT 1 FROM public.accommodation_hotelnabe_config h WHERE h.accommodation_id = c_acc) THEN
+    RAISE EXCEPTION 'PRECHECK 失敗：四季已有奧丁丁／旭海設定，新方案會出現在 OTA 方案清單，請先確認';
+  END IF;
 END
 $pre$;
 
@@ -143,7 +148,7 @@ INSERT INTO public.accommodation_packages
   (id, accommodation_id, name, sale_price, original_price, tier_prices, applicable_tiers, guest_count, included_guest_count,
    guest_count_max, room_type_ids, primary_room_type_id, enabled, display_order, includes, tags, room_type_allocation, excluded_date_ranges)
 SELECT s.package_id, 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', s.name, s.wk_s, s.wk_o, '{}'::jsonb, ARRAY['weekday', 'friday_sunday', 'weekend'],
-       s.max_guests, s.max_guests, s.max_guests, s.room_ids, s.primary_room, true, s.display_order, '[]'::jsonb, ARRAY[]::text[], '[]'::jsonb, '[]'::jsonb
+       s.max_guests, s.max_guests, s.max_guests, s.room_ids, s.primary_room, false, s.display_order, '[]'::jsonb, ARRAY[]::text[], '[]'::jsonb, '[]'::jsonb
 FROM sj_plan s WHERE NOT s.is_whole;
 
 -- 價格（含 24人包棟）：三層都寫；sale_price／original_price 為平日
@@ -159,7 +164,7 @@ SET tier_prices = jsonb_build_object(
     included_guest_count = s.max_guests,
     guest_count_max = s.max_guests,
     display_order = s.display_order,
-    enabled = true,
+    enabled = s.is_whole,
     updated_at = now()
 FROM sj_plan s
 WHERE p.id = s.package_id;
@@ -205,8 +210,13 @@ DECLARE
   c_acc CONSTANT uuid := 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
   v_n int;
 BEGIN
+  SELECT count(*) INTO v_n FROM public.accommodation_packages p WHERE p.accommodation_id = c_acc;
+  IF v_n <> 16 THEN RAISE EXCEPTION 'POSTCHECK 失敗：四季方案 % ≠ 16', v_n; END IF;
+  SELECT count(*) INTO v_n FROM public.accommodation_packages p JOIN sj_plan s ON s.package_id = p.id
+  WHERE p.accommodation_id = c_acc AND p.enabled = s.is_whole;
+  IF v_n <> 16 THEN RAISE EXCEPTION 'POSTCHECK 失敗：啟用狀態不符（應包棟 12 個 true、單間 4 個 false），相符 %', v_n; END IF;
   SELECT count(*) INTO v_n FROM public.accommodation_packages p WHERE p.accommodation_id = c_acc AND p.enabled;
-  IF v_n <> 16 THEN RAISE EXCEPTION 'POSTCHECK 失敗：四季啟用方案 % ≠ 16', v_n; END IF;
+  IF v_n <> 12 THEN RAISE EXCEPTION 'POSTCHECK 失敗：四季啟用方案 % ≠ 12', v_n; END IF;
 
   SELECT count(*) INTO v_n FROM public.accommodation_packages p JOIN sj_plan s ON s.package_id = p.id
   WHERE p.numeric_code IS NOT NULL AND p.sale_price = s.wk_s AND p.original_price = s.wk_o

@@ -23,12 +23,14 @@ CREATE TABLE public.pricing_templates (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), accommodation_id uuid NOT NULL, available_rooms int NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(),
   default_package_id uuid REFERENCES public.accommodation_packages(id) ON DELETE SET NULL, description text, display_order int, excluded_dates jsonb NOT NULL DEFAULT '[]',
   extra_dates jsonb NOT NULL DEFAULT '[]', is_default boolean, meal_plans jsonb, numeric_code int, peak_enabled boolean NOT NULL DEFAULT false, peak_price int,
-  price int, project_description text, project_name text, room_overrides jsonb NOT NULL DEFAULT '{}', room_type_id uuid, room_type_ids uuid[] NOT NULL DEFAULT '{}',
+  price int, project_description text, project_name text, room_overrides jsonb NOT NULL DEFAULT '[]', room_type_id uuid, room_type_ids uuid[] NOT NULL DEFAULT '{}',
   season_segments jsonb NOT NULL DEFAULT '[]', template_name text NOT NULL, updated_at timestamptz NOT NULL DEFAULT now(), valid_from date, valid_until date,
   weekday_enabled boolean NOT NULL DEFAULT true, weekday_price int, weekend_enabled boolean NOT NULL DEFAULT true, weekend_price int);
-CREATE TABLE public.discount_codes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), accommodation_id uuid, code text, is_active boolean, discount_type text, discount_value int, applicable_pricing_template_ids jsonb DEFAULT '[]', updated_at timestamptz DEFAULT now());
+CREATE TABLE public.discount_codes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), accommodation_id uuid, code text, is_active boolean, discount_type text, discount_value int, valid_from timestamptz DEFAULT now(), valid_until timestamptz, applicable_pricing_template_ids jsonb DEFAULT '[]', updated_at timestamptz DEFAULT now());
 CREATE TABLE public.orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_number text, accommodation_id uuid, order_source text, final_price numeric, pricing_template_id uuid, package_id uuid, check_in_date date, order_status text, updated_at timestamptz DEFAULT now());
 CREATE TABLE public.package_date_prices (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), accommodation_id uuid, package_id uuid REFERENCES public.accommodation_packages(id) ON DELETE CASCADE, date date, sale_price numeric, original_price numeric, is_available boolean, source text NOT NULL DEFAULT 'manual', updated_at timestamptz DEFAULT now());
+CREATE TABLE public.accommodation_owlting_config (accommodation_id uuid PRIMARY KEY, sync_enabled boolean NOT NULL DEFAULT false);
+CREATE TABLE public.accommodation_hotelnabe_config (accommodation_id uuid PRIMARY KEY, sync_enabled boolean NOT NULL DEFAULT false);
 CREATE TABLE public.accommodation_day_tier_overrides (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), accommodation_id uuid, package_id uuid, date date, tier text);
 
 -- 既有觸發器（簡化版，行為重點相同）
