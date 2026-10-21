@@ -1,0 +1,8 @@
+SELECT '1. 可修正月份＝super_admin、admin、am_manager' AS item, prosrc LIKE '%am_manager%' AND prosrc LIKE '%''admin''%' AND prosrc NOT LIKE '%finance%' AS ok FROM pg_proc WHERE proname = 'can_fix_pricing_rule_date';
+SELECT '2. AM 首版補登／修正政策已移除' AS item, NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid = 'public.owner_settlement_pricing_rules'::regclass AND polname IN ('AM team can insert first backdated pricing rule', 'AM team can fix first pricing rule date')) AS ok;
+SELECT '3. 原因欄位已新增' AS item, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'owner_settlement_pricing_rules' AND column_name = 'date_change_reason') AS ok;
+SELECT '4. log 表已建立且啟用 RLS' AS item, relrowsecurity AS ok FROM pg_class WHERE oid = 'public.owner_pricing_rule_date_logs'::regclass;
+SELECT '5. 新增守門／log trigger 已建立' AS item, count(*) = 2 AS ok FROM pg_trigger WHERE tgrelid = 'public.owner_settlement_pricing_rules'::regclass AND tgname IN ('trg_owner_pricing_rule_insert_guard', 'trg_owner_pricing_rule_date_log');
+SELECT '6. 回復／刪除 RPC：authenticated 可執行、anon 不可' AS item, has_function_privilege('authenticated', 'public.owner_pricing_rule_revert_date(uuid,text)', 'EXECUTE') AND has_function_privilege('authenticated', 'public.owner_pricing_rule_delete_backfill(uuid,text)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.owner_pricing_rule_revert_date(uuid,text)', 'EXECUTE') AND NOT has_function_privilege('anon', 'public.owner_pricing_rule_delete_backfill(uuid,text)', 'EXECUTE') AS ok;
+SELECT '7. 更新守門允許審查欄位' AS item, prosrc LIKE '%commission_exclusion_reviewed_at%' AS ok FROM pg_proc WHERE proname = 'owner_pricing_rule_update_guard';
+SELECT '8. 版本資料筆數不變（與 precheck 第 8 項比對）' AS item, count(*) AS n FROM public.owner_settlement_pricing_rules;

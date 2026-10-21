@@ -61,6 +61,8 @@ export const ONB_ITEM_WRITERS = {
   bonusFlags: ["super_admin", "am_manager"],
   // 獎金發放規則（合作期間／採計開關／場域簽約人／成交費率／館別級距）：寫入維持總部
   bonusRules: ["super_admin", "admin"],
+  // 業主月結設定（基準金額規則）：補登過去月份另限 super_admin、admin、am_manager（can_fix_pricing_rule_date）
+  ownerSettlement: ["super_admin", "admin", "am", "am_manager"],
 } as const;
 export type OnbItem = keyof typeof ONB_ITEM_WRITERS;
 export const canSetItem = (item: OnbItem, roles: TeamRole[] | string[]) => has(roles as string[], [...ONB_ITEM_WRITERS[item]]);

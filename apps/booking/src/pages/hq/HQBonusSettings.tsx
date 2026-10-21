@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import BonusSettingsTab from "@lakeze/shared/components/team/BonusSettingsTab";
 import RateConsistencyCheckTab from "@/components/team/RateConsistencyCheckTab";
@@ -56,7 +56,6 @@ export default function HQBonusSettings() {
   /** 只能看到「業主月結設定」分頁的角色 */
   const ownerSettlementOnly = !isHQAdmin && !isFinanceViewer;
   const canSeeBonus = isHQAdmin || isFinanceViewer;
-  const ownerSettlementReadOnly = isFinanceViewer;
 
   const tabParam = searchParams.get("tab");
   const rawTab: SettingsTab =
@@ -209,7 +208,7 @@ export default function HQBonusSettings() {
               <CardDescription>
                 這裡設定的抽成門檻、免抽成訂單來源與不列入抽成的增值服務（各館彈性設定，未設定＝全部列入抽成；團隊獎金自 2026-09-10 成交日起適用），
                 就是獎金四步流程中「② 用多少金額當基準」的來源，會直接影響成交大師獎金與團隊獎金的基準金額。
-                每間民宿獨立設定，沒有全站預設值：請先選擇館別再{ownerSettlementReadOnly ? "檢視" : "編輯"}。
+                每間民宿獨立設定，沒有全站預設值：請先選擇館別再檢視（編輯請到館別設定總覽）。
               </CardDescription>
             </CardHeader>
             <CardContent className="max-w-sm space-y-3">
@@ -229,12 +228,13 @@ export default function HQBonusSettings() {
           </Card>
 
           {override ? (
-            <OwnerSettlementSettings
-              key={accId}
-              accommodationIdOverride={override}
-              hideBackButton
-              readOnly={ownerSettlementReadOnly}
-            />
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="owner-settlement-moved-notice">
+                <span>業主月結設定已搬到「館別設定總覽」的單館頁（AM／AM 總管 Tab）設定，這裡改為唯讀。</span>
+                <Link to={`/team/onboarding/${override}`} className="underline" data-testid="owner-settlement-venue-link">前往館別頁設定</Link>
+              </div>
+              <OwnerSettlementSettings key={accId} accommodationIdOverride={override} hideBackButton readOnly />
+            </>
           ) : (
             <Card>
               <CardContent className="py-8 text-center text-sm text-muted-foreground">

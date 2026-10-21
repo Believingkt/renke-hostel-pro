@@ -18,6 +18,8 @@ import { toast } from "sonner";
 import { getOrderSourceDisplayName } from "@lakeze/shared/utils/orderHelpers";
 import { FALLBACK_ORDER_SOURCES } from "@lakeze/shared/hooks/use-order-sources";
 import { useAccommodation } from "@lakeze/shared/contexts/AccommodationContext";
+import { PricingRuleDateLog, ReasonDialog, snapshotMonthsFrom } from "@lakeze/shared/components/owner-settlement/PricingRuleDateTools";
+import { Textarea } from "@lakeze/shared/components/ui/textarea";
 
 /** 中文標籤 → raw key，避免「官網訂房」與 website 重複出現 */
 const LABEL_TO_KEY: Record<string, string> = FALLBACK_ORDER_SOURCES.reduce(
@@ -168,11 +170,16 @@ export default function OwnerSettlementSettings({
   const [ruleCount, setRuleCount] = useState<number>(0);
   /** 該館合作生效日所在月（生效月份可選範圍下限） */
   const [partnershipMonth, setPartnershipMonth] = useState<string | null>(null);
-  /** 總部角色（super_admin / admin / finance）可校正任何版本的生效月份 */
+  /** super_admin／管理員（admin）／AM 總管可補登過去月份與校正任何版本的生效月份；一般 AM、財務不行 */
   const [canFixDate, setCanFixDate] = useState(false);
   /** 首版要寫入的生效月份 */
   const [effectiveMonth, setEffectiveMonth] = useState<string>(currentMonthStartTaipei());
   const [fixingId, setFixingId] = useState<string | null>(null);
+  /** 首版補登過去月份的原因（必填） */
+  const [backfillReason, setBackfillReason] = useState("");
+  /** 修正生效月份的確認對象 */
+  const [fixTarget, setFixTarget] = useState<{ id: string; from: string; to: string; months: string[] } | null>(null);
+  const [dateLogKey, setDateLogKey] = useState(0);
 
 
   const loadHistory = async () => {
@@ -288,7 +295,7 @@ export default function OwnerSettlementSettings({
         setPartnershipMonth(psd ? `${String(psd).slice(0, 7)}-01` : null);
         setCanFixDate(
           ((roleRes.data ?? []) as Array<{ role: string }>).some((r) =>
-            ["super_admin", "admin", "finance"].includes(r.role),
+            ["super_admin", "admin", "am_manager"].includes(r.role),
           ),
         );
         setEffectiveMonth(currentMonthStartTaipei());
@@ -472,6 +479,18 @@ export default function OwnerSettlementSettings({
       toast.error("請先選擇民宿，本設定不再提供全站預設值");
       return;
     }
+    const isBackfill = ruleCount === 0 && effectiveMonth < currentMonthStartTaipei();
+    if (isBackfill) {
+      if (!backfillReason.trim()) {
+        toast.error("補登過去月份必須填寫原因");
+        return;
+      }
+      const months = await snapshotMonthsFrom(effectiveMonth);
+      if (
+        months.length > 0 &&
+        !window.confirm(`${months.join("、")} 已經計算過獎金（已產生獎金快照）。補登不會自動追改已發金額，重新試算時數字可能不同。確定要補登嗎？`)
+      ) return;
+    }
     const settingKey = perAccKey(currentAccommodationId);
     setSaving(true);
     const { data: existing } = await supabase
@@ -523,7 +542,8 @@ export default function OwnerSettlementSettings({
             ]),
           ),
           created_by: user?.id ?? null,
-        });
+          date_change_reason: isBackfill ? backfillReason.trim() : null,
+        } as any);
       if (ruleError) {
         setSaving(false);
         toast.error(`門檻式收費規則儲存失敗：${ruleError.message}`);
@@ -534,6 +554,8 @@ export default function OwnerSettlementSettings({
     setSaving(false);
     setUsingFallback(false);
     setRuleCount((c) => c + 1);
+    setBackfillReason("");
+    setDateLogKey((k) => k + 1);
     // 新版本尚未審查 → 小鈴鐺會提醒管理員審查
     setExclusionReviewedAt(null);
     if (historyLoaded) loadHistory();
@@ -573,32 +595,33 @@ export default function OwnerSettlementSettings({
     toast.success("已標記為已審查");
   };
 
-  /** 校正某個版本的生效月份（AM 僅限首版且該館只有一版；總部角色不限） */
-  const fixEffectiveMonth = async (id: string, month: string) => {
-    if (readOnly) return;
-
-    const cur = currentMonthStartTaipei();
-    if (month < cur) {
-      const ok = window.confirm(
-        `生效月份將改為 ${month.slice(0, 7)}（過去月份）。若該月份的月結或獎金已發放，數字不會被追改，但重新試算時金額可能變動。確定要修正嗎？`,
-      );
-      if (!ok) return;
-    }
-    setFixingId(id);
+  /** 校正某個版本的生效月份（限 super_admin／管理員／AM 總管；需填原因） */
+  const openFixMonth = async (id: string, from: string, to: string) => {
+    if (readOnly || from === to) return;
+    setFixTarget({ id, from, to, months: await snapshotMonthsFrom(from < to ? from : to) });
+  };
+  const fixEffectiveMonth = async (reason: string) => {
+    if (!fixTarget) return false;
+    setFixingId(fixTarget.id);
     const { error } = await supabase
       .from("owner_settlement_pricing_rules")
-      .update({ effective_from: month })
-      .eq("id", id);
+      .update({ effective_from: fixTarget.to, date_change_reason: reason } as any)
+      .eq("id", fixTarget.id);
     setFixingId(null);
     if (error) {
       toast.error(`生效月份修正失敗：${error.message}`);
-      return;
+      return false;
     }
-    toast.success(`已將生效月份修正為 ${month.slice(0, 7)}`);
+    toast.success(`已將生效月份修正為 ${fixTarget.to.slice(0, 7)}`);
     loadHistory();
+    setDateLogKey((k) => k + 1);
+    return true;
   };
 
-
+  useEffect(() => {
+    if (currentAccommodationId) void loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentAccommodationId]);
 
   if (loading) return null;
 
@@ -653,8 +676,9 @@ export default function OwnerSettlementSettings({
           <CardHeader>
             <CardTitle>生效月份（首次設定）</CardTitle>
             <CardDescription>
-              若簽約當月未即時在 PMS 建立設定，這裡可把首版的生效月份補回正確月份。
-              可選範圍：合作生效日所在月（{partnershipMonth ? partnershipMonth.slice(0, 7) : "未設定合作生效日"}）至本月。
+              {canFixDate
+                ? <>若簽約當月未即時在 PMS 建立設定，可把首版的生效月份補回正確月份（補登須填原因，會留下異動紀錄）。可選範圍：合作生效日所在月（{partnershipMonth ? partnershipMonth.slice(0, 7) : "未設定合作生效日"}）至本月。</>
+                : <>首版會從本月生效。需要補登過去月份時，請聯絡 super_admin、管理員或 AM 總管。</>}
               建立第二個版本後，此欄位就會鎖定為當月。
             </CardDescription>
           </CardHeader>
@@ -664,7 +688,7 @@ export default function OwnerSettlementSettings({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {monthOptions(partnershipMonth, currentMonthStartTaipei()).map((m) => (
+                {monthOptions(canFixDate ? partnershipMonth : currentMonthStartTaipei(), currentMonthStartTaipei()).map((m) => (
                   <SelectItem key={m} value={m}>
                     {m.slice(0, 7)}
                     {m === currentMonthStartTaipei() ? "（本月）" : ""}
@@ -673,9 +697,13 @@ export default function OwnerSettlementSettings({
               </SelectContent>
             </Select>
             {effectiveMonth < currentMonthStartTaipei() && (
-              <p className="text-xs text-orange-700">
-                將回填至過去月份；若該月的月結或獎金已發放，重新試算時金額可能變動。
-              </p>
+              <>
+                <p className="text-xs text-orange-700">
+                  將回填至過去月份；若該月的月結或獎金已發放，重新試算時金額可能變動。
+                </p>
+                <Label htmlFor="backfill-reason" className="text-xs">補登原因（必填）</Label>
+                <Textarea id="backfill-reason" rows={2} value={backfillReason} onChange={(e) => setBackfillReason(e.target.value)} placeholder="例：簽約當月漏建設定" data-testid="owner-settlement-backfill-reason" />
+              </>
             )}
           </CardContent>
         </Card>
@@ -1083,21 +1111,18 @@ export default function OwnerSettlementSettings({
                         生效月份：{String(r.effective_from).slice(0, 7)}
                       </span>
                       {r.id === currentRuleId && <Badge>目前生效中</Badge>}
-                      {(canFixDate || (historyRows.length === 1 && ruleCount === 1)) && (
+                      {canFixDate && !readOnly && (
                         <div className="flex items-center gap-2">
                           <Select
                             value={String(r.effective_from).slice(0, 10)}
-                            onValueChange={(v) => fixEffectiveMonth(r.id, v)}
+                            onValueChange={(v) => openFixMonth(r.id, String(r.effective_from).slice(0, 10), v)}
                             disabled={fixingId === r.id}
                           >
                             <SelectTrigger className="h-8 w-[150px] text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {monthOptions(
-                                canFixDate ? partnershipMonth ?? "2020-01-01" : partnershipMonth,
-                                currentMonthStartTaipei(),
-                              ).map((m) => (
+                              {monthOptions(partnershipMonth ?? "2020-01-01", currentMonthStartTaipei()).map((m) => (
                                 <SelectItem key={m} value={m}>
                                   {m.slice(0, 7)}
                                 </SelectItem>
@@ -1137,6 +1162,25 @@ export default function OwnerSettlementSettings({
         </Card>
       </Collapsible>
       </fieldset>
+      {currentAccommodationId && (
+        <PricingRuleDateLog
+          accId={currentAccommodationId}
+          canFix={canFixDate && !readOnly}
+          ruleIds={historyRows.map((r: any) => r.id)}
+          reloadKey={dateLogKey}
+          onChanged={() => { loadHistory(); }}
+        />
+      )}
+      <ReasonDialog
+        open={!!fixTarget}
+        testId="owner-settlement-fix-month-dialog"
+        title="修正生效月份"
+        description={fixTarget ? `把這個版本的生效月份從 ${fixTarget.from.slice(0, 7)} 改成 ${fixTarget.to.slice(0, 7)}。改錯可以在「生效月份異動紀錄」一鍵回復。` : ""}
+        confirmLabel="確認修正"
+        warningMonths={fixTarget?.months ?? []}
+        onClose={() => setFixTarget(null)}
+        onConfirm={fixEffectiveMonth}
+      />
 
       {!readOnly && (
         <AdminStickyActionBar

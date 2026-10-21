@@ -18,6 +18,9 @@ vi.mock("@lakeze/shared/hooks/use-settings-completeness", () => ({
 vi.mock("@/components/team/KolReciprocalQuotaTab", () => ({
   KolReciprocalQuotaTab: (p: any) => <div data-testid="quota-tab-mock">{`${p.isManager}|${p.allowedAccommodationIds?.join(",")}|${p.lockedAccommodation === true}`}</div>,
 }));
+vi.mock("@/components/team/onboarding/OwnerSettlementSection", () => ({
+  OwnerSettlementSection: (p: any) => <div data-testid="onboarding-owner-settlement-section">{`${p.accId}|${p.canEdit}`}</div>,
+}));
 vi.mock("@/components/team/onboarding/BonusRulesSection", () => ({
   BonusRulesSection: (p: any) => <div data-testid="onboarding-bonus-rules-section">{p.accId}</div>,
 }));
@@ -176,6 +179,7 @@ describe("館別設定總覽頁", () => {
     expect(within(panel).getByTestId("onboarding-kol-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-bonus-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-bonus-rules-section")).toBeTruthy();
+    expect(within(panel).getByTestId("onboarding-owner-settlement-section").textContent).toBe("a1|true");
     expect(screen.queryByTestId("onboarding-payuni-section")).toBeNull();
     expect(screen.queryByTestId("onboarding-gaps-section-mine")).toBeNull();
     expect(screen.queryByTestId("onboarding-venue-tab-hq")).toBeNull();
@@ -207,6 +211,7 @@ describe("館別設定總覽頁", () => {
     const panel = await screen.findByTestId("onboarding-venue-tabpanel-all");
     expect(within(panel).getByTestId("onboarding-am-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-bonus-section")).toBeTruthy();
+    expect(within(panel).getByTestId("onboarding-owner-settlement-section").textContent).toBe("a1|false");
     expect(within(panel).getByTestId("onboarding-gaps-list-others").textContent).toContain("合作期間");
     expect(screen.getByTestId("onboarding-gap-writers-partnership").textContent).toBe("由總部最高管理員設定");
     expect(screen.queryByTestId("bonus-flags-save-btn")).toBeNull();
@@ -233,6 +238,8 @@ describe("館別設定總覽頁", () => {
     expect(screen.queryByTestId("onboarding-create-kol-venue-btn")).toBeNull();
     expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a2|true");
     expect(screen.getByTestId("onboarding-venue-tabpanel-am")).toBeTruthy();
+    expect(screen.getByTestId("onboarding-owner-settlement-section").textContent).toBe("a2|true");
+    expect(screen.queryByTestId("onboarding-bonus-rules-section")).toBeNull();
     expect(screen.queryByTestId("onboarding-am-section")).toBeNull();
   });
 

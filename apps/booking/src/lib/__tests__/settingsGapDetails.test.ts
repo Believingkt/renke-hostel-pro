@@ -32,6 +32,12 @@ describe("validateGapLink", () => {
     }
   });
 
+  it("業主月結缺口連到館別頁（依角色預設 Tab）；AM 可編輯", () => {
+    const r = validateGapLink("settlementRule", ["am"], "acc-1");
+    expect(r.href).toBe("/team/onboarding/acc-1");
+    expect(r.editable).toBe(true);
+  });
+
   it("其他獎金缺口仍連到 HQ 設定頁", () => {
     expect(validateGapLink("payoutBasis", ["admin"], "acc-1").href).toContain("/hq/bonus-settings");
   });

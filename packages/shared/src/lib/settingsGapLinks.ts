@@ -71,12 +71,20 @@ export const GAP_TARGETS: Record<GapKey, GapTarget> = {
 /** 可以開「館別設定總覽」的角色 */
 export const ONBOARDING_VIEW_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "scout_manager", "closer_manager"];
 
-/** 已搬進館別設定總覽單館頁「AM 總管」Tab 的獎金規則（HQ 原頁面改唯讀） */
-export const ONBOARDING_BONUS_RULE_KEYS: GapKey[] = ["partnership", "teamBonusFlag", "closerFlag", "closerRate", "venueClosing", "tierRule"];
+/** 已搬進館別設定總覽單館頁的設定（HQ 原頁面改唯讀）→ 要開的 Tab；null＝依角色預設 Tab */
+const ONBOARDING_GAP_TAB: Partial<Record<GapKey, string | null>> = {
+  partnership: "am_manager", teamBonusFlag: "am_manager", closerFlag: "am_manager",
+  closerRate: "am_manager", venueClosing: "am_manager", tierRule: "am_manager",
+  settlementRule: null, marketingFee: null,
+};
+export const ONBOARDING_BONUS_RULE_KEYS = Object.keys(ONBOARDING_GAP_TAB) as GapKey[];
 
 /** 產生設定頁連結：已搬家的獎金規則→館別頁；其餘→HQ 設定頁；沒有對應頁面時回傳 null */
 export function buildGapHref(key: GapKey, accId?: string): string | null {
-  if (accId && ONBOARDING_BONUS_RULE_KEYS.includes(key)) return `/team/onboarding/${accId}?tab=am_manager`;
+  if (accId && key in ONBOARDING_GAP_TAB) {
+    const tab = ONBOARDING_GAP_TAB[key];
+    return `/team/onboarding/${accId}${tab ? `?tab=${tab}` : ""}`;
+  }
   const target = GAP_TARGETS[key];
   if (!target.tab) return null;
   const params = new URLSearchParams();

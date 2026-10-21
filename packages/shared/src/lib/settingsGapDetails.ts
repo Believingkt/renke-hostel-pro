@@ -75,14 +75,14 @@ const GAP_DETAIL_TEXT: Record<GapKey, Omit<GapDetail, "writeRoles">> = {
     table: "owner_settlement_pricing_rules",
     columns: "commission_rate、commission_threshold、effective_from（≤ 今天）",
     permissionNote: "館別後台的月結設定已改唯讀，只能在 HQ 整合頁編輯；finance 唯讀。",
-    howTo: "總部設定頁 →「業主月結設定」分頁 → 服務費規則卡片 → 新增生效版本。",
+    howTo: "團隊後台 →「館別設定總覽」→ 該館 →「AM」或「AM 總管」Tab → 業主月結設定 → 服務費門檻。",
   },
   marketingFee: {
     label: "行銷推廣費約定",
     table: "owner_settlement_pricing_rules",
     columns: "charges_marketing_fee",
     permissionNote: "與月結費率同一張表，沒有費率版本就無法判定是否收費。",
-    howTo: "總部設定頁 →「業主月結設定」分頁 → 行銷推廣費卡片。",
+    howTo: "團隊後台 →「館別設定總覽」→ 該館 →「AM」或「AM 總管」Tab → 業主月結設定 → 行銷推廣費。",
   },
   bookingSetting: {
     label: "訂房設定",

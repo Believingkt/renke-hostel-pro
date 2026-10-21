@@ -1,0 +1,54 @@
+NOTICE:  database "opb" does not exist, skipping
+== precheck
+1. 業主月結規則表存在|t
+2. log 表尚未建立（未套用過）|t
+3. 獎金快照表存在|t
+4. 生效日不是 1 日的版本數（必須為 0）|0
+5. 目前可修正月份的角色定義|
+  SELECT EXISTS (
+    SELECT 1 FROM public.user_roles
+    WHERE user_id = _user_id
+套用成功
+== 重複套用（預期 PRECHECK 擋）
+PRECHECK 失敗：owner_pricing_rule_date_logs 已存在（已套用過）
+== postcheck
+1. 可修正月份＝super_admin、admin、am_manager|t
+2. AM 首版補登／修正政策已移除|t
+3. 原因欄位已新增|t
+4. log 表已建立且啟用 RLS|t
+5. 新增守門／log trigger 已建立|t
+6. 回復／刪除 RPC：authenticated 可執行、anon 不可|t
+7. 更新守門允許審查欄位|t
+8. 版本資料筆數不變（與 precheck 第 8 項比對）|0
+== 測試
+PASS B01 AM 新增本月版本（不需原因） → OK
+PASS B02 AM 補登上個月（有原因）→ RLS 擋 → DENIED new row violates row-level security policy for table "owner_settlement_pricing_rules"
+PASS B03 AM 總管補登上個月但沒填原因 → RAN 補登過去月份必須填寫原因
+PASS B04 AM 總管補登上個月（有原因） → OK
+PASS B05 admin 補登兩個月前（有原因） → OK
+PASS B06 財務補登上個月 → RLS 擋 → DENIED new row violates row-level security policy for table "owner_settlement_pricing_rules"
+PASS B07 super_admin 新增下個月 15 日 → RAN 生效月份必須是該月 1 號
+PASS B08 AM 修改本月版本的月份 → 0 筆（AM 不能改月份） → OK
+PASS B09 AM 總管改月份沒填原因 → RAN 修正生效月份必須填寫原因
+PASS B10 AM 總管改月份（有原因）→ 1 筆 → OK
+PASS B11 AM 總管改費率 → 守門擋 → RAN 歷史版本僅允許修正生效月份，其他內容請新增版本
+PASS B12 super_admin 標記增值服務已審查 → 1 筆 → OK
+PASS B13 AM 呼叫回復 → 無權限 → RAN 沒有回復生效月份的權限
+PASS B14 AM 總管回復最新一筆修正 → OK
+PASS B15 回復後月份改回上個月 → true
+PASS B16 再回復舊的那筆修正 → 不是最新 → RAN 這個版本之後又改過月份，請從最新一筆回復
+PASS B17 刪除非補登版本 → 擋 → RAN 只能刪除補登的版本
+PASS B18 刪除已有獎金快照月份的補登 → 擋 → RAN 2026-08 已產生獎金快照，不能刪除；請改用修正月份或新增版本
+PASS B19 刪除補登沒填原因 → RAN 刪除必須填寫原因
+PASS B20 AM 總管刪除補登錯的版本 → OK
+PASS B21 log：backfill 2、fix_date 1、revert 1、delete 1（含快照） → 2|1|1|1|true
+PASS B22 anon 呼叫回復 RPC → DENIED permission denied for function owner_pricing_rule_revert_date
+PASS B23 authenticated 直接寫 log 表 → DENIED permission denied for table owner_pricing_rule_date_logs
+PASS B24 財務可讀 log → OK
+PASS B25 一般 AM 可讀 log → OK
+PASS 25 / FAIL 0
+== rollback
+rollback 成功
+9
+t
+再套用成功

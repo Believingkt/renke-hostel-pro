@@ -12,6 +12,7 @@ import { KolSection } from "@/components/team/onboarding/KolSection";
 import { GapsSection, PayuniSection } from "@/components/team/onboarding/GapsSection";
 import { BonusVenueSection } from "@/components/team/onboarding/BonusVenueSection";
 import { BonusRulesSection } from "@/components/team/onboarding/BonusRulesSection";
+import { OwnerSettlementSection } from "@/components/team/onboarding/OwnerSettlementSection";
 import { OnbTabsList } from "@/components/team/onboarding/OnbTabsList";
 import { STAGE_LABEL, canAssignAm, canSetItem, canViewOnboarding, venueStage, type OnbItem } from "@/lib/teamOnboarding";
 import { ONB_TABS, defaultTab, gapInTab, itemInTab, tabPending, visibleTabs, type OnbTabKey } from "@/lib/onboardingTabs";
@@ -41,6 +42,7 @@ export default function TeamOnboardingVenue() {
         { items: ["am", "access"], node: () => <AmSection key="am" row={row} members={members} canEdit={mineAm} isSuperAdmin={isSuperAdmin} onChanged={reload} /> },
         { items: ["kolVenue", "quota"], node: () => <KolSection key="kol" row={row} roles={roles} onChanged={reload} /> },
         { items: ["payuni"], node: () => <PayuniSection key="payuni" row={row} isSuperAdmin={isSuperAdmin} /> },
+        { items: ["ownerSettlement"], node: () => <OwnerSettlementSection key="owner" accId={row.accommodation_id} canEdit={canSetItem("ownerSettlement", roles)} /> },
         { items: ["bonusRules"], node: () => <BonusRulesSection key="rules" accId={row.accommodation_id} roles={roles} /> },
         { items: ["bonusFlags"], node: () => <BonusVenueSection key="bonus" accId={row.accommodation_id} accName={row.accommodation_name} canEdit={mineBonus} /> },
       ]
