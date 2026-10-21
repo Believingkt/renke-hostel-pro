@@ -617,66 +617,22 @@ function WeeklyTab() {
 /* ---------------- Tab 3 ---------------- */
 function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const [commonAds, setCommonAds] = useState<CommonAdId[]>([]);
-  const [rules, setRules] = useState<VideoCreatorRule[]>([]);
-  const [videoMembers, setVideoMembers] = useState<VideoMember[]>([]);
 
   const [adDialogOpen, setAdDialogOpen] = useState(false);
   const [editingAdId, setEditingAdId] = useState<string | null>(null);
   const [adForm, setAdForm] = useState({ label: "", ad_id: "" });
-
-  const [ruleDialogOpen, setRuleDialogOpen] = useState(false);
-  const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [ruleForm, setRuleForm] = useState({
-    keyword: "",
-    video_creator_id: "",
-    sort_order: 0,
-  });
 
   useEffect(() => {
     void loadAll();
   }, []);
 
   const loadAll = async () => {
-    const [c, r, v] = await Promise.all([
-      supabase
-        .from("common_ad_ids")
-        .select("id,label,ad_id,sort_order")
-        .order("sort_order"),
-      supabase
-        .from("ad_video_creator_rules")
-        .select("id,keyword,video_creator_id,sort_order")
-        .order("sort_order"),
-      supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "video")
-        .is("accommodation_id", null),
-    ]);
+    const c = await supabase
+      .from("common_ad_ids")
+      .select("id,label,ad_id,sort_order")
+      .order("sort_order");
     if (!c.error) setCommonAds((c.data || []) as CommonAdId[]);
-    if (!r.error) setRules((r.data || []) as VideoCreatorRule[]);
-    if (!v.error) {
-      const userIds = Array.from(
-        new Set(((v.data || []) as any[]).map((row) => row.user_id).filter(Boolean)),
-      );
-      if (userIds.length === 0) {
-        setVideoMembers([]);
-      } else {
-        const { data: profiles } = await supabase
-          .from("team_member_profiles")
-          .select("user_id, display_name")
-          .in("user_id", userIds);
-        setVideoMembers(
-          (profiles || []).map((p: any) => ({
-            user_id: p.user_id,
-            display_name: p.display_name,
-          })),
-        );
-      }
-    }
   };
-
-  const memberName = (id: string) =>
-    videoMembers.find((m) => m.user_id === id)?.display_name ?? "—";
 
   const saveAd = async () => {
     if (!adForm.label.trim() || !adForm.ad_id.trim())
@@ -719,57 +675,6 @@ function SettingsTab({ canEdit }: { canEdit: boolean }) {
   const deleteAd = async (id: string) => {
     if (!confirm("確定刪除此項？")) return;
     const { error } = await supabase.from("common_ad_ids").delete().eq("id", id);
-    if (error) return toast.error("刪除失敗：" + error.message);
-    void loadAll();
-  };
-
-  const saveRule = async () => {
-    if (!ruleForm.keyword.trim() || !ruleForm.video_creator_id)
-      return toast.error("請填寫關鍵字並選擇影音組成員");
-    const basePayload = {
-      keyword: ruleForm.keyword.trim(),
-      video_creator_id: ruleForm.video_creator_id,
-    };
-    const { error } = editingRuleId
-      ? await supabase
-          .from("ad_video_creator_rules")
-          .update(basePayload)
-          .eq("id", editingRuleId)
-      : await supabase.from("ad_video_creator_rules").insert({
-          ...basePayload,
-          sort_order:
-            rules.reduce((m, r) => Math.max(m, r.sort_order ?? 0), 0) + 1,
-        });
-    if (error) return toast.error((editingRuleId ? "更新" : "新增") + "失敗：" + error.message);
-    toast.success(editingRuleId ? "已更新" : "已新增");
-    setRuleDialogOpen(false);
-    setEditingRuleId(null);
-    setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
-    void loadAll();
-  };
-
-  const openEditRule = (r: VideoCreatorRule) => {
-    setEditingRuleId(r.id);
-    setRuleForm({
-      keyword: r.keyword,
-      video_creator_id: r.video_creator_id,
-      sort_order: r.sort_order ?? 0,
-    });
-    setRuleDialogOpen(true);
-  };
-
-  const openNewRule = () => {
-    setEditingRuleId(null);
-    setRuleForm({ keyword: "", video_creator_id: "", sort_order: 0 });
-    setRuleDialogOpen(true);
-  };
-
-  const deleteRule = async (id: string) => {
-    if (!confirm("確定刪除此規則？")) return;
-    const { error } = await supabase
-      .from("ad_video_creator_rules")
-      .delete()
-      .eq("id", id);
     if (error) return toast.error("刪除失敗：" + error.message);
     void loadAll();
   };

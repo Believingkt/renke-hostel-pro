@@ -18,7 +18,6 @@ export type GapKey =
   | "closerFlag"
   | "payoutBasis"
   | "closerRate"
-  | "videoRate"
   | "amScope"
   | "venueClosing"
   | "tierRule"
@@ -57,7 +56,6 @@ export const GAP_TARGETS: Record<GapKey, GapTarget> = {
   closerFlag: { tab: "bonus" },
   payoutBasis: { tab: "bonus" },
   closerRate: { tab: "bonus" },
-  videoRate: { tab: "bonus" },
   // 負責 AM 在團隊「館別設定總覽」指定，HQ 設定頁沒有對應卡片
   amScope: { tab: null },
   venueClosing: { tab: "bonus" },
@@ -70,8 +68,15 @@ export const GAP_TARGETS: Record<GapKey, GapTarget> = {
   scoutSalary: { tab: null },
 };
 
-/** 產生 HQ 設定頁連結；沒有對應 HQ 頁面時回傳 null */
+/** 可以開「館別設定總覽」的角色 */
+export const ONBOARDING_VIEW_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "scout_manager", "closer_manager"];
+
+/** 已搬進館別設定總覽單館頁「AM 總管」Tab 的獎金規則（HQ 原頁面改唯讀） */
+export const ONBOARDING_BONUS_RULE_KEYS: GapKey[] = ["partnership", "teamBonusFlag", "closerFlag", "closerRate", "venueClosing", "tierRule"];
+
+/** 產生設定頁連結：已搬家的獎金規則→館別頁；其餘→HQ 設定頁；沒有對應頁面時回傳 null */
 export function buildGapHref(key: GapKey, accId?: string): string | null {
+  if (accId && ONBOARDING_BONUS_RULE_KEYS.includes(key)) return `/team/onboarding/${accId}?tab=am_manager`;
   const target = GAP_TARGETS[key];
   if (!target.tab) return null;
   const params = new URLSearchParams();
@@ -119,7 +124,6 @@ export const GAP_WRITE_ROLES: Record<GapKey, string[]> = {
   payoutBasis: ["super_admin"],
   // accommodation_commission_settings：HQ 獎金分頁只對 super_admin／admin 開放編輯
   closerRate: ["super_admin", "admin"],
-  videoRate: ["super_admin", "admin"],
   // team_set_responsible_am：team_onboarding_can_assign_am（super_admin、admin、am_manager）
   amScope: ["super_admin", "admin", "am_manager"],
   // teamcommission_venue_closing_assignments RLS：super_admin、admin

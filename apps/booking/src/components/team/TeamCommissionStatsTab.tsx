@@ -284,7 +284,6 @@ export default function TeamCommissionStatsTab() {
 
   // Sheet / expanded state
   const [expandedCloser, setExpandedCloser] = useState<Set<string>>(new Set());
-  const [expandedVideo, setExpandedVideo] = useState<Set<string>>(new Set());
   const [accSheet, setAccSheet] = useState<{
     title: string;
     breakdown: AccBreakdown;
@@ -961,11 +960,6 @@ export default function TeamCommissionStatsTab() {
 
   const closerStats = useMemo(
     () => buildMemberStats("closer_id", "closer_rate"),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
-  );
-  const videoStats = useMemo(
-    () => buildMemberStats("video_creator_id", "video_rate"),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [validOrders, cancelOrders, metaMap, commissionByAcc, nameMapByUserId, accNameMap, previewMap, bonusRate],
   );
@@ -1784,14 +1778,8 @@ export default function TeamCommissionStatsTab() {
 
 
 
-      {/* 成交組業績（影音組分潤已停用：僅在仍有歷史金額時顯示） */}
-      {!isScoutOnly && (
-        <>
-          {renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true, "closer")}
-          {videoStats.some((s) => s.commission !== 0 || s.cancelCommission !== 0) &&
-            renderMemberCard("影音組業績（已停用・歷史）", videoStats, expandedVideo, setExpandedVideo, "影音組成員", false, "video")}
-        </>
-      )}
+      {/* 成交組業績（影音組分潤已停用，不再彙總） */}
+      {!isScoutOnly && renderMemberCard("成交組業績", closerStats, expandedCloser, setExpandedCloser, "成交組成員", true, "closer")}
 
       {/* 星探折扣碼業績 */}
       <Card>
@@ -1887,7 +1875,7 @@ export default function TeamCommissionStatsTab() {
         </CardContent>
       </Card>
 
-      {/* 館別訂單明細 Sheet（成交/影音） */}
+      {/* 館別訂單明細 Sheet（成交） */}
       <Sheet open={!!accSheet} onOpenChange={(o) => !o && setAccSheet(null)}>
         <SheetContent
           side="right"

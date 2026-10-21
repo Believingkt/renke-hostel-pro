@@ -1456,7 +1456,10 @@ export default function TeamOrders() {
 
         {(isAdmin || isCloser || isVideo) && (
           <TabsContent value="commission-rates" className="space-y-4">
-            <CommissionRatesTab readOnly={!isAdmin && !isCloser} />
+            <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="commission-rates-moved-notice">
+              成交費率已搬到「館別設定總覽」的單館頁（AM 總管 Tab）設定，這裡改為唯讀。
+            </p>
+            <CommissionRatesTab readOnly venueLinkFor={isAdmin ? (id) => `/team/onboarding/${id}?tab=am_manager` : undefined} />
           </TabsContent>
         )}
 

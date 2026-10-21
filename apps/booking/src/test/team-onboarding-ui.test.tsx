@@ -18,6 +18,9 @@ vi.mock("@lakeze/shared/hooks/use-settings-completeness", () => ({
 vi.mock("@/components/team/KolReciprocalQuotaTab", () => ({
   KolReciprocalQuotaTab: (p: any) => <div data-testid="quota-tab-mock">{`${p.isManager}|${p.allowedAccommodationIds?.join(",")}|${p.lockedAccommodation === true}`}</div>,
 }));
+vi.mock("@/components/team/onboarding/BonusRulesSection", () => ({
+  BonusRulesSection: (p: any) => <div data-testid="onboarding-bonus-rules-section">{p.accId}</div>,
+}));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => {
   const chain: any = {
     select: () => chain, eq: () => chain, lte: () => chain, not: () => chain, order: () => chain, in: () => chain,
@@ -172,6 +175,7 @@ describe("館別設定總覽頁", () => {
     expect(within(panel).getByTestId("onboarding-am-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-kol-section")).toBeTruthy();
     expect(within(panel).getByTestId("onboarding-bonus-section")).toBeTruthy();
+    expect(within(panel).getByTestId("onboarding-bonus-rules-section")).toBeTruthy();
     expect(screen.queryByTestId("onboarding-payuni-section")).toBeNull();
     expect(screen.queryByTestId("onboarding-gaps-section-mine")).toBeNull();
     expect(screen.queryByTestId("onboarding-venue-tab-hq")).toBeNull();

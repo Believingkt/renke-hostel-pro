@@ -15,14 +15,14 @@ export const BONUS_VENUE_COLUMNS: CheckColumn[] = [
   { key: "closerFlag", label: "採計成交組" },
   { key: "payoutBasis", label: "業主自帶口徑" },
   { key: "closerRate", label: "成交費率" },
-  { key: "videoRate", label: "影音費率" },
   { key: "amScope", label: "AM 負責人" },
   { key: "venueClosing", label: "場域簽約人" },
   { key: "tierRule", label: "館別級距規則" },
   { key: "kolQuota", label: "KOL 互惠額度" },
 ];
 
-const STEP1 = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ① 步 合作期間卡片";
+const STEP1 = "團隊後台 →「館別設定總覽」→ 該館 →「AM 總管」Tab → 場域簽約人與合作期間";
+const VENUE_RULES = "團隊後台 →「館別設定總覽」→ 該館 →「AM 總管」Tab";
 const STEP3 = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ③ 步 分給誰";
 const STEP4 = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ④ 步 分多少、何時發";
 const STEP2 = "總部設定頁 →「獎金發放規則（4 步流程）」→ 第 ② 步 基準金額";
@@ -121,7 +121,7 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
             href,
             target: STEP1,
             fields: ["採計成交組（開關）"],
-            hint: "此館合作期間關閉了「採計成交組」，成交大師與影音獎金不會採計此館訂單。若非刻意請打開。",
+            hint: "此館合作期間關閉了「採計成交組」，成交大師獎金不會採計此館訂單。若非刻意請打開。",
           }
         : { level: "ok", label: "採計" };
 
@@ -144,43 +144,20 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
           level: "error",
           label: "無成交費率",
           href: buildGapHref("closerRate", a.id)!,
-          target: STEP4,
-          fields: ["生效日", "成交大師費率", "影音費率"],
-          hint: "此館沒有生效中的成交／影音費率版本，成交大師獎金會算不出金額。請新增一筆生效版本。",
+          target: `${VENUE_RULES} → 成交費率`,
+          fields: ["生效日", "成交大師費率"],
+          hint: "此館沒有生效中的成交費率版本，成交大師獎金會算不出金額。請新增一筆生效版本。",
         }
       : !closerRate || closerRate <= 0
         ? {
             level: "warn",
             label: "費率為 0%",
             href: buildGapHref("closerRate", a.id)!,
-            target: STEP4,
+            target: `${VENUE_RULES} → 成交費率`,
             fields: ["成交大師費率"],
             hint: "成交費率為 0%，若非刻意設定請修正。",
           }
         : { level: "ok", label: `${(closerRate * 100).toFixed(2).replace(/\.00$/, "")}%` };
-
-    const videoRate = cs ? num(cs.video_rate) : null;
-    const videoRateRes: CheckResult = !cs
-      ? {
-          level: "error",
-          label: "無影音費率",
-          href: buildGapHref("videoRate", a.id)!,
-          target: STEP4,
-          fields: ["生效日", "影音費率"],
-          hint: "此館沒有生效中的費率版本，影音獎金會算不出金額。請新增一筆生效版本。",
-        }
-      : videoRate === null
-        ? {
-            level: "warn",
-            label: "未填",
-            href: buildGapHref("videoRate", a.id)!,
-            target: STEP4,
-            fields: ["影音費率"],
-            hint: "此館的影音費率未填寫，影音獎金會以 0 計算。",
-          }
-        : videoRate <= 0
-          ? { level: "ok", label: "0%（影音已停用）" }
-          : { level: "ok", label: `${(videoRate * 100).toFixed(2).replace(/\.00$/, "")}%` };
 
     const amScope: CheckResult = amSet.has(a.id)
       ? { level: "ok", label: "已指派" }
@@ -201,7 +178,7 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
           level: "warn",
           label: "未指派",
           href: buildGapHref("venueClosing", a.id)!,
-          target: STEP3,
+          target: STEP1,
           fields: ["場域簽約人（成員）", "生效日"],
           hint: "未指派場域簽約人，此館簽約成立時的場域成交獎金會無人可發。",
         };
@@ -228,7 +205,6 @@ export function buildBonusVenueRows(input: BonusVenueInput): VenueCheckRow[] {
         closerFlag,
         payoutBasis,
         closerRate: closerRateRes,
-        videoRate: videoRateRes,
         amScope,
         venueClosing,
         tierRule,

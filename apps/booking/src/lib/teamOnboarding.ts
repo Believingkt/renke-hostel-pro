@@ -1,6 +1,6 @@
 import type { TeamRole } from "@lakeze/shared/components/team/teamConfig";
 import { merStatusLabel } from "@/lib/payuniMerchantRules";
-import { GAP_WRITE_ROLES } from "@lakeze/shared/lib/settingsGapLinks";
+import { GAP_WRITE_ROLES, ONBOARDING_VIEW_ROLES } from "@lakeze/shared/lib/settingsGapLinks";
 
 /** team_onboarding_overview() 一列 */
 export interface OnboardingRow {
@@ -45,7 +45,7 @@ export type VenueStage = "live" | "setup" | "inactive";
 
 const has = (roles: string[], allow: string[]) => roles.some((r) => allow.includes(r));
 
-export const ONBOARDING_VIEW_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "scout_manager", "closer_manager"];
+export { ONBOARDING_VIEW_ROLES };
 export const canViewOnboarding = (roles: TeamRole[] | string[]) => has(roles as string[], ONBOARDING_VIEW_ROLES);
 /** 總覽每個項目實際能設定的角色（缺口類沿用 GAP_WRITE_ROLES，與小鈴鐺同一份對照表） */
 export const ONB_ITEM_WRITERS = {
@@ -59,6 +59,8 @@ export const ONB_ITEM_WRITERS = {
   payuni: ["super_admin"],
   // 館別獎金設定（不列入抽成類、固定額合併群組、單館訂單來源覆蓋）
   bonusFlags: ["super_admin", "am_manager"],
+  // 獎金發放規則（合作期間／採計開關／場域簽約人／成交費率／館別級距）：寫入維持總部
+  bonusRules: ["super_admin", "admin"],
 } as const;
 export type OnbItem = keyof typeof ONB_ITEM_WRITERS;
 export const canSetItem = (item: OnbItem, roles: TeamRole[] | string[]) => has(roles as string[], [...ONB_ITEM_WRITERS[item]]);

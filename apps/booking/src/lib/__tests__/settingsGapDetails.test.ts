@@ -11,17 +11,29 @@ describe("validateGapLink", () => {
     }
   });
 
-  it("admin 可編輯 HQ 缺口", () => {
+  it("admin 可編輯成交費率（已搬到館別頁 AM 總管 Tab）", () => {
     const r = validateGapLink("closerRate", ["admin"], "acc-1");
     expect(r.editable).toBe(true);
-    expect(r.href).toContain("/hq/bonus-settings");
+    expect(r.href).toBe("/team/onboarding/acc-1?tab=am_manager");
   });
 
-  it("finance 在 HQ 為唯讀，會標示原因", () => {
+  it("finance 對成交費率為唯讀，會標示原因", () => {
     const r = validateGapLink("closerRate", ["finance"], "acc-1");
     expect(r.editable).toBe(false);
-    expect(r.href).toContain("/hq/bonus-settings");
+    expect(r.href).toBe("/team/onboarding/acc-1?tab=am_manager");
     expect(r.reason).toBeTruthy();
+  });
+
+  it("AM 總管看得到搬家後的獎金規則（唯讀）", () => {
+    for (const k of ["tierRule", "venueClosing", "teamBonusFlag", "closerFlag", "partnership"] as const) {
+      const r = validateGapLink(k, ["am_manager"], "acc-1");
+      expect(r.href).toBe("/team/onboarding/acc-1?tab=am_manager");
+      expect(r.editable).toBe(false);
+    }
+  });
+
+  it("其他獎金缺口仍連到 HQ 設定頁", () => {
+    expect(validateGapLink("payoutBasis", ["admin"], "acc-1").href).toContain("/hq/bonus-settings");
   });
 
   it("am 可編輯業主月結，但不可編輯獎金分頁", () => {
@@ -36,7 +48,7 @@ describe("validateGapLink", () => {
   });
 
   it("無權限角色不給連結", () => {
-    const r = validateGapLink("closerRate", ["closer_manager"], "acc-1");
+    const r = validateGapLink("closerRate", ["scout"], "acc-1");
     expect(r.href).toBeNull();
     expect(r.editable).toBe(false);
   });

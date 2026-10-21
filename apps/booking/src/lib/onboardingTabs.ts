@@ -32,7 +32,11 @@ function tabOwns(tab: OnbTabKey, writers: readonly string[]): boolean {
   return tab === "all" || writers.includes(tab);
 }
 
-export const itemInTab = (tab: OnbTabKey, item: OnbItem) => tabOwns(tab, ONB_ITEM_WRITERS[item]);
+/** 寫入權限在總部、但畫面放在角色 Tab 方便查看的項目 */
+const EXTRA_TABS: Partial<Record<OnbItem, OnbTabKey[]>> = { bonusRules: ["am_manager"] };
+
+export const itemInTab = (tab: OnbTabKey, item: OnbItem) =>
+  tabOwns(tab, ONB_ITEM_WRITERS[item]) || !!EXTRA_TABS[item]?.includes(tab);
 export const gapInTab = (tab: OnbTabKey, key: GapKey) => tabOwns(tab, GAP_WRITE_ROLES[key] ?? []);
 
 export const OVERVIEW_COLUMNS: Array<{ item: OnbItem; label: string; status: (r: OnboardingRow) => OnbStatus; testId: string }> = [

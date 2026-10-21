@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
 import { Button } from "@lakeze/shared/components/ui/button";
@@ -171,13 +172,18 @@ const emptyRow = (): FormRow => ({
 
 /* ------------------------------ 主元件 ------------------------------ */
 
-export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?: boolean }) {
+/** lockedAccId：只顯示單一館別（館別設定總覽用）；venueLinkFor：唯讀時顯示「前往館別頁設定」 */
+export default function VenueBonusTierRulesTab({
+  readOnly = false,
+  lockedAccId,
+  venueLinkFor,
+}: { readOnly?: boolean; lockedAccId?: string; venueLinkFor?: (accId: string) => string }) {
   const { toast } = useToast();
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rules, setRules] = useState<TierRuleRow[]>([]);
   const [usedRuleIds, setUsedRuleIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [selectedAcc, setSelectedAcc] = useState<string | null>(null);
+  const [selectedAcc, setSelectedAcc] = useState<string | null>(lockedAccId ?? null);
   const [activeVersionKey, setActiveVersionKey] = useState<string | null>(null);
 
   // 編輯 Dialog 狀態
@@ -245,7 +251,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
   }, []);
 
   const overview = useMemo(() => {
-    return accs.map((a) => {
+    return accs.filter((a) => !lockedAccId || a.id === lockedAccId).map((a) => {
       const own = rules.filter((r) => r.accommodation_id === a.id);
       const types = Array.from(new Set(own.map((r) => r.bonus_type)));
       const versionCount = new Set(own.map((r) => r.effective_from)).size;
@@ -312,7 +318,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
 
   const openCopyFrom = (v: VenueVersion) => {
     setReplaceTarget(null);
-    setFormAcc("");
+    setFormAcc(lockedAccId ?? "");
     setFormDate(todayTaipei());
     setFormNote(
       `複製自 ${accs.find((a) => a.id === v.accommodation_id)?.name ?? ""}（${v.effective_from}）`,
@@ -590,7 +596,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>館別獎金級距規則（總部集中管理）</CardTitle>
+          <CardTitle>{lockedAccId ? "館別獎金級距規則" : "館別獎金級距規則（總部集中管理）"}</CardTitle>
           <CardDescription>
             這裡設定的是「館別專屬階層級距」：一個館別、一個生效日，就是一組完整的級距表——
             營收門檻只定義一次，AM 績效／AM 總管／成交大師績效各自對應一欄費率。
@@ -627,9 +633,9 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <div>
-            <CardTitle className="text-base">館別總覽</CardTitle>
+            <CardTitle className="text-base">{lockedAccId ? "本館狀態" : "館別總覽"}</CardTitle>
             <CardDescription>
-              哪些館別已改用獨立業務規則
+              {lockedAccId ? "本館是否已改用獨立業務規則" : "哪些館別已改用獨立業務規則"}
               <br />
               <span className="text-xs">
                 提醒：要新增版本時，建議使用右上「從其他館別帶入」直接套用現成級距，或先點選館別後用「以此版本為基礎新增」（同館沿用級距、只改生效日），
@@ -712,6 +718,11 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
               <CardTitle className="text-base">
                 {accs.find((a) => a.id === selectedAcc)?.name} ｜ 級距內容
               </CardTitle>
+              {readOnly && venueLinkFor && (
+                <Link to={venueLinkFor(selectedAcc)} className="text-sm underline" data-testid="tier-rules-venue-link">
+                  前往館別頁設定
+                </Link>
+              )}
               {!readOnly && (
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={() => openCreate(selectedAcc)}>
@@ -934,7 +945,7 @@ export default function VenueBonusTierRulesTab({ readOnly = false }: { readOnly?
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>館別</Label>
-                <Select value={formAcc} onValueChange={setFormAcc} disabled={!!replaceTarget}>
+                <Select value={formAcc} onValueChange={setFormAcc} disabled={!!replaceTarget || !!lockedAccId}>
                   <SelectTrigger
                     ref={(el) => (fieldRefs.current["acc"] = el)}
                     className={fieldErrors.acc ? "border-destructive" : ""}

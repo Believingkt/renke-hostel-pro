@@ -197,7 +197,7 @@ export function useSettingsCompleteness() {
       ...(ruleRes.error ? ["settlementRule", "marketingFee", "legacyRate"] : []),
       ...(periodRes.error ? ["partnership", "teamBonusFlag", "closerFlag", "payoutBasis"] : []),
       ...(bookingRes.error ? ["bookingSetting"] : []),
-      ...(commissionRes.error ? ["closerRate", "videoRate"] : []),
+      ...(commissionRes.error ? ["closerRate"] : []),
       ...(profileRes.error ? ["amScope"] : []),
       ...(closingRes.error ? ["venueClosing"] : []),
       ...(tierRes.error ? ["tierRule"] : []),

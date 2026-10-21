@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ChevronDown, ChevronRight, Pencil } from "lucide-react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
@@ -42,7 +43,13 @@ interface RowView extends Accommodation {
   effective_from: string | null;
 }
 
-export default function CommissionRatesTab({ readOnly = false }: { readOnly?: boolean } = {}) {
+/** lockedAccId：只顯示單一館別（館別設定總覽用）；venueLinkFor：唯讀時每列顯示「前往館別頁設定」 */
+export default function CommissionRatesTab({
+  readOnly = false,
+  lockedAccId,
+  venueLinkFor,
+}: { readOnly?: boolean; lockedAccId?: string; venueLinkFor?: (accId: string) => string } = {}) {
+  const hasOps = !readOnly || !!venueLinkFor;
   const [loading, setLoading] = useState(false);
   const [rows, setRows] = useState<RowView[]>([]);
   const [historyByAcc, setHistoryByAcc] = useState<Map<string, CommissionRow[]>>(new Map());
@@ -50,7 +57,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<RowView | null>(null);
   const [closerRate, setCloserRate] = useState<string>("");
-  const [videoRate, setVideoRate] = useState<string>("");
   const [effectiveFrom, setEffectiveFrom] = useState<string>(
     format(new Date(), "yyyy-MM-dd"),
   );
@@ -58,7 +64,8 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lockedAccId]);
 
   async function load() {
     setLoading(true);
@@ -86,7 +93,7 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
         history.set(s.accommodation_id, arr);
       });
 
-      const merged: RowView[] = (accs ?? []).map((a: any) => {
+      const merged: RowView[] = (accs ?? []).filter((a: any) => !lockedAccId || a.id === lockedAccId).map((a: any) => {
         const s = latest.get(a.id);
         return {
           id: a.id,
@@ -117,7 +124,6 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
   function openEdit(row: RowView) {
     setEditing(row);
     setCloserRate(row.closer_rate != null ? String(Number((row.closer_rate * 100).toFixed(4))) : "");
-    setVideoRate(row.video_rate != null ? String(Number((row.video_rate * 100).toFixed(4))) : "");
     setEffectiveFrom(format(new Date(), "yyyy-MM-dd"));
     setEditOpen(true);
   }
@@ -167,19 +173,19 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
               <TableHead>民宿名稱</TableHead>
               <TableHead className="w-32">成交組分潤%</TableHead>
               <TableHead className="w-36">生效日期</TableHead>
-              {!readOnly && <TableHead className="w-20 text-right">操作</TableHead>}
+              {hasOps && <TableHead className="w-20 text-right">操作</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 4 : 5} className="text-center text-muted-foreground">
+                <TableCell colSpan={hasOps ? 5 : 4} className="text-center text-muted-foreground">
                   載入中...
                 </TableCell>
               </TableRow>
             ) : rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={readOnly ? 4 : 5} className="text-center text-muted-foreground">
+                <TableCell colSpan={hasOps ? 5 : 4} className="text-center text-muted-foreground">
                   尚無資料
                 </TableCell>
               </TableRow>
@@ -217,23 +223,30 @@ export default function CommissionRatesTab({ readOnly = false }: { readOnly?: bo
                         )}
                       </TableCell>
 
-                      {!readOnly && (
+                      {hasOps && (
                         <TableCell className="text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => openEdit(r)}
-                            aria-label="編輯"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          {readOnly ? (
+                            <Link to={venueLinkFor!(r.id)} className="whitespace-nowrap text-xs underline" data-testid={`commission-rate-venue-link-${r.id}`}>
+                              前往館別頁設定
+                            </Link>
+                          ) : (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => openEdit(r)}
+                              aria-label="編輯"
+                              data-testid={`commission-rate-edit-${r.id}`}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>
                     {isOpen && (
                       <TableRow key={`${r.id}-history`} className="bg-muted/30 hover:bg-muted/30">
                         <TableCell></TableCell>
-                        <TableCell colSpan={readOnly ? 3 : 4} className="p-0">
+                        <TableCell colSpan={hasOps ? 4 : 3} className="p-0">
                           <div className="px-4 py-3">
                             <div className="text-xs text-muted-foreground mb-2">歷史紀錄</div>
                             {history.length === 0 ? (

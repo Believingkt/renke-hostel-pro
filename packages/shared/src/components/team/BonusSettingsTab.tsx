@@ -380,11 +380,15 @@ export default function BonusSettingsTab({ readOnly }: { readOnly?: boolean } = 
                 合作期間決定「這館這段期間的訂單要不要進獎金」，並可分別關閉成交大師獎金與團隊獎金；
               </p>
             </div>
+            <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900" data-testid="venue-closing-moved-notice">
+              合作期間、採計開關與場域簽約人已搬到「館別設定總覽」的單館頁（AM 總管 Tab）設定，這裡改為唯讀；每列可點「前往館別頁設定」。
+            </div>
             <VenueClosingAssignmentSection
               members={members}
               memberName={memberName}
               uid={uid}
-              readOnly={readOnly}
+              readOnly
+              venueLinkFor={(id) => `/team/onboarding/${id}?tab=am_manager`}
             />
             <div className="rounded-md border-l-4 border-primary/60 bg-muted/30 px-3 py-2 text-sm">
               <div className="font-medium">1-B 哪些營收算數（訂單來源白名單）</div>
@@ -1302,22 +1306,48 @@ function FlagChip({ label, on, tip }: { label: string; on: boolean; tip: string 
 
 
 
+/** 館別設定總覽單館頁用：自行載入成員與登入者，只顯示 accId 這一館 */
+export function VenueClosingCard({ accId, readOnly }: { accId: string; readOnly: boolean }) {
+  const [uid, setUid] = useState<string | null>(null);
+  const [members, setMembers] = useState<MemberOption[]>([]);
+  useEffect(() => {
+    (async () => {
+      const [{ data: auth }, { data }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from("team_member_profiles").select("id, user_id, display_name, is_active").order("display_name", { ascending: true }),
+      ]);
+      setUid(auth.user?.id ?? null);
+      setMembers((data ?? []) as MemberOption[]);
+    })();
+  }, []);
+  const memberName = useCallback(
+    (id: string) => members.find((m) => m.id === id)?.display_name ?? id.slice(0, 8),
+    [members],
+  );
+  return <VenueClosingAssignmentSection members={members} memberName={memberName} uid={uid} readOnly={readOnly} lockedAccId={accId} />;
+}
+
 function VenueClosingAssignmentSection({
   members,
   memberName,
   uid,
   readOnly,
+  lockedAccId,
+  venueLinkFor,
 }: {
   members: MemberOption[];
   memberName: (id: string) => string;
   uid: string | null;
   readOnly?: boolean;
+  lockedAccId?: string;
+  venueLinkFor?: (accId: string) => string;
 }) {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [rows, setRows] = useState<VenueAssignmentRow[]>([]);
   const [periods, setPeriods] = useState<PartnershipPeriodRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(lockedAccId ? [lockedAccId] : []));
+  const [excludedLocked, setExcludedLocked] = useState(false);
   const [dialogAcc, setDialogAcc] = useState<string | null>(null);
   const [memberId, setMemberId] = useState<string>("none");
   const [effectiveFrom, setEffectiveFrom] = useState(taipeiToday());
@@ -1352,7 +1382,10 @@ function VenueClosingAssignmentSection({
           .order("start_date", { ascending: false }),
       ]);
       const { excluded } = await loadVenueBonusFlags(supabase);
-      setAccs(((accRes.data ?? []) as AccOption[]).filter((a) => !excluded.has(a.id)));
+      setExcludedLocked(!!lockedAccId && excluded.has(lockedAccId));
+      setAccs(
+        ((accRes.data ?? []) as AccOption[]).filter((a) => !excluded.has(a.id) && (!lockedAccId || a.id === lockedAccId)),
+      );
       setRows((rowRes.data ?? []) as VenueAssignmentRow[]);
       setPeriods((periodRes.data ?? []) as PartnershipPeriodRow[]);
 
@@ -1361,7 +1394,7 @@ function VenueClosingAssignmentSection({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lockedAccId]);
 
   useEffect(() => {
     load();
@@ -1522,6 +1555,11 @@ function VenueClosingAssignmentSection({
 
       </CardHeader>
       <CardContent>
+        {excludedLocked && (
+          <p className="mb-2 text-sm text-muted-foreground" data-testid="venue-closing-excluded-note">
+            本館已設定「不列入抽成類獎金」，不需要指定場域簽約人與合作期間。
+          </p>
+        )}
         {loading ? null : (
           <Table>
             <TableHeader>
@@ -1589,7 +1627,7 @@ function VenueClosingAssignmentSection({
                           <FlagChip
                             label="採計成交組"
                             on={curPeriod?.counts_closer_commission !== false && !!curPeriod}
-                            tip="該期間內的訂單是否計入成交組分潤／影音分潤（成交大師獎金）。"
+                            tip="該期間內的訂單是否計入成交組分潤（成交大師獎金）。"
                           />
                           <FlagChip
                             label="採計團隊獎金"
@@ -1650,7 +1688,13 @@ function VenueClosingAssignmentSection({
                       </TableCell>
                       <TableCell className="space-x-2 text-right whitespace-nowrap">
                         {readOnly ? (
-                          <span className="text-xs text-muted-foreground">唯讀</span>
+                          venueLinkFor ? (
+                            <Link to={venueLinkFor(a.id)} className="text-xs underline" data-testid={`venue-closing-venue-link-${a.id}`}>
+                              前往館別頁設定
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">唯讀</span>
+                          )
                         ) : (
                           <>
                             <Button variant="outline" size="sm" onClick={() => openPeriodDialog(a.id)}>
