@@ -1,0 +1,11 @@
+-- 20261107090000 postcheck（唯讀）
+-- Q1 方案與網紅價（kol_*＝原價打七折後的實收：min(售價, 原價 − round(原價×30%))，與三條路徑同公式）；正常 16 列
+SELECT p.display_order, p.name, p.numeric_code, p.guest_count_max, p.room_type_ids, p.tier_prices #>> '{weekday,sale}' AS wk_sale, p.tier_prices #>> '{weekday,original}' AS wk_orig, LEAST((p.tier_prices #>> '{weekday,sale}')::int, (p.tier_prices #>> '{weekday,original}')::int - ROUND((p.tier_prices #>> '{weekday,original}')::numeric * 30 / 100.0)::int) AS kol_wk, p.tier_prices #>> '{friday_sunday,sale}' AS fs_sale, p.tier_prices #>> '{friday_sunday,original}' AS fs_orig, LEAST((p.tier_prices #>> '{friday_sunday,sale}')::int, (p.tier_prices #>> '{friday_sunday,original}')::int - ROUND((p.tier_prices #>> '{friday_sunday,original}')::numeric * 30 / 100.0)::int) AS kol_fs, p.tier_prices #>> '{weekend,sale}' AS we_sale, p.tier_prices #>> '{weekend,original}' AS we_orig, LEAST((p.tier_prices #>> '{weekend,sale}')::int, (p.tier_prices #>> '{weekend,original}')::int - ROUND((p.tier_prices #>> '{weekend,original}')::numeric * 30 / 100.0)::int) AS kol_we, p.applicable_tiers FROM public.accommodation_packages p WHERE p.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY p.display_order;
+-- Q2 專案對方案：正常 16 列、每列 package_name 有值且不重複
+SELECT t.numeric_code, t.template_name, p.name AS package_name, p.numeric_code AS package_code, t.weekday_price, t.peak_price, t.weekend_price FROM public.pricing_templates t LEFT JOIN public.accommodation_packages p ON p.id = t.default_package_id WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY t.numeric_code;
+-- Q3 網紅碼：正常 tpl_count 12
+SELECT d.code, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') ORDER BY 1;
+-- Q4 flags
+SELECT f.new_price_ui_enabled, f.new_order_dialog_enabled, f.price_sync_mode, f.auto_template_enabled FROM public.accommodation_info_flags f WHERE f.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
+-- Q5 KOL 訂單：與 precheck P6 完全相同（updated_at 也不變）
+SELECT o.order_number, o.order_source, o.final_price, o.pricing_template_id, o.package_id, o.check_in_date, o.order_status, o.updated_at FROM public.orders o WHERE o.order_number IN ('DM3A89R8', 'QW9M94K4', 'NE6Y99A5') ORDER BY 1;
