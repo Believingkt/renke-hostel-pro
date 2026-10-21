@@ -16,6 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { buildCorsHeaders } from "../_shared/cors.ts";
 import { canEditModule, resolveCaller } from "../_shared/authz.ts";
+import { splitPushableRates } from "./rateFilter.ts";
 
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -370,8 +371,27 @@ Deno.serve(async (req) => {
     }
   }
 
+  // 價格 <= 0 的日期不推給奧丁丁（避免通路出現 0 元房價），記下略過的房型與日期
+  const { pushable: pushRateRows, skipped: skippedRates } = splitPushableRates(rateRows);
+  if (skippedRates.length > 0) {
+    try {
+      await supabase.from("error_logs").insert({
+        source: "backend",
+        function_name: "owlting-ari-push",
+        category: "owlting_ari_zero_price_skipped",
+        step: "build_rate_rows",
+        error_code: "ZERO_PRICE_SKIPPED",
+        error_message: `略過 ${rateRows.length - pushRateRows.length} 筆 0 元房價未推送`,
+        accommodation_id,
+        context: { date_from, date_to, skipped: skippedRates },
+      });
+    } catch (e) {
+      console.error("[owlting-ari-push] error_logs insert failed:", e);
+    }
+  }
+
   const invXml = buildInvCountNotif(hotelCode, remoteUser, remotePass, invRows);
-  const rateXml = buildRateAmountNotif(hotelCode, remoteUser, remotePass, rateRows);
+  const rateXml = buildRateAmountNotif(hotelCode, remoteUser, remotePass, pushRateRows);
 
   async function postSoap(xml: string, action: string, messageType: string) {
     const headers: Record<string, string> = {
@@ -401,7 +421,9 @@ Deno.serve(async (req) => {
   }
 
   const invResult = await postSoap(invXml, "OTA_HotelInvCountNotifRQ", "OTA_HotelInvCountNotifRQ");
-  const rateResult = await postSoap(rateXml, "OTA_HotelRateAmountNotifRQ", "OTA_HotelRateAmountNotifRQ");
+  const rateResult = pushRateRows.length > 0
+    ? await postSoap(rateXml, "OTA_HotelRateAmountNotifRQ", "OTA_HotelRateAmountNotifRQ")
+    : { status: 200, respText: "", err: null as string | null };
 
   await supabase
     .from("owlting_ari_endpoints")
@@ -412,7 +434,7 @@ Deno.serve(async (req) => {
     JSON.stringify({
       success: invResult.status >= 200 && invResult.status < 300 && rateResult.status >= 200 && rateResult.status < 300,
       inventory: { http_status: invResult.status, error: invResult.err, rows: invRows.length },
-      rates: { http_status: rateResult.status, error: rateResult.err, rows: rateRows.length },
+      rates: { http_status: rateResult.status, error: rateResult.err, rows: pushRateRows.length, skipped_zero_price: skippedRates },
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
   );

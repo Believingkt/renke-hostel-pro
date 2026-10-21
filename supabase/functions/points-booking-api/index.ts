@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildOwltingNotes as buildGuestNotes } from "../_shared/owltingNotesWhitelist.ts";
+import { findUnpricedNights } from "./priceGuard.ts";
 
 // V5.5B.3 — 回傳給 B2B 夥伴時的聯絡資料遮蔽
 const maskPhone = (v?: string | null) => (v ? v.replace(/\d(?=\d{3})/g, "x") : v ?? null);
@@ -523,7 +524,7 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
   const [{ data: inventory }, { data: overrides }, { data: holidayRows }] = await Promise.all([
     supabase
       .from("room_inventory_pricing")
-      .select(`date, price, price_2_meals, price_3_meals, available_rooms, is_available`)
+      .select(`date, price, price_2_meals, price_3_meals, available_rooms, is_available, last_change_source`)
       .eq("room_type_id", room_type_id)
       .is("pricing_template_id", null)
       .in("date", dates),
@@ -609,9 +610,11 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
     weekendP;
 
   let totalPrice = 0;
+  const nightPrices: { date: string; price: number | null }[] = [];
   for (const dateStr of dates) {
     if (overrideMap.has(dateStr)) {
       totalPrice += overrideMap.get(dateStr)!;
+      nightPrices.push({ date: dateStr, price: overrideMap.get(dateStr)! });
       continue;
     }
     const tier = classifyDay(dateStr);
@@ -619,12 +622,53 @@ async function handleCreateOrder(supabase: any, partner: Partner, body: any) {
       tier === "weekend" ? weekendP : tier === "peak" ? peakP : weekdayP;
     if (tierPrice != null && tierPrice > 0) {
       totalPrice += tierPrice;
+      nightPrices.push({ date: dateStr, price: tierPrice });
       continue;
     }
     // Fallback to inventory base row
     const inv = inventoryMap.get(dateStr);
     const mealPrice = inv ? (inv as any)[priceColumn] : null;
-    totalPrice += (mealPrice != null && mealPrice > 0) ? mealPrice : (inv?.price || 0);
+    const night = (mealPrice != null && mealPrice > 0) ? mealPrice : (inv?.price ?? null);
+    totalPrice += night || 0;
+    nightPrices.push({ date: dateStr, price: night });
+  }
+
+  // 0 元防護：任何一晚缺價／≤0，或建單觸發器會採用的基底價 ≤0，或總價 ≤0 → 拒絕，不建立訂單
+  const { data: roomTypeRow } = await supabase
+    .from("room_types")
+    .select("base_price")
+    .eq("id", room_type_id)
+    .maybeSingle();
+  const unpriced = findUnpricedNights(nightPrices, inventoryMap, roomTypeRow?.base_price ?? null);
+  if (unpriced.length > 0 || totalPrice <= 0) {
+    const badDates = unpriced.map((u) => u.date);
+    const message = badDates.length > 0
+      ? `以下日期沒有有效房價，無法訂房：${badDates.join("、")}`
+      : "訂單總價為 0，無法訂房";
+    try {
+      await supabase.from("error_logs").insert({
+        source: "backend",
+        function_name: "points-booking-api",
+        category: "points_price_unavailable",
+        step: "create_order",
+        error_code: "PRICE_UNAVAILABLE",
+        error_message: message,
+        accommodation_id: accommodation_id ?? null,
+        context: {
+          partner_id: partner.id,
+          partner_code: partner.platform_code,
+          room_type_id,
+          pricing_template_id,
+          check_in_date,
+          check_out_date,
+          total_price: totalPrice,
+          nights: unpriced,
+        },
+      });
+    } catch (e) {
+      console.error("[points-booking-api] error_logs insert failed:", e);
+    }
+    return jsonResponse({ error: message, code: "PRICE_UNAVAILABLE", dates: badDates, nights: unpriced }, 422);
   }
 
   // --- Full payment flow: points deduct from total, remaining must be paid in full by card ---

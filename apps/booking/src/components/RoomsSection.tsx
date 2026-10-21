@@ -19,6 +19,8 @@ import { OptimizedImage } from "./OptimizedImage";
 import roomDeluxe from "@lakeze/shared/assets/room-deluxe.jpg";
 import roomSuite from "@lakeze/shared/assets/room-suite.jpg";
 import roomStandard from "@lakeze/shared/assets/room-standard.jpg";
+import { positivePrices } from "@/lib/positivePrices";
+
 
 interface PricingOption {
   type: string;
@@ -476,9 +478,10 @@ const RoomsSection = ({ roomTypes, sectionDescription, customTitle, customSubtit
 
         const pricingMap: Record<string, InventoryPricing> = {};
         for (const [roomId, data] of Object.entries(grouped)) {
-          const allPrices = data.map(item => item.price).filter((p): p is number => p != null);
-          const allPrices2Meals = data.map(item => item.price_2_meals).filter((p): p is number => p != null);
-          const allPrices3Meals = data.map(item => item.price_3_meals).filter((p): p is number => p != null);
+          // 起價略過 <= 0 的價格；全部是 0 時視同沒有價格
+          const allPrices = positivePrices(data.map(item => item.price));
+          const allPrices2Meals = positivePrices(data.map(item => item.price_2_meals));
+          const allPrices3Meals = positivePrices(data.map(item => item.price_3_meals));
           
           const uniquePrices = [...new Set(allPrices)].sort((a, b) => a - b);
           const uniquePrices2Meals = [...new Set(allPrices2Meals)].sort((a, b) => a - b);
