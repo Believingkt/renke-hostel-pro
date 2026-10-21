@@ -18,7 +18,7 @@ interface Props {
   onChangeTemplates: (next: string[]) => void;
   idPrefix: string;
   scrollable?: boolean;
-  /** 綁定專案群組時唯讀：適用專案由群組自動同步 */
+  /** 使用折扣碼適用方案組合時唯讀：適用方案由組合自動帶入 */
   readOnly?: boolean;
 }
 
@@ -86,7 +86,7 @@ export function DiscountScopeSelector({
         ))}
       </div>
       {readOnly && (
-        <p className="text-xs text-amber-700" data-testid={`${idPrefix}-scope-readonly`}>由專案群組自動同步</p>
+        <p className="text-xs text-amber-700" data-testid={`${idPrefix}-scope-readonly`}>已由『折扣碼適用方案組合』自動帶入，要修改請到『房型與方案』頁</p>
       )}
       {isTemplate && (
         <p className="text-xs text-muted-foreground">

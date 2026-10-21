@@ -1778,6 +1778,15 @@ const KolDiscount = () => {
               />
             </div>
             
+            {editingCode && (
+              <DiscountCodeGroupBinding
+                discountCodeId={editingCode.id}
+                accommodationId={editingCode.accommodation_id}
+                scopeMode={scopeMode}
+                onBoundChange={setGroupBound}
+                onSynced={setSelectedTemplates}
+              />
+            )}
             <DiscountScopeSelector
                 mode={scopeMode}
                 roomTypes={roomTypes}
@@ -1790,15 +1799,6 @@ const KolDiscount = () => {
                 readOnly={groupBound && scopeMode === "pricing_template"}
                 scrollable={true}
               />
-              {editingCode && (
-                <DiscountCodeGroupBinding
-                  discountCodeId={editingCode.id}
-                  accommodationId={editingCode.accommodation_id}
-                  scopeMode={scopeMode}
-                  onBoundChange={setGroupBound}
-                  onSynced={setSelectedTemplates}
-                />
-              )}
             
             <div className="grid gap-2">
               <Label>適用入住日期範圍（選填）</Label>
@@ -2184,6 +2184,15 @@ const KolDiscount = () => {
                 />
               </div>
               
+              {editingCode && (
+                <DiscountCodeGroupBinding
+                  discountCodeId={editingCode.id}
+                  accommodationId={editingCode.accommodation_id}
+                  scopeMode={scopeMode}
+                  onBoundChange={setGroupBound}
+                  onSynced={setSelectedTemplates}
+                />
+              )}
               <DiscountScopeSelector
                 mode={scopeMode}
                 roomTypes={roomTypes}
@@ -2196,15 +2205,6 @@ const KolDiscount = () => {
                 readOnly={groupBound && scopeMode === "pricing_template"}
                 scrollable={false}
               />
-              {editingCode && (
-                <DiscountCodeGroupBinding
-                  discountCodeId={editingCode.id}
-                  accommodationId={editingCode.accommodation_id}
-                  scopeMode={scopeMode}
-                  onBoundChange={setGroupBound}
-                  onSynced={setSelectedTemplates}
-                />
-              )}
               
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">

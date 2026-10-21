@@ -14,7 +14,7 @@ interface Props {
   onSynced: (templateIds: string[]) => void;
 }
 
-// 折扣碼綁定專案群組（只在已開啟新價格頁的館顯示）
+// 折扣碼適用方案組合（只在已開啟新價格頁的館顯示）
 export function DiscountCodeGroupBinding({ discountCodeId, accommodationId, scopeMode, onBoundChange, onSynced }: Props) {
   const flags = useAccommodationPriceFlags(accommodationId);
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
@@ -44,7 +44,7 @@ export function DiscountCodeGroupBinding({ discountCodeId, accommodationId, scop
 
   if (!flags.newPriceUiEnabled) return null;
   if (scopeMode !== "pricing_template") {
-    return <p className="text-xs text-muted-foreground" data-testid="discount-group-binding-na">此館折扣碼依房型判斷適用範圍，不能綁定專案群組。</p>;
+    return <p className="text-xs text-muted-foreground" data-testid="discount-group-binding-na">此館折扣碼依房型判斷適用範圍，不能使用折扣碼適用方案組合。</p>;
   }
 
   const save = async () => {
@@ -57,13 +57,14 @@ export function DiscountCodeGroupBinding({ discountCodeId, accommodationId, scop
     setError(null);
     onSynced(Array.isArray(data) ? (data as string[]) : []);
     onBoundChange(picked.length > 0);
-    toast.success(picked.length > 0 ? "已綁定專案群組" : "已取消綁定專案群組");
+    toast.success(picked.length > 0 ? "已設定組合" : "已取消組合設定");
   };
 
   return (
     <div className="grid gap-2 rounded-md border p-3" data-testid="discount-group-binding">
-      <Label>綁定專案群組（選填）</Label>
-      {groups.length === 0 && <p className="text-xs text-muted-foreground">此館尚未建立專案群組（到「房型與方案」建立）</p>}
+      <Label>用組合設定適用方案（選填）</Label>
+      <p className="text-xs text-muted-foreground" data-testid="discount-group-binding-help">選了組合後，下方『適用房價方案』會自動帶入組合裡的方案，之後組合有變動也會自動更新。不選就照原本方式自己勾。</p>
+      {groups.length === 0 && <p className="text-xs text-muted-foreground">此館尚未建立折扣碼適用方案組合（到「房型與方案」頁建立）</p>}
       {groups.map((g) => (
         <label key={g.id} className="flex items-center gap-2 text-sm">
           <Checkbox checked={picked.includes(g.id)}
@@ -73,7 +74,7 @@ export function DiscountCodeGroupBinding({ discountCodeId, accommodationId, scop
         </label>
       ))}
       {error && <p role="alert" className="text-sm text-destructive" data-testid="discount-group-binding-error">{error}</p>}
-      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={save} data-testid="discount-group-binding-save">儲存群組綁定</Button>
+      <Button type="button" size="sm" variant="outline" disabled={busy} onClick={save} data-testid="discount-group-binding-save">儲存組合設定</Button>
     </div>
   );
 }

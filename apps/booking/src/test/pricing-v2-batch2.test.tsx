@@ -100,6 +100,15 @@ describe("專案群組", () => {
     rpc.mockResolvedValue({ data: 2, error: null });
     render(<PricingTemplateGroupsCard accommodationId="acc" canEdit />);
     await waitFor(() => screen.getByTestId("template-group-g1"));
+    const card = screen.getByTestId("template-groups-card").textContent || "";
+    expect(card).toContain("折扣碼適用方案組合");
+    expect(card).toContain("只用在折扣碼，不影響房價。把常一起打折的房價方案放成一組");
+    expect(card).toContain("一個方案只能放在一個組合裡。");
+    expect(card).not.toContain("群組");
+    expect(card).toContain("（已屬於「連住」）");
+    expect((screen.getByTestId("template-group-new-name") as HTMLInputElement).placeholder).toBe("新組合名稱（例如：包棟方案）");
+    expect(screen.getByTestId("template-group-create").textContent).toBe("建立組合");
+    expect(screen.getByTestId("template-group-save-members-g1").textContent).toBe("儲存組合內容");
     expect((screen.getByTestId("template-group-member-g1-t3") as HTMLButtonElement).disabled).toBe(true);
     fireEvent.click(screen.getByTestId("template-group-member-g1-t1"));
     fireEvent.click(screen.getByTestId("template-group-member-g1-t2"));
@@ -146,7 +155,10 @@ describe("折扣碼綁定專案群組", () => {
     fireEvent.click(screen.getByTestId("discount-group-binding-save"));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("set_discount_code_template_groups", { p_discount_code_id: "dc1", p_group_ids: ["g1"] }));
     await waitFor(() => expect((screen.getByTestId("edit-room-scope-t2") as HTMLButtonElement).disabled).toBe(true));
-    expect(screen.getByTestId("edit-room-scope-readonly").textContent).toBe("由專案群組自動同步");
+    expect(screen.getByTestId("edit-room-scope-readonly").textContent).toBe("已由『折扣碼適用方案組合』自動帶入，要修改請到『房型與方案』頁");
+    expect(screen.getByTestId("discount-group-binding").textContent).toContain("用組合設定適用方案（選填）");
+    expect(screen.getByTestId("discount-group-binding-help").textContent).toBe("選了組合後，下方『適用房價方案』會自動帶入組合裡的方案，之後組合有變動也會自動更新。不選就照原本方式自己勾。");
+    expect(screen.getByTestId("discount-group-binding-save").textContent).toBe("儲存組合設定");
     expect(screen.getByTestId("edit-room-scope-t2").getAttribute("data-state")).toBe("checked");
   });
 
@@ -163,6 +175,20 @@ describe("折扣碼綁定專案群組", () => {
     expect(screen.queryByTestId("discount-group-binding")).toBeNull();
     expect(screen.queryByTestId("discount-group-binding-na")).toBeNull();
     expect((screen.getByTestId("edit-room-scope-t1") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("依房型判斷的館：顯示不能使用組合", () => {
+    render(<Harness scopeMode={"room_type" as any} />);
+    expect(screen.getByTestId("discount-group-binding-na").textContent).toBe("此館折扣碼依房型判斷適用範圍，不能使用折扣碼適用方案組合。");
+  });
+
+  it("KolDiscount 編輯畫面：組合設定放在適用範圍上方", () => {
+    const fs = require("node:fs") as typeof import("node:fs");
+    const path = require("node:path") as typeof import("node:path");
+    const src = fs.readFileSync(path.resolve(__dirname, "../pages/KolDiscount.tsx"), "utf8");
+    const parts = src.split("<DiscountCodeGroupBinding").slice(1);
+    expect(parts).toHaveLength(2);
+    for (const p of parts) expect(p.indexOf("<DiscountScopeSelector")).toBeLessThan(p.indexOf('readOnly={groupBound'));
   });
 });
 
