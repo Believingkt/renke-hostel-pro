@@ -229,11 +229,20 @@ export const DIFF_CONTRACT_DATE_LIMIT_DAYS = 3;
 
 
 /**
- * 「旅行日系列」判定：沿用全站獎金計算口徑（accommodation_info.name 以「旅行日」開頭）。
- * 見 TeamHome / TeamCommission / create-team-bonus-snapshots。
+ * 館別「固定額合併群組」（teamcommission_venue_bonus_flags.fixed_merge_group，取代館名「旅行日」判斷）。
+ * 驗證函式以館名比對，所以由頁面載入後以「館名 → 群組」登錄；同群組的兩館＝同一份合約。
  */
-export function isTravelSeriesAccommodation(name?: string | null): boolean {
-  return (name ?? "").trim().startsWith("旅行日");
+let mergeGroupByName = new Map<string, string>();
+export function setVenueMergeGroupsByName(map: Map<string, string>): void {
+  mergeGroupByName = new Map([...map].map(([n, g]) => [n.trim(), g]));
+}
+export function mergeGroupOfName(name?: string | null): string | null {
+  return mergeGroupByName.get((name ?? "").trim()) ?? null;
+}
+/** 兩館是否屬於同一個合併群組（任一邊沒有群組＝否） */
+export function isSameMergeGroup(a?: string | null, b?: string | null): boolean {
+  const ga = mergeGroupOfName(a);
+  return !!ga && ga === mergeGroupOfName(b);
 }
 
 /** 場域類別為「民宿」以外（餐廳／農場／其他）者，同 CID 視為同一份合約 */
@@ -242,7 +251,7 @@ export const isNonLodgingVenueType = (t?: string | null) => !!(t ?? "").trim() &
 
 /**
  * 同一位 KOL、同一支 CID、不同館別時，是否應視為「同一份合約（僅計 1 資格）」：
- * 1. 兩邊皆為旅行日系列館別；或
+ * 1. 兩邊屬於同一個固定額合併群組（例如旅行日系列）；或
  * 2. 任一邊的場域類別非「民宿」。
  * 其餘情況（皆為民宿、非旅行日系列）＝ 各自獨立的合作，算多個資格。
  */
@@ -252,8 +261,7 @@ export function isSameContractScope(a: {
   selfVenueType?: string | null;
   otherVenueType?: string | null;
 }): boolean {
-  const bothTravel = isTravelSeriesAccommodation(a.selfAccName) && isTravelSeriesAccommodation(a.otherAccName);
-  return bothTravel || isNonLodgingVenueType(a.selfVenueType) || isNonLodgingVenueType(a.otherVenueType);
+  return isSameMergeGroup(a.selfAccName, a.otherAccName) || isNonLodgingVenueType(a.selfVenueType) || isNonLodgingVenueType(a.otherVenueType);
 }
 
 export type CodeConflict = {
@@ -521,7 +529,7 @@ export function validateInvite(
           suggestion: "請改為編輯既有那筆邀約，而不是新增一筆。",
         });
       } else if (samePerson) {
-        // 同一位 KOL、不同館別：預設各自獨立算資格；僅旅行日系列或非民宿場域才視為同一份合約。
+        // 同一位 KOL、不同館別：預設各自獨立算資格；僅同一合併群組或非民宿場域才視為同一份合約。
         const sameContract = isSameContractScope({
           selfAccName: f.accommodation_label,
           otherAccName: c.accommodation_name,

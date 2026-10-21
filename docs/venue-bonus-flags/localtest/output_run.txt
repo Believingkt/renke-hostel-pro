@@ -1,0 +1,64 @@
+NOTICE:  database "vb2" does not exist, skipping
+== precheck
+1. 兩張新表尚不存在 | t
+2. user_has_team_role(uuid, app_role)、is_super_admin(uuid) 存在 | t
+3. app_role 含 admin、am、am_manager、closer、closer_manager、scout、scout_manager、finance | t
+f8000000-0000-0000-0000-000000000002 | 旅行日 台中館 | t
+f8000000-0000-0000-0000-000000000001 | 旅行日 台北館 | t
+== 套用
+套用成功
+== postcheck
+1. 兩張表存在且已啟用 RLS | t
+2. 旅行日館別全數帶入（exclude＝true、群組＝旅行日系列），且沒有其他館 | t
+3. 單館來源覆蓋表為空（全站設定不變） | t
+4. anon 無任何權限；authenticated 有 SELECT／INSERT／UPDATE／DELETE；service_role 可讀寫 | t
+5. 政策數：flags 2、overrides 4 | t
+旅行日 台中館 | t | 旅行日系列
+旅行日 台北館 | t | 旅行日系列
+== 重複套用必須被擋
+PRECHECK 失敗：資料表已存在
+== 測試
+PASS R01 anon 讀旗標表 → DENIED permission denied for table teamcommission_venue_bonus_flags
+PASS R02 一般會員讀旗標表 → 0 筆（RLS） → RAN empty
+PASS R03 AM 讀旗標表 → OK
+PASS R04 財務讀旗標表 → OK
+PASS W01 super_admin 寫旗標 → OK
+PASS W02 AM 總管寫旗標 → OK
+PASS W03 AM 寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W04 總部 admin 寫旗標 → RLS 擋（照決定只開 super_admin、AM 總管） → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W05 財務寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS O01 AM 總管新增本月 KOL 來源覆蓋 → OK
+PASS O02 super_admin 新增過去月份版本（補登） → OK
+PASS O03 AM 新增覆蓋 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS O04 AM 總管修改過去月份版本 → 0 筆受影響（不可改歷史） → OK
+PASS O05 AM 總管修改本月版本（改回全站） → OK
+PASS O06 anon 讀覆蓋表 → DENIED permission denied for table teamcommission_venue_revenue_source_overrides
+PASS S01 service_role 讀兩張表（edge function） → OK
+PASS M01 旅行日館別帶入（seed 2 館） → 2
+PASS 17 / FAIL 0
+== rollback
+rollback 成功
+1. 兩張新表尚不存在 | t
+2. user_has_team_role(uuid, app_role)、is_super_admin(uuid) 存在 | t
+3. app_role 含 admin、am、am_manager、closer、closer_manager、scout、scout_manager、finance | t
+== 再套用＋postcheck＋測試
+再套用成功
+5 / 5 項為 t
+PASS R01 anon 讀旗標表 → DENIED permission denied for table teamcommission_venue_bonus_flags
+PASS R02 一般會員讀旗標表 → 0 筆（RLS） → RAN empty
+PASS R03 AM 讀旗標表 → OK
+PASS R04 財務讀旗標表 → OK
+PASS W01 super_admin 寫旗標 → OK
+PASS W02 AM 總管寫旗標 → OK
+PASS W03 AM 寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W04 總部 admin 寫旗標 → RLS 擋（照決定只開 super_admin、AM 總管） → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W05 財務寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS O01 AM 總管新增本月 KOL 來源覆蓋 → OK
+PASS O02 super_admin 新增過去月份版本（補登） → OK
+PASS O03 AM 新增覆蓋 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS O04 AM 總管修改過去月份版本 → 0 筆受影響（不可改歷史） → OK
+PASS O05 AM 總管修改本月版本（改回全站） → OK
+PASS O06 anon 讀覆蓋表 → DENIED permission denied for table teamcommission_venue_revenue_source_overrides
+PASS S01 service_role 讀兩張表（edge function） → OK
+PASS M01 旅行日館別帶入（seed 2 館） → 2
+PASS 17 / FAIL 0

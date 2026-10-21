@@ -50,6 +50,8 @@ import BonusSettingsTab from "@lakeze/shared/components/team/BonusSettingsTab";
 import BonusMultiplierSection from "@lakeze/shared/components/team/BonusMultiplierSection";
 import {
   getAccommodationRevenueByAcc,
+  loadVenueBonusFlags,
+  getSourceOverrides,
   getCountableRangesByAcc,
   formatCountableRangeNote,
 } from "@lakeze/shared/lib/teamBonusRevenue";
@@ -916,6 +918,7 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
         "closer_manager",
         "kol_commission",
       ]);
+      let venueFlagsP: ReturnType<typeof loadVenueBonusFlags> | null = null;
       for (const r of (teamBonusSnapshots ?? []) as any[]) {
         const amount = Math.round(Number(r.amount ?? 0));
         if (amount <= 0) continue;
@@ -981,21 +984,28 @@ function PayoutsBlock({ scoutManagerOnly: _scoutManagerOnly = false, readOnly = 
               : [];
           const snapMonth = String(r.snapshot_month ?? "");
           const [sy, sm] = snapMonth.split("-").map(Number);
-          // 旅行日系列不列入抽成類獎金
-          const revenueAccIds = accIds.filter(
-            (id) => !String(venueOf(id) ?? "").startsWith("旅行日"),
-          );
+          // 館別設定「不列入抽成類獎金」者不列入
+          venueFlagsP ??= loadVenueBonusFlags(supabase as any);
+          const { excluded } = await venueFlagsP;
+          const revenueAccIds = accIds.filter((id) => !excluded.has(id));
           if (sources.length > 0 && sy && sm && revenueAccIds.length > 0) {
             const nextY = sm === 12 ? sy + 1 : sy;
             const nextM = sm === 12 ? 1 : sm + 1;
             const monthStartDate = `${snapMonth}-01`;
             const monthEndDate = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+            const overrides = await getSourceOverrides(
+              supabase as any,
+              Array.isArray(snap.kol_sources) ? "kol" : "shared",
+              String(snap.as_of ?? monthStartDate),
+            );
             const byAcc: Record<string, number> = await getAccommodationRevenueByAcc(
               supabase as any,
               revenueAccIds,
               monthStartDate,
               monthEndDate,
               sources,
+              null,
+              overrides,
             );
             const noteRanges = await getCountableRangesByAcc(
               supabase as any,

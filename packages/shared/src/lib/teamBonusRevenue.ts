@@ -301,7 +301,18 @@ export async function getAccommodationRevenueDualByAcc(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
+  /** 單館訂單來源覆蓋（getSourceOverrides）；有覆蓋的館改用自己的清單 */
+  overrides?: Map<string, string[]>,
 ): Promise<Record<string, DualRevenue>> {
+  if (overrides && overrides.size > 0) {
+    const groups = groupBySources(accommodationIds, allowedSources, overrides);
+    const parts = await Promise.all(
+      [...groups.values()].map((g) =>
+        getAccommodationRevenueDualByAcc(client, g.ids, monthStartDate, monthEndDate, g.sources),
+      ),
+    );
+    return Object.assign({}, ...parts);
+  }
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
   const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
   const out: Record<string, DualRevenue> = {};
@@ -372,6 +383,7 @@ export async function getAccommodationRevenueByAcc(
   allowedSources: string[],
   /** 僅管理層試算檢視傳入 "exclude_owner_direct"；其餘一律 null（實付真值） */
   basisOverride?: PayoutBasis | null,
+  overrides?: Map<string, string[]>,
 ): Promise<Record<string, number>> {
   const dual = await getAccommodationRevenueDualByAcc(
     client,
@@ -379,6 +391,7 @@ export async function getAccommodationRevenueByAcc(
     monthStartDate,
     monthEndDate,
     allowedSources,
+    overrides,
   );
   const useExcl = basisOverride === "exclude_owner_direct";
   const out: Record<string, number> = {};
@@ -521,4 +534,75 @@ export function formatCountableRangeNote(
   if (isFullMonth) return null;
   const parts = ranges.map((r) => `${mdLabel(r.start)}–${mdLabel(minusOneDay(r.end))}`);
   return `本期僅採計合作期間 ${parts.join("、")}（非整月，與業主月結整月營收不同）`;
+}
+
+/* ==================== 館別獎金旗標與單館來源覆蓋（取代館名「旅行日」判斷） ==================== */
+
+export interface VenueBonusFlags {
+  /** 不列入抽成類獎金（AM績效、AM總管、成交組、成交大師、網紅專利）與場域成交獎金 */
+  excluded: Set<string>;
+  /** 固定額合併群組：同群組多館只算一館、顯示群組名；KOL 邀約同群組＝同一份合約 */
+  groupOf: Map<string, string>;
+}
+
+export async function loadVenueBonusFlags(client: any): Promise<VenueBonusFlags> {
+  const { data } = await client
+    .from("teamcommission_venue_bonus_flags")
+    .select("accommodation_id, exclude_from_commission, fixed_merge_group");
+  const excluded = new Set<string>();
+  const groupOf = new Map<string, string>();
+  for (const r of (data ?? []) as any[]) {
+    if (r.exclude_from_commission) excluded.add(r.accommodation_id);
+    const g = String(r.fixed_merge_group ?? "").trim();
+    if (g) groupOf.set(r.accommodation_id, g);
+  }
+  return { excluded, groupOf };
+}
+
+/** 固定額類合併：未分組的館全數保留，同群組只留第一個代表 */
+export function mergeFixedGroups(accIds: string[], groupOf: Map<string, string>): string[] {
+  const first = new Map<string, string>();
+  for (const id of accIds) {
+    const g = groupOf.get(id);
+    if (g && !first.has(g)) first.set(g, id);
+  }
+  return [...accIds.filter((id) => !groupOf.has(id)), ...first.values()];
+}
+
+/** 單館訂單來源覆蓋（effective_from ≤ asOf 最新一筆；included_order_sources 為 null＝改回全站預設） */
+export async function getSourceOverrides(
+  client: any,
+  track: "shared" | "kol",
+  asOf: string,
+): Promise<Map<string, string[]>> {
+  const { data } = await client
+    .from("teamcommission_venue_revenue_source_overrides")
+    .select("accommodation_id, included_order_sources, effective_from, created_at")
+    .eq("track", track)
+    .lte("effective_from", asOf);
+  const byAcc = new Map<string, any[]>();
+  for (const r of (data ?? []) as any[]) byAcc.set(r.accommodation_id, [...(byAcc.get(r.accommodation_id) ?? []), r]);
+  const out = new Map<string, string[]>();
+  for (const [accId, list] of byAcc) {
+    const cur = pickCurrent(list, asOf);
+    if (Array.isArray(cur?.included_order_sources)) out.set(accId, cur.included_order_sources.map(String).filter(Boolean));
+  }
+  return out;
+}
+
+/** 依「實際採用的來源清單」把館別分組（同清單一起查） */
+export function groupBySources(
+  accIds: string[],
+  globalSources: string[],
+  overrides: Map<string, string[]>,
+): Map<string, { ids: string[]; sources: string[] }> {
+  const groups = new Map<string, { ids: string[]; sources: string[] }>();
+  for (const id of Array.from(new Set(accIds.filter(Boolean)))) {
+    const sources = Array.from(new Set(overrides.get(id) ?? globalSources)).sort();
+    const key = sources.join(",");
+    const g = groups.get(key) ?? { ids: [], sources };
+    g.ids.push(id);
+    groups.set(key, g);
+  }
+  return groups;
 }

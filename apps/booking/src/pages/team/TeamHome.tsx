@@ -56,6 +56,10 @@ import {
   getRevenueSourceWhitelist,
   getAccommodationRevenue,
   getAccommodationRevenueDualByAcc,
+  loadVenueBonusFlags,
+  getSourceOverrides,
+  mergeFixedGroups,
+  groupBySources,
   type DualRevenue,
   type PayoutBasis,
   getVenueClosingAccommodations,
@@ -603,7 +607,17 @@ export default function TeamHome() {
       monthEndDate: string,
       allowedSources: string[],
       basisOverride: PayoutBasis | null,
+      overrides?: Map<string, string[]>,
     ): Promise<Record<string, number>> => {
+      if (overrides && overrides.size > 0) {
+        const groups = groupBySources(accommodationIds, allowedSources, overrides);
+        const parts = await Promise.all(
+          [...groups.values()].map((g) =>
+            revenueByAccCached(client, g.ids, monthStartDate, monthEndDate, g.sources, basisOverride),
+          ),
+        );
+        return Object.assign({}, ...parts);
+      }
       const idList = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
       const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
       if (idList.length === 0 || sources.length === 0) return {};
@@ -1486,6 +1500,8 @@ export default function TeamHome() {
             closerManagerId,
             kolRecipientId,
             venueTierRules,
+            venueFlags,
+            sharedOverrides,
           ] = await Promise.all([
               getBonusRateSettings(client, versionAsOf),
               getRevenueSourceWhitelist(
@@ -1499,6 +1515,8 @@ export default function TeamHome() {
               loadVenueTierRules(client, versionAsOf).catch(
                 () => new Map<string, VenueTierRule>(),
               ),
+              loadVenueBonusFlags(client),
+              getSourceOverrides(client, "shared", versionAsOf),
             ]);
 
 
@@ -1528,10 +1546,8 @@ export default function TeamHome() {
             allAccIds = ((accs ?? []) as any[]).map((a) => a.id).filter(Boolean);
           }
 
-          // 旅行日系列不列入抽成類獎金（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
-          const revenueAccIds = allAccIds.filter(
-            (id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日"),
-          );
+          // 館別設定「不列入抽成類獎金」者不列入（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
+          const revenueAccIds = allAccIds.filter((id) => !venueFlags.excluded.has(id));
 
           const companyByAcc =
             needCompanyRevenue && sharedSources.length > 0
@@ -1542,6 +1558,7 @@ export default function TeamHome() {
                   monthEndDate,
                   sharedSources,
                   basisOverride,
+                  sharedOverrides,
                 )
               : {};
           const companyRevenue = Object.values(companyByAcc).reduce((s, v) => s + v, 0);
@@ -1613,7 +1630,7 @@ export default function TeamHome() {
               );
               nameMap.forEach((n, id) => accNameFallback.set(id, n));
               myManagedAccIdsExcludingTravelDays = myManagedAccIds.filter(
-                (id) => !(nameMap.get(id) ?? "").startsWith("旅行日"),
+                (id) => !venueFlags.excluded.has(id),
               );
             }
 
@@ -1643,19 +1660,13 @@ export default function TeamHome() {
             if (!vs || vs.fixed_amount == null) missing.am_venue_bonus = true;
             // 口徑對齊後端快照（create-team-bonus-snapshots.mergeTravelSeries）：
             // 固定額類的「旅行日」系列合併只算一館，不可沿用 am_performance 的「全數排除」。
-            const travelManagedIds = myManagedAccIds.filter((id) =>
-              !myManagedAccIdsExcludingTravelDays.includes(id),
-            );
-            const amVenueIds = [
-              ...myManagedAccIdsExcludingTravelDays,
-              ...(travelManagedIds.length > 0 ? [travelManagedIds[0]] : []),
-            ];
+            const amVenueIds = mergeFixedGroups(myManagedAccIds, venueFlags.groupOf);
             const amVenueFixed = Number(vs?.fixed_amount ?? 0);
             amVenueSum = amVenueFixed * amVenueIds.length;
             breakdown.am_venue_bonus = amVenueIds.map((id) => {
               const nm = allAccNameById.get(id) ?? accNameFallback.get(id) ?? "其他";
               return {
-                name: nm.startsWith("旅行日") ? "旅行日系列" : nm,
+                name: venueFlags.groupOf.get(id) ?? nm,
                 revenue: 0,
                 amount: amVenueFixed,
                 rate: amVenueFixed,
@@ -1727,11 +1738,10 @@ export default function TeamHome() {
 
           // (5)(6) 網紅營銷專利獎金 / 月費
           if (kolRecipientFlag && isMonthlyPayout) {
-            const kolSources = await getRevenueSourceWhitelist(
-              client,
-              "teamcommission_kol_revenue_source_whitelist",
-              versionAsOf,
-            );
+            const [kolSources, kolOverrides] = await Promise.all([
+              getRevenueSourceWhitelist(client, "teamcommission_kol_revenue_source_whitelist", versionAsOf),
+              getSourceOverrides(client, "kol", versionAsOf),
+            ]);
             const kolByAcc =
               kolSources.length > 0
                 ? await revenueByAccCached(
@@ -1741,6 +1751,7 @@ export default function TeamHome() {
                     monthEndDate,
                     kolSources,
                     basisOverride,
+                    kolOverrides,
                   )
                 : {};
             const kolRevenue = Object.values(kolByAcc).reduce((sum, v) => sum + v, 0);
@@ -1761,12 +1772,7 @@ export default function TeamHome() {
             const partneredIds = allAccIds.filter(
               (id) => (monthlyRanges[id]?.length ?? 0) > 0,
             );
-            const travelDayIds = partneredIds.filter((id) =>
-              (allAccNameById.get(id) ?? "").startsWith("旅行日"),
-            );
-            const kolMonthlyAccCount =
-              partneredIds.filter((id) => !(allAccNameById.get(id) ?? "").startsWith("旅行日"))
-                .length + (travelDayIds.length > 0 ? 1 : 0);
+            const kolMonthlyAccCount = mergeFixedGroups(partneredIds, venueFlags.groupOf).length;
             kolMonthlySum = Number(sm?.fixed_amount ?? 0) * kolMonthlyAccCount;
           }
 

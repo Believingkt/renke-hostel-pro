@@ -153,7 +153,7 @@ export const BONUS_FIELD_GLOSSARY: Record<BonusFieldKey, BonusFieldMeta> = {
   travel_days_series: {
     key: "travel_days_series",
     label: "旅行日系列館別",
-    meaning: "旅行日系列不列入任何團隊獎金；成交大師獎金僅台幣訂單計獎。",
+    meaning: "由館別設定總覽的「不列入抽成類獎金」與「固定額合併群組」決定（現有旅行日系列已帶入）；成交大師獎金僅台幣訂單計獎。",
     settingLabel: "館別設定",
     href: null,
   },

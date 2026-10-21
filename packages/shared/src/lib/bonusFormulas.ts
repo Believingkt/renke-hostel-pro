@@ -52,7 +52,7 @@ export const BONUS_CATEGORY_LABEL: Record<BonusCategory, string> = {
 const GATE_PARTNERSHIP = "館別合作期間內（採計團隊獎金）";
 const GATE_PARTNERSHIP_CLOSER = "館別合作期間內（採計成交組）";
 const GATE_STATUS = "排除取消單與保留單（hold）";
-const GATE_TRAVEL = "旅行日系列不列入";
+const GATE_TRAVEL = "館別設定「不列入抽成類獎金」者（如旅行日系列）不列入";
 const GATE_ACTIVE = "在職期間比例（離職者按在職天數比例）";
 const GATE_THRESHOLD = "月營收抽成門檻（未達門檻不抽成，超額部分才抽）";
 
@@ -73,7 +73,7 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     name: "AM場域獎金",
     category: "team",
     formula: "所轄館別數 × 每館固定金額",
-    basis: "固定金額，與營收無關；旅行日系列合併只算一館",
+    basis: "固定金額，與營收無關；同一「固定額合併群組」（如旅行日系列）合併只算一館",
     gates: [GATE_PARTNERSHIP],
 
     usesVenueRevenue: false,
@@ -124,7 +124,7 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     name: "網紅營銷專利獎金(月費)",
     category: "team",
     formula: "有合作期間的館別數 × 每館月費",
-    basis: "固定月費，與營收無關；旅行日系列合併只算一館",
+    basis: "固定月費，與營收無關；同一「固定額合併群組」（如旅行日系列）合併只算一館",
     gates: [GATE_PARTNERSHIP],
     usesVenueRevenue: false,
     anchorId: "bonus-kol_monthly",
@@ -133,8 +133,8 @@ export const BONUS_FORMULAS: BonusFormula[] = [
     key: "venue_closing",
     name: "場域成交獎金",
     category: "team",
-    formula: "該月簽約成立且收取行銷推廣費的館別數 × 固定金額（旅行日系列暫停不列入）",
-    basis: "固定金額；旅行日系列暫停不列入；門檻判定會用到館別營收，故仍標記受雙軌口徑影響",
+    formula: "該月簽約成立且收取行銷推廣費的館別數 × 固定金額（館別設定「不列入抽成類獎金」者（如旅行日系列）不列入）",
+    basis: "固定金額；館別設定「不列入抽成類獎金」者（如旅行日系列）不列入；門檻判定會用到館別營收，故仍標記受雙軌口徑影響",
 
     gates: ["該月生效的簽約人指派", "館別約定收取行銷推廣費", GATE_TRAVEL],
     usesVenueRevenue: true,

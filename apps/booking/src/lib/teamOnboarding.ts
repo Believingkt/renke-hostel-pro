@@ -57,6 +57,8 @@ export const ONB_ITEM_WRITERS = {
   quota: GAP_WRITE_ROLES.kolQuota,
   // PAYUNi 建店／切換金流僅限總部最高管理員
   payuni: ["super_admin"],
+  // 館別獎金設定（不列入抽成類、固定額合併群組、單館訂單來源覆蓋）
+  bonusFlags: ["super_admin", "am_manager"],
 } as const;
 export type OnbItem = keyof typeof ONB_ITEM_WRITERS;
 export const canSetItem = (item: OnbItem, roles: TeamRole[] | string[]) => has(roles as string[], [...ONB_ITEM_WRITERS[item]]);

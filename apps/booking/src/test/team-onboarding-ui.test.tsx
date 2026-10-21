@@ -19,7 +19,12 @@ vi.mock("@/components/team/KolReciprocalQuotaTab", () => ({
   KolReciprocalQuotaTab: (p: any) => <div data-testid="quota-tab-mock">{`${p.isManager}|${p.allowedAccommodationIds?.join(",")}|${p.lockedAccommodation === true}`}</div>,
 }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => {
-  const chain: any = { select: () => chain, eq: () => chain, order: () => chain, limit: () => Promise.resolve({ data: [], error: null }), insert: (...a: any[]) => h.insert(...a) };
+  const chain: any = {
+    select: () => chain, eq: () => chain, lte: () => chain, not: () => chain, order: () => chain,
+    limit: () => Promise.resolve({ data: [], error: null }), insert: (...a: any[]) => h.insert(...a),
+    upsert: () => Promise.resolve({ error: null }),
+    then: (r: any, j: any) => Promise.resolve({ data: [], error: null }).then(r, j),
+  };
   return {
     supabase: {
       rpc: (fn: string, args: any) => h.rpc(fn, args),
@@ -136,6 +141,7 @@ describe("館別設定總覽頁", () => {
     const mine = await screen.findByTestId("onboarding-block-mine");
     expect(within(mine).getByTestId("onboarding-gaps-list-mine").textContent).toContain("合作期間");
     expect(within(mine).getByTestId("onboarding-payuni-section")).toBeTruthy();
+    expect(within(mine).getByTestId("onboarding-bonus-section")).toBeTruthy();
     expect(screen.getByTestId("onboarding-gaps-empty-others")).toBeTruthy();
   });
 
@@ -143,7 +149,10 @@ describe("館別設定總覽頁", () => {
     h.roles = ["finance"];
     renderAt("/team/onboarding/a1");
     expect(await screen.findByTestId("onboarding-mine-empty")).toBeTruthy();
-    expect(within(screen.getByTestId("onboarding-block-others")).getByTestId("onboarding-am-section")).toBeTruthy();
+    const others = screen.getByTestId("onboarding-block-others");
+    expect(within(others).getByTestId("onboarding-am-section")).toBeTruthy();
+    expect(within(others).getByTestId("onboarding-bonus-section")).toBeTruthy();
+    expect(screen.queryByTestId("bonus-save-btn")).toBeNull();
   });
 
   it("單館（AM 總管）：沒有負責人時下拉預設「尚未指定」；已標不需要的館顯示「不需要負責 AM」", async () => {

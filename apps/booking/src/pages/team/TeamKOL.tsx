@@ -53,7 +53,8 @@ import {
   normalizeKolName,
   kolNameKey,
   isSameContractScope,
-  isTravelSeriesAccommodation,
+  isSameMergeGroup,
+  setVenueMergeGroupsByName,
   isSameKolIdentity,
   kolIdentitySignals,
   RULE_ACTION_HINTS,
@@ -482,6 +483,22 @@ function calcDayOfWeek(dateStr: string): string {
 // ====== 主元件 ======
 export default function TeamKOL() {
   const { roles, userId } = useTeam();
+  const [, setMergeGroupsVersion] = useState(0);
+  useEffect(() => {
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("teamcommission_venue_bonus_flags")
+        .select("fixed_merge_group, accommodation_info(name)")
+        .not("fixed_merge_group", "is", null);
+      const map = new Map<string, string>();
+      for (const r of (data ?? []) as any[]) {
+        const name = r.accommodation_info?.name;
+        if (name && r.fixed_merge_group) map.set(String(name), String(r.fixed_merge_group));
+      }
+      setVenueMergeGroupsByName(map);
+      setMergeGroupsVersion((v) => v + 1);
+    })();
+  }, []);
   const isManager = roles.includes("super_admin") || roles.includes("admin") || roles.includes("scout_manager");
   // AM／AM 總管皆為職代協作，可編輯所有館別的互惠額度
   const isAmTeam = roles.includes("am") || roles.includes("am_manager");
@@ -1927,7 +1944,7 @@ function InvitationsTab({
         if (!parentAccId || !form.accommodation_id || parentAccId === form.accommodation_id) return false;
         const parentName = accommodations.find((a) => a.id === parentAccId)?.name ?? parent?.venue_name ?? null;
         const selfName = accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null;
-        return isTravelSeriesAccommodation(parentName) && isTravelSeriesAccommodation(selfName);
+        return isSameMergeGroup(parentName, selfName);
       })(),
     };
     // 粉絲數：值有變動才更新 follower_count_updated_at
@@ -4044,10 +4061,9 @@ function InvitationsTab({
                     const parentAccommodationId = parent?.accommodation_id ?? conflictParent?.accommodation_id ?? null;
                     const crossVenue = !!parentAccommodationId && !!form.accommodation_id
                       && parentAccommodationId !== form.accommodation_id;
-                    // 旅行日系列彼此視為同一份合約，跨館不需特例附屬
-                    const sameSeries = crossVenue && isTravelSeriesAccommodation(
+                    // 同一個固定額合併群組（例如旅行日系列）彼此視為同一份合約，跨館不需特例附屬
+                    const sameSeries = crossVenue && isSameMergeGroup(
                       accommodations.find((a) => a.id === parentAccommodationId)?.name ?? conflictParent?.accommodation_name ?? null,
-                    ) && isTravelSeriesAccommodation(
                       accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null,
                     );
                     const gap = parentCheckIn && form.check_in_date
@@ -4211,11 +4227,11 @@ function InvitationsTab({
                 parentRow?.venue_name ??
                 "—";
               const crossVenue = !!parentAccId && !!form.accommodation_id && parentAccId !== form.accommodation_id;
-              // 旅行日系列彼此視為同一份合約，跨館不需特例附屬
+              // 同一個固定額合併群組（例如旅行日系列）彼此視為同一份合約，跨館不需特例附屬
               const sameSeries =
                 crossVenue &&
-                isTravelSeriesAccommodation(parentAccName) &&
-                isTravelSeriesAccommodation(
+                isSameMergeGroup(
+                  parentAccName,
                   accommodations.find((a) => a.id === form.accommodation_id)?.name ?? form.venue_name ?? null,
                 );
               const gap =

@@ -10,6 +10,7 @@ import { OnboardingRoleGuide } from "@/components/team/onboarding/OnboardingRole
 import { AmSection } from "@/components/team/onboarding/AmSection";
 import { KolSection } from "@/components/team/onboarding/KolSection";
 import { GapsSection, PayuniSection } from "@/components/team/onboarding/GapsSection";
+import { BonusVenueSection } from "@/components/team/onboarding/BonusVenueSection";
 import { STAGE_LABEL, canAssignAm, canSetItem, canViewOnboarding, venueStage } from "@/lib/teamOnboarding";
 
 function Block({ title, hint, testId, children }: { title: string; hint: string; testId: string; children: ReactNode }) {
@@ -42,12 +43,14 @@ export default function TeamOnboardingVenue() {
   const mineAm = canAssignAm(roles);
   const mineKol = canSetItem("kolVenue", roles) || canSetItem("quota", roles);
   const minePayuni = canSetItem("payuni", roles);
+  const mineBonus = canSetItem("bonusFlags", roles);
 
   const sections = row
     ? [
         { mine: mineAm, node: <AmSection key="am" row={row} members={members} canEdit={mineAm} isSuperAdmin={isSuperAdmin} onChanged={reload} /> },
         { mine: mineKol, node: <KolSection key="kol" row={row} roles={roles} onChanged={reload} /> },
         { mine: minePayuni, node: <PayuniSection key="payuni" row={row} isSuperAdmin={isSuperAdmin} /> },
+        { mine: mineBonus, node: <BonusVenueSection key="bonus" accId={row.accommodation_id} canEdit={mineBonus} /> },
       ]
     : [];
   const mineSections = sections.filter((s) => s.mine);

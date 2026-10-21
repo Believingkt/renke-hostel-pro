@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "@lakeze/shared/integrations/supabase/client";
+import { loadVenueBonusFlags } from "@lakeze/shared/lib/teamBonusRevenue";
 import BonusMultiplierSection from "@lakeze/shared/components/team/BonusMultiplierSection";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@lakeze/shared/components/ui/card";
@@ -1350,11 +1351,8 @@ function VenueClosingAssignmentSection({
           .select("id, accommodation_id, start_date, end_date, bonus_policy, counts_closer_commission, counts_team_bonus, note")
           .order("start_date", { ascending: false }),
       ]);
-      setAccs(
-        ((accRes.data ?? []) as AccOption[]).filter(
-          (a) => !String(a.name ?? "").startsWith("旅行日"),
-        ),
-      );
+      const { excluded } = await loadVenueBonusFlags(supabase);
+      setAccs(((accRes.data ?? []) as AccOption[]).filter((a) => !excluded.has(a.id)));
       setRows((rowRes.data ?? []) as VenueAssignmentRow[]);
       setPeriods((periodRes.data ?? []) as PartnershipPeriodRow[]);
 
@@ -1843,6 +1841,7 @@ function VenueClosingAssignmentSection({
 function AmVenueOverviewSection() {
   const [accs, setAccs] = useState<AccOption[]>([]);
   const [amByAcc, setAmByAcc] = useState<Record<string, string[]>>({});
+  const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -1863,6 +1862,7 @@ function AmVenueOverviewSection() {
         ]);
 
         setAccs((accRes.data ?? []) as AccOption[]);
+        setExcludedIds((await loadVenueBonusFlags(supabase)).excluded);
 
         const userIds = Array.from(
           new Set(((roleRes.data ?? []) as { user_id: string }[]).map((r) => r.user_id).filter(Boolean)),
@@ -1923,7 +1923,7 @@ function AmVenueOverviewSection() {
                   <TableRow key={a.id}>
                     <TableCell className="whitespace-nowrap">
                       {a.name}
-                      {String(a.name ?? "").startsWith("旅行日") && (
+                      {excludedIds.has(a.id) && (
                         <span className="ml-1 text-xs text-muted-foreground">
                           （不列入本次 AM績效獎金計算）
                         </span>

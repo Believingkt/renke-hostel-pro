@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  setVenueMergeGroupsByName,
+  isSameMergeGroup,
   isKnownPublishDomain,
   isPmsOrderNumber,
   normalizeCode,
@@ -318,7 +320,8 @@ describe("折扣碼衝突回傳邏輯", () => {
     expect(r.warnings).toHaveLength(0);
   });
 
-  it("同一位 KOL 跨館但皆為旅行日系列時，視為同一份合約（警告建議歸戶）", () => {
+  it("同一位 KOL 跨館但同屬一個固定額合併群組（旅行日系列）時，視為同一份合約（警告建議歸戶）", () => {
+    setVenueMergeGroupsByName(new Map([["旅行日-光", "旅行日系列"], ["旅行日-艾屋吉屋", "旅行日系列"]]));
     const r = run(
       { cid_code: "SUMMER168", name: "莊巧綾", accommodation_label: "旅行日-光" },
       {
@@ -479,5 +482,15 @@ describe("名稱寫法防呆", () => {
     const issue = r.issues.find((i) => i.rule === "name.normalized");
     expect(issue?.level).toBe("warning");
     expect(issue?.expected).toBe("歐妮Oni");
+  });
+});
+
+describe("固定額合併群組（取代館名「旅行日」判斷）", () => {
+  it("同群組才算同一份合約；館名含旅行日但沒設定群組＝不同合約", () => {
+    setVenueMergeGroupsByName(new Map([["旅行日-光", "旅行日系列"], ["森之館", "森林系列"], ["森之二館", "森林系列"]]));
+    expect(isSameMergeGroup("旅行日-光", "旅行日-艾屋吉屋")).toBe(false);
+    expect(isSameMergeGroup("森之館", "森之二館")).toBe(true);
+    expect(isSameMergeGroup("旅行日-光", "森之館")).toBe(false);
+    expect(isSameMergeGroup(null, null)).toBe(false);
   });
 });

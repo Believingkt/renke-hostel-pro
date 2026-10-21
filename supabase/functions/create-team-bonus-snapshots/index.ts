@@ -144,6 +144,39 @@ async function getRevenueSourceWhitelist(
   return sources.map((s: unknown) => String(s)).filter(Boolean);
 }
 
+/** 單館訂單來源覆蓋（effective_from ≤ asOf 的最新一筆；included_order_sources 為 null＝改回全站預設） */
+async function getSourceOverrides(client: any, track: "shared" | "kol", asOf: string): Promise<Map<string, string[]>> {
+  const { data } = await client
+    .from("teamcommission_venue_revenue_source_overrides")
+    .select("accommodation_id, included_order_sources, effective_from, created_at")
+    .eq("track", track)
+    .lte("effective_from", asOf);
+  const byAcc = new Map<string, any[]>();
+  for (const r of (data ?? []) as any[]) byAcc.set(r.accommodation_id, [...(byAcc.get(r.accommodation_id) ?? []), r]);
+  const out = new Map<string, string[]>();
+  for (const [accId, list] of byAcc) {
+    const cur = pickCurrent(list, asOf);
+    if (Array.isArray(cur?.included_order_sources)) out.set(accId, cur.included_order_sources.map(String).filter(Boolean));
+  }
+  return out;
+}
+
+/** 館別獎金旗標：不列入抽成類（含場域成交獎金）、固定額合併群組 */
+async function getVenueBonusFlags(client: any): Promise<{ excluded: Set<string>; groupOf: Map<string, string> }> {
+  const { data, error } = await client
+    .from("teamcommission_venue_bonus_flags")
+    .select("accommodation_id, exclude_from_commission, fixed_merge_group");
+  if (error) throw error;
+  const excluded = new Set<string>();
+  const groupOf = new Map<string, string>();
+  for (const r of (data ?? []) as any[]) {
+    if (r.exclude_from_commission) excluded.add(r.accommodation_id);
+    const g = String(r.fixed_merge_group ?? "").trim();
+    if (g) groupOf.set(r.accommodation_id, g);
+  }
+  return { excluded, groupOf };
+}
+
 /* ==================== 館別專屬獎金級距規則（venue tier rules） ==================== */
 // 計算邏輯已抽到 ../_shared/venueBonusTiers.ts，與 TeamHome 即時試算共用同一份。
 
@@ -335,6 +368,7 @@ async function getStayRevenueDualByAcc(
   monthEndDate: string,
   sources: string[],
   rangesByAcc: Record<string, CountableRange[]>,
+  sourcesFor: (accId: string) => string[],
 ): Promise<Record<string, DualRevenue>> {
   const out: Record<string, DualRevenue> = {};
   const ids = accIds.filter((id) => (rangesByAcc[id] ?? []).length > 0);
@@ -357,7 +391,8 @@ async function getStayRevenueDualByAcc(
     for (const o of (data ?? []) as any[]) {
       const accId = String(o?.accommodation_id ?? "");
       if (!accId) continue;
-      // 一、團隊獎金：完全以共用／獨立訂單來源白名單篩選，不套用 exempt_order_sources。
+      if (!sourcesFor(accId).includes(String(o?.order_source ?? ""))) continue;
+      // 一、團隊獎金：完全以共用／獨立訂單來源白名單（含單館覆蓋）篩選，不套用 exempt_order_sources。
       // 業主自帶（order_source = owner_provided）不直接排除，而是分別累計到 incl / excl 兩軌。
 
       const rule = rules[accId];
@@ -416,9 +451,12 @@ async function getAccommodationRevenue(
   monthStartDate: string,
   monthEndDate: string,
   allowedSources: string[],
+  overrides: Map<string, string[]> = new Map(),
 ): Promise<RevenueTotals> {
   const accIds = Array.from(new Set((accommodationIds ?? []).filter(Boolean)));
-  const sources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
+  const globalSources = Array.from(new Set((allowedSources ?? []).filter(Boolean)));
+  const sourcesFor = (accId: string) => overrides.get(accId) ?? globalSources;
+  const sources = Array.from(new Set(accIds.flatMap(sourcesFor)));
   const empty: RevenueTotals = { incl: 0, excl: 0, payout: 0, basis: null, detail: [] };
   if (accIds.length === 0 || sources.length === 0) return empty;
 
@@ -439,9 +477,12 @@ async function getAccommodationRevenue(
       monthEndDate,
       sources,
       rangesByAcc,
+      sourcesFor,
     );
   } else {
     for (const accId of accIds) {
+      const accSources = sourcesFor(accId);
+      if (accSources.length === 0) continue;
       for (const range of rangesByAcc[accId] ?? []) {
         const { data } = await client
           .from("orders")
@@ -451,7 +492,7 @@ async function getAccommodationRevenue(
           .lt("order_date", range.end)
           .neq("order_status", "cancelled")
           .neq("order_status", "hold")
-          .in("order_source", sources);
+          .in("order_source", accSources);
 
         for (const row of (data ?? []) as any[]) {
           const meta = Array.isArray(row?.order_meta) ? row.order_meta[0] : row?.order_meta;
@@ -654,6 +695,9 @@ serve(async (req) => {
       closerManagerId,
       kolRecipientId,
       venueTierRules,
+      sharedOverrides,
+      kolOverrides,
+      venueFlags,
     ] = await Promise.all([
         getBonusRateSettings(supabase, asOf),
         getRevenueSourceWhitelist(supabase, "teamcommission_shared_revenue_source_whitelist", asOf),
@@ -662,7 +706,11 @@ serve(async (req) => {
         getRoleBinding(supabase, "closer_manager", asOf),
         getRoleBinding(supabase, "kol_bonus_recipient", asOf),
         getVenueTierRules(supabase, asOf),
+        getSourceOverrides(supabase, "shared", asOf),
+        getSourceOverrides(supabase, "kol", asOf),
+        getVenueBonusFlags(supabase),
       ]);
+    const isExcluded = (id: string) => venueFlags.excluded.has(id);
 
     /* ---------- 成員與角色 ---------- */
     const { data: roleRows, error: roleErr } = await supabase
@@ -703,10 +751,8 @@ serve(async (req) => {
       if (a.is_active) activeAccIds.push(a.id);
     }
 
-    // 旅行日系列不列入抽成類獎金（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
-    const revenueAccIds = activeAccIds.filter(
-      (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
-    );
+    // 館別設定「不列入抽成類獎金」者不列入（AM績效、AM總管、成交組績效、成交大師管理、網紅營銷專利）
+    const revenueAccIds = activeAccIds.filter((id) => !isExcluded(id));
 
     const companyRevenue = await getAccommodationRevenue(
       supabase,
@@ -714,6 +760,7 @@ serve(async (req) => {
       monthStartDate,
       monthEndDate,
       sharedSources,
+      sharedOverrides,
     );
     const kolRevenue = await getAccommodationRevenue(
       supabase,
@@ -721,6 +768,7 @@ serve(async (req) => {
       monthStartDate,
       monthEndDate,
       kolSources,
+      kolOverrides,
     );
 
     /* ---------- 逐館明細（snapshot lines） ---------- */
@@ -816,18 +864,22 @@ serve(async (req) => {
      * 僅供「固定金額 × 館別數」類獎金使用，抽成類（營收）不得套用。
      */
     const mergeTravelSeries = (accIds: string[]) => {
-      const isTravel = (id: string) => (accNameById.get(id) ?? "").startsWith("旅行日");
-      const travelIds = accIds.filter(isTravel);
+      const grouped = accIds.filter((id) => venueFlags.groupOf.has(id));
+      const firstOfGroup = new Map<string, string>();
+      for (const id of grouped) {
+        const g = venueFlags.groupOf.get(id)!;
+        if (!firstOfGroup.has(g)) firstOfGroup.set(g, id);
+      }
       return {
-        ids: [...accIds.filter((id) => !isTravel(id)), ...(travelIds.length > 0 ? [travelIds[0]] : [])],
-        travelIds,
+        ids: [...accIds.filter((id) => !venueFlags.groupOf.has(id)), ...firstOfGroup.values()],
+        travelIds: grouped,
       };
     };
 
     /** 固定額類的館別顯示名稱（旅行日一律顯示「旅行日系列」） */
     const fixedAccNames = (accIds: string[]) =>
       accIds.map((id) =>
-        (accNameById.get(id) ?? "").startsWith("旅行日") ? "旅行日系列" : (accNameById.get(id) ?? id),
+        venueFlags.groupOf.get(id) ?? (accNameById.get(id) ?? id),
       );
 
     /** 固定額類：逐館一份固定金額 */
@@ -901,9 +953,7 @@ serve(async (req) => {
         ? profile.am_managed_accommodation_ids.filter(Boolean)
         : [];
       // 旅行日系列不計入 AM 績效（抽成類）；場域獎金則改為合併算一館
-      const managedNoTravel = managed.filter(
-        (id) => !(accNameById.get(id) ?? "").startsWith("旅行日"),
-      );
+      const managedNoTravel = managed.filter((id) => !isExcluded(id));
       if (managed.length === 0) continue;
 
       if (managedNoTravel.length > 0) {
@@ -913,6 +963,7 @@ serve(async (req) => {
           monthStartDate,
           monthEndDate,
           sharedSources,
+          sharedOverrides,
         );
 
         const amPerfPool = revenuePool(myRevenue, amPerfRate, "am_performance");
@@ -1179,9 +1230,7 @@ serve(async (req) => {
       const flags = await getMarketingFeeFlags(supabase, accIds, monthStartDate);
       const hitIdsRaw = accIds.filter((id) => flags[id] === true);
       // 旅行日系列場域成交獎金暫停不列入（僅排除，不合併）
-      const closingTravelIds = hitIdsRaw.filter((id) =>
-        (accNameById.get(id) ?? "").startsWith("旅行日"),
-      );
+      const closingTravelIds = hitIdsRaw.filter((id) => isExcluded(id));
       const hitIds = hitIdsRaw.filter((id) => !closingTravelIds.includes(id));
       if (hitIds.length === 0) continue;
       push({
