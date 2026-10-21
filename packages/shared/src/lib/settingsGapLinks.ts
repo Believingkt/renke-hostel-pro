@@ -99,45 +99,70 @@ export const TEAM_ONBOARDING = "/team/onboarding";
 const TEAM_KOL_QUOTA = "/team/kol?tab=reciprocal_quota";
 const TEAM_KOL_SETTINGS = "/team/kol?tab=settings";
 
+/**
+ * 角色對照表（單一真相來源）：每個缺口「實際能寫入」的角色＝資料表 RLS／RPC 檢查 ∩ 有編輯畫面。
+ * 小鈴鐺通知、總覽待處理、館別頁「你要設定的」都只看這份；其他角色一律算「由其他人設定」。
+ */
+export const GAP_WRITE_ROLES: Record<GapKey, string[]> = {
+  // accommodation_partnership_periods RLS：is_super_admin
+  partnership: ["super_admin"],
+  // owner_settlement_pricing_rules RLS：super_admin／該館 hotel_admin／am、am_manager（is_am_team）／admin（can_fix_pricing_rule_date）
+  settlementRule: ["super_admin", "admin", "am", "am_manager", "hotel_admin"],
+  marketingFee: ["super_admin", "admin", "am", "am_manager", "hotel_admin"],
+  // booking_settings RLS：super_admin／該館 hotel_admin（各館後台）
+  bookingSetting: ["super_admin", "hotel_admin"],
+  // consulting_fee_settings 已停用，只由總部清理
+  legacyRate: ["super_admin"],
+
+  teamBonusFlag: ["super_admin"],
+  closerFlag: ["super_admin"],
+  payoutBasis: ["super_admin"],
+  // accommodation_commission_settings：HQ 獎金分頁只對 super_admin／admin 開放編輯
+  closerRate: ["super_admin", "admin"],
+  videoRate: ["super_admin", "admin"],
+  // team_set_responsible_am：team_onboarding_can_assign_am（super_admin、admin、am_manager）
+  amScope: ["super_admin", "admin", "am_manager"],
+  // teamcommission_venue_closing_assignments RLS：super_admin、admin
+  venueClosing: ["super_admin", "admin"],
+  // venue_team_bonus_tier_rules RLS：is_super_admin
+  tierRule: ["super_admin"],
+  // kol_reciprocal_monthly_quotas RLS：super_admin／scout_manager／am_manages_accommodation（在職 am、am_manager）
+  kolQuota: ["super_admin", "scout_manager", "am", "am_manager"],
+
+  globalBonus: ["super_admin", "admin"],
+  // scout_tier_settings／scout_salary_settings RLS：super_admin、admin、scout_manager
+  scoutTier: ["super_admin", "admin", "scout_manager"],
+  scoutSalary: ["super_admin", "admin", "scout_manager"],
+};
+
+export function canWriteGap(key: GapKey, roles: string[]): boolean {
+  return roles.some((r) => (GAP_WRITE_ROLES[key] ?? []).includes(r));
+}
+
 export interface GapAudienceRule {
-  /** 應收到通知的角色（super_admin／admin 一律收到） */
+  /** 應收到通知的角色＝實際能寫入的角色（GAP_WRITE_ROLES） */
   roles: string[];
   /** 非 HQ 角色的替代編輯位置；沒有就代表該角色只能通知 HQ */
   teamHref?: string;
 }
 
-export const GAP_AUDIENCE: Record<GapKey, GapAudienceRule> = {
-  partnership: { roles: ["am_manager", "am"] },
-  settlementRule: { roles: ["am_manager", "am", "finance"] },
-  marketingFee: { roles: ["am_manager", "am", "finance"] },
-  bookingSetting: { roles: ["am_manager", "am"] },
-  legacyRate: { roles: ["finance"] },
-
-  teamBonusFlag: { roles: ["am_manager"] },
-  closerFlag: { roles: ["closer_manager"] },
-  payoutBasis: { roles: ["am_manager", "finance"] },
-  closerRate: { roles: ["closer_manager"] },
-  videoRate: { roles: ["closer_manager"] },
-  amScope: { roles: ["am_manager"], teamHref: TEAM_ONBOARDING },
-  venueClosing: { roles: ["closer_manager"] },
-  tierRule: { roles: ["am_manager", "finance"] },
-  kolQuota: { roles: ["scout_manager", "scout", "am_manager"], teamHref: TEAM_KOL_QUOTA },
-
-  globalBonus: { roles: ["finance"] },
-  scoutTier: { roles: ["scout_manager"], teamHref: TEAM_KOL_SETTINGS },
-  scoutSalary: { roles: ["scout_manager"], teamHref: TEAM_KOL_SETTINGS },
+const GAP_TEAM_HREF: Partial<Record<GapKey, string>> = {
+  amScope: TEAM_ONBOARDING,
+  kolQuota: TEAM_KOL_QUOTA,
+  scoutTier: TEAM_KOL_SETTINGS,
+  scoutSalary: TEAM_KOL_SETTINGS,
 };
+
+export const GAP_AUDIENCE = Object.fromEntries(
+  (Object.keys(GAP_WRITE_ROLES) as GapKey[]).map((k) => [k, { roles: GAP_WRITE_ROLES[k], teamHref: GAP_TEAM_HREF[k] }]),
+) as Record<GapKey, GapAudienceRule>;
 
 export function isHqRole(roles: string[]): boolean {
   return roles.some((r) => HQ_ROLES.includes(r));
 }
 
-/** 這個缺口要不要通知這位使用者 */
-export function shouldNotify(key: GapKey, roles: string[]): boolean {
-  if (roles.includes("super_admin") || roles.includes("admin")) return true;
-  const rule = GAP_AUDIENCE[key];
-  return roles.some((r) => rule.roles.includes(r));
-}
+/** 這個缺口要不要通知這位使用者：只通知「你要設定的」 */
+export const shouldNotify = canWriteGap;
 
 /**
  * 依角色解析真正能點過去的位置：

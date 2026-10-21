@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ChevronRight, RefreshCw } from "lucide-react";
 import { useTeamOnboarding } from "@/hooks/use-team-onboarding";
 import { useVenueGaps } from "@/hooks/use-venue-gaps";
+import { canWriteGap, type GapKey } from "@lakeze/shared/lib/settingsGapLinks";
 import { OnbStatusBadge } from "@/components/team/onboarding/OnbStatusBadge";
 import { OnboardingRoleGuide } from "@/components/team/onboarding/OnboardingRoleGuide";
 import {
@@ -35,9 +36,12 @@ export default function TeamOnboarding() {
   const list = useMemo(() => {
     const s = search.trim().toLowerCase();
     return rows
-      .map((r) => ({ r, pending: pendingCount(r, gapsByAcc.get(r.accommodation_id)?.length ?? 0) }))
+      .map((r) => {
+        const myGaps = (gapsByAcc.get(r.accommodation_id) ?? []).filter((g) => canWriteGap(g.key as GapKey, roles)).length;
+        return { r, pending: pendingCount(r, myGaps, roles) };
+      })
       .filter(({ r, pending }) => (!s || r.accommodation_name.toLowerCase().includes(s)) && (!pendingOnly || pending > 0));
-  }, [rows, gapsByAcc, search, pendingOnly]);
+  }, [rows, gapsByAcc, search, pendingOnly, roles]);
 
   if (!canViewOnboarding(roles)) {
     return <p className="p-6 text-sm text-muted-foreground" data-testid="onboarding-no-access">你沒有檢視館別設定總覽的權限。</p>;
@@ -50,7 +54,7 @@ export default function TeamOnboarding() {
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
           <div>
             <CardTitle className="text-lg">館別設定總覽</CardTitle>
-            <CardDescription>一館一列，集中檢查新館需要的設定。點館別進入後可直接設定（依你的角色決定能否編輯）。</CardDescription>
+            <CardDescription>一館一列，集中檢查新館需要的設定。「你要處理」只計算你能設定的項目；其他人負責的項目進入館別後可在「由其他人設定」查看。</CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => { reload(); reloadGaps(); }} disabled={loading} data-testid="onboarding-reload-btn">
             <RefreshCw className={`mr-1 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -62,7 +66,7 @@ export default function TeamOnboarding() {
             <Input placeholder="搜尋館別" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" data-testid="onboarding-search-input" />
             <div className="flex items-center gap-2">
               <Switch id="onb-pending" checked={pendingOnly} onCheckedChange={setPendingOnly} data-testid="onboarding-pending-only-switch" />
-              <Label htmlFor="onb-pending" className="cursor-pointer text-sm">只看待處理</Label>
+              <Label htmlFor="onb-pending" className="cursor-pointer text-sm">只看我要處理的</Label>
             </div>
           </div>
           {error && <p className="text-sm text-destructive" data-testid="onboarding-error">{error}</p>}
@@ -76,7 +80,7 @@ export default function TeamOnboarding() {
                   <TableHead>KOL 場域</TableHead>
                   <TableHead>互惠額度</TableHead>
                   <TableHead>金流</TableHead>
-                  <TableHead className="text-right">待處理</TableHead>
+                  <TableHead className="text-right" title="只計算你能設定的項目">你要處理</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>

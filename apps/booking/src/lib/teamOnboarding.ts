@@ -1,5 +1,6 @@
 import type { TeamRole } from "@lakeze/shared/components/team/teamConfig";
 import { merStatusLabel } from "@/lib/payuniMerchantRules";
+import { GAP_WRITE_ROLES } from "@lakeze/shared/lib/settingsGapLinks";
 
 /** team_onboarding_overview() 一列 */
 export interface OnboardingRow {
@@ -46,10 +47,23 @@ const has = (roles: string[], allow: string[]) => roles.some((r) => allow.includ
 
 export const ONBOARDING_VIEW_ROLES = ["super_admin", "admin", "finance", "am", "am_manager", "scout_manager", "closer_manager"];
 export const canViewOnboarding = (roles: TeamRole[] | string[]) => has(roles as string[], ONBOARDING_VIEW_ROLES);
-export const canAssignAm = (roles: TeamRole[] | string[]) => has(roles as string[], ["super_admin", "admin", "am_manager"]);
-export const canEditKolQuota = (roles: TeamRole[] | string[]) =>
-  has(roles as string[], ["super_admin", "admin", "scout_manager", "am", "am_manager"]);
-export const canManageKolVenue = (roles: TeamRole[] | string[]) => has(roles as string[], ["super_admin", "admin", "scout_manager"]);
+/** 總覽每個項目實際能設定的角色（缺口類沿用 GAP_WRITE_ROLES，與小鈴鐺同一份對照表） */
+export const ONB_ITEM_WRITERS = {
+  am: GAP_WRITE_ROLES.amScope,
+  // AM 協作權限由系統同步；同步失敗只能由總部在帳號管理補開
+  access: ["super_admin"],
+  // kol_venues RLS＋KOL 場域管理畫面
+  kolVenue: ["super_admin", "admin", "scout_manager"],
+  quota: GAP_WRITE_ROLES.kolQuota,
+  // PAYUNi 建店／切換金流僅限總部最高管理員
+  payuni: ["super_admin"],
+} as const;
+export type OnbItem = keyof typeof ONB_ITEM_WRITERS;
+export const canSetItem = (item: OnbItem, roles: TeamRole[] | string[]) => has(roles as string[], [...ONB_ITEM_WRITERS[item]]);
+
+export const canAssignAm = (roles: TeamRole[] | string[]) => canSetItem("am", roles);
+export const canEditKolQuota = (roles: TeamRole[] | string[]) => canSetItem("quota", roles);
+export const canManageKolVenue = (roles: TeamRole[] | string[]) => canSetItem("kolVenue", roles);
 
 export function venueStage(r: Pick<OnboardingRow, "is_active" | "first_activated_at">): VenueStage {
   if (r.is_active) return "live";
@@ -116,11 +130,13 @@ export function payuniStatus(r: OnboardingRow): OnbStatus {
   return { level: r.payment_provider_active === "none" ? "warn" : "ok", label: `${provider}（PAYUNi ${store}）` };
 }
 
-/** 總覽列需要處理的項目數（已停用館別不計） */
-export function pendingCount(r: OnboardingRow, otherGapCount: number): number {
+/** 總覽列「你要設定的」待處理數（已停用館別不計；myGapCount＝你能寫入的其他缺口數） */
+export function pendingCount(r: OnboardingRow, myGapCount: number, roles: string[]): number {
   if (venueStage(r) === "inactive") return 0;
-  const items = [amStatus(r), accessStatus(r), kolStatus(r), quotaStatus(r), payuniStatus(r)];
-  return items.filter((s) => s.level === "warn").length + otherGapCount;
+  const items: Array<[OnbItem, OnbStatus]> = [
+    ["am", amStatus(r)], ["access", accessStatus(r)], ["kolVenue", kolStatus(r)], ["quota", quotaStatus(r)], ["payuni", payuniStatus(r)],
+  ];
+  return items.filter(([item, st]) => st.level === "warn" && canSetItem(item, roles)).length + myGapCount;
 }
 
 export const END_REASON_LABEL: Record<string, string> = {

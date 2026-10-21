@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 const h = vi.hoisted(() => ({ roles: ["am_manager"] as string[], rows: [] as any[], rpc: vi.fn(), insert: vi.fn() }));
@@ -76,9 +76,24 @@ describe("館別設定總覽頁", () => {
     expect(screen.getByTestId("onboarding-am-a2").textContent).toBe("未指定負責 AM");
     expect(screen.getByTestId("onboarding-access-a2").textContent).toBe("缺 1 位");
     expect(screen.getByTestId("onboarding-kol-a2").textContent).toBe("未建立 KOL 場域");
-    expect(screen.getByTestId("onboarding-pending-a1").textContent).toBe("1 項");
-    expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("4 項");
+    // AM 總管只算自己能設定的：a1 合作期間由總部設定 → 不計；a2 負責 AM＋互惠額度 → 2（協作權限、KOL 場域、合作期間由其他人設定）
+    expect(screen.getByTestId("onboarding-pending-a1").textContent).toBe("—");
+    expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("2 項");
     expect(screen.getByTestId("onboarding-pending-a3").textContent).toBe("—");
+  });
+
+  it("總覽（super_admin）：所有項目都由他設定，待處理全計", async () => {
+    h.roles = ["super_admin"];
+    renderAt("/team/onboarding");
+    expect((await screen.findByTestId("onboarding-pending-a1")).textContent).toBe("1 項");
+    expect(screen.getByTestId("onboarding-pending-a2").textContent).toBe("4 項");
+  });
+
+  it("總覽（財務）：可以看，但沒有需要他設定的項目", async () => {
+    h.roles = ["finance"];
+    renderAt("/team/onboarding");
+    expect((await screen.findByTestId("onboarding-pending-a2")).textContent).toBe("—");
+    expect(screen.getByTestId("onboarding-am-a2").textContent).toBe("未指定負責 AM");
   });
 
   it("總覽：只看待處理會隱藏沒有待處理的館別", async () => {
@@ -104,8 +119,31 @@ describe("館別設定總覽頁", () => {
     expect(access).toContain("Synn負責・已開");
     expect(access).toContain("KenAM 總管・已開");
     expect(screen.getByTestId("onboarding-other-hotel-admins").textContent).toContain("Joyce 陳香吟");
-    expect(screen.getByTestId("onboarding-gaps-list").textContent).toContain("合作期間");
+    const mine = screen.getByTestId("onboarding-block-mine");
+    const others = screen.getByTestId("onboarding-block-others");
+    expect(within(mine).getByTestId("onboarding-am-section")).toBeTruthy();
+    expect(within(mine).getByTestId("onboarding-kol-section")).toBeTruthy();
+    expect(within(others).getByTestId("onboarding-payuni-section")).toBeTruthy();
+    expect(within(others).getByTestId("onboarding-gaps-list-others").textContent).toContain("合作期間");
+    expect(screen.getByTestId("onboarding-gap-writers-partnership").textContent).toBe("由總部最高管理員設定");
+    expect(screen.queryByTestId("onboarding-gaps-section-mine")).toBeNull();
     expect(screen.getByTestId("quota-tab-mock").textContent).toBe("true|a1|true");
+  });
+
+  it("單館（super_admin）：合作期間缺口在「你要設定的」", async () => {
+    h.roles = ["super_admin"];
+    renderAt("/team/onboarding/a1");
+    const mine = await screen.findByTestId("onboarding-block-mine");
+    expect(within(mine).getByTestId("onboarding-gaps-list-mine").textContent).toContain("合作期間");
+    expect(within(mine).getByTestId("onboarding-payuni-section")).toBeTruthy();
+    expect(screen.getByTestId("onboarding-gaps-empty-others")).toBeTruthy();
+  });
+
+  it("單館（財務）：沒有要設定的項目，全部在「由其他人設定」", async () => {
+    h.roles = ["finance"];
+    renderAt("/team/onboarding/a1");
+    expect(await screen.findByTestId("onboarding-mine-empty")).toBeTruthy();
+    expect(within(screen.getByTestId("onboarding-block-others")).getByTestId("onboarding-am-section")).toBeTruthy();
   });
 
   it("單館（AM 總管）：沒有負責人時下拉預設「尚未指定」；已標不需要的館顯示「不需要負責 AM」", async () => {

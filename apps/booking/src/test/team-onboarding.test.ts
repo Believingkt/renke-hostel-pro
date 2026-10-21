@@ -79,10 +79,14 @@ describe("館別設定總覽：狀態判讀", () => {
     expect(payuniStatus({ ...base, payment_provider_active: "none" }).level).toBe("warn");
   });
 
-  it("待處理數：停用館別為 0；其他缺口會加總", () => {
-    expect(pendingCount(base, 0)).toBe(0);
-    expect(pendingCount({ ...base, kol_quota_this_month: 0 }, 2)).toBe(3);
-    expect(pendingCount({ ...base, is_active: false, kol_venue_id: null }, 5)).toBe(0);
+  it("待處理數：停用館別為 0；其他缺口會加總；只算你能設定的項目", () => {
+    expect(pendingCount(base, 0, ["super_admin"])).toBe(0);
+    expect(pendingCount({ ...base, kol_quota_this_month: 0 }, 2, ["super_admin"])).toBe(3);
+    expect(pendingCount({ ...base, is_active: false, kol_venue_id: null }, 5, ["super_admin"])).toBe(0);
+    // 未建 KOL 場域只由星探主管／總部處理；AM 只算互惠額度
+    expect(pendingCount({ ...base, kol_venue_id: null, kol_quota_this_month: 0 }, 0, ["am"])).toBe(1);
+    expect(pendingCount({ ...base, kol_venue_id: null, kol_quota_this_month: 0 }, 0, ["scout_manager"])).toBe(2);
+    expect(pendingCount({ ...base, kol_venue_id: null }, 0, ["finance"])).toBe(0);
   });
 });
 

@@ -12,7 +12,9 @@
 import {
   GAP_AUDIENCE,
   GAP_TARGETS,
+  GAP_WRITE_ROLES,
   buildGapHref,
+  canWriteGap,
   type GapKey,
 } from "./settingsGapLinks";
 
@@ -26,10 +28,22 @@ export const HQ_SETTINGS_ROLES = [
   "hotel_admin",
 ];
 
-/** HQ 內真正有寫入權的角色（其餘一律唯讀） */
-const HQ_FULL_EDIT_ROLES = ["super_admin", "admin"];
-/** 只有「業主月結設定」分頁可編輯的角色 */
-const OWNER_SETTLEMENT_EDIT_ROLES = ["super_admin", "admin", "am", "am_manager", "hotel_admin"];
+/** 角色中文名稱（角色對照表顯示用） */
+export const ROLE_LABELS: Record<string, string> = {
+  super_admin: "總部最高管理員",
+  admin: "總部管理員",
+  finance: "財務",
+  am: "AM",
+  am_manager: "AM 總管",
+  hotel_admin: "民宿管理員",
+  scout_manager: "星探主管",
+  scout: "星探",
+  closer_manager: "成交組主管",
+};
+
+export function formatRoles(roles: string[]): string {
+  return roles.map((r) => ROLE_LABELS[r] ?? r).join("、");
+}
 
 export interface GapDetail {
   /** 顯示名稱 */
@@ -38,7 +52,7 @@ export interface GapDetail {
   table: string;
   /** 要補的欄位（摘要） */
   columns: string;
-  /** 誰能寫（權限說明） */
+  /** 誰能寫（由 GAP_WRITE_ROLES 產生，不可手寫） */
   writeRoles: string;
   /** RLS / 頁面權限限制說明 */
   permissionNote: string;
@@ -46,12 +60,11 @@ export interface GapDetail {
   howTo: string;
 }
 
-export const GAP_DETAILS: Record<GapKey, GapDetail> = {
+const GAP_DETAIL_TEXT: Record<GapKey, Omit<GapDetail, "writeRoles">> = {
   partnership: {
     label: "合作期間",
     table: "accommodation_partnership_periods",
     columns: "start_date / end_date（含今日的區間）",
-    writeRoles: "super_admin、admin",
     permissionNote: "HQ 獎金分頁；finance 為唯讀，am／hotel_admin 看不到此分頁。",
     howTo: "總部設定頁 →「獎金發放規則（4 步流程）」第 ① 步合作期間卡片 →「+ 合作期間」。",
   },
@@ -59,7 +72,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "業主月結費率",
     table: "owner_settlement_pricing_rules",
     columns: "commission_rate、commission_threshold、effective_from（≤ 今天）",
-    writeRoles: "super_admin、admin、am、am_manager、hotel_admin",
     permissionNote: "館別後台的月結設定已改唯讀，只能在 HQ 整合頁編輯；finance 唯讀。",
     howTo: "總部設定頁 →「業主月結設定」分頁 → 服務費規則卡片 → 新增生效版本。",
   },
@@ -67,7 +79,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "行銷推廣費約定",
     table: "owner_settlement_pricing_rules",
     columns: "charges_marketing_fee",
-    writeRoles: "super_admin、admin、am、am_manager、hotel_admin",
     permissionNote: "與月結費率同一張表，沒有費率版本就無法判定是否收費。",
     howTo: "總部設定頁 →「業主月結設定」分頁 → 行銷推廣費卡片。",
   },
@@ -75,7 +86,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "訂房設定",
     table: "booking_settings",
     columns: "manual_refund_fee_amount",
-    writeRoles: "該館 hotel_admin、super_admin、admin",
     permissionNote: "RLS 以 accommodation_id 綁定，HQ 沒有對應集中頁，必須到該館後台。",
     howTo: "切到該館後台 →「訂房設定」→ 人工退款手續費。",
   },
@@ -83,7 +93,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "歷史費率殘留",
     table: "consulting_fee_settings（已停用）",
     columns: "rate、revenue_threshold",
-    writeRoles: "super_admin、admin、finance（清理）",
     permissionNote: "唯一真相已改為 owner_settlement_pricing_rules，此表僅供對帳。",
     howTo: "總部設定頁 →「業主月結設定」→ 歷史版本區塊核對後忽略或補正。",
   },
@@ -92,23 +101,20 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "採計團隊獎金",
     table: "accommodation_partnership_periods",
     columns: "counts_team_bonus",
-    writeRoles: "super_admin、admin",
-    permissionNote: "HQ 獎金分頁；am_manager 只會收到通知，無法自行編輯。",
+    permissionNote: "HQ 獎金分頁；am_manager 唯讀。",
     howTo: "總部設定頁 →「獎金發放規則」第 ① 步 → 勾選採計團隊獎金。",
   },
   closerFlag: {
     label: "採計成交組",
     table: "accommodation_partnership_periods",
     columns: "counts_closer_commission",
-    writeRoles: "super_admin、admin",
-    permissionNote: "HQ 獎金分頁；closer_manager 只會收到通知，無法自行編輯。",
+    permissionNote: "HQ 獎金分頁；closer_manager 唯讀。",
     howTo: "總部設定頁 →「獎金發放規則」第 ① 步 → 勾選採計成交組。",
   },
   payoutBasis: {
     label: "業主自帶口徑",
     table: "accommodation_partnership_periods",
     columns: "payout_basis",
-    writeRoles: "super_admin、admin",
     permissionNote: "HQ 獎金分頁；finance 唯讀。",
     howTo: "總部設定頁 →「獎金發放規則」第 ① 步 → 業主自帶口徑。",
   },
@@ -116,7 +122,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "成交費率",
     table: "accommodation_commission_settings",
     columns: "closer_rate、effective_from（≤ 今天）",
-    writeRoles: "super_admin、admin",
     permissionNote: "append-only 版本表，只能新增版本不能改舊版；closer_manager 唯讀。",
     howTo: "總部設定頁 →「獎金發放規則」→ 成交／影音費率卡片 → 新增生效版本。",
   },
@@ -124,7 +129,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "影音費率",
     table: "accommodation_commission_settings",
     columns: "video_rate、effective_from（≤ 今天）",
-    writeRoles: "super_admin、admin",
     permissionNote: "與成交費率同一張版本表，缺版本則影音獎金算不出金額。",
     howTo: "總部設定頁 →「獎金發放規則」→ 成交／影音費率卡片 → 新增生效版本。",
   },
@@ -132,7 +136,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "AM 負責人",
     table: "accommodation_responsible_am",
     columns: "負責 AM（一館一位）或「不需要負責 AM」",
-    writeRoles: "super_admin、admin、am_manager",
     permissionNote: "只能在館別設定總覽指定；am_managed_accommodation_ids 由系統同步，不能直接修改。",
     howTo: "團隊後台 →「館別設定總覽」→ 該館 → AM 區塊指定負責 AM。",
   },
@@ -140,7 +143,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "場域簽約人",
     table: "teamcommission_venue_closing_assignments",
     columns: "closer_user_id、effective_from",
-    writeRoles: "super_admin、admin",
     permissionNote: "HQ 獎金分頁；closer_manager 唯讀。",
     howTo: "總部設定頁 →「獎金發放規則」→ 場域成交人指派。",
   },
@@ -148,7 +150,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "館別級距規則",
     table: "venue_team_bonus_tier_rules",
     columns: "tier 區間、effective_from",
-    writeRoles: "super_admin、admin",
     permissionNote: "HQ「館別級距」分頁；finance 唯讀。",
     howTo: "總部設定頁 →「館別級距」分頁 → 新增生效版本。",
   },
@@ -156,8 +157,7 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "KOL 互惠額度",
     table: "kol_reciprocal_monthly_quotas",
     columns: "year_month、quota",
-    writeRoles: "super_admin、admin、scout_manager、scout",
-    permissionNote: "在 KOL 星探頁維護，不需 HQ 權限。",
+    permissionNote: "在 KOL 星探頁或館別設定總覽維護，不需 HQ 權限；AM 只能設定在職負責範圍內的館。",
     howTo: "團隊後台 →「KOL 星探」→ 互惠額度分頁 → 設定本月額度。",
   },
 
@@ -165,7 +165,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "全站獎金設定",
     table: "teamcommission_* 系列版本表",
     columns: "bonus_type 費率版本、來源白名單、角色綁定",
-    writeRoles: "super_admin、admin",
     permissionNote: "HQ 獎金分頁；finance 可看不可改。",
     howTo: "總部設定頁 →「獎金發放規則」→ 對應卡片新增生效版本。",
   },
@@ -173,7 +172,6 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "星探級距",
     table: "scout_tier_settings",
     columns: "級距門檻、effective_from",
-    writeRoles: "super_admin、admin、scout_manager",
     permissionNote: "在 KOL 星探設定頁維護，不需 HQ 權限。",
     howTo: "團隊後台 →「KOL 星探」→ 設定分頁 → 星探級距。",
   },
@@ -181,11 +179,14 @@ export const GAP_DETAILS: Record<GapKey, GapDetail> = {
     label: "星探底薪",
     table: "scout_salary_settings",
     columns: "底薪金額、effective_from",
-    writeRoles: "super_admin、admin、scout_manager",
     permissionNote: "在 KOL 星探設定頁維護，不需 HQ 權限。",
     howTo: "團隊後台 →「KOL 星探」→ 設定分頁 → 星探底薪。",
   },
 };
+
+export const GAP_DETAILS = Object.fromEntries(
+  (Object.keys(GAP_DETAIL_TEXT) as GapKey[]).map((k) => [k, { ...GAP_DETAIL_TEXT[k], writeRoles: formatRoles(GAP_WRITE_ROLES[k]) }]),
+) as Record<GapKey, GapDetail>;
 
 export interface GapLinkValidation {
   /** 可以安全導向的位置；null 代表這個角色沒有可跳轉的頁面 */
@@ -212,18 +213,13 @@ export function validateGapLink(key: GapKey, roles: string[], accId?: string): G
   const target = GAP_TARGETS[key];
   const teamHref = rule.teamHref ?? null;
 
-  const canEditTeamHref =
-    !!teamHref && (hasAny(roles, ["super_admin", "admin"]) || hasAny(roles, rule.roles));
+  const canWrite = canWriteGap(key, roles);
+  const canEditTeamHref = !!teamHref && canWrite;
 
   if (target.tab) {
     const hqHref = buildGapHref(key, accId);
     const canEnterHq = hasAny(roles, HQ_SETTINGS_ROLES);
-    const canEditHq =
-      target.tab === "owner-settlement"
-        ? hasAny(roles, OWNER_SETTLEMENT_EDIT_ROLES)
-        : hasAny(roles, HQ_FULL_EDIT_ROLES);
-
-    if (hqHref && canEnterHq && canEditHq) {
+    if (hqHref && canEnterHq && canWrite) {
       return { href: hqHref, editable: true, reason: null };
     }
     if (canEditTeamHref) {
@@ -233,19 +229,19 @@ export function validateGapLink(key: GapKey, roles: string[], accId?: string): G
       return {
         href: hqHref,
         editable: false,
-        reason: "你只有唯讀權限，請通知總部管理員（super_admin／admin）補齊。",
+        reason: `你只有唯讀權限，由${GAP_DETAILS[key].writeRoles}設定。`,
       };
     }
     return {
       href: null,
       editable: false,
-      reason: "此設定僅限總部管理員編輯，你沒有進入總部設定頁的權限。",
+      reason: `此設定由${GAP_DETAILS[key].writeRoles}在總部設定頁編輯。`,
     };
   }
 
   if (canEditTeamHref) return { href: teamHref, editable: true, reason: null };
   if (teamHref) {
-    return { href: teamHref, editable: false, reason: "你在該頁面為唯讀，請聯絡可編輯的負責角色。" };
+    return { href: teamHref, editable: false, reason: `你在該頁面為唯讀，由${GAP_DETAILS[key].writeRoles}設定。` };
   }
   return {
     href: null,

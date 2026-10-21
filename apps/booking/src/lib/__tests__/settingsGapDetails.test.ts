@@ -64,3 +64,28 @@ describe("已讀狀態", () => {
     expect(pruneResolved(["a", "b"], ["b"])).toEqual(["b"]);
   });
 });
+
+describe("角色對照表（只算實際能寫入的角色）", () => {
+  it("小鈴鐺只通知能寫入的角色", async () => {
+    const { shouldNotify, GAP_WRITE_ROLES } = await import("@lakeze/shared/lib/settingsGapLinks");
+    expect(shouldNotify("partnership", ["super_admin"])).toBe(true);
+    expect(shouldNotify("partnership", ["admin"])).toBe(false);
+    expect(shouldNotify("teamBonusFlag", ["am_manager"])).toBe(false);
+    expect(shouldNotify("settlementRule", ["am"])).toBe(true);
+    expect(shouldNotify("settlementRule", ["finance"])).toBe(false);
+    expect(shouldNotify("kolQuota", ["scout"])).toBe(false);
+    expect(shouldNotify("kolQuota", ["am"])).toBe(true);
+    expect(GAP_AUDIENCE.amScope.roles).toEqual(GAP_WRITE_ROLES.amScope);
+  });
+
+  it("「誰能編輯」說明由對照表產生，與通知名單一致", () => {
+    expect(GAP_DETAILS.partnership.writeRoles).toBe("總部最高管理員");
+    expect(GAP_DETAILS.kolQuota.writeRoles).toBe("總部最高管理員、星探主管、AM、AM 總管");
+  });
+
+  it("唯讀角色的連結會說明由誰設定", () => {
+    const r = validateGapLink("closerRate", ["finance"], "acc-1");
+    expect(r.editable).toBe(false);
+    expect(r.reason).toContain("總部最高管理員、總部管理員");
+  });
+});
