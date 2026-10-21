@@ -152,7 +152,8 @@ describe("館別設定總覽頁", () => {
     const others = screen.getByTestId("onboarding-block-others");
     expect(within(others).getByTestId("onboarding-am-section")).toBeTruthy();
     expect(within(others).getByTestId("onboarding-bonus-section")).toBeTruthy();
-    expect(screen.queryByTestId("bonus-save-btn")).toBeNull();
+    expect(screen.queryByTestId("bonus-flags-save-btn")).toBeNull();
+    expect(screen.queryByTestId("bonus-sources-shared-add-btn")).toBeNull();
   });
 
   it("單館（AM 總管）：沒有負責人時下拉預設「尚未指定」；已標不需要的館顯示「不需要負責 AM」", async () => {

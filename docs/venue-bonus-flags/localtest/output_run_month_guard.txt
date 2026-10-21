@@ -1,0 +1,62 @@
+NOTICE:  database "vb3" does not exist, skipping
+前置 20261103090000 套用成功
+== precheck
+1. 覆蓋表存在（已套用 20261103090000） | t
+2. 尚未套用（無 venue_source_overrides_month_start） | t
+3. 沒有生效日不是 1 日的版本 | t
+4. 寫入政策 insert／update／delete 三條都在 | t
+== 套用
+套用成功
+== postcheck
+1. 已加 CHECK venue_source_overrides_month_start（生效日必須是 1 日） | t
+2. 政策數仍為 4 | t
+3. insert 政策含台北月初限制 | t
+4. update 政策 USING／WITH CHECK 皆含台北月初限制 | t
+5. delete 政策含台北日期限制 | t
+== 重複套用必須被擋
+PRECHECK 失敗：已套用過
+== 測試
+PASS G01 AM 總管新增本月 1 日版本 → OK
+PASS G02 super_admin 新增上個月 1 日（補登）→ RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS G03 AM 總管新增下個月 15 日 → CHECK 擋 → RAN new row for relation "teamcommission_venue_revenue_source_overrides" violates check constraint "venue_source_overrides_month_start"
+PASS G04 AM 總管新增下個月 1 日 → OK
+PASS G05 AM 總管修改本月版本 → 1 筆 → OK
+PASS G06 AM 總管修改上個月版本 → 0 筆（不可改歷史） → OK
+PASS G07 AM 總管把本月版本生效日改到過去 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS G08 AM 總管刪除本月版本 → 0 筆（已開始的月份不可取消） → OK
+PASS G09 AM 總管刪除下個月版本（取消排定）→ 1 筆 → OK
+PASS G10 AM 新增下個月 1 日 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS G11 service_role 新增 15 日 → CHECK 仍擋 → RAN new row for relation "teamcommission_venue_revenue_source_overrides" violates check constraint "venue_source_overrides_month_start"
+PASS G12 super_admin 新增本月 1 日（upsert 覆蓋同月） → OK
+PASS 12 / FAIL 0
+== 20261103090000 原測試（O02 補登過去月份預期改為 FAIL，其餘 PASS）
+PASS R01 anon 讀旗標表 → DENIED permission denied for table teamcommission_venue_bonus_flags
+PASS R02 一般會員讀旗標表 → 0 筆（RLS） → RAN empty
+PASS R03 AM 讀旗標表 → OK
+PASS R04 財務讀旗標表 → OK
+PASS W01 super_admin 寫旗標 → OK
+PASS W02 AM 總管寫旗標 → OK
+PASS W03 AM 寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W04 總部 admin 寫旗標 → RLS 擋（照決定只開 super_admin、AM 總管） → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS W05 財務寫旗標 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_bonus_flags"
+PASS O01 AM 總管新增本月 KOL 來源覆蓋 → OK
+FAIL O02 super_admin 新增過去月份版本（補登） → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides" | 預期 OK
+PASS O03 AM 新增覆蓋 → RLS 擋 → DENIED new row violates row-level security policy for table "teamcommission_venue_revenue_source_overrides"
+PASS O04 AM 總管修改過去月份版本 → 0 筆受影響（不可改歷史） → OK
+PASS O05 AM 總管修改本月版本（改回全站） → OK
+PASS O06 anon 讀覆蓋表 → DENIED permission denied for table teamcommission_venue_revenue_source_overrides
+PASS S01 service_role 讀兩張表（edge function） → OK
+PASS M01 旅行日館別帶入（seed 2 館） → 2
+PASS 16 / FAIL 1
+== rollback
+rollback 成功
+1. 覆蓋表存在（已套用 20261103090000） | t
+2. 尚未套用（無 venue_source_overrides_month_start） | t
+3. 沒有生效日不是 1 日的版本 | t
+4. 寫入政策 insert／update／delete 三條都在 | t
+== rollback 後 20261103090000 原測試應全 PASS
+PASS 17 / FAIL 0
+== 再套用＋postcheck＋測試
+再套用成功
+5 / 5 項為 t
+PASS 12 / FAIL 0
