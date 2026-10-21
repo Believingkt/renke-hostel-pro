@@ -294,6 +294,17 @@ export function BulkOpenInventoryDialog({
         }
       }
 
+      // 未勾選改價時，新建列會帶入房型基礎價；基礎價未設（<= 0）會寫成 0 元 → 擋下
+      const zeroPriceRooms = Array.from(
+        new Set(inserts.filter((r) => !(Number(r.price) > 0)).map((r) => roomMap.get(r.room_type_id)?.name ?? "房型")),
+      );
+      if (overridePrice === null && zeroPriceRooms.length > 0) {
+        toast.error("請輸入價格或先設定房型基礎價", {
+          description: `以下房型沒有基礎價，新建的日期會變成 0 元：${zeroPriceRooms.join("、")}`,
+        });
+        return;
+      }
+
       // 批次插入（分塊以避免單次 payload 過大）
       const CHUNK = 500;
       for (let i = 0; i < inserts.length; i += CHUNK) {
@@ -677,7 +688,7 @@ export function BulkOpenInventoryDialog({
           {step === 1 && (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>
-              <Button onClick={handleScan} disabled={scanning || totalCells === 0}>
+              <Button onClick={handleScan} disabled={scanning || totalCells === 0} data-testid="bulk-inventory-scan-btn">
                 {scanning && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 下一步：檢查衝突
               </Button>
@@ -689,6 +700,7 @@ export function BulkOpenInventoryDialog({
               <Button
                 onClick={handleSubmit}
                 disabled={submitting}
+                data-testid="bulk-inventory-submit-btn"
                 variant={operationMode === "clear_overrides" ? "destructive" : "default"}
               >
                 {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

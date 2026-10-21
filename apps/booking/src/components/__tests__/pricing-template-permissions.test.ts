@@ -149,10 +149,10 @@ describe("新價格頁啟用館：專案價格唯讀、庫存量隱藏；未啟�
       expect(s).toContain("無法讀取館別設定，暫時無法儲存");
     }
     expect(pkgSrc).toContain("disabled={saving || flagsBlockSave}");
-    expect(src).toContain("<Button onClick={handleSubmit} disabled={flagsBlockSave}");
-    const pkgSave = pkgSrc.slice(pkgSrc.indexOf("const handleSave = async () => {"), pkgSrc.indexOf("const handleSave = async () => {") + 200);
+    expect(src).toContain("<Button onClick={() => handleSubmit()} disabled={flagsBlockSave}");
+    const pkgSave = pkgSrc.slice(pkgSrc.indexOf("const handleSave = async (allowAllRooms = false) => {"), pkgSrc.indexOf("const handleSave = async (allowAllRooms = false) => {") + 200);
     expect(pkgSave).toContain("if (flagsBlockSave) {");
-    const tplSave = src.slice(src.indexOf("const handleSubmit = async () => {"), src.indexOf("const handleSubmit = async () => {") + 200);
+    const tplSave = src.slice(src.indexOf("const handleSubmit = async (allowAllRooms = false) => {"), src.indexOf("const handleSubmit = async (allowAllRooms = false) => {") + 200);
     expect(tplSave).toContain("if (flagsBlockSave) {");
   });
 });

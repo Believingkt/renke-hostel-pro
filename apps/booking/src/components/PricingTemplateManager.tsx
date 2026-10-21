@@ -22,6 +22,8 @@ import { useStaffPermissions } from "@lakeze/shared/hooks/use-staff-permissions"
 import { useAccommodationPriceFlags } from "@lakeze/shared/hooks/useAccommodationPriceFlags";
 import { writeWithRowCheck, writeErrorMessage } from "@lakeze/shared/lib/supabaseWriteGuard";
 import { ShieldAlert } from "lucide-react";
+import { splitRoomTypeIds, needsAllRoomsConfirm } from "@/lib/roomTypeBinding";
+import { DeletedRoomTypeChips, AllRoomTypesConfirmDialog } from "@/components/RoomTypeBindingGuard";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -136,6 +138,8 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   // 館別開關載入完成前、或載入失敗時，一律不可儲存
   const flagsBlockSave = !priceFlags.loaded || priceFlags.failed;
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [allRoomsConfirmOpen, setAllRoomsConfirmOpen] = useState(false);
+  const [originalRoomTypeIds, setOriginalRoomTypeIds] = useState<string[]>([]);
   const [deletingTemplate, setDeletingTemplate] = useState<PricingTemplate | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [packages, setPackages] = useState<AccommodationPackage[]>([]);
@@ -279,6 +283,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     const existingIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
       ? template.room_type_ids
       : (template.room_type_id ? [template.room_type_id] : []);
+    setOriginalRoomTypeIds(existingIds);
 
     // 處理 season_segments：第一段對應「主期間」（填入上方表單），其餘為額外區段
     const allSegs: SeasonSegment[] = Array.isArray((template as any).season_segments)
@@ -350,10 +355,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       if (formData.valid_from && formData.valid_until && formData.valid_from > formData.valid_until) {
         newErrors.valid_until = "結束日期必須晚於開始日期";
       }
-      if (formData.room_type_ids.length === 0) {
+      const validIds = splitRoomTypeIds(formData.room_type_ids, roomTypes).valid;
+      if (validIds.length === 0) {
         newErrors.room_type_ids = "請至少選擇一個對應房型";
       } else {
-        for (const id of formData.room_type_ids) {
+        for (const id of validIds) {
           const ov = formData.room_overrides[id];
           const hasPrice =
             (ov?.weekday_price != null && ov.weekday_price > 0) ||
@@ -576,7 +582,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
     return inserts.length + updates.length + clearedOverrides;
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (allowAllRooms = false) => {
     if (!canEditRoomPrice) return denyWrite();
     if (flagsBlockSave) {
       toast.error(priceFlags.failed ? '無法讀取館別設定，暫時無法儲存' : '館別設定載入中，請稍候再儲存');
@@ -587,13 +593,18 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
       return;
     }
 
+    // 存檔前過濾掉不屬於本館現有房型的 id（已刪除房型），room_type_id 取過濾後第一個
+    const finalIds = splitRoomTypeIds(
+      isSingleSelect ? (formData.room_type_id ? [formData.room_type_id] : []) : formData.room_type_ids,
+      roomTypes,
+    ).valid;
+    const primaryId = finalIds[0] || null;
+    if (!allowAllRooms && editingTemplate && needsAllRoomsConfirm(originalRoomTypeIds, finalIds, roomTypes)) {
+      setAllRoomsConfirmOpen(true);
+      return;
+    }
+
     try {
-      const finalIds = isSingleSelect
-        ? (formData.room_type_id ? [formData.room_type_id] : [])
-        : formData.room_type_ids;
-      const primaryId = isSingleSelect
-        ? (formData.room_type_id || null)
-        : (finalIds[0] || null);
 
       // 天送：以 room_overrides 為主，頂層 price/inventory 取「第一個房型的設定」做向後兼容
       let topWeekday = formData.weekday_price;
@@ -750,9 +761,14 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
   const handleCopy = async (template: PricingTemplate) => {
     if (!canEditRoomPrice) return denyWrite();
     try {
-      const copyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
+      const rawCopyIds = Array.isArray(template.room_type_ids) && template.room_type_ids.length > 0
         ? template.room_type_ids
         : (template.room_type_id ? [template.room_type_id] : []);
+      const copyIds = splitRoomTypeIds(rawCopyIds, roomTypes).valid;
+      if (rawCopyIds.length > 0 && copyIds.length === 0) {
+        toast.error('原本綁定的房型已刪除，請先編輯此專案重新選擇房型後再複製');
+        return;
+      }
       const dataToCopy: any = {
         template_name: `${template.template_name} (複製)`,
         description: template.description,
@@ -765,7 +781,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
         price: template.weekday_price ?? template.peak_price ?? template.weekend_price ?? template.price ?? null,
         available_rooms: (template as any).available_rooms ?? 1,
         accommodation_id: accommodationId,
-        room_type_id: template.room_type_id || copyIds[0] || null,
+        room_type_id: copyIds[0] || null,
         room_type_ids: copyIds,
         display_order: templates.length,
         valid_from: template.valid_from || null,
@@ -888,7 +904,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                 : (template.room_type_id ? [template.room_type_id] : []);
               if (ids.length === 0) return '所有房型';
               const names = ids
-                .map(id => roomTypes.find(r => r.id === id)?.name || '未知房型');
+                .map(id => roomTypes.find(r => r.id === id)?.name || '已刪除的房型');
               return names.join('、');
             })()}
           </div>
@@ -1449,6 +1465,10 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                     ))}
                   </SelectContent>
                 </Select>
+                <DeletedRoomTypeChips
+                  ids={splitRoomTypeIds(formData.room_type_id ? [formData.room_type_id] : [], roomTypes).removed}
+                  onRemove={() => setFormData({ ...formData, room_type_id: "", room_type_ids: [] })}
+                />
                 <p className="text-sm text-muted-foreground">指定房型後，新增訂單時僅顯示該房型對應的專案</p>
               </>
             ) : (
@@ -1483,6 +1503,13 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
                     })
                   )}
                 </div>
+                <DeletedRoomTypeChips
+                  ids={splitRoomTypeIds(formData.room_type_ids, roomTypes).removed}
+                  onRemove={(id) => {
+                    const next = formData.room_type_ids.filter((x) => x !== id);
+                    setFormData({ ...formData, room_type_ids: next, room_type_id: splitRoomTypeIds(next, roomTypes).valid[0] || "" });
+                  }}
+                />
                 <p className="text-sm text-muted-foreground">
                   可同時指定多個房型；未勾選任何房型則代表「不指定房型（所有房型可用）」
                 </p>
@@ -1496,7 +1523,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <Label>各房型獨立設定 *<span className="text-xs text-muted-foreground font-normal ml-1">（每個已選房型各自設定平日/旺日/假日價與庫存）</span></Label>
               {errors.room_type_ids && <p className="text-sm text-destructive">{errors.room_type_ids}</p>}
               <div className="space-y-3">
-                {formData.room_type_ids.map((rtId) => {
+                {splitRoomTypeIds(formData.room_type_ids, roomTypes).valid.map((rtId) => {
                   const rt = roomTypes.find(r => r.id === rtId);
                   const ov = formData.room_overrides[rtId] || { weekday_price: null, peak_price: null, weekend_price: null, available_rooms: 1, weekday_enabled: true, peak_enabled: true, weekend_enabled: true };
                   const setOv = (patch: Partial<typeof ov>) => {
@@ -1710,7 +1737,7 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
               <span className="text-sm text-destructive self-center" data-testid="template-flags-failed-notice">無法讀取館別設定，暫時無法儲存</span>
             )}
             {canEditRoomPrice && (
-            <Button onClick={handleSubmit} disabled={flagsBlockSave} data-testid="template-save-btn" className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
+            <Button onClick={() => handleSubmit()} disabled={flagsBlockSave} data-testid="template-save-btn" className="flex items-center justify-center gap-2 w-full sm:w-auto h-11 sm:h-10 touch-manipulation">
               <Check className="h-4 w-4" />
               {editingTemplate ? '更新' : '新增'}
             </Button>
@@ -1798,6 +1825,11 @@ export const PricingTemplateManager = forwardRef<PricingTemplateManagerRef, Pric
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AllRoomTypesConfirmDialog
+        open={allRoomsConfirmOpen}
+        onOpenChange={setAllRoomsConfirmOpen}
+        onConfirm={() => { setAllRoomsConfirmOpen(false); handleSubmit(true); }}
+      />
     </>
   );
 });

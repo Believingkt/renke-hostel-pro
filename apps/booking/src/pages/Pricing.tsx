@@ -258,13 +258,7 @@ const Pricing = () => {
     if (!deletingRoomType) return;
 
     try {
-      // Delete photos first
-      await supabase
-        .from("room_photos")
-        .delete()
-        .eq("room_type_id", deletingRoomType.id);
-
-      // Delete room
+      // 先刪房型：若被專案／方案擋下（只綁這個房型），照片不會被先刪掉
       const { error } = await supabase
         .from('room_types')
         .delete()
@@ -272,13 +266,18 @@ const Pricing = () => {
 
       if (error) throw error;
 
+      await supabase
+        .from("room_photos")
+        .delete()
+        .eq("room_type_id", deletingRoomType.id);
+
       toast.success("房型已成功刪除");
       loadRoomTypes();
-    } catch (error) {
+    } catch (error: any) {
       if (import.meta.env.DEV) {
         console.error('Error deleting room type:', error);
       }
-      toast.error("無法刪除房型，請重試");
+      toast.error(error?.code === "P0001" && error?.message ? error.message : "無法刪除房型，請重試");
     } finally {
       setDeleteDialogOpen(false);
       setDeletingRoomType(null);

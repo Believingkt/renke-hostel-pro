@@ -49,6 +49,8 @@ import AdminPackagesPreview from "@/pages/AdminPackagesPreview";
 import { PortalFeatureTagsSection } from "@/components/website-content/PortalFeatureTagsSection";
 import ChildAgeRulesEditor from "@/components/website-content/ChildAgeRulesEditor";
 import { cleanTierPricesForSave } from "@/lib/packageTierPayload";
+import { splitRoomTypeIds, needsAllRoomsConfirm } from "@/lib/roomTypeBinding";
+import { DeletedRoomTypeChips, AllRoomTypesConfirmDialog } from "@/components/RoomTypeBindingGuard";
 import {
   DEFAULT_CHILD_AGE_RULES,
   parseChildAgeRules,
@@ -143,6 +145,7 @@ const AdminPackages = () => {
   const [form, setForm] = useState<FormState>(emptyForm());
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [allRoomsConfirmOpen, setAllRoomsConfirmOpen] = useState(false);
 
   // 搜尋結果圖卡顯示設定
   const [cardSettings, setCardSettings] = useState({
@@ -479,7 +482,7 @@ const AdminPackages = () => {
     else refetch();
   };
 
-  const handleSave = async () => {
+  const handleSave = async (allowAllRooms = false) => {
     if (flagsBlockSave) {
       toast({
         title: priceFlags.failed ? "無法讀取館別設定，暫時無法儲存" : "館別設定載入中，請稍候再儲存",
@@ -500,6 +503,23 @@ const AdminPackages = () => {
       toast({ title: "請輸入正確的「方案價格包含人數」", variant: "destructive" });
       return;
     }
+    // 存檔前過濾掉不屬於本館現有房型的 id（已刪除房型）
+    const isYx = currentAccommodationId === YUNXIU_ACCOMMODATION_ID;
+    const singlePrimary =
+      form.primary_room_type_id !== NONE && roomTypes.some((r) => r.id === form.primary_room_type_id)
+        ? form.primary_room_type_id
+        : null;
+    const finalRoomIds = isYx
+      ? splitRoomTypeIds(form.room_type_ids, roomTypes).valid
+      : (singlePrimary ? [singlePrimary] : []);
+    if (!allowAllRooms && editing) {
+      const raw = (editing as any).room_type_ids as string[] | null;
+      const originalIds = Array.isArray(raw) && raw.length ? raw : (editing.primary_room_type_id ? [editing.primary_room_type_id] : []);
+      if (needsAllRoomsConfirm(originalIds, finalRoomIds, roomTypes)) {
+        setAllRoomsConfirmOpen(true);
+        return;
+      }
+    }
     setSaving(true);
     const payload = {
       accommodation_id: currentAccommodationId,
@@ -516,17 +536,8 @@ const AdminPackages = () => {
       applicable_tiers: form.applicable_tiers,
       tags: form.tags,
       includes: form.includes as any,
-      primary_room_type_id: (() => {
-        // 雲岫使用多選；其他民宿使用單選下拉
-        if (currentAccommodationId === YUNXIU_ACCOMMODATION_ID) {
-          return form.room_type_ids[0] ?? null;
-        }
-        return form.primary_room_type_id === NONE ? null : form.primary_room_type_id;
-      })(),
-      room_type_ids:
-        currentAccommodationId === YUNXIU_ACCOMMODATION_ID
-          ? (form.room_type_ids.length ? form.room_type_ids : null)
-          : (form.primary_room_type_id === NONE ? null : [form.primary_room_type_id]),
+      primary_room_type_id: finalRoomIds[0] ?? null,
+      room_type_ids: finalRoomIds.length ? finalRoomIds : null,
       display_order: form.display_order,
       enabled: form.enabled,
       excluded_date_ranges: (form.excluded_date_ranges || []).filter(
@@ -1280,6 +1291,10 @@ const AdminPackages = () => {
                       );
                     })
                   )}
+                  <DeletedRoomTypeChips
+                    ids={splitRoomTypeIds(form.room_type_ids, roomTypes).removed}
+                    onRemove={(id) => setForm((f) => ({ ...f, room_type_ids: f.room_type_ids.filter((x) => x !== id) }))}
+                  />
                   <p className="text-xs text-muted-foreground pt-1">
                     可複選；第一個勾選的房型將作為訂房連結預設帶入的房型，庫存依下單時實際選擇的房型扣抵。
                   </p>
@@ -1301,6 +1316,12 @@ const AdminPackages = () => {
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+              {currentAccommodationId !== YUNXIU_ACCOMMODATION_ID && form.primary_room_type_id === NONE && (
+                <DeletedRoomTypeChips
+                  ids={splitRoomTypeIds(form.room_type_ids, roomTypes).removed}
+                  onRemove={(id) => setForm((f) => ({ ...f, room_type_ids: f.room_type_ids.filter((x) => x !== id) }))}
+                />
               )}
             </div>
 
@@ -1574,7 +1595,7 @@ const AdminPackages = () => {
             {priceFlags.failed && (
               <span className="text-sm text-destructive" data-testid="package-flags-failed-notice">無法讀取館別設定，暫時無法儲存</span>
             )}
-            <Button onClick={handleSave} disabled={saving || flagsBlockSave} data-testid="package-save-btn">
+            <Button onClick={() => handleSave()} disabled={saving || flagsBlockSave} data-testid="package-save-btn">
               {saving ? "儲存中..." : "儲存"}
             </Button>
           </DialogFooter>
@@ -1597,6 +1618,12 @@ const AdminPackages = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AllRoomTypesConfirmDialog
+        open={allRoomsConfirmOpen}
+        onOpenChange={setAllRoomsConfirmOpen}
+        onConfirm={() => { setAllRoomsConfirmOpen(false); handleSave(true); }}
+      />
+
 
       <div className="rounded-lg border bg-card p-4 sm:p-5 space-y-3">
         <div>

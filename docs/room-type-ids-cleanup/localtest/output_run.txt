@@ -1,0 +1,79 @@
+NOTICE:  database "rtic" does not exist, skipping
+== 殘留多 1 筆（預期 PRECHECK 擋）
+PRECHECK 失敗：殘留房型清單與已查證的 4 筆不一致（現值 accommodation_packages|9a74a709-f83b-4a53-a3
+== precheck
+accommodation_packages|primary_room_type_id|uuid|f
+accommodation_packages|room_type_ids|uuid[]|f
+pricing_templates|room_type_id|uuid|f
+pricing_templates|room_type_ids|uuid[]|t
+room_types|id|uuid|t
+accommodation_packages|9a74a709-f83b-4a53-a39a-efda917d4802|74d064f4-1f8c-47e8-9be0-f0a596bbe6f8|海景方案|e5eff54d-2fa6-4ff6-bfc3-2cf76343dff6|aaaa0000-0000-0000-0000-000000000001|2|1
+pricing_templates|4c9ec03d-262c-4afc-97b9-bb75e3d373f9|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季一泊一食|7f066d8a-5035-4061-8db4-4cf170deda4f||1|0
+pricing_templates|6f9a4ce1-dbab-4fae-91de-61b81e9957bd|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季包棟|7f066d8a-5035-4061-8db4-4cf170deda4f||1|0
+pricing_templates|edc56e89-c1ed-4b46-8427-ff16b56e2ea7|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季一泊二食|7f066d8a-5035-4061-8db4-4cf170deda4f||1|0
+t|t|t
+room_photos|room_type_id|room_photos_room_type_id_fkey|CASCADE
+pricing_templates|room_type_id|pricing_templates_room_type_id_fkey|SET NULL
+accommodation_packages|primary_room_type_id|accommodation_packages_primary_room_type_id_fkey|SET NULL
+accommodation_packages|trg_packages_auto_template_room|O|CREATE TRIGGER trg_packages_auto_template_room AFTER UPDATE OF primary_room_type_id ON public.accommodation_packages FOR EACH ROW WHEN ((old.primary_room_type_id IS DISTINCT FROM new.primary_room_type_id)) EXECUTE FUNCTION packages_auto_template_on_primary_room()
+74d064f4-1f8c-47e8-9be0-f0a596bbe6f8|t
+== 清理前
+pkg|9a000000-0000-0000-0000-000000000002|{aaaa0000-0000-0000-0000-000000000003}
+pkg|9a000000-0000-0000-0000-000000000003|{aaaa0000-0000-0000-0000-000000000002,aaaa0000-0000-0000-0000-000000000001}
+pkg|9a000000-0000-0000-0000-000000000004|{cccc0000-0000-0000-0000-000000000001}
+pkg|9a74a709-f83b-4a53-a39a-efda917d4802|{e5eff54d-2fa6-4ff6-bfc3-2cf76343dff6,aaaa0000-0000-0000-0000-000000000001}
+tpl|4c9ec03d-262c-4afc-97b9-bb75e3d373f9||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+tpl|6f9a4ce1-dbab-4fae-91de-61b81e9957bd||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+tpl|7e000000-0000-0000-0000-000000000001|aaaa0000-0000-0000-0000-000000000002|{aaaa0000-0000-0000-0000-000000000002,aaaa0000-0000-0000-0000-000000000001}
+tpl|7e000000-0000-0000-0000-000000000002||{}
+tpl|edc56e89-c1ed-4b46-8427-ff16b56e2ea7||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+套用成功
+== 清理後
+pkg|9a000000-0000-0000-0000-000000000002|{aaaa0000-0000-0000-0000-000000000003}
+pkg|9a000000-0000-0000-0000-000000000003|{aaaa0000-0000-0000-0000-000000000002,aaaa0000-0000-0000-0000-000000000001}
+pkg|9a000000-0000-0000-0000-000000000004|{cccc0000-0000-0000-0000-000000000001}
+pkg|9a74a709-f83b-4a53-a39a-efda917d4802|{aaaa0000-0000-0000-0000-000000000001}
+tpl|4c9ec03d-262c-4afc-97b9-bb75e3d373f9||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+tpl|6f9a4ce1-dbab-4fae-91de-61b81e9957bd||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+tpl|7e000000-0000-0000-0000-000000000001|aaaa0000-0000-0000-0000-000000000002|{aaaa0000-0000-0000-0000-000000000002,aaaa0000-0000-0000-0000-000000000001}
+tpl|7e000000-0000-0000-0000-000000000002||{}
+tpl|edc56e89-c1ed-4b46-8427-ff16b56e2ea7||{7f066d8a-5035-4061-8db4-4cf170deda4f}
+== 重複套用（預期 PRECHECK 擋）
+PRECHECK 失敗：room_types_detach_from_plans_before_delete() 已存在，疑似已套用過本 migration
+== postcheck
+pricing_templates|4c9ec03d-262c-4afc-97b9-bb75e3d373f9|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季一泊一食|7f066d8a-5035-4061-8db4-4cf170deda4f|0
+pricing_templates|6f9a4ce1-dbab-4fae-91de-61b81e9957bd|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季包棟|7f066d8a-5035-4061-8db4-4cf170deda4f|0
+pricing_templates|edc56e89-c1ed-4b46-8427-ff16b56e2ea7|a4bacadc-9b7a-4110-ac04-a1cc6248c822|四季一泊二食|7f066d8a-5035-4061-8db4-4cf170deda4f|0
+accommodation_packages|9a74a709-f83b-4a53-a39a-efda917d4802|{e5eff54d-2fa6-4ff6-bfc3-2cf76343dff6,aaaa0000-0000-0000-0000-000000000001}|{aaaa0000-0000-0000-0000-000000000001}|aaaa0000-0000-0000-0000-000000000001|2026-10-21 12:30:32.063826+00
+9a74a709-f83b-4a53-a39a-efda917d4802|海景方案|aaaa0000-0000-0000-0000-000000000001|{aaaa0000-0000-0000-0000-000000000001}
+trg_room_types_detach_from_plans|O|CREATE TRIGGER trg_room_types_detach_from_plans BEFORE DELETE ON public.room_types FOR EACH ROW EXECUTE FUNCTION room_types_detach_from_plans_before_delete()
+room_types_detach_from_plans_before_delete|t|{search_path=public}|{postgres=X/postgres}
+room_type_ids_cleanup_backup_20261106|t
+== 測試
+PASS B05 刪除不會清空陣列的房型成功 | 預期 OK | 實際 OK
+PASS B06 雙房方案陣列移除該房型 | 預期 {aaaa0000-0000-0000-0000-000000000001} | 實際 {aaaa0000-0000-0000-0000-000000000001}
+PASS B07 雙房方案主房型改成剩下第一個 | 預期 aaaa0000-0000-0000-0000-000000000001 | 實際 aaaa0000-0000-0000-0000-000000000001
+PASS B08 雙房專案陣列移除該房型 | 預期 {aaaa0000-0000-0000-0000-000000000001} | 實際 {aaaa0000-0000-0000-0000-000000000001}
+PASS B09 雙房專案 room_type_id 改成剩下第一個 | 預期 aaaa0000-0000-0000-0000-000000000001 | 實際 aaaa0000-0000-0000-0000-000000000001
+PASS B10 照片隨房型 CASCADE 刪除 | 預期 0 | 實際 0
+PASS B11 不指定房型專案仍為空陣列 | 預期 {} | 實際 {}
+PASS B12 未綁定房型可刪 | 預期 OK | 實際 OK
+PASS B13 僅 room_type_id 綁定也擋 | 預期 ERR P0001 無法刪除房型「舊單選房」：專案「舊單選專案」 | 實際 ERR P0001 無法刪除房型「舊單選房」：專案「舊單選專案」只綁定這個房型，刪除後會變成「所有房型都適用」。請先到專案／方案設定改綁其他房型，再刪除此房型。
+PASS B14 整館刪除連帶刪房型不被擋 | 預期 OK | 實際 OK
+PASS B15 整館房型已刪 | 預期 0 | 實際 0
+PASS A01 方案 9a74a709 只剩有效房型 | 預期 {aaaa0000-0000-0000-0000-000000000001} | 實際 {aaaa0000-0000-0000-0000-000000000001}
+PASS A02 方案 9a74a709 主房型不變 | 預期 aaaa0000-0000-0000-0000-000000000001 | 實際 aaaa0000-0000-0000-0000-000000000001
+PASS A03 四季山宿 3 筆專案不動（仍指向已刪房型） | 預期 3 | 實際 3
+PASS A04 備份表只有 1 列 | 預期 1 | 實際 1
+PASS A05 不指定房型專案仍為空陣列 | 預期 {} | 實際 {}
+PASS B01 刪除只被綁定的房型被擋 | 預期 ERR P0001 無法刪除房型「獨棟」：方案「獨棟方案」只綁定這個房型 | 實際 ERR P0001 無法刪除房型「獨棟」：方案「獨棟方案」只綁定這個房型，刪除後會變成「所有房型都適用」。請先到專案／方案設定改綁其他房型，再刪除此房型。
+PASS B02 被擋後房型仍在 | 預期 1 | 實際 1
+PASS B03 被擋後照片仍在（刪房型改為先刪房型） | 預期 1 | 實際 1
+PASS B04 刪除會清空陣列的房型被擋（列出名稱） | 預期 ERR P0001 無法刪除房型「海景雙人」：方案「海景方案」只綁定這個房型 | 實際 ERR P0001 無法刪除房型「海景雙人」：方案「海景方案」只綁定這個房型，刪除後會變成「所有房型都適用」。請先到專案／方案設定改綁其他房型，再刪除此房型。
+PASS B16 authenticated 無函式 EXECUTE 權限 | 預期 false | 實際 false
+PASS B17 authenticated 無備份表權限 | 預期 false | 實際 false
+== rollback
+t|t|t
+rollback 成功
+9a74a709-f83b-4a53-a39a-efda917d4802|{e5eff54d-2fa6-4ff6-bfc3-2cf76343dff6,aaaa0000-0000-0000-0000-000000000001}
+再套用成功
