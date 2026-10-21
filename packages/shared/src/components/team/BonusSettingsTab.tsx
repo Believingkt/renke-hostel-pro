@@ -41,6 +41,7 @@ import {
   AccordionTrigger,
 } from "@lakeze/shared/components/ui/accordion";
 import { Link, useSearchParams } from "react-router-dom";
+import { VenueClosingLockedView } from "./VenueClosingLockedView";
 import { getOrderSourceConfig, ORDER_SOURCE_DISPLAY_NAMES } from "@lakeze/shared/utils/orderHelpers";
 import BonusOrderInspector from "@lakeze/shared/components/team/BonusOrderInspector";
 import SettingImpactHint from "@lakeze/shared/components/team/SettingImpactHint";
@@ -1560,7 +1561,26 @@ function VenueClosingAssignmentSection({
             本館已設定「不列入抽成類獎金」，不需要指定場域簽約人與合作期間。
           </p>
         )}
-        {loading ? null : (
+        {loading ? null : lockedAccId ? (
+          accs[0] ? (
+            <VenueClosingLockedView
+              accId={accs[0].id}
+              partnershipStartDate={accs[0].partnership_start_date ?? null}
+              periods={periodsByAcc.get(accs[0].id) ?? []}
+              curPeriod={currentPeriod(accs[0].id)}
+              upcoming={(periodsByAcc.get(accs[0].id) ?? []).find((p) => p.start_date > today)}
+              history={byAcc.get(accs[0].id) ?? []}
+              cur={pickCurrent(byAcc.get(accs[0].id) ?? [])}
+              today={today}
+              memberName={memberName}
+              readOnly={readOnly}
+              onAddPeriod={() => openPeriodDialog(accs[0].id)}
+              onEndPeriod={endPeriod}
+              onEditCloser={() => openDialog(accs[0].id)}
+              onFlag={updateFlag}
+            />
+          ) : null
+        ) : (
           <Table>
             <TableHeader>
               <TableRow>
