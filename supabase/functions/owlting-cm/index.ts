@@ -17,6 +17,7 @@
  *   HotelCode    = accommodation_owlting_config.owlting_hotel_code
  *   InvTypeCode  = same as RoomTypeCode
  */
+import { type IgnoredRate, summarizeIgnoredRates } from "./rate_ignore.ts";
 import { maybeForward } from "../_shared/migrationForward.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { updateOrderWithContext } from "../_shared/orderContext.ts";
@@ -297,7 +298,7 @@ async function logCm(
   echoToken: string,
   request: string,
   response: string,
-  status: "success" | "error",
+  status: "success" | "error" | "ignored" | "partial",
   errorMessage?: string,
 ) {
   try {
@@ -619,7 +620,7 @@ async function handleAvailNotifRQ(supabase: any, xml: string, echo: string, over
   return resp;
 }
 
-async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
+export async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string, override?: AuthOverride): Promise<Response> {
   const hotelCode = attrFirst(xml, "RateAmountMessages", "HotelCode");
   const auth = await authenticate(supabase, xml, hotelCode, override);
   if (!auth.ok) return errorResponse("OTA_HotelRateAmountNotifRS", echo, auth.msg);
@@ -672,16 +673,22 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
   // available_rooms / is_available as NULL (column is now nullable),
   // so price-only writes never make the day look sold-out.
   const inventoryRows: { room_type_id: string; date: string; pricing_template_id: string | null; price: number }[] = [];
+  const ignored: IgnoredRate[] = [];
   for (const p of parsed) {
     const room = roomMap.get(p.invCode);
     if (!room) {
-      const r = errorResponse("OTA_HotelRateAmountNotifRS", echo, `RoomType ${p.invCode} not found`);
-      await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await r.clone().text(), "error");
-      return r;
+      // 房型對不到：只略過這一筆，同一則訊息其他房型照常處理
+      for (const rt of p.rates) ignored.push({ reason: "room_not_found", invCode: p.invCode, roomTypeId: null, ratePlanCode: p.ratePlanCode, ...rt });
+      continue;
     }
     if (excludedRoomTypeIds.has(room.id)) continue;
 
     const plan = p.ratePlanCode ? planMap.get(p.ratePlanCode) : null;
+    // 方案型費率不寫入房型基底列（多個方案會在同一天互相覆寫）；專案型與找不到方案代碼的費率維持原行為
+    if (plan && plan.kind === "package") {
+      for (const rt of p.rates) ignored.push({ reason: "package_plan", invCode: p.invCode, roomTypeId: room.id, ratePlanCode: p.ratePlanCode, ...rt });
+      continue;
+    }
     // Only template plans get a pricing_template_id — package plans write on
     // the base inventory row (pricing_template_id = null). Unknown codes are
     // tolerated (matchTemplateId = null) to preserve current forgiving behavior.
@@ -715,6 +722,11 @@ async function handleRateAmountNotifRQ(supabase: any, xml: string, echo: string,
 
   const resp = successResponse("OTA_HotelRateAmountNotifRS", echo);
   await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo, xml, await resp.clone().text(), "success");
+  if (ignored.length > 0) {
+    // 同一則訊息的略過費率合併成一筆紀錄
+    await logCm(supabase, "inbound", "OTA_HotelRateAmountNotifRQ", auth.hotelCode!, auth.accommodationId!, echo,
+      `(原始訊息見同 echo_token 的 success 紀錄)`, "", "ignored", summarizeIgnoredRates(ignored));
+  }
   return resp;
 }
 
