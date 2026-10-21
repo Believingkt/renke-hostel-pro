@@ -1,6 +1,8 @@
 -- 20261107090000 precheck（唯讀，套用 migration 前在正式庫執行）
--- P1 網紅碼：正常＝3 列（AMILE77、KWYTMIO、MIE20），每列 is_active = true、discount_type = percentage、discount_value = 30、tpl_count = 9
-SELECT d.id, d.code, d.is_active, d.discount_type, d.discount_value, d.valid_from, d.valid_until, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') ORDER BY d.code;
+-- P1 四季網紅碼（依 id＋四季館別）：正常＝3 列，id／code 對應為 01d44c1b…＝AMILE77、51f3773b…＝KWYTMIO、e9b940f2…＝MIE20，每列 is_active = true、discount_type = percentage、discount_value = 30、tpl_count = 9
+SELECT d.id, d.accommodation_id, d.code, d.is_active, d.discount_type, d.discount_value, d.valid_from, d.valid_until, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY d.code;
+-- P1b 別館同名碼（參考，不判斷）：列出 accommodation_id 不是四季的同名碼；請保留 row_md5，套用後 postcheck Q3b、rollback 後驗證都必須逐列完全相同
+SELECT d.id, d.accommodation_id, d.code, d.discount_type, d.discount_value, md5(to_jsonb(d)::text) AS row_md5 FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') AND d.accommodation_id IS DISTINCT FROM 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY d.id;
 -- P2 四季 flags：正常＝0 列
 SELECT * FROM public.accommodation_info_flags f WHERE f.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
 -- P3 四季方案：正常＝只有 1 列 id 90df31ce-c89a-4f73-b5e1-62db8276f2f2（24人包棟、numeric_code 1001、enabled true、sale_price 46300、original_price 61800）

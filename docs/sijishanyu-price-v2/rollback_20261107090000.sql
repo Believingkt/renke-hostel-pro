@@ -41,7 +41,7 @@ FROM public.sijishanyu_price_v2_backup_20261107 b WHERE b.kind = 'template' AND 
 
 UPDATE public.discount_codes d
 SET applicable_pricing_template_ids = b.data->'applicable_pricing_template_ids'
-FROM public.sijishanyu_price_v2_backup_20261107 b WHERE b.kind = 'discount_code' AND d.id = b.ref_id;
+FROM public.sijishanyu_price_v2_backup_20261107 b WHERE b.kind = 'discount_code' AND d.id = b.ref_id AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
 
 DELETE FROM public.accommodation_info_flags f WHERE f.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
 DROP TABLE public.sijishanyu_price_v2_backup_20261107;
@@ -49,8 +49,10 @@ COMMIT;
 
 -- 驗證（唯讀）：正常＝flags_rows 0、packages 1、enabled_packages 1、templates 13、linked 0、backup_exists false
 SELECT (SELECT count(*) FROM public.accommodation_info_flags f WHERE f.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822') AS flags_rows, (SELECT count(*) FROM public.accommodation_packages p WHERE p.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822') AS packages, (SELECT count(*) FROM public.accommodation_packages p WHERE p.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' AND p.enabled) AS enabled_packages, (SELECT count(*) FROM public.pricing_templates t WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822') AS templates, (SELECT count(*) FROM public.pricing_templates t WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' AND t.default_package_id IS NOT NULL) AS linked, to_regclass('public.sijishanyu_price_v2_backup_20261107') IS NOT NULL AS backup_exists;
--- 驗證（唯讀）：正常＝3 列，tpl_count 都是 9
-SELECT d.code, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') ORDER BY 1;
+-- 驗證（唯讀）：四季網紅碼正常＝3 列，tpl_count 都是 9
+SELECT d.id, d.code, jsonb_array_length(d.applicable_pricing_template_ids) AS tpl_count FROM public.discount_codes d WHERE d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY d.code;
+-- 驗證（唯讀）：別館同名碼正常＝與 precheck P1b 逐列完全相同（row_md5 一樣）
+SELECT d.id, d.accommodation_id, d.code, d.discount_type, d.discount_value, md5(to_jsonb(d)::text) AS row_md5 FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') AND d.accommodation_id IS DISTINCT FROM 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' ORDER BY d.id;
 -- 驗證（唯讀）：正常＝1 列 24人包棟 enabled true、sale_price 46300、original_price 61800
 SELECT p.name, p.enabled, p.sale_price, p.original_price, p.tier_prices FROM public.accommodation_packages p WHERE p.id = '90df31ce-c89a-4f73-b5e1-62db8276f2f2';
 -- 驗證（唯讀）：正常＝4 列、default_package_id 全 NULL、row_md5 與 precheck P11 逐列完全相同（若上線後有人在後台改過單間專案，md5 會不同，那是保留了該修改，屬正常）

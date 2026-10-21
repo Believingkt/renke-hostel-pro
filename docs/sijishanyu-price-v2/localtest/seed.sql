@@ -25,10 +25,16 @@ INSERT INTO public.pricing_templates (id, accommodation_id, template_name, proje
   ('cd0731d2-ef07-4d80-a479-feada2bac996', 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', '20人包棟', NULL, 1111, '{69e8fa0f-27b4-4259-b3dd-8525d61e014c}', NULL, 37000, 41000, 51000, 37000, 11, NULL, '[]'),
   ('94175b8f-a64f-4e6a-9a1b-c5facd7adabe', 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', '22人包棟', NULL, 1112, '{69e8fa0f-27b4-4259-b3dd-8525d61e014c}', NULL, 41000, 45000, 56000, 41000, 12, NULL, '[]'),
   ('d2d13d7e-8729-421a-9002-61c7a3e71717', 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', '24人包棟', '24人包棟專案', 1113, '{69e8fa0f-27b4-4259-b3dd-8525d61e014c}', '69e8fa0f-27b4-4259-b3dd-8525d61e014c', 46300, 51400, 64300, 46300, 13, '[{"name":"烤肉","price":300}]', '["2026-12-31"]');
-INSERT INTO public.discount_codes (accommodation_id, code, is_active, discount_type, discount_value, applicable_pricing_template_ids)
-SELECT 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', c, true, 'percentage', 30,
+INSERT INTO public.discount_codes (id, accommodation_id, code, is_active, discount_type, discount_value, applicable_pricing_template_ids)
+SELECT c.id::uuid, 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', c.code, true, 'percentage', 30,
   '["6f9a4ce1-dbab-4fae-91de-61b81e9957bd","4c9ec03d-262c-4afc-97b9-bb75e3d373f9","edc56e89-c1ed-4b46-8427-ff16b56e2ea7","77ba5b4e-ebd2-48c9-85f8-ad8e1b34ba7b","6dd4685a-3e2e-4485-bae8-1a5a5afea232","329ddcfa-bcca-4279-a40b-f283f44fa0ad","cd0731d2-ef07-4d80-a479-feada2bac996","94175b8f-a64f-4e6a-9a1b-c5facd7adabe","d2d13d7e-8729-421a-9002-61c7a3e71717"]'
-FROM unnest(ARRAY['AMILE77', 'KWYTMIO', 'MIE20']) c;
+FROM (VALUES ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', 'AMILE77'), ('51f3773b-72b1-4672-a3ed-b084308152e9', 'KWYTMIO'), ('e9b940f2-4aaa-4d70-8bee-b134ea235e43', 'MIE20')) c(id, code);
+-- 別館同名碼（正式庫 AMILE77 共 4 筆，其中一筆 35%）：套用與 rollback 都不得變動
+INSERT INTO public.accommodation_info VALUES ('11111111-1111-4111-8111-111111111111', '別館甲'), ('22222222-2222-4222-8222-222222222222', '別館乙');
+INSERT INTO public.discount_codes (id, accommodation_id, code, is_active, discount_type, discount_value, applicable_pricing_template_ids) VALUES
+  ('aaaaaaaa-0000-4000-8000-000000000001', '7690a606-6bac-4cd5-a3e7-2fa754b318e8', 'AMILE77', true, 'percentage', 30, '["33333333-3333-4333-8333-333333333333"]'),
+  ('aaaaaaaa-0000-4000-8000-000000000002', '11111111-1111-4111-8111-111111111111', 'AMILE77', true, 'percentage', 35, '[]'),
+  ('aaaaaaaa-0000-4000-8000-000000000003', '22222222-2222-4222-8222-222222222222', 'AMILE77', true, 'percentage', 30, '["44444444-4444-4444-8444-444444444444","55555555-5555-4555-8555-555555555555"]');
 INSERT INTO public.orders (order_number, accommodation_id, order_source, final_price, pricing_template_id, package_id, check_in_date, order_status, updated_at)
 SELECT n, 'a4bacadc-9b7a-4110-ac04-a1cc6248c822', 'kol', 0, '77ba5b4e-ebd2-48c9-85f8-ad8e1b34ba7b', NULL, CURRENT_DATE + 30, 'confirmed', '2026-05-01T00:00:00Z'
 FROM unnest(ARRAY['DM3A89R8', 'QW9M94K4', 'NE6Y99A5']) n;

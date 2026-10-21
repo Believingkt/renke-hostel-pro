@@ -7,6 +7,7 @@
 --      4 個單間專案（a247bcaf、7a6e0125、a32485b3、7195c9b1）完全不動，也不備份、rollback 不碰
 --   4) 專案價格依 package_original 規則同步成方案原價（與 save_package_tier_prices 相同）
 --   5) 網紅碼 AMILE77、KWYTMIO、MIE20 的適用專案加入 26、28、30人包棟新專案
+--      一律以四季的 3 個 id（01d44c1b、51f3773b、e9b940f2）＋ accommodation_id 鎖定；別館同名碼不讀不寫
 -- 備份：public.sijishanyu_price_v2_backup_20261107（rollback 用）
 BEGIN;
 SET LOCAL lock_timeout = '3s';
@@ -84,11 +85,13 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO v_n FROM public.discount_codes d
-  WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') AND d.is_active
+  WHERE d.accommodation_id = c_acc
+    AND (d.id, d.code) IN (('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe'::uuid, 'AMILE77'), ('51f3773b-72b1-4672-a3ed-b084308152e9'::uuid, 'KWYTMIO'), ('e9b940f2-4aaa-4d70-8bee-b134ea235e43'::uuid, 'MIE20'))
+    AND d.is_active
     AND d.discount_type = 'percentage' AND d.discount_value = 30
     AND (SELECT array_agg(e ORDER BY e) FROM jsonb_array_elements_text(d.applicable_pricing_template_ids) e) = c_nine;
   IF v_n <> 3 THEN
-    RAISE EXCEPTION 'PRECHECK 失敗：網紅碼 3 個皆須啟用、percentage、30（七折）、適用 9 個包棟專案，相符的只有 % 個', v_n;
+    RAISE EXCEPTION 'PRECHECK 失敗：四季網紅碼 3 個（依 id＋四季館別）皆須啟用、percentage、30（七折）、適用 9 個包棟專案，相符的只有 % 個', v_n;
   END IF;
 
   IF EXISTS (SELECT 1 FROM public.package_date_prices d JOIN public.accommodation_packages p ON p.id = d.package_id WHERE p.accommodation_id = c_acc AND d.date >= CURRENT_DATE) THEN
@@ -123,9 +126,15 @@ SELECT 'package', p.id, to_jsonb(p) FROM public.accommodation_packages p WHERE p
 UNION ALL
 SELECT 'template', t.id, to_jsonb(t) FROM public.pricing_templates t JOIN sj_plan s ON s.template_id = t.id AND s.is_whole WHERE t.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822'
 UNION ALL
-SELECT 'discount_code', d.id, jsonb_build_object('code', d.code, 'applicable_pricing_template_ids', d.applicable_pricing_template_ids) FROM public.discount_codes d WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20')
+SELECT 'discount_code', d.id, jsonb_build_object('code', d.code, 'applicable_pricing_template_ids', d.applicable_pricing_template_ids) FROM public.discount_codes d WHERE d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822'
 UNION ALL
 SELECT 'kol_order', o.id, to_jsonb(o) FROM public.orders o WHERE o.order_number IN ('DM3A89R8', 'QW9M94K4', 'NE6Y99A5');
+
+-- 別館同名網紅碼套用前快照（只在本交易內比對：證明完全沒動）
+CREATE TEMP TABLE sj_other_codes ON COMMIT DROP AS
+SELECT d.id, to_jsonb(d) AS data FROM public.discount_codes d
+WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20')
+  AND NOT (d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822');
 
 -- 單間專案套用前快照（只在本交易內比對，不存備份表）
 CREATE TEMP TABLE sj_single_tpl ON COMMIT DROP AS
@@ -207,7 +216,7 @@ WHERE t.id = s.template_id AND s.is_whole;
 UPDATE public.discount_codes d
 SET applicable_pricing_template_ids = d.applicable_pricing_template_ids
       || (SELECT jsonb_agg(s.template_id::text ORDER BY s.max_guests) FROM sj_plan s WHERE s.max_guests IN (26, 28, 30))
-WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20');
+WHERE d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822';
 
 -- ============================= POSTCHECK =============================
 DO $post$
@@ -250,8 +259,14 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO v_n FROM public.discount_codes d
-  WHERE d.code IN ('AMILE77', 'KWYTMIO', 'MIE20') AND jsonb_array_length(d.applicable_pricing_template_ids) = 12;
-  IF v_n <> 3 THEN RAISE EXCEPTION 'POSTCHECK 失敗：網紅碼適用專案不是 12 個（相符 %）', v_n; END IF;
+  WHERE d.id IN ('01d44c1b-ad74-42e4-b1ba-3c39f6fdc6fe', '51f3773b-72b1-4672-a3ed-b084308152e9', 'e9b940f2-4aaa-4d70-8bee-b134ea235e43') AND d.accommodation_id = 'a4bacadc-9b7a-4110-ac04-a1cc6248c822' AND jsonb_array_length(d.applicable_pricing_template_ids) = 12;
+  IF v_n <> 3 THEN RAISE EXCEPTION 'POSTCHECK 失敗：四季網紅碼適用專案不是 12 個（相符 %）', v_n; END IF;
+  IF (SELECT count(*) FROM public.sijishanyu_price_v2_backup_20261107 b WHERE b.kind = 'discount_code') <> 3 THEN
+    RAISE EXCEPTION 'POSTCHECK 失敗：網紅碼備份不是 3 筆';
+  END IF;
+  IF EXISTS (SELECT 1 FROM sj_other_codes o LEFT JOIN public.discount_codes d ON d.id = o.id WHERE d.id IS NULL OR to_jsonb(d) <> o.data) THEN
+    RAISE EXCEPTION 'POSTCHECK 失敗：別館同名網紅碼被改動';
+  END IF;
 
   SELECT count(*) INTO v_n FROM public.orders o JOIN public.sijishanyu_price_v2_backup_20261107 b ON b.kind = 'kol_order' AND b.ref_id = o.id
   WHERE to_jsonb(o) = b.data;
