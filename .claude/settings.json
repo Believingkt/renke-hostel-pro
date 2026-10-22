@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(yarn install*)",
+      "Bash(yarn dev:booking*)",
+      "Bash(yarn build:apps*)",
+      "Bash(yarn build:booking*)",
+      "Bash(yarn test*)",
+      "Bash(yarn typecheck*)",
+      "Bash(yarn workspace *)",
+      "Bash(npx vite*)",
+      "Bash(npx vitest*)",
+      "Bash(npx tsc*)",
+      "Bash(npx playwright*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout -b claude/*)",
+      "Bash(git switch -c claude/*)",
+      "Bash(git push origin claude/*)",
+      "Bash(git push -u origin claude/*)"
+    ],
+    "deny": [
+      "Bash(git push origin main*)",
+      "Bash(git push * main*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(supabase db push*)",
+      "Bash(supabase functions deploy*)",
+      "Read(./.env.local)",
+      "Read(./scripts/migration/migration.env)"
+    ]
+  }
+}

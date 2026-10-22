@@ -24,7 +24,8 @@ export default defineConfig(({ mode }) => {
   return {
     envDir,
     server: {
-      host: "::",
+      // 預設 "::"（Emergent / 本機行為不變）；雲端 VM 不支援 IPv6 監聽時以 VITE_DEV_HOST=0.0.0.0 覆寫
+      host: process.env.VITE_DEV_HOST || "::",
       port: 8081,
     },
     define: {
