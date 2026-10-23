@@ -46,8 +46,12 @@ export function PayuniStatusCard({ accommodationId }: { accommodationId: string 
         body: { action: "query", accommodation_id: accommodationId },
       });
       if (error) throw new Error((await parseFunctionInvokeError(error)).message);
-      if (!data?.ok) toast.error(`查詢失敗：${data?.message ?? data?.status ?? ""}`);
-      if (data?.provider_changed) toast.warning("商店目前非啟用狀態，線上收款已暫停（金流切回 none），請聯繫人客多總部");
+      if (data?.ok) {
+        if (data.provider_changed) toast.warning("商店目前非啟用狀態，線上收款已暫停（金流切回 none），請聯繫人客多總部");
+      } else {
+        const detail = [data?.status, data?.message].filter(Boolean).join(" ");
+        toast.error(`查詢失敗：${detail || "PAYUNi 回傳格式無法解析"}`);
+      }
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "查詢失敗");

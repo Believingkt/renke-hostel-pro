@@ -125,4 +125,29 @@ describe("HQ「PAYUNi 金流」分頁", () => {
     await waitFor(() => expect(h.toastWarning).toHaveBeenCalledWith("測試館C 商店已非啟用，金流已自動由 payuni 切回 none"));
     expect(h.invoke).toHaveBeenCalledWith("payuni-merchant-status", { body: { action: "query", accommodation_id: "c1" } });
   });
+  const queryReply = (data: Record<string, unknown>) => async (_fn: string, { body }: any) =>
+    body.action === "list_reasons" ? { data: { ok: true, reasons: {} }, error: null } : { data, error: null };
+
+  it("重新查詢失敗：status／message 皆空 → 顯示「PAYUNi 回傳格式無法解析」", async () => {
+    h.invoke.mockImplementation(queryReply({ ok: false, status: "", message: null }));
+    render(<PayuniMerchantManagement />);
+    fireEvent.click(await screen.findByTestId("payuni-refresh-c1"));
+    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith("查詢失敗：PAYUNi 回傳格式無法解析"));
+  });
+
+  it("重新查詢失敗：有 status／message → 顯示兩者", async () => {
+    h.invoke.mockImplementation(queryReply({ ok: false, status: "TEST_ERR", message: "查無商店" }));
+    render(<PayuniMerchantManagement />);
+    fireEvent.click(await screen.findByTestId("payuni-refresh-c1"));
+    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith("查詢失敗：TEST_ERR 查無商店"));
+  });
+
+  it("重新查詢成功：只跳成功提示，不跳查詢失敗", async () => {
+    h.toastSuccess.mockReset();
+    h.invoke.mockImplementation(queryReply({ ok: true, payuni_mer_status: 1, provider_changed: false }));
+    render(<PayuniMerchantManagement />);
+    fireEvent.click(await screen.findByTestId("payuni-refresh-c1"));
+    await waitFor(() => expect(h.toastSuccess).toHaveBeenCalledWith("測試館C：啟用"));
+    expect(h.toastError).not.toHaveBeenCalled();
+  });
 });

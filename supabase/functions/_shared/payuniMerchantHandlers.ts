@@ -207,10 +207,23 @@ export async function handleStatus(deps: MerchantDeps, body: any): Promise<Handl
   const r = await deps.callPayuni({
     kind: "agent", path: "/api/agent/search_merchant_status", version: "1.0", payload: { MerID: acc.payuni_mer_id },
   });
-  if (!r.ok || !r.data) return res(200, { ok: false, status: r.status, message: r.message ?? null });
+  // 文件 #/9/138：外層只有 AgentID／MerID／Version／EncryptInfo／HashInfo，Status、Message 在 EncryptInfo 內
+  const status = r.status || String(r.data?.Status ?? "");
+  const message = r.message ?? (r.data?.Message != null ? String(r.data.Message) : undefined);
+  const merStatus = parseStatus(r.data?.MerStatus);
+  if (status !== "SUCCESS" || !r.data || merStatus === null) {
+    const outerKeys = r.raw && typeof r.raw === "object" ? Object.keys(r.raw as Record<string, unknown>).join(",") : typeof r.raw;
+    console.error(`[payuni-merchant-status] query failed mer=${acc.payuni_mer_id} outerKeys=${outerKeys} status=${status || "-"} message=${message ?? "-"}`);
+    const unparsed = !status && !message;
+    return res(200, {
+      ok: false,
+      status: unparsed ? "UNPARSEABLE" : status,
+      message: unparsed ? "PAYUNi 回傳格式無法解析" : status === "SUCCESS" ? "PAYUNi 回傳缺少商店狀態" : (message ?? null),
+    });
+  }
 
   const synced = {
-    payuni_mer_status: parseStatus(r.data.MerStatus),
+    payuni_mer_status: merStatus,
     payuni_member_status: parseStatus(r.data.MemberStatus),
     payuni_payment_tools: extractPaymentTools(r.data),
     payuni_status_synced_at: nowIso(),
