@@ -5,7 +5,8 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 const h = vi.hoisted(() => ({ row: null as any, strict: true, invoke: vi.fn() }));
 
 const warn = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: warn } }));
+const err = vi.hoisted(() => vi.fn());
+vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: err, warning: warn } }));
 vi.mock("@lakeze/shared/hooks/use-staff-permissions", () => ({ useStaffPermissions: () => ({ isStrictAdmin: h.strict }) }));
 vi.mock("@lakeze/shared/integrations/supabase/client", () => ({
   supabase: {
@@ -20,6 +21,7 @@ describe("PMS「線上收款（PAYUNi）」狀態卡", () => {
   beforeEach(() => {
     h.strict = true;
     h.invoke.mockReset();
+    err.mockReset();
     h.invoke.mockResolvedValue({ data: { ok: true }, error: null });
   });
 
@@ -49,5 +51,29 @@ describe("PMS「線上收款（PAYUNi）」狀態卡", () => {
     render(<PayuniStatusCard accommodationId="acc-1" />);
     expect((await screen.findByTestId("payuni-status-card-status")).textContent).toBe("審核中");
     expect(screen.queryByTestId("payuni-status-card-refresh")).toBeNull();
+  });
+  const clickRefresh = async (data: Record<string, unknown>) => {
+    h.row = { payuni_mer_id: "TEST0001", payuni_mer_status: 9, payuni_payment_tools: {} };
+    h.invoke.mockResolvedValue({ data, error: null });
+    render(<PayuniStatusCard accommodationId="acc-1" />);
+    fireEvent.click(await screen.findByTestId("payuni-status-card-refresh"));
+    await waitFor(() => expect(h.invoke).toHaveBeenCalled());
+  };
+
+  it("重新查詢失敗：status／message 皆空 → 顯示「PAYUNi 回傳格式無法解析」", async () => {
+    await clickRefresh({ ok: false, status: "", message: null });
+    await waitFor(() => expect(err).toHaveBeenCalledWith("查詢失敗：PAYUNi 回傳格式無法解析"));
+  });
+
+  it("重新查詢失敗：有 status／message → 顯示兩者", async () => {
+    await clickRefresh({ ok: false, status: "TEST_ERR", message: "查無商店" });
+    await waitFor(() => expect(err).toHaveBeenCalledWith("查詢失敗：TEST_ERR 查無商店"));
+  });
+
+  it("重新查詢成功：不跳查詢失敗", async () => {
+    await clickRefresh({ ok: true, payuni_mer_status: 1, provider_changed: false });
+    await waitFor(() => expect(h.invoke).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(err).not.toHaveBeenCalled();
   });
 });
