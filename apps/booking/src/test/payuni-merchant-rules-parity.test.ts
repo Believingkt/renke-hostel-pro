@@ -47,6 +47,10 @@ describe("PAYUNi 建店規則：前端副本與後端 _shared/payuniMerchant.ts 
     for (const u of ["A123456789", "12345678", "A12*****89", ""]) expect(front.maskUbnForStorage(u)).toBe(back.maskUbnForStorage(u));
     for (const [s, p] of [[99, "payuni"], [1, "payuni"], [null, "payuni"], [99, "tappay"], [9, "none"]] as const)
       expect(front.shouldAutoDisablePayuni(s, p)).toBe(back.shouldAutoDisablePayuni(s, p));
+    expect(front.PAYUNI_DEFAULT_BACK_SETTING).toEqual(back.PAYUNI_DEFAULT_BACK_SETTING);
+    for (const v of [undefined, null, "", " ", "1", "2", 1, 2, "9"]) expect(front.isPayuniAtmRefundEnabled(v)).toBe(back.isPayuniAtmRefundEnabled(v));
+    for (const b of [null, {}, { BackSetATM: "2" }, { BackSetATM: "" }])
+      expect(front.payuniBackSettingValue(b, "BackSetATM")).toBe(back.payuniBackSettingValue(b, "BackSetATM"));
   });
 
   it("前端已擋下驗收第 3 項三種錯誤", () => {

@@ -11,6 +11,7 @@ import { handleTradeNotify, handleTradeQuery, type PayuniTradeDeps } from "./pay
 import { handlePayuniAdminCancel, handlePayuniMemberCancel, handlePayuniRefundApi, isPayuniOrder, type CancelDeps } from "./payuniRefundHandlers.ts";
 import { quoteOrderRefund, resolveRefundAmount } from "./refundQuote.ts";
 import { quoteCancellation } from "./cancellationPolicy.ts";
+import { isPayuniAtmRefundEnabled, PAYUNI_DEFAULT_BACK_SETTING, payuniBackSettingValue } from "./payuniMerchant.ts";
 
 const NOW = Date.parse("2026-11-01T10:00:00Z");
 const DAY = 86_400_000;
@@ -100,7 +101,9 @@ Deno.test("判斷：未請款全退→取消授權；部分→暫緩；已請款
   assertEquals(decideRefundAction(atm, { RefundStatus: "9" }, 10, 6000, "1", NOW).type, "pending");
   assertEquals(decideRefundAction(atm, {}, 10, 6000, "1", NOW).type, "offline_refund");
   assertEquals(decideRefundAction(atm, {}, 10, 6000, "2", NOW).type, "manual");
-  assertEquals(decideRefundAction(atm, {}, 10, 6000, null, NOW).type, "manual");
+  // 未收到 BackSetting Notify（null／空字串）→ 採代理商合作商店初始值＝啟用；只有明確 "2" 才人工
+  assertEquals(decideRefundAction(atm, {}, 10, 6000, null, NOW).type, "offline_refund");
+  assertEquals(decideRefundAction(atm, {}, 10, 6000, "", NOW).type, "offline_refund");
   assertEquals(decideRefundAction(charge({ notified_at: ago(181) }), { CloseStatus: "2" }, 10, 6000, null, NOW).type, "manual");
   assertEquals(decideRefundAction(charge({ notified_at: ago(179) }), { CloseStatus: "2" }, 10, 6000, null, NOW).type, "close_refund");
 });
@@ -212,6 +215,57 @@ Deno.test("ATM：BackSetUnCreditRefund=2 → 不呼叫 PAYUNi 退款、人工退
   assertEquals(refunds(db)[0].raw_response.action, "manual");
   assertEquals(db.rows("orders")[0].refund_status, "pending_manual");
   assertEquals(db.rows("notifications")[0].title, "PAYUNi 退款需人工處理");
+});
+
+Deno.test("BackSetting 預設：未收到 Notify → 採合作商店初始值（啟用）；只有明確 \"2\" 才關閉", () => {
+  assertEquals(PAYUNI_DEFAULT_BACK_SETTING, { BackSetUnCreditRefund: "1", BackSetATM: "1", BackSetIframe: "1" });
+  for (const v of [undefined, null, "", " ", "1", 1]) assertEquals(isPayuniAtmRefundEnabled(v), true, String(v));
+  for (const v of ["2", 2, " 2 "]) assertEquals(isPayuniAtmRefundEnabled(v), false, String(v));
+  assertEquals(payuniBackSettingValue(null, "BackSetIframe"), "1");
+  assertEquals(payuniBackSettingValue({ BackSetIframe: "2" }, "BackSetIframe"), "2");
+});
+
+Deno.test("後台取消 quote：needsBankAccount 依 BackSetUnCreditRefund — 無 backSetting／無 private 列 → true；\"1\" → true；\"2\" → false", async () => {
+  const atmOrder = order({ payment_method: "atm_payuni" });
+  const cases: Array<[string, Record<string, any[]>, boolean]> = [
+    ["無 backSetting", atmTables(null), true],
+    ["無 accommodation_payuni_private 列", { ...atmTables(null), accommodation_payuni_private: [] }, true],
+    ["BackSetting 只送了其他欄位", { ...atmTables(null), accommodation_payuni_private: [{ accommodation_id: ACC, payuni_settings: { backSetting: { BackSetATM: "1" } } }] }, true],
+    ["BackSetUnCreditRefund=1", atmTables("1"), true],
+    ["BackSetUnCreditRefund=2", atmTables("2"), false],
+  ];
+  for (const [label, tables, expected] of cases) {
+    const s = setup(tables, { "LL8Y46U8-P1": { TradeStatus: "1" } });
+    const q = await handlePayuniAdminCancel(s.deps, atmOrder, { mode: "quote" }, "admin@x");
+    assertEquals([(q.body.payuni as any).needsBankAccount, (q.body.payuni as any).atmAutoRefund], [expected, expected], label);
+    const api = await handlePayuniRefundApi(s.deps, { action: "quote", order_id: ORD }, { role: "admin", canAccess: () => Promise.resolve(true) } as any);
+    assertEquals([api.status, api.body.needsBankAccount], [200, expected], `${label}（payuni-refund quote）`);
+  }
+});
+
+Deno.test("ATM：無 backSetting → 取消並由 PAYUNi 轉匯退款：無帳戶 400 needsBankAccount；有帳戶 → offline/refund、退款列 pending、訂單取消", async () => {
+  const s = setup(atmTables(null), { "LL8Y46U8-P1": { TradeStatus: "1" } });
+  const atmOrder = order({ payment_method: "atm_payuni" });
+  const no = await handlePayuniAdminCancel(s.deps, atmOrder, { refundAction: "auto_refund" }, "admin@x");
+  assertEquals([no.status, no.body.needsBankAccount], [400, true]);
+  assertEquals(s.db.rows("orders")[0].order_status, "confirmed");
+  const ok = await handlePayuniAdminCancel(s.deps, atmOrder, { refundAction: "auto_refund", bankAccount: ACCT }, "admin@x");
+  assertEquals(ok.body.success, true);
+  assertEquals(s.calls.filter((c) => c.path === "/api/trade/offline/refund").length, 1);
+  assertEquals([refunds(s.db)[0].status, refunds(s.db)[0].raw_response.action], ["pending", "offline_refund"]);
+  assertEquals(s.db.rows("orders")[0].order_status, "cancelled");
+});
+
+Deno.test("ATM：offline/refund 回錯誤（例如商店實際未啟用轉匯）→ 回可讀訊息、退款列 failed、訂單不取消、不寄取消信", async () => {
+  const s = setup(atmTables(null), { "LL8Y46U8-P1": { TradeStatus: "1" } },
+    (c) => c.path === "/api/trade/offline/refund" ? { ok: false, status: "REFUND01", message: "商店未啟用退款轉匯", raw: {} } : { ok: true, status: "SUCCESS", data: {}, raw: {} });
+  const r = await handlePayuniAdminCancel(s.deps, order({ payment_method: "atm_payuni" }), { refundAction: "auto_refund", bankAccount: ACCT }, "admin@x");
+  assertEquals(r.body.success, false);
+  assertEquals(r.body.message, "PAYUNi 退款失敗，訂單未取消：PAYUNi 回覆 REFUND01：商店未啟用退款轉匯");
+  assertEquals(refunds(s.db)[0].status, "failed");
+  assertEquals(s.db.rows("orders")[0].order_status, "confirmed");
+  assertEquals(rpcPatches(s.db).map((c) => c.args.p_source), ["payuni_refund"]);
+  assertEquals(s.fx.emails.length, 0);
 });
 
 const atmNotify = (deps: PayuniTradeDeps, d: Record<string, string>) =>
