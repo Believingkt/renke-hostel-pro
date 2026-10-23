@@ -188,6 +188,29 @@ Deno.test("ATM 錯帳（NewMerTradeNo）／金額不符 → 交易與訂單不�
   }
 });
 
+Deno.test("ATM NewMerTradeNo 為 \"-\"／空字串／空白／等於本筆 MerTradeNo → 不算錯帳，正常入帳、訂單確認", async () => {
+  for (const n of ["-", "", "  ", " - ", "LL8Y46U8-D1"]) {
+    const { db, deps, fx } = setup({ ...base(), orders: [order()], payment_transactions: [atmTx()] });
+    await notify(deps, { ...ATM_PAID, NewMerTradeNo: n, PayBank: "812", Account5No: "54321" });
+    const t = db.rows("payment_transactions")[0];
+    assertEquals([t.status, t.raw_response.anomaly ?? null, t.raw_response.account5], ["paid", null, "54321"], `NewMerTradeNo=${JSON.stringify(n)}`);
+    const o = db.rows("orders")[0];
+    assertEquals([o.payment_status, o.paid_amount, o.order_status], ["deposit_paid", 3600, "confirmed"]);
+    assertEquals([fx.alerts.length, fx.atm], [0, ["deposit:3600"]]);
+    const ev = db.rows("payuni_notify_events")[0];
+    assertEquals([ev.processed, ev.process_error], [true, null]);
+  }
+});
+
+Deno.test("trade-query（query／sweep／reconcile 共用 applyPayuniTradeResult）：NewMerTradeNo=\"-\" 正常入帳；真的另一編號仍判錯帳", async () => {
+  const { applyPayuniTradeResult, isAtmMisTransfer } = await import("./payuniTrade.ts");
+  const tx = { mer_trade_no: "LL8Y46U8-D1" };
+  assertEquals([isAtmMisTransfer({ NewMerTradeNo: "-" }, tx), isAtmMisTransfer({}, tx), isAtmMisTransfer({ NewMerTradeNo: "LL8Y46U8-D1-1" }, tx)], [false, false, true]);
+  const { db, deps } = setup({ ...base(), orders: [order()], payment_transactions: [atmTx()] });
+  const r = await applyPayuniTradeResult(deps, db.rows("payment_transactions")[0] as any, { ...ATM_PAID, NewMerTradeNo: "-", Status: "SUCCESS" });
+  assertEquals([r.status, r.error ?? null, db.rows("orders")[0].payment_status], ["paid", null, "deposit_paid"]);
+});
+
 Deno.test("付款期限到期通知（TradeStatus=4）→ 交易 expired、訂單不取消", async () => {
   const { db, deps } = setup({ ...base(), payment_transactions: [atmTx()] });
   await notify(deps, { MerID: "TEST0001", MerTradeNo: "LL8Y46U8-D1", TradeNo: "PN-ATM1", TradeStatus: "4", PayNo: "96880012345678" });

@@ -137,6 +137,13 @@ export async function updateTx(admin: any, id: string, values: Record<string, un
   if (error) throw new Error(`payment_transactions update failed: ${error.message}`);
 }
 
+/** ATM 錯帳：NewMerTradeNo 是另一個訂單編號才算；空字串、空白、"-"（PAYUNi 表示無錯帳）或等於本筆 MerTradeNo 都不算 */
+export function isAtmMisTransfer(data: Record<string, string>, tx: Pick<TxRow, "mer_trade_no">): boolean {
+  const n = String(data.NewMerTradeNo ?? "").trim();
+  if (!n || n === "-") return false;
+  return n !== String(data.MerTradeNo ?? tx.mer_trade_no ?? "").trim();
+}
+
 /** 依 PAYUNi 交易結果（TradeStatus）更新交易列與訂單；已 paid 的交易不重做任何事 */
 export async function applyPayuniTradeResult(
   deps: TradeDeps, tx: TxRow, data: Record<string, string>,
@@ -158,7 +165,7 @@ export async function applyPayuniTradeResult(
     return { status: tx.status, changed: false };
   }
   if (isAtm && ts === "1") {
-    const reason = data.NewMerTradeNo ? `NewMerTradeNo=${data.NewMerTradeNo}`
+    const reason = isAtmMisTransfer(data, tx) ? `NewMerTradeNo=${data.NewMerTradeNo}`
       : Number(data.TradeAmt) !== Number(tx.amount) ? `expected=${tx.amount} got=${data.TradeAmt}` : null;
     if (reason) return await flagAtmMismatch(deps, tx, raw, reason, data);
     raw.account5 = data.Account5No ? String(data.Account5No).slice(-5) : null;
