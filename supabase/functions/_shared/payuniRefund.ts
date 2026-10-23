@@ -4,6 +4,7 @@
 // deno-lint-ignore-file no-explicit-any
 import type { PayuniCall, PayuniResult } from "./payuni.ts";
 import { extractQueryResult } from "./payuniTrade.ts";
+import { isPayuniAtmRefundEnabled } from "./payuniMerchant.ts";
 
 export interface RefundDeps {
   admin: any;
@@ -91,9 +92,9 @@ export function decideRefundAction(
   const rs = String(q.RefundStatus ?? "");
   if (Number(tx.payment_type) === 2) {
     if (rs === ATM_REFUND_STATUS.TRANSFERRING) return { type: "pending", reason: "PAYUNi 轉匯中" };
-    return String(backSetUnCreditRefund ?? "") === "1"
+    return isPayuniAtmRefundEnabled(backSetUnCreditRefund)
       ? { type: "offline_refund" }
-      : { type: "manual", reason: "商店未啟用 ATM 自動退款（BackSetUnCreditRefund），請人工退款" };
+      : { type: "manual", reason: "商店已關閉 ATM 退款轉匯（BackSetUnCreditRefund=2），請人工退款" };
   }
   if (rs === CARD_REFUND_STATUS.APPLYING || rs === CARD_REFUND_STATUS.PROCESSING || String(q.RefundType ?? "") === CARD_REFUND_TYPE_ESTIMATED) {
     return { type: "pending", reason: "PAYUNi 另有退款處理中" };
@@ -161,6 +162,7 @@ export async function loadPayuniTxs(admin: any, orderId: string) {
   };
 }
 
+/** 原始值（可能為 null＝未收到 BackSetting Notify）；是否啟用由 isPayuniAtmRefundEnabled 判斷 */
 async function backSetUnCreditRefund(admin: any, accommodationId: string) {
   const { data } = await admin.from("accommodation_payuni_private").select("payuni_settings").eq("accommodation_id", accommodationId).maybeSingle();
   return data?.payuni_settings?.backSetting?.BackSetUnCreditRefund ?? null;

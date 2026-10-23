@@ -8,6 +8,7 @@ import {
   executePayuniRefund, loadPayuniTxs, maskAccountNo, refundTotals, resubmitBankAccount, validateBankAccount,
   type BankAccountInput, type ExecuteResult, type RefundDeps,
 } from "./payuniRefund.ts";
+import { isPayuniAtmRefundEnabled } from "./payuniMerchant.ts";
 
 export interface CancelDeps extends RefundDeps {
   sendCancelEmail: (body: Record<string, unknown>) => Promise<unknown>;
@@ -24,7 +25,7 @@ export function isPayuniOrder(o: { payment_method?: string | null; deposit_payme
 
 async function atmAutoEnabled(admin: any, accommodationId: string) {
   const { data } = await admin.from("accommodation_payuni_private").select("payuni_settings").eq("accommodation_id", accommodationId).maybeSingle();
-  return String(data?.payuni_settings?.backSetting?.BackSetUnCreditRefund ?? "") === "1";
+  return isPayuniAtmRefundEnabled(data?.payuni_settings?.backSetting?.BackSetUnCreditRefund);
 }
 
 /** 退款試算＋是否需要 ATM 退款帳戶（最後付款先退的那幾筆含 ATM 且商店啟用自動轉匯） */

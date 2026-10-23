@@ -28,6 +28,23 @@ export const PAYUNI_BACK_SETTING_KEYS = [
   "BackSetShipping", "BackSetApplePay", "BackSetGooglePay", "BackSetLinePay", "BackSetIframe",
 ] as const;
 
+/**
+ * 商店未收到代理商 Notify「BackSetting」時的預設值＝代理商後台「合作商店初始值」
+ * （非信用卡退款轉匯、ATM、iframe 皆啟用）。PAYUNi 只在設定「變更」時送 BackSetting，
+ * 建店時只送 MerPayment／MerStatus，所以新建商店的 payuni_settings 通常沒有 backSetting。
+ */
+export const PAYUNI_DEFAULT_BACK_SETTING = { BackSetUnCreditRefund: "1", BackSetATM: "1", BackSetIframe: "1" } as const;
+
+/** 讀 backSetting 某項：沒有值時採 PAYUNI_DEFAULT_BACK_SETTING */
+export function payuniBackSettingValue(back: Record<string, unknown> | null | undefined, key: keyof typeof PAYUNI_DEFAULT_BACK_SETTING): string {
+  const v = back?.[key];
+  return v == null || String(v).trim() === "" ? PAYUNI_DEFAULT_BACK_SETTING[key] : String(v).trim();
+}
+
+/** ATM 退款轉匯（BackSetUnCreditRefund）：只有明確為 "2" 才視為關閉 */
+export const isPayuniAtmRefundEnabled = (backSetUnCreditRefund: unknown) =>
+  payuniBackSettingValue({ BackSetUnCreditRefund: backSetUnCreditRefund }, "BackSetUnCreditRefund") !== "2";
+
 export interface PayuniBindForm {
   legal_name: string;
   ubn: string;
