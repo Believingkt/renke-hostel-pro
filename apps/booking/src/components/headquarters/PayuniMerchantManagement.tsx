@@ -83,9 +83,13 @@ export function PayuniMerchantManagement() {
     setBusyId(row.id);
     try {
       const r = await invokeStatus({ action: "query", accommodation_id: row.id });
-      if (r?.ok) toast.success(`${row.name}：${merStatusLabel(r.payuni_mer_status)}`);
-      if (r?.provider_changed) toast.warning(`${row.name} 商店已非啟用，金流已自動由 payuni 切回 none`);
-      else toast.error(`查詢失敗：${r?.status ?? ""} ${r?.message ?? ""}`);
+      if (r?.ok) {
+        toast.success(`${row.name}：${merStatusLabel(r.payuni_mer_status)}`);
+        if (r.provider_changed) toast.warning(`${row.name} 商店已非啟用，金流已自動由 payuni 切回 none`);
+      } else {
+        const detail = [r?.status, r?.message].filter(Boolean).join(" ");
+        toast.error(`查詢失敗：${detail || "PAYUNi 回傳格式無法解析"}`);
+      }
       await load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "查詢失敗");
